@@ -11,14 +11,6 @@ A modern iOS app to help students prepare for the National Olympiad of Artificia
 - **Progress Tracking**: Track your quiz history, scores, and streaks
 - **Modern UI**: Beautiful glassmorphism design with smooth animations
 
-## Screenshots
-
-<p align="center">
-  <img src="Screenshots/home.png" width="250" alt="Home Screen">
-  <img src="Screenshots/quiz.png" width="250" alt="Quiz Screen">
-  <img src="Screenshots/results.png" width="250" alt="Results Screen">
-</p>
-
 ## Topics Covered
 
 ### Mathematics
