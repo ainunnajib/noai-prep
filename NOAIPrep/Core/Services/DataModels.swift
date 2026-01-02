@@ -1,30 +1,6 @@
 import Foundation
 import SwiftData
-
-// MARK: - User Progress Model (SwiftData)
-@Model
-final class UserProgress {
-    var id: UUID
-    var topicId: String
-    var lessonsCompleted: [String]
-    var lastAccessedAt: Date
-    var totalTimeSpent: TimeInterval
-
-    init(topicId: String) {
-        self.id = UUID()
-        self.topicId = topicId
-        self.lessonsCompleted = []
-        self.lastAccessedAt = Date()
-        self.totalTimeSpent = 0
-    }
-
-    func markLessonCompleted(_ lessonId: String) {
-        if !lessonsCompleted.contains(lessonId) {
-            lessonsCompleted.append(lessonId)
-        }
-        lastAccessedAt = Date()
-    }
-}
+import SwiftUI
 
 // MARK: - Quiz Result Model (SwiftData)
 @Model
@@ -35,7 +11,7 @@ final class QuizResult {
     var totalQuestions: Int
     var timeTaken: TimeInterval
     var completedAt: Date
-    var answers: [String: String] // questionId: selectedAnswer
+    var answers: [String: String]
 
     init(quizType: String, score: Int, totalQuestions: Int, timeTaken: TimeInterval, answers: [String: String]) {
         self.id = UUID()
@@ -53,64 +29,40 @@ final class QuizResult {
     }
 }
 
-// MARK: - Content Models (JSON Decodable)
-struct Topic: Identifiable, Codable {
-    let id: String
-    let titleEN: String
-    let titleID: String
-    let descriptionEN: String
-    let descriptionID: String
-    let iconName: String
-    let color: String
-    let lessons: [Lesson]
+// MARK: - User Progress Model (SwiftData) - Simplified for quiz tracking
+@Model
+final class UserProgress {
+    var id: UUID
+    var lastQuizDate: Date
+    var totalTimeSpent: TimeInterval
 
-    func localizedTitle(_ language: AppLanguage) -> String {
-        language == .english ? titleEN : titleID
-    }
-
-    func localizedDescription(_ language: AppLanguage) -> String {
-        language == .english ? descriptionEN : descriptionID
+    init() {
+        self.id = UUID()
+        self.lastQuizDate = Date()
+        self.totalTimeSpent = 0
     }
 }
 
-struct Lesson: Identifiable, Codable {
-    let id: String
-    let titleEN: String
-    let titleID: String
-    let contentEN: String
-    let contentID: String
-    let difficulty: Difficulty
-    let estimatedMinutes: Int
-    let codeExample: String?
+// MARK: - Difficulty Enum
+enum Difficulty: String, Codable {
+    case beginner
+    case intermediate
+    case advanced
 
-    enum Difficulty: String, Codable {
-        case beginner
-        case intermediate
-        case advanced
-
-        var displayName: String {
-            switch self {
-            case .beginner: return "Beginner"
-            case .intermediate: return "Intermediate"
-            case .advanced: return "Advanced"
-            }
-        }
-
-        var color: String {
-            switch self {
-            case .beginner: return "green"
-            case .intermediate: return "orange"
-            case .advanced: return "red"
-            }
+    var displayName: String {
+        switch self {
+        case .beginner: return "Beginner"
+        case .intermediate: return "Intermediate"
+        case .advanced: return "Advanced"
         }
     }
 
-    func localizedTitle(_ language: AppLanguage) -> String {
-        language == .english ? titleEN : titleID
-    }
-
-    func localizedContent(_ language: AppLanguage) -> String {
-        language == .english ? contentEN : contentID
+    var color: Color {
+        switch self {
+        case .beginner: return .success
+        case .intermediate: return .warning
+        case .advanced: return .error
+        }
     }
 }
 
@@ -124,7 +76,7 @@ struct Question: Identifiable, Codable {
     let explanationEN: String
     let explanationID: String
     let topic: String
-    let difficulty: Lesson.Difficulty
+    let difficulty: Difficulty
 
     func localizedQuestion(_ language: AppLanguage) -> String {
         language == .english ? questionEN : questionID
@@ -145,48 +97,24 @@ struct QuestionOption: Identifiable, Codable {
     }
 }
 
-// MARK: - Code Snippet Models
-struct CodeSnippet: Identifiable, Codable {
-    let id: String
-    let titleEN: String
-    let titleID: String
-    let descriptionEN: String
-    let descriptionID: String
-    let code: String
-    let language: String
-    let category: SnippetCategory
-    let colabURL: String?
-
-    enum SnippetCategory: String, Codable, CaseIterable {
-        case numpy
-        case pandas
-        case sklearn
-        case pytorch
-
-        var displayName: String {
-            switch self {
-            case .numpy: return "NumPy"
-            case .pandas: return "Pandas"
-            case .sklearn: return "Scikit-learn"
-            case .pytorch: return "PyTorch"
-            }
-        }
-
-        var iconName: String {
-            switch self {
-            case .numpy: return "number.square"
-            case .pandas: return "tablecells"
-            case .sklearn: return "brain.head.profile"
-            case .pytorch: return "flame"
-            }
-        }
-    }
-
-    func localizedTitle(_ language: AppLanguage) -> String {
-        language == .english ? titleEN : titleID
-    }
-
-    func localizedDescription(_ language: AppLanguage) -> String {
-        language == .english ? descriptionEN : descriptionID
-    }
+// MARK: - Sample Questions (for previews)
+extension Question {
+    static let sampleQuestions: [Question] = [
+        Question(
+            id: "sample1",
+            questionEN: "What is the primary goal of supervised learning?",
+            questionID: "Apa tujuan utama dari supervised learning?",
+            options: [
+                QuestionOption(id: "a", textEN: "To find hidden patterns in data", textID: "Menemukan pola tersembunyi dalam data"),
+                QuestionOption(id: "b", textEN: "To learn a mapping from inputs to outputs using labeled data", textID: "Mempelajari pemetaan dari input ke output menggunakan data berlabel"),
+                QuestionOption(id: "c", textEN: "To maximize a reward signal", textID: "Memaksimalkan sinyal reward"),
+                QuestionOption(id: "d", textEN: "To compress data efficiently", textID: "Mengompresi data secara efisien")
+            ],
+            correctOptionId: "b",
+            explanationEN: "Supervised learning uses labeled data to learn a mapping function from inputs to outputs.",
+            explanationID: "Supervised learning menggunakan data berlabel untuk mempelajari fungsi pemetaan dari input ke output.",
+            topic: "ML Foundations",
+            difficulty: .beginner
+        )
+    ]
 }

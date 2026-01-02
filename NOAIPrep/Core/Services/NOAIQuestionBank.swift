@@ -96,8 +96,11 @@ class NOAIQuestionBank {
     var mathematicsQuestions: [Question] {
         var questions: [Question] = []
         questions.append(contentsOf: linearAlgebraQuestions)
+        questions.append(contentsOf: linearAlgebraAdvancedQuestions)
         questions.append(contentsOf: calculusQuestions)
+        questions.append(contentsOf: calculusAdvancedQuestions)
         questions.append(contentsOf: probabilityQuestions)
+        questions.append(contentsOf: probabilityStatsQuestions)
         questions.append(contentsOf: optimizationQuestions)
         return questions
     }
@@ -109,7 +112,9 @@ class NOAIQuestionBank {
         questions.append(contentsOf: numpyQuestions)
         questions.append(contentsOf: pandasQuestions)
         questions.append(contentsOf: pytorchQuestions)
+        questions.append(contentsOf: pythonPyTorchQuestions)
         questions.append(contentsOf: debuggingQuestions)
+        questions.append(contentsOf: dataPreprocessingQuestions)
         return questions
     }
 
@@ -117,10 +122,23 @@ class NOAIQuestionBank {
     var aiMlDlQuestions: [Question] {
         var questions: [Question] = []
         questions.append(contentsOf: classicalMLQuestions)
+        questions.append(contentsOf: supervisedLearningQuestions)
+        questions.append(contentsOf: unsupervisedLearningQuestions)
         questions.append(contentsOf: neuralNetworkQuestions)
+        questions.append(contentsOf: neuralNetworksFundamentalsQuestions)
+        questions.append(contentsOf: cnnArchitectureQuestions)
         questions.append(contentsOf: computerVisionQuestions)
+        questions.append(contentsOf: cvConceptsQuestions)
         questions.append(contentsOf: nlpQuestions)
+        questions.append(contentsOf: nlpTransformersQuestions)
         questions.append(contentsOf: genAIQuestions)
+        questions.append(contentsOf: modelEvaluationQuestions)
+        questions.append(contentsOf: regularizationOptimizationQuestions)
+        questions.append(contentsOf: ensembleMethodsQuestions)
+        questions.append(contentsOf: attentionSequenceQuestions)
+        questions.append(contentsOf: reinforcementLearningQuestions)
+        questions.append(contentsOf: lossFunctionsTrainingQuestions)
+        questions.append(contentsOf: aiEthicsSafetyQuestions)
         return questions
     }
 
