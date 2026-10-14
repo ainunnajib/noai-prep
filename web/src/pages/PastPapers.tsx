@@ -70,8 +70,9 @@ export default function PastPapers() {
         </ul>
       </section>
       <p className="fineprint" style={{ marginTop: '2rem' }}>
-        Questions are © AI Singapore and reproduced for study with links to the originals. Answers and explanations are written by NOAI Prep, because no official answer key was
-        published for 2026. Each answer was checked by two independent solvers; questions we found ambiguous are marked.
+        Questions are © AI Singapore and reproduced for study with links to the originals. Explanations are written by NOAI Prep. Every question was solved by two
+        independent solvers and then checked against AI Singapore's official answers: for the 2026 Preliminary Round our answers match the official key on 297 of 300
+        questions, and the few where we think the key is doubtful carry a note telling you both answers.
       </p>
     </div>
   )

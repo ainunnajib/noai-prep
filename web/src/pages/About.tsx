@@ -25,7 +25,7 @@ export default function About() {
         <h2>How the content was made</h2>
         <p>
           The course follows AI Singapore's official assessment areas for NOAI 2027 and the IOAI syllabus that NOAI points students to. Exam facts were checked against the official
-          NOAI pages on {FACTS_CHECKED_ON}. Past-paper answers were worked out independently by two solvers and reconciled, because no official answer key was published for 2026.
+          NOAI pages on {FACTS_CHECKED_ON}. Past-paper answers were worked out independently by two solvers, reconciled, and then checked against AI Singapore's official answers (they match on 297 of 300 Preliminary Round questions; disagreements are noted on the question).
           The question bank was re-solved and its explanations rewritten for beginners.
         </p>
         <p>If something looks wrong, trust the official sources below and let us know through the project's GitHub page.</p>
