@@ -1,0 +1,23 @@
+/*
+  Everything a visual explainer (visuals/*.tsx) may import:
+    import { Figure, Plot, Grid, Axes, FnPath, Slider, usePlayer, M } from '../../../kit'
+*/
+export { Callout, KeyIdea, Analogy, Tip, Mistake, Note, TryIt, ExamTip } from './components/content/Callout'
+export { CodeBlock } from './components/content/CodeBlock'
+export { Figure, Controls, Readout } from './components/content/Figure'
+export { Steps, Step } from './components/content/Steps'
+export { Tabs, Tab } from './components/content/Tabs'
+export { Reveal } from './components/content/Reveal'
+export { Term } from './components/content/Term'
+export { Columns, Takeaways, Hl } from './components/content/Layout'
+export { M, MBlock } from './components/content/Math'
+export { Slider, Segmented, Toggle, Button } from './components/interactive/Controls'
+export { usePlayer, PlayerControls, useAnimationFrame, useBump, type Player } from './components/interactive/Player'
+export { Plot, usePlot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, VLine, Rect, DraggablePoint, type DotDatum } from './components/interactive/Plot'
+export { MatrixGrid } from './components/interactive/MatrixGrid'
+export { Bars, type BarDatum } from './components/interactive/Bars'
+export { NeuralNet } from './components/interactive/NeuralNet'
+export { PyRunner } from './components/interactive/PyRunner'
+export { QuickCheck } from './components/quiz/QuickCheck'
+export { QuestionCard } from './components/quiz/QuestionCard'
+export { mulberry32, shuffled, sample, hashString } from './lib/random'

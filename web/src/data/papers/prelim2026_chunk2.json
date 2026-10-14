@@ -1,0 +1,1153 @@
+{
+ "paper": "prelim2026_chunk2",
+ "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026, 300 MCQs, Google Form printed to PDF), Google-Form items 62-111 = questions 51-100. https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf",
+ "questions": [
+  {
+   "n": 51,
+   "question": "Two events A and B are independent if:",
+   "options": [
+    "P(A | B) = 0",
+    "P(A ∪ B) = P(A) + P(B)",
+    "A and B cannot occur together",
+    "P(A ∩ B) = P(A) × P(B)"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "independent events",
+    "joint probability",
+    "mutually exclusive vs independent"
+   ],
+   "explanation": "Independence means that knowing B happened does not change the chance of A: $P(A \\mid B) = P(A)$. Multiplying both sides by $P(B)$ gives the product rule $P(A \\cap B) = P(A)\\,P(B)$. Example: two fair coin flips, $P(\\text{H then H}) = \\tfrac12 \\times \\tfrac12 = \\tfrac14$. The tempting wrong answers all describe **mutually exclusive** (disjoint) events instead: \"cannot occur together\", $P(A \\mid B)=0$, and $P(A \\cup B) = P(A) + P(B)$ (the addition rule with no overlap). Disjoint events with non-zero probability are actually *dependent*, because if B happens you know for sure A did not.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 52,
+   "question": "Bayes' theorem is used to compute:",
+   "options": [
+    "P(A) + P(B)",
+    "P(A) × P(B)",
+    "P(A | B) from P(B | A)",
+    "Mean and variance"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "Bayes' theorem",
+    "conditional probability",
+    "prior and posterior"
+   ],
+   "explanation": "Bayes' theorem \"flips\" a conditional probability: $P(A \\mid B) = \\dfrac{P(B \\mid A)\\,P(A)}{P(B)}$. A classic use is medical testing: we know $P(\\text{positive test} \\mid \\text{disease})$ from lab trials, but a patient wants $P(\\text{disease} \\mid \\text{positive test})$. $P(A) \\times P(B)$ is the joint probability only when A and B are independent, and $P(A) + P(B)$ is the addition rule for disjoint events; neither is Bayes. Mean and variance are summary statistics, not what Bayes' rule produces.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 53,
+   "question": "The standard deviation is:",
+   "options": [
+    "Square of variance",
+    "Sum of deviations",
+    "Mean absolute deviation",
+    "Square root of variance"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "standard deviation",
+    "variance",
+    "measures of spread"
+   ],
+   "explanation": "Variance is the average squared distance from the mean, $\\sigma^2 = \\frac{1}{n}\\sum (x_i - \\mu)^2$, and the standard deviation is its square root, $\\sigma = \\sqrt{\\sigma^2}$, which brings the spread back into the same units as the data. Example: for 2, 4, 4, 4, 5, 5, 7, 9 the mean is 5, the squared deviations sum to 32, so variance $= 32/8 = 4$ and std $= \\sqrt{4} = 2$. \"Square of variance\" goes the wrong way. The plain sum of deviations is always 0, so it cannot measure spread. Mean absolute deviation uses $|x_i - \\mu|$ and is a different (though related) spread measure.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 54,
+   "question": "A dataset has mean = 10, std = 2. What is the z-score of x = 14?",
+   "options": [
+    "1",
+    "2",
+    "4",
+    "7"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "z-score",
+    "standardisation",
+    "standard deviation"
+   ],
+   "explanation": "A z-score tells you how many standard deviations a value is from the mean: $z = \\dfrac{x - \\mu}{\\sigma} = \\dfrac{14 - 10}{2} = \\dfrac{4}{2} = 2$. So 14 sits two standard deviations above the mean. The option 4 is the raw difference $14 - 10$ (forgetting to divide by $\\sigma$), and 7 is $14 / 2$ (forgetting to subtract the mean first). This same formula is what `StandardScaler` applies to every feature during preprocessing.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 55,
+   "question": "In a confusion matrix, precision is defined as:",
+   "options": [
+    "TP / (TP + FN)",
+    "TP / (TP + FP)",
+    "(TP + TN) / Total",
+    "TN / (TN + FP)"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "precision",
+    "confusion matrix",
+    "false positives"
+   ],
+   "explanation": "Precision answers: *of everything the model predicted as positive, how much was really positive?* So the denominator is all predicted positives, $\\text{TP} + \\text{FP}$, giving $\\text{Precision} = \\dfrac{TP}{TP + FP}$. Example: a spam filter flags 10 emails, 8 are really spam, so precision $= 8/10 = 0.8$. The most tempting wrong option, $TP/(TP+FN)$, is **recall** (it divides by all *actual* positives). $(TP+TN)/\\text{Total}$ is accuracy, and $TN/(TN+FP)$ is specificity.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 56,
+   "question": "What is recall (sensitivity) in classification?",
+   "options": [
+    "TP / (TP + FP)",
+    "TN / (TN + FN)",
+    "(TP + TN) / Total",
+    "TP / (TP + FN)"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "recall / sensitivity",
+    "confusion matrix",
+    "false negatives"
+   ],
+   "explanation": "Recall answers: *of all the cases that are truly positive, how many did the model catch?* The denominator is every actual positive, $TP + FN$, so $\\text{Recall} = \\dfrac{TP}{TP + FN}$. Example: 20 patients have a disease and the model detects 15, so recall $= 15/20 = 0.75$; the 5 missed are false negatives. The tempting $TP/(TP+FP)$ is **precision**. $TN/(TN+FN)$ is the negative predictive value and $(TP+TN)/\\text{Total}$ is accuracy.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 57,
+   "question": "The F1-score is the:",
+   "options": [
+    "Arithmetic mean of precision and recall",
+    "Product of precision and recall",
+    "Harmonic mean of precision and recall",
+    "Sum of precision and recall"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "F1-score",
+    "harmonic mean",
+    "precision-recall trade-off"
+   ],
+   "explanation": "$F_1 = \\dfrac{2PR}{P + R}$, which is the harmonic mean of precision $P$ and recall $R$. The harmonic mean is dragged down by the smaller value, so a model cannot get a high F1 by being great at one and terrible at the other. Example: $P = 0.9$, $R = 0.1$ gives $F_1 = \\frac{2 \\times 0.9 \\times 0.1}{1.0} = 0.18$, while the arithmetic mean would be a misleadingly high $0.5$. The sum can exceed 1, and the product alone is not normalised the same way, so neither is F1.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 58,
+   "question": "In a right-skewed distribution, which is typically largest?",
+   "options": [
+    "Mode > Median > Mean",
+    "Mean > Median > Mode",
+    "Mean = Median = Mode",
+    "Median > Mean > Mode"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "skewness",
+    "mean vs median vs mode",
+    "effect of outliers"
+   ],
+   "explanation": "A right-skewed (positively skewed) distribution has a long tail of large values, like household income. The mean is pulled toward that tail by the extreme values, the median is more resistant, and the mode sits at the peak on the left, so typically **Mean > Median > Mode**. A quick check with an exponential distribution (scale 1): mean $\\approx 1.0$, median $\\approx 0.69$, mode $= 0$. \"Mode > Median > Mean\" is the pattern for a *left*-skewed distribution, and \"all equal\" is the symmetric (e.g. normal) case.",
+   "confidence": "high",
+   "notes": "Note the stem asks 'which is typically largest' but the options are full orderings; the ordering Mean > Median > Mode is a rule of thumb that holds for most, but not all, right-skewed distributions."
+  },
+  {
+   "n": 59,
+   "question": "What is the Central Limit Theorem's key insight?",
+   "options": [
+    "All distributions are normal",
+    "Variance decreases with sample size",
+    "Mean equals median",
+    "Sample means are normally distributed for large n"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Central Limit Theorem",
+    "sampling distribution",
+    "normal distribution"
+   ],
+   "explanation": "The CLT says that if you repeatedly take samples of size $n$ and compute each sample's mean, the distribution of those means becomes approximately normal as $n$ grows, **whatever the shape of the original population** (as long as its variance is finite). Its spread is $\\sigma/\\sqrt{n}$. That is why normal-based confidence intervals and tests work even for skewed data. \"Variance decreases with sample size\" is tempting because the variance of the *sample mean* does shrink ($\\sigma^2/n$), but that is a side fact, not the CLT's key insight, and the data's own variance does not shrink. The CLT does not claim that all distributions are normal.",
+   "confidence": "high",
+   "notes": "Strictly, sample means are *approximately* normal for large n; the option's wording is the usual simplification."
+  },
+  {
+   "n": 60,
+   "question": "In hypothesis testing, what is a Type I error?",
+   "options": [
+    "Accepting false null hypothesis (false negative)",
+    "Correct rejection",
+    "Rejecting true null hypothesis (false positive)",
+    "Correct acceptance"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "Type I error",
+    "null hypothesis",
+    "significance level α"
+   ],
+   "explanation": "A Type I error is a **false alarm**: the null hypothesis $H_0$ is actually true, but the test rejects it. Example: a new drug has no effect, yet your test concludes it works. Its probability is the significance level $\\alpha$ (often 0.05). The first option, failing to reject a false $H_0$ (a false negative / missed detection), is a **Type II error**, whose probability is $\\beta$. The other two options describe correct decisions, not errors.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 61,
+   "question": "Cross-entropy loss for binary classification is:",
+   "options": [
+    "(y - ŷ)²",
+    "|y - ŷ|",
+    "y×ŷ",
+    "-[y log(ŷ) + (1-y) log(1-ŷ)]"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "classification",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "binary cross-entropy",
+    "log loss",
+    "loss functions"
+   ],
+   "explanation": "Binary cross-entropy (log loss) is $L = -[\\,y\\log\\hat y + (1-y)\\log(1-\\hat y)\\,]$, where $y \\in \\{0,1\\}$ is the true label and $\\hat y$ is the predicted probability of class 1. Only one term is active: if $y = 1$ the loss is $-\\log \\hat y$, so a confident correct prediction $\\hat y = 0.9$ costs $-\\ln 0.9 \\approx 0.105$, while a confident wrong one $\\hat y = 0.1$ costs $-\\ln 0.1 \\approx 2.303$. This harsh penalty for confident mistakes is what makes it the standard loss for logistic regression and sigmoid outputs. $(y-\\hat y)^2$ is squared error (MSE) and $|y - \\hat y|$ is absolute error (MAE), both mainly used for regression; $y \\times \\hat y$ is not a loss at all.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 62,
+   "question": "What does a p-value of 0.03 mean?",
+   "options": [
+    "97% confidence in result",
+    "3% error rate",
+    "3% probability of observing data if null hypothesis is true",
+    "Effect size is 0.03"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "p-value",
+    "null hypothesis",
+    "statistical significance"
+   ],
+   "explanation": "A p-value is computed **assuming the null hypothesis is true**: it is the probability of getting data at least as extreme as what you observed. So $p = 0.03$ means that, if $H_0$ were true, results this extreme would show up only about 3% of the time; since $0.03 < 0.05$, we would usually reject $H_0$. It is *not* \"97% confidence that the result is right\" and *not* the probability that $H_0$ is true, which are very common misreadings. It also says nothing about how big the effect is: a tiny effect can have a small p-value with a huge sample.",
+   "confidence": "high",
+   "notes": "The correct option omits the standard phrase 'at least as extreme as'; it is still clearly the intended and best answer."
+  },
+  {
+   "n": 63,
+   "question": "The covariance between X and X is:",
+   "options": [
+    "0",
+    "Variance of X",
+    "1",
+    "Mean of X"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "covariance",
+    "variance",
+    "correlation vs covariance"
+   ],
+   "explanation": "Covariance is $\\operatorname{Cov}(X, Y) = E[(X - \\mu_X)(Y - \\mu_Y)]$. Put $Y = X$ and you get $E[(X - \\mu_X)^2]$, which is exactly the definition of $\\operatorname{Var}(X)$. That is why the diagonal of a covariance matrix holds each variable's variance. The tempting answer \"1\" is the **correlation** of X with itself: correlation divides covariance by $\\sigma_X \\sigma_X = \\operatorname{Var}(X)$, giving 1. Covariance itself is not normalised, so it equals the variance, not 1.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 64,
+   "question": "In maximum likelihood estimation, what are we maximising?",
+   "options": [
+    "Prior probability of parameters",
+    "Posterior probability",
+    "Prediction accuracy",
+    "Probability of observing the data given parameters"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "maximum likelihood estimation",
+    "likelihood function",
+    "MLE vs MAP"
+   ],
+   "explanation": "MLE picks the parameters $\\theta$ that make the observed data most probable: maximise the likelihood $L(\\theta) = P(\\text{data} \\mid \\theta)$ (in practice the log-likelihood). Example: a coin gives 7 heads in 10 flips; $L(p) = p^7(1-p)^3$ is largest at $\\hat p = 7/10 = 0.7$. Maximising the **posterior** $P(\\theta \\mid \\text{data}) \\propto P(\\text{data} \\mid \\theta)P(\\theta)$ is a different method called MAP, which also uses a prior. Minimising cross-entropy or MSE in ML training is equivalent to MLE under the matching probability model, but MLE does not directly maximise accuracy.",
+   "confidence": "high",
+   "notes": "For continuous data the likelihood is a probability density rather than a probability; the option's wording is the standard simplification."
+  },
+  {
+   "n": 65,
+   "question": "Why is the Kullback-Leibler (KL) divergence asymmetric?",
+   "options": [
+    "It only works for discrete distributions",
+    "KL(P||Q) ≠ KL(Q||P) because it's based on expectation over P",
+    "It measures distance incorrectly",
+    "It's a programming error"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "KL divergence",
+    "expectation",
+    "asymmetry / not a metric"
+   ],
+   "explanation": "$D_{KL}(P\\|Q) = \\sum_x P(x)\\log\\dfrac{P(x)}{Q(x)}$ is an average of the log-ratio **weighted by P**. Swapping the arguments changes both the weights and the ratio, so the two directions generally differ. Example (natural log): $P = (0.9, 0.1)$, $Q = (0.5, 0.5)$ gives $D_{KL}(P\\|Q) = 0.9\\ln 1.8 + 0.1\\ln 0.2 \\approx 0.368$, but $D_{KL}(Q\\|P) = 0.5\\ln\\tfrac{0.5}{0.9} + 0.5\\ln 5 \\approx 0.511$. KL works for continuous distributions too (with an integral), and its asymmetry is a deliberate property, not an error; it simply means KL is a divergence, not a true distance metric.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 66,
+   "question": "In gradient descent, the learning rate controls:",
+   "options": [
+    "Step size toward minimum",
+    "Number of iterations",
+    "Batch size",
+    "Model capacity"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "learning rate",
+    "gradient descent update rule"
+   ],
+   "explanation": "Gradient descent updates the weights with $w \\leftarrow w - \\eta \\nabla L(w)$; the learning rate $\\eta$ scales how far each step moves along the negative gradient. Example: with gradient 4 and $\\eta = 0.1$, the weight moves by $0.4$. Too large an $\\eta$ overshoots and can diverge; too small an $\\eta$ makes progress painfully slow. The number of iterations (epochs) and the batch size are separate hyperparameters, and model capacity is set by the architecture (number of layers and parameters).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 67,
+   "question": "What is batch gradient descent?",
+   "options": [
+    "Uses one sample per update",
+    "Uses mini-batches",
+    "Uses all training data per update",
+    "Uses validation data"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "batch gradient descent",
+    "gradient over full dataset"
+   ],
+   "explanation": "In (full-)batch gradient descent, each update uses the gradient averaged over the **entire training set**: $w \\leftarrow w - \\eta \\cdot \\frac{1}{N}\\sum_{i=1}^{N} \\nabla L_i(w)$. This gives a smooth, exact gradient but each step is expensive when $N$ is large. Using one sample per update is stochastic gradient descent, and using small subsets is mini-batch gradient descent. Validation data is never used to compute training updates; it is kept aside to check generalisation.",
+   "confidence": "high",
+   "notes": "Beware the naming trap: in deep-learning code 'batch size' usually refers to mini-batches, but 'batch gradient descent' classically means the full dataset."
+  },
+  {
+   "n": 68,
+   "question": "Stochastic Gradient Descent (SGD) uses:",
+   "options": [
+    "All data per update",
+    "Fixed mini-batches",
+    "Validation set",
+    "One random sample per update"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "stochastic gradient descent",
+    "noisy gradient estimate"
+   ],
+   "explanation": "Classic SGD picks **one random training example** at a time and updates the weights using just that example's gradient. Each update is very cheap but noisy, so the loss zig-zags downward; that noise can even help escape shallow local minima. Using all data per update is batch gradient descent, and using groups of samples is mini-batch gradient descent. The validation set is never used for weight updates.",
+   "confidence": "high",
+   "notes": "In libraries such as torch.optim.SGD, 'SGD' is applied to mini-batches in practice; the option matches the textbook definition."
+  },
+  {
+   "n": 69,
+   "question": "Mini-batch Gradient Descent (GD) is a compromise between:",
+   "options": [
+    "Stochastic Gradient Descent (SGD) and Adam",
+    "Batch GD and SGD",
+    "Momentum and RMSprop",
+    "L1 and L2 regularisation"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "mini-batch gradient descent",
+    "batch GD vs SGD",
+    "gradient noise vs cost"
+   ],
+   "explanation": "Mini-batch GD computes each update from a small group of samples (e.g. 32 or 256). It sits between batch GD (all $N$ samples: accurate but slow per step) and SGD (1 sample: fast but very noisy). It also lets GPUs process the batch in parallel, which is why it is the default in deep learning. \"Momentum and RMSprop\" is what Adam combines (see the Adam question), and L1/L2 are regularisation penalties, unrelated to how many samples you use per step.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 70,
+   "question": "What problem does momentum help solve in optimisation?",
+   "options": [
+    "Overfitting",
+    "Underfitting",
+    "Class imbalance",
+    "Oscillations and slow convergence"
+   ],
+   "answer": 3,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "momentum",
+    "oscillation in ravines",
+    "exponential moving average of gradients"
+   ],
+   "explanation": "Momentum keeps a running \"velocity\" of past gradients, $v \\leftarrow \\beta v + \\nabla L$, and steps with $w \\leftarrow w - \\eta v$ (often $\\beta = 0.9$). In a long narrow valley, plain gradient descent bounces back and forth across the steep walls while crawling along the floor. With momentum, the back-and-forth components cancel out while the consistent downhill direction builds up speed, so oscillations shrink and convergence is faster. Overfitting and underfitting are about model capacity and regularisation, and class imbalance is a data problem; momentum does not target any of them.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 71,
+   "question": "Adam optimiser combines:",
+   "options": [
+    "Stochastic Gradient Descent (SGD) and batch GD",
+    "L1 and L2 regularisation",
+    "Momentum and RMSprop",
+    "Dropout and batch norm"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Adam",
+    "momentum (first moment)",
+    "RMSprop (second moment)"
+   ],
+   "explanation": "Adam (Adaptive Moment Estimation) keeps two moving averages: the first moment $m_t$, an average of gradients (this is **momentum**), and the second moment $v_t$, an average of squared gradients (this is the **RMSprop** idea). The update is roughly $w \\leftarrow w - \\eta\\,\\hat m_t / (\\sqrt{\\hat v_t} + \\epsilon)$, so each parameter gets its own adaptive step size, plus a bias correction for the early steps. L1/L2 are regularisers, and dropout/batch norm are layer-level techniques, not parts of an optimiser's update rule.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 72,
+   "question": "Training a Transformer model (BERT-base, 110M parameters) from scratch with the AdamW optimiser. Three learning-rate strategies are tested:\n\n**Strategy A:** constant LR = 1e-4 from step 0\n- Step 100: Loss = 8.2 (stable descent)\n- Step 500: Loss = 5.1\n- Step 10K: Loss = 2.3, converges smoothly\n\n**Strategy B:** start with LR = 1e-3 from step 0 (10× higher)\n- Step 100: Loss = 12.7 (worse than random initialisation at 9.5)\n- Step 300: Loss = NaN (training diverged)\n- Training failed\n\n**Strategy C:** linear warmup 0 → 1e-3 over 5K steps, then constant\n- Step 100: Loss = 9.1 (gradual improvement)\n- Step 5K: Loss = 3.2 (warmup complete)\n- Step 10K: Loss = 1.8 (better than Strategy A)\n\nWhy does Strategy B diverge while Strategy C succeeds with the same peak learning rate?",
+   "options": [
+    "Warmup gradually increases batch size alongside learning rate, reducing gradient noise that causes divergence",
+    "Warmup allows the model to memorise training data first with small updates, then generalise with larger updates",
+    "Early training with random weights produces large, unstable gradients; warmup keeps learning rate small while Adam's second moment estimates (v_t) stabilise, preventing explosive parameter updates",
+    "High learning rate without warmup causes gradient clipping to activate, which distorts the loss landscape and prevents convergence"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "learning-rate warmup",
+    "Adam second-moment estimate",
+    "training divergence / NaN loss"
+   ],
+   "explanation": "At step 0 the weights are random, so gradients are large and erratic, and Adam's second-moment estimate $v_t$ has only seen a handful of gradients, so its per-parameter scaling $1/\\sqrt{\\hat v_t}$ is unreliable. A full LR of 1e-3 on top of that produces huge, badly scaled updates: the loss jumps above its starting value (12.7 > 9.5) and then becomes NaN. Warmup ramps the LR from 0 to 1e-3 over 5K steps, so early updates stay small while $v_t$ settles and the network moves into a better-behaved region; once stable, the higher peak LR lets C beat A (1.8 vs 2.3). Warmup changes only the learning rate, not the batch size, so the first option is wrong. The \"memorise first\" story is invented, and gradient clipping does not change the loss landscape (and is not mentioned in the setup).",
+   "confidence": "high",
+   "notes": "The PDF says 'Two initialisation strategies' but lists three (A, B, C) learning-rate strategies; the stem here says three. AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) words the options differently, but its keyed answer ('warmup allows gradual parameter adjustment before large updates') corresponds to option index 2 here. Solvers A and B agreed independently."
+  },
+  {
+   "n": 73,
+   "question": "Training a language model for 100K steps with three candidate schedules, all using the same optimiser (AdamW, β₁ = 0.9, β₂ = 0.999):\n\n**Schedule A, Constant:** LR = 3e-4 throughout\n- Step 20K: Loss = 3.2, learning actively\n- Step 50K: Loss = 2.5, still decreasing\n- Step 100K: Loss = 2.1, validation perplexity = 22.3\n\n**Schedule B, Cosine Decay:** LR = 3e-4 → 3e-5 (cosine curve over 100K steps)\n- Step 20K: LR ≈ 2.8e-4, Loss = 3.1\n- Step 50K: LR ≈ 1.8e-4, Loss = 2.3\n- Step 100K: LR = 3e-5, Loss = 1.8, validation perplexity = 19.1\n\n**Schedule C, Step Decay:** LR = 3e-4 until step 60K, then 3e-5, then 3e-6 at step 80K\n- Step 20K: LR = 3e-4, Loss = 3.2\n- Step 50K: LR = 3e-4, Loss = 2.5\n- Step 100K: LR = 3e-6, Loss = 1.7, validation perplexity = 19.8\n\nWhy does Schedule B achieve the best validation performance despite Schedule C reaching a lower training loss?",
+   "options": [
+    "Cosine decay provides smooth transition allowing model to progressively refine parameters; Schedule C's abrupt drops cause loss spikes and may overshoot optimal regions; Schedule A's constant LR prevents convergence to sharp minima",
+    "Lower final learning rate (Schedule C's 3e-6) causes overfitting by converging too precisely to training data; Schedule B's 3e-5 maintains slight exploration preventing memorisation",
+    "Cosine schedule's mathematical properties align with Adam optimiser's momentum, creating synergistic optimisation dynamics",
+    "Step decay creates discontinuities in the gradient flow causing the model to forget previously learned patterns"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "learning-rate schedules",
+    "cosine decay vs step decay",
+    "training loss vs validation performance"
+   ],
+   "explanation": "Cosine decay lowers the LR gradually: early steps are big enough to explore, and later steps become steadily finer, so the model *progressively refines* its parameters and settles into a region that generalises well (best validation perplexity, 19.1). Step decay holds the high LR for 60K steps and then cuts it 10× twice; the sudden anneal quickly squeezes the training loss down (1.7) but the result generalises slightly worse (19.8). The constant schedule never anneals, so its large noisy steps keep bouncing around and it ends worst (22.3). The keyed option is the only one that compares all three schedules in the right direction, but read it critically: a sudden LR *drop* usually makes the loss fall sharply rather than spike, and flatter (not sharper) minima are the ones usually linked to good generalisation. The second option sounds convincing, but a small final LR does not by itself cause overfitting (annealing to near zero is standard practice); what matters is the shape of the whole schedule. The third and fourth options are vague or false: there is no special cosine-Adam \"synergy\", and lowering the LR does not make a model forget what it learned.",
+   "confidence": "medium",
+   "notes": "Intended answer is option index 0: both solvers agreed independently, and AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) keys the same option, reworded. Confidence is medium because the keyed option's wording is imprecise: step-decay drops usually produce sudden loss decreases rather than spikes, and 'prevents convergence to sharp minima' is odd (flatter minima are usually linked to better generalisation). Option index 1 is partly defensible because C's lower train loss with worse validation perplexity looks like mild overfitting. The stem's mid-schedule LRs are also approximate: a true cosine curve from 3e-4 to 3e-5 gives about 2.74e-4 at step 20K and 1.65e-4 at step 50K (stated as 2.8e-4 and 1.8e-4). This does not change the answer."
+  },
+  {
+   "n": 74,
+   "question": "You implement Newton's method for a small 3-layer network (10K parameters). Training is 100× slower than Adam despite better convergence. Profiling shows 95% of the time is spent in one operation. What could be this one operation?",
+   "options": [
+    "Matrix inversion of the 10K×10K Hessian matrix",
+    "Forward pass through the network",
+    "Computing gradients via backpropagation",
+    "Loading data from disk"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "Newton's method",
+    "Hessian matrix",
+    "computational complexity O(n³)"
+   ],
+   "explanation": "Newton's method updates $w \\leftarrow w - H^{-1}\\nabla L$, where $H$ is the Hessian (matrix of second derivatives). With $n = 10{,}000$ parameters, $H$ has $n^2 = 10^8$ entries (about 400 MB in float32), and inverting or solving with it costs about $O(n^3) = 10^{12}$ operations every step. The forward pass and backpropagation cost only about $O(n)$ per example, so they are tiny in comparison, and Adam needs nothing beyond them. Data loading would be the same for both optimisers, so it cannot explain a 100× slowdown. This is why second-order methods are rarely used for neural networks, and approximations like L-BFGS exist.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 75,
+   "question": "In convex optimisation, what guarantees does gradient descent have?",
+   "options": [
+    "Converges to global minimum with appropriate learning rate",
+    "Finds solution in polynomial time",
+    "Always faster than other methods",
+    "Requires no hyperparameters"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "convex functions",
+    "global vs local minimum",
+    "learning-rate condition"
+   ],
+   "explanation": "In a convex function every local minimum is a global minimum (think of a single bowl, like $f(x) = x^2$), so if gradient descent converges at all, it converges to the global minimum. It converges as long as the learning rate is small enough; for an $L$-smooth function, any $\\eta \\le 1/L$ works. Example: for $f(x) = x^2$, $x \\leftarrow x - \\eta \\cdot 2x = (1 - 2\\eta)x$ shrinks to 0 when $0 < \\eta < 1$ but blows up when $\\eta > 1$. GD is not always faster than other methods (Newton's method can need far fewer steps), and it still needs a learning-rate hyperparameter.",
+   "confidence": "high",
+   "notes": "Strictly, 'converges to a global minimum' assumes a minimum exists and the function is suitably smooth; this is the standard textbook guarantee."
+  },
+  {
+   "n": 76,
+   "question": "What is the output of `print(type([1, 2, 3]))`?",
+   "options": [
+    "<class 'array'>",
+    "<class 'tuple'>",
+    "<class 'list'>",
+    "[1, 2, 3]"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "built-in types",
+    "list literal",
+    "type()"
+   ],
+   "explanation": "Square brackets create a **list**, and `type()` returns its class, which prints as `<class 'list'>` (verified by running it). A tuple would need round brackets, `(1, 2, 3)`, and Python has no built-in type printed as `'array'` (NumPy arrays show `<class 'numpy.ndarray'>`). `[1, 2, 3]` is what `print([1, 2, 3])` would show, but here we print the *type*, not the list itself.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 77,
+   "question": "Which is mutable in Python?",
+   "options": [
+    "Tuple",
+    "String",
+    "List",
+    "Integer"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "mutability",
+    "list vs tuple",
+    "immutable built-in types"
+   ],
+   "explanation": "A mutable object can be changed in place after it is created. Lists are mutable: `a = [1, 2]; a.append(3); a[0] = 9` all modify the same list. Tuples, strings and integers are immutable: `s = \"hi\"; s[0] = \"H\"` raises a `TypeError`, and operations like `s.upper()` or `x + 1` create a *new* object instead. Tuples look similar to lists, which makes them the most tempting wrong answer, but once created their contents cannot be reassigned.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 78,
+   "question": "What does `len(\"Hello\")` return?",
+   "options": [
+    "4",
+    "5",
+    "6",
+    "Error"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "len()",
+    "strings as sequences",
+    "counting characters"
+   ],
+   "explanation": "`len()` counts the characters in a string: H, e, l, l, o is **5** characters (verified by running it). The answer 4 comes from confusing the length with the last index: indices run 0 to 4, so `\"Hello\"[4]` is `'o'`, but there are 5 positions. The quotes are not counted, and `len()` works on any sequence (strings, lists, tuples), so there is no error.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 79,
+   "question": "How do you create an empty dictionary?",
+   "options": [
+    "{}",
+    "[]",
+    "()",
+    "set()"
+   ],
+   "answer": 0,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "dictionary literal",
+    "empty containers",
+    "set vs dict"
+   ],
+   "explanation": "`{}` creates an empty dictionary (so does `dict()`); `type({})` is `<class 'dict'>`. `[]` is an empty list and `()` is an empty tuple. The tricky one is `set()`: sets also use curly braces when they have items (`{1, 2}`), but `{}` on its own was already taken by dict, so an empty set must be written `set()`.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 80,
+   "question": "What is the result of `[1, 2] + [3, 4]`?",
+   "options": [
+    "[4, 6]",
+    "[[1, 2], [3, 4]]",
+    "Error",
+    "[1, 2, 3, 4]"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "list concatenation",
+    "+ operator overloading",
+    "list vs NumPy array"
+   ],
+   "explanation": "For Python lists, `+` means **concatenation**: it joins the two lists end to end, giving `[1, 2, 3, 4]` (verified by running it). `[4, 6]` is what you would get with NumPy arrays, `np.array([1, 2]) + np.array([3, 4])`, where `+` is element-wise addition; this is a common trap when switching between lists and arrays. A nested list `[[1, 2], [3, 4]]` would come from `[a, b]`, not `a + b`.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 81,
+   "question": "Which loop iterates over indices 0 to 4?",
+   "options": [
+    "for i in range(4):",
+    "for i in range(1, 5):",
+    "for i in range(5):",
+    "for i in range(0, 4):"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "range()",
+    "exclusive stop value",
+    "zero-based indexing"
+   ],
+   "explanation": "`range(stop)` starts at 0 and stops **before** `stop`, so `range(5)` gives 0, 1, 2, 3, 4 (verified: `list(range(5))` is `[0, 1, 2, 3, 4]`). `range(4)` and `range(0, 4)` give only 0 to 3, because the stop value is excluded. `range(1, 5)` gives 1 to 4, which has the right count but starts at the wrong place. (`range(0, 5)` would also work, but it is not offered.)",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 82,
+   "question": "What is the list comprehension `[x**2 for x in range(3)]`?",
+   "options": [
+    "[1, 4, 9]",
+    "[0, 1, 4]",
+    "[0, 1, 2]",
+    "[2, 4, 6]"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "list comprehension",
+    "range()",
+    "exponent operator **"
+   ],
+   "explanation": "`range(3)` produces 0, 1, 2, and `x**2` squares each one: $0^2 = 0$, $1^2 = 1$, $2^2 = 4$, so the result is `[0, 1, 4]` (verified by running it). `[1, 4, 9]` is the trap for people who think `range(3)` means 1, 2, 3. `[0, 1, 2]` forgets to square, and `[2, 4, 6]` treats `**2` like multiplying by 2 (and also starts from 1).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 83,
+   "question": "What happens when you modify a list passed to a function?",
+   "options": [
+    "Original list is unchanged",
+    "Creates a copy automatically",
+    "Original list is modified (passed by reference)",
+    "Raises an error"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "mutable arguments",
+    "object references",
+    "in-place modification vs rebinding"
+   ],
+   "explanation": "Python passes a reference to the same list object into the function, so in-place changes are visible outside. Example: `def f(l): l.append(99)`, then `a = [1, 2]; f(a)` leaves `a == [1, 2, 99]` (verified). No copy is made automatically; if you want one, call `l.copy()` or `list(l)` yourself. Subtle point: if the function *rebinds* the name, e.g. `l = [0]`, the caller's list is untouched, because you only pointed the local name at a new object.",
+   "confidence": "high",
+   "notes": "Strictly, Python's model is 'pass by object reference' (call by sharing), not C++-style pass by reference; mutation through the parameter affects the caller but rebinding does not. The intended answer is still clearly option index 2."
+  },
+  {
+   "n": 84,
+   "question": "What is the difference between `is` and `==`?",
+   "options": [
+    "They are identical",
+    "is checks identity (same object), == checks equality (same value)",
+    "is is faster",
+    "== checks type"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "identity vs equality",
+    "is operator",
+    "== operator"
+   ],
+   "explanation": "`==` asks \"do these have the same value?\" while `is` asks \"are these the very same object in memory?\" Example: `x = [1, 2]; y = [1, 2]` gives `x == y` → `True` but `x is y` → `False`, because they are two separate lists with equal contents (verified). The usual rule is to use `is` only for singletons such as `None` (`if x is None:`). `is` may happen to be slightly faster, but that is not the difference that matters, and `==` compares values, not types.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 85,
+   "question": "What does `*args` allow in a function?",
+   "options": [
+    "Variable number of keyword arguments",
+    "Default values",
+    "Type hints",
+    "Variable number of positional arguments"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "*args",
+    "**kwargs",
+    "function parameters"
+   ],
+   "explanation": "`*args` collects any number of extra **positional** arguments into a tuple. Example: `def total(*args): return sum(args)` lets you call `total(1, 2, 3)` and get 6, with `args == (1, 2, 3)`. The tempting wrong answer, a variable number of keyword arguments, is what `**kwargs` does (collected into a dict). Default values look like `def f(x=0)`, and type hints look like `def f(x: int)`.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 86,
+   "question": "Is this correct for exception handling?\n\n```python\ntry:\n  # code\nexcept ValueError:\n  # handle\n```",
+   "options": [
+    "This is correct",
+    "Should be `catch` not `except`",
+    "Missing `finally`",
+    "`try` should be followed by `else`"
+   ],
+   "answer": 0,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "try/except",
+    "exception handling",
+    "optional else/finally"
+   ],
+   "explanation": "Python's structure is `try:` followed by one or more `except` blocks; `else:` and `finally:` are optional extras. So the `try` / `except ValueError` shape is correct Python. `catch` is the keyword in Java, C++ and JavaScript, not Python, which makes it the most tempting distractor. `finally` (runs no matter what) and `else` (runs only if no exception occurred) are allowed but never required.",
+   "confidence": "high",
+   "notes": "Pedantic flaw: the snippet exactly as written (blocks containing only comments) is a SyntaxError ('expected an indented block'), verified with compile(); a real program needs at least a statement such as `pass` in each block. The question clearly means the try/except structure, so 'This is correct' is the intended answer."
+  },
+  {
+   "n": 87,
+   "question": "What is a generator in Python?",
+   "options": [
+    "Class for creating objects",
+    "Loop structure",
+    "Function using yield to produce values lazily",
+    "Random number generator"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "generators",
+    "yield",
+    "lazy evaluation"
+   ],
+   "explanation": "A generator function uses `yield` instead of `return`. Calling it returns a generator object that produces values **one at a time, only when asked** (lazily), pausing between them. Example: `def count_up(n):` with `for i in range(n): yield i`; then `list(count_up(3))` is `[0, 1, 2]`. Because it never stores all the values at once, a generator can stream huge datasets (like reading a big file line by line) using little memory. It is not a class or a loop keyword, and despite the name it has nothing to do with random numbers.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 88,
+   "question": "What does `zip([1,2], ['a','b'])` produce?",
+   "options": [
+    "Iterator of pairs: (1,'a'), (2,'b')",
+    "[1, 2, 'a', 'b']",
+    "[[1, 'a'], [2, 'b']]",
+    "Error"
+   ],
+   "answer": 0,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "zip()",
+    "iterators",
+    "tuples"
+   ],
+   "explanation": "`zip` pairs up items at the same position and returns a lazy **iterator** of tuples. Printing it directly shows only `<zip object at ...>`; `list(zip([1,2], ['a','b']))` gives `[(1, 'a'), (2, 'b')]` (verified). `[1, 2, 'a', 'b']` is concatenation (`+`), not zipping. `[[1, 'a'], [2, 'b']]` is close but wrong: zip produces tuples, not lists, and it does not build a list unless you ask for one.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 89,
+   "question": "What is the GIL (Global Interpreter Lock) in Python?",
+   "options": [
+    "Locks variables during assignment",
+    "Manages GPU memory",
+    "Protects against race conditions",
+    "Prevents true multi-threading for CPU-bound tasks"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Global Interpreter Lock",
+    "threading vs multiprocessing",
+    "CPU-bound vs I/O-bound"
+   ],
+   "explanation": "In standard CPython, the GIL is a lock that allows only **one thread to execute Python bytecode at a time**. So splitting a CPU-heavy pure-Python loop across 4 threads does not make it about 4× faster; you would use `multiprocessing` or libraries like NumPy (whose C code releases the GIL) instead. Threads still help for I/O-bound work (downloads, file reads), because the GIL is released while waiting. \"Protects against race conditions\" is the tempting distractor: the GIL protects the interpreter's *own* internals (like reference counts), but it does **not** make your code free of race conditions, so you still need locks for shared data.",
+   "confidence": "high",
+   "notes": "Option index 2 is partly true (the GIL does protect CPython's internal state from races), but option index 3 is the standard definition-level answer. Python 3.13+ also offers an optional free-threaded (no-GIL) build; the question refers to standard CPython."
+  },
+  {
+   "n": 90,
+   "question": "How does Python's garbage collection work?",
+   "options": [
+    "Manual memory management",
+    "Mark-and-sweep only",
+    "Reference counting + cyclic garbage collector",
+    "No garbage collection"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "python",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "reference counting",
+    "cyclic garbage collector",
+    "memory management"
+   ],
+   "explanation": "CPython mainly uses **reference counting**: every object tracks how many references point to it, and it is freed as soon as that count drops to 0. Reference counting alone cannot free *cycles* (e.g. two objects that refer to each other but nothing else refers to them), so a separate **cyclic garbage collector** (the `gc` module, generational) periodically finds and frees those. Python programmers do not free memory manually (unlike `malloc`/`free` in C), and \"mark-and-sweep only\" describes other languages' collectors, not Python's main mechanism.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 91,
+   "question": "How do you create a NumPy array from a list?",
+   "options": [
+    "np.list([1, 2, 3])",
+    "array([1, 2, 3])",
+    "np.array([1, 2, 3])",
+    "numpy([1, 2, 3])"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "np.array",
+    "import numpy as np",
+    "ndarray creation"
+   ],
+   "explanation": "With the usual import `import numpy as np`, `np.array([1, 2, 3])` turns the list into an `ndarray` (verified). There is no `np.list` function, and `numpy` is a module, so it cannot be called like `numpy(...)`. Plain `array([1, 2, 3])` only works if you specifically wrote `from numpy import array`; with the standard import it raises a `NameError`.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 92,
+   "question": "What is the shape of `np.zeros((3, 4))`?",
+   "options": [
+    "(4, 3)",
+    "12",
+    "(3, 4, 0)",
+    "(3, 4)"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "array shape",
+    "np.zeros",
+    "rows × columns"
+   ],
+   "explanation": "`np.zeros(shape)` builds an array filled with 0 of exactly the shape you pass, so the shape is `(3, 4)`: 3 rows and 4 columns (verified). `12` is the total number of elements, which is `.size`, not `.shape`. `(4, 3)` swaps rows and columns; NumPy shapes are always listed as (rows, columns, ...). `(3, 4, 0)` would be a 3-D array with no elements at all.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 93,
+   "question": "Element-wise multiplication of arrays `a * b` requires:",
+   "options": [
+    "One-dimensional arrays",
+    "Square arrays",
+    "Same number of elements",
+    "Same shape (or broadcastable)"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "element-wise operations",
+    "broadcasting rules",
+    "shape compatibility"
+   ],
+   "explanation": "`a * b` multiplies matching positions, so the shapes must line up: either identical, or compatible under **broadcasting** (comparing from the last dimension, each pair of sizes must be equal or one of them must be 1). Example: a `(2, 3)` array times a `(3,)` array works, and the result has shape `(2, 3)`. \"Same number of elements\" is the trap: `(2, 3)` and `(3, 2)` both have 6 elements, but multiplying them raises `ValueError: operands could not be broadcast together` (verified). Arrays can have any number of dimensions and need not be square.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 94,
+   "question": "What does `np.arange(0, 10, 2)` produce?",
+   "options": [
+    "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]",
+    "[2, 4, 6, 8, 10]",
+    "[0, 2, 4, 6, 8]",
+    "[0, 2, 4, 6, 8, 10]"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "np.arange",
+    "start/stop/step",
+    "exclusive stop"
+   ],
+   "explanation": "`np.arange(start, stop, step)` works like Python's `range`: start at 0, add 2 each time, and stop **before** 10, giving `[0, 2, 4, 6, 8]` (verified). Including 10 is the classic off-by-one mistake, because the stop value is excluded. `[0, 1, ..., 9]` ignores the step of 2, and `[2, 4, 6, 8, 10]` wrongly skips the start value 0.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 95,
+   "question": "How do you access the first row of a 2D array `arr`?",
+   "options": [
+    "arr[0] or arr[0, :]",
+    "arr[:, 0]",
+    "arr[0, 0]",
+    "arr.row(0)"
+   ],
+   "answer": 0,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "indexing and slicing",
+    "rows vs columns",
+    "2D arrays"
+   ],
+   "explanation": "In a 2D array, the first index picks the row and the second picks the column. `arr[0]` selects row 0, and `arr[0, :]` says the same thing explicitly (row 0, all columns). For `arr = [[0, 1, 2], [3, 4, 5]]`, both give `[0, 1, 2]` (verified). `arr[:, 0]` is the trap: it takes all rows of column 0, i.e. the first **column** `[0, 3]`. `arr[0, 0]` is a single element (0), and NumPy arrays have no `.row()` method.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 96,
+   "question": "What is broadcasting in NumPy?",
+   "options": [
+    "Sending data to GPU",
+    "Automatic shape adjustment for operations",
+    "Parallel computation",
+    "Data shuffling"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "broadcasting",
+    "shape compatibility",
+    "vectorised arithmetic"
+   ],
+   "explanation": "Broadcasting lets NumPy combine arrays of different shapes by **virtually stretching** the smaller one to match, without actually copying the data. Example: `np.array([[1, 2, 3], [4, 5, 6]]) + np.array([10, 20, 30])` adds the row `[10, 20, 30]` to each row, giving `[[11, 22, 33], [14, 25, 36]]`. Another everyday case is `arr - arr.mean(axis=0)` to centre each column. The name sounds like networking, but it has nothing to do with sending data to a GPU, parallel processing or shuffling.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 97,
+   "question": "Which is the correct NumPy syntax to compute the mean of array `arr`?",
+   "options": [
+    "np.mean(arr)",
+    "arr.average()",
+    "mean(arr)",
+    "np.avg(arr)"
+   ],
+   "answer": 0,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "np.mean",
+    "NumPy aggregation functions",
+    "API naming"
+   ],
+   "explanation": "`np.mean(arr)` (or the method form `arr.mean()`) returns the average of the array's elements; for `[[0, 1, 2], [3, 4, 5]]` it gives 2.5 (verified). NumPy has `np.average` as a *function* (useful for weighted averages), but arrays have no `.average()` method, and there is no `np.avg` at all (both verified). A bare `mean(arr)` fails with `NameError` because there is no built-in `mean` in Python (the `statistics` module has one, but it is not NumPy syntax).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 98,
+   "question": "What is vectorisation in NumPy?",
+   "options": [
+    "Converting scalars to vectors",
+    "GPU acceleration",
+    "Using array operations instead of loops",
+    "Data type conversion"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "numpy",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "vectorisation",
+    "avoiding Python loops",
+    "performance"
+   ],
+   "explanation": "Vectorisation means writing one operation that acts on the whole array, such as `y = 2 * x + 1` or `np.sum(x ** 2)`, instead of a Python `for` loop over each element. NumPy then runs the loop inside fast compiled C code, which is often 10 to 100× faster and also shorter to read. It runs on the CPU, so it is not GPU acceleration, and although its name contains \"vector\", it does not mean converting scalars into vectors or changing data types.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 99,
+   "question": "You have a Pandas DataFrame `df` with a column named `'total price'` (contains a space). Which is the ONLY valid way to select this column?",
+   "options": [
+    "df.total price",
+    "df('total price')",
+    "df.loc['total price']",
+    "df['total price']"
+   ],
+   "answer": 3,
+   "domain": "computing",
+   "subtopic": "pandas",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "column selection",
+    "bracket vs dot notation",
+    ".loc label indexing"
+   ],
+   "explanation": "Bracket notation `df['total price']` works for any column name, including ones with spaces (verified). Dot notation `df.total price` is a syntax error, because attribute names cannot contain spaces. `df('total price')` fails because a DataFrame is not callable (`TypeError`). `df.loc['total price']` looks up a **row** label called 'total price', so it raises a `KeyError`; to select a column with `.loc` you would need `df.loc[:, 'total price']`.",
+   "confidence": "high",
+   "notes": "'ONLY valid way' is true only among the four options: df.loc[:, 'total price'] and df.get('total price') would also work."
+  },
+  {
+   "n": 100,
+   "question": "What does `df.groupby('category').mean()` do?",
+   "options": [
+    "Groups by mean values",
+    "Computes mean for each category group",
+    "Creates new category column",
+    "Sorts by category"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "pandas",
+   "difficulty": "beginner",
+   "style": "code-reading",
+   "concepts": [
+    "groupby",
+    "split-apply-combine",
+    "aggregation"
+   ],
+   "explanation": "`groupby('category')` splits the rows into groups, one per distinct value of `category`, and `.mean()` then averages the other columns within each group, returning one row per category (split-apply-combine). Example: categories a, a, b with values 1, 3, 5 give `a → 2.0` and `b → 5.0` (verified). It does not group by the mean values or create new columns, and although the result is indexed by category (sorted by default), sorting is a side effect, not its purpose.",
+   "confidence": "high",
+   "notes": "In pandas 2.0 and later (verified on 3.0.5), .mean() raises a TypeError if the DataFrame has non-numeric columns other than the grouping key; use .mean(numeric_only=True) in that case. The intended conceptual answer is unaffected."
+  }
+ ]
+}

@@ -1,0 +1,1188 @@
+{
+ "paper": "prelim2026_chunk4",
+ "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026, 300 MCQs, Google Form PDF), AI Singapore — Google-Form items 162-211 = assessment questions 151-200. https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf (no official answer key; answers solved independently by two solvers and reconciled)",
+ "questions": [
+  {
+   "n": 151,
+   "question": "Random Forest improves on decision trees by:",
+   "options": [
+    "Using one very deep tree",
+    "Removing all splits",
+    "Using KNN instead",
+    "Ensembling multiple trees with bagging"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "random forest",
+    "bagging (bootstrap aggregating)",
+    "ensemble learning",
+    "feature subsampling"
+   ],
+   "explanation": "A Random Forest trains **many** decision trees, each on a bootstrap sample (random rows drawn with replacement) and usually considering only a random subset of features at each split, then averages their predictions (or takes a majority vote). Because the individual trees make partly independent mistakes, averaging cancels much of the noise, so the forest overfits far less than a single tree. \"Using one very deep tree\" is exactly the thing a forest avoids: one deep tree memorises the training data and has high variance. Removing splits or switching to KNN would no longer be a tree-based model at all.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 152,
+   "question": "Gradient Boosting builds trees:",
+   "options": [
+    "In parallel independently",
+    "All at once",
+    "Randomly",
+    "Sequentially, each correcting previous errors"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "gradient boosting",
+    "sequential ensembles",
+    "residual fitting",
+    "bagging vs boosting"
+   ],
+   "explanation": "Gradient Boosting adds trees **one after another**: each new (usually shallow) tree is fit to the residual errors — more precisely, the negative gradient of the loss — of the ensemble built so far, and its prediction is added with a small learning rate. So tree $m$ depends on trees $1,\\dots,m-1$, which is why it cannot be trained \"in parallel independently\". Training trees independently in parallel is what **bagging/Random Forest** does — that is the tempting wrong option here.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 153,
+   "question": "What is the curse of dimensionality?",
+   "options": [
+    "More features always improve accuracy",
+    "Computations become faster",
+    "High dimensions cause data sparsity and overfitting",
+    "Models become simpler"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "ml-fundamentals",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "curse of dimensionality",
+    "data sparsity",
+    "distance concentration",
+    "overfitting"
+   ],
+   "explanation": "As the number of features (dimensions) grows, the volume of the feature space grows exponentially, so a fixed number of data points becomes very **sparse** — e.g. covering each of $d$ features with 10 bins needs $10^d$ cells. Distances between points also become similar to each other, which hurts distance-based methods like KNN and clustering. With few points per region, a model can easily fit noise, i.e. **overfit**. More features do not always help (option A), and computation gets slower, not faster.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 154,
+   "question": "In ensemble methods, bagging reduces:",
+   "options": [
+    "Bias",
+    "Training time",
+    "Model complexity",
+    "Variance"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "bagging",
+    "bias-variance trade-off",
+    "averaging reduces variance",
+    "bootstrap sampling"
+   ],
+   "explanation": "Bagging (bootstrap aggregating) trains many copies of a high-variance model (e.g. deep trees) on different bootstrap samples and averages them. Averaging $B$ models whose errors are not perfectly correlated lowers the **variance** of the prediction — for independent models with variance $\\sigma^2$ the average has variance $\\sigma^2/B$. It does **not** really reduce bias: each base model is the same kind of model, so the average has about the same bias. It also increases training time (you train many models), not decreases it.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 155,
+   "question": "Boosting reduces:",
+   "options": [
+    "Variance only",
+    "Both equally",
+    "Neither",
+    "Bias"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "boosting",
+    "bias reduction",
+    "weak learners",
+    "bias-variance trade-off"
+   ],
+   "explanation": "Boosting starts from **weak learners** (e.g. very shallow trees or stumps) that underfit, i.e. have high bias, and adds them sequentially so each one fixes the errors of the current ensemble. This step-by-step correction is what drives the **bias** down. Reducing variance is the main job of bagging, so \"Variance only\" is the classic mix-up. (Boosting can sometimes lower variance a little too, but its primary effect — and the textbook answer — is bias reduction; too many rounds can even increase variance by overfitting.)",
+   "confidence": "high",
+   "notes": "Textbook simplification: boosting mainly reduces bias but can also reduce variance somewhat; 'Bias' is clearly the intended answer."
+  },
+  {
+   "n": 156,
+   "question": "What is feature scaling and why is it important?",
+   "options": [
+    "Removes features",
+    "Normalises features so they have similar ranges (helps many algorithms)",
+    "Creates new features",
+    "Visualises data"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "data-preprocessing",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "feature scaling",
+    "standardisation",
+    "min-max normalisation",
+    "scale-sensitive algorithms"
+   ],
+   "explanation": "Feature scaling transforms numeric features to comparable ranges, e.g. **standardisation** $z=(x-\\mu)/\\sigma$ or **min-max** scaling $x'=(x-\\min)/(\\max-\\min)$ into $[0,1]$. It matters because distance-based methods (KNN, K-means, SVM) would otherwise be dominated by large-valued features (income in dollars vs age in years), and gradient descent converges faster when features are on similar scales. Removing features is feature *selection*, and creating new ones is feature *engineering* — different preprocessing steps.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 157,
+   "question": "The Receiver Operating Characteristic (ROC) curve plots:",
+   "options": [
+    "Precision vs Recall",
+    "Accuracy vs Loss",
+    "Training vs Validation error",
+    "True Positive Rate vs False Positive Rate"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "ROC curve",
+    "true positive rate (recall)",
+    "false positive rate",
+    "classification threshold"
+   ],
+   "explanation": "An ROC curve is drawn by sweeping the classification threshold and plotting the **True Positive Rate** $TPR=\\frac{TP}{TP+FN}$ (y-axis) against the **False Positive Rate** $FPR=\\frac{FP}{FP+TN}$ (x-axis) at each threshold. A perfect classifier hugs the top-left corner and random guessing gives the diagonal; the area under it is the AUC. \"Precision vs Recall\" is the tempting distractor, but that is a different plot — the **PR curve**, which is preferred for heavily imbalanced data. Training vs validation error is a learning curve.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 158,
+   "question": "Why might Naive Bayes work well despite its \"naive\" assumption?",
+   "options": [
+    "It's always accurate",
+    "It uses deep learning",
+    "Feature independence assumption simplifies computation; often works in practice",
+    "It requires no training"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "classification",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "Naive Bayes",
+    "conditional independence assumption",
+    "Bayes' theorem",
+    "bias-variance trade-off"
+   ],
+   "explanation": "Naive Bayes assumes features are **conditionally independent given the class**, so $P(x_1,\\dots,x_d\\mid y)=\\prod_i P(x_i\\mid y)$. This turns one huge joint distribution into $d$ simple one-feature distributions, so it is fast and needs little data (low variance). Even when the independence assumption is false, the classifier only needs the **ranking** of $P(y\\mid x)$ across classes to be right, which it often is — so it works well in practice, e.g. for spam filtering. It is not always accurate, it is not deep learning, and it does require (simple, counting-based) training.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 159,
+   "question": "In anomaly detection, why is one-class Support Vector Machine (SVM) useful?",
+   "options": [
+    "Requires both normal and anomaly examples",
+    "Only works for binary classification",
+    "Fastest algorithm",
+    "Learns from normal data only, detects outliers"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "unsupervised",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "one-class SVM",
+    "anomaly / novelty detection",
+    "learning from normal data only",
+    "decision boundary"
+   ],
+   "explanation": "A one-class SVM is trained on (mostly) **normal** examples and learns a boundary that encloses where normal data lives; new points falling outside the boundary are flagged as anomalies. This is valuable because anomalies (fraud, machine faults) are rare and varied, so you often cannot collect enough labelled anomaly examples. Option A is the opposite of its key advantage. It is not limited to ordinary binary classification and it is not particularly fast — kernel SVMs scale poorly to very large datasets.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 160,
+   "question": "What is the difference between hard and soft margin Support Vector Machine (SVM)?",
+   "options": [
+    "Soft margin allows some misclassification (C parameter controls tradeoff)",
+    "Hard margin is always better",
+    "Soft margin doesn't use kernel",
+    "No practical difference"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "classification",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "support vector machine",
+    "hard vs soft margin",
+    "slack variables",
+    "regularisation parameter C"
+   ],
+   "explanation": "A **hard-margin** SVM demands that every training point is on the correct side of the margin, which is only possible if the data are perfectly linearly separable and is very sensitive to outliers. A **soft-margin** SVM adds slack variables so some points may sit inside the margin or be misclassified, paying a penalty weighted by $C$. Large $C$ punishes violations heavily (narrow margin, risk of overfitting); small $C$ tolerates more violations (wider margin, more regularisation). Both versions can use kernels, so option C is false, and hard margin is not always better — it fails on noisy data.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 161,
+   "question": "A perceptron is:",
+   "options": [
+    "Deep neural network",
+    "Convolutional layer",
+    "Recurrent unit",
+    "Single-layer linear classifier"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "perceptron",
+    "linear classifier",
+    "weighted sum and threshold",
+    "linear separability"
+   ],
+   "explanation": "The perceptron (Rosenblatt, 1958) is the simplest neural network: it computes a weighted sum $w\\cdot x+b$ and outputs 1 if it is above 0, else 0 (a step function). Its decision boundary is a straight line / hyperplane, so it is a **single-layer linear classifier** and can only solve linearly separable problems (it famously cannot learn XOR). Deep networks, convolutional layers and recurrent units are all later, more complex building blocks made by stacking or modifying such neurons.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 162,
+   "question": "Activation functions introduce:",
+   "options": [
+    "Regularisation",
+    "Dropout",
+    "Batch normalisation",
+    "Non-linearity to the network"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "activation functions",
+    "non-linearity",
+    "composition of linear layers",
+    "universal approximation"
+   ],
+   "explanation": "Without activation functions, stacking layers gives $W_2(W_1x)=(W_2W_1)x$ — still just one linear map, no matter how many layers. Applying a non-linear activation such as ReLU, sigmoid or tanh between layers breaks this, letting the network represent curved decision boundaries and complex functions. Regularisation, dropout and batch normalisation are separate techniques for training/generalisation, not what activations are for.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 163,
+   "question": "ReLU activation function is:",
+   "options": [
+    "max(0, x)",
+    "1 / (1 + e^(-x))",
+    "tanh(x)",
+    "x²"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "ReLU",
+    "activation functions",
+    "sigmoid vs tanh vs ReLU"
+   ],
+   "explanation": "ReLU (Rectified Linear Unit) is $\\text{ReLU}(x)=\\max(0,x)$: negative inputs become 0 and positive inputs pass through unchanged, e.g. $\\text{ReLU}(-2)=0$, $\\text{ReLU}(3)=3$. The formula $1/(1+e^{-x})$ is the **sigmoid**, and $\\tanh(x)$ is the hyperbolic tangent — both are other activation functions. $x^2$ is not a standard activation.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 164,
+   "question": "Sigmoid function outputs values in range:",
+   "options": [
+    "(-1, 1)",
+    "(-∞, ∞)",
+    "(0, 1)",
+    "[0, ∞)"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "sigmoid function",
+    "output range",
+    "probability interpretation"
+   ],
+   "explanation": "The sigmoid $\\sigma(x)=\\frac{1}{1+e^{-x}}$ has $e^{-x}>0$, so the denominator is always greater than 1 and $\\sigma(x)$ is strictly between 0 and 1: $\\sigma(0)=0.5$, $\\sigma(5)\\approx0.993$, $\\sigma(-5)\\approx0.0067$. It approaches but never reaches 0 or 1, hence the **open** interval $(0,1)$ — which is why it is used to output probabilities. $(-1,1)$ is the range of **tanh**, and $[0,\\infty)$ is the range of **ReLU**.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 165,
+   "question": "Backpropagation is used to:",
+   "options": [
+    "Initialise weights",
+    "Make predictions",
+    "Compute gradients via chain rule",
+    "Evaluate test accuracy"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "backpropagation",
+    "chain rule",
+    "gradients",
+    "forward vs backward pass"
+   ],
+   "explanation": "Backpropagation is an efficient algorithm for computing $\\partial L/\\partial w$ for every weight: it starts at the loss and moves backwards through the layers, multiplying local derivatives using the **chain rule** and reusing intermediate results. Those gradients are then used by an optimiser (e.g. SGD/Adam) to update the weights. Making predictions is the **forward** pass, and initialisation happens once before training — neither is backpropagation.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 166,
+   "question": "A fully connected layer connects:",
+   "options": [
+    "Only adjacent neurons",
+    "Randomly selected neurons",
+    "First and last neurons only",
+    "Every input to every output"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "fully connected (dense) layer",
+    "weight matrix",
+    "parameter count"
+   ],
+   "explanation": "In a fully connected (dense / `nn.Linear`) layer, **every input unit is connected to every output unit**, so it computes $y=Wx+b$ with a weight matrix $W$ of shape (outputs × inputs). For example, 100 inputs to 10 outputs uses $100\\times10=1000$ weights plus 10 biases. \"Only adjacent neurons\" describes local connectivity like a convolution, which is precisely what makes CNNs cheaper than dense layers on images.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 167,
+   "question": "What is an epoch in training?",
+   "options": [
+    "One forward pass",
+    "One batch",
+    "One weight update",
+    "One complete pass through training dataset"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "epoch",
+    "iteration / step",
+    "mini-batch"
+   ],
+   "explanation": "An **epoch** is one full pass over the entire training set. If you have 1,000 samples and a batch size of 100, one epoch is $1000/100=10$ iterations (batches), i.e. 10 weight updates. \"One batch\" and \"one weight update\" describe a single **iteration/step**, which is much smaller than an epoch unless the batch is the whole dataset.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 168,
+   "question": "Batch size determines:",
+   "options": [
+    "Number of epochs",
+    "Model architecture",
+    "Learning rate",
+    "Number of samples per gradient update"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "batch size",
+    "mini-batch gradient descent",
+    "hyperparameters"
+   ],
+   "explanation": "The batch size is how many training examples are used to compute **one** gradient estimate and weight update. Small batches give noisy but frequent updates; large batches give smoother gradients but use more memory per step. The number of epochs and the learning rate are **separate hyperparameters** you choose independently (though in practice the best learning rate often depends on batch size), and batch size does not change the model's architecture.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 169,
+   "question": "Dropout randomly:",
+   "options": [
+    "Removes layers",
+    "Changes weights",
+    "Shuffles data",
+    "Sets neurons to zero during training"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "dropout",
+    "regularisation",
+    "train vs eval mode"
+   ],
+   "explanation": "During training, dropout sets each neuron's output to zero with probability $p$ (e.g. $p=0.5$) on every forward pass, and scales the survivors by $1/(1-p)$ so the expected value is unchanged. This prevents neurons from co-adapting and acts like training an ensemble of thinned networks, which reduces overfitting. At test time (`model.eval()` in PyTorch) dropout is switched off. It does not delete whole layers or directly modify the weights.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 170,
+   "question": "Batch normalisation:",
+   "options": [
+    "Normalises weights",
+    "Normalises loss",
+    "Normalises predictions",
+    "Normalises layer inputs to stabilise training"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "batch normalisation",
+    "mini-batch statistics",
+    "learnable scale and shift (γ, β)"
+   ],
+   "explanation": "Batch normalisation normalises the **activations (inputs to a layer)** using the mini-batch mean and variance, $\\hat x=(x-\\mu_B)/\\sqrt{\\sigma_B^2+\\epsilon}$, then applies a learnable scale and shift $y=\\gamma\\hat x+\\beta$. Keeping activations on a consistent scale stabilises and speeds up training and allows higher learning rates. It does not normalise the weights — that would be *weight normalisation*, a different technique.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 171,
+   "question": "Mean Squared Error (MSE) loss is used for:",
+   "options": [
+    "Binary classification",
+    "Multi-class classification",
+    "Clustering",
+    "Regression problems"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "regression",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "mean squared error",
+    "regression loss",
+    "loss function choice"
+   ],
+   "explanation": "MSE is $\\frac{1}{n}\\sum_i (y_i-\\hat y_i)^2$, the average squared difference between a predicted number and the true number, so it is the standard loss for **regression** (predicting continuous values like house prices). E.g. predictions $(2,4)$ for targets $(3,1)$ give $\\frac{(1)^2+(3)^2}{2}=5$. For classification we normally use **cross-entropy**, which works with predicted probabilities and gives better gradients than MSE on sigmoid/softmax outputs. Clustering is unsupervised and has no target labels to compare against.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 172,
+   "question": "Why is ReLU preferred over sigmoid in hidden layers?",
+   "options": [
+    "Always outputs between 0-1",
+    "More complex",
+    "Requires less memory",
+    "Avoids vanishing gradients, faster computation"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "why-reasoning",
+   "concepts": [
+    "ReLU vs sigmoid",
+    "vanishing gradients",
+    "saturation",
+    "computational cost"
+   ],
+   "explanation": "The sigmoid's derivative is at most $0.25$ and is almost 0 when the input is large in magnitude (saturation), so multiplying many such small factors through deep layers makes gradients vanish. ReLU's derivative is exactly 1 for positive inputs, so gradients pass through undiminished, and computing $\\max(0,x)$ is cheaper than an exponential. \"Always outputs between 0-1\" describes the **sigmoid**, not ReLU (ReLU's output range is $[0,\\infty)$). ReLU is simpler, not more complex.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 173,
+   "question": "What is the vanishing gradient problem?",
+   "options": [
+    "Gradients become too large",
+    "Gradients are zero everywhere",
+    "No gradients are computed",
+    "Gradients become very small in deep networks, slowing learning"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "vanishing gradients",
+    "chain rule in deep networks",
+    "saturating activations"
+   ],
+   "explanation": "In backpropagation the gradient for an early layer is a **product** of many per-layer factors. If those factors are below 1 — e.g. sigmoid derivatives $\\le0.25$ — the product shrinks exponentially: $0.25^{10}\\approx10^{-6}$. The early layers then receive tiny updates and learn extremely slowly. \"Gradients become too large\" is the opposite problem, **exploding gradients**; and the gradients are tiny, not exactly zero everywhere. Fixes include ReLU, careful initialisation, batch norm and residual connections.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 174,
+   "question": "Residual connections (skip connections) help:",
+   "options": [
+    "Reduce model size",
+    "Increase training speed only",
+    "Train deeper networks by enabling gradient flow",
+    "Remove need for activation functions"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "residual connections",
+    "ResNet",
+    "gradient flow",
+    "identity shortcut"
+   ],
+   "explanation": "A residual block outputs $y=x+F(x)$: the input skips over the layers and is added back. Its derivative is $\\partial y/\\partial x=I+\\partial F/\\partial x$, so even if $\\partial F/\\partial x$ is tiny, the identity term lets the gradient flow straight back to earlier layers. This is what allowed ResNets to train 100+ layer networks that plain stacks could not. Skip connections add no (or very few) parameters, so they do not reduce model size, and the blocks still need activation functions.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 175,
+   "question": "Why is weight initialisation important?",
+   "options": [
+    "Not important, random is fine",
+    "Only affects speed",
+    "Prevents symmetry breaking and improves convergence",
+    "Only for small networks"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "why-reasoning",
+   "concepts": [
+    "weight initialisation",
+    "symmetry breaking",
+    "stable signal / gradient scale",
+    "convergence"
+   ],
+   "explanation": "Good initialisation does two jobs. First, it **breaks symmetry**: if all weights start equal (e.g. all zeros), every neuron in a layer computes the same thing and receives the same gradient, so they never become different. Second, using the right scale (Xavier/He) keeps activations and gradients from shrinking or exploding through the layers, so training converges. The intended answer is the third option, although its wording is garbled: initialisation *achieves* (enables) symmetry breaking rather than *preventing* it. \"Random is fine\" is wrong because the **scale** of the random values matters a lot, especially in deep networks.",
+   "confidence": "medium",
+   "notes": "Option wording is flawed: proper initialisation ENABLES symmetry breaking (it breaks symmetry), it does not 'prevent symmetry breaking'. Still clearly the intended answer since the other options are plainly false."
+  },
+  {
+   "n": 176,
+   "question": "Xavier/Glorot initialisation is designed for:",
+   "options": [
+    "ReLU activations",
+    "No activations",
+    "Tanh and sigmoid activations",
+    "Output layers only"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Xavier/Glorot initialisation",
+    "He initialisation",
+    "variance preservation",
+    "fan-in and fan-out"
+   ],
+   "explanation": "Xavier/Glorot initialisation (2010) draws weights with variance $\\text{Var}(W)=\\frac{2}{n_{in}+n_{out}}$, chosen so activation and gradient variances stay roughly constant across layers when the activation is **symmetric around 0 and roughly linear near 0** — i.e. tanh (and, approximately, sigmoid). ReLU zeroes out half its inputs, halving the variance at each layer, so it needs **He/Kaiming** initialisation with $\\text{Var}(W)=\\frac{2}{n_{in}}$ instead. That makes \"ReLU activations\" the tempting but wrong answer.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 177,
+   "question": "You're training a 10-layer ReLU network. After initialising all weights to small random values from $N(0, 0.01^2)$, the network fails to learn (loss stays constant). Switching to He initialization fixes the problem. Why?",
+   "options": [
+    "Small weights make ReLU output all zeros, blocking gradient flow",
+    "Small weights cause numerical underflow in float32 precision",
+    "ReLU requires positive weights to function",
+    "Small weight initialisation causes activations to shrink exponentially through layers, leading to vanishing gradients"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "He initialisation",
+    "activation variance through layers",
+    "vanishing gradients",
+    "ReLU networks"
+   ],
+   "explanation": "For a ReLU layer with fan-in $n$, the activation variance is multiplied by about $n\\,\\sigma_w^2/2$ per layer. With $\\sigma_w=0.01$ and $n=256$ that factor is $256\\times10^{-4}/2\\approx0.013$ (std shrinks about $\\times0.11$), so after 10 layers activations are around $10^{-10}$ of their original size — and the backward pass shrinks gradients the same way (a quick PyTorch simulation with 256 units per layer gives final activations with std $\\approx2.5\\times10^{-10}$ and weight gradients of only about $10^{-11}$, versus roughly $10^{-3}$ to $10^{-1}$ with He init). He init uses $\\sigma_w^2=2/n$, making that factor exactly 1, so signals keep their scale. Option A is tempting but wrong: ReLU still outputs non-zero values for about half the units (they are just *tiny*), it does not output all zeros. ReLU works fine with negative weights, and the main issue is exponential shrinkage, not float32 underflow (float32 can represent values down to about $10^{-38}$).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 178,
+   "question": "Early stopping prevents:",
+   "options": [
+    "Underfitting",
+    "Training from starting",
+    "Gradient computation",
+    "Overfitting by stopping when validation error increases"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "early stopping",
+    "validation loss monitoring",
+    "overfitting",
+    "patience"
+   ],
+   "explanation": "Early stopping monitors the loss on a **validation set** during training. Training loss usually keeps falling, but once the model starts memorising noise the validation loss bottoms out and begins to rise; early stopping halts training (often after a 'patience' of a few epochs) and keeps the weights from the best validation epoch. This is a regularisation technique against **overfitting**. It cannot prevent underfitting — if anything, stopping too early can *cause* underfitting.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 179,
+   "question": "Learning rate scheduling:",
+   "options": [
+    "Sets initial weights",
+    "Chooses optimiser",
+    "Selects batch size",
+    "Adjusts learning rate during training (often decreasing)"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "learning rate schedule",
+    "step decay / cosine annealing",
+    "warmup",
+    "convergence"
+   ],
+   "explanation": "A learning rate scheduler changes the learning rate as training progresses — e.g. step decay (multiply by 0.1 every 30 epochs), exponential decay, or cosine annealing, sometimes after a short warm-up. A larger rate early on makes fast progress, and a smaller rate later lets the optimiser settle into a minimum instead of bouncing around it. Initial weights, the optimiser and the batch size are separate choices that a scheduler does not make.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 180,
+   "question": "What is the dying ReLU problem?",
+   "options": [
+    "ReLU is too slow",
+    "ReLU causes overfitting",
+    "ReLU has no gradient",
+    "Neurons output zero for all inputs (dead neurons)"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "dying ReLU",
+    "dead neurons",
+    "zero gradient for negative inputs",
+    "large learning rate / negative bias"
+   ],
+   "explanation": "ReLU's gradient is 0 whenever its input is negative. If a neuron's weights and bias get pushed (e.g. by a large learning-rate update) so that its pre-activation is negative for **every** training input, it outputs 0 for all of them, receives zero gradient, and can never recover — it is 'dead'. \"ReLU has no gradient\" is the tempting distractor, but ReLU has gradient 1 for positive inputs; the problem only arises when a neuron is stuck in the negative region. Leaky ReLU, careful initialisation and smaller learning rates help.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 181,
+   "question": "Leaky ReLU addresses dying ReLU by:",
+   "options": [
+    "Using exponential function",
+    "Adding dropout",
+    "Increasing learning rate",
+    "Allowing small negative slope for x < 0"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "Leaky ReLU",
+    "dying ReLU",
+    "non-zero gradient for negative inputs"
+   ],
+   "explanation": "Leaky ReLU is $f(x)=x$ for $x>0$ and $f(x)=\\alpha x$ for $x\\le0$, with a small slope such as $\\alpha=0.01$; e.g. $f(-5)=-0.05$. Because the gradient for negative inputs is $\\alpha$ rather than 0, a neuron stuck in the negative region still gets updates and can recover. \"Using exponential function\" describes **ELU**, a different variant. Increasing the learning rate would actually make dying ReLUs *more* likely.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 182,
+   "question": "Softmax activation in output layer is used for:",
+   "options": [
+    "Regression",
+    "Binary classification only",
+    "Hidden layers",
+    "Multi-class classification (converts logits to probabilities)"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "softmax",
+    "logits",
+    "multi-class classification",
+    "probability distribution"
+   ],
+   "explanation": "Softmax turns a vector of raw scores (logits) into probabilities that are positive and sum to 1: $p_i=\\frac{e^{z_i}}{\\sum_j e^{z_j}}$. For logits $(2,1,0.1)$ it gives about $(0.659,0.242,0.099)$. It is the standard output for **multi-class** classification (one class out of $K$). It is not limited to binary problems (for two classes a single sigmoid output is equivalent), regression outputs use no activation, and softmax is not normally used in hidden layers.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 183,
+   "question": "Cross-entropy loss for classification measures:",
+   "options": [
+    "Squared error",
+    "Absolute error",
+    "Difference between predicted and true probability distributions",
+    "Cosine similarity"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "classification",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "cross-entropy loss",
+    "probability distributions",
+    "log loss",
+    "one-hot labels"
+   ],
+   "explanation": "Cross-entropy $H(y,\\hat p)=-\\sum_k y_k\\log\\hat p_k$ measures how far the predicted probability distribution $\\hat p$ is from the true distribution $y$ (usually one-hot). With a one-hot label it reduces to $-\\log(\\text{probability given to the true class})$: predicting 0.9 for the right class costs $-\\ln0.9\\approx0.105$, but predicting 0.1 costs $-\\ln0.1\\approx2.303$, so confident mistakes are punished heavily. Squared error and absolute error are regression losses (MSE, MAE), and cosine similarity compares vector directions.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 184,
+   "question": "Why do batch norm and dropout sometimes conflict?",
+   "options": [
+    "They can't be used together",
+    "Both are redundant",
+    "BatchNorm assumes consistent statistics; dropout adds noise",
+    "Dropout disables batch norm"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "batch normalisation running statistics",
+    "dropout train/test behaviour",
+    "variance shift"
+   ],
+   "explanation": "BatchNorm learns running estimates of the mean and variance of its inputs during training and reuses them at test time, so it assumes those statistics are the same in both modes. Dropout placed before a BatchNorm layer randomly zeroes and rescales units in training but is switched off at test time, which changes the **variance** of the activations BatchNorm sees (a 'variance shift'), so its stored statistics no longer match and performance can drop. They *can* be used together (e.g. dropout only after the last BN layer), so \"can't be used together\" is too strong, and dropout does not disable BatchNorm.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 185,
+   "question": "What is layer normalisation and when is it preferred over batch norm?",
+   "options": [
+    "Same as batch norm",
+    "Only for CNNs",
+    "Normalises across features per sample; better for small batches/RNNs",
+    "Slower than batch norm"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "layer normalisation",
+    "batch normalisation",
+    "per-sample statistics",
+    "RNNs / Transformers"
+   ],
+   "explanation": "Batch norm computes mean and variance **across the batch** for each feature, so its statistics become noisy with small batches and awkward for variable-length sequences. Layer norm computes mean and variance **across the features of each single sample**, so it does not depend on the batch at all and behaves identically in training and inference. That makes it the standard choice in RNNs and Transformers and when batches are small. It is not the same as batch norm, and in CNNs batch norm is actually the more common choice.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 186,
+   "question": "CNNs (Convolutional Neural Networks) are primarily used for:",
+   "options": [
+    "Text processing",
+    "Time series",
+    "Image/visual data processing",
+    "Tabular data"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "convolutional neural networks",
+    "spatial structure",
+    "computer vision"
+   ],
+   "explanation": "CNNs are designed for grid-structured data, above all **images**: small filters slide across the image, sharing weights and exploiting the fact that nearby pixels are related, so the same feature (an edge, an eye) is detected wherever it appears. They power image classification, detection and segmentation. 1-D convolutions can also be applied to text or time series, so those options are not impossible — but they are not the *primary* use, and tabular data has no spatial structure for convolutions to exploit.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 187,
+   "question": "A convolutional layer applies:",
+   "options": [
+    "Fully connected operations",
+    "Dropout",
+    "Filters/kernels to detect features",
+    "Softmax"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "convolution",
+    "filters / kernels",
+    "weight sharing",
+    "feature detection"
+   ],
+   "explanation": "A convolutional layer slides small learnable **filters (kernels)** — e.g. $3\\times3$ — across the input and computes a dot product at each position, producing a feature map that is high wherever the pattern the filter encodes (an edge, a texture) appears. The same filter weights are reused at every position (weight sharing), which uses far fewer parameters than a fully connected layer. Dropout and softmax are separate operations usually applied elsewhere in the network.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 188,
+   "question": "Pooling layers:",
+   "options": [
+    "Increase dimensions",
+    "Add parameters",
+    "Reduce spatial dimensions (downsampling)",
+    "Normalise values"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "pooling",
+    "downsampling",
+    "translation invariance",
+    "no learnable parameters"
+   ],
+   "explanation": "Pooling summarises each small window of a feature map with one number (its max or average). For example, $2\\times2$ pooling with stride 2 turns a $32\\times32$ feature map into $16\\times16$, cutting computation and giving some robustness to small shifts. Pooling has **no learnable parameters**, so \"Add parameters\" is wrong, and it shrinks rather than increases the spatial size. It does not normalise values — that is batch norm's job.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 189,
+   "question": "Max pooling selects:",
+   "options": [
+    "Average value",
+    "Minimum value",
+    "Random value",
+    "Maximum value in each window"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "max pooling",
+    "average pooling",
+    "downsampling"
+   ],
+   "explanation": "Max pooling slides a window (e.g. $2\\times2$) over the feature map and keeps only the **largest** value in each window. For the window $\\begin{bmatrix}1&3\\\\2&0\\end{bmatrix}$ max pooling outputs 3, whereas **average pooling** would output $(1+3+2+0)/4=1.5$. Keeping the maximum keeps the strongest response of a feature detector in each region.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 190,
+   "question": "Stride in convolution controls:",
+   "options": [
+    "Number of filters",
+    "Filter size",
+    "Step size of filter movement",
+    "Learning rate"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "stride",
+    "output size formula",
+    "downsampling"
+   ],
+   "explanation": "Stride is how many pixels the filter moves between positions. With stride 1 it visits every position; with stride 2 it skips every other one, roughly halving the output size. The output size is $\\lfloor\\frac{W-K+2P}{S}\\rfloor+1$: a $7\\times7$ input with a $3\\times3$ kernel, no padding and stride 2 gives $\\lfloor\\frac{7-3}{2}\\rfloor+1=3$. The number of filters and the filter (kernel) size are separate hyperparameters.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 191,
+   "question": "Padding in CNNs:",
+   "options": [
+    "Removes edges",
+    "Increases channels",
+    "Adds borders to preserve spatial dimensions",
+    "Normalises inputs"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "padding",
+    "'same' convolution",
+    "output size formula",
+    "border pixels"
+   ],
+   "explanation": "Padding adds a border of extra pixels (usually zeros) around the input before convolving. Without it, each $3\\times3$ convolution shrinks a $W\\times W$ input to $(W-2)\\times(W-2)$ and under-uses edge pixels; with padding $P=1$, the output size is $W-3+2(1)+1=W$, so spatial size is **preserved** ('same' padding). Padding adds to the edges rather than removing them, and the number of channels is set by the number of filters, not by padding.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 192,
+   "question": "Image classification aims to:",
+   "options": [
+    "Label each pixel",
+    "Detect object locations",
+    "Assign one label to entire image",
+    "Generate new images"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "image classification",
+    "object detection",
+    "segmentation",
+    "vision task types"
+   ],
+   "explanation": "Image classification answers \"what is in this image?\" with **one label for the whole image** (e.g. 'cat'). Labelling every pixel is **semantic segmentation**, finding where objects are with bounding boxes is **object detection**, and generating new images is generative modelling (GANs, diffusion models). Knowing these four task types apart is a common exam theme.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 193,
+   "question": "What are feature maps in CNNs?",
+   "options": [
+    "Input images",
+    "Weight matrices",
+    "Loss values",
+    "Outputs of convolutional layers"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "feature maps",
+    "filters vs activations",
+    "convolutional layer output"
+   ],
+   "explanation": "A feature map is the **output** produced when one filter is slid over its input: a 2-D grid showing how strongly that filter's pattern appears at each location. A layer with 64 filters produces 64 feature maps (64 output channels). The tempting confusion is with **weight matrices** — the filters/kernels are the weights, while the feature maps are the activations those weights produce. The input image is the starting point, not a feature map.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 194,
+   "question": "Transfer learning in vision involves:",
+   "options": [
+    "Training from scratch",
+    "Using pretrained model weights as starting point",
+    "Transferring data",
+    "Changing architecture"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "transfer learning",
+    "pretrained models",
+    "fine-tuning",
+    "feature extraction"
+   ],
+   "explanation": "Transfer learning takes a network already trained on a large dataset (e.g. a ResNet trained on ImageNet) and reuses its weights as the **starting point** for a new task. You typically replace the final classification layer and then either freeze the early layers (feature extraction) or fine-tune all layers with a small learning rate. This works because early layers learn general features (edges, textures) that transfer across tasks, so you need much less data and compute. It is the opposite of training from scratch.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 195,
+   "question": "Why are deeper CNNs generally better for complex vision tasks?",
+   "options": [
+    "Always faster",
+    "Learn hierarchical features (edges → textures → objects)",
+    "Fewer parameters",
+    "Simpler to train"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "why-reasoning",
+   "concepts": [
+    "hierarchical feature learning",
+    "receptive field",
+    "depth vs capacity"
+   ],
+   "explanation": "Each convolutional layer builds on the previous one, so early layers detect simple patterns (edges, colours), middle layers combine them into textures and parts, and deep layers combine those into whole objects. Stacking layers also grows each neuron's **receptive field**, letting it 'see' larger regions. Deeper networks are slower, usually have more parameters and are **harder** to train (vanishing gradients — hence residual connections), so the other three options are false.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 196,
+   "question": "Object detection differs from classification by:",
+   "options": [
+    "Using CNNs",
+    "Detecting multiple objects and their locations",
+    "Outputting single label",
+    "Not using bounding boxes"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "object detection",
+    "image classification",
+    "bounding boxes",
+    "localisation"
+   ],
+   "explanation": "Classification outputs one label for the image, while object detection finds **every** object of interest and outputs, for each, a class label plus a **bounding box** giving its location (e.g. $(x, y, w, h)$). Both tasks typically use CNNs, so \"using CNNs\" is not the difference. \"Outputting single label\" describes classification, and detection *does* use bounding boxes, so the last option is backwards.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 197,
+   "question": "YOLO (You Only Look Once) is:",
+   "options": [
+    "Classification model",
+    "Segmentation model",
+    "Single-stage real-time object detector",
+    "Two-stage detector"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "YOLO",
+    "single-stage vs two-stage detectors",
+    "real-time object detection"
+   ],
+   "explanation": "YOLO divides the image into a grid and, in **one forward pass** of a single network, predicts bounding boxes, objectness scores and class probabilities for all objects at once — hence 'You Only Look Once'. Because there is no separate region-proposal step, it is fast enough for real-time video. **Two-stage** detectors such as the R-CNN family first propose regions and then classify each, which is more accurate in some settings but slower — the tempting wrong option here.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 198,
+   "question": "R-CNN (Region-based CNN) first:",
+   "options": [
+    "Classifies entire image",
+    "Segments pixels",
+    "Proposes regions, then classifies each",
+    "Generates images"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "R-CNN",
+    "region proposals",
+    "two-stage detection",
+    "selective search"
+   ],
+   "explanation": "The original R-CNN (2014) is a **two-stage** detector: it first generates about 2,000 candidate **region proposals** (using selective search) that might contain objects, then warps each region and runs it through a CNN to extract features and classify it (plus refine the box). Running the CNN separately on every region made it slow, which Fast and Faster R-CNN later improved by sharing computation and learning the proposals. It does not classify the whole image or segment pixels.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 199,
+   "question": "Semantic segmentation assigns:",
+   "options": [
+    "One label to entire image",
+    "Bounding boxes",
+    "Class label to each pixel",
+    "Object instances"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "semantic segmentation",
+    "pixel-wise classification",
+    "semantic vs instance segmentation"
+   ],
+   "explanation": "Semantic segmentation classifies **every pixel** into a class, e.g. road, car, person, sky — the output is a label map the same size as the image. It does **not** separate different objects of the same class: two touching cars both become 'car' pixels. Telling individual objects apart is **instance segmentation** (the tempting 'Object instances' option), bounding boxes are object detection, and one label per image is classification.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 200,
+   "question": "Instance segmentation:",
+   "options": [
+    "Same as semantic segmentation",
+    "Only detects objects",
+    "Classifies images",
+    "Distinguishes individual object instances at pixel level"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "instance segmentation",
+    "semantic segmentation",
+    "per-object masks",
+    "Mask R-CNN"
+   ],
+   "explanation": "Instance segmentation combines detection and segmentation: it outputs a separate **pixel mask for each individual object**, so three people in a photo become 'person 1', 'person 2' and 'person 3', each with its own mask. That is the key difference from semantic segmentation, which would label all of them just 'person'. \"Only detects objects\" describes object detection (boxes, no pixel masks). Mask R-CNN is a well-known instance segmentation model.",
+   "confidence": "high",
+   "notes": ""
+  }
+ ]
+}

@@ -1,0 +1,1166 @@
+{
+  "paper": "prelim2026_chunk5",
+  "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026, 300 MCQs, Google Form printed to PDF), AI Singapore - Google-Form items 212-261 = questions 201-250. https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf",
+  "questions": [
+    {
+      "n": 201,
+      "question": "Data augmentation in vision includes:",
+      "options": [
+        "Adding more layers",
+        "Changing loss function",
+        "Increasing batch size",
+        "Rotation, flipping, cropping, color jittering"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "data augmentation",
+        "image transformations",
+        "overfitting"
+      ],
+      "explanation": "**Data augmentation** creates new, slightly different training images from the ones you already have, e.g. by rotating, flipping, cropping or jittering the colours. The label stays the same (a flipped cat is still a cat), so the model sees more variety and overfits less. Adding layers changes the *model*, changing the loss changes the *objective*, and a bigger batch size changes the *training procedure*; none of these change the *data*, so they are not augmentation.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 202,
+      "question": "Why is ImageNet pretraining so effective?",
+      "options": [
+        "Large diverse dataset teaches general visual features",
+        "It's the only available dataset",
+        "Always gives best results",
+        "Only works for classification"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "beginner",
+      "style": "why-reasoning",
+      "concepts": [
+        "transfer learning",
+        "pretraining",
+        "general visual features"
+      ],
+      "explanation": "ImageNet has over a million labelled images across 1,000 diverse classes, so a network trained on it learns **general-purpose features**: early layers detect edges and textures, later layers detect parts and shapes. These features transfer well to new tasks (this is **transfer learning**), so you can fine-tune with far less data. It is not the only dataset (COCO, Places, etc. exist), it does not *always* give the best result (e.g. very different domains such as medical X-rays may benefit less), and pretrained backbones are reused for detection and segmentation too, not only classification.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 203,
+      "question": "What is the receptive field in CNNs?",
+      "options": [
+        "Region of input that affects a neuron's activation",
+        "Size of filter",
+        "Number of layers",
+        "Output dimension"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "receptive field",
+        "convolution",
+        "stacking layers"
+      ],
+      "explanation": "The **receptive field** of a neuron is the patch of the *original input image* whose pixels can influence that neuron's value. For the first conv layer it equals the filter size (e.g. $3\\times3$), but it grows as layers are stacked: two stacked $3\\times3$ convs (stride 1) give a $5\\times5$ receptive field, three give $7\\times7$. That is why \"size of filter\" is tempting but wrong in general: the filter size only equals the receptive field for the very first layer. Pooling and strides make the receptive field grow even faster.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 204,
+      "question": "Why do modern CNNs use 3×3 convolutions instead of larger filters?",
+      "options": [
+        "3×3 is faster only",
+        "Required by hardware",
+        "Stacking 3×3 achieves same receptive field with fewer parameters",
+        "No particular reason"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "receptive field",
+        "parameter count",
+        "VGG design"
+      ],
+      "explanation": "Two stacked $3\\times3$ layers see a $5\\times5$ region, and three see a $7\\times7$ region, but they use fewer weights. With $C$ input and $C$ output channels: two $3\\times3$ layers need $2\\cdot 9C^2 = 18C^2$ weights versus $25C^2$ for one $5\\times5$; three $3\\times3$ layers need $27C^2$ versus $49C^2$ for one $7\\times7$. Stacking also inserts extra non-linearities (ReLUs) between layers, making the network more expressive. This idea was popularised by VGGNet; it is a design choice, not a hardware requirement, and speed is only a side benefit.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 205,
+      "question": "What innovation did ResNet introduce?",
+      "options": [
+        "Larger filters",
+        "More pooling",
+        "Skip connections enabling training of very deep networks (100+ layers)",
+        "Batch normalisation"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "residual connections",
+        "skip connections",
+        "degradation problem"
+      ],
+      "explanation": "ResNet (He et al., 2015) introduced **residual (skip) connections**: each block outputs $F(x) + x$, so it only has to learn the *residual* $F(x)$. The identity path lets gradients flow straight back through the network, which made it possible to train networks with 100+ layers (ResNet-152 won ImageNet 2015). Batch normalisation is tempting because ResNet *uses* it, but BN was introduced earlier by Ioffe & Szegedy (2015). Apart from a single $7\\times7$ first layer, ResNet uses small $3\\times3$ filters and very little pooling (one early max-pool plus a final global average pool), so \"larger filters\" and \"more pooling\" are wrong.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 206,
+      "question": "Word embeddings represent:",
+      "options": [
+        "Words as one-hot vectors",
+        "Words as strings",
+        "Words as images",
+        "Words as dense vectors"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "word embeddings",
+        "dense vs one-hot vectors",
+        "semantic similarity"
+      ],
+      "explanation": "A **word embedding** maps each word to a short, **dense** vector of real numbers (e.g. 300 numbers), where similar words end up close together, e.g. *king* and *queen*. One-hot vectors are the tempting wrong answer: they are *sparse* (one 1 and thousands of 0s, as long as the vocabulary) and every pair of words is equally far apart, so they carry no meaning about similarity. Embeddings were invented precisely to replace one-hot vectors with compact, meaningful representations.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 207,
+      "question": "Word2Vec learns embeddings by:",
+      "options": [
+        "Random initialisation",
+        "Rule-based mapping",
+        "Predicting context words or target from context",
+        "Supervised classification"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "Word2Vec",
+        "skip-gram",
+        "CBOW",
+        "self-supervised learning"
+      ],
+      "explanation": "Word2Vec has two variants: **Skip-gram** predicts the surrounding *context words* from a target word, and **CBOW** (continuous bag-of-words) predicts the *target word* from its context. The embeddings are the learned weights that make these predictions work, so words appearing in similar contexts get similar vectors. Embeddings *start* from random initialisation, but that is not how they are *learned*. It is also not ordinary supervised classification with human labels: the \"labels\" come from the raw text itself (self-supervised).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 208,
+      "question": "RNNs (Recurrent Neural Networks) are designed for:",
+      "options": [
+        "Images",
+        "Sequential data like text",
+        "Tabular data",
+        "Audio only"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "sequence-models",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "recurrent neural networks",
+        "sequential data",
+        "hidden state"
+      ],
+      "explanation": "An RNN processes a sequence one step at a time and carries a **hidden state** $h_t = f(h_{t-1}, x_t)$ that summarises everything seen so far. This makes it suited to **sequential data** where order matters: text, time series, speech, etc. \"Audio only\" is wrong because of the word *only*: audio is one kind of sequence, but RNNs are not restricted to it. Images are typically handled by CNNs and tabular data by trees or MLPs.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 209,
+      "question": "LSTMs solve what RNN problem?",
+      "options": [
+        "Slow training",
+        "Large memory",
+        "Long-term dependency/vanishing gradient",
+        "No problem"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "sequence-models",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "LSTM",
+        "vanishing gradient",
+        "long-term dependencies",
+        "gating"
+      ],
+      "explanation": "In a plain RNN the gradient is multiplied by (roughly) the same weight matrix at every time step during backpropagation through time, so it tends to shrink towards zero (**vanishing gradient**). The network then cannot learn **long-term dependencies**, e.g. linking a word to something 50 words earlier. An LSTM adds a **cell state** controlled by forget, input and output **gates**; the cell state is updated mostly additively, so information and gradients can flow across many steps. LSTMs are actually *slower* and use *more* memory than simple RNNs, so those options are wrong.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 210,
+      "question": "Attention mechanism allows models to:",
+      "options": [
+        "Speed up training",
+        "Focus on relevant parts of input",
+        "Reduce parameters",
+        "Remove recurrence"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "attention",
+        "attention weights",
+        "context vector"
+      ],
+      "explanation": "**Attention** computes a weight for every input position (how relevant it is to the current query) and takes a weighted average, so the model can **focus on the relevant parts of the input**, e.g. the matching source word when translating. \"Remove recurrence\" is tempting because Transformers use attention *instead of* recurrence, but attention itself was first introduced *on top of* RNNs (Bahdanau et al., 2014), so removing recurrence is not what attention is for. Attention does not inherently speed up training or reduce parameters.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 211,
+      "question": "Transformers primarily use:",
+      "options": [
+        "Recurrence (RNN)",
+        "Convolution (CNN)",
+        "Self-attention mechanisms",
+        "Fully connected layers only"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "Transformer",
+        "self-attention",
+        "Attention Is All You Need"
+      ],
+      "explanation": "The Transformer (\"Attention Is All You Need\", Vaswani et al., 2017) is built around **self-attention**: every token looks at every other token in the sequence to build its representation. It has *no* recurrence and *no* convolution. Each layer does also contain a feed-forward (fully connected) sub-layer, but \"fully connected layers *only*\" is wrong because self-attention is the defining component.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 212,
+      "question": "BERT (Bidirectional Encoder Representations from Transformers) is:",
+      "options": [
+        "Generative model",
+        "CNN-based",
+        "Pretrained language model for understanding",
+        "RNN-based"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "BERT",
+        "encoder-only Transformer",
+        "pretraining"
+      ],
+      "explanation": "BERT is a **pretrained Transformer encoder** designed for language **understanding** tasks such as classification, named-entity recognition and question answering. Its name tells you the architecture: Transformer (not CNN or RNN). It is not a text *generator* like GPT: it reads the whole sentence at once (bidirectionally) and produces representations, rather than producing new text token by token.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 213,
+      "question": "What is the key difference between BERT and GPT?",
+      "options": [
+        "They are identical",
+        "BERT is for vision",
+        "BERT = bidirectional encoder, GPT = autoregressive decoder",
+        "GPT is older"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "comparison",
+      "concepts": [
+        "encoder vs decoder",
+        "bidirectional context",
+        "autoregressive generation"
+      ],
+      "explanation": "BERT uses the Transformer **encoder** and sees context on **both sides** of each word (trained with masked language modelling), which suits understanding tasks. GPT uses the Transformer **decoder** with a causal mask, so each token sees only earlier tokens; it is trained to predict the next token and is naturally suited to **generating** text. \"GPT is older\" is a tempting distractor: GPT-1 (June 2018) did appear a few months before BERT (October 2018), but that is a historical detail, not the *key difference* between the models. BERT is a language model, not a vision model.",
+      "confidence": "high",
+      "notes": "Option 'GPT is older' is factually true for GPT-1 (June 2018) vs BERT (Oct 2018), but it is clearly not the 'key difference' asked for."
+    },
+    {
+      "n": 214,
+      "question": "Positional encoding in transformers:",
+      "options": [
+        "Removes position",
+        "Only for RNNs",
+        "Adds position information since attention has no inherent order",
+        "Speeds up computation"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "positional encoding",
+        "permutation invariance",
+        "self-attention"
+      ],
+      "explanation": "Self-attention treats its input as a *set*: if you shuffle the tokens, each token gets the same attention output (just shuffled), so on its own it cannot tell \"dog bites man\" from \"man bites dog\". **Positional encodings** (fixed sinusoids or learned vectors) are added to the token embeddings so the model knows each token's position. RNNs do not need them, because they read tokens in order, so \"Only for RNNs\" is backwards. Positional encodings add a little computation rather than saving any.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 215,
+      "question": "Masked language modeling (BERT's training):",
+      "options": [
+        "Predicts next token",
+        "Generates text",
+        "Classifies sentiment",
+        "Predicts masked tokens from context"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "masked language modelling",
+        "self-supervised pretraining",
+        "bidirectional context"
+      ],
+      "explanation": "In **masked language modelling (MLM)** about 15% of the input tokens are hidden (e.g. replaced by `[MASK]`) and the model must **predict the masked tokens** using the words on *both* sides, e.g. \"The cat [MASK] on the mat\" should give \"sat\". \"Predicts next token\" is the tempting wrong answer: that is GPT-style *causal* language modelling, which only uses the left context. Sentiment classification is a downstream fine-tuning task, not BERT's pretraining objective.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 216,
+      "question": "Tokenisation breaks text into:",
+      "options": [
+        "Characters only",
+        "Sentences only",
+        "Subword units or words for model input",
+        "Random pieces"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "tokenisation",
+        "subword tokens",
+        "vocabulary"
+      ],
+      "explanation": "**Tokenisation** splits raw text into **tokens**, the units a model actually reads; each token is then mapped to an integer ID. Modern models mostly use **subword** tokens (e.g. \"unhappiness\" might be split into \"un\" + \"happi\" + \"ness\"; the exact pieces depend on the tokeniser), while older pipelines used whole words. Character-level tokenisation exists, but \"characters *only*\" and \"sentences *only*\" are too narrow, and the splits follow learned or fixed rules, never random ones.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 217,
+      "question": "Fine-tuning a pretrained LLM means:",
+      "options": [
+        "Training from scratch",
+        "Further training on task-specific data",
+        "Testing only",
+        "Freezing all weights"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "fine-tuning",
+        "transfer learning",
+        "pretrained model"
+      ],
+      "explanation": "**Fine-tuning** starts from a model that has already been pretrained on a huge corpus and **continues training it on a smaller, task-specific dataset**, updating some or all of its weights. This reuses the general knowledge learned in pretraining, so it needs far less data and compute than training from scratch. If all weights were frozen nothing would be learned, so \"Freezing all weights\" is the opposite of fine-tuning.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 218,
+      "question": "Why is the CLS token used in BERT?",
+      "options": [
+        "Marks end of sentence",
+        "Indicates error",
+        "Represents pooled sentence/sequence representation for classification",
+        "Random placeholder"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "[CLS] token",
+        "sequence representation",
+        "classification head"
+      ],
+      "explanation": "BERT puts a special `[CLS]` (\"classification\") token at the **start** of every input. Because self-attention lets it attend to every other token, its final hidden vector acts as a **summary of the whole sequence**, and a small classifier on top of it is used for tasks like sentiment or next-sentence prediction. \"Marks end of sentence\" is the tempting wrong answer: that is the job of the `[SEP]` token, which separates or ends segments.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 219,
+      "question": "What is the computational complexity of self-attention in transformers?",
+      "options": [
+        "O(n) linear",
+        "O(log n)",
+        "O(n²) where n = sequence length (quadratic)",
+        "O(1) constant"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "self-attention cost",
+        "quadratic complexity",
+        "sequence length"
+      ],
+      "explanation": "In self-attention every one of the $n$ tokens computes a score with every one of the $n$ tokens, giving an $n\\times n$ attention matrix, so time and memory grow as $O(n^2)$ (more precisely $O(n^2 d)$ for hidden size $d$). For example, $n=1024$ gives about $1.05$ million scores per head, while doubling to $n=2048$ gives about $4.19$ million, i.e. **4×** the work for 2× the length. Linear, logarithmic or constant cost would require approximations (e.g. sparse or linear attention), not standard self-attention.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 220,
+      "question": "Why do large language models use causal masking during training?",
+      "options": [
+        "Speeds up training",
+        "No particular reason",
+        "Reduces memory",
+        "Prevents attending to future tokens (autoregressive property)"
+      ],
+      "answer": 3,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "causal mask",
+        "autoregressive modelling",
+        "next-token prediction"
+      ],
+      "explanation": "A GPT-style LLM is trained to predict token $t+1$ from tokens $1\\dots t$. If position $t$ could attend to later positions, it could simply \"peek\" at the answer, and at generation time those future tokens would not exist. The **causal mask** sets attention scores to future positions to $-\\infty$ (weight 0 after softmax), so each token only sees the past. This lets the model train on all positions of a sequence in parallel while keeping the **autoregressive** property; the mask is about correctness, not about saving memory.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 221,
+      "question": "In random forests, what does \"out-of-bag (OOB) error\" estimate?",
+      "options": [
+        "Error on training data",
+        "Generalisation error using samples not in bootstrap for each tree",
+        "Error on validation set",
+        "Number of trees needed"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "trees-ensembles",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "bootstrap sampling",
+        "out-of-bag error",
+        "generalisation error"
+      ],
+      "explanation": "Each tree in a random forest is trained on a **bootstrap sample** (drawn with replacement), so each training point is left out of a given tree with probability $(1-\\frac1n)^n \\approx e^{-1} \\approx 36.8\\%$. The **OOB error** predicts each point using only the trees that did *not* see it, giving a nearly free estimate of **generalisation (test) error** without a separate validation set. It is not training error, because each prediction comes only from trees that never trained on that point. \"Error on validation set\" is tempting, but OOB is useful precisely because no held-out validation set is needed.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 222,
+      "question": "What is the purpose of gradient clipping?",
+      "options": [
+        "Speeds up training",
+        "Reduces model size",
+        "Prevents exploding gradients by limiting gradient magnitude",
+        "Improves accuracy"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "training-regularisation",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "gradient clipping",
+        "exploding gradients",
+        "training stability"
+      ],
+      "explanation": "**Gradient clipping** caps the size of the gradient before the update, e.g. clip-by-norm rescales $g \\leftarrow g\\cdot\\frac{c}{\\lVert g\\rVert}$ whenever $\\lVert g\\rVert > c$. This prevents **exploding gradients** (common in RNNs and deep networks) from producing one huge update that wrecks the weights or gives `NaN` losses. It is a **stability** tool: it may indirectly help reach a good model, but it does not directly speed training, shrink the model, or guarantee better accuracy.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 223,
+      "question": "In U-Net architecture, what is the purpose of skip connections?",
+      "options": [
+        "Speed up training",
+        "Reduce parameters",
+        "Preserve spatial information from encoder for precise localisation in decoder",
+        "Add non-linearity"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "U-Net",
+        "encoder-decoder",
+        "skip connections",
+        "segmentation"
+      ],
+      "explanation": "U-Net is an encoder-decoder network for **segmentation**: the encoder downsamples the image (losing fine spatial detail), and the decoder upsamples back to a per-pixel mask. **Skip connections** concatenate high-resolution encoder feature maps with the matching decoder layers, giving the decoder back the fine edges and positions it needs for **precise localisation**. They actually *add* channels and computation, so they do not reduce parameters, and they are plain copies, so they add no non-linearity. Do not confuse them with ResNet's additive skips, whose main purpose is easing gradient flow.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 224,
+      "question": "What is the main advantage of subword tokenisation (e.g., BPE, WordPiece)?",
+      "options": [
+        "Faster processing",
+        "Simpler implementation",
+        "Works only for English",
+        "Handles unknown words and reduces vocabulary size while capturing morphology"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "nlp-transformers",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "subword tokenisation",
+        "out-of-vocabulary words",
+        "BPE",
+        "vocabulary size"
+      ],
+      "explanation": "Word-level vocabularies explode in size and still hit **unknown (out-of-vocabulary) words**; character-level sequences are very long. **Subword** methods like BPE and WordPiece sit in between: common words stay whole, while rare or new words are split into known pieces (e.g. \"tokenisation\" might be split into \"token\" + \"isation\"; the exact pieces depend on the learned vocabulary), so *any* word can be represented with a vocabulary of roughly 30k-100k tokens. Pieces like \"un-\" or \"-ing\" also capture **morphology**. They are language-agnostic (not English-only) and are more complex to implement than simple whitespace splitting.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 225,
+      "question": "What distinguishes generative models from discriminative models?",
+      "options": [
+        "Generative models are always better",
+        "Generative models learn P(X,Y) and can generate new data; discriminative learn P(Y|X) for classification",
+        "Discriminative models cannot classify",
+        "No practical difference"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "intermediate",
+      "style": "comparison",
+      "concepts": [
+        "generative vs discriminative",
+        "joint distribution",
+        "conditional distribution"
+      ],
+      "explanation": "A **discriminative** model (e.g. logistic regression) learns $P(Y\\mid X)$, the boundary between classes, directly. A **generative** model (e.g. Naive Bayes) learns how the data itself is produced, $P(X,Y) = P(X\\mid Y)P(Y)$, so it can also *sample new data* and can still classify via Bayes' rule. Neither is \"always better\": discriminative models often classify more accurately with plenty of data, and classifying is exactly what discriminative models are built for.",
+      "confidence": "high",
+      "notes": "Many modern generative models (e.g. unconditional image generators) model P(X) rather than P(X,Y); the option is the textbook definition and clearly the intended answer."
+    },
+    {
+      "n": 226,
+      "question": "GPT stands for:",
+      "options": [
+        "General Purpose Text",
+        "Gradient Propagation Technique",
+        "Generative Pre-trained Transformer",
+        "Graph Processing Tool"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "GPT",
+        "pretraining",
+        "Transformer decoder"
+      ],
+      "explanation": "**GPT = Generative Pre-trained Transformer.** *Generative*: it produces text; *Pre-trained*: it is first trained on a huge text corpus with next-token prediction before being adapted to tasks; *Transformer*: it uses a decoder-only Transformer architecture. The other options are invented expansions.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 227,
+      "question": "Large Language Models (LLMs) are trained on:",
+      "options": [
+        "Small labeled datasets",
+        "Images",
+        "Massive text corpora from internet",
+        "Audio files"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "LLM pretraining",
+        "self-supervised learning",
+        "text corpora"
+      ],
+      "explanation": "LLMs are pretrained on **massive text corpora** (web pages, books, code, Wikipedia, often trillions of tokens) using self-supervised next-token prediction, so they do not need human labels for pretraining. \"Small labeled datasets\" is wrong: small labelled sets may be used later for fine-tuning, but the core of an LLM's knowledge comes from huge unlabelled text. Some newer models are multimodal and also see images or audio, but a *language* model is fundamentally trained on text.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 228,
+      "question": "Autoregressive generation means:",
+      "options": [
+        "Predicting next token based on previous tokens",
+        "Generating all tokens simultaneously",
+        "Randomly generating text",
+        "Copying input"
+      ],
+      "answer": 0,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "autoregressive generation",
+        "next-token prediction",
+        "chain rule of probability"
+      ],
+      "explanation": "**Autoregressive** generation produces output one token at a time, each conditioned on all tokens generated so far: $P(x_1,\\dots,x_n)=\\prod_t P(x_t\\mid x_{<t})$. The new token is appended to the input and the process repeats. \"Generating all tokens simultaneously\" describes *non*-autoregressive models. Sampling adds some randomness, but the generation is guided by learned probabilities, not random.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 229,
+      "question": "Temperature in LLM sampling controls:",
+      "options": [
+        "Randomness/diversity of outputs (higher = more random)",
+        "Model speed",
+        "Model size",
+        "Training rate"
+      ],
+      "answer": 0,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "temperature",
+        "softmax",
+        "sampling diversity"
+      ],
+      "explanation": "Temperature $T$ divides the logits before the softmax: $p_i = \\frac{e^{z_i/T}}{\\sum_j e^{z_j/T}}$. For logits $[2,1,0]$: at $T=1$ the probabilities are $[0.665, 0.245, 0.090]$; at $T=0.5$ they sharpen to $[0.867, 0.117, 0.016]$ (more predictable); at $T=2$ they flatten to $[0.506, 0.307, 0.186]$ (more random and diverse). It is a sampling setting used at inference time, so it does not change model speed, model size or the training learning rate.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 230,
+      "question": "Top-k sampling:",
+      "options": [
+        "Samples from all tokens",
+        "Always picks most likely",
+        "Samples from k most likely next tokens",
+        "Random sampling"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "top-k sampling",
+        "decoding strategies",
+        "greedy decoding"
+      ],
+      "explanation": "**Top-k sampling** keeps only the $k$ highest-probability next tokens, renormalises their probabilities, and samples from those. This avoids picking very unlikely, nonsensical tokens while still allowing variety. \"Always picks most likely\" is **greedy decoding** (the special case $k=1$), and \"samples from all tokens\" is plain sampling with no truncation.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 231,
+      "question": "Prompt engineering is:",
+      "options": [
+        "Model architecture design",
+        "Designing input text to guide LLM outputs",
+        "Training method",
+        "Data preprocessing"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "prompting-rag",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "prompt engineering",
+        "instructions",
+        "in-context examples"
+      ],
+      "explanation": "**Prompt engineering** means carefully designing the *input* to an LLM, such as clear instructions, a role, examples or a required output format, to get better outputs **without changing the model's weights**. It is not a training method (no gradients or weight updates) and not architecture design. For example, adding \"Answer step by step, then give the final number\" often improves maths answers.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 232,
+      "question": "Zero-shot learning means:",
+      "options": [
+        "No training at all",
+        "Model performs task with one task-specific training example",
+        "Model performs task without task-specific training examples",
+        "Model performs task with many task-specific training examples"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "prompting-rag",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "zero-shot",
+        "one-shot",
+        "few-shot",
+        "generalisation"
+      ],
+      "explanation": "**Zero-shot** means the model does a task it was given **no task-specific examples** for, e.g. asking an LLM \"Classify this review as positive or negative\" with no labelled examples in the prompt. \"No training at all\" is the tempting trap: the model *was* heavily pretrained; it just was not trained (or shown examples) for *this* task. One example is **one-shot**, and a handful of examples is **few-shot**.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 233,
+      "question": "Few-shot learning provides:",
+      "options": [
+        "No examples",
+        "Full dataset",
+        "Only instructions",
+        "Small number of examples in prompt"
+      ],
+      "answer": 3,
+      "domain": "generative_ai",
+      "subtopic": "prompting-rag",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "few-shot prompting",
+        "in-context learning",
+        "zero-shot"
+      ],
+      "explanation": "In **few-shot** prompting (in-context learning) you put a **small number of worked examples** in the prompt, e.g. three input-output pairs, followed by the new input, and the model infers the pattern without any weight updates. \"No examples\" and \"Only instructions\" describe **zero-shot** prompting, and a full dataset would be used for training or fine-tuning, not a prompt.",
+      "confidence": "high",
+      "notes": "Answer assumes the LLM-prompting sense of few-shot (in-context examples); in classical ML 'few-shot learning' means learning from a few labelled examples, not necessarily in a prompt, but the intended answer is unambiguous."
+    },
+    {
+      "n": 234,
+      "question": "Fine-tuning vs prompting: fine-tuning involves:",
+      "options": [
+        "Only changing prompts",
+        "No training",
+        "Updating model weights on task data",
+        "Freezing all layers"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "beginner",
+      "style": "comparison",
+      "concepts": [
+        "fine-tuning",
+        "prompting",
+        "weight updates"
+      ],
+      "explanation": "The key difference: **prompting** changes only the *input text* and leaves the model unchanged, while **fine-tuning** runs gradient-based training on task data and **updates the model's weights**. Fine-tuning needs data and compute but can teach a consistent style or a specialised skill; prompting is cheap and instant but limited by what the model can already do. \"Only changing prompts\" and \"No training\" describe prompting, and freezing *all* layers would mean nothing is learned.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 235,
+      "question": "LoRA (Low-Rank Adaptation) enables:",
+      "options": [
+        "Faster inference",
+        "Efficient fine-tuning by training low-rank weight adapters",
+        "Larger models",
+        "Data augmentation"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "LoRA",
+        "parameter-efficient fine-tuning",
+        "low-rank matrices"
+      ],
+      "explanation": "**LoRA** freezes the pretrained weight matrix $W$ and learns a small update $\\Delta W = BA$, where $B$ is $d\\times r$ and $A$ is $r\\times k$ with a small rank $r$. For a $4096\\times4096$ layer, full fine-tuning updates $16{,}777{,}216$ weights, while LoRA with $r=8$ trains only $2\\cdot4096\\cdot8 = 65{,}536$ (about $0.39\\%$). This makes fine-tuning much cheaper in memory and storage. \"Faster inference\" is tempting but wrong: at best LoRA adds *no extra* latency once $BA$ is merged into $W$; inference is not faster than the base model.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 236,
+      "question": "What is the main challenge with scaling transformers to long contexts?",
+      "options": [
+        "Memory for weights",
+        "Quadratic attention complexity limits sequence length",
+        "Training data availability",
+        "Vocabulary size"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "llms",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "context length",
+        "quadratic attention",
+        "memory and compute scaling"
+      ],
+      "explanation": "Self-attention compares every token with every other token, so compute and attention memory grow as $O(n^2)$ in the sequence length $n$: going from 4k to 32k tokens (8× longer) needs about $64\\times$ the attention work. That is why long-context models rely on tricks like FlashAttention, sparse or sliding-window attention. \"Memory for weights\" is tempting, but the number of weights does **not** depend on context length; the same model weights handle 1k or 100k tokens.",
+      "confidence": "high",
+      "notes": "In practice the KV-cache memory (which grows linearly with context) is also a major long-context bottleneck at inference; the quadratic-attention answer is the standard intended one."
+    },
+    {
+      "n": 237,
+      "question": "Retrieval-Augmented Generation (RAG) enhances LLMs by:",
+      "options": [
+        "Increasing model size",
+        "Training longer",
+        "Retrieving relevant documents to provide context",
+        "Using multiple GPUs"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "prompting-rag",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "RAG",
+        "retrieval",
+        "grounding",
+        "hallucination reduction"
+      ],
+      "explanation": "**RAG** first **retrieves** documents relevant to the user's question (usually by embedding similarity search over a document store) and then **inserts them into the prompt**, so the LLM answers using that context. This gives the model up-to-date or private knowledge and reduces hallucinations **without retraining** or making the model bigger. The other options are generic ways of scaling models, not what RAG does.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 238,
+      "question": "Diffusion models generate images by:",
+      "options": [
+        "One-step generation",
+        "Classification",
+        "Gradually denoising from random noise",
+        "Image compression"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "diffusion models",
+        "denoising",
+        "iterative sampling"
+      ],
+      "explanation": "A diffusion model starts from pure **random Gaussian noise** and applies a learned denoising network **many times**, removing a little noise at each step until a clean image appears. \"One-step generation\" describes GANs or VAEs, which map noise to an image in a single forward pass. Classification and compression are different tasks altogether.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 239,
+      "question": "Stable Diffusion is a:",
+      "options": [
+        "Classification model",
+        "Object detection model",
+        "Text-to-image generation model",
+        "Video model only"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "Stable Diffusion",
+        "text-to-image",
+        "latent diffusion"
+      ],
+      "explanation": "**Stable Diffusion** is an open **text-to-image** model: you type a prompt and it generates a matching image. It is a *latent diffusion* model, conditioned on text via a CLIP text encoder. It can also do image-to-image and inpainting, but it is not a classifier or detector, and it is not \"video only\" (video variants exist, but the core model makes images).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 240,
+      "question": "Latent diffusion operates in:",
+      "options": [
+        "Compressed latent space",
+        "Pixel space",
+        "Text space",
+        "Label space"
+      ],
+      "answer": 0,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "latent diffusion",
+        "autoencoder",
+        "latent space"
+      ],
+      "explanation": "A **latent diffusion model** first uses an autoencoder (VAE) to compress images into a much smaller **latent** representation, e.g. a $512\\times512\\times3$ image becomes a $64\\times64\\times4$ latent (48× fewer numbers). The diffusion (noising and denoising) runs in this **compressed latent space**, and the decoder turns the final latent back into pixels. \"Pixel space\" is tempting because earlier diffusion models (like the original DDPM) did work on pixels; avoiding that is exactly what makes latent diffusion much cheaper.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 241,
+      "question": "The forward diffusion process:",
+      "options": [
+        "Removes noise",
+        "Adds noise gradually to image until pure noise",
+        "Generates images",
+        "Compresses images"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "forward process",
+        "Gaussian noise",
+        "noise schedule"
+      ],
+      "explanation": "The **forward** process is the fixed, non-learned part: starting from a real image, it **adds a small amount of Gaussian noise at each of many steps** (e.g. $T=1000$) following a noise schedule, until the image becomes indistinguishable from pure noise. It produces the noisy training examples. \"Removes noise\" and \"Generates images\" describe the **reverse** process, which is the part the network learns.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 242,
+      "question": "The reverse diffusion process learns to:",
+      "options": [
+        "Add noise",
+        "Classify images",
+        "Denoise step-by-step to generate images",
+        "Compress images"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "reverse process",
+        "denoising network",
+        "noise prediction"
+      ],
+      "explanation": "The **reverse** process is what the neural network (often a U-Net) learns: given a noisy image $x_t$ and the step $t$, it predicts the noise (or the cleaner image) so that it can **denoise one step at a time**, $x_T \\to x_{T-1} \\to \\dots \\to x_0$. Running it from pure noise generates a new image. \"Add noise\" is the *forward* process, which is fixed and needs no learning.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 243,
+      "question": "Classifier-free guidance in diffusion:",
+      "options": [
+        "Removes need for classifier",
+        "Speeds up sampling",
+        "Improves generation quality by steering toward text condition",
+        "Reduces model size"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "advanced",
+      "style": "why-reasoning",
+      "concepts": [
+        "classifier-free guidance",
+        "conditional generation",
+        "guidance scale"
+      ],
+      "explanation": "**Classifier-free guidance (CFG)** trains one model both with and without the condition (the text is randomly dropped during training). At sampling time it combines the two predictions: $\\hat\\epsilon = \\epsilon_\\theta(x_t,\\varnothing) + w\\,[\\epsilon_\\theta(x_t,c)-\\epsilon_\\theta(x_t,\\varnothing)]$ with guidance scale $w>1$, **pushing samples towards the text prompt** and improving prompt adherence and perceived quality. Its *purpose* is this steering; it does not speed sampling (it needs two predictions per step, so it is actually slower) or shrink the model. The name means it achieves guidance *without* a separate classifier, which is why \"Removes need for classifier\" sounds tempting; that is a property of how it works, while steering towards the prompt is what it is *for*.",
+      "confidence": "medium",
+      "notes": "Ambiguous: option 0 ('Removes need for classifier') is also literally true; CFG was designed to avoid the separate noisy-image classifier that 'classifier guidance' needs. Option 2 describes what CFG does and is the most likely intended answer, but option 0 is defensible."
+    },
+    {
+      "n": 244,
+      "question": "Why are diffusion models slower than Generative Adversarial Network (GAN) at inference?",
+      "options": [
+        "Larger model size",
+        "More parameters",
+        "Require many iterative denoising steps",
+        "GPU limitations"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "diffusion sampling",
+        "GAN generator",
+        "inference cost"
+      ],
+      "explanation": "A GAN generator makes an image in **one forward pass** from a noise vector. A diffusion model must run its denoising network **many times**, from tens up to around 1000 steps, each step being a full forward pass, so generation is much slower even when the network is a similar size. Model size or parameter count is not the main reason (some GANs are larger than some diffusion models), and both run on the same GPUs. This is why faster samplers (DDIM) and distillation into few-step models are active research areas.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 245,
+      "question": "DDPM (Denoising Diffusion Probabilistic Model) defines diffusion as:",
+      "options": [
+        "Single-step generation",
+        "Deterministic process",
+        "Markov Chain with learnt reverse process",
+        "Classification task"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "generative-models",
+      "difficulty": "advanced",
+      "style": "definition",
+      "concepts": [
+        "DDPM",
+        "Markov chain",
+        "forward and reverse processes"
+      ],
+      "explanation": "DDPM (Ho et al., 2020) defines the forward process as a fixed **Markov chain** $q(x_t\\mid x_{t-1})$ that adds Gaussian noise at each step; each state depends only on the previous one. A neural network then learns the **reverse Markov chain** $p_\\theta(x_{t-1}\\mid x_t)$ that removes noise step by step. It is *stochastic* (fresh noise is sampled at every step), not deterministic. The deterministic sampler is DDIM, a later variant, which is why \"Deterministic process\" is the tempting wrong option.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 246,
+      "question": "Multimodal models process:",
+      "options": [
+        "One data type only",
+        "Only text",
+        "Multiple data types",
+        "Only images"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "multimodal",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "multimodal AI",
+        "modalities",
+        "vision-language models"
+      ],
+      "explanation": "A **modality** is a type of data, such as text, images, audio or video. **Multimodal** models take in (and/or produce) **more than one** modality, e.g. a vision-language model that answers questions about a photo, or CLIP, which links images and captions. All the other options restrict the model to a single modality, which is the opposite of multimodal.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 247,
+      "question": "CLIP (Contrastive Language-Image Pre-training) learns:",
+      "options": [
+        "Image classification only",
+        "Text generation",
+        "Aligned image and text embeddings",
+        "Audio processing"
+      ],
+      "answer": 2,
+      "domain": "generative_ai",
+      "subtopic": "multimodal",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "CLIP",
+        "joint embedding space",
+        "image-text alignment"
+      ],
+      "explanation": "CLIP trains an **image encoder** and a **text encoder** together on about 400 million image-caption pairs so that a picture and its matching caption map to **nearby vectors in a shared embedding space**. Similarity is measured with cosine similarity between the two embeddings. Because of this alignment it can do zero-shot classification and image search, but it is not limited to classification, and it does not generate text (it only encodes it).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 248,
+      "question": "Contrastive learning in CLIP:",
+      "options": [
+        "Standard classification",
+        "Matches positive pairs, separates negative pairs",
+        "Regression",
+        "Clustering"
+      ],
+      "answer": 1,
+      "domain": "generative_ai",
+      "subtopic": "multimodal",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "contrastive loss",
+        "positive and negative pairs",
+        "InfoNCE"
+      ],
+      "explanation": "In a batch of $N$ image-caption pairs, CLIP computes an $N\\times N$ similarity matrix. The $N$ correct (diagonal) pairs are **positives** whose similarity is pushed **up**, and the $N^2-N$ mismatched pairs are **negatives** pushed **down**, using a symmetric cross-entropy (InfoNCE) loss. For example, with a batch of 4 there are 4 positives and 12 negatives. It is not standard classification over fixed labels; the \"classes\" are the other captions in the batch.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 249,
+      "question": "Vision Transformer (ViT) treats images as:",
+      "options": [
+        "Convolutional features",
+        "Single vector",
+        "Sequence of patches",
+        "Individual pixels"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "cnn-vision",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "Vision Transformer",
+        "image patches",
+        "patch embeddings"
+      ],
+      "explanation": "ViT cuts the image into fixed-size **patches** (e.g. $16\\times16$ pixels), flattens and linearly embeds each one, adds positional embeddings, and feeds the result to a standard Transformer as a **sequence of tokens**. A $224\\times224$ image with $16\\times16$ patches gives $(224/16)^2 = 14^2 = 196$ patch tokens (plus a `[CLS]` token). Using *individual pixels* would give $224^2 = 50{,}176$ tokens, far too many for quadratic attention, which is exactly why patches are used.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 250,
+      "question": "Zero-shot image classification with CLIP:",
+      "options": [
+        "Classify without training on specific classes",
+        "Requires labeled data",
+        "Only works for ImageNet",
+        "Needs fine-tuning"
+      ],
+      "answer": 0,
+      "domain": "generative_ai",
+      "subtopic": "multimodal",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "zero-shot classification",
+        "CLIP",
+        "text prompts as classifiers"
+      ],
+      "explanation": "To classify zero-shot with CLIP, you write a text prompt for each candidate class (e.g. \"a photo of a dog\", \"a photo of a cat\"), embed the prompts and the image, and pick the class whose text embedding is **most similar** to the image embedding. No labelled examples of those classes and no fine-tuning are needed, so it works for **new classes** just by changing the text. It works on many datasets, not only ImageNet; labelled data and fine-tuning are optional extras that can improve accuracy further.",
+      "confidence": "high",
+      "notes": ""
+    }
+  ],
+  "reconciliation": {
+    "solver_a_vs_b_disagreements": [],
+    "judge_notes": "Solvers A and B agreed on all 50 answers. All numeric claims in explanations re-verified with Python (temperature softmax, parameter counts, LoRA, latent size, ViT patches, OOB fraction). Minor wording fixes in 205, 216, 224. Q243 (classifier-free guidance) kept at medium confidence: option 0 is also literally true."
+  }
+}

@@ -1,0 +1,182 @@
+/*
+  Layout concept: a study notebook on graph paper. Lessons are pages with a
+  margin column for notes; interactive figures sit on white "index cards"
+  clipped onto the grid; the syllabus map is the notebook's table of contents.
+*/
+:root {
+  /* paper + ink */
+  --paper: #f8fafd;
+  --grid-minor: #e8edf5;
+  --grid-major: #d8e0ec;
+  --ink: #17203a;
+  --ink-2: #44506d;
+  --ink-3: #6f7a93;
+  --rule: #d6ddea;
+  --surface: #ffffff;
+  --surface-2: #f1f4f9;
+  --surface-3: #e7ecf4;
+
+  /* accent: indigo fountain-pen ink (from the iOS app's brand indigo, deepened for text contrast) */
+  --accent: #3a43d1;
+  --accent-ink: #ffffff;
+  --accent-soft: #e7e9fd;
+  --accent-line: #b9bef6;
+
+  /* highlighter for key ideas */
+  --highlight: #ffe46b;
+  --highlight-soft: #fff6c7;
+  --highlight-ink: #3d3200;
+
+  /* semantic */
+  --ok: #0d7f57;
+  --ok-soft: #dcf4ea;
+  --bad: #be3434;
+  --bad-soft: #fbe3e3;
+  --warn: #a96410;
+  --warn-soft: #fbefd9;
+
+  /* NOAI domains (continuing the iOS app's category colours) */
+  --d-orientation: #4b5876;
+  --d-math: #2459d6;
+  --d-computing: #0a8a62;
+  --d-ai: #7136d6;
+  --d-genai: #c22a72;
+  --d-problem: #b8660b;
+  --d-exam: #17203a;
+
+  /* data-viz palette for interactive figures */
+  --viz-1: #3a43d1;
+  --viz-2: #e0752d;
+  --viz-3: #0f9b74;
+  --viz-4: #c22a72;
+  --viz-5: #7b5ae0;
+  --viz-6: #8a7a12;
+  --viz-pos: #0f9b74;
+  --viz-neg: #d1453b;
+  --viz-axis: #5c6884;
+  --viz-grid: #e3e8f1;
+  --viz-ink: #17203a;
+  --viz-muted: #98a2b8;
+  --viz-fill: rgba(58, 67, 209, 0.12);
+
+  /* type */
+  --font-display: 'Recursive', 'Atkinson Hyperlegible Next', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --step--1: 0.875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
+  --step-2: 1.5rem;
+  --step-3: 1.95rem;
+  --step-4: 2.6rem;
+  --step-5: clamp(2.4rem, 5vw + 1rem, 3.9rem);
+
+  /* shape + space */
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 16px;
+  --shadow-card: 0 1px 0 rgba(23, 32, 58, 0.04), 0 6px 20px -12px rgba(23, 32, 58, 0.25);
+  --measure: 68ch;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --header-h: 60px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --paper: #0e1322;
+    --grid-minor: #151c2f;
+    --grid-major: #1c2540;
+    --ink: #e5e9f4;
+    --ink-2: #b3bbd0;
+    --ink-3: #8a93ab;
+    --rule: #28324d;
+    --surface: #141a2d;
+    --surface-2: #1a2137;
+    --surface-3: #222a44;
+    --accent: #9aa2ff;
+    --accent-ink: #0e1322;
+    --accent-soft: #232a54;
+    --accent-line: #444d9c;
+    --highlight: #e8c93a;
+    --highlight-soft: #3a3415;
+    --highlight-ink: #fff3b8;
+    --ok: #45c99a;
+    --ok-soft: #12332a;
+    --bad: #f07a7a;
+    --bad-soft: #3b1a1e;
+    --warn: #e6a64e;
+    --warn-soft: #36280f;
+    --d-orientation: #a3adc6;
+    --d-math: #7aa2ff;
+    --d-computing: #4dd0a2;
+    --d-ai: #b496ff;
+    --d-genai: #f27bb2;
+    --d-problem: #f0ae55;
+    --d-exam: #e5e9f4;
+    --viz-1: #9aa2ff;
+    --viz-2: #f39a5c;
+    --viz-3: #4dd0a2;
+    --viz-4: #f27bb2;
+    --viz-5: #b496ff;
+    --viz-6: #d9c45a;
+    --viz-pos: #4dd0a2;
+    --viz-neg: #f07a7a;
+    --viz-axis: #8a93ab;
+    --viz-grid: #222a44;
+    --viz-ink: #e5e9f4;
+    --viz-muted: #66708a;
+    --viz-fill: rgba(154, 162, 255, 0.16);
+    --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 26px -14px rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --paper: #0e1322;
+  --grid-minor: #151c2f;
+  --grid-major: #1c2540;
+  --ink: #e5e9f4;
+  --ink-2: #b3bbd0;
+  --ink-3: #8a93ab;
+  --rule: #28324d;
+  --surface: #141a2d;
+  --surface-2: #1a2137;
+  --surface-3: #222a44;
+  --accent: #9aa2ff;
+  --accent-ink: #0e1322;
+  --accent-soft: #232a54;
+  --accent-line: #444d9c;
+  --highlight: #e8c93a;
+  --highlight-soft: #3a3415;
+  --highlight-ink: #fff3b8;
+  --ok: #45c99a;
+  --ok-soft: #12332a;
+  --bad: #f07a7a;
+  --bad-soft: #3b1a1e;
+  --warn: #e6a64e;
+  --warn-soft: #36280f;
+  --d-orientation: #a3adc6;
+  --d-math: #7aa2ff;
+  --d-computing: #4dd0a2;
+  --d-ai: #b496ff;
+  --d-genai: #f27bb2;
+  --d-problem: #f0ae55;
+  --d-exam: #e5e9f4;
+  --viz-1: #9aa2ff;
+  --viz-2: #f39a5c;
+  --viz-3: #4dd0a2;
+  --viz-4: #f27bb2;
+  --viz-5: #b496ff;
+  --viz-6: #d9c45a;
+  --viz-pos: #4dd0a2;
+  --viz-neg: #f07a7a;
+  --viz-axis: #8a93ab;
+  --viz-grid: #222a44;
+  --viz-ink: #e5e9f4;
+  --viz-muted: #66708a;
+  --viz-fill: rgba(154, 162, 255, 0.16);
+  --shadow-card: 0 1px 0 rgba(0, 0, 0, 0.3), 0 10px 26px -14px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
