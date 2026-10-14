@@ -1,0 +1,378 @@
+{
+  "slug": "numpy",
+  "order": 8,
+  "part": "toolkit",
+  "domain": "computing",
+  "title": "NumPy: thinking in arrays",
+  "tagline": "Whole arrays at full speed",
+  "summary": "Why arrays beat lists, creating and reshaping arrays, indexing and boolean masks, element-wise versus matrix products and axis reductions, broadcasting and its silent bugs, and the handful of NumPy moves that every from-scratch Final task uses.",
+  "prerequisites": [
+    "vectors-and-matrices"
+  ],
+  "syllabus": [
+    "NOAI Computing: NumPy",
+    "IOAI 1A2 NumPy and Pandas for Data Handling",
+    "IOAI 1A6 Tensor (multi-dimensional array) manipulation",
+    "shape, dtype, reshape, concatenate vs stack, views vs copies",
+    "Broadcasting rules, axis reductions, * vs @",
+    "Vectorisation, contiguous memory, the GIL and garbage collection",
+    "Pairwise distances, argmin/argmax, rounding outputs for graders"
+  ],
+  "paper_subtopics": [
+    "numpy",
+    "python",
+    "linear-algebra"
+  ],
+  "lessons": [
+    {
+      "slug": "why-numpy",
+      "title": "Why NumPy? Arrays vs lists",
+      "summary": "Contiguous memory, vectorisation, and what happens under Python's hood.",
+      "minutes": 18,
+      "objectives": [
+        "You can explain why NumPy arrays are faster than lists",
+        "You can define vectorisation and stride",
+        "You can describe Python's garbage collection and the GIL in one sentence each"
+      ],
+      "concepts": [
+        {
+          "name": "Arrays live in one contiguous block",
+          "explain": "A Python list stores pointers to objects scattered around memory. A NumPy array stores raw numbers of a single type side by side in one block. The stride tells NumPy how many bytes to jump to reach the next element along each axis.",
+          "analogy": "Like a bus with numbered seats in a row (array) versus passengers spread around a hawker centre whose table numbers are on a list (Python list).",
+          "visual": {
+            "component": "ListVsArrayMemory",
+            "kind": "diagram",
+            "shows": "A memory strip: the list as pointer boxes with arrows to scattered number objects, and the array as one contiguous run of bytes with stride arrows.",
+            "interaction": "Toggle the dtype (int8, float32, float64) to change the byte width and the strides, and click a 2D array to see the row and column strides.",
+            "aha": "Same-type data packed together is what makes fast maths, and 'stride' is just the step size in bytes."
+          }
+        },
+        {
+          "name": "Vectorisation",
+          "explain": "Vectorised code applies an operation to the whole array at once, as in a * 2, instead of looping in Python. The loop still happens, but inside fast compiled C code. It is usually 10 to 100 times faster and much shorter.",
+          "analogy": "Like a rice cooker cooking every grain at once, instead of you frying each grain one by one.",
+          "visual": {
+            "component": "SpeedRace",
+            "kind": "animation",
+            "shows": "A race between a Python for-loop and a vectorised NumPy expression on one million numbers, with timings measured live in the browser.",
+            "interaction": "Choose the size n and the operation, then press Run to time both in Pyodide.",
+            "aha": "Avoid Python loops over numbers, because vectorisation is the main NumPy skill."
+          }
+        },
+        {
+          "name": "Under the hood: garbage collection and the GIL",
+          "explain": "Python frees memory using reference counting, plus a garbage collector that cleans up reference cycles. The Global Interpreter Lock (GIL) lets only one thread run Python bytecode at a time, which limits multi-threaded speed-ups for pure Python. NumPy's C code can release the GIL, which is another reason it is fast. For CPU-bound pure-Python work, multiprocessing (separate processes, each with its own GIL) gives real parallel speed-ups, while threads still help I/O-bound work such as downloading files.",
+          "analogy": "The GIL is like a single-lane turnstile at an MRT station: many people queue, but only one passes at a time.",
+          "visual": {
+            "component": "GILTurnstile",
+            "kind": "animation",
+            "shows": "Threads queuing at a turnstile labelled 'Python bytecode', while a NumPy task runs in a side lane, plus a reference-count meter dropping to zero and freeing an object.",
+            "interaction": "Add threads and play, then toggle 'NumPy C code' to see that work proceed in parallel. Delete references to watch the object get freed.",
+            "aha": "Pure-Python threads take turns, and objects are freed when nothing refers to them."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Why NumPy is faster (cf. 2026 Prelim Q104)",
+        "Vectorisation definition (cf. Q98)",
+        "Stride (cf. Q105)",
+        "GIL and garbage collection (cf. Q89, Q90)"
+      ]
+    },
+    {
+      "slug": "arrays-and-shapes",
+      "title": "Arrays, shape and dtype",
+      "summary": "Create arrays, read their shape and dtype, reshape them, and join them with concatenate or stack.",
+      "minutes": 18,
+      "objectives": [
+        "You can create arrays with np.array, np.zeros, np.arange and np.linspace",
+        "You can state the shape of any array you create",
+        "You can reshape arrays, including with -1",
+        "You can join arrays with concatenate or stack and predict the result shape"
+      ],
+      "concepts": [
+        {
+          "name": "Making arrays",
+          "explain": "np.array([1, 2, 3]) converts a list. np.zeros((3, 4)) gives a 3-row, 4-column grid of zeros with shape (3, 4). np.arange(0, 10, 2) works like range and gives [0 2 4 6 8]; np.linspace(0, 1, 5) gives 5 evenly spaced points including both ends.",
+          "analogy": "Like choosing an empty egg tray of a given size versus filling one from your own list of eggs.",
+          "visual": {
+            "component": "ArrayBuilder",
+            "kind": "interactive",
+            "shows": "A constructor picker (array, zeros, ones, arange, linspace, eye) with argument inputs, the resulting grid drawn as a MatrixGrid and its shape.",
+            "interaction": "Pick a constructor and edit its arguments; the grid and the printed array update.",
+            "aha": "The arguments directly determine the shape, so you can predict shapes without running code."
+          }
+        },
+        {
+          "name": "shape, ndim, size, dtype",
+          "explain": "shape is a tuple of lengths per axis, ndim is how many axes, size is the total count and dtype is the element type (int64, float32). An array of shape (2, 3, 4) has ndim 3 and size 24.",
+          "analogy": "Like describing a block of HDB flats: floors x units per floor gives the total number of units.",
+          "visual": {
+            "component": "ShapeInspector",
+            "kind": "interactive",
+            "shows": "A 3D stack of cells for an array with its shape, ndim, size and dtype listed beside it.",
+            "interaction": "Use sliders for each dimension; the stack and the attributes update together.",
+            "aha": "size is the product of the shape, and every operation either keeps or changes the shape in a predictable way."
+          }
+        },
+        {
+          "name": "reshape and -1",
+          "explain": "reshape rearranges the same numbers into a new shape with the same size; it reads elements row by row. Passing -1 for one dimension tells NumPy to work it out, so a (12,) array reshaped to (3, -1) becomes (3, 4).",
+          "analogy": "Like rearranging 12 chairs from one long row into 3 rows of 4: same chairs, new layout.",
+          "visual": {
+            "component": "ReshapeAnimator",
+            "kind": "animation",
+            "shows": "Numbered cells flowing from one shape into another in row-major order.",
+            "interaction": "Choose a target shape (with or without -1); play to watch the cells flow or see the error if sizes do not match.",
+            "aha": "Reshape never changes the data order, only how it is grouped."
+          }
+        },
+        {
+          "name": "concatenate versus stack",
+          "explain": "np.concatenate([a, b], axis=0) joins along an existing axis, so two (2, 3) arrays become (4, 3). np.stack makes a new axis, giving (2, 2, 3). np.vstack and np.hstack are shortcuts.",
+          "analogy": "Like adding more pages to the same notebook (concatenate) versus putting two notebooks into a box (stack).",
+          "visual": {
+            "component": "StackVsConcat",
+            "kind": "animation",
+            "shows": "Two coloured blocks joining into a taller block for concatenate, or layering into a new dimension for stack, with result shapes.",
+            "interaction": "Pick the function and axis; play to see the join and the resulting shape.",
+            "aha": "concatenate keeps ndim; stack adds one."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Shape of np.zeros((3,4))",
+        "Output of np.arange(0,10,2)",
+        "Creating arrays from lists",
+        "reshape with -1",
+        "concatenate (existing axis) vs stack (new axis) result shapes"
+      ]
+    },
+    {
+      "slug": "indexing-and-masks",
+      "title": "Indexing, slicing and boolean masks",
+      "summary": "Pick out rows, columns and elements, and filter with conditions.",
+      "minutes": 20,
+      "objectives": [
+        "You can select a row, a column and a single element from a 2D array",
+        "You can filter with a boolean mask",
+        "You can tell whether a slice is a view or a copy",
+        "You can explain strides and why a transpose is a view, not a copy"
+      ],
+      "concepts": [
+        {
+          "name": "Rows, columns and elements",
+          "explain": "For a 2D array arr[i, j] is one element, arr[0] or arr[0, :] is the first row, and arr[:, 0] is the first column. Slices work per axis: arr[1:3, ::2] takes rows 1 to 2 and every other column.",
+          "analogy": "Like a cinema seating plan: row then seat number, and ':' means 'the whole row' or 'the whole column'.",
+          "visual": {
+            "component": "SliceHighlighter",
+            "kind": "interactive",
+            "shows": "A 5x6 MatrixGrid of numbers with the selected cells highlighted and the expression and resulting shape shown.",
+            "interaction": "Type or choose an expression (arr[0], arr[:, 0], arr[1:3, ::2]); the highlighted cells and result shape update.",
+            "aha": "The first index is rows and ':' keeps an entire axis."
+          }
+        },
+        {
+          "name": "Boolean masks",
+          "explain": "arr > 0 makes an array of True/False of the same shape; arr[arr > 0] keeps only the True positions. Combine conditions with & and | in brackets. Masks power metrics like accuracy and IoU: (pred == target).mean().",
+          "analogy": "Like holding a stencil over a page: only the cut-out parts show through.",
+          "visual": {
+            "component": "MaskFilter",
+            "kind": "interactive",
+            "shows": "A grid of values, the mask grid of True/False beside it, and the filtered result.",
+            "interaction": "Move a threshold slider and choose the comparison; the mask and the result update.",
+            "aha": "Counting Trues in a mask turns comparisons into metrics."
+          }
+        },
+        {
+          "name": "Views versus copies",
+          "explain": "Basic slices return a view that shares memory with the original, so editing the slice edits the original. Fancy indexing and boolean masks return copies. Use .copy() when you want independence.",
+          "analogy": "Like a window onto a garden (view) versus a photograph of it (copy): change the garden and only the window shows it.",
+          "visual": {
+            "component": "ViewCopyLink",
+            "kind": "interactive",
+            "shows": "An original array and a derived array linked by a chain icon for views and a broken chain for copies.",
+            "interaction": "Pick how the derived array is made and edit one of its cells; see whether the original changes.",
+            "aha": "Slices share memory, which is fast but can cause hidden edits."
+          }
+        },
+        {
+          "name": "Memory layout and strides",
+          "explain": "A 2D array is stored as one long strip of memory in row-major order. Strides say how many bytes to jump to move one step along each axis. Transposing just swaps the strides without copying, which is why some operations need .copy() or produce non-contiguous arrays.",
+          "analogy": "A bookshelf of numbered files in one long line: moving to the next row means jumping a fixed number of files.",
+          "visual": {
+            "component": "MemoryStrip",
+            "kind": "interactive",
+            "shows": "A 3×4 grid above its 1D memory strip; selecting a cell highlights its memory slot and the stride jumps.",
+            "interaction": "Click cells; toggle transpose and watch the same strip be read with different jumps.",
+            "aha": "Shape is a view on a flat strip of memory, which explains views, copies and contiguity."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Accessing the first row arr[0] vs first column arr[:,0]",
+        "Boolean filtering",
+        "View vs copy behaviour",
+        "Row-major memory, strides and non-contiguous views"
+      ]
+    },
+    {
+      "slug": "vectorised-ops-and-axes",
+      "title": "Element-wise operations, matrix products and axes",
+      "summary": "Tell * from @ and np.dot, and reduce arrays along an axis.",
+      "minutes": 14,
+      "objectives": [
+        "You can tell element-wise multiplication from matrix multiplication",
+        "You can predict the shape after a reduction along an axis",
+        "You can compute means and sums per row or column"
+      ],
+      "concepts": [
+        {
+          "name": "* versus @ / np.dot",
+          "explain": "a * b multiplies matching elements and needs the same (or broadcastable) shapes. a @ b or np.dot(a, b) is matrix multiplication: rows of a dotted with columns of b, which needs inner dimensions to match.",
+          "analogy": "Like pairing students by seat number (element-wise) versus every student shaking hands with every member of another class (matrix product).",
+          "visual": {
+            "component": "ElementwiseVsMatmul",
+            "kind": "interactive",
+            "shows": "Tabs showing two small matrices: element-wise tab highlights matching cells; matmul tab highlights a row of A and a column of B for each output cell.",
+            "interaction": "Switch tabs and click an output cell to see which inputs produced it; change shapes to see when each one errors.",
+            "aha": "* is pairwise; @ mixes rows with columns."
+          }
+        },
+        {
+          "name": "Reducing along an axis",
+          "explain": "np.sum(arr, axis=0) collapses the rows, leaving one value per column; axis=1 collapses columns, leaving one per row. The axis you name is the one that disappears. keepdims=True keeps it as length 1, which helps broadcasting later.",
+          "analogy": "Like totalling a class mark sheet: axis=0 gives each subject's total across students, axis=1 gives each student's total across subjects.",
+          "visual": {
+            "component": "AxisCollapse",
+            "kind": "animation",
+            "shows": "A 3x4 grid that squashes vertically (axis 0) or horizontally (axis 1) into a row or column of sums or means.",
+            "interaction": "Choose the axis and the operation (sum, mean, max, argmax); play to watch the collapse and see the result shape.",
+            "aha": "The named axis is the one that vanishes from the shape."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "np.dot vs *",
+        "np.mean(arr) syntax",
+        "Reduction shapes with axis=0/1",
+        "keepdims=True for broadcasting back"
+      ]
+    },
+    {
+      "slug": "broadcasting",
+      "title": "Broadcasting",
+      "summary": "Combine arrays of different shapes safely and spot the silent bugs.",
+      "minutes": 15,
+      "objectives": [
+        "You can apply the broadcasting rules to predict a result shape",
+        "You can centre and standardise data with broadcasting",
+        "You can spot an accidental (n, n) broadcast"
+      ],
+      "concepts": [
+        {
+          "name": "The broadcasting rules",
+          "explain": "Line the shapes up from the right. Two dimensions are compatible if they are equal or one of them is 1; size-1 dimensions stretch to match. (3, 1) + (1, 4) gives (3, 4); (3,) + (4,) is an error.",
+          "analogy": "Like one teacher's announcement broadcast to every class: a single value (size 1) is copied to every place that needs it.",
+          "visual": {
+            "component": "BroadcastStretcher",
+            "kind": "interactive",
+            "shows": "Two grids with chosen shapes, right-aligned shape labels, and stretched ghost copies forming the result grid.",
+            "interaction": "Pick shapes for A and B from dropdowns; see the alignment, the stretched copies and the result shape, or a red error.",
+            "aha": "Size-1 dimensions stretch, and alignment starts from the right."
+          }
+        },
+        {
+          "name": "Centring and scaling features",
+          "explain": "X - X.mean(axis=0) subtracts each column's mean from every row because the means have shape (d,) and broadcast across the (n, d) rows. Dividing by X.std(axis=0) standardises every feature in one line.",
+          "analogy": "Like adjusting every student's score by the class average for that subject, all in one go.",
+          "visual": {
+            "component": "StandardiseBroadcast",
+            "kind": "animation",
+            "shows": "A data grid, the row of column means broadcast down the rows, and the centred result.",
+            "interaction": "Play to watch the mean row stretch and subtract; then toggle dividing by std.",
+            "aha": "Feature-wise preprocessing is one broadcast line."
+          }
+        },
+        {
+          "name": "Silent broadcasting bugs",
+          "explain": "If y has shape (n,) and pred has shape (n, 1), then pred - y broadcasts to (n, n) without an error, giving a wrong loss. Always check shapes and use reshape or [:, None] deliberately.",
+          "analogy": "Like a mail merge that accidentally sends every letter to every person instead of one each.",
+          "visual": {
+            "component": "SilentBroadcastGrid",
+            "kind": "interactive",
+            "shows": "Two column/row vectors and the unexpected (n, n) grid their difference produces, beside the intended (n,) result.",
+            "interaction": "Toggle the shape of pred between (n,) and (n, 1); watch the result grid change size and the 'loss' value change.",
+            "aha": "A missing or extra dimension can give a plausible number that is completely wrong."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Broadcasting definition and result shapes",
+        "Element-wise ops need same or broadcastable shape",
+        "(n,) vs (n,1) bug"
+      ]
+    },
+    {
+      "slug": "from-scratch-patterns",
+      "title": "NumPy patterns for from-scratch ML",
+      "summary": "The ten NumPy moves that build K-means, kNN, metrics and boosting in the Final.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute all pairwise distances with broadcasting",
+        "You can use argmin/argmax, np.where, np.sign and np.unique",
+        "You can round and return results in the format tests expect"
+      ],
+      "concepts": [
+        {
+          "name": "Pairwise distance matrix",
+          "explain": "Given points X (n, d) and centroids C (k, d), X[:, None, :] - C[None, :, :] has shape (n, k, d). Squaring, summing over the last axis and taking the square root gives an (n, k) distance matrix in one line, the heart of K-means and kNN.",
+          "analogy": "Like an MRT fare table listing the distance from every station to every other station.",
+          "visual": {
+            "component": "DistanceMatrixHeatmap",
+            "kind": "interactive",
+            "shows": "A 2D scatter of points and centroids beside the (n, k) heat map of distances, with each row's minimum outlined.",
+            "interaction": "Drag centroids around; the heat map and the nearest-centroid outlines update live.",
+            "aha": "Broadcasting turns a double loop into one array of all distances."
+          }
+        },
+        {
+          "name": "argmin, argmax, where, sign",
+          "explain": "argmin(axis=1) returns the index of the smallest value per row (the assigned cluster). np.where(cond, a, b) picks values element-wise. np.sign gives -1, 0 or 1 (the L1 gradient in boosting). np.unique(y, return_counts=True) counts classes.",
+          "analogy": "Like a teacher picking the top scorer (argmax) rather than the top score (max).",
+          "visual": {
+            "component": "ArgOpsPlayground",
+            "kind": "interactive",
+            "shows": "An array, and buttons for argmin, argmax, where, sign, unique and clip, each showing its output beside the input.",
+            "interaction": "Edit the array values and click each operation; the relevant elements are highlighted.",
+            "aha": "arg-functions return positions, not values."
+          }
+        },
+        {
+          "name": "Returning what the grader expects",
+          "explain": "Final tests compare outputs exactly: round to 4 decimal places with np.round(x, 4), return the requested type (list of tuples versus array), and handle edge cases like empty clusters and -0.0. Many lost marks are formatting, not maths.",
+          "analogy": "Like filling in the OMR sheet correctly: right answer, wrong format, no marks.",
+          "visual": {
+            "component": "OutputFormatChecker",
+            "kind": "interactive",
+            "shows": "Expected output beside several candidate outputs (unrounded, wrong type, wrong shape, correct).",
+            "interaction": "Click each candidate to see whether a strict test would pass it and why.",
+            "aha": "Match type, shape and rounding exactly as the stub asks."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Pairwise distances via broadcasting",
+        "argmin for cluster assignment",
+        "np.sign / np.median / np.mean usage",
+        "Rounding to 4 dp"
+      ]
+    }
+  ]
+}

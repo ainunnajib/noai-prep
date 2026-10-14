@@ -1,0 +1,251 @@
+{
+  "slug": "maths-foundations",
+  "order": 6,
+  "part": "toolkit",
+  "domain": "mathematics",
+  "title": "Maths warm-up: functions, powers, logs and Σ",
+  "tagline": "The notation every formula uses",
+  "summary": "The bridge from school algebra to ML maths: function notation and graphs, piecewise functions such as |x| and ReLU, exponent rules, scientific notation and e, logarithms and their rules, and reading Σ notation, subscripts and hats. Every later formula (losses, sigmoid, softmax, cross-entropy, log n, the Final's update rules) is written in this language.",
+  "prerequisites": [
+    "python-basics"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: the foundations assumed by linear algebra, calculus, probability and optimisation",
+    "Function notation, composition and graphs; piecewise functions (|x|, max, ReLU, step)",
+    "Exponent rules, scientific notation, exponential growth and decay, e and eˣ",
+    "Logarithms: definition, product/quotient/power rules, ln versus log₂, anchor values for no-calculator work",
+    "Σ and Π notation, subscripts, superscripts and hats; translating formulas into NumPy"
+  ],
+  "paper_subtopics": [
+    "calculus",
+    "probability-statistics"
+  ],
+  "lessons": [
+    {
+      "slug": "functions-and-graphs",
+      "title": "Functions and their graphs",
+      "summary": "Function notation, plugging in values, composing functions, and the lines, parabolas and kinked graphs that appear in every ML formula.",
+      "minutes": 16,
+      "objectives": [
+        "You can evaluate f(x) and a composition f(g(x)) for given numbers",
+        "You can read the slope and intercept of y = mx + c and the lowest point of a parabola",
+        "You can sketch |x|, max(0, x) and a step function and say where each has a corner or a jump"
+      ],
+      "concepts": [
+        {
+          "name": "A function is a machine",
+          "explain": "A function takes an input and returns exactly one output: f(x) = 3x + 1 turns 2 into 7. The letter in brackets is only a placeholder, so f(a) = 3a + 1 as well. Functions can be chained: with g(x) = x² and f(x) = 3x + 1, f(g(2)) = f(4) = 13 but g(f(2)) = g(7) = 49, so order matters. A Python def is the same idea, and every ML model is one big composite function of its input.",
+          "analogy": "A drinks machine: press the kopi button (input) and you always get kopi (output). A grinder feeding a brewer is composition: the output of one machine is the input of the next.",
+          "visual": {
+            "component": "FunctionPipeline",
+            "kind": "interactive",
+            "shows": "Two machine boxes labelled f and g with editable formulas, an input ball that drops through them, the intermediate and final values printed on the pipes, and the matching Python def under each box.",
+            "interaction": "Type an input; edit either formula; swap the order of the machines to compare f(g(x)) with g(f(x)).",
+            "aha": "A composite function is a pipeline, which is exactly the shape the chain rule and neural networks use."
+          }
+        },
+        {
+          "name": "Lines and parabolas",
+          "explain": "y = mx + c is a straight line with slope m (rise over run) and intercept c (where it crosses the y-axis). y = (x − 3)² + 1 is a U-shaped parabola whose lowest point is at x = 3, y = 1. Machine learning lives on these two shapes: a simple model is a line, and its squared-error loss is a parabola whose bottom is the best setting of the knob.",
+          "analogy": "A road sign saying \"gradient 1 in 10\" is a slope; a skateboard bowl is a parabola, and a marble always settles at its bottom.",
+          "visual": {
+            "component": "LineParabolaPlot",
+            "kind": "interactive",
+            "shows": "A coordinate plot with a line y = mx + c and a parabola y = a(x − h)² + k, with the slope triangle, the intercept and the vertex labelled and their values printed.",
+            "interaction": "Drag sliders for m, c, a, h and k; drag a point along the parabola and read its height and the slope of the tangent there.",
+            "aha": "Slope says how fast something changes and the bottom of a parabola is a best value: the two ideas behind gradient descent."
+          }
+        },
+        {
+          "name": "Kinks and jumps: |x|, max and ReLU",
+          "explain": "Some functions are built from pieces. |x| is x when x ≥ 0 and −x when x < 0, a V with a sharp corner at 0. ReLU(x) = max(0, x) is flat at 0 for negative inputs and a line of slope 1 for positive ones. A step function jumps from 0 to 1. Corners and jumps matter later: at a corner the slope is not defined, which is why the derivative of |x| is written sign(x) and why ReLU's slope at exactly 0 is a convention.",
+          "analogy": "A car-park barrier: below the threshold nothing moves (0), above it the car moves freely, with a sudden change at the threshold.",
+          "visual": {
+            "component": "PiecewiseGallery",
+            "kind": "interactive",
+            "shows": "A gallery of |x|, max(0, x), a step function and the sigmoid on shared axes, with each piece in its own colour and every corner or jump circled.",
+            "interaction": "Pick a function; slide a point along it and watch its tangent line, which flips suddenly at a corner and cannot be drawn at a jump.",
+            "aha": "Corners are where slopes change suddenly, which explains the \"non-differentiable at 0\" questions about ReLU and |x|."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Evaluating f(g(x)) versus g(f(x))",
+        "Slope and intercept of a line",
+        "Vertex of a parabola",
+        "Corner of |x| and ReLU at 0"
+      ]
+    },
+    {
+      "slug": "powers-and-exponentials",
+      "title": "Powers, scientific notation and e",
+      "summary": "Exponent rules, numbers such as 3e-4 and 1e-8, repeated multiplication that explodes or vanishes, and the number e behind sigmoid and softmax.",
+      "minutes": 16,
+      "objectives": [
+        "You can simplify expressions with the exponent rules, including zero and negative powers",
+        "You can read and compare numbers in scientific notation such as 3e-4",
+        "You can predict whether repeated multiplication by a factor grows or shrinks",
+        "You can explain why eˣ is always positive and sketch e⁻ˣ"
+      ],
+      "concepts": [
+        {
+          "name": "Exponent rules",
+          "explain": "aᵐ × aⁿ = aᵐ⁺ⁿ, (aᵐ)ⁿ = aᵐⁿ, a⁰ = 1 and a⁻ⁿ = 1/aⁿ. Fractional powers are roots: a^(1/2) = √a. Scientific notation uses powers of ten: 3e-4 means 3 × 10⁻⁴ = 0.0003, a typical learning rate, and 1e-8 is the tiny ε added to avoid dividing by zero.",
+          "analogy": "Powers of ten are zoom levels on a map: each step in the exponent zooms in or out by a factor of ten.",
+          "visual": {
+            "component": "PowerLadder",
+            "kind": "interactive",
+            "shows": "A vertical ladder of powers of ten from 10⁻⁸ to 10⁹ with ML labels (1e-8 epsilon, 3e-4 learning rate, 1e6 parameters in a small CNN, 1e9 in a small LLM), plus a rule card that rewrites an expression one step at a time.",
+            "interaction": "Drag a marker to a rung to see the number written three ways (power, e-notation, decimal); pick two rungs to multiply and watch the exponents add.",
+            "aha": "Exponents turn multiplication into addition, which is why ML people think in orders of magnitude."
+          }
+        },
+        {
+          "name": "Growth and decay by repeated multiplication",
+          "explain": "Multiplying by the same factor again and again explodes if the factor is above 1 and vanishes if it is below 1: 2¹⁰ = 1024, but 0.5¹⁰ ≈ 0.001 and 0.25¹⁰ ≈ 0.000001. Backpropagation multiplies many factors together, one per layer, which is exactly why gradients can explode or vanish in deep networks.",
+          "analogy": "Photocopying a photocopy: at 90% each time the tenth copy is faint; at 110% it no longer fits on the page.",
+          "visual": {
+            "component": "RepeatedMultiplier",
+            "kind": "animation",
+            "shows": "Bars for factorⁿ as n runs from 1 to 30 on a log-scale axis, with a second panel comparing the factors 0.25, 0.9, 1.0, 1.1 and 2.",
+            "interaction": "Slide the factor and press play to grow n; toggle between a linear and a log axis.",
+            "aha": "A factor slightly below or above 1, repeated many times, gives a tiny or a huge number: the root of vanishing and exploding gradients."
+          }
+        },
+        {
+          "name": "The number e and eˣ",
+          "explain": "e ≈ 2.718 is what compounding growth approaches when it happens continuously: (1 + 1/n)ⁿ gets closer to e as n grows. eˣ is always positive, equals 1 at x = 0, grows fast for positive x and decays towards 0 for negative x; e⁻ˣ is its mirror image. The sigmoid 1/(1 + e⁻ˣ) and softmax both use eˣ because it turns any score, even a negative one, into a positive number.",
+          "analogy": "Interest on savings: if the bank compounds more and more often, the growth approaches a limit, and that limit is set by e.",
+          "visual": {
+            "component": "CompoundToE",
+            "kind": "interactive",
+            "shows": "A table of (1 + 1/n)ⁿ approaching 2.718 as n grows, beside plots of eˣ and e⁻ˣ with the point (0, 1) marked.",
+            "interaction": "Slide n to compound more often; drag a point on eˣ to read e¹ ≈ 2.72, e² ≈ 7.39 and e⁻¹ ≈ 0.37.",
+            "aha": "eˣ maps every real number to a positive one, which is exactly what probabilities need."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "a⁰ = 1 and a⁻ⁿ = 1/aⁿ",
+        "Reading 3e-4 and 1e-8",
+        "0.25¹⁰ is tiny, 2¹⁰ is 1024",
+        "e⁰ = 1 and eˣ > 0"
+      ]
+    },
+    {
+      "slug": "logarithms",
+      "title": "Logarithms",
+      "summary": "Logs as \"which power?\", the rules that turn products into sums, ln versus log₂, and the anchor values used in no-calculator questions.",
+      "minutes": 18,
+      "objectives": [
+        "You can evaluate log₂ 8, log₁₀ 1000 and ln 1 without a calculator",
+        "You can use log(ab) = log a + log b and log(aⁿ) = n log a",
+        "You can explain why ML adds log-probabilities instead of multiplying probabilities",
+        "You can recall ln 2 ≈ 0.693 and ln 10 ≈ 2.303 and read −ln p as a cost"
+      ],
+      "concepts": [
+        {
+          "name": "A log answers \"which power?\"",
+          "explain": "log_b(x) is the power you must raise b to in order to get x: log₂ 8 = 3 because 2³ = 8, and log₁₀ 1000 = 3. ln means log base e. log 1 = 0 in every base, logs of numbers between 0 and 1 are negative, and log 0 is undefined (it heads to −∞), which is why code adds a tiny ε before taking a log. In Big-O, log₂ n counts how many times you can halve n.",
+          "analogy": "Folding a sheet of paper in half again and again until it is tiny: the number of folds is a logarithm.",
+          "visual": {
+            "component": "LogExpMirror",
+            "kind": "interactive",
+            "shows": "The graphs of 2ˣ and log₂ x reflected in the line y = x with a point and its mirror image linked, plus a halving counter that repeatedly halves a number down to 1.",
+            "interaction": "Drag a point on 2ˣ and watch its mirror move on log₂ x; type a number into the halving counter and count the halvings.",
+            "aha": "A logarithm undoes an exponential, so log turns \"times 2\" into \"plus 1\"."
+          }
+        },
+        {
+          "name": "Log rules turn products into sums",
+          "explain": "log(ab) = log a + log b, log(a/b) = log a − log b and log(aⁿ) = n log a. Probabilities of many independent events multiply, and 0.9¹⁰⁰⁰ is so small that a computer rounds it to 0. Taking logs turns the product into a sum, 1000 × ln 0.9 ≈ −105, which is easy to store and to differentiate. That is why ML maximises the log-likelihood, and why entropy and TF-IDF use logs.",
+          "analogy": "Counting zeros instead of multiplying huge numbers: 1,000 × 1,000,000 has 3 + 6 = 9 zeros.",
+          "visual": {
+            "component": "ProductToSum",
+            "kind": "interactive",
+            "shows": "A row of probability tiles being multiplied, with the running product on a bar that shrinks until it hits floating-point zero, beside the running sum of their logs on a bar that stays readable.",
+            "interaction": "Add tiles or change their values; switch to float32 and see when the product underflows to 0 while the log-sum stays finite.",
+            "aha": "Logs keep tiny probabilities usable, which is why every likelihood in ML is a log-likelihood."
+          }
+        },
+        {
+          "name": "Anchor values and −ln p",
+          "explain": "A few values save time without a calculator: ln 2 ≈ 0.693, ln 10 ≈ 2.303, log₂ 10 ≈ 3.32, ln e = 1 and ln(1/K) = −ln K. The function −ln p is 0 when p = 1 and shoots up as p approaches 0. It is the cost cross-entropy charges for giving the true answer probability p, so a confident wrong answer is punished hard. Plots of learning rates and losses often use a log axis so that 1e-1, 1e-2 and 1e-3 are evenly spaced.",
+          "analogy": "A quiz that charges nothing for a confident correct answer and a huge fine for being certain of a wrong one.",
+          "visual": {
+            "component": "NegLogCost",
+            "kind": "interactive",
+            "shows": "The curve −ln p for p from 0.01 to 1 with the anchor points (1, 0), (0.5, 0.693) and (0.1, 2.303) marked, and a side table of anchor values.",
+            "interaction": "Drag p along the curve and read the cost; quiz mode hides the table and asks for ln 2, ln 10 and ln(1/K) for K = 10.",
+            "aha": "−ln p is the cost behind cross-entropy, and knowing ln 2 and ln 10 answers many \"initial loss\" questions in seconds."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "log₂ 8 and log₁₀ 1000",
+        "Product, quotient and power rules",
+        "Why log-likelihood",
+        "ln 2, ln 10 and ln(1/K) = −ln K"
+      ]
+    },
+    {
+      "slug": "sigma-notation-and-subscripts",
+      "title": "Reading formulas: Σ, subscripts and hats",
+      "summary": "Σ and Π as loops, the subscripts and superscripts that index examples and features, and translating a formula such as the 2025 Final's update rule into NumPy.",
+      "minutes": 16,
+      "objectives": [
+        "You can expand and evaluate a Σ expression and write it as a Python loop",
+        "You can read x_j⁽ⁱ⁾, ŷ, θ, α and m in an ML formula",
+        "You can translate a one-line formula into NumPy and check it on a tiny example"
+      ],
+      "concepts": [
+        {
+          "name": "Σ is a for-loop",
+          "explain": "Σ (capital sigma) means \"add up\": Σᵢ₌₁ⁿ xᵢ = x₁ + x₂ + … + xₙ, exactly a for-loop with a running total. The mean is (1/n) Σ xᵢ and the mean squared error is (1/n) Σ (yᵢ − ŷᵢ)². Π (capital pi) means \"multiply up\" in the same way and appears in likelihoods. In NumPy a Σ over a vector is usually just .sum() or .mean().",
+          "analogy": "A shopping receipt: Σ is the total at the bottom that adds up every line.",
+          "visual": {
+            "component": "SigmaLoopStepper",
+            "kind": "stepper",
+            "shows": "A Σ expression beside the equivalent Python loop and a NumPy one-liner, with a small table of xᵢ values; each step highlights one term, the loop line that adds it and the running total.",
+            "interaction": "Step through the terms; edit the list or the expression inside the Σ (xᵢ, xᵢ², (yᵢ − ŷᵢ)²) and watch all three versions agree.",
+            "aha": "Every Σ in a paper is a loop you already know how to write, and usually a single .sum()."
+          }
+        },
+        {
+          "name": "Subscripts, superscripts and hats",
+          "explain": "ML formulas pack meaning into small marks. xᵢ is the i-th entry of a vector; in a dataset, x⁽ⁱ⁾ is the i-th example and x_j⁽ⁱ⁾ its j-th feature, and m or n usually counts the examples. A hat means \"predicted\", so ŷ is the model's guess for y. Greek letters name parameters and settings: θ or w for weights, α or η for the learning rate, λ for regularisation strength. The superscript (i) is a label, not a power.",
+          "analogy": "A seat label such as Hall B, Row 7, Seat 12: each mark tells you exactly which item is meant.",
+          "visual": {
+            "component": "NotationDecoder",
+            "kind": "interactive",
+            "shows": "A small data table with rows as examples and columns as features, and a formula bar above it; hovering any symbol highlights the matching cell, row or column.",
+            "interaction": "Hover symbols such as x₂⁽³⁾, y⁽ⁱ⁾ and ŷ; switch the formula between the mean, MSE and a linear model to see which parts of the table each one touches.",
+            "aha": "Subscripts are coordinates into a table, so a formula is a recipe for walking over your data."
+          }
+        },
+        {
+          "name": "Translating a formula into code",
+          "explain": "To code a formula, name each symbol, write down its shape, then replace each Σ over examples with a matrix product or .mean(). The 2025 Final rule θⱼ := θⱼ − α·(1/m)·Σᵢ (h_θ(x⁽ⁱ⁾) − y⁽ⁱ⁾)·x_j⁽ⁱ⁾ becomes errors = X @ theta − y followed by theta = theta − alpha * X.T @ errors / m, which updates every θⱼ at once. Test it on the task's three rows, where 1000 steps with α = 0.01 give θ ≈ [0.003, 0.9987].",
+          "analogy": "Translating a recipe from another language: look up each word, keep the quantities, and taste a small batch before cooking for everyone.",
+          "visual": {
+            "component": "FormulaToCode",
+            "kind": "stepper",
+            "shows": "The update rule with each symbol colour-coded and linked to a NumPy line and a shape label, run on the 2025 data X = [[2, 2], [2, 4], [2, 6]], y = [2, 4, 6].",
+            "interaction": "Step from the formula to a loop version and then to the vectorised version; run one update and compare the loop and NumPy results, then run 1000 updates.",
+            "aha": "Shapes are the bridge between maths notation and NumPy: if the shapes match, the translation is usually right."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Expanding Σ",
+        "Reading x_j⁽ⁱ⁾ and ŷ",
+        "Formula to NumPy",
+        "Π in likelihoods"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,308 @@
+{
+  "slug": "classification",
+  "order": 15,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Classification models",
+  "tagline": "Drawing boundaries between classes",
+  "summary": "Predicting categories with logistic regression, the likelihood and entropy ideas behind cross-entropy loss, softmax for many classes, k-nearest neighbours and Naive Bayes, and support vector machines with soft margins and kernels.",
+  "prerequisites": [
+    "linear-regression",
+    "probability-and-statistics"
+  ],
+  "syllabus": [
+    "IOAI 1B2 Logistic Regression",
+    "IOAI 1B4 K-Nearest Neighbors",
+    "IOAI 1B7 Support Vector Machines",
+    "IOAI 2A5 Cross Entropy loss",
+    "Maximum likelihood, entropy, cross-entropy and KL divergence",
+    "NOAI AI/ML: softmax, multi-class vs multi-label, Naive Bayes and Laplace smoothing"
+  ],
+  "paper_subtopics": [
+    "classification",
+    "probability-statistics",
+    "calculus"
+  ],
+  "lessons": [
+    {
+      "slug": "logistic-regression",
+      "title": "Logistic regression",
+      "summary": "Squashing a linear score into a probability with the sigmoid, drawing a decision boundary, and the log loss.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute σ(z) for simple z and interpret it as a probability",
+        "You can describe the decision boundary wᵀx + b = 0",
+        "You can compute binary cross-entropy and explain why it punishes confident mistakes"
+      ],
+      "concepts": [
+        {
+          "name": "Sigmoid turns scores into probabilities",
+          "explain": "Logistic regression computes a linear score z = wᵀx + b and squashes it with σ(z) = 1/(1 + e⁻ᶻ) into a number between 0 and 1. σ(0) = 0.5, large positive z gives nearly 1, large negative nearly 0.",
+          "analogy": "A dimmer switch that smoothly turns 'how strong the evidence is' into 'how likely it is'.",
+          "visual": {
+            "component": "SigmoidSquash",
+            "kind": "interactive",
+            "shows": "A 1D dataset of pass/fail against hours studied with the sigmoid curve fitted; the 0.5 threshold point is marked.",
+            "interaction": "Slide w (steepness) and b (shift); press 'fit' to optimise.",
+            "aha": "The weight controls how sharp the decision is and the bias controls where it happens."
+          }
+        },
+        {
+          "name": "A linear decision boundary",
+          "explain": "In 2D, the set of points where wᵀx + b = 0 is a straight line: on one side the probability is above 0.5, on the other below. The weight vector is perpendicular to the boundary and points towards the positive class.",
+          "analogy": "A coastline on a map: one side land, the other sea, with the beach as the 50-50 zone.",
+          "visual": {
+            "component": "LogisticBoundary2D",
+            "kind": "interactive",
+            "shows": "Two classes of points with a background coloured by predicted probability, the boundary line and the weight vector arrow.",
+            "interaction": "Drag the weight arrow to rotate the boundary and change its length to sharpen the probability gradient; drag the bias handle to shift it.",
+            "aha": "Logistic regression is a linear classifier with a confidence map around the line."
+          }
+        },
+        {
+          "name": "Log loss punishes confident mistakes",
+          "explain": "Binary cross-entropy is −log p for a positive example and −log(1 − p) for a negative one. Predicting 0.9 for a true positive costs about 0.105; predicting 0.01 costs about 4.6. Unlike MSE with a sigmoid, it gives strong gradients when the model is confidently wrong.",
+          "analogy": "A quiz where being confidently wrong costs far more than saying 'not sure'.",
+          "visual": {
+            "component": "LogLossCurve",
+            "kind": "interactive",
+            "shows": "The curve −log p over p from 0 to 1 with a draggable predicted probability and its loss value; the MSE curve is overlaid for comparison.",
+            "interaction": "Drag p; toggle the true label between 1 and 0.",
+            "aha": "Cross-entropy explodes as confident predictions turn out wrong, which makes it the right loss for probabilities."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Sigmoid values (σ(0) = 0.5)",
+        "Decision boundary is linear",
+        "BCE = −[y log p + (1 − y) log(1 − p)]",
+        "Why not MSE for classification"
+      ]
+    },
+    {
+      "slug": "likelihood-and-entropy",
+      "title": "Likelihood, entropy and cross-entropy",
+      "summary": "Why classifiers are trained with cross-entropy: maximum likelihood, and the information-theory view of surprise.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain maximum likelihood and why we maximise the log-likelihood",
+        "You can compute entropy and cross-entropy for small distributions",
+        "You can explain why minimising cross-entropy is maximum likelihood, and that KL divergence is not symmetric"
+      ],
+      "concepts": [
+        {
+          "name": "Maximum likelihood",
+          "explain": "Likelihood asks: if the parameter were this value, how probable is the data we saw? Maximum likelihood picks the parameter that makes the data most probable. For 7 heads in 10 flips, the likelihood p⁷(1 − p)³ peaks at p = 0.7. Maximum a posteriori (MAP) estimation also multiplies in a prior belief, which acts like regularisation.",
+          "analogy": "Guessing a basketball player's shooting accuracy from tonight's shots: the best guess is the accuracy that makes tonight's results least surprising.",
+          "visual": {
+            "component": "LikelihoodCurve",
+            "kind": "interactive",
+            "shows": "A likelihood curve over p ∈ [0, 1] for the observed flips, with its peak marked and the log-likelihood curve underneath.",
+            "interaction": "Add heads or tails with buttons; drag a p marker to read off the likelihood.",
+            "aha": "Minimising cross-entropy loss is the same as maximising likelihood, which is why ML uses it."
+          }
+        },
+        {
+          "name": "Entropy, cross-entropy and KL divergence",
+          "explain": "Entropy H(p) = −Σ p log p measures how unpredictable a distribution is: high for a fair coin, zero for a certain outcome. Cross-entropy H(p, q) measures the cost of predicting with q when the truth is p, and KL divergence = H(p, q) − H(p) is the extra cost; it is never negative and KL(p‖q) usually differs from KL(q‖p).",
+          "analogy": "Packing for a trip: if you expect sunshine (q) but it pours (p), you pay a 'surprise cost'; KL is how much worse you did than someone who knew the real forecast.",
+          "visual": {
+            "component": "EntropyBars",
+            "kind": "interactive",
+            "shows": "Two editable bar distributions p and q over four outcomes, with readouts for H(p), H(p, q), KL(p‖q) and KL(q‖p).",
+            "interaction": "Drag bar heights (auto-normalised); make q match p to see KL drop to 0; swap roles to see asymmetry.",
+            "aha": "Cross-entropy is minimised when the prediction matches the truth, which is exactly what a classifier's loss rewards."
+          }
+        },
+        {
+          "name": "Losses are negative log-likelihoods",
+          "explain": "If you assume Gaussian noise around predictions, maximising likelihood is minimising mean squared error. If outputs are Bernoulli or categorical probabilities, it is minimising cross-entropy. Loss functions are not arbitrary; they come from a probability model.",
+          "analogy": "Like choosing a marking scheme that fits the type of answer: numbers get distance-based marking, multiple choice gets right/wrong marking.",
+          "visual": {
+            "component": "LossFromLikelihood",
+            "kind": "diagram",
+            "shows": "Two tabs deriving MSE from a Gaussian and BCE from a Bernoulli, step by step.",
+            "interaction": "Click through each derivation step with reveal buttons.",
+            "aha": "MSE and cross-entropy are both maximum likelihood with different noise assumptions."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "MLE for a coin (7 heads in 10 → 0.7)",
+        "Entropy of a fair coin is 1 bit",
+        "Cross-entropy = entropy + KL",
+        "Losses as negative log-likelihoods (MSE ↔ Gaussian, CE ↔ categorical)"
+      ]
+    },
+    {
+      "slug": "softmax-and-multiclass",
+      "title": "Softmax, cross-entropy and multi-class problems",
+      "summary": "Extending to many classes with softmax, the cross-entropy loss, and the difference between multi-class and multi-label.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute softmax for small logits",
+        "You can compute cross-entropy for a one-hot target",
+        "You can choose softmax+CE for multi-class and sigmoid+BCE for multi-label"
+      ],
+      "concepts": [
+        {
+          "name": "Softmax turns logits into a distribution",
+          "explain": "Softmax exponentiates each score (logit) and divides by the total: pᵢ = e^{zᵢ}/Σⱼ e^{zⱼ}. The outputs are positive and sum to 1, the largest logit gets the largest probability, and adding the same constant to every logit changes nothing. Label smoothing softens the one-hot target (for example 0.9 for the true class and the remaining 0.1 shared among the others), which stops logits growing without bound and usually improves calibration.",
+          "analogy": "Splitting a prize pool where each finalist's share grows exponentially with their score.",
+          "visual": {
+            "component": "SoftmaxBars",
+            "kind": "interactive",
+            "shows": "Draggable logit bars for 4 classes and the resulting probability bars, with exact values.",
+            "interaction": "Drag logits; press 'add 5 to all' to see probabilities unchanged; slide a temperature divider to sharpen or flatten.",
+            "aha": "Only differences between logits matter, and softmax magnifies them exponentially."
+          }
+        },
+        {
+          "name": "Multi-class versus multi-label",
+          "explain": "Multi-class means exactly one correct label (a digit is 3 or 7, not both), so use softmax with cross-entropy. Multi-label means several labels can be true at once (a photo containing a dog and a cat), so use an independent sigmoid per label with binary cross-entropy.",
+          "analogy": "Choosing one CCA (multi-class) versus ticking every subject you like (multi-label).",
+          "visual": {
+            "component": "MultiLabelToggle",
+            "kind": "interactive",
+            "shows": "An output layer with 4 units, an image card with one or several objects, and the probabilities under softmax versus sigmoid heads.",
+            "interaction": "Toggle the head type and the image; see that softmax forces probabilities to compete while sigmoids do not.",
+            "aha": "Softmax makes classes compete for probability; sigmoids judge each label independently."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Softmax sums to 1 and is shift-invariant",
+        "CE = −log p(correct class)",
+        "Multi-label uses independent sigmoids",
+        "Initial loss ≈ ln K"
+      ]
+    },
+    {
+      "slug": "knn-and-naive-bayes",
+      "title": "k-nearest neighbours and Naive Bayes",
+      "summary": "Two simple classifiers: vote of the nearest neighbours, and Bayes' theorem with a bold independence assumption.",
+      "minutes": 22,
+      "objectives": [
+        "You can classify a point with k-NN and explain how k and the distance metric change the boundary",
+        "You can compute a Naive Bayes score from priors and word likelihoods",
+        "You can explain why Laplace smoothing is needed"
+      ],
+      "concepts": [
+        {
+          "name": "Vote of the neighbours",
+          "explain": "k-NN stores the training data and, for a new point, finds the k closest training points and takes a majority vote (or the average for regression). There is no training step, but every prediction must compare against all stored points.",
+          "analogy": "Deciding which hawker stall is good by asking the 5 people nearest to you in the queue.",
+          "visual": {
+            "component": "KNNMap",
+            "kind": "interactive",
+            "shows": "A 2D two-class dataset, the background coloured by k-NN prediction, and a draggable query point with circles linking it to its k neighbours.",
+            "interaction": "Drag the query; slide k from 1 to 25; switch between Euclidean and Manhattan distance.",
+            "aha": "k = 1 gives jagged islands around every point (overfitting); large k gives smooth, eventually too-simple boundaries."
+          }
+        },
+        {
+          "name": "Distance metrics change neighbourhoods",
+          "explain": "Euclidean distance is the straight-line distance; Manhattan distance adds the absolute differences along each axis. Cosine distance compares directions. The choice, and feature scaling, decide which points count as 'near'.",
+          "analogy": "As the crow flies versus driving along Singapore's grid of roads.",
+          "visual": {
+            "component": "DistanceMetricRings",
+            "kind": "interactive",
+            "shows": "Around a query point, the set of points within distance r drawn as a circle (Euclidean), diamond (Manhattan) or wedge (cosine), with neighbours highlighted.",
+            "interaction": "Toggle the metric; drag r; stretch one feature axis to mimic unscaled data.",
+            "aha": "Neighbourhoods are defined by your metric and your scaling, not by the algorithm."
+          }
+        },
+        {
+          "name": "Bayes with independent features",
+          "explain": "Naive Bayes scores each class as prior x product of P(feature | class), assuming features are independent given the class. It picks the class with the highest score. Training is just counting.",
+          "analogy": "Like guessing whether a message is from your CCA chat by multiplying how typical each word is for that chat.",
+          "visual": {
+            "component": "NaiveBayesSpam",
+            "kind": "interactive",
+            "shows": "A message's words as chips; for each class a running product of word likelihood bars times the prior.",
+            "interaction": "Add or remove words; the class scores and the winner update.",
+            "aha": "Independence turns one hard probability into many easy ones."
+          }
+        },
+        {
+          "name": "Laplace smoothing",
+          "explain": "If a word never appeared in spam during training, its likelihood is 0 and the whole product becomes 0. Adding 1 to every count (Laplace smoothing) keeps unseen words from vetoing a class.",
+          "analogy": "Like giving every new dish at least one star so a single missing review does not make it disappear.",
+          "visual": {
+            "component": "SmoothingToggle",
+            "kind": "interactive",
+            "shows": "Word count tables with and without +1 smoothing and the resulting class scores.",
+            "interaction": "Include an unseen word and toggle smoothing; see the zero product disappear.",
+            "aha": "Smoothing prevents a single zero from dominating."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Small k → jagged boundary (high variance)",
+        "k-NN needs feature scaling",
+        "Naive Bayes independence assumption",
+        "Zero counts and +1 smoothing"
+      ]
+    },
+    {
+      "slug": "support-vector-machines",
+      "title": "Support vector machines and kernels",
+      "summary": "The widest-street classifier, soft margins controlled by C, and the kernel trick for curved boundaries.",
+      "minutes": 22,
+      "objectives": [
+        "You can explain the maximum-margin idea and support vectors",
+        "You can predict the effect of C on the margin",
+        "You can explain the kernel trick and the RBF kernel's gamma"
+      ],
+      "concepts": [
+        {
+          "name": "The widest street",
+          "explain": "Many lines can separate two classes; an SVM picks the one with the widest margin (the empty 'street' between the classes). Only the points on the edge of the street, the support vectors, determine the boundary; moving any other point does not change it.",
+          "analogy": "Building a road between two kampongs: make it as wide as possible, and only the houses at the roadside matter.",
+          "visual": {
+            "component": "SVMStreet",
+            "kind": "interactive",
+            "shows": "Two separable classes with the maximum-margin line, the two margin lines and circled support vectors; the margin width is shown.",
+            "interaction": "Drag points; moving a non-support point leaves the line unchanged, moving a support vector shifts it.",
+            "aha": "The decision depends only on a few critical points at the edge of the margin."
+          }
+        },
+        {
+          "name": "Soft margins and C",
+          "explain": "Real data overlaps, so a soft-margin SVM allows some points inside the street or on the wrong side, each with a penalty. C sets the price of these violations: large C means few violations and a narrow margin (risk of overfitting); small C means a wider margin that tolerates errors.",
+          "analogy": "A strict prefect (large C) who allows no exceptions versus a relaxed one (small C) who accepts a few for overall harmony.",
+          "visual": {
+            "component": "SoftMarginC",
+            "kind": "interactive",
+            "shows": "Overlapping classes with the margin and violating points highlighted, and counters for margin width and violations.",
+            "interaction": "Slide C on a log scale; add an outlier to see large C contort the boundary.",
+            "aha": "C trades margin width against training errors, just like regularisation."
+          }
+        },
+        {
+          "name": "The kernel trick",
+          "explain": "Data that no line can separate in 2D may become separable after mapping to more dimensions (for example adding r² = x² + y²). Kernels compute similarity in that bigger space without building it explicitly. The RBF kernel's gamma sets how local each point's influence is: large gamma gives very wiggly boundaries.",
+          "analogy": "Two kinds of coins mixed on a table can be separated by flicking the table so the heavier coins bounce higher, then slicing horizontally.",
+          "visual": {
+            "component": "KernelLift",
+            "kind": "interactive",
+            "shows": "A ring-shaped dataset in 2D and its lifted 3D-style view (drawn as an isometric plot) with a flat separating plane, then the curved boundary it creates back in 2D; an RBF panel shows the boundary for different gamma.",
+            "interaction": "Slide the lift amount to animate the mapping; slide gamma and C for the RBF SVM.",
+            "aha": "A straight cut in a richer space is a curved boundary in the original space."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Margin and support vectors",
+        "Hard vs soft margin, slack, C",
+        "Kernel trick maps to higher dimensions",
+        "RBF gamma large → wiggly boundary"
+      ]
+    }
+  ]
+}

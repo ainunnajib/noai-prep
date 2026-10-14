@@ -1,0 +1,219 @@
+{
+  "slug": "prompting-and-rag",
+  "order": 30,
+  "part": "generative-ai",
+  "domain": "generative_ai",
+  "title": "Prompting and retrieval-augmented generation",
+  "tagline": "Getting reliable answers from LLMs",
+  "summary": "Prompt engineering (zero-, one- and few-shot, chain-of-thought, structured output), the RAG pipeline from chunking to grounded answers, building a RAG retriever from scratch in NumPy (2025 Final Q3), and tool-using agents.",
+  "prerequisites": [
+    "large-language-models",
+    "text-as-data"
+  ],
+  "syllabus": [
+    "NOAI Generative AI: prompting and RAG",
+    "NOAI 2025 Final Q3: Retrieval-Augmented Generation (vectorisation, cosine similarity, answer extraction)",
+    "Zero-shot, few-shot and in-context learning",
+    "Chunking, embeddings, vector search, grounding",
+    "Tool use and agent loops"
+  ],
+  "paper_subtopics": [
+    "prompting-rag",
+    "llms",
+    "numpy"
+  ],
+  "lessons": [
+    {
+      "slug": "prompt-engineering",
+      "title": "Prompt engineering",
+      "summary": "Writing clear instructions, using examples (few-shot), asking for step-by-step reasoning, and requesting structured output.",
+      "minutes": 16,
+      "objectives": [
+        "You can distinguish zero-shot, one-shot and few-shot prompting",
+        "You can explain in-context learning (no weight updates)",
+        "You can improve a prompt with role, context, format and examples",
+        "You can explain chain-of-thought prompting"
+      ],
+      "concepts": [
+        {
+          "name": "Learning from examples in the prompt",
+          "explain": "Zero-shot prompting gives only an instruction; one-shot adds one example; few-shot adds several. The model picks up the pattern from the examples within the prompt (in-context learning) without any weight updates, so the effect disappears when the examples are removed.",
+          "analogy": "Showing a new canteen helper two finished plates before they start: they copy the pattern without any formal training.",
+          "visual": {
+            "component": "FewShotBuilder",
+            "kind": "interactive",
+            "shows": "A prompt editor with an instruction and slots for examples, and an illustrative output distribution over labels for a test input that becomes more accurate and consistently formatted as examples are added.",
+            "interaction": "Add, remove or reorder examples; include a mislabelled example to see its effect.",
+            "aha": "Examples steer the model at inference time; no learning happens in the weights."
+          }
+        },
+        {
+          "name": "Anatomy of a good prompt",
+          "explain": "A model can only follow what you actually wrote, so vague prompts get vague answers. Reliable prompts state the role, the task, the relevant context, constraints and the exact output format. Asking the model to reason step by step before answering (chain-of-thought) helps on multi-step problems.",
+          "analogy": "A good project brief to a CCA committee: who you are, what to do, what you know, and what the final poster must look like.",
+          "visual": {
+            "component": "PromptAnatomy",
+            "kind": "interactive",
+            "shows": "A sample prompt with colour-coded parts (role, task, context, constraints, format, reasoning request) and a before/after output comparison.",
+            "interaction": "Toggle each part on and off and see the illustrative output change.",
+            "aha": "Most prompt quality comes from being specific about task and format."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Zero/one/few-shot definitions",
+        "In-context learning does not change weights",
+        "Chain-of-thought",
+        "Output format specification"
+      ]
+    },
+    {
+      "slug": "rag-pipeline",
+      "title": "The RAG pipeline",
+      "summary": "Why LLMs need retrieval, the steps (chunk, embed, store, retrieve, augment, generate), and when to choose prompting, RAG or fine-tuning.",
+      "minutes": 22,
+      "objectives": [
+        "You can list the stages of a RAG pipeline and explain how RAG reduces hallucination and handles new or private data",
+        "You can reason about chunk size and top-k trade-offs",
+        "You can tell retrieval failures from generation failures",
+        "You can choose between prompting, RAG and fine-tuning for a scenario"
+      ],
+      "concepts": [
+        {
+          "name": "Retrieve, augment, generate",
+          "explain": "RAG splits documents into chunks, embeds each chunk as a vector and stores them. For a question, it embeds the question, retrieves the most similar chunks, inserts them into the prompt, and asks the LLM to answer using only that context. The model's knowledge is extended without retraining.",
+          "analogy": "An open-book exam: you first find the right pages, then write the answer from them.",
+          "visual": {
+            "component": "RAGPipeline",
+            "kind": "animation",
+            "shows": "A question travelling through embed → vector search over a small document store → top-k chunks → assembled prompt → answer with citations; a toggle shows the answer without retrieval.",
+            "interaction": "Type questions; toggle retrieval; change top-k.",
+            "aha": "RAG gives the model the right page to read instead of hoping it memorised the fact."
+          }
+        },
+        {
+          "name": "Chunk size and top-k",
+          "explain": "Small chunks are precise but may cut an answer in half; large chunks keep context but bring in irrelevant text and use up the context window. Retrieving more chunks (higher k) raises the chance of including the answer but adds noise.",
+          "analogy": "Photocopying single sentences versus whole chapters for your open-book exam.",
+          "visual": {
+            "component": "ChunkSizer",
+            "kind": "interactive",
+            "shows": "A long document split into chunks of the chosen size, the chunks retrieved for a question highlighted, and meters for answer coverage and prompt length.",
+            "interaction": "Slide chunk size, overlap and k.",
+            "aha": "RAG quality is often decided by retrieval settings, not the LLM."
+          }
+        },
+        {
+          "name": "Prompting, RAG or fine-tuning?",
+          "explain": "Prompting is cheapest and works when the model already has the knowledge and skill. RAG adds up-to-date or private knowledge by retrieving documents into the prompt. Fine-tuning changes behaviour, style or format, or teaches a narrow skill, but costs more and can cause catastrophic forgetting of general abilities.",
+          "analogy": "Asking a tutor a question (prompting), giving them your school notes to refer to (RAG), or sending them on a course (fine-tuning).",
+          "visual": {
+            "component": "AdaptationChooser",
+            "kind": "interactive",
+            "shows": "Scenario cards (company policy chatbot, legal style rewriting, latest news Q&A, Singlish sentiment classifier) and a decision flowchart that highlights the recommended path.",
+            "interaction": "Pick a scenario and answer the flowchart questions; compare your choice with the recommendation.",
+            "aha": "Most problems should try prompting first, RAG for knowledge, and fine-tuning for behaviour."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Retrieve → augment → generate",
+        "Embedding similarity search",
+        "Chunk size trade-off",
+        "Grounding and citations",
+        "Prompt vs RAG vs fine-tune decision"
+      ]
+    },
+    {
+      "slug": "rag-from-scratch",
+      "title": "Building a RAG retriever from scratch",
+      "summary": "Implementing vectorisation, cosine similarity and top-k retrieval in NumPy and assembling an answer, as in the 2025 Final.",
+      "minutes": 22,
+      "objectives": [
+        "You can implement TF-IDF (or count) vectors for documents and a query in NumPy",
+        "You can compute cosine similarities with vectorised operations",
+        "You can return top-k documents with argsort",
+        "You can explain your design choices in words"
+      ],
+      "concepts": [
+        {
+          "name": "The scoring table",
+          "explain": "Build a document-term matrix D (one row per document), a query vector q in the same vocabulary, then compute all cosine similarities at once: (D @ q) divided by the row norms of D times the norm of q. np.argsort(-scores)[:k] gives the indices of the top-k documents.",
+          "analogy": "A marking scheme where each document scores points for every keyword it shares with the question, scaled fairly for length.",
+          "visual": {
+            "component": "RetrievalScoreTable",
+            "kind": "stepper",
+            "shows": "The vocabulary, document-term matrix, query vector, dot products, norms and final cosine scores as linked MatrixGrids, ending in a ranked list.",
+            "interaction": "Step through each computation; edit the query; add a document.",
+            "aha": "The whole retriever is a few lines of vectorised NumPy."
+          }
+        },
+        {
+          "name": "Edge cases that lose marks",
+          "explain": "Queries with no words in the vocabulary give a zero vector, and dividing by a zero norm gives NaN; add a small epsilon or handle it explicitly. Ties, stop words and inconsistent lower-casing also change results, so normalise text the same way for documents and queries.",
+          "analogy": "A search box that crashes when you type a word it has never seen.",
+          "visual": {
+            "component": "EdgeCaseTester",
+            "kind": "interactive",
+            "shows": "A list of tricky queries (empty, unknown words, different capitalisation, repeated words) with the current function's output and a pass/fail badge.",
+            "interaction": "Toggle fixes (lower-casing, epsilon in the norm, stop-word removal) and rerun the tests.",
+            "aha": "Robust code handles the boring cases; hidden tests usually check them."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Building a vocabulary and document-term matrix",
+        "Vectorised cosine: (D @ q)/(‖D‖‖q‖)",
+        "np.argsort for ranking (descending)",
+        "Edge cases: zero vectors, empty query terms"
+      ]
+    },
+    {
+      "slug": "tools-and-agents",
+      "title": "Tool use and agents",
+      "summary": "Letting LLMs call functions and tools in a loop of thinking, acting and observing, and how such systems are evaluated.",
+      "minutes": 15,
+      "objectives": [
+        "You can describe function calling",
+        "You can trace a think-act-observe agent loop",
+        "You can identify failure points and evaluation methods for LLM applications"
+      ],
+      "concepts": [
+        {
+          "name": "The agent loop",
+          "explain": "An agent is an LLM that can call tools (a calculator, search, a database) by emitting structured requests. It runs a loop: reason about the next step, call a tool, read the result, and repeat until it can answer. Each extra step adds capability but also chances for error.",
+          "analogy": "A student doing a project who alternates between thinking, looking something up in the library, and updating their notes.",
+          "visual": {
+            "component": "AgentLoopStepper",
+            "kind": "stepper",
+            "shows": "A trace of an agent answering 'How many days from today until NOAI Prelim 2027?': thought, calendar tool call, observation, calculation tool call, final answer.",
+            "interaction": "Step through; inject a faulty tool result to see the agent go wrong.",
+            "aha": "Agents are loops around an LLM, and their reliability depends on every step."
+          }
+        },
+        {
+          "name": "Evaluating LLM applications",
+          "explain": "For RAG and agents, evaluate retrieval (did we fetch the right context?) separately from generation (is the answer correct and faithful to the context?). This tells you which component to fix.",
+          "analogy": "When a delivery is wrong, check whether the warehouse picked the wrong item or the courier delivered to the wrong address.",
+          "visual": {
+            "component": "RAGEvalMatrix",
+            "kind": "interactive",
+            "shows": "A 2×2 grid of retrieval right/wrong versus answer right/wrong, populated with example cases; clicking a case shows its context and answer.",
+            "interaction": "Click cases to classify them; see the suggested fix for each quadrant.",
+            "aha": "Splitting the evaluation pinpoints whether to improve the retriever or the generator."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Tool schemas and function calls",
+        "ReAct loop",
+        "Failure modes: wrong tool, loops, injected instructions",
+        "Evaluating retrieval and answers separately"
+      ]
+    }
+  ]
+}

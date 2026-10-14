@@ -1,0 +1,246 @@
+{
+  "slug": "ai-first-look",
+  "order": 2,
+  "part": "start",
+  "domain": "ai_ml_dl",
+  "title": "How machines learn: a first look",
+  "tagline": "Train a model before writing code",
+  "summary": "A hands-on, no-code first look at machine learning: how AI, ML and deep learning relate, fitting a line by hand and measuring its loss, watching gradient descent roll downhill, and classifying with boundaries and nearest neighbours.",
+  "prerequisites": [
+    "start-here"
+  ],
+  "syllabus": [
+    "AI vs ML vs DL; supervised, unsupervised and reinforcement learning",
+    "Models as functions with parameters; loss (MSE) as a measure of wrongness",
+    "Gradient descent and the learning rate (intuition)",
+    "Decision boundaries, k-nearest neighbours and generalisation (intuition)"
+  ],
+  "paper_subtopics": [
+    "ml-fundamentals",
+    "regression",
+    "classification",
+    "optimisation"
+  ],
+  "lessons": [
+    {
+      "slug": "what-is-ai",
+      "title": "AI, machine learning and deep learning",
+      "summary": "How AI, ML and DL relate, and the three main ways a machine can learn.",
+      "minutes": 12,
+      "objectives": [
+        "You can explain how AI, ML and DL nest inside each other",
+        "You can explain why learning from examples beats hand-written rules for messy problems",
+        "You can classify a task as supervised, unsupervised or reinforcement learning"
+      ],
+      "concepts": [
+        {
+          "name": "AI vs ML vs DL",
+          "explain": "AI is the big goal: machines doing things that seem intelligent. Machine learning is one way to get there, where the computer learns patterns from data instead of being given rules. Deep learning is a kind of ML that uses neural networks with many layers, and it powers chatbots and image recognition.",
+          "analogy": "Like 'food' contains 'hawker food', which contains 'noodles': each circle sits inside the bigger one.",
+          "visual": {
+            "component": "AIVennExplorer",
+            "kind": "diagram",
+            "shows": "Three nested circles labelled AI, ML and DL, with example cards next to them: a rule-based chess engine, a spam filter, a face unlock and a chatbot.",
+            "interaction": "Drag each example card into the smallest circle it belongs to. Wrong drops bounce back with a hint.",
+            "aha": "Not all AI learns. ML is the part that learns from data, and DL is ML with deep neural networks."
+          }
+        },
+        {
+          "name": "Rules vs learning from examples",
+          "explain": "Hand-written rules break on messy real data: there are too many cases to list. ML flips this around. You show the computer many labelled examples and it adjusts its own internal numbers until its answers match. The result is a model: a function with learned settings.",
+          "analogy": "Learning to tell ripe durians from unripe ones by smelling hundreds of them with an uncle, instead of reading a rulebook.",
+          "visual": {
+            "component": "RulesVsExamples",
+            "kind": "interactive",
+            "shows": "Twenty SMS messages labelled spam or not spam, with a rule editor on the left and a 'learn from examples' button on the right. Each side has its own accuracy meter.",
+            "interaction": "Add keyword rules (for example 'contains FREE') and watch your accuracy. Then press 'learn' and watch learned word weights reach higher accuracy.",
+            "aha": "Learning finds patterns you would never think to write down, and that is the whole point of ML."
+          }
+        },
+        {
+          "name": "Three ways to learn",
+          "explain": "Supervised learning learns from examples that come with answers (labels). Unsupervised learning finds structure in data without labels, such as groups. Reinforcement learning learns by trial and error, getting rewards or penalties from an environment.",
+          "analogy": "Supervised is learning with an answer key, unsupervised is sorting your Lego with no instructions, and reinforcement is learning a mobile game by playing it and watching your score.",
+          "visual": {
+            "component": "LearningTypesSorter",
+            "kind": "interactive",
+            "shows": "Three bins (Supervised, Unsupervised, Reinforcement) and eight scenario cards: HDB price prediction, grouping shoppers, a robot learning to walk, spam detection, and others.",
+            "interaction": "Drag each card into a bin. Feedback names the clue that decides it: 'has labels', 'no labels' or 'gets rewards'.",
+            "aha": "Ask whether the data has answers or rewards. That one question decides the type of learning."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "AI/ML/DL relationships",
+        "Identifying supervised/unsupervised/RL from a scenario (cf. 2025 MCQ Q1, Q3)",
+        "What a model is"
+      ]
+    },
+    {
+      "slug": "fit-a-line-by-hand",
+      "title": "Your first model: fitting a line by hand",
+      "summary": "Predict HDB resale prices with a straight line, and measure how wrong it is.",
+      "minutes": 15,
+      "objectives": [
+        "You can explain a model as a function with adjustable knobs",
+        "You can compute a residual and explain mean squared error",
+        "You can link the best line to the lowest point of the loss curve"
+      ],
+      "concepts": [
+        {
+          "name": "A model is a function with knobs",
+          "explain": "A simple model predicts price from floor area with a straight line: price = w × area + b. The slope w and the intercept b are the knobs, which ML calls parameters. Training means finding the knob settings that fit the data best.",
+          "analogy": "Like adjusting the sugar and milk in your kopi until it tastes right: two knobs, and you tune them by feedback.",
+          "visual": {
+            "component": "LineFitPlayground",
+            "kind": "interactive",
+            "shows": "A scatter of 30 HDB flats (floor area against resale price) with a line on top.",
+            "interaction": "Drag the slope slider (w) and the intercept slider (b), or drag the line's two handles directly. The line moves over the data.",
+            "aha": "Training a model is just choosing knob values, and some choices are clearly better than others."
+          }
+        },
+        {
+          "name": "Loss: measuring wrongness",
+          "explain": "For each flat, the residual is the actual price minus the predicted price. Square each residual so negatives don't cancel and big misses count more, then average them to get the mean squared error (MSE). Lower MSE means a better fit.",
+          "analogy": "Like a darts score where you lose points for distance from the bullseye, and far misses cost much more than near ones.",
+          "visual": {
+            "component": "SquaredErrorPreview",
+            "kind": "interactive",
+            "shows": "The same scatter and line, now with vertical residual lines and a shaded square on each residual. A live MSE number and bar sit beside it.",
+            "interaction": "Move the line and watch the squares shrink or grow. Drag one point far away to see its square dominate the MSE.",
+            "aha": "One number can summarise how wrong a model is, and squaring makes outliers very loud."
+          }
+        },
+        {
+          "name": "The loss curve: a valley to find",
+          "explain": "Keep b fixed and try every slope w. Plotting the MSE for each w gives a U-shaped curve. The best slope sits at the bottom of the valley, so finding a good model means finding the lowest point of the loss.",
+          "analogy": "Like walking around a valley in thick fog: you can't see the bottom, but you can feel whether the ground slopes down.",
+          "visual": {
+            "component": "LossBowl",
+            "kind": "interactive",
+            "shows": "Two linked panels: the data with the current line on the left, and the MSE plotted against w on the right with a dot at the current w.",
+            "interaction": "Drag the dot along the loss curve and the line on the left changes. Drag the line and the dot moves along the curve.",
+            "aha": "'Best model' and 'bottom of the loss valley' are the same thing, and that idea drives all of ML."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Parameters vs data",
+        "Computing a residual and a small MSE by hand",
+        "Reading a loss curve's minimum"
+      ]
+    },
+    {
+      "slug": "let-the-computer-learn",
+      "title": "Letting the computer find the line",
+      "summary": "Gradient descent, the algorithm behind almost all of ML, introduced as rolling downhill.",
+      "minutes": 15,
+      "objectives": [
+        "You can describe gradient descent as repeated small steps downhill",
+        "You can predict what too small or too large a learning rate does",
+        "You can list the predict-measure-nudge training loop"
+      ],
+      "concepts": [
+        {
+          "name": "Walking downhill",
+          "explain": "The computer can't see the whole loss curve, but it can measure the slope where it stands. Gradient descent takes a small step in the downhill direction, measures the slope again and repeats until the ground is flat. That flat point is the minimum.",
+          "analogy": "Like finding the lowest point of a dark room's sloping floor by feeling with your feet and always stepping downhill.",
+          "visual": {
+            "component": "DownhillBallPreview",
+            "kind": "animation",
+            "shows": "A ball on the U-shaped loss curve, with a tangent line showing the slope at the ball and an arrow pointing downhill.",
+            "interaction": "Press play to watch it step, or step one move at a time. Drag the ball to a new starting point and run again.",
+            "aha": "You only ever need the local slope to make progress. You never need to see the whole landscape."
+          }
+        },
+        {
+          "name": "The learning rate is the step size",
+          "explain": "Each step moves by the learning rate times the slope. If the steps are too small, training crawls. If they are too large, the ball overshoots the valley, bounces from side to side and can fly off to infinity.",
+          "analogy": "Like parking a car: tiny nudges take forever, but stamping on the accelerator overshoots the lot.",
+          "visual": {
+            "component": "LearningRateRace",
+            "kind": "animation",
+            "shows": "Three copies of the loss curve side by side, with learning rates 0.01, 0.1 and 1.1. Each has its own ball and step counter.",
+            "interaction": "Press play to race them, or set your own learning rate with a slider on a fourth curve.",
+            "aha": "There is a 'just right' learning rate. Above a threshold, training diverges instead of converging."
+          }
+        },
+        {
+          "name": "The training loop",
+          "explain": "Training repeats four moves: predict with the current knobs, measure the loss, work out which way to nudge each knob, then nudge it. Every model you will meet, from linear regression to ChatGPT, is trained with some version of this loop.",
+          "analogy": "Like a hawker perfecting a recipe: cook, taste, adjust the salt, and cook again.",
+          "visual": {
+            "component": "TrainingLoopAnimation",
+            "kind": "animation",
+            "shows": "The line moving over the HDB scatter step by step, synced with a falling loss-versus-step chart and a four-stage loop diagram (predict, measure, gradient, update).",
+            "interaction": "Play, pause or step. The active stage of the loop lights up at each step.",
+            "aha": "Learning is not magic. It is a loop that makes many tiny improvements."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Direction of the negative gradient (cf. 2026 Prelim Q33)",
+        "Effect of learning rate size (cf. Q66, Q269)",
+        "Steps of the training loop"
+      ]
+    },
+    {
+      "slug": "classify-with-boundaries",
+      "title": "Classifying: boundaries and neighbours",
+      "summary": "Separate two classes with a line, predict like your neighbours, and see why memorising fails.",
+      "minutes": 15,
+      "objectives": [
+        "You can explain classification as drawing a decision boundary",
+        "You can predict a class with k-nearest neighbours by hand",
+        "You can explain why a model must be judged on new data"
+      ],
+      "concepts": [
+        {
+          "name": "Decision boundary",
+          "explain": "Classification puts each example into a category, such as pass or fail. In two dimensions, a classifier draws a boundary: points on one side get one label and points on the other side get the other. Learning a classifier means finding a good boundary.",
+          "analogy": "Like the line on a school field that splits two teams' halves: which side you stand on decides your team.",
+          "visual": {
+            "component": "BoundaryDrawer",
+            "kind": "interactive",
+            "shows": "Students plotted by hours studied against hours slept, coloured pass or fail, with a straight boundary line and a live count of correct points.",
+            "interaction": "Drag the line's two endpoints to separate the colours as well as you can. Misclassified points blink.",
+            "aha": "A classifier is a boundary, and some data cannot be split perfectly by a straight line."
+          }
+        },
+        {
+          "name": "Nearest neighbours",
+          "explain": "k-nearest neighbours (kNN) doesn't draw a line at all. To label a new point, it finds the k closest training points and takes a majority vote. With small k the result is jumpy; with large k it is smoother.",
+          "analogy": "Like guessing which secondary school someone attends by asking the five students who live nearest to them.",
+          "visual": {
+            "component": "KNNPlayground",
+            "kind": "interactive",
+            "shows": "A 2D scatter of two classes with a background coloured by kNN prediction. Clicking a query point draws lines to its k neighbours.",
+            "interaction": "Click anywhere to place a query point, and slide k from 1 to 15 to watch the coloured regions change shape.",
+            "aha": "Similar inputs should get similar outputs. Choosing k trades jumpiness against smoothness."
+          }
+        },
+        {
+          "name": "Generalisation: the real goal",
+          "explain": "A model that memorises its training points can score 100% on them and still fail on new data. What matters is generalisation: performance on examples the model has never seen. That is why we always keep some data hidden for testing.",
+          "analogy": "Like memorising answers to last year's paper: you score full marks on the practice, then struggle with new questions.",
+          "visual": {
+            "component": "GeneralisationPeek",
+            "kind": "interactive",
+            "shows": "A very wiggly boundary that fits every training point perfectly, next to a simple smooth boundary.",
+            "interaction": "Press 'reveal new points' to drop fresh test data onto both boundaries and compare their accuracy.",
+            "aha": "Perfect training accuracy can be a warning sign. The test on new data is what counts."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Classification vs regression",
+        "kNN prediction by hand (cf. 2026 Prelim Q140)",
+        "Overfitting definition (cf. Q142)"
+      ]
+    }
+  ]
+}

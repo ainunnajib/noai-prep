@@ -1,0 +1,219 @@
+{
+  "slug": "multimodal-ai",
+  "order": 32,
+  "part": "generative-ai",
+  "domain": "generative_ai",
+  "title": "Multimodal AI: ViT, self-supervision, CLIP and VLMs",
+  "tagline": "Connecting images, text and more",
+  "summary": "Vision Transformers that treat image patches as tokens, self-supervised learning for vision (contrastive and masked objectives), CLIP's contrastive training on image-text pairs with zero-shot classification, and vision-language models that feed image features into LLMs (Flamingo, LLaVA, GPT-4V style).",
+  "prerequisites": [
+    "attention-and-transformers",
+    "vision-tasks",
+    "large-language-models",
+    "generative-models"
+  ],
+  "syllabus": [
+    "IOAI 2B5 Transformers (image): ViT patches and patch embeddings",
+    "IOAI 3A8 Self-Supervised Learning for Vision",
+    "IOAI 3A9 Vision-text encoders (e.g. CLIP)",
+    "IOAI 4A4 Encoder-Decoder Models for Vision-Language Modeling",
+    "IOAI 2B2 Data Embeddings (image)",
+    "NOAI Generative AI: multimodal models, contrastive loss, zero-shot classification, cross-attention, Flamingo, GPT-4V"
+  ],
+  "paper_subtopics": [
+    "multimodal",
+    "cnn-vision",
+    "nlp-transformers",
+    "generative-models"
+  ],
+  "lessons": [
+    {
+      "slug": "vision-transformers",
+      "title": "Vision Transformers",
+      "summary": "Treating an image as a sequence of patches with position embeddings and a class token, and how ViTs compare with CNNs.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute the number of patches (tokens) for an image and patch size",
+        "You can describe patch embedding, position embedding and the [CLS] token",
+        "You can contrast ViT and CNN inductive biases and data needs"
+      ],
+      "concepts": [
+        {
+          "name": "Cutting an image into patches",
+          "explain": "A Vision Transformer cuts the image into fixed-size patches (e.g. 16×16), flattens each patch and projects it to a vector, so the image becomes a sequence of tokens like words in a sentence. A 224×224 image with 16×16 patches gives 14 × 14 = 196 tokens, plus one [CLS] token for classification. Position embeddings tell the model where each patch came from.",
+          "analogy": "Cutting a jigsaw puzzle into square pieces and numbering their positions on the back.",
+          "visual": {
+            "component": "Patchifier",
+            "kind": "interactive",
+            "shows": "An image with a patch grid overlay, the patches flowing out into a sequence strip with position numbers and a [CLS] token at the front, and a token count.",
+            "interaction": "Slide the patch size and image size; watch the token count and the strip length change.",
+            "aha": "A ViT reads an image like a sentence of patches."
+          }
+        },
+        {
+          "name": "Attention across patches",
+          "explain": "In a ViT every patch can attend to every other patch from the first layer, so it can relate distant regions immediately, whereas a CNN's receptive field grows slowly. With less built-in bias towards local patterns, ViTs need large datasets or pretraining to do well.",
+          "analogy": "A CNN is like asking only your neighbours in class; a ViT lets you ask anyone in the hall from the start.",
+          "visual": {
+            "component": "PatchAttentionMap",
+            "kind": "interactive",
+            "shows": "An image divided into patches; clicking a patch shows a heat map of illustrative attention weights from that patch to all others, next to the CNN receptive field for the same location.",
+            "interaction": "Click patches; toggle between 'early layer' and 'late layer' attention patterns.",
+            "aha": "Global attention trades locality bias for flexibility, which is why ViTs shine with lots of data."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Tokens = (H/P) × (W/P)",
+        "Linear patch projection",
+        "Position embeddings needed",
+        "ViTs need more data or pretraining"
+      ]
+    },
+    {
+      "slug": "self-supervised-vision",
+      "title": "Self-supervised learning for vision",
+      "summary": "Learning visual features without labels through pretext tasks, contrastive learning (SimCLR) and masked image modelling (MAE).",
+      "minutes": 18,
+      "objectives": [
+        "You can explain how self-supervised learning creates its own training signal",
+        "You can describe contrastive learning with positive and negative pairs",
+        "You can describe masked autoencoding for images"
+      ],
+      "concepts": [
+        {
+          "name": "Contrastive learning",
+          "explain": "Contrastive methods such as SimCLR create two random augmentations of the same image (a positive pair) and train an encoder so their embeddings are close while embeddings of different images (negatives) are far apart. Labels are never needed, and the learned encoder transfers well to labelled tasks.",
+          "analogy": "Learning to recognise your classmates by seeing them in different outfits and lighting, and knowing everyone else is someone different.",
+          "visual": {
+            "component": "ContrastivePairs",
+            "kind": "animation",
+            "shows": "Embeddings of several images on a 2D plane; each image's two augmented views start scattered and, as training plays, positive pairs pull together while other points push apart; a temperature slider changes how strongly.",
+            "interaction": "Play or step training; slide temperature; click an image to see its two views.",
+            "aha": "Similarity between augmented views is a free label for learning useful features."
+          }
+        },
+        {
+          "name": "Masked image modelling",
+          "explain": "Masked autoencoders hide a large fraction of image patches (often 75%) and train a network to reconstruct the missing pixels from the visible ones. To succeed, it must learn about shapes, objects and context. It is the image version of BERT's masked words.",
+          "analogy": "Completing a jigsaw with most pieces missing: you must understand the picture, not just match edges.",
+          "visual": {
+            "component": "MaskedPatches",
+            "kind": "interactive",
+            "shows": "An image with a random patch mask, the visible patches, and an illustrative reconstruction that gets blurrier as the mask ratio rises.",
+            "interaction": "Slide the mask ratio from 10% to 90%; resample the mask.",
+            "aha": "Hiding most of the input forces the model to learn high-level structure rather than copy pixels."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Pretext tasks",
+        "Two augmented views as a positive pair",
+        "Contrastive loss pulls positives, pushes negatives",
+        "MAE masks most patches and reconstructs them"
+      ]
+    },
+    {
+      "slug": "clip-and-zero-shot",
+      "title": "CLIP: one space for images and words",
+      "summary": "Contrastive training on image-caption pairs builds a joint embedding space, which turns text prompts into zero-shot classifiers.",
+      "minutes": 22,
+      "objectives": [
+        "You can explain CLIP's contrastive objective on a batch similarity matrix",
+        "You can describe the joint image-text embedding space",
+        "You can run zero-shot classification with text prompts"
+      ],
+      "concepts": [
+        {
+          "name": "The similarity matrix",
+          "explain": "In each batch of N image-caption pairs, CLIP encodes all images and all captions, normalises the embeddings and computes an N×N matrix of cosine similarities. Training pushes the diagonal (true pairs) up and everything else down, using a cross-entropy loss across each row and each column, scaled by a learned temperature.",
+          "analogy": "A speed-dating event where each person must pick out their real partner from everyone in the room.",
+          "visual": {
+            "component": "CLIPSimilarityMatrix",
+            "kind": "animation",
+            "shows": "A batch of 6 thumbnail images and 6 captions with the 6×6 similarity heat map; as training steps play, the diagonal brightens and off-diagonal cells dim, with the loss falling.",
+            "interaction": "Play or step training; slide the temperature; swap two captions to create a mismatch.",
+            "aha": "Contrastive training needs no class labels, only which image goes with which text."
+          }
+        },
+        {
+          "name": "One space for images and words",
+          "explain": "After training, images and texts with the same meaning sit close together in one embedding space. You can compare any image with any sentence by cosine similarity, which powers image search by text and text-guided image generation.",
+          "analogy": "A bilingual dictionary where a picture and a phrase meaning the same thing share a page.",
+          "visual": {
+            "component": "JointEmbeddingSpace",
+            "kind": "interactive",
+            "shows": "A 2D projection of image and caption embeddings (precomputed) with lines linking each image to its nearest captions.",
+            "interaction": "Type a caption and see where it lands; click an image to list its nearest captions.",
+            "aha": "A shared space turns cross-modal search into nearest-neighbour lookup."
+          }
+        },
+        {
+          "name": "Text prompts as classifiers",
+          "explain": "To classify an image with CLIP, write a prompt for each class ('a photo of a cat', 'a photo of a dog'), embed the prompts and the image, and pick the class whose prompt is most similar. No training on those classes is needed, which is zero-shot classification. Wording matters, and averaging several prompts per class (an ensemble) is more robust.",
+          "analogy": "Identifying a dish by matching it against menu descriptions, even for dishes you have never ordered.",
+          "visual": {
+            "component": "ZeroShotPrompts",
+            "kind": "interactive",
+            "shows": "A test image, editable class prompts, similarity scores and the softmax probabilities over classes.",
+            "interaction": "Edit prompts (e.g. add 'a blurry photo of'), add or remove classes, toggle prompt ensembling.",
+            "aha": "Changing the words changes the classifier, with no retraining."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Positive pairs on the diagonal, negatives elsewhere (InfoNCE)",
+        "Cosine similarity in a shared space",
+        "Prompt templates such as \"a photo of a {label}\""
+      ]
+    },
+    {
+      "slug": "vision-language-models",
+      "title": "Vision-language models",
+      "summary": "How models like Flamingo, LLaVA and GPT-4V let an LLM see: vision encoders, projections, and cross-attention versus token concatenation.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe how image features are fed into an LLM",
+        "You can contrast cross-attention fusion (Flamingo) with token concatenation (LLaVA-style)",
+        "You can explain self-attention versus cross-attention",
+        "You can name tasks VLMs perform (captioning, VQA, OCR)"
+      ],
+      "concepts": [
+        {
+          "name": "Turning images into tokens for an LLM",
+          "explain": "A vision-language model encodes the image with a pretrained vision encoder (often a CLIP ViT), projects the patch features into the LLM's embedding space, and lets the LLM process them alongside text tokens. The LLM can then describe images, answer questions about them or read text in them.",
+          "analogy": "Translating a photo into a set of 'words' the writer can read before writing a caption.",
+          "visual": {
+            "component": "ImageTokensToLLM",
+            "kind": "stepper",
+            "shows": "An image cut into patches → encoder → projector → a token sequence where image tokens and text-prompt tokens sit side by side → LLM output answer.",
+            "interaction": "Step through; change the number of image tokens and see the context length grow.",
+            "aha": "Most VLMs bolt a vision encoder onto an existing LLM with a small learned bridge."
+          }
+        },
+        {
+          "name": "Self-attention versus cross-attention fusion",
+          "explain": "In self-attention, queries, keys and values all come from the same sequence. In cross-attention, queries come from one modality (text) and keys and values from another (image). Flamingo inserts cross-attention layers into a frozen LLM so text can look at image features; LLaVA-style models instead concatenate image tokens with text tokens and use ordinary self-attention.",
+          "analogy": "Either the writer keeps glancing at a separate photo on the desk (cross-attention) or the photo's descriptions are pasted straight into the draft (concatenation).",
+          "visual": {
+            "component": "SelfVsCrossAttention",
+            "kind": "interactive",
+            "shows": "Two diagrams with Q, K, V arrows coloured by source modality, plus small attention grids showing text-to-image attention.",
+            "interaction": "Toggle between fusion styles; click a text token to see which image patches it attends to.",
+            "aha": "Where the keys and values come from is the only difference between self- and cross-attention."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Vision encoder → projector → LLM",
+        "Cross-attention: queries from text, keys/values from image",
+        "Frozen components and few-shot ability",
+        "Why aligned image-text data is scarce"
+      ]
+    }
+  ]
+}

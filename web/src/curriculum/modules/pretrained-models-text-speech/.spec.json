@@ -1,0 +1,290 @@
+{
+  "slug": "pretrained-models-text-speech",
+  "order": 28,
+  "part": "language-audio",
+  "domain": "ai_ml_dl",
+  "title": "Pretrained models for text and speech",
+  "tagline": "BERT, GPT, Whisper and friends",
+  "summary": "Encoder-only (BERT), decoder-only (GPT) and encoder-decoder models, language modelling, using and fine-tuning models with Hugging Face, sound as data (waveforms, sampling, spectrograms), and speech models HuBERT, Whisper and audio-LLMs.",
+  "prerequisites": [
+    "attention-and-transformers"
+  ],
+  "syllabus": [
+    "IOAI 4A2 Pre-trained Text Encoders (BERT)",
+    "IOAI 4A3 Language Modeling",
+    "IOAI 4A4 Encoder-Decoder Models",
+    "IOAI 4A5 Pre-trained Language Models (open-source and API-based)",
+    "IOAI 4B1 Pre-trained Audio Encoders: HuBERT",
+    "IOAI 4B2 Audio Models: Qwen-Audio, Whisper, Voxtral",
+    "IOAI 2B2 Data Embeddings (audio)"
+  ],
+  "paper_subtopics": [
+    "nlp-transformers",
+    "llms",
+    "multimodal",
+    "pytorch"
+  ],
+  "lessons": [
+    {
+      "slug": "bert-and-gpt",
+      "title": "BERT, GPT and language modelling",
+      "summary": "Encoder-only models pretrained by filling in masked words, decoder-only models that predict the next token, and how their attention masks differ.",
+      "minutes": 24,
+      "objectives": [
+        "You can describe masked language modelling and the 80/10/10 rule",
+        "You can explain how the [CLS] vector is used for classification",
+        "You can write a sentence probability as a product of next-token probabilities and explain perplexity",
+        "You can match encoder-only and decoder-only models to tasks"
+      ],
+      "concepts": [
+        {
+          "name": "Masked language modelling",
+          "explain": "BERT is pretrained by hiding some tokens and predicting them from both left and right context. 15% of tokens are selected; of these, 80% become [MASK], 10% a random token and 10% stay unchanged, so the model cannot rely on seeing [MASK] at fine-tuning time. Because it sees both sides, BERT builds rich representations but cannot generate text left to right.",
+          "analogy": "A cloze passage in an English paper: fill in the blanks using the words before and after.",
+          "visual": {
+            "component": "MaskedWordGame",
+            "kind": "interactive",
+            "shows": "A sentence with some tokens masked and illustrative top-5 predictions with probabilities for each mask; a sampler panel shows the 80/10/10 outcome for selected tokens.",
+            "interaction": "Click words to mask them; resample the 80/10/10 choices; compare predictions with left-only context.",
+            "aha": "Seeing both sides of a gap gives far better guesses than seeing only the left."
+          }
+        },
+        {
+          "name": "[CLS] and fine-tuning",
+          "explain": "BERT adds a [CLS] token at the start; after the encoder, its final vector serves as a summary of the whole input. For classification, a small linear head on the [CLS] vector is trained along with (usually) the whole encoder at a small learning rate.",
+          "analogy": "The class monitor who listens to everyone and then reports the class's overall view to the teacher.",
+          "visual": {
+            "component": "CLSHead",
+            "kind": "diagram",
+            "shows": "Tokens flowing through stacked encoder blocks with the [CLS] position highlighted at each layer, then into a linear head and softmax.",
+            "interaction": "Hover layers to see that [CLS] attends to all tokens; toggle 'freeze encoder' to see trainable parameter counts change.",
+            "aha": "One special token's output becomes the sentence embedding for downstream tasks."
+          }
+        },
+        {
+          "name": "Next-token probabilities",
+          "explain": "A language model assigns a probability to every possible next token given the text so far. A sentence's probability is the product of these conditional probabilities (the chain rule). Training maximises the probability of real text, which is self-supervised learning on huge corpora. Generating text one token at a time, each conditioned on all the tokens before it, is called autoregressive generation, so GPT is an autoregressive decoder while BERT is a bidirectional encoder.",
+          "analogy": "Predictive text on your phone, scaled up to everything ever written online.",
+          "visual": {
+            "component": "NextTokenBars",
+            "kind": "interactive",
+            "shows": "A prompt box and bars of next-token probabilities from a small bigram/trigram model trained on a toy Singapore-themed corpus, with a running sentence probability as tokens are appended.",
+            "interaction": "Type or click tokens to extend the prompt; switch between bigram and trigram contexts.",
+            "aha": "Generating text is repeatedly picking from a next-token distribution."
+          }
+        },
+        {
+          "name": "Encoder versus decoder attention",
+          "explain": "GPT-style decoder-only models use a causal mask so each token sees only earlier tokens, which allows left-to-right generation. BERT-style encoders see the full sequence in both directions, which is better for understanding tasks but cannot generate. Perplexity, the exponential of the average negative log-probability, measures how 'surprised' a language model is.",
+          "analogy": "Writing a story one sentence at a time without peeking ahead (GPT) versus editing a finished story where you can see everything (BERT).",
+          "visual": {
+            "component": "EncoderVsDecoderMasks",
+            "kind": "interactive",
+            "shows": "Side-by-side attention-mask grids for encoder (full) and decoder (lower-triangular), with which tokens contribute to a selected position, and a perplexity readout for sample sentences.",
+            "interaction": "Click a position to highlight what it can see; compare perplexity of a fluent and a scrambled sentence.",
+            "aha": "The mask, not the block design, is the main difference between BERT and GPT."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "BERT is bidirectional; GPT is causal",
+        "[CLS] pooling + linear head",
+        "Chain rule of probability for sequences",
+        "Perplexity as exp(average negative log-likelihood)"
+      ]
+    },
+    {
+      "slug": "encoder-decoder-models",
+      "title": "Encoder-decoder models",
+      "summary": "Sequence-to-sequence Transformers for translation, summarisation, captioning and speech recognition, with cross-attention linking the two halves.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe the encoder-decoder architecture and cross-attention",
+        "You can match tasks to encoder-only, decoder-only or encoder-decoder models",
+        "You can name examples (T5, BART, MarianMT, Whisper)"
+      ],
+      "concepts": [
+        {
+          "name": "Cross-attention aligns output with input",
+          "explain": "In an encoder-decoder model, the encoder reads the whole input; the decoder generates the output token by token, and its cross-attention layers use the decoder's states as queries and the encoder's outputs as keys and values. Each output word can therefore look at the most relevant input words.",
+          "analogy": "An interpreter listening to the whole speech, then glancing back at their notes for the relevant part as they translate each sentence.",
+          "visual": {
+            "component": "CrossAttentionAlignment",
+            "kind": "interactive",
+            "shows": "A source sentence (English) and target sentence (Malay or Chinese) with an illustrative cross-attention heat map; clicking a target word highlights the source words it attends to.",
+            "interaction": "Click target words; switch examples with word-order differences.",
+            "aha": "Cross-attention learns a soft alignment between input and output."
+          }
+        },
+        {
+          "name": "Three families of Transformers",
+          "explain": "Transformers come in three families that match three task shapes. Encoder-only models (BERT) suit understanding tasks such as classification and tagging, and decoder-only models (GPT, Llama, Qwen) suit generation and underlie most LLMs. Encoder-decoder models (T5, BART, Whisper) suit turning one sequence into another, such as translation, summarisation, captioning and speech-to-text.",
+          "analogy": "A reader, a writer and a translator.",
+          "visual": {
+            "component": "ModelFamilyMap",
+            "kind": "interactive",
+            "shows": "Three columns with block diagrams and example models, and task cards to drop into the right column.",
+            "interaction": "Drag task cards (sentiment, chatbot, translation, NER, speech-to-text, summarisation) into a family; feedback explains the choice.",
+            "aha": "Architecture follows the task's input-output shape."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Encoder reads full input, decoder generates",
+        "Cross-attention: queries from decoder, keys/values from encoder",
+        "Model family ↔ task",
+        "Vision-language and speech use the same pattern"
+      ]
+    },
+    {
+      "slug": "hugging-face-in-practice",
+      "title": "Using and fine-tuning models with Hugging Face",
+      "summary": "Pipelines, tokenizers and AutoModels, what the tokenizer outputs, fine-tuning with labels and -100, and calling API-based models.",
+      "minutes": 20,
+      "objectives": [
+        "You can run a Hugging Face pipeline for a task",
+        "You can explain input_ids, attention_mask and labels",
+        "You can outline a fine-tuning loop (or Trainer) for sequence classification",
+        "You can explain ignore_index = -100 for padded label positions"
+      ],
+      "concepts": [
+        {
+          "name": "From text to prediction in Hugging Face",
+          "explain": "A pipeline bundles a tokenizer, a model and post-processing: pipeline('sentiment-analysis')(text) returns a label and score. Underneath, the tokenizer produces input_ids and an attention_mask, the model outputs logits, and post-processing applies softmax and maps ids to labels.",
+          "analogy": "A drinks vending machine: you press one button, but inside there is a cup dispenser, a mixer and a pump.",
+          "visual": {
+            "component": "HFPipelineFlow",
+            "kind": "stepper",
+            "shows": "A sentence passing through tokenizer (showing input_ids and attention_mask), model (logits), softmax (probabilities) and label mapping, with the code line for each stage.",
+            "interaction": "Step through stages; edit the text; switch the task (classification, NER, summarisation) to see different post-processing.",
+            "aha": "Every pipeline is tokenise → model → post-process, and you can call each stage yourself."
+          }
+        },
+        {
+          "name": "Fine-tuning and ignored labels",
+          "explain": "To fine-tune, load a pretrained model with a new head (e.g. AutoModelForSequenceClassification with num_labels), tokenize your data, and train with a small learning rate, either with your own loop or the Trainer. For token-level tasks and language modelling, label positions set to -100 (padding or special tokens) are skipped by the cross-entropy loss.",
+          "analogy": "Marking only the questions a student actually attempted, skipping blank answer spaces.",
+          "visual": {
+            "component": "IgnoreIndexMask",
+            "kind": "interactive",
+            "shows": "A token sequence with its labels row; -100 positions are greyed and excluded from the per-token loss bars and the averaged loss.",
+            "interaction": "Toggle padding and special tokens; change which positions are -100 and see the loss change.",
+            "aha": "-100 is PyTorch's default ignore_index, so padding never contributes to the loss."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "pipeline('task')",
+        "AutoTokenizer / AutoModelForSequenceClassification",
+        "Tokenizer outputs",
+        "labels = -100 ignored by the loss",
+        "Open-source vs API-based models"
+      ]
+    },
+    {
+      "slug": "audio-as-data",
+      "title": "Sound as data: waveforms and spectrograms",
+      "summary": "Sampling rate and the Nyquist limit, waveforms, the short-time Fourier transform, spectrograms and the mel scale.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain sampling rate and the Nyquist limit",
+        "You can describe how a spectrogram is built from short windows",
+        "You can explain why mel spectrograms are used for speech",
+        "You can compute audio tensor sizes"
+      ],
+      "concepts": [
+        {
+          "name": "Sampling a waveform",
+          "explain": "Sound is air pressure changing over time; a microphone records it as numbers sampled many times per second (16,000 per second is common for speech, so 10 seconds is 160,000 numbers). To capture a frequency, you must sample at more than twice that frequency (the Nyquist limit), otherwise it appears as a false lower frequency (aliasing).",
+          "analogy": "A video of a spinning wheel at too low a frame rate makes the wheel look like it is turning backwards.",
+          "visual": {
+            "component": "SamplingRateExplorer",
+            "kind": "interactive",
+            "shows": "A continuous sine wave, the sample points taken at the chosen rate, and the wave reconstructed from those samples, which shows aliasing when the rate is too low.",
+            "interaction": "Slide the signal frequency and the sampling rate; mix two frequencies.",
+            "aha": "The sampling rate caps the highest frequency you can capture."
+          }
+        },
+        {
+          "name": "Building a spectrogram",
+          "explain": "A spectrogram slices audio into short overlapping windows (e.g. 25 ms, hopping by 10 ms), computes the strength of each frequency in each window with a Fourier transform, and stacks the results into an image: time across, frequency up, loudness as colour. The mel scale spaces frequency bins the way human hearing does, giving more detail at low frequencies. Many speech models take log-mel spectrograms as input.",
+          "analogy": "Sheet music for any sound: time runs left to right and pitch goes up and down.",
+          "visual": {
+            "component": "SpectrogramBuilder",
+            "kind": "animation",
+            "shows": "A synthetic waveform (a chirp plus a tone), a window sliding along it, the frequency bars for the current window, and the spectrogram image filling column by column; a toggle warps the frequency axis to mel.",
+            "interaction": "Play the sweep; change window size and hop length; toggle mel scaling and log amplitude.",
+            "aha": "A spectrogram turns sound into an image, so vision-style models can process audio."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Samples = rate × seconds",
+        "Nyquist: sample at more than twice the highest frequency",
+        "STFT window and hop",
+        "Mel scale compresses high frequencies"
+      ]
+    },
+    {
+      "slug": "speech-models",
+      "title": "Speech models: HuBERT, Whisper and audio LLMs",
+      "summary": "Self-supervised audio encoders like HuBERT, encoder-decoder speech recognition with Whisper, and audio-language models such as Qwen-Audio and Voxtral.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain HuBERT's masked prediction of hidden units",
+        "You can describe Whisper's encoder-decoder pipeline from log-mel input to text tokens",
+        "You can describe how audio LLMs connect an audio encoder to a language model",
+        "You can choose a model for transcription, audio classification or audio question answering"
+      ],
+      "concepts": [
+        {
+          "name": "HuBERT: BERT for audio",
+          "explain": "HuBERT splits audio into short frames, assigns each frame a discrete 'hidden unit' label by clustering (k-means), then masks spans of frames and trains a Transformer to predict the units of the masked frames, just like BERT's masked words. The resulting encoder produces audio embeddings useful for speech recognition, speaker or emotion classification.",
+          "analogy": "Learning a language's sounds by listening to hours of radio and guessing muffled syllables from context, without any transcripts.",
+          "visual": {
+            "component": "HuBERTMaskedUnits",
+            "kind": "stepper",
+            "shows": "A waveform split into frames, frame colours showing cluster ids, a masked span, and the model's predicted unit distribution for masked frames.",
+            "interaction": "Step through clustering, masking and prediction; change the mask span length.",
+            "aha": "The same masked-prediction trick works for any data you can cut into tokens, including sound."
+          }
+        },
+        {
+          "name": "Whisper's pipeline",
+          "explain": "Whisper converts 30-second audio chunks into log-mel spectrograms, encodes them with a Transformer encoder, and a decoder generates text tokens with cross-attention to the audio. Special task tokens tell the decoder which language and whether to transcribe or translate to English.",
+          "analogy": "A court stenographer who listens to a recording and types it out, told beforehand whether to transcribe it as is or translate it.",
+          "visual": {
+            "component": "WhisperFlow",
+            "kind": "stepper",
+            "shows": "Audio → log-mel image → encoder blocks → decoder generating tokens one by one, with the special task tokens at the start of the output sequence.",
+            "interaction": "Step through; toggle transcribe/translate and the language token to see how the output changes.",
+            "aha": "Speech recognition is just an encoder-decoder Transformer with a spectrogram as the 'source sentence'."
+          }
+        },
+        {
+          "name": "Audio language models",
+          "explain": "Audio LLMs such as Qwen-Audio and Voxtral pair an audio encoder (often Whisper-style) with a large language model. The audio embeddings are projected into the LLM's token space and placed alongside text tokens, so the LLM can answer questions about the sound, summarise a meeting or follow spoken instructions.",
+          "analogy": "Giving a very knowledgeable writer a pair of ears, plus an interpreter who turns sounds into words the writer understands.",
+          "visual": {
+            "component": "AudioLLMDiagram",
+            "kind": "diagram",
+            "shows": "Audio → encoder → projector → a sequence mixing audio tokens and text-prompt tokens → LLM decoder → answer, with tensor shapes.",
+            "interaction": "Click each component to see what it does and whether it is frozen or fine-tuned in typical training.",
+            "aha": "Multimodal LLMs reuse a pretrained encoder and a pretrained LLM, joined by a small learned adapter."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "HuBERT = BERT-style masking on audio frames",
+        "Whisper: log-mel → encoder → decoder with task tokens",
+        "Audio encoder + projector + LLM",
+        "Using Hugging Face pipelines for ASR and audio classification"
+      ]
+    }
+  ]
+}

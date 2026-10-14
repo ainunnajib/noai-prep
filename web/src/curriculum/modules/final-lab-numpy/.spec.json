@@ -1,0 +1,294 @@
+{
+  "slug": "final-lab-numpy",
+  "order": 37,
+  "part": "exam",
+  "domain": "exam",
+  "title": "Final lab I: from scratch in NumPy",
+  "tagline": "Rebuild every classic-ML Final task",
+  "summary": "How the Final's Jupyter notebooks work and how to plan three hours, then full rebuilds of the four NumPy tasks: 2025 linear regression by gradient descent, 2025 K-means, 2025 TF-IDF retrieval-augmented generation, and 2026 gradient boosting with early stopping.",
+  "prerequisites": [
+    "linear-regression",
+    "unsupervised-learning",
+    "trees-and-ensembles",
+    "prompting-and-rag"
+  ],
+  "syllabus": [
+    "NOAI Final Section 2: 3 Python programming tasks in Jupyter (80 marks in 2025 and 2026)",
+    "2025 Q1 (15 marks): linear regression by gradient descent; Q2 (25): K-means; Q3 (40): RAG with TF-IDF and cosine similarity (standard library + NumPy)",
+    "2026 Task 1 (25 marks incl. 5 bonus): gradient boosting from scratch with L1/L2 losses and early stopping (NumPy + sklearn trees)"
+  ],
+  "paper_subtopics": [
+    "numpy",
+    "regression",
+    "unsupervised",
+    "prompting-rag",
+    "trees-ensembles"
+  ],
+  "lessons": [
+    {
+      "slug": "exam-notebook-skills",
+      "title": "Working in the exam notebook and planning three hours",
+      "summary": "Read stubs, respect DO-NOT-EDIT cells, test as you go, avoid kernel-state traps, format outputs exactly, and split three hours across the MCQs and tasks.",
+      "minutes": 20,
+      "objectives": [
+        "You can identify what each notebook cell expects",
+        "You can test functions with small hand-checked inputs",
+        "You can avoid common formatting and signature mistakes",
+        "You can plan your time across the MCQs and three tasks to bank partial marks"
+      ],
+      "concepts": [
+        {
+          "name": "Reading the stub",
+          "explain": "Before coding, read the function signature, docstring, TODO steps, allowed libraries and the test cell. The TODO list is often the algorithm, step by step. Keep the exact signature and return type.",
+          "analogy": "Like reading the whole recipe before turning on the stove.",
+          "visual": {
+            "component": "NotebookAnatomy",
+            "kind": "stepper",
+            "shows": "A real stub annotated with what each part tells you.",
+            "interaction": "Step through annotations; then annotate a new stub yourself.",
+            "aha": "The stub is a partial solution: use it."
+          }
+        },
+        {
+          "name": "Testing and formatting",
+          "explain": "Run the provided test cell after each function. Add your own tiny test with a known answer. Round as instructed, return Python lists or NumPy arrays exactly as asked, and handle edge cases (empty clusters, division by zero, -0.0).",
+          "analogy": "Like checking your answers against the marking scheme's format before handing in.",
+          "visual": {
+            "component": "TinyTestBuilder",
+            "kind": "interactive",
+            "shows": "A function editor with a small test table and pass/fail ticks, preloaded with exam-style edge cases.",
+            "interaction": "Add tests and run; fix failures.",
+            "aha": "Formatting and edge cases are free marks if you check them."
+          }
+        },
+        {
+          "name": "Kernel state traps",
+          "explain": "A Jupyter kernel remembers every variable from cells you have run, in the order you ran them, not the order on the page. Running cells out of order or editing a function without re-running its cell causes confusing results. 'Restart kernel and run all' checks that the notebook works from top to bottom before you submit.",
+          "analogy": "A whiteboard nobody erases: old working stays up even after you change your mind, until you wipe it clean.",
+          "visual": {
+            "component": "KernelStateTimeline",
+            "kind": "interactive",
+            "shows": "Notebook cells with execution numbers and a variable panel; running cells out of order produces a stale value that makes a test pass or fail unexpectedly.",
+            "interaction": "Run cells in different orders; edit a function without re-running it; press 'restart and run all'.",
+            "aha": "The page order and the execution order can differ, and only a clean rerun proves your notebook works."
+          }
+        },
+        {
+          "name": "Planning three hours",
+          "explain": "In 2026 the three tasks were worth 25, 20 and 35 marks (including 10 bonus marks) out of 80, alongside 20 MCQs worth 20. Each task is split into parts with their own tests, so partial answers earn marks. Bank easy parts first, keep 10 minutes to rerun everything, and never leave a part blank if a partial attempt is possible.",
+          "analogy": "In a cross-country race you pace by checkpoint, not by sprinting the first hill.",
+          "visual": {
+            "component": "FinalTimePlanner",
+            "kind": "interactive",
+            "shows": "A three-hour bar split into MCQs and tasks, with each task's parts and marks; a projected score for the chosen allocation.",
+            "interaction": "Drag time boundaries; mark parts as 'confident', 'maybe' or 'hard'; see the marks-per-minute ranking.",
+            "aha": "Allocating time by marks per minute, not by order, maximises your score."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Stub, signature and return type",
+        "Restart kernel and run all before submitting",
+        "Rounding and output format",
+        "Marks-per-minute time plan"
+      ]
+    },
+    {
+      "slug": "task-linear-regression-gd",
+      "title": "2025 Task 1: Linear regression by gradient descent",
+      "summary": "Rebuild the 15-mark task and check your answer against the expected output.",
+      "minutes": 20,
+      "objectives": [
+        "You can implement vectorised gradient descent for linear regression",
+        "You can verify convergence and round the coefficients"
+      ],
+      "concepts": [
+        {
+          "name": "Gradient descent implementation walkthrough",
+          "explain": "theta starts at zeros; each iteration computes predictions X @ theta, errors, gradient X.T @ errors / m and the update theta -= alpha * gradient; finally round to 4 decimal places. The task data have a constant column of 2s instead of 1s, so think about what the intercept means.",
+          "analogy": "Like the downhill walk from the gradient-descent lesson, now written as code.",
+          "visual": {
+            "component": "GDRegressionRunner",
+            "kind": "interactive",
+            "shows": "A runnable cell with the 2025 data, your implementation and the expected output, plus a loss plot.",
+            "interaction": "Write or edit the function and run; compare with the expected coefficients.",
+            "aha": "Three vectorised lines solve the task."
+          }
+        },
+        {
+          "name": "Common mistakes",
+          "explain": "Updating theta one component at a time with stale predictions, using sum instead of mean, mixing up shapes (n, 1) vs (n,), forgetting to return, and rounding too early.",
+          "analogy": "Like small slips in long division that ruin the final answer.",
+          "visual": {
+            "component": "MistakeToggles",
+            "kind": "interactive",
+            "shows": "The correct solution with toggles that inject each common mistake and show the changed output.",
+            "interaction": "Toggle mistakes one at a time and compare outputs.",
+            "aha": "Each mistake has a recognisable signature in the output."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Gradient descent update",
+        "Expected coefficients"
+      ]
+    },
+    {
+      "slug": "task-kmeans",
+      "title": "2025 Task 2: K-means from scratch",
+      "summary": "Rebuild the 25-mark K-means task with distance helper, assignment, update and convergence.",
+      "minutes": 22,
+      "objectives": [
+        "You can implement euclidean_distance and k_means_clustering",
+        "You can handle empty clusters and convergence correctly"
+      ],
+      "concepts": [
+        {
+          "name": "K-means implementation walkthrough",
+          "explain": "Implement euclidean_distance, then loop up to max_iterations: assign each point to the nearest centroid, compute each cluster's mean (keep the old centroid if empty), stop if centroids do not change, and return rounded tuples. With points [(2,4),(2,8),(2,10),(10,2),(10,4),(10,0)] and initial centroids [(2,2),(10,1)], trace the result by hand.",
+          "analogy": "Like the bubble-tea shops from the K-means lesson moving to the middle of their customers, now written as code.",
+          "visual": {
+            "component": "KMeansTaskTrace",
+            "kind": "stepper",
+            "shows": "The 2025 data with each assign/update step, the code line that runs it, and the centroid log.",
+            "interaction": "Step through; compare your trace with the code output.",
+            "aha": "Assign, update, check: three blocks of code."
+          }
+        },
+        {
+          "name": "Vectorised version",
+          "explain": "Replace the double loop with a distance matrix via broadcasting and argmin, then compute means with boolean masks. It is shorter and less error-prone once you trust broadcasting.",
+          "analogy": "Like using a fare table instead of measuring each route separately.",
+          "visual": {
+            "component": "LoopVsVectorKMeans",
+            "kind": "interactive",
+            "shows": "Loop and vectorised implementations side by side producing identical centroids.",
+            "interaction": "Run both; change the data and confirm they agree.",
+            "aha": "Vectorised code is the same algorithm, written as array operations."
+          }
+        },
+        {
+          "name": "K-means convergence",
+          "explain": "Run assignment and update steps until the centroids stop moving (or move less than a tolerance) or a maximum number of iterations is reached. Handle the empty-cluster case (a centroid with no points) by keeping its old position or reinitialising, and seed the random initialisation for reproducibility.",
+          "analogy": "Repeatedly rearranging seats at a dinner until nobody wants to move.",
+          "visual": {
+            "component": "KMeansConvergence",
+            "kind": "interactive",
+            "shows": "Centroid movement per iteration with a tolerance line, the clustering at the current iteration, and an empty-cluster warning when it happens.",
+            "interaction": "Step iterations; change the tolerance and seed; force an empty cluster.",
+            "aha": "A stopping rule and edge-case handling are part of a full-marks implementation."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "K-means trace",
+        "Empty cluster handling",
+        "Rounded centroids",
+        "Stop when centroids are unchanged or max_iterations is reached"
+      ]
+    },
+    {
+      "slug": "task-rag-tfidf",
+      "title": "2025 Task 3: Retrieval-augmented generation with TF-IDF",
+      "summary": "Build the 40-mark RAG pipeline in NumPy: vocabulary, TF-IDF, cosine retrieval and response generation.",
+      "minutes": 25,
+      "objectives": [
+        "You can build TF-IDF vectors for documents and a query in NumPy",
+        "You can retrieve the top documents by cosine similarity",
+        "You can generate a response from retrieved documents and explain your approach"
+      ],
+      "concepts": [
+        {
+          "name": "Vectorising documents",
+          "explain": "Lower-case and tokenise each document (strip punctuation), build a vocabulary, compute term frequencies, document frequencies and IDF (with smoothing such as log((1 + N)/(1 + df)) + 1), and multiply to get TF-IDF vectors. Vectorise the query with the same vocabulary and IDF.",
+          "analogy": "Like building a keyword index at the back of a textbook.",
+          "visual": {
+            "component": "TFIDFTableBuilder",
+            "kind": "interactive",
+            "shows": "A step-by-step table from raw documents to tokens, vocabulary, TF, IDF and TF-IDF vectors.",
+            "interaction": "Step through; change the IDF smoothing and see the vectors change.",
+            "aha": "The query must live in the same vector space as the documents."
+          }
+        },
+        {
+          "name": "Retrieve and generate",
+          "explain": "Compute cosine similarity between the query vector and each document vector, take the top-k (documents 2 and 4 for 'How does machine learning work?'), and build the response by combining the retrieved sentences with a template. Explain your thought process in the final cell; partial credit rewards clear reasoning.",
+          "analogy": "Like answering an open-book question by quoting the two most relevant paragraphs in your own sentence.",
+          "visual": {
+            "component": "RAGRunner",
+            "kind": "interactive",
+            "shows": "A runnable cell printing the retrieved documents and the generated response in the task's format.",
+            "interaction": "Edit the query and k; run and compare with the expected output.",
+            "aha": "Retrieval does the heavy lifting; generation can be simple and still correct."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "TF-IDF computation",
+        "Cosine similarity retrieval",
+        "Top-k documents"
+      ]
+    },
+    {
+      "slug": "task-gradient-boosting",
+      "title": "2026 Task 1: Gradient boosting from scratch",
+      "summary": "Rebuild the 25-mark task: gradients, initial predictions, the class, the fit loop and early stopping.",
+      "minutes": 25,
+      "objectives": [
+        "You can implement L1/L2 negative gradients and initial predictions",
+        "You can implement fit and predict with subsampling",
+        "You can add early stopping for the bonus"
+      ],
+      "concepts": [
+        {
+          "name": "Parts 1 and 2: building blocks and the fit loop",
+          "explain": "l1_negative_gradient = np.sign(y - y_pred); l2 = y - y_pred; initial predictions = median (L1) or mean (L2). In fit: F = init for all samples; for each round compute the negative gradient, pick subsample indices, fit a DecisionTreeRegressor(max_depth) on those rows, update F += learning_rate * tree.predict(X) for all samples, store the tree. predict sums init plus scaled tree predictions.",
+          "analogy": "Like the golf analogy, coded one shot at a time.",
+          "visual": {
+            "component": "GBStepper",
+            "kind": "stepper",
+            "shows": "The task's TODO steps a to e beside the residual plot updating after each tree.",
+            "interaction": "Step through rounds; switch L1/L2; adjust subsample and learning rate.",
+            "aha": "The class just organises the residual-fitting loop."
+          }
+        },
+        {
+          "name": "Reading the scaffold and avoiding the traps",
+          "explain": "The scaffold is a class hierarchy: an abstract BaseGradientBoosting holds __init__ and predict, and subclasses supply fit. The Q1.5 heading says 'implement __init__', but the empty slot is predict: start from np.full(X.shape[0], self.init_prediction) and add learning_rate × tree.predict(X) for every tree. Traps that cost marks: forgetting learning_rate in predict (test MSE jumps from about 1,268 to about 959,000), updating only the subsampled rows, writing y_pred − y (the gradient, not the negative gradient), and np.median(y, axis=0) returning an array instead of one np.float64. The L1 model looks poor because its trees fit signs in [−1, 1], so 100 rounds at η = 0.1 move a prediction at most 10 units; that is expected, not a bug.",
+          "analogy": "Assembling flat-pack furniture: check which pieces come pre-built, notice when the instruction sheet mislabels a step, and avoid the screws that look right but do not fit.",
+          "visual": {
+            "component": "ScaffoldTrapFinder",
+            "kind": "interactive",
+            "shows": "The task's class skeleton with the given parts greyed out and the answer slots highlighted, beside a list of trap versions of the code, each showing the test MSE or error it produces.",
+            "interaction": "Click a slot to see what must be written there; switch each trap on and rerun to see the error or the MSE change.",
+            "aha": "Reading the scaffold carefully and knowing the classic traps is worth as many marks as knowing boosting itself."
+          }
+        },
+        {
+          "name": "Part 3: early stopping",
+          "explain": "GBREarlyStop.fit(X_train, y_train, X_val, y_val, patience=10, min_delta=1e-4): after each new tree, update the validation predictions with the same tree and compute the validation loss; if it beats the best so far by more than min_delta, record it and set best_n_estimators = m + 1 (a count of trees, not an index); stop once there has been no improvement for patience rounds, then keep only the first best_n_estimators trees. Keep the given signatures and defaults (criterion is l2 in one class and l1 in the other), and note that >= versus > in the stop test changes where training stops.",
+          "analogy": "Like stopping seasoning when the soup tastes best and throwing away the last over-salted spoonful.",
+          "visual": {
+            "component": "EarlyStopRunner",
+            "kind": "interactive",
+            "shows": "A runnable implementation with training/validation loss plots and the stopping round marked.",
+            "interaction": "Change patience and learning rate; rerun to see where it stops.",
+            "aha": "Early stopping needs a validation set and a 'best so far' record."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "L1/L2 negative gradients",
+        "Initial prediction mean/median",
+        "Fit loop steps",
+        "Early stopping",
+        "Q1.5 slot is predict; learning_rate in predict; update all rows"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,256 @@
+{
+  "slug": "vision-tasks",
+  "order": 25,
+  "part": "vision",
+  "domain": "ai_ml_dl",
+  "title": "Vision tasks: transfer learning, detection and segmentation",
+  "tagline": "Where things are, pixel by pixel",
+  "summary": "Using pretrained vision encoders through feature extraction and fine-tuning, image augmentation that keeps labels valid, the family of vision tasks, object detection with NMS and one- versus two-stage detectors (YOLO, SSD, Faster R-CNN, DETR), U-Net segmentation with skip connections and cropping, and mean IoU.",
+  "prerequisites": [
+    "convolutional-networks",
+    "model-evaluation"
+  ],
+  "syllabus": [
+    "IOAI 3A5 Pre-trained Vision Encoders",
+    "IOAI 3A6 Image Augmentation",
+    "IOAI 2B13 Model Finetuning (full)",
+    "IOAI 3A3 Object Detection (YOLO, SSD, DETR)",
+    "IOAI 3A4 Image Segmentation (U-Net)",
+    "NOAI 2026 Final Task 2: U-Net debugging and mean IoU",
+    "Semantic vs instance segmentation, Mask R-CNN, NMS, anchors, transposed convolution"
+  ],
+  "paper_subtopics": [
+    "cnn-vision",
+    "model-evaluation",
+    "pytorch"
+  ],
+  "lessons": [
+    {
+      "slug": "transfer-learning-and-augmentation",
+      "title": "Transfer learning and image augmentation",
+      "summary": "Reusing a pretrained backbone as a feature extractor or fine-tuning it, and augmenting images without breaking their labels.",
+      "minutes": 22,
+      "objectives": [
+        "You can choose between feature extraction and fine-tuning for a given dataset size",
+        "You can explain why ImageNet-pretrained features transfer",
+        "You can pick augmentations that keep the label valid"
+      ],
+      "concepts": [
+        {
+          "name": "Pretrained features as embeddings",
+          "explain": "A network trained on millions of ImageNet photos has learned general visual features. Removing its final layer turns it into an encoder that maps any image to a feature vector (an embedding); similar-looking images land near each other, so even a simple classifier on top can work well with little data.",
+          "analogy": "Hiring an experienced chef for a new cuisine: they already know knife skills and flavours, they just need to learn the new dishes.",
+          "visual": {
+            "component": "PretrainedFeatureSpace",
+            "kind": "interactive",
+            "shows": "A 2D projection of embeddings of procedurally generated image thumbnails from a frozen encoder (precomputed), coloured by class, versus raw-pixel projections of the same images.",
+            "interaction": "Toggle raw pixels or encoder features; click a point to see its nearest neighbours.",
+            "aha": "Pretrained encoders turn images into vectors where classes are already nearly separable."
+          }
+        },
+        {
+          "name": "How much to freeze",
+          "explain": "With little data similar to ImageNet, freeze the backbone and train only a new head (feature extraction). With more data or a different domain (X-rays, satellite images), unfreeze more layers and fine-tune with a small learning rate so the pretrained knowledge is not wiped out (catastrophic forgetting).",
+          "analogy": "A new hire learns your office's procedures (head) first, and only later adjusts deeper habits.",
+          "visual": {
+            "component": "FreezeDial",
+            "kind": "interactive",
+            "shows": "A layer stack with a slider for how many layers are trainable, the trainable parameter count, and a 2×2 recommendation grid (data size × similarity to ImageNet).",
+            "interaction": "Slide the freeze point; choose a scenario in the grid; see recommended freeze level and learning rates for backbone and head.",
+            "aha": "Freeze more when data is small and similar; fine-tune more, gently, when data is large or different."
+          }
+        },
+        {
+          "name": "The augmentation playground",
+          "explain": "Augmentation applies random, label-preserving transformations each time an image is loaded, such as horizontal flips, random crops, small rotations, colour jitter and noise. The model sees a new variant every epoch, which teaches it to ignore irrelevant changes.",
+          "analogy": "Recognising a friend whether they wear a cap, stand in shadow or turn sideways.",
+          "visual": {
+            "component": "AugmentationPlayground",
+            "kind": "interactive",
+            "shows": "A procedurally drawn image (an animal-like shape, or a digit) and a 3×3 grid of randomly augmented copies.",
+            "interaction": "Toggle and adjust each augmentation (flip, crop scale, rotation, brightness, contrast, noise, cutout); regenerate the grid with a new seed.",
+            "aha": "Augmentation multiplies your data for free, as long as the label stays true."
+          }
+        },
+        {
+          "name": "When augmentation breaks the label",
+          "explain": "Some transforms change meaning: flipping a '6' vertically makes a '9', flipping text makes it unreadable, and changing brightness on medical scans can erase diagnostic signals. Choose augmentations that match variations you expect in real test images.",
+          "analogy": "Practising with a mirror-image map of Singapore would teach you the wrong directions.",
+          "visual": {
+            "component": "LabelSafetyCheck",
+            "kind": "interactive",
+            "shows": "Example cards (digit 6, road sign with an arrow, chest X-ray, cat photo) with candidate augmentations; each pairing shows the result and a verdict.",
+            "interaction": "Apply each augmentation to each card and predict whether the label is still correct before revealing.",
+            "aha": "Good augmentation encodes domain knowledge about which changes do not matter."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Freeze early layers, train the head",
+        "Small data → feature extraction",
+        "Augmentation as regularisation",
+        "Label-breaking augmentations (e.g. flipping digits or text)"
+      ]
+    },
+    {
+      "slug": "vision-tasks-and-detection",
+      "title": "Vision tasks and object detection",
+      "summary": "Classification, detection and segmentation compared, then how detectors find boxes: anchors, one- and two-stage pipelines and non-maximum suppression.",
+      "minutes": 22,
+      "objectives": [
+        "You can tell classification, detection, semantic, instance and panoptic segmentation apart",
+        "You can run non-maximum suppression by hand",
+        "You can compare one-stage (YOLO, SSD) and two-stage (R-CNN family) detectors and DETR"
+      ],
+      "concepts": [
+        {
+          "name": "One scene, many tasks",
+          "explain": "Vision tasks differ in how precisely they say where things are. Classification gives one label per image and detection gives a box and label for every object. Semantic segmentation labels every pixel with a class, instance segmentation also separates different objects of the same class, and panoptic segmentation combines both for the whole scene.",
+          "analogy": "Describing a hawker centre photo as 'food court' (classification), drawing boxes around each person (detection), colouring all people one colour (semantic), or each person a different colour (instance).",
+          "visual": {
+            "component": "VisionTaskSwitcher",
+            "kind": "interactive",
+            "shows": "A procedurally drawn street scene (cars, people, sky, road) and the output overlay for the selected task.",
+            "interaction": "Switch between the five tasks; hover objects to see their outputs.",
+            "aha": "Tasks differ by how much 'where' information they produce, from none to every pixel."
+          }
+        },
+        {
+          "name": "Non-maximum suppression",
+          "explain": "Detectors often predict several overlapping boxes for the same object. NMS keeps the highest-confidence box, removes any other box overlapping it with IoU above a threshold (e.g. 0.5), and repeats with the remaining boxes.",
+          "analogy": "When several friends shout the same answer, the teacher listens to the most confident one and ignores the echoes.",
+          "visual": {
+            "component": "NMSStepper",
+            "kind": "stepper",
+            "shows": "A scene with many candidate boxes and confidence scores; each step selects the top box, computes IoUs with the rest, and fades out suppressed boxes.",
+            "interaction": "Step through; slide the IoU threshold and confidence cut-off; see two nearby people merged when the threshold is too low.",
+            "aha": "NMS is a greedy loop driven by IoU, and its threshold trades duplicates against missed neighbours."
+          }
+        },
+        {
+          "name": "One-stage versus two-stage detectors",
+          "explain": "Two-stage detectors (R-CNN family) first propose candidate regions (Faster R-CNN uses a region proposal network over anchor boxes), then classify and refine each; they are accurate but slower. One-stage detectors (YOLO, SSD) predict boxes and classes in a single pass over a grid, making them fast enough for real time. DETR uses a Transformer to predict a set of boxes directly, matched one-to-one with ground truth, so it needs no anchors or NMS. Mask R-CNN extends Faster R-CNN with a mask branch for instance segmentation.",
+          "analogy": "A two-step airport check (security then passport) versus a single smart gate that does both at once.",
+          "visual": {
+            "component": "DetectorPipelines",
+            "kind": "diagram",
+            "shows": "Three pipelines side by side (Faster R-CNN, YOLO, DETR) as block diagrams, with a YOLO grid overlay on the scene where cells responsible for object centres light up.",
+            "interaction": "Click a pipeline stage to see its input and output; toggle the YOLO grid size.",
+            "aha": "Detectors differ in whether they propose first, predict everywhere at once, or predict a set directly."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Task output shapes",
+        "NMS with an IoU threshold",
+        "R-CNN region proposals (selective search) vs YOLO single pass",
+        "Mask R-CNN for instance segmentation"
+      ]
+    },
+    {
+      "slug": "u-net-segmentation",
+      "title": "U-Net segmentation",
+      "summary": "Encoder-decoder networks for pixel-wise prediction, upsampling with transposed convolutions, skip connections, and the cropping fix needed with valid padding.",
+      "minutes": 24,
+      "objectives": [
+        "You can describe the encoder-decoder U shape",
+        "You can compute transposed convolution output size",
+        "You can explain why skip connections are concatenated",
+        "You can fix a size mismatch with a centre crop"
+      ],
+      "concepts": [
+        {
+          "name": "The U shape",
+          "explain": "A U-Net has an encoder that repeatedly convolves and downsamples (capturing what is in the image) and a decoder that upsamples back to full resolution (recovering where). Skip connections copy encoder feature maps across and concatenate them with the decoder's maps, restoring fine detail lost by downsampling.",
+          "analogy": "Summarising a long report into key points, then rewriting it in full while glancing back at the original paragraphs for details.",
+          "visual": {
+            "component": "UNetShapeTracer",
+            "kind": "interactive",
+            "shows": "A U-shaped diagram of blocks with (C, H, W) shapes on each block, skip arrows across, and concat operations; mismatching shapes are flagged in red.",
+            "interaction": "Set the input size and padding mode (same or valid); toggle skip connections; enable 'centre crop' to fix mismatches.",
+            "aha": "The skip connections bring back spatial detail, and their shapes must match exactly to concatenate."
+          }
+        },
+        {
+          "name": "Transposed convolution upsamples",
+          "explain": "A transposed convolution spreads each input value over a k×k area of a larger output, weighted by the kernel, adding overlaps together. With stride 2 and kernel 2 it doubles height and width: output = (n − 1)·s − 2p + k.",
+          "analogy": "Pressing a rubber stamp for each input pixel onto a bigger sheet, spacing stamps by the stride.",
+          "visual": {
+            "component": "TransposedConvStepper",
+            "kind": "stepper",
+            "shows": "A 2×2 input, a 2×2 or 3×3 kernel and the growing output grid; each step stamps one input value times the kernel onto the output, showing overlaps adding.",
+            "interaction": "Step through; change stride and kernel size; read the size formula.",
+            "aha": "Transposed convolution is convolution's reverse in shape, and overlapping stamps explain checkerboard artefacts."
+          }
+        },
+        {
+          "name": "Centre cropping skip features",
+          "explain": "With valid padding (no padding), every convolution shrinks the map, so encoder maps end up larger than the decoder maps they join. The fix is to crop the encoder map from the centre: start = (H_enc − H_dec) // 2, and slice the same amount on each side. Odd sizes before pooling also cause off-by-one mismatches because pooling floors.",
+          "analogy": "Trimming a larger photo to fit a smaller frame by cutting equally from all sides so the subject stays centred.",
+          "visual": {
+            "component": "CenterCropper",
+            "kind": "interactive",
+            "shows": "A larger encoder grid with the target decoder size outlined at its centre, the computed start and end indices, and the cropped result.",
+            "interaction": "Slide encoder and decoder sizes, including odd differences; see the indices and the equivalent tensor slice.",
+            "aha": "Centre cropping is two integer divisions, the exact fix demanded in the 2026 Final."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Downsampling path loses detail, upsampling restores size",
+        "Transposed conv output (n − 1)s − 2p + k",
+        "Concatenate skip features along channels",
+        "Valid padding shrinks maps, needs centre crop",
+        "Odd sizes and floor in pooling"
+      ]
+    },
+    {
+      "slug": "segmentation-metrics",
+      "title": "Measuring segmentation: IoU per class and mean IoU",
+      "summary": "Computing IoU from masks, averaging over classes, handling absent classes, Dice, and why pixel accuracy misleads.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute per-class IoU from predicted and true label maps",
+        "You can compute mean IoU and handle classes absent from both",
+        "You can explain why pixel accuracy is misleading when background dominates",
+        "You can relate Dice to IoU"
+      ],
+      "concepts": [
+        {
+          "name": "Painting masks and measuring overlap",
+          "explain": "For each class, count pixels where both prediction and truth have that class (intersection) and where either does (union); IoU is their ratio. Mean IoU averages over classes, skipping any class absent from both prediction and truth (0/0). With boolean masks, intersection is (pred == c) & (target == c) and union uses |.",
+          "analogy": "Two people colouring the same colouring-book page: for each colour, compare how much they agree versus how much either of them coloured.",
+          "visual": {
+            "component": "MaskIoUPainter",
+            "kind": "interactive",
+            "shows": "A 12×12 ground-truth label grid with 3 classes and a prediction grid you can paint, per-class intersection/union counts, per-class IoU bars and mean IoU.",
+            "interaction": "Paint prediction pixels with a chosen class; toggle 'skip absent classes'; show the NumPy/PyTorch expressions for each count.",
+            "aha": "mIoU is a few boolean-mask counts per class, and the absent-class rule changes the answer."
+          }
+        },
+        {
+          "name": "The pixel accuracy trap",
+          "explain": "If 95% of pixels are background, predicting 'background' everywhere gives 95% pixel accuracy while finding no objects at all; its mean IoU over object classes is 0. IoU-based metrics treat each class fairly regardless of size. Dice is closely related: Dice = 2·IoU/(1 + IoU).",
+          "analogy": "A weather forecaster who always says 'no typhoon' is right most days but useless.",
+          "visual": {
+            "component": "PixelAccuracyTrap",
+            "kind": "interactive",
+            "shows": "A mostly background scene with a small object, and a lazy all-background prediction; bars compare pixel accuracy, per-class IoU, mean IoU and Dice.",
+            "interaction": "Slide object size; switch between lazy and good predictions.",
+            "aha": "Choose metrics that cannot be gamed by predicting the majority class."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "IoU_c = |P ∩ T| / |P ∪ T| for class c",
+        "Skip classes with empty union",
+        "Pixel accuracy trap",
+        "Dice = 2|P ∩ T|/(|P| + |T|)"
+      ]
+    }
+  ]
+}

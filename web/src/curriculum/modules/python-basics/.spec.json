@@ -1,0 +1,306 @@
+{
+  "slug": "python-basics",
+  "order": 3,
+  "part": "code",
+  "domain": "computing",
+  "title": "Python from zero",
+  "tagline": "Your first programs, step by step",
+  "summary": "Your very first lines of Python: running and reading programs, variables, types and operators, strings, decisions with if, for and while loops (including a tiny loop that learns), and lists, all traced visually line by line.",
+  "prerequisites": [
+    "start-here"
+  ],
+  "syllabus": [
+    "NOAI Computing: Python",
+    "IOAI 1A1 Python Basics (Loops, Functions, etc.)",
+    "Tracebacks, variables, int/float/str/bool, operators //, %, ** and precedence",
+    "String indexing and slicing, f-strings, if/elif/else, for/while, range(), lists and nested lists"
+  ],
+  "paper_subtopics": [
+    "python",
+    "code-debugging"
+  ],
+  "lessons": [
+    {
+      "slug": "first-program",
+      "title": "Your first program (and your first error)",
+      "summary": "Run print statements, follow the order in which code executes, and decode a traceback.",
+      "minutes": 12,
+      "objectives": [
+        "You can run a Python program and predict its printed output",
+        "You can explain that code runs top to bottom, one line at a time",
+        "You can read the last line of a traceback to find the error type and line number"
+      ],
+      "concepts": [
+        {
+          "name": "Programs run top to bottom",
+          "explain": "A program is a list of instructions that Python runs in order, from the first line to the last. print() shows a value on screen, and lines starting with # are comments that Python ignores. The computer does exactly what you wrote, which is not always what you meant.",
+          "analogy": "Like a recipe card followed by a very literal robot chef: it does each step in order and never guesses.",
+          "visual": {
+            "component": "CodeStepper",
+            "kind": "stepper",
+            "shows": "A five-line program with a highlighted current line, plus an output console that fills as each print runs.",
+            "interaction": "Press Next to run one line at a time, or swap two lines and watch the output order change.",
+            "aha": "The order of the lines is the order of the output. Execution is predictable."
+          }
+        },
+        {
+          "name": "Reading an error message",
+          "explain": "When Python can't run a line, it prints a traceback. Read the last line first: it gives the error type (SyntaxError, NameError, TypeError) and a message. The line number just above tells you where to look.",
+          "analogy": "Like an MRT service alert: it tells you which line is down and why, so you don't have to search every station.",
+          "visual": {
+            "component": "ErrorDecoder",
+            "kind": "interactive",
+            "shows": "A real traceback with its parts (file, line number, offending code, error type, message) outlined in different colours.",
+            "interaction": "Click 'break it' buttons to cause typical errors (a missing quote, a misspelt variable, adding a str to an int), then click each part of the traceback for a plain-English explanation.",
+            "aha": "An error message is a clue that points to the exact line. Read it; don't panic."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Predicting print output order",
+        "Matching error types to causes",
+        "Comments vs code"
+      ]
+    },
+    {
+      "slug": "variables-types-arithmetic",
+      "title": "Variables, types and arithmetic",
+      "summary": "Store values in variables, meet int, float, str and bool, and calculate with Python's operators.",
+      "minutes": 18,
+      "objectives": [
+        "You can assign and reassign variables and predict their values",
+        "You can name the type of a value and convert between types",
+        "You can evaluate expressions with //, %, ** and operator precedence"
+      ],
+      "concepts": [
+        {
+          "name": "Variables are name tags",
+          "explain": "x = 5 means 'make the name x refer to the value 5'. It is an instruction, not a maths equation. Reassigning x = x + 1 works out the right side first and then moves the tag to the new value.",
+          "analogy": "Like a tissue-packet 'chope' on a hawker seat: the packet (name) marks which seat (value) is yours, and you can move it to another seat.",
+          "visual": {
+            "component": "VariableBoxes",
+            "kind": "animation",
+            "shows": "Name tags on the left and value boxes on the right, with arrows between them, updating as code lines run.",
+            "interaction": "Step through x = 5; y = x; x = x + 1 and watch which arrows move. Predict y's value before the reveal.",
+            "aha": "= means assign, not equals. y keeps the old value because only x's tag moved."
+          }
+        },
+        {
+          "name": "Types: int, float, str, bool",
+          "explain": "Every value has a type. 3 is an int, 3.0 is a float, '3' is a str and True is a bool, and type() tells you which. Operations depend on type: '3' + 3 is a TypeError, but int('3') + 3 is 6.",
+          "analogy": "Like containers in a kitchen: you can't pour soup into a sieve, so you sometimes need to move it to the right container first.",
+          "visual": {
+            "component": "TypeSorter",
+            "kind": "interactive",
+            "shows": "Value chips such as 3, 3.0, '3', True, 2.5e3 and '' alongside four labelled bins.",
+            "interaction": "Drag each chip into a type bin, then reveal what type() prints. Try mixing types in a mini expression box and see the result or error.",
+            "aha": "The quotes make a str. Many beginner bugs are really type mismatches."
+          }
+        },
+        {
+          "name": "Operators and precedence",
+          "explain": "Python has / (true division), // (floor division), % (remainder) and ** (power). So 7 / 2 = 3.5, 7 // 2 = 3, 7 % 2 = 1 and 2 ** 3 = 8. Precedence works like school BODMAS, with ** binding tightest. Floats are approximate, which is why 0.1 + 0.2 is not exactly 0.3.",
+          "analogy": "Like splitting 7 kueh among 2 friends: // is how many each friend gets, % is how many are left over.",
+          "visual": {
+            "component": "ExpressionTree",
+            "kind": "stepper",
+            "shows": "An expression like 2 + 3 * 4 ** 2 drawn as a tree that collapses one operation at a time.",
+            "interaction": "Type your own expression and step through its evaluation. Toggle on brackets to see how they reshape the tree.",
+            "aha": "Python follows strict precedence rules, and ** happens before * and +."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Predicting variable values after reassignment",
+        "type() outputs",
+        "Evaluating //, %, ** expressions"
+      ]
+    },
+    {
+      "slug": "strings",
+      "title": "Working with text: strings",
+      "summary": "Index, slice and transform text, and format output with f-strings.",
+      "minutes": 15,
+      "objectives": [
+        "You can index and slice strings, including with negative indices",
+        "You can use common string methods and f-strings",
+        "You can explain why strings are immutable"
+      ],
+      "concepts": [
+        {
+          "name": "Indexing and slicing",
+          "explain": "Characters are numbered from 0, so 'Hello'[0] is 'H' and len('Hello') is 5. Negative indices count from the end, so -1 is the last character. A slice s[start:stop] includes start but stops just before stop.",
+          "analogy": "Like HDB unit numbers along a corridor: each door has a number, and 'from door 1 up to door 4' means doors 1, 2 and 3.",
+          "visual": {
+            "component": "StringSlicer",
+            "kind": "interactive",
+            "shows": "A word in character boxes, with positive indices above and negative indices below, and two draggable slice handles.",
+            "interaction": "Drag the start and stop handles, or type a slice like s[1:4] or s[::-1], and watch the selected boxes and result update.",
+            "aha": "Stop is exclusive, so s[0:len(s)] is the whole string. The same rule applies to lists and NumPy arrays."
+          }
+        },
+        {
+          "name": "String methods and f-strings",
+          "explain": "Methods like .upper(), .split(), .replace() and .strip() return new strings. f-strings insert values into text, for example f'{name} scored {score:.2f}'. Splitting text into words is the first step of how AI reads language.",
+          "analogy": "Like a photo filter app: each filter gives you a new copy, and the original photo is untouched.",
+          "visual": {
+            "component": "MethodChain",
+            "kind": "interactive",
+            "shows": "A text box containing 'can or not lah' with method buttons. Each click adds a step to a pipeline and shows the intermediate result.",
+            "interaction": "Click methods (lower, split, replace, join) in any order. Change the input text and the whole chain re-runs.",
+            "aha": "Strings never change in place. Methods return new values, so you must save the result."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "len() and slicing results (cf. 2026 Prelim Q78)",
+        "Negative indices",
+        "Output of string methods"
+      ]
+    },
+    {
+      "slug": "decisions",
+      "title": "Making decisions with if",
+      "summary": "Use comparisons, Boolean logic and if/elif/else to make programs choose.",
+      "minutes": 15,
+      "objectives": [
+        "You can evaluate comparisons and and/or/not expressions",
+        "You can trace which branch of an if/elif/else runs",
+        "You can explain why branch order matters"
+      ],
+      "concepts": [
+        {
+          "name": "Booleans and comparisons",
+          "explain": "Comparisons like ==, !=, < and >= give True or False. You can combine them with and (both true), or (at least one true) and not (flip). Note that = assigns while == compares.",
+          "analogy": "Like a school gate rule: you may leave early if you have a parent's note AND a teacher's approval, OR it's a public holiday.",
+          "visual": {
+            "component": "TruthTableToggle",
+            "kind": "interactive",
+            "shows": "Two switches, A and B, with live lamps for A and B, A or B, and not A, plus a full truth table that highlights the current row.",
+            "interaction": "Flip the switches, then type a compound condition and see it evaluated.",
+            "aha": "Every condition boils down to True or False, and a truth table lists every possible case."
+          }
+        },
+        {
+          "name": "if / elif / else branches",
+          "explain": "An if block runs only when its condition is True. elif adds more checks, and else catches everything left. Python checks from top to bottom and runs only the first branch that matches.",
+          "analogy": "Like PSLE Achievement Level bands: your score falls into exactly one band, found by checking the bands in order.",
+          "visual": {
+            "component": "FlowchartRunner",
+            "kind": "animation",
+            "shows": "A flowchart for grading a score into bands, alongside the matching Python code.",
+            "interaction": "Drag a score slider and watch the highlighted path through the flowchart and the code. Reorder the elif lines and see wrong grades appear.",
+            "aha": "Only one branch runs, so putting a broad condition first can hide the later ones."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Evaluating Boolean expressions",
+        "Tracing if/elif/else output",
+        "= vs =="
+      ]
+    },
+    {
+      "slug": "loops",
+      "title": "Repeating with loops",
+      "summary": "Use for and while loops, and write a loop that learns a number by nudging.",
+      "minutes": 18,
+      "objectives": [
+        "You can predict the values produced by range()",
+        "You can trace a loop's variables in a table",
+        "You can write a loop that improves a guess step by step"
+      ],
+      "concepts": [
+        {
+          "name": "for loops and range",
+          "explain": "for i in range(5) runs the body with i = 0, 1, 2, 3, 4, which is five times, and the stop value 5 is excluded. range(start, stop, step) gives more control, so range(0, 10, 2) is 0, 2, 4, 6, 8. A for loop can also walk directly over a list or a string.",
+          "analogy": "Like a queue-number display at a polyclinic: it counts up one number at a time and stops before the number on the sign.",
+          "visual": {
+            "component": "RangeVisualiser",
+            "kind": "interactive",
+            "shows": "A number line from -5 to 20 with dots on the values range() produces, and the list(range(...)) output.",
+            "interaction": "Drag the start, stop and step sliders, including negative steps, and watch the dots appear.",
+            "aha": "range stops before stop, which is why range(len(x)) gives exactly the valid indices."
+          }
+        },
+        {
+          "name": "while loops and stopping conditions",
+          "explain": "A while loop repeats as long as its condition stays True. Something inside the loop must eventually make the condition False, or the loop never ends. A trace table, with one row per pass, is the best way to check a loop by hand.",
+          "analogy": "Like topping up your EZ-Link card until the balance passes $20: you repeat until the condition is met.",
+          "visual": {
+            "component": "LoopTracer",
+            "kind": "stepper",
+            "shows": "A while loop next to a trace table that adds a row of variable values each iteration.",
+            "interaction": "Step through the loop, then remove the line that changes the variable and watch the 'infinite loop' warning appear.",
+            "aha": "A loop is a machine that changes state, and a trace table makes the change visible."
+          }
+        },
+        {
+          "name": "A loop that learns",
+          "explain": "Say we want the number w that makes 2 × w equal 6. Start with w = 0, measure the error 2 × w − 6, and nudge w a little against the error. Repeat. This 'predict, measure, nudge' loop is a tiny version of how every model is trained.",
+          "analogy": "Like tuning a guitar string: pluck, listen to how far off it is, turn the peg a little, and repeat.",
+          "visual": {
+            "component": "NudgeLoop",
+            "kind": "animation",
+            "shows": "A plot of w over iterations closing in on 3, beside the 5-line Python loop with the current line highlighted, and an error bar that shrinks.",
+            "interaction": "Run the loop. Change the nudge size (learning rate) slider and see slow convergence, fast convergence or wild overshoot.",
+            "aha": "You have just written gradient descent. ML training is this loop with more numbers."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "range() output (cf. 2026 Prelim Q81)",
+        "Counting loop iterations",
+        "Tracing a while loop"
+      ]
+    },
+    {
+      "slug": "lists",
+      "title": "Lists: ordered collections",
+      "summary": "Create, index, slice and change lists, and use nested lists as grids.",
+      "minutes": 15,
+      "objectives": [
+        "You can index, slice, append to and concatenate lists",
+        "You can explain an IndexError",
+        "You can access grid[row][col] in a nested list"
+      ],
+      "concepts": [
+        {
+          "name": "Indexing, slicing and changing lists",
+          "explain": "A list holds items in order, for example [3, 1, 4]. It uses the same indexing and slicing rules as strings, but lists are mutable: append, insert, pop and item assignment change the list in place. [1, 2] + [3, 4] makes a new list [1, 2, 3, 4], and asking for an index past the end raises IndexError.",
+          "analogy": "Like a train with numbered carriages: you can add carriages, remove them or swap their cargo.",
+          "visual": {
+            "component": "ListBoxes",
+            "kind": "interactive",
+            "shows": "A row of indexed boxes with buttons for append, insert, pop, remove and + concatenation, and the matching code line under each action.",
+            "interaction": "Click the operations and watch the boxes shift. Ask for index 10 and see the IndexError box flash red.",
+            "aha": "Lists change in place, and every valid index is between 0 and len − 1."
+          }
+        },
+        {
+          "name": "Nested lists as grids",
+          "explain": "A list of lists can represent a table or an image: grid[r] is a row and grid[r][c] is one cell. Rows come first, then columns. NumPy arrays and image tensors follow the same idea.",
+          "analogy": "Like a cinema seat map: pick the row first, then the seat number.",
+          "visual": {
+            "component": "GridIndexer",
+            "kind": "interactive",
+            "shows": "A 4×5 MatrixGrid of numbers, with the Python expression for the selected cell or row.",
+            "interaction": "Click a cell to see grid[r][c], or click a row label to see grid[r]. Type an expression to highlight what it selects.",
+            "aha": "Row first, then column. This order carries over to NumPy, images and tensors."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "List concatenation result (cf. 2026 Prelim Q80)",
+        "IndexError causes (cf. Q126)",
+        "Nested indexing"
+      ]
+    }
+  ]
+}

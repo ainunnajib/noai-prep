@@ -1,0 +1,268 @@
+{
+  "slug": "probability-and-statistics",
+  "order": 9,
+  "part": "toolkit",
+  "domain": "mathematics",
+  "title": "Probability and statistics",
+  "tagline": "Reasoning with uncertainty and data",
+  "summary": "Describing data with centre and spread, probability rules and conditional probability, Bayes' theorem by counting, distributions, expectation and the central limit theorem, then correlation, hypothesis tests and p-values.",
+  "prerequisites": [
+    "numpy",
+    "maths-foundations"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: Probability",
+    "Mean, median, mode, variance, standard deviation, skewness",
+    "Independence, conditional probability, Bayes' theorem",
+    "Expectation, normal distribution, z-scores, Central Limit Theorem",
+    "Covariance and correlation, p-values, significance level, Type I and Type II errors"
+  ],
+  "paper_subtopics": [
+    "probability-statistics"
+  ],
+  "lessons": [
+    {
+      "slug": "describing-data",
+      "title": "Describing data: centre and spread",
+      "summary": "Mean, median, mode, variance and standard deviation, and how outliers and skew affect them.",
+      "minutes": 16,
+      "objectives": [
+        "You can compute mean, median and mode by hand",
+        "You can compute variance and standard deviation of a small list",
+        "You can predict how an outlier or skew changes mean versus median"
+      ],
+      "concepts": [
+        {
+          "name": "Mean as balance point, median as middle",
+          "explain": "The mean is the sum divided by the count; it is the point where the data would balance on a see-saw. The median is the middle value of the sorted list. One extreme value drags the mean far but barely moves the median. The mode is the most common value. In right-skewed data, such as incomes with a long tail of large values, the tail drags the mean furthest, so typically mean > median > mode.",
+          "analogy": "Average household income in a street jumps if one billionaire moves in, but the median household barely notices.",
+          "visual": {
+            "component": "BalanceBeam",
+            "kind": "interactive",
+            "shows": "Data points as weights on a number-line beam resting on a triangle at the mean; a separate marker shows the median.",
+            "interaction": "Drag points along the line; add an outlier with a button and watch the fulcrum slide while the median stays put.",
+            "aha": "The mean is sensitive to outliers and the median is robust, so skewed data needs the median."
+          }
+        },
+        {
+          "name": "Variance and standard deviation",
+          "explain": "Variance is the average squared distance from the mean, and the standard deviation is its square root, back in the original units. For [2, 4, 6] the mean is 4, the squared distances are 4, 0, 4 and the variance is 8/3.",
+          "analogy": "Two hawker stalls with the same average queue time can feel very different if one is wildly unpredictable.",
+          "visual": {
+            "component": "VarianceSquares",
+            "kind": "interactive",
+            "shows": "Points on a line with a square drawn from each point to the mean; the average square area is shown as variance and its side as standard deviation.",
+            "interaction": "Drag points; toggle between dividing by n and n − 1 and see the readouts change.",
+            "aha": "Variance literally averages squared distances, which is why far-out points dominate it."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Mean vs median with outliers",
+        "Variance and standard deviation arithmetic",
+        "Skewness direction",
+        "Mode; mean > median > mode in right-skewed data"
+      ]
+    },
+    {
+      "slug": "probability-rules",
+      "title": "Probability rules and conditional probability",
+      "summary": "Counting outcomes, the 'and' and 'or' rules, independence versus mutually exclusive events, and conditional probability.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute simple probabilities by counting",
+        "You can tell independent from mutually exclusive events",
+        "You can compute P(A and B) and P(A | B)"
+      ],
+      "concepts": [
+        {
+          "name": "Probability as area",
+          "explain": "Picture all outcomes as a unit square; an event's probability is its area. P(A or B) = P(A) + P(B) − P(A and B), because the overlap would be counted twice.",
+          "analogy": "Like the area of a hawker centre covered by two stalls' queues: where the queues overlap, you count those people once.",
+          "visual": {
+            "component": "ProbabilitySquare",
+            "kind": "interactive",
+            "shows": "A unit square with two resizable rectangles A and B and their overlap shaded, plus readouts of P(A), P(B), P(A and B) and P(A or B).",
+            "interaction": "Drag rectangle edges; separate them to make the events mutually exclusive; set the 'independent' toggle to lock the overlap to P(A)·P(B).",
+            "aha": "Mutually exclusive events have zero overlap and so are almost never independent."
+          }
+        },
+        {
+          "name": "Conditional probability shrinks the world",
+          "explain": "Knowing that B happened shrinks the set of possible outcomes to B alone. P(A | B) asks what fraction of B's region is also A, so P(A | B) = P(A and B)/P(B).",
+          "analogy": "Knowing it is raining changes the chance the MRT is crowded: you only look at rainy days.",
+          "visual": {
+            "component": "ConditionalZoom",
+            "kind": "animation",
+            "shows": "The unit square zooming in on region B until B fills the frame, with A ∩ B as the shaded fraction.",
+            "interaction": "Play the zoom; adjust the rectangles and replay; switch the conditioning event to A.",
+            "aha": "Conditioning is zooming into a smaller world, which is why P(A | B) and P(B | A) usually differ."
+          }
+        },
+        {
+          "name": "Probability trees",
+          "explain": "For multi-step events, multiply along a branch and add across branches. Two coin flips have four equally likely leaves of 1/4 each, and P(at least one head) = 1 − P(no heads) = 3/4.",
+          "analogy": "Like the route map of possible MRT transfers: multiply chances along a route, add up routes that reach the same place.",
+          "visual": {
+            "component": "ProbabilityTree",
+            "kind": "stepper",
+            "shows": "A branching tree with probabilities on edges and leaf probabilities computed by multiplication; an event filter highlights matching leaves.",
+            "interaction": "Edit branch probabilities; step through building the tree; pick events (e.g. 'at least one') to highlight leaves.",
+            "aha": "The complement trick 1 − P(none) turns many-branch problems into one multiplication."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Classical probability",
+        "P(A and B) = P(A)P(B) only when independent",
+        "Mutually exclusive vs independent",
+        "Conditional probability from a table"
+      ]
+    },
+    {
+      "slug": "bayes-theorem",
+      "title": "Bayes' theorem",
+      "summary": "Updating beliefs with evidence, and why a positive test for a rare condition is often a false alarm.",
+      "minutes": 18,
+      "objectives": [
+        "You can state Bayes' theorem with prior, likelihood and posterior",
+        "You can solve a medical-test style problem by counting",
+        "You can explain the base-rate fallacy"
+      ],
+      "concepts": [
+        {
+          "name": "Bayes by counting people",
+          "explain": "Imagine 1000 people. If 1% have a condition and the test catches 90% of them but also flags 5% of healthy people, then 9 true positives and about 50 false positives test positive, so P(condition | positive) ≈ 9/59 ≈ 15%. Bayes' theorem P(A|B) = P(B|A)P(A)/P(B) is this counting in formula form.",
+          "analogy": "A haze alert that sometimes fires on clear days: if haze is rare, most alerts are false alarms even with a good sensor.",
+          "visual": {
+            "component": "BayesGrid",
+            "kind": "interactive",
+            "shows": "A 1000-dot grid coloured by true condition, with dots outlined if they test positive; a panel computes the posterior from the highlighted counts.",
+            "interaction": "Slide prevalence, sensitivity and false-positive rate; click 'show only positives' to see the posterior as a fraction of outlined dots.",
+            "aha": "When the prior is small, even an accurate test produces mostly false positives."
+          }
+        },
+        {
+          "name": "Prior to posterior updates",
+          "explain": "Bayes is a learning rule: start with a prior belief, multiply by how likely the evidence is under each hypothesis, and renormalise to get the posterior. Each new piece of evidence turns the old posterior into the new prior.",
+          "analogy": "Guessing whether a friend is at the hawker centre or the library: each clue (a kopi photo, a quiet background) shifts your guess.",
+          "visual": {
+            "component": "PriorPosteriorBars",
+            "kind": "stepper",
+            "shows": "Bars for two or three hypotheses, multiplied by likelihood bars, then renormalised to posterior bars, repeated for each new clue.",
+            "interaction": "Step through clues; change the likelihood of each clue; reset the prior.",
+            "aha": "Posterior is prior times likelihood, renormalised, which is also how Naive Bayes classifies text."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "P(A|B) = P(B|A)P(A)/P(B)",
+        "Base rates in diagnostic tests",
+        "Prior vs posterior"
+      ]
+    },
+    {
+      "slug": "distributions-and-clt",
+      "title": "Distributions, the normal curve and the CLT",
+      "summary": "Random variables, expectation, the normal distribution and z-scores, and why averages of many samples look normal.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute an expected value",
+        "You can use the 68-95-99.7 rule and z-scores",
+        "You can explain the Central Limit Theorem in words"
+      ],
+      "concepts": [
+        {
+          "name": "Expectation is the long-run average",
+          "explain": "The expected value of a random variable is each outcome times its probability, added up. A fair die has expectation (1 + 2 + … + 6)/6 = 3.5, even though you can never roll 3.5. For independent variables, variances add: Var(X + Y) = Var(X) + Var(Y). So a dot product of two d-dimensional vectors with independent unit-variance entries has variance d, the reason attention divides by √d.",
+          "analogy": "The expected payout of a 4D ticket is what you would average per ticket over millions of tickets, not what you get tonight.",
+          "visual": {
+            "component": "RunningAverage",
+            "kind": "animation",
+            "shows": "Die rolls appearing one by one with a running-average line that wobbles and settles towards 3.5.",
+            "interaction": "Play, pause, speed up; switch to a loaded die and see the target line move.",
+            "aha": "Expectation predicts averages over many trials, not single outcomes."
+          }
+        },
+        {
+          "name": "The normal curve and z-scores",
+          "explain": "The normal (Gaussian) distribution is a bell curve set by its mean μ and standard deviation σ. About 68% of values lie within 1σ, 95% within 2σ and 99.7% within 3σ. A z-score z = (x − μ)/σ says how many standard deviations x is from the mean.",
+          "analogy": "Heights of Sec 3 students cluster around the average; a z-score of 2 means unusually tall, taller than about 98% of the cohort.",
+          "visual": {
+            "component": "NormalExplorer",
+            "kind": "interactive",
+            "shows": "A bell curve with shaded ±1σ, ±2σ, ±3σ bands and percentages, and a draggable x marker with its z-score and percentile.",
+            "interaction": "Slide μ and σ; drag x; toggle the bands.",
+            "aha": "z-scores put any normal variable on one universal scale, which is exactly what standardisation does to features."
+          }
+        },
+        {
+          "name": "The Central Limit Theorem",
+          "explain": "Take many samples of size n and average each one. The averages form an approximately normal distribution even if the original data is skewed, and their spread shrinks like σ/√n.",
+          "analogy": "One hawker's waiting time is unpredictable, but the average waiting time over 30 visits is very stable and bell-shaped.",
+          "visual": {
+            "component": "CLTSampler",
+            "kind": "animation",
+            "shows": "A skewed source distribution on top and a growing histogram of sample means below, with a normal curve overlay.",
+            "interaction": "Choose the source shape (uniform, skewed, two-humped), slide the sample size n, and play the sampling.",
+            "aha": "Averaging tames almost any distribution into a bell curve, and bigger samples make it narrower."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Expectation as long-run average",
+        "z = (x − μ)/σ",
+        "68-95-99.7 rule",
+        "CLT: sample means become approximately normal"
+      ]
+    },
+    {
+      "slug": "correlation-and-testing",
+      "title": "Correlation and hypothesis tests",
+      "summary": "Whether two variables move together, and how to tell a real effect from luck with p-values.",
+      "minutes": 18,
+      "objectives": [
+        "You can tell covariance from correlation and read a correlation from a scatter plot",
+        "You can explain what a p-value is and what a significance level α means",
+        "You can tell Type I from Type II errors"
+      ],
+      "concepts": [
+        {
+          "name": "Covariance and correlation",
+          "explain": "Covariance measures whether two variables move together, but its size depends on their units. Correlation divides by both standard deviations, giving a number from -1 to 1 that does not change if you rescale the variables. Correlation is not causation.",
+          "analogy": "Ice-cream sales and drowning both rise on hot days: strongly correlated, but one does not cause the other.",
+          "visual": {
+            "component": "CorrelationScatter",
+            "kind": "interactive",
+            "shows": "A scatter plot generated with a target correlation, with live covariance and correlation readouts and an optional fitted line.",
+            "interaction": "Slide the target correlation from -1 to 1; rescale the x-axis units (e.g. metres to centimetres) and see covariance change but correlation stay fixed.",
+            "aha": "Correlation is unit-free and only measures linear association."
+          }
+        },
+        {
+          "name": "p-values, Type I and Type II errors",
+          "explain": "A hypothesis test assumes 'no effect' (the null hypothesis) and asks how surprising the data would be under it; the p-value is that probability of seeing data at least this extreme. If p is below a chosen α such as 0.05, we reject the null, and doing so when the null is actually true is a Type I error (false positive).",
+          "analogy": "A smoke alarm set too sensitive (large α) rings when someone is just cooking prata: that false alarm is a Type I error.",
+          "visual": {
+            "component": "PValueTail",
+            "kind": "interactive",
+            "shows": "A null distribution curve with the observed statistic marked and the tail area shaded as the p-value, plus the α threshold region.",
+            "interaction": "Drag the observed statistic; slide α; toggle one-tailed or two-tailed.",
+            "aha": "A p-value is a tail area under the null, not the probability that the null is true."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Correlation is unit-free and lies in [−1, 1]",
+        "Correlation is not causation",
+        "p-value definition and α",
+        "Type I vs Type II errors"
+      ]
+    }
+  ]
+}

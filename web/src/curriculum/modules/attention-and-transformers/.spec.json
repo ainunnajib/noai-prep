@@ -1,0 +1,243 @@
+{
+  "slug": "attention-and-transformers",
+  "order": 27,
+  "part": "language-audio",
+  "domain": "ai_ml_dl",
+  "title": "Attention and Transformers",
+  "tagline": "Every token looks at every token",
+  "summary": "Attention as a soft dictionary lookup, scaled dot-product attention with masks, multi-head attention with its reshapes, positional encoding, and the full Transformer block, all as needed for the 2026 Final Task 3.",
+  "prerequisites": [
+    "text-as-data",
+    "pytorch"
+  ],
+  "syllabus": [
+    "IOAI 2B4 Attention Mechanism",
+    "IOAI 2B5 Transformers (theory for text and image)",
+    "NOAI 2026 Final Task 3: scaled dot-product attention, multi-head attention, positional encoding",
+    "Causal masks, cross-attention, O(n²) complexity, LayerNorm and residuals"
+  ],
+  "paper_subtopics": [
+    "nlp-transformers",
+    "linear-algebra",
+    "pytorch"
+  ],
+  "lessons": [
+    {
+      "slug": "attention-intuition",
+      "title": "Attention as a soft lookup",
+      "summary": "Queries, keys and values: matching a question against labels to blend the answers.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe the roles of query, key and value",
+        "You can compute attention weights with softmax over similarities",
+        "You can explain how attention builds context-dependent word representations"
+      ],
+      "concepts": [
+        {
+          "name": "A soft dictionary lookup",
+          "explain": "A normal dictionary returns the value whose key exactly matches your query. Attention compares the query with every key (by dot product), turns the scores into weights with softmax, and returns a weighted average of all the values. Close matches dominate, but everything contributes a little.",
+          "analogy": "Asking a group chat 'who knows a good chicken rice stall?': replies from friends whose interests match your question count most, and you blend their suggestions.",
+          "visual": {
+            "component": "SoftLookup",
+            "kind": "interactive",
+            "shows": "A draggable 2D query arrow, four key arrows with attached value colours, the similarity scores, softmax weight bars and the blended output colour.",
+            "interaction": "Drag the query; scale it up to make the softmax sharper; edit keys and values.",
+            "aha": "Attention is a differentiable, weighted lookup instead of an exact match."
+          }
+        },
+        {
+          "name": "Words attending to words",
+          "explain": "In self-attention every word produces a query, key and value. A word like 'it' in 'The animal didn't cross the street because it was too tired' attends strongly to 'animal', so its new representation includes that meaning. Each word's output is a context-dependent mix of the whole sentence.",
+          "analogy": "In a group project, each member updates their understanding by listening most to the teammates most relevant to their part.",
+          "visual": {
+            "component": "SentenceAttention",
+            "kind": "interactive",
+            "shows": "A sentence with arcs from a selected word to every other word, arc thickness showing illustrative attention weights, and a bar chart of the weights.",
+            "interaction": "Click any word to see its attention; switch the ending word (tired/wide) and see 'it' shift its focus between 'animal' and 'street'.",
+            "aha": "Attention lets the same word mean different things in different contexts."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Similarity of query to keys",
+        "Softmax gives weights summing to 1",
+        "Output is weighted average of values",
+        "Context-dependent meaning"
+      ]
+    },
+    {
+      "slug": "scaled-dot-product-attention",
+      "title": "Scaled dot-product attention and masks",
+      "summary": "The formula softmax(QKᵀ/√d_k)V step by step with shapes, why we divide by √d_k, and padding and causal masks.",
+      "minutes": 24,
+      "objectives": [
+        "You can compute attention for a tiny Q, K, V by hand",
+        "You can state the shapes of QKᵀ and the output",
+        "You can explain the √d_k scaling",
+        "You can build causal and padding masks and apply them with −∞ before softmax"
+      ],
+      "concepts": [
+        {
+          "name": "The attention matrix step by step",
+          "explain": "Stack the queries as rows of Q and keys as rows of K. QKᵀ is a T×T table of every query-key score; dividing by √d_k and applying softmax across each row gives attention weights; multiplying by V mixes the value vectors. For a batch, shapes are (B, T, d) → scores (B, T, T) → output (B, T, d_v).",
+          "analogy": "A seating chart where every student rates every other student's relevance, then each student writes notes mixing what the highly-rated ones said.",
+          "visual": {
+            "component": "AttentionMatrixStepper",
+            "kind": "stepper",
+            "shows": "Small Q, K and V MatrixGrids (3 tokens, d = 2) with integer values; steps compute QKᵀ, scale, softmax per row, then multiply by V, with shapes annotated at each step.",
+            "interaction": "Step forward and back; edit Q, K, V values; hover a weight to see which query and key it links.",
+            "aha": "Attention is two matrix multiplications with a row-wise softmax in between."
+          }
+        },
+        {
+          "name": "Why divide by √d_k",
+          "explain": "If query and key components have variance 1, their dot product has variance d_k, so scores grow with dimension. Large scores push softmax into a near one-hot output with tiny gradients. Dividing by √d_k keeps the scores' variance at about 1.",
+          "analogy": "Grading on a curve: without rescaling, a longer exam produces bigger score gaps, making the ranking all-or-nothing.",
+          "visual": {
+            "component": "SqrtDScaling",
+            "kind": "interactive",
+            "shows": "A histogram of dot-product scores for random vectors of dimension d_k, and the resulting softmax weights for one row, with and without scaling.",
+            "interaction": "Slide d_k from 2 to 512; toggle scaling on and off.",
+            "aha": "Without scaling, high-dimensional attention saturates and stops learning."
+          }
+        },
+        {
+          "name": "Causal and padding masks",
+          "explain": "A mask sets forbidden scores to −∞ before softmax so their weights become exactly 0. A causal (look-ahead) mask blocks each position from seeing future positions, required for next-token prediction; torch.triu(torch.ones(T, T), diagonal=1) marks the future positions. A padding mask blocks attention to [PAD] tokens.",
+          "analogy": "Covering the answers further down the page while you work through a worksheet.",
+          "visual": {
+            "component": "CausalMaskGrid",
+            "kind": "interactive",
+            "shows": "The T×T score grid with masked cells shaded, the row-wise softmax weights after masking, and the PyTorch mask expression and its boolean grid.",
+            "interaction": "Toggle causal and padding masks; change T and padding length; switch between triu/tril and the 'True means keep' vs 'True means mask' conventions.",
+            "aha": "Masking is just −∞ in the right cells, but mixing up mask conventions is a classic bug."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Attention(Q,K,V) = softmax(QKᵀ/√d_k)V",
+        "Shapes (T, d_k) → (T, T) → (T, d_v)",
+        "Dot-product variance grows with d_k",
+        "masked_fill with −inf",
+        "torch.triu(..., diagonal=1) for future positions"
+      ]
+    },
+    {
+      "slug": "multi-head-attention",
+      "title": "Multi-head attention",
+      "summary": "Running several attention heads in parallel on slices of the embedding, the view/transpose reshapes, concatenation and output projection.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute head_dim = d_model / num_heads",
+        "You can trace the shape changes (B, T, d) → (B, h, T, d/h) and back",
+        "You can explain why multiple heads help",
+        "You can count the parameters of a multi-head attention layer"
+      ],
+      "concepts": [
+        {
+          "name": "Splitting into heads",
+          "explain": "Multi-head attention projects the input into queries, keys and values, then splits the d_model features into h heads of size d_model/h. In PyTorch: reshape (B, T, d) to (B, T, h, d/h), transpose to (B, h, T, d/h), run attention per head, transpose back and merge to (B, T, d), then apply an output projection W_O.",
+          "analogy": "A committee splitting a report into sections so each member reviews one aspect in parallel, then merging their notes.",
+          "visual": {
+            "component": "HeadSplitter",
+            "kind": "animation",
+            "shows": "A (T, d_model) block sliced into coloured head bands, rearranged into h separate (T, d/h) blocks, processed and then re-merged, with code lines highlighted for each reshape.",
+            "interaction": "Slide d_model and number of heads (with a warning when d_model is not divisible); play the reshapes; step through code.",
+            "aha": "Multi-head attention is the same attention run on slices, held together by careful reshapes."
+          }
+        },
+        {
+          "name": "Different heads, different relationships",
+          "explain": "Each head has its own projections, so different heads can specialise: one might track the previous word, another subject-verb links, another punctuation. Concatenating them gives a richer representation than one big head with the same total size.",
+          "analogy": "A panel of judges at a cooking contest, each focusing on taste, presentation or originality.",
+          "visual": {
+            "component": "HeadPatterns",
+            "kind": "interactive",
+            "shows": "Attention-weight heat maps for four illustrative heads on the same sentence, each showing a distinct pattern (previous token, same word, subject-verb, start token).",
+            "interaction": "Click a head to enlarge its map; hover cells to see token pairs.",
+            "aha": "Several smaller heads capture several kinds of relationship at once."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Linear projections W_Q, W_K, W_V, W_O",
+        "view then transpose(1, 2)",
+        "contiguous().view to merge heads",
+        "Parameters 4·(d² + d)"
+      ]
+    },
+    {
+      "slug": "positional-encoding-and-blocks",
+      "title": "Positional encoding and the Transformer block",
+      "summary": "Why attention needs position information, sinusoidal and learned encodings, and how attention, feed-forward layers, residuals and LayerNorm form a block.",
+      "minutes": 24,
+      "objectives": [
+        "You can explain why self-attention is permutation-invariant without positions",
+        "You can compute sinusoidal positional encoding values",
+        "You can describe a Transformer block and encoder vs decoder blocks",
+        "You can explain O(n²) cost in sequence length"
+      ],
+      "concepts": [
+        {
+          "name": "Attention ignores order without positions",
+          "explain": "Self-attention treats its input as a set: shuffle the words and each word's output is just shuffled the same way, so 'dog bites man' and 'man bites dog' look alike. Adding a positional encoding vector to each token embedding gives the model word-order information.",
+          "analogy": "A pile of numbered exam scripts dropped on the floor: without the numbers, you cannot tell the order.",
+          "visual": {
+            "component": "ShuffleInvariance",
+            "kind": "interactive",
+            "shows": "A sentence, its attention outputs, and the same for a shuffled sentence; without positional encoding the outputs are a permutation of each other, with it they genuinely differ.",
+            "interaction": "Shuffle the words; toggle positional encoding.",
+            "aha": "Order information must be injected explicitly into a Transformer."
+          }
+        },
+        {
+          "name": "Sinusoidal positional encoding",
+          "explain": "The original Transformer uses sine and cosine waves of different frequencies: PE(pos, 2i) = sin(pos / 10000^(2i/d)) and PE(pos, 2i+1) = cos(pos / 10000^(2i/d)). Low dimensions oscillate quickly and high dimensions slowly, so every position gets a unique pattern, and nearby positions get similar ones. Many models instead learn position embeddings.",
+          "analogy": "A clock with second, minute and hour hands: together they give every moment a unique reading.",
+          "visual": {
+            "component": "PositionalEncodingHeatmap",
+            "kind": "interactive",
+            "shows": "A heat map of PE values (positions down, dimensions across), a plot of a few dimensions as waves, and a similarity matrix between positions.",
+            "interaction": "Slide d_model and sequence length; click a cell to see its exact sin/cos computation; introduce a 'bug' (e.g. wrong exponent) and compare heat maps.",
+            "aha": "Each dimension is a wave of a different frequency, and the combination works like a timestamp."
+          }
+        },
+        {
+          "name": "The Transformer block",
+          "explain": "A block applies multi-head self-attention, adds the input back (residual) and normalises (LayerNorm), then applies a small feed-forward network to each token, again with a residual and LayerNorm. Encoders stack these blocks; decoders add causal masking and a cross-attention layer that attends to the encoder's outputs.",
+          "analogy": "A study group round: discuss with everyone (attention), keep your original notes (residual), tidy up (norm), then think alone (feed-forward).",
+          "visual": {
+            "component": "TransformerBlockFlow",
+            "kind": "stepper",
+            "shows": "A block diagram with tensor shapes on each arrow; stepping highlights each sub-layer; an encoder/decoder toggle adds the masked attention and cross-attention layers.",
+            "interaction": "Step through; toggle encoder or decoder; set the number of blocks to stack.",
+            "aha": "A Transformer is a stack of identical blocks, each mixing tokens (attention) then processing them individually (FFN)."
+          }
+        },
+        {
+          "name": "Quadratic cost",
+          "explain": "Self-attention computes a score for every pair of tokens, so memory and time grow with T², the square of the sequence length. Doubling the context length quadruples the attention cost, which is the main challenge for long-context models.",
+          "analogy": "A class where every student must shake hands with every other student: double the class size, four times the handshakes.",
+          "visual": {
+            "component": "QuadraticCost",
+            "kind": "interactive",
+            "shows": "A T×T grid that grows as T increases, with a plot of attention memory against T on linear and log axes.",
+            "interaction": "Slide T from 16 to 8192; compare with a linear-cost curve.",
+            "aha": "Attention's pairwise table is why long contexts are expensive."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Permutation invariance",
+        "PE(pos, 2i) = sin(pos/10000^(2i/d)), PE(pos, 2i+1) = cos(...)",
+        "Residual + LayerNorm + FFN",
+        "Cross-attention in decoders",
+        "Quadratic memory in T"
+      ]
+    }
+  ]
+}

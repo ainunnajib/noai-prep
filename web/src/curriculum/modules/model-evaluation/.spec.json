@@ -1,0 +1,310 @@
+{
+  "slug": "model-evaluation",
+  "order": 16,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Evaluating models honestly",
+  "tagline": "Metrics that tell the truth",
+  "summary": "Confusion matrices, precision, recall and F1, the accuracy paradox and remedies for imbalanced classes, ROC and PR curves, cross-validation and hyperparameter tuning without leakage, and metrics for regression and segmentation including IoU.",
+  "prerequisites": [
+    "classification"
+  ],
+  "syllabus": [
+    "IOAI 1D1 Model Evaluation Metrics (Accuracy, Precision, Recall, F1)",
+    "IOAI 1D3 Hyperparameter Tuning",
+    "IOAI 1D4 Cross-Validation",
+    "IOAI 1D5 Confusion Matrix and ROC Curves",
+    "IoU and mean IoU, R², MAE/RMSE, macro vs micro averaging",
+    "Class imbalance: class weights, resampling, SMOTE, cost-based thresholds"
+  ],
+  "paper_subtopics": [
+    "model-evaluation",
+    "classification",
+    "data-preprocessing",
+    "ml-debugging-diagnosis"
+  ],
+  "lessons": [
+    {
+      "slug": "confusion-matrix-and-metrics",
+      "title": "Confusion matrix, precision, recall and F1",
+      "summary": "Counting the four kinds of right and wrong, the metrics built from them, and choosing the metric that matches the cost of errors.",
+      "minutes": 20,
+      "objectives": [
+        "You can fill a confusion matrix from predictions and a threshold",
+        "You can compute accuracy, precision, recall and F1 from counts",
+        "You can choose precision or recall for a given application"
+      ],
+      "concepts": [
+        {
+          "name": "The threshold decides the confusion matrix",
+          "explain": "A classifier outputs scores, and a threshold turns them into yes/no. Each prediction is a true positive, false positive, true negative or false negative. Raising the threshold makes the model pickier: fewer false positives (higher precision) but more false negatives (lower recall).",
+          "analogy": "An airport scanner set to beep at the slightest metal catches every knife but annoys everyone wearing a belt.",
+          "visual": {
+            "component": "ConfusionThreshold",
+            "kind": "interactive",
+            "shows": "Overlapping score histograms for the two classes with a draggable threshold, the 2×2 confusion matrix with counts, and bars for accuracy, precision, recall and F1.",
+            "interaction": "Drag the threshold; slide class separation and class imbalance; watch accuracy stay high while recall collapses on imbalanced data.",
+            "aha": "Precision and recall trade off through the threshold, and accuracy can hide a useless model."
+          }
+        },
+        {
+          "name": "F1: the harmonic mean",
+          "explain": "F1 = 2PR / (P + R), the harmonic mean of precision and recall. It is high only when both are high, so a model with P = 1.0 and R = 0.1 has F1 of about 0.18, not 0.55.",
+          "analogy": "Like a relay team that is only as fast as its two legs combined, punished heavily by one slow runner.",
+          "visual": {
+            "component": "HarmonicVsArithmetic",
+            "kind": "interactive",
+            "shows": "A plot comparing arithmetic and harmonic means as precision and recall vary.",
+            "interaction": "Drag precision and recall sliders; compare the two means.",
+            "aha": "The harmonic mean is dragged down by the weaker of the two."
+          }
+        },
+        {
+          "name": "Which error costs more?",
+          "explain": "For cancer screening, missing a sick patient (false negative) is worst, so recall matters most. For a spam filter, losing a real email (false positive) is worse, so precision matters. F1 = 2PR/(P + R), the harmonic mean, is high only when both are high.",
+          "analogy": "A lifeguard should overreact (high recall); a court should avoid convicting the innocent (high precision).",
+          "visual": {
+            "component": "ErrorCostScenarios",
+            "kind": "interactive",
+            "shows": "Scenario cards (screening, spam, fraud, face unlock) with an adjustable cost per FP and FN, and the threshold that minimises total cost.",
+            "interaction": "Pick a scenario and adjust costs; compare the cost-optimal threshold with the F1-optimal one.",
+            "aha": "The 'best' metric depends on the real-world cost of each kind of mistake."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Precision = TP/(TP+FP), recall = TP/(TP+FN)",
+        "F1 as a harmonic mean",
+        "Threshold moves the precision-recall trade-off",
+        "Screening favours recall; spam favours precision"
+      ]
+    },
+    {
+      "slug": "imbalanced-data",
+      "title": "Imbalanced classes",
+      "summary": "Why accuracy lies when positives are rare, and the standard remedies.",
+      "minutes": 18,
+      "objectives": [
+        "You can explain the accuracy paradox",
+        "You can compare class weights, oversampling, SMOTE and undersampling",
+        "You can choose metrics for fraud and medical scenarios"
+      ],
+      "concepts": [
+        {
+          "name": "The accuracy paradox",
+          "explain": "With 1% positives, a model that always says 'negative' gets 99% accuracy and catches nothing. Accuracy is misleading for imbalanced data; use precision, recall, F1, PR-AUC or per-class metrics.",
+          "analogy": "Like a security guard who never stops anyone being right 99.9% of the time while missing every thief.",
+          "visual": {
+            "component": "AccuracyParadox",
+            "kind": "interactive",
+            "shows": "A population grid with a slider for prevalence and the metrics of the 'always negative' model.",
+            "interaction": "Slide prevalence from 50% to 0.1%; accuracy climbs while recall stays at 0.",
+            "aha": "High accuracy can hide a useless model."
+          }
+        },
+        {
+          "name": "Remedies for imbalance",
+          "explain": "Class weights scale the loss so rare-class errors cost more (e.g. weight 49 for a 2% class), keeping all data. Random oversampling duplicates minority samples; SMOTE creates synthetic ones by interpolating between neighbours; undersampling discards majority samples. Class weights are usually the practical first choice.",
+          "analogy": "Like a teacher giving extra marks weight to the rare tough questions rather than photocopying them many times.",
+          "visual": {
+            "component": "ImbalanceRemedies",
+            "kind": "interactive",
+            "shows": "Tabs for each remedy showing the training set before and after, with pros and cons.",
+            "interaction": "Switch tabs; for SMOTE drag the interpolation slider to see synthetic points appear between neighbours.",
+            "aha": "Each remedy changes either the data or the loss; class weights change only the loss."
+          }
+        },
+        {
+          "name": "Choosing the metric by cost",
+          "explain": "Match the metric to the cost of mistakes. Missed fraud costs money (prioritise recall), but too many false alarms swamp investigators (watch precision). Usually report F1 or PR-AUC plus the operating point you choose.",
+          "analogy": "Like setting a smoke alarm: too sensitive and it rings when you cook, too lax and it misses a real fire.",
+          "visual": {
+            "component": "CostMatrixSlider",
+            "kind": "interactive",
+            "shows": "A confusion matrix with adjustable costs for FP and FN and the threshold that minimises total cost.",
+            "interaction": "Change the costs; the optimal threshold and metrics move.",
+            "aha": "The right threshold depends on what errors cost."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Accuracy misleading for imbalanced classes",
+        "Class weights vs over/undersampling vs SMOTE",
+        "Evaluating fraud model with F1/ROC-AUC"
+      ]
+    },
+    {
+      "slug": "roc-and-pr-curves",
+      "title": "ROC and precision-recall curves",
+      "summary": "Seeing performance across all thresholds at once, AUC, and why PR curves are better for rare positives.",
+      "minutes": 18,
+      "objectives": [
+        "You can plot TPR against FPR for several thresholds",
+        "You can interpret AUC (0.5 random, 1 perfect)",
+        "You can explain when to prefer a PR curve"
+      ],
+      "concepts": [
+        {
+          "name": "Tracing the ROC curve",
+          "explain": "As the threshold sweeps from high to low, the true positive rate and false positive rate both rise from 0 to 1; plotting one against the other gives the ROC curve. The area under it (AUC) is the probability that a random positive gets a higher score than a random negative: 0.5 is guessing and 1.0 is perfect.",
+          "analogy": "Turning up the sensitivity of a metal detector step by step and recording how many coins versus bottle caps it beeps at.",
+          "visual": {
+            "component": "ROCTracer",
+            "kind": "interactive",
+            "shows": "Score histograms with a threshold line linked to a moving point on the ROC curve, with AUC shaded.",
+            "interaction": "Drag the threshold to move along the curve; slide class separation to see the curve bulge or flatten to the diagonal.",
+            "aha": "Every point on the ROC curve is one threshold; AUC summarises ranking quality independent of the threshold."
+          }
+        },
+        {
+          "name": "PR curves for rare positives",
+          "explain": "When positives are rare, a small FPR can still mean many false positives compared with the few true positives, so the ROC curve looks great while precision is poor. The precision-recall curve exposes this because precision depends directly on the number of false positives.",
+          "analogy": "A 1% false alarm rate sounds tiny until you screen a million transactions and get 10,000 false alarms for 100 real frauds.",
+          "visual": {
+            "component": "ImbalanceROCvsPR",
+            "kind": "interactive",
+            "shows": "ROC and PR curves for the same classifier side by side, with the positive-class rate adjustable.",
+            "interaction": "Slide the positive rate from 50% down to 0.5%; the ROC curve stays the same while the PR curve sinks.",
+            "aha": "For rare events, judge models by precision and recall, not by ROC AUC alone."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "TPR = recall, FPR = FP/(FP + TN)",
+        "AUC meaning",
+        "Diagonal = random classifier",
+        "PR curves under heavy imbalance"
+      ]
+    },
+    {
+      "slug": "cross-validation-and-tuning",
+      "title": "Cross-validation and hyperparameter tuning",
+      "summary": "k-fold cross-validation, grid and random search, and keeping preprocessing and feature selection inside the folds.",
+      "minutes": 24,
+      "objectives": [
+        "You can explain k-fold cross-validation and report mean ± standard deviation",
+        "You can compare grid search and random search",
+        "You can explain why feature selection must happen inside each fold",
+        "You can explain why repeatedly tuning on the test set inflates the reported score"
+      ],
+      "concepts": [
+        {
+          "name": "k-fold rotation",
+          "explain": "Split the data into k folds; train on k − 1 folds and validate on the remaining one, rotating so every fold is the validation fold once. Average the k scores and report their spread. It uses data efficiently and gives a more stable estimate than one split, at k times the cost.",
+          "analogy": "A class rotating the role of 'examiner' so everyone gets tested and everyone's marks count.",
+          "visual": {
+            "component": "KFoldAnimator",
+            "kind": "animation",
+            "shows": "A data bar divided into k coloured folds with the validation fold moving along each round, and a dot plot of the k scores with mean and standard deviation.",
+            "interaction": "Slide k from 2 to 10; play the rotation; toggle stratification.",
+            "aha": "Cross-validation turns one noisy score into an average with error bars."
+          }
+        },
+        {
+          "name": "Grid versus random search",
+          "explain": "Grid search tries every combination on a fixed grid; random search samples combinations at random. When only one or two hyperparameters really matter, random search tries many more distinct values of them for the same budget.",
+          "analogy": "Testing laksa recipes: a grid repeats the same 3 chilli levels many times, while random tries 9 different chilli levels.",
+          "visual": {
+            "component": "GridVsRandomSearch",
+            "kind": "interactive",
+            "shows": "A 2D hyperparameter space where only the x-axis matters (shown by a performance curve along the edge), with 9 grid points versus 9 random points and the best found by each.",
+            "interaction": "Change the budget; reshuffle the random points; change which axis matters.",
+            "aha": "Random search explores important hyperparameters more efficiently than a grid."
+          }
+        },
+        {
+          "name": "Keep selection inside the folds",
+          "explain": "If you select features or fit a scaler using all the data and then cross-validate, the validation folds have already influenced training, so the CV score is optimistic. Putting preprocessing and selection in a Pipeline refits them on each training fold only.",
+          "analogy": "Choosing which topics to revise after seeing the exam paper, then claiming your mock score predicts the real exam.",
+          "visual": {
+            "component": "CVLeakageCompare",
+            "kind": "interactive",
+            "shows": "Two workflows on pure-noise data with many features: 'select then CV' reports well above chance, 'CV with selection inside' reports chance level.",
+            "interaction": "Slide the number of features and run both; the inflated score grows with more features.",
+            "aha": "With leakage, even random noise can look predictive."
+          }
+        },
+        {
+          "name": "Adaptive overfitting to the test set",
+          "explain": "If you evaluate on the test set, tweak, and evaluate again many times, you are effectively tuning on the test set and the best score is biased upwards. Use a validation set (or CV) for tuning and touch the test set once.",
+          "analogy": "Like retaking the same practice paper 50 times: your score rises but your real exam result does not.",
+          "visual": {
+            "component": "ProtocolCompare",
+            "kind": "animation",
+            "shows": "Two protocols from the 2026 Prelim (repeated test evaluation vs train/val/test) with their reported and true scores.",
+            "interaction": "Increase the number of tuning iterations; the reported score in protocol A drifts above the true score.",
+            "aha": "Selection on a dataset spends its honesty."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "k-fold rotation and averaging",
+        "Stratified k-fold",
+        "Grid vs random search",
+        "Selection inside the CV loop (Pipeline)",
+        "Nested CV for an honest estimate",
+        "Touch the test set once; tune on validation or CV"
+      ]
+    },
+    {
+      "slug": "regression-and-overlap-metrics",
+      "title": "Regression metrics, IoU and averaging",
+      "summary": "MAE, MSE, RMSE and R² for numbers; IoU (the Jaccard index) for boxes; macro versus micro averaging.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute MAE, RMSE and R² for a small set",
+        "You can compute IoU for two boxes",
+        "You can tell macro from micro averaging"
+      ],
+      "concepts": [
+        {
+          "name": "R² compares with predicting the mean",
+          "explain": "R² = 1 − (sum of squared residuals)/(sum of squared deviations from the mean). It is 1 for perfect predictions, 0 for a model no better than always predicting the mean, and can be negative for worse models. RMSE is in the target's units, which makes it easier to explain.",
+          "analogy": "Comparing your exam predictions with someone who just guesses the class average every time.",
+          "visual": {
+            "component": "RSquaredBars",
+            "kind": "interactive",
+            "shows": "A scatter with the model line and the horizontal mean line; residual squares for both are drawn and their totals give R².",
+            "interaction": "Drag the model line; make it worse than the mean to see R² go negative.",
+            "aha": "R² measures improvement over the dumbest sensible baseline."
+          }
+        },
+        {
+          "name": "Intersection over union",
+          "explain": "IoU = area of overlap / area of union, from 0 (no overlap) to 1 (perfect match); for sets it is called the Jaccard index. For two boxes, intersect their x-ranges and y-ranges to get the overlap rectangle (zero if either range is empty), then union = area A + area B − overlap. Detectors use box IoU to match predictions to ground truth and to suppress duplicate boxes. Per-pixel IoU for segmentation masks, and mean IoU over classes, come in the vision module.",
+          "analogy": "Two people highlight the same paragraph: IoU is the shared highlighted part over everything highlighted by either.",
+          "visual": {
+            "component": "IoUBoxes",
+            "kind": "interactive",
+            "shows": "Two draggable, resizable boxes with the intersection and union shaded and the areas computed step by step (overlap width × height, then union = A + B − overlap).",
+            "interaction": "Drag and resize the boxes; type coordinates to check a hand calculation; slide an IoU threshold to label the match a hit or a miss.",
+            "aha": "IoU punishes both missed and extra area, and box IoU is a few subtractions and one division."
+          }
+        },
+        {
+          "name": "Macro versus micro averaging",
+          "explain": "Macro-averaging computes the metric per class and averages them equally, so rare classes count as much as common ones. Micro-averaging pools all predictions first, so common classes dominate. With imbalanced classes, macro-F1 reveals poor rare-class performance that micro-F1 hides.",
+          "analogy": "Averaging each CCA's satisfaction score equally versus surveying every student in one big pool.",
+          "visual": {
+            "component": "MacroMicroAverage",
+            "kind": "interactive",
+            "shows": "Per-class F1 bars for 3 classes with their sizes, plus the macro and micro averages.",
+            "interaction": "Change class sizes and per-class performance; watch the two averages diverge.",
+            "aha": "The averaging choice decides whether rare classes matter."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "RMSE in original units",
+        "R² = 1 − SS_res/SS_tot",
+        "Box IoU: union = A + B − overlap",
+        "Macro vs micro F1"
+      ]
+    }
+  ]
+}

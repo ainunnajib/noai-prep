@@ -1,0 +1,340 @@
+{
+  "slug": "pytorch",
+  "order": 22,
+  "part": "deep-learning",
+  "domain": "computing",
+  "title": "PyTorch: tensors to training loops",
+  "tagline": "The tool every IOAI task uses",
+  "summary": "Tensors and shape surgery including batched matrix products and choosing dim, autograd and why gradients accumulate, nn.Module, layers and saving with state_dict, the standard training loop with DataLoader and train/eval modes, devices, GPU memory and freezing layers.",
+  "prerequisites": [
+    "backpropagation",
+    "numpy"
+  ],
+  "syllabus": [
+    "NOAI Computing: PyTorch, Debugging",
+    "IOAI 1A5 PyTorch Basics",
+    "IOAI 1A6 Tensor Manipulation",
+    "IOAI 1A7 Training Models on CPU and GPU",
+    "autograd, nn.Module, DataLoader, optimizer, state_dict, train/eval, no_grad, devices",
+    "Batched matmul (B, h, T, d) @ (B, h, d, T), choosing dim for softmax, cat and argmax"
+  ],
+  "paper_subtopics": [
+    "pytorch",
+    "code-debugging",
+    "neural-networks"
+  ],
+  "lessons": [
+    {
+      "slug": "tensors",
+      "title": "Tensors and shape surgery",
+      "summary": "Creating tensors, dtypes, reshaping and transposing, batched matrix products and choosing the right dim.",
+      "minutes": 24,
+      "objectives": [
+        "You can create tensors and predict their dtype",
+        "You can transform shapes with view, reshape, unsqueeze, squeeze, permute and transpose",
+        "You can read and build (N, C, H, W) image batches",
+        "You can predict batched matmul shapes and choose the right dim for softmax, cat, mean and argmax"
+      ],
+      "concepts": [
+        {
+          "name": "Tensor shape surgery",
+          "explain": "A tensor is PyTorch's NumPy-like array that can live on a GPU and track gradients. Shape tools rearrange it: unsqueeze(0) adds a size-1 axis, squeeze removes size-1 axes, permute reorders axes, view/reshape regroup elements, and flatten merges axes. Images in PyTorch are (N, C, H, W): batch, channels, height, width.",
+          "analogy": "Rearranging boxes of mooncakes: add an outer carton (unsqueeze), remove an empty carton (squeeze), or rotate how the cartons are stacked (permute).",
+          "visual": {
+            "component": "TensorShapeLab",
+            "kind": "interactive",
+            "shows": "A tensor drawn as stacked coloured blocks with its shape; a toolbar of operations applies each with an animation and the resulting shape and code line.",
+            "interaction": "Click unsqueeze, squeeze, permute, view, flatten, transpose with chosen arguments; start from a (H, W, C) image and convert it to (1, C, H, W).",
+            "aha": "Shape bugs become visible when you can see the axes move."
+          }
+        },
+        {
+          "name": "dtypes and creation",
+          "explain": "torch.tensor([1, 2]) infers int64 from the data, while torch.Tensor([1, 2]) always gives float32. Floating-point tensors are needed for gradients and most layers, and mixing dtypes in operations can raise errors. torch.zeros, torch.ones, torch.randn and torch.arange mirror NumPy.",
+          "analogy": "Two forms that look alike: one copies your handwriting as written, the other always types it in a set font.",
+          "visual": {
+            "component": "DtypeInspector",
+            "kind": "interactive",
+            "shows": "A table of creation calls with their resulting dtype and device, and a panel showing which operations succeed or fail between dtypes.",
+            "interaction": "Pick a creation call and data; try combining tensors of different dtypes.",
+            "aha": "Lowercase torch.tensor infers types; capital torch.Tensor forces float32."
+          }
+        },
+        {
+          "name": "Batched matrix multiplication",
+          "explain": "@ on tensors with extra leading dimensions multiplies the last two dimensions and broadcasts the rest: (B, h, T, d) @ (B, h, d, T) gives (B, h, T, T). K.transpose(-2, -1) swaps the last two dims to make this work.",
+          "analogy": "Like running many separate timetable calculations at once, one per class, in a single go.",
+          "visual": {
+            "component": "BatchedMatmulShapes",
+            "kind": "interactive",
+            "shows": "Shape chips for two tensors and the result shape, with the multiplied and broadcast dimensions colour-coded.",
+            "interaction": "Choose shapes and apply transpose(-2, -1); the result or error appears.",
+            "aha": "Only the last two dims are multiplied; the rest must broadcast."
+          }
+        },
+        {
+          "name": "Choosing dim",
+          "explain": "softmax(scores, dim=-1) normalises across keys for each query; cat([x, skip], dim=1) joins along channels in (N, C, H, W); mean(dim=1) averages over the sequence; argmax(dim=1) picks the class per pixel. The wrong dim usually runs without error and gives wrong results.",
+          "analogy": "Like totalling a mark sheet by row instead of by column: a valid number, the wrong answer.",
+          "visual": {
+            "component": "DimPicker",
+            "kind": "interactive",
+            "shows": "A 3D tensor block with the selected dim highlighted and the result shape shown for several operations.",
+            "interaction": "Pick an operation and a dim; the block animates the reduction or join.",
+            "aha": "Always name the dimension you mean; the shape tells you if you were right."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "torch.tensor dtype inference vs torch.Tensor float32",
+        "unsqueeze/squeeze dimensions",
+        "permute order",
+        "view needs contiguous memory",
+        "(N, C, H, W) convention",
+        "(B, h, T, d) @ (B, h, d, T) → (B, h, T, T); softmax over dim=-1"
+      ]
+    },
+    {
+      "slug": "autograd",
+      "title": "Autograd: automatic gradients",
+      "summary": "requires_grad, the recorded graph, backward(), accumulating .grad, zeroing gradients, no_grad and detach.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute gradients with backward()",
+        "You can explain why .grad accumulates and must be zeroed",
+        "You can use torch.no_grad(), .detach() and .item() correctly"
+      ],
+      "concepts": [
+        {
+          "name": "The autograd tape",
+          "explain": "When a tensor has requires_grad=True, PyTorch records every operation on it in a graph. Calling loss.backward() runs backprop through that graph and stores gradients in each leaf tensor's .grad. Calling backward again adds to .grad rather than replacing it, which is why training loops zero gradients each step.",
+          "analogy": "A shop's CCTV recording every step a parcel takes, so you can replay the route backwards later.",
+          "visual": {
+            "component": "AutogradTape",
+            "kind": "stepper",
+            "shows": "Code on the left; on the right the graph builds node by node during the forward pass, then gradients flow back on backward(); .grad boxes show values, and a second backward() doubles them.",
+            "interaction": "Step through; toggle zero_grad between backward calls; set requires_grad=False on one input.",
+            "aha": "Autograd is backprop you no longer write by hand, and accumulation is a feature you must manage."
+          }
+        },
+        {
+          "name": "Turning tracking off",
+          "explain": "torch.no_grad() stops recording, saving memory and time during evaluation. tensor.detach() gives a copy that is cut off from the graph. loss.item() extracts a plain Python number; storing loss tensors instead keeps their whole graph alive and leaks memory.",
+          "analogy": "Switching off the CCTV when you are only browsing, not buying.",
+          "visual": {
+            "component": "GraphCutToggle",
+            "kind": "interactive",
+            "shows": "A computation graph with a memory meter; toggles for no_grad, detach and storing loss vs loss.item() in a list over 100 steps.",
+            "interaction": "Toggle each option and run 100 steps; watch the graph and the memory meter.",
+            "aha": "Tracking costs memory, so turn it off when you do not need gradients."
+          }
+        },
+        {
+          "name": "Gradients accumulate",
+          "explain": "PyTorch adds new gradients to .grad rather than replacing them. Calling backward() twice without zeroing doubles the gradient. That is why every training step starts with optimizer.zero_grad(), and why gradient accumulation works on purpose. With a fresh forward pass each time, gradients simply add up. Calling backward() twice through the same graph usually raises an error ('Trying to backward through the graph a second time'), because the values saved for the backward pass are freed after the first call, unless you pass retain_graph=True.",
+          "analogy": "Like an EZ-Link card that keeps topping up: if you never reset it, the balance keeps growing.",
+          "visual": {
+            "component": "GradAccumulationCounter",
+            "kind": "interactive",
+            "shows": "A weight's .grad value shown as a bar, with buttons for backward() and zero_grad().",
+            "interaction": "Click backward twice and watch the bar double; click zero_grad to reset.",
+            "aha": "Forgetting zero_grad silently sums gradients across steps."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "requires_grad tracking",
+        "backward populates .grad",
+        "Gradients accumulate across backward calls",
+        "no_grad for inference",
+        ".item() for logging"
+      ]
+    },
+    {
+      "slug": "modules-and-layers",
+      "title": "nn.Module, layers and saving models",
+      "summary": "Writing a model class with __init__ and forward, nn.Linear shapes, nn.Sequential, parameters and state_dict.",
+      "minutes": 24,
+      "objectives": [
+        "You can write an nn.Module subclass with layers in __init__ and computation in forward",
+        "You can predict nn.Linear weight shapes and output shapes",
+        "You can save and load a state_dict",
+        "You can choose between nn.Parameter, register_buffer and a plain attribute"
+      ],
+      "concepts": [
+        {
+          "name": "Anatomy of an nn.Module",
+          "explain": "A PyTorch model is a class inheriting from nn.Module: layers are created in __init__ (after super().__init__()), and forward describes how input flows through them. Layers assigned as attributes are registered automatically, so model.parameters() finds all their weights for the optimiser.",
+          "analogy": "A kitchen: __init__ buys the equipment, forward is the recipe that uses it.",
+          "visual": {
+            "component": "ModuleTreeExplorer",
+            "kind": "interactive",
+            "shows": "A model's code next to a tree of its submodules; clicking a node shows its parameters, their shapes and counts; a forward-pass trace shows tensor shapes after each layer.",
+            "interaction": "Click nodes; edit layer sizes in the code panel; remove super().__init__() to see the error.",
+            "aha": "Registration in __init__ is what makes parameters visible to the optimiser."
+          }
+        },
+        {
+          "name": "nn.Linear shapes",
+          "explain": "nn.Linear(in_features, out_features) stores a weight of shape (out_features, in_features) and a bias of shape (out_features,). It maps an input of shape (N, in_features) to (N, out_features) by computing xWᵀ + b. A mismatch between the incoming feature size and in_features causes the classic 'mat1 and mat2 shapes cannot be multiplied' error.",
+          "analogy": "An adapter plug: it only fits sockets of the right size, and it converts to a fixed output type.",
+          "visual": {
+            "component": "LinearShapeMatcher",
+            "kind": "interactive",
+            "shows": "An input batch block, the weight matrix block and the output block with their shapes aligned; a mismatch lights up red with the exact PyTorch error message.",
+            "interaction": "Change batch size, in_features and out_features, and the actual input width.",
+            "aha": "The weight is (out, in), and the error message tells you exactly which two numbers disagree."
+          }
+        },
+        {
+          "name": "Saving and loading",
+          "explain": "torch.save(model.state_dict(), 'model.pt') saves the parameter tensors; to load, rebuild the model class and call model.load_state_dict(torch.load('model.pt')). Saving the state_dict is the recommended way.",
+          "analogy": "Like saving your game progress rather than the whole game installer.",
+          "visual": {
+            "component": "StateDictViewer",
+            "kind": "interactive",
+            "shows": "A state_dict shown as a table of names, shapes and sample values.",
+            "interaction": "Click save/load; edit the model class and see the load error if shapes no longer match.",
+            "aha": "A model file is just named tensors; the code defines how they are used."
+          }
+        },
+        {
+          "name": "Parameters versus buffers",
+          "explain": "A module holds two kinds of tensors. Parameters (nn.Parameter, or the weights inside layers) are trained by the optimiser. Buffers, created with self.register_buffer('running_mean', torch.zeros(n)), are state that is not trained, such as BatchNorm's running statistics or a positional-encoding table: they still move with model.to(device) and are saved in state_dict. A plain tensor attribute does neither, so it stays on the CPU and breaks a GPU run. Update a buffer in place inside torch.no_grad() (or from detached values) so it does not drag the autograd graph along.",
+          "analogy": "In a kitchen, ingredients are used up and changed by cooking (parameters), the laminated recipe card is carried to every new kitchen but never cooked (buffers), and a sticky note left on the old counter is forgotten when you move (plain attributes).",
+          "visual": {
+            "component": "ParamBufferInspector",
+            "kind": "interactive",
+            "shows": "A custom BatchNorm-style module with gamma and beta (parameters), running_mean and running_var (buffers) and a plain tensor attribute, in a table with columns: in parameters()?, in state_dict()?, device, requires_grad, changed by optimizer.step()?",
+            "interaction": "Change how each tensor is registered (Parameter, buffer, plain attribute); press model.to('cuda'), optimizer.step(), torch.save(state_dict) and model.eval() and watch which rows update.",
+            "aha": "register_buffer is how you keep untrained state that must travel and be saved with the model, as in BatchNorm and positional encoding."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "super().__init__() and registration",
+        "nn.Linear(in, out) weight shape (out, in)",
+        "Call model(x), not model.forward(x)",
+        "state_dict save/load",
+        "register_buffer: saved and moved, never trained"
+      ]
+    },
+    {
+      "slug": "training-loop",
+      "title": "The training loop",
+      "summary": "Dataset and DataLoader, the five essential lines of every training step, and train versus eval mode.",
+      "minutes": 22,
+      "objectives": [
+        "You can write the standard training step in the right order",
+        "You can explain what DataLoader batching and shuffling do",
+        "You can explain model.train(), model.eval() and torch.no_grad() during validation",
+        "You can implement gradient accumulation"
+      ],
+      "concepts": [
+        {
+          "name": "The five lines in order",
+          "explain": "Every step: optimizer.zero_grad(), outputs = model(inputs), loss = criterion(outputs, targets), loss.backward(), optimizer.step(). Forgetting zero_grad accumulates stale gradients; calling step before backward updates with old gradients. Gradient accumulation deliberately calls backward several times (with the loss divided by the number of steps) before one step.",
+          "analogy": "Washing, rinsing and drying in the right order; drying before rinsing leaves soap behind.",
+          "visual": {
+            "component": "TrainingLoopOrder",
+            "kind": "interactive",
+            "shows": "Five code-line cards in a shuffled order and a simulated loss curve that reflects the chosen order (correct: falling; missing zero_grad: erratic; step before backward: lagging).",
+            "interaction": "Drag the cards into order; remove or duplicate a line; toggle gradient accumulation of 4.",
+            "aha": "The order of these five lines decides whether training works at all."
+          }
+        },
+        {
+          "name": "DataLoader batching",
+          "explain": "A Dataset returns one example at a time; a DataLoader groups examples into batches, optionally shuffles them each epoch, and can load in parallel with workers. Shuffling the training set prevents the model learning the order of the data.",
+          "analogy": "A canteen tray system: food comes out one plate at a time but is served to tables in trays of 32.",
+          "visual": {
+            "component": "DataLoaderShuffle",
+            "kind": "animation",
+            "shows": "Numbered example cards being shuffled and dealt into batches each epoch, with the batch tensor shape displayed.",
+            "interaction": "Toggle shuffle; change batch size and drop_last; play two epochs.",
+            "aha": "Each epoch sees the same data in a new random batch order."
+          }
+        },
+        {
+          "name": "Train mode versus eval mode",
+          "explain": "model.train() makes dropout randomly drop units and BatchNorm use batch statistics; model.eval() turns dropout off and makes BatchNorm use its running averages. torch.no_grad() is separate: it stops gradient tracking. Validation needs both model.eval() and no_grad.",
+          "analogy": "Practice drills with handicaps (train) versus the actual match with everyone on court (eval).",
+          "visual": {
+            "component": "TrainEvalToggle",
+            "kind": "interactive",
+            "shows": "A small network with dropout and BatchNorm; the same input passed several times shows varying outputs in train mode and identical outputs in eval mode.",
+            "interaction": "Toggle train/eval and no_grad; run the input repeatedly; see which components change behaviour.",
+            "aha": "Forgetting model.eval() makes validation noisy and wrong even though no error is raised."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "zero_grad → forward → loss → backward → step",
+        "Missing zero_grad accumulates gradients",
+        "eval() changes dropout and BatchNorm",
+        "Gradient accumulation divides the loss"
+      ]
+    },
+    {
+      "slug": "devices-and-common-errors",
+      "title": "GPUs, devices and common PyTorch errors",
+      "summary": "Moving models and data to a device, device-mismatch and shape errors, CUDA out-of-memory, freezing layers, and reading PyTorch error messages.",
+      "minutes": 20,
+      "objectives": [
+        "You can write device-agnostic code with .to(device)",
+        "You can diagnose device-mismatch, dtype and shape errors from messages",
+        "You can reduce GPU memory use (batch size, no_grad, mixed precision)",
+        "You can freeze layers correctly"
+      ],
+      "concepts": [
+        {
+          "name": "Everything on the same device",
+          "explain": "Tensors live on a device (CPU or a GPU). Operations need all inputs on the same device, so you move the model once with model.to(device) and each batch with inputs.to(device). Writing device = 'cuda' if torch.cuda.is_available() else 'cpu' makes code run anywhere.",
+          "analogy": "A group discussion only works if everyone is in the same Zoom room.",
+          "visual": {
+            "component": "DeviceMismatch",
+            "kind": "interactive",
+            "shows": "Two boxes labelled CPU and GPU containing the model, inputs and targets as chips; an operation button succeeds only if all chips are in the same box, otherwise shows the real error message.",
+            "interaction": "Drag chips between devices; run the forward pass; apply the device-agnostic pattern.",
+            "aha": "Device errors are just a matter of where each tensor lives."
+          }
+        },
+        {
+          "name": "GPU memory budget",
+          "explain": "GPU memory holds the weights, their gradients, the optimiser states (Adam stores two extra values per weight) and the activations saved for backward, which grow with batch size. Out-of-memory errors are fixed by smaller batches (plus gradient accumulation), mixed precision, freezing layers or no_grad during evaluation.",
+          "analogy": "Packing a 16 GB suitcase: clothes (weights) are fixed, but souvenirs (activations) grow with how many shops (batch size) you visit.",
+          "visual": {
+            "component": "GPUMemoryBudget",
+            "kind": "interactive",
+            "shows": "A stacked bar of memory components against a 16 GB line, for a model of chosen size.",
+            "interaction": "Slide parameter count, batch size, precision (FP32/FP16) and optimiser (SGD/Adam); toggle freezing half the layers.",
+            "aha": "Activations scale with batch size and often dominate, so batch size is the first lever."
+          }
+        },
+        {
+          "name": "Freezing layers for transfer learning",
+          "explain": "Setting param.requires_grad = False on pretrained layers stops their gradients, so they stay fixed while a new head trains. The optimiser should receive only trainable parameters, and if you later unfreeze layers you must add them to the optimiser, otherwise they never update.",
+          "analogy": "Laminating the pages of a textbook you trust, and only writing in the new notes section.",
+          "visual": {
+            "component": "FreezePanel",
+            "kind": "interactive",
+            "shows": "A layer stack with lock icons, counts of trainable versus frozen parameters, and a panel of what the optimiser actually holds.",
+            "interaction": "Lock and unlock layers; rebuild or do not rebuild the optimiser; run a step and see which weights changed.",
+            "aha": "requires_grad and the optimiser's parameter list must agree, a common silent bug."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Model and data on the same device",
+        "'Expected all tensors to be on the same device'",
+        "CUDA out of memory remedies",
+        "requires_grad=False and optimiser parameters"
+      ]
+    }
+  ]
+}

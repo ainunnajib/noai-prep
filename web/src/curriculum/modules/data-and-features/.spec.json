@@ -1,0 +1,273 @@
+{
+  "slug": "data-and-features",
+  "order": 12,
+  "part": "classical-ml",
+  "domain": "computing",
+  "title": "Data processing and feature engineering",
+  "tagline": "Clean data beats clever models",
+  "summary": "Handling missing data and outliers, scaling and normalisation, encoding categories and building vocabularies, engineering features (including sliding windows and summary statistics), and splitting data without leakage, the IOAI Data Processing and Feature Engineering topics.",
+  "prerequisites": [
+    "ml-fundamentals"
+  ],
+  "syllabus": [
+    "IOAI 1D7 Data Processing: imputation (mean/median/forward-fill), normalisation and standardisation, train/validation/test splitting",
+    "IOAI 1D6 Feature Engineering: one-hot encoding, sliding windows, statistical moments, PCA and embeddings",
+    "NOAI Computing: data preprocessing",
+    "Data leakage and scikit-learn Pipelines",
+    "Outliers and the IQR rule"
+  ],
+  "paper_subtopics": [
+    "data-preprocessing",
+    "pandas",
+    "model-evaluation"
+  ],
+  "lessons": [
+    {
+      "slug": "missing-data-and-outliers",
+      "title": "Missing data and outliers",
+      "summary": "Imputing missing values without distorting the data, forward-fill for sequences, and spotting outliers with the IQR rule.",
+      "minutes": 22,
+      "objectives": [
+        "You can choose between dropping rows, imputing and a NaN-tolerant model, including forward-fill for time series",
+        "You can explain how mean imputation shrinks variance and when to add a missing-indicator feature",
+        "You can flag outliers with the IQR rule and decide whether to keep, cap or remove them"
+      ],
+      "concepts": [
+        {
+          "name": "Imputation changes the distribution",
+          "explain": "Filling missing values with the mean keeps the average but piles many points onto one value, shrinking the spread and weakening correlations. The median is safer with outliers. Sometimes the fact that a value is missing is itself informative, so add an 'is_missing' column.",
+          "analogy": "Filling blank survey answers with 'average' makes the class look more uniform than it really is.",
+          "visual": {
+            "component": "ImputationVisualizer",
+            "kind": "interactive",
+            "shows": "A scatter of two features with some x-values missing (drawn as hollow markers on the edge), and histograms that update with the chosen imputation.",
+            "interaction": "Choose drop rows, mean, median or a regression-based fill; toggle a missing-indicator feature; compare variance and correlation readouts.",
+            "aha": "Every imputation is an assumption, and naive ones distort the data's shape."
+          }
+        },
+        {
+          "name": "Forward-fill for sequences",
+          "explain": "In a time series, readings close in time are more alike than readings far apart. So a missing value is usually best replaced by the last known value (forward-fill) or by interpolating between its neighbours, not by the overall mean.",
+          "analogy": "If the NEA weather station misses one hourly reading, the previous hour's temperature is a better guess than the yearly average.",
+          "visual": {
+            "component": "ForwardFillTimeline",
+            "kind": "interactive",
+            "shows": "A sensor time series with gaps and three filled versions overlaid (forward-fill, linear interpolation, global mean).",
+            "interaction": "Toggle each method and drag the gap's length; an error readout compares each fill with the hidden true values.",
+            "aha": "For sequences, use neighbours in time, not the global average."
+          }
+        },
+        {
+          "name": "Outliers and the IQR rule",
+          "explain": "The interquartile range (IQR) is Q3 - Q1. Values below Q1 - 1.5 IQR or above Q3 + 1.5 IQR are flagged as outliers. You can remove them, cap them at the fences (winsorise) or use robust models, after checking they are errors and not real rare cases.",
+          "analogy": "Like a $50 million income in a credit dataset: possibly real, possibly a typo, either way it can dominate a model.",
+          "visual": {
+            "component": "BoxPlotIQR",
+            "kind": "interactive",
+            "shows": "A box plot with whiskers and fences above a dot plot of the data.",
+            "interaction": "Drag points beyond the fences; toggle capping to see them pulled back.",
+            "aha": "The IQR rule finds extremes without being fooled by them."
+          }
+        },
+        {
+          "name": "Drop, impute or let the model cope",
+          "explain": "Dropping incomplete rows (complete-case analysis) is only safe when few values are missing. If 15% of values are missing at random across 20 features, a row is complete with probability 0.85²⁰ ≈ 0.04, so dropping rows keeps only about 4% of the data. Distance-based and linear models (k-NN, SVMs, linear and logistic regression) need complete vectors, so impute first. Tree ensembles such as XGBoost and LightGBM learn a default branch for missing values, and CART-style trees can use surrogate splits, so they cope with gaps directly.",
+          "analogy": "Cancelling a whole class photo because one student blinked: with 30 students, someone almost always blinks, so you retouch one face instead.",
+          "visual": {
+            "component": "CompleteCaseShrinker",
+            "kind": "interactive",
+            "shows": "A grid of rows by features with randomly missing cells, the number of fully complete rows, and the curve (1 − p)ᵈ of surviving rows against the number of features d, beside a table of which model families accept NaN.",
+            "interaction": "Slide the missing rate p and the number of features d; press 'dropna' to remove incomplete rows and see how few remain.",
+            "aha": "Missing values compound across features, so dropping rows can throw away almost everything, while tree ensembles can handle the gaps natively."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Mean vs median imputation with outliers",
+        "Forward-fill for sequences",
+        "Dropping rows vs imputing",
+        "Fit imputer on training data only",
+        "IQR rule: below Q1 − 1.5·IQR or above Q3 + 1.5·IQR",
+        "Complete rows ≈ (1 − p)ᵈ; trees and boosting libraries handle NaN natively"
+      ]
+    },
+    {
+      "slug": "scaling-and-normalisation",
+      "title": "Scaling, normalisation and standardisation",
+      "summary": "Putting features on comparable scales with z-scores or min-max, and why it matters for distances and gradient descent.",
+      "minutes": 16,
+      "objectives": [
+        "You can standardise (z-score) and min-max scale a feature by hand",
+        "You can explain why k-NN, SVM and gradient descent need scaled features",
+        "You can explain why trees do not",
+        "You can avoid fitting the scaler on test data"
+      ],
+      "concepts": [
+        {
+          "name": "Scaling changes who your neighbours are",
+          "explain": "If income ranges in thousands and age in tens, the distance between people is almost entirely income. Standardisation subtracts the mean and divides by the standard deviation so every feature has mean 0 and standard deviation 1; min-max scaling maps each feature to [0, 1].",
+          "analogy": "Comparing two flats by price in dollars and size in rooms: a $1 difference should not count the same as one extra room.",
+          "visual": {
+            "component": "ScaleChangesNeighbours",
+            "kind": "interactive",
+            "shows": "A scatter of age against income with a query point and its 3 nearest neighbours circled; the axes are drawn to scale.",
+            "interaction": "Toggle no scaling, min-max or standardisation; the axes rescale and the neighbours change.",
+            "aha": "Without scaling, the feature with the biggest numbers silently dominates distance-based models."
+          }
+        },
+        {
+          "name": "Scaling makes gradient descent behave",
+          "explain": "Unscaled features make the loss surface a long, thin valley, so gradient descent zig-zags and needs a tiny learning rate. Standardised features make it rounder and training faster. Tree models split on one feature at a time, so they do not care about scale.",
+          "analogy": "Walking down a narrow drain versus a round bowl: in the bowl every step heads straight to the bottom.",
+          "visual": {
+            "component": "ScalingContours",
+            "kind": "interactive",
+            "shows": "Loss contours over two weights with a gradient descent path, side by side for raw and standardised features.",
+            "interaction": "Toggle StandardScaler; adjust the learning rate; replay the descent.",
+            "aha": "Scaling is often the cheapest speed-up in training."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "z = (x − mean)/std",
+        "Min-max to [0, 1]",
+        "Which models need scaling",
+        "Fit on train, transform test"
+      ]
+    },
+    {
+      "slug": "encoding-categories",
+      "title": "Encoding categories and text",
+      "summary": "Turning categories into numbers with one-hot or ordinal encoding, and the first step for text: a vocabulary.",
+      "minutes": 15,
+      "objectives": [
+        "You can one-hot encode a categorical column",
+        "You can explain when ordinal encoding is wrong",
+        "You can build a vocabulary and map words to ids"
+      ],
+      "concepts": [
+        {
+          "name": "One-hot versus label encoding",
+          "explain": "Label encoding maps categories to integers (Ang Mo Kio = 0, Bedok = 1, Clementi = 2), which falsely suggests Clementi is 'twice' Bedok. One-hot encoding gives each category its own 0/1 column so all categories are equally far apart. Ordinal encoding is fine only for truly ordered categories like small, medium, large.",
+          "analogy": "Numbering MRT lines 1, 2, 3 does not mean the Circle Line is 'more' than the East-West Line.",
+          "visual": {
+            "component": "EncodingCompare",
+            "kind": "interactive",
+            "shows": "A town column encoded both ways in a table, plus a mini distance matrix between the encoded categories.",
+            "interaction": "Toggle encoding; add a new category; switch to an ordered column (flat size) to see when ordinal encoding is fine.",
+            "aha": "One-hot avoids inventing an order; ordinal encoding should only be used for truly ordered categories."
+          }
+        },
+        {
+          "name": "Building a vocabulary",
+          "explain": "To feed text to a model, split it into tokens and assign each unique token an id; that mapping is the vocabulary. Words never seen in training map to a special unknown token, and padding tokens make sequences the same length.",
+          "analogy": "Assigning every student in the cohort an index number; a new transfer student without one gets a temporary 'unknown' number.",
+          "visual": {
+            "component": "VocabBuilder",
+            "kind": "stepper",
+            "shows": "Sentences being split into tokens and each new token added to a growing vocabulary table with its id; a test sentence is then encoded into ids with [UNK] for unseen words.",
+            "interaction": "Edit the training sentences; set a minimum frequency; encode a new sentence.",
+            "aha": "Models never see words, only ids, so the vocabulary defines what the model can 'read'."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "One-hot vs label encoding",
+        "Fake ordering from integer codes",
+        "High cardinality",
+        "Vocabulary and unknown tokens"
+      ]
+    },
+    {
+      "slug": "feature-engineering",
+      "title": "Feature engineering",
+      "summary": "Creating informative features: interactions, polynomials, binning, statistics over windows, date parts and learned embeddings.",
+      "minutes": 18,
+      "objectives": [
+        "You can create polynomial and interaction features",
+        "You can build sliding-window features for time series",
+        "You can explain how a good feature can make a simple model succeed"
+      ],
+      "concepts": [
+        {
+          "name": "The right feature makes the problem easy",
+          "explain": "A linear model cannot separate points inside a circle from points outside it using x and y alone, but adding the feature x² + y² (distance from the centre squared) makes it a single threshold. Good features encode what you know about the problem.",
+          "analogy": "Sorting durians by 'weight per volume' instead of separately by weight and size suddenly makes the good ones obvious.",
+          "visual": {
+            "component": "FeatureLift",
+            "kind": "interactive",
+            "shows": "1D points of two classes that are not separable on a line; adding a squared feature lifts them onto a parabola in 2D where a straight line separates them. A 2D circle dataset is lifted the same way.",
+            "interaction": "Toggle the engineered feature on and off; drag the separating line or threshold; switch datasets.",
+            "aha": "Feature engineering can turn an impossible linear problem into a trivial one."
+          }
+        },
+        {
+          "name": "Sliding windows and summary statistics",
+          "explain": "For time series or sensor data, compute features over a moving window, such as the mean, standard deviation, minimum or slope of the last k readings. These turn a long, ragged sequence into a fixed-size set of informative numbers.",
+          "analogy": "A doctor summarising a week of heart-rate readings as 'average 72, very steady' rather than reading every beat.",
+          "visual": {
+            "component": "SlidingWindowFeatures",
+            "kind": "interactive",
+            "shows": "A noisy signal with a highlighted window sliding across, and the rolling mean and rolling standard deviation plotted below.",
+            "interaction": "Drag the window position; slide the window size; choose which statistics to compute.",
+            "aha": "Window statistics compress raw sequences into features that simple models can use."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Adding x² makes data separable",
+        "Rolling mean and std features",
+        "Domain features (dates, ratios)",
+        "PCA and embeddings as features"
+      ]
+    },
+    {
+      "slug": "splitting-and-leakage",
+      "title": "Splitting data and avoiding leakage",
+      "summary": "Random, stratified and time-based splits, fitting preprocessing on training data only, target leakage, and scikit-learn Pipelines.",
+      "minutes": 18,
+      "objectives": [
+        "You can choose random, stratified or time-based splits",
+        "You can spot data leakage in a workflow",
+        "You can explain why a Pipeline prevents preprocessing leakage"
+      ],
+      "concepts": [
+        {
+          "name": "Stratified and time-based splits",
+          "explain": "A random split can leave a rare class almost absent from the validation set; a stratified split keeps the class proportions equal in each part. For time-ordered data, train on the past and validate on the future; random splits would let the model 'see the future'.",
+          "analogy": "When selecting a school team fairly, you keep the same mix of levels in each group; when forecasting the weather, you cannot train on tomorrow.",
+          "visual": {
+            "component": "SplitStrategies",
+            "kind": "interactive",
+            "shows": "A dataset strip coloured by class and ordered by time, with train and validation membership shown for random, stratified and time splits, and class-ratio bars for each part.",
+            "interaction": "Toggle the strategy; reshuffle; make a class rarer and watch random splits become uneven.",
+            "aha": "The split must mimic how the model will be used, and must not leak the future."
+          }
+        },
+        {
+          "name": "Leakage inflates scores",
+          "explain": "Leakage is any information from validation or test data, or from the future, sneaking into training. Fitting a scaler or imputer on the full dataset, or including a feature that is only known after the outcome (like 'refund issued' when predicting fraud), makes validation scores look better than real-world performance.",
+          "analogy": "A student who glimpsed the answer key scores brilliantly in the mock and then fails the real exam.",
+          "visual": {
+            "component": "LeakageLab",
+            "kind": "interactive",
+            "shows": "A workflow diagram with toggles for leaky steps and two bars: the reported validation score and the true score on fresh data.",
+            "interaction": "Toggle 'fit scaler on all data', 'include post-outcome feature' and 'use a Pipeline'; watch the gap between the bars grow or vanish.",
+            "aha": "A suspiciously high validation score is a reason to hunt for leakage, and Pipelines fit preprocessing inside each training fold."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Stratified split keeps class ratios",
+        "Time series must split by time",
+        "Fit scaler/imputer on train only",
+        "Target leakage examples"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,257 @@
+{
+  "slug": "trees-and-ensembles",
+  "order": 17,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Decision trees and ensembles",
+  "tagline": "Many weak trees, one strong model",
+  "summary": "How decision trees split data using Gini or entropy, then bagging, random forests and feature importance, AdaBoost, and gradient boosting built up to the from-scratch implementation in the 2026 Final, plus the boosting libraries that win on tabular data.",
+  "prerequisites": [
+    "model-evaluation"
+  ],
+  "syllabus": [
+    "IOAI 1B5 Decision Trees",
+    "IOAI 1B6 Model Ensembles (Gradient Boosting, Bagging, Random Forest)",
+    "NOAI 2026 Final Task 1: gradient boosting from scratch",
+    "Gini, entropy, information gain, out-of-bag error, AdaBoost",
+    "Feature importance; XGBoost, LightGBM, CatBoost"
+  ],
+  "paper_subtopics": [
+    "trees-ensembles",
+    "regression",
+    "classification"
+  ],
+  "lessons": [
+    {
+      "slug": "decision-trees",
+      "title": "Decision trees",
+      "summary": "Asking yes/no questions to split data, measuring purity with Gini or entropy, and controlling depth to avoid overfitting.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute Gini impurity and entropy for a node",
+        "You can choose the best split by information gain",
+        "You can explain why deep trees overfit and how max_depth helps"
+      ],
+      "concepts": [
+        {
+          "name": "Splitting with yes/no questions",
+          "explain": "A decision tree asks a sequence of questions like 'is area > 90 m²?' Each question splits the data into two groups, and the tree picks the question that makes the groups as pure (single-class) as possible. Leaves give the prediction.",
+          "analogy": "The game '20 Questions': each good question halves the possibilities.",
+          "visual": {
+            "component": "TreeBuilder",
+            "kind": "interactive",
+            "shows": "A 2D dataset and the tree diagram side by side; each split appears as an axis-aligned line on the data and as a node in the tree.",
+            "interaction": "Click a leaf region and drag a split line (horizontal or vertical); the impurity of the children and the information gain update; 'auto-split' chooses the best one.",
+            "aha": "Trees carve space into rectangles, one greedy best question at a time."
+          }
+        },
+        {
+          "name": "Gini and entropy measure impurity",
+          "explain": "Gini impurity 1 − Σpᵢ² is 0 for a pure node and 0.5 for a 50-50 binary node. Entropy −Σpᵢ log₂ pᵢ is 0 for pure and 1 for 50-50. A split's quality is the drop in weighted impurity (information gain).",
+          "analogy": "A bag of sweets is 'pure' if every sweet is the same flavour; a 50-50 mix is the most uncertain bag to draw from.",
+          "visual": {
+            "component": "ImpurityCurves",
+            "kind": "interactive",
+            "shows": "Gini and entropy curves over the class proportion p, plus a worked split showing parent and child impurities with weights.",
+            "interaction": "Drag p; edit the child counts of a split to see the weighted impurity and gain.",
+            "aha": "Both measures agree on what is pure; the tree just maximises the impurity drop."
+          }
+        },
+        {
+          "name": "Depth controls overfitting",
+          "explain": "A tree allowed to grow without limit keeps splitting until every leaf is pure, memorising noise. Limiting max_depth or requiring a minimum number of samples per leaf keeps it simpler and better at generalising.",
+          "analogy": "A rulebook with a special rule for every single past case cannot handle a new case.",
+          "visual": {
+            "component": "TreeDepthOverfit",
+            "kind": "interactive",
+            "shows": "The tree's decision regions on noisy data, plus training and validation accuracy against max_depth.",
+            "interaction": "Slide max_depth from 1 to 15; resample the noise.",
+            "aha": "Deep trees have low bias and high variance, which is exactly what ensembles fix."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Gini = 1 − Σp²",
+        "Entropy = −Σ p log₂ p",
+        "Weighted impurity after a split",
+        "Depth and overfitting",
+        "Axis-aligned boundaries, no scaling needed"
+      ]
+    },
+    {
+      "slug": "bagging-and-random-forests",
+      "title": "Bagging and random forests",
+      "summary": "Training many trees on bootstrap samples and averaging them to reduce variance; random feature subsets, out-of-bag error and feature importance.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain bootstrap sampling and the ~63% unique rule",
+        "You can explain why averaging reduces variance",
+        "You can explain random feature subsets and out-of-bag error",
+        "You can read feature importances and predict the effect of adding more trees"
+      ],
+      "concepts": [
+        {
+          "name": "Bootstrap samples",
+          "explain": "A bootstrap sample draws n examples from n with replacement, so some appear several times and about 1 − 1/e ≈ 63.2% of distinct examples appear at all. The left-out ~36.8% are 'out-of-bag' and give a free validation estimate for that tree.",
+          "analogy": "Drawing names from a hat and putting each name back after drawing: some names come up twice and some not at all.",
+          "visual": {
+            "component": "BootstrapSampler",
+            "kind": "animation",
+            "shows": "A row of 20 numbered balls being drawn with replacement into a bag, with counters for duplicates and never-drawn (out-of-bag) balls; repeated runs build a histogram of the unique fraction.",
+            "interaction": "Play draws, repeat many times, and change n to see the fraction approach 63.2%.",
+            "aha": "Each tree sees a different, partly duplicated dataset, and the left-out points test it for free."
+          }
+        },
+        {
+          "name": "Averaging many trees",
+          "explain": "Each deep tree overfits in its own way; averaging many of them cancels the random errors and keeps the shared signal, reducing variance. Random forests also let each split consider only a random subset of features, which makes trees less correlated and the average better. Adding more trees never makes the forest overfit more, but the gains level off.",
+          "analogy": "Asking one friend for a restaurant pick is risky; averaging the opinions of 100 friends with different tastes is reliable.",
+          "visual": {
+            "component": "ForestAverager",
+            "kind": "interactive",
+            "shows": "Decision regions of 1, 5, 25 and 100 averaged trees on the same noisy data, with test accuracy against number of trees.",
+            "interaction": "Slide the number of trees and the feature-subset size (max_features); watch jagged boundaries smooth out.",
+            "aha": "Bagging reduces variance by averaging, and decorrelating the trees makes the averaging work better."
+          }
+        },
+        {
+          "name": "Feature importance",
+          "explain": "Forests can rank features by how much each one's splits reduced impurity, summed over all trees. Permutation importance shuffles one feature and measures the drop in score. Both suggest which inputs matter, but correlated features share credit.",
+          "analogy": "Like crediting each player by how many goals their passes led to.",
+          "visual": {
+            "component": "ImportanceBars",
+            "kind": "interactive",
+            "shows": "Bars of feature importance for an HDB price forest, computed by impurity and by permutation.",
+            "interaction": "Toggle the method, and add a duplicated feature to watch the importance split between the two copies.",
+            "aha": "Importance explains a model, but correlated features can hide each other."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Bootstrap sampling with replacement",
+        "OOB error as free validation",
+        "Averaging uncorrelated models reduces variance",
+        "More trees: diminishing returns, no overfitting from n_estimators",
+        "Impurity-based feature importance and its bias towards high-cardinality features"
+      ]
+    },
+    {
+      "slug": "boosting-adaboost",
+      "title": "Boosting and AdaBoost",
+      "summary": "Building a strong model sequentially from weak learners by focusing on the examples previous models got wrong.",
+      "minutes": 16,
+      "objectives": [
+        "You can contrast boosting (sequential, reduces bias) with bagging (parallel, reduces variance)",
+        "You can describe AdaBoost's sample re-weighting",
+        "You can compute a learner weight α = ½ ln((1 − ε)/ε)"
+      ],
+      "concepts": [
+        {
+          "name": "Learning from mistakes in sequence",
+          "explain": "Boosting trains weak learners one after another. In AdaBoost, after each round the misclassified examples get larger weights, so the next learner concentrates on them. The final prediction is a weighted vote of all learners. Concretely, each sample weight is multiplied by e^α if it was misclassified and by e^−α if it was correct (weights *= np.exp(alpha * (2 * incorrect - 1))), then all weights are renormalised to sum to 1. This is the exponential-loss update.",
+          "analogy": "A tuition teacher who gives each new worksheet more questions on the topics you got wrong last time.",
+          "visual": {
+            "component": "AdaBoostStepper",
+            "kind": "stepper",
+            "shows": "A 2D dataset where point sizes show sample weights; each round adds a decision stump (one line), enlarges the misclassified points, and updates the combined boundary.",
+            "interaction": "Step through rounds 1 to 20; see each stump's error and α; view the combined vote.",
+            "aha": "Each weak learner fixes what the previous ones missed, so the ensemble's bias falls."
+          }
+        },
+        {
+          "name": "How much each learner counts",
+          "explain": "AdaBoost weights each learner by α = ½ ln((1 − ε)/ε), where ε is its weighted error. A learner with ε = 0.5 (coin-flip) gets α = 0; a more accurate learner gets a bigger say, and ε above 0.5 would get a negative weight.",
+          "analogy": "In a group project, the member who usually gets it right gets the deciding vote.",
+          "visual": {
+            "component": "AlphaCurve",
+            "kind": "interactive",
+            "shows": "The curve α(ε) for ε from 0.01 to 0.99 with a draggable marker.",
+            "interaction": "Drag ε and read α; compare a few learners' α values side by side.",
+            "aha": "Only learners better than chance get positive weight, and near-perfect ones dominate."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Boosting reduces bias",
+        "Misclassified points gain weight",
+        "Learner weight α from error ε",
+        "Weak learner must beat chance",
+        "Weight update e^±α, then renormalise"
+      ]
+    },
+    {
+      "slug": "gradient-boosting",
+      "title": "Gradient boosting",
+      "summary": "Fitting each new tree to the negative gradient of the loss (the residuals), with shrinkage, initialisation and early stopping as in the 2026 Final, and the boosting libraries that win on tabular data.",
+      "minutes": 25,
+      "objectives": [
+        "You can explain gradient boosting as fitting residuals",
+        "You can derive the negative gradient for L2 (residual) and L1 (sign) losses",
+        "You can choose the initial prediction (mean for L2, median for L1)",
+        "You can explain the learning rate and early stopping"
+      ],
+      "concepts": [
+        {
+          "name": "Fitting the residuals",
+          "explain": "Gradient boosting starts with a constant prediction, then repeatedly fits a small tree to the current errors and adds a scaled version of it: F ← F + η·tree. With squared error, the errors to fit are exactly the residuals y − F. The learning rate η (shrinkage) makes each step small so more trees are needed but the result generalises better.",
+          "analogy": "Sculpting: rough out the shape, then each pass shaves off part of what is still wrong.",
+          "visual": {
+            "component": "GBResidualStepper",
+            "kind": "stepper",
+            "shows": "Top: 1D data with the current ensemble prediction curve; bottom: the residuals and the stump fitted to them. Each step adds η × stump to the prediction.",
+            "interaction": "Step through boosting rounds; slide the learning rate and tree depth; compare training and validation loss curves.",
+            "aha": "Each tree only needs to model what is left over, so simple trees add up to a powerful model."
+          }
+        },
+        {
+          "name": "Pseudo-residuals are negative gradients",
+          "explain": "For any differentiable loss, gradient boosting fits the negative gradient of the loss with respect to the current predictions. For L2 loss ½(y − F)² that is y − F (the residual); for L1 loss |y − F| it is sign(y − F). The best constant start is the mean for L2 and the median for L1.",
+          "analogy": "Whatever the rules of the game, you always step in the direction that most reduces your penalty.",
+          "visual": {
+            "component": "PseudoResidualToggle",
+            "kind": "interactive",
+            "shows": "The same data with pseudo-residual bars under L2 and L1 loss, and the initial constant prediction drawn as a line (mean or median).",
+            "interaction": "Toggle the loss; drag an outlier and see L2 residuals explode while L1 pseudo-residuals stay at ±1.",
+            "aha": "Boosting is gradient descent in function space; the loss choice just changes what each tree aims at."
+          }
+        },
+        {
+          "name": "Early stopping",
+          "explain": "Adding trees keeps lowering training loss, but validation loss eventually stops improving. Early stopping tracks the validation loss and stops after it has failed to improve for a set number of rounds (the patience), keeping the best model.",
+          "analogy": "Stopping revision for a topic once mock scores stop improving, rather than grinding on.",
+          "visual": {
+            "component": "PatienceTracker",
+            "kind": "interactive",
+            "shows": "Training and validation loss against boosting rounds, with the best round starred and the patience window shaded.",
+            "interaction": "Slide patience and learning rate; see where training stops and which model is kept.",
+            "aha": "Early stopping picks the number of trees automatically and guards against overfitting."
+          }
+        },
+        {
+          "name": "Boosting libraries for tabular data",
+          "explain": "XGBoost, LightGBM and CatBoost are optimised gradient boosting libraries with regularisation and native handling of missing values. For medium-sized tabular datasets they are usually the strongest first choice, beating deep networks.",
+          "analogy": "Like a well-tuned F1 car versus a family car built from the same principles.",
+          "visual": {
+            "component": "TabularLeaderboard",
+            "kind": "diagram",
+            "shows": "A bar chart comparing typical scores of linear models, random forests, gradient boosting and MLPs on tabular benchmarks.",
+            "interaction": "Hover each bar for strengths and weaknesses.",
+            "aha": "On tables, boosted trees are the default to beat."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "F_m = F_{m−1} + η·h_m",
+        "Pseudo-residuals: y − F for L2, sign(y − F) for L1",
+        "Initial prediction mean vs median",
+        "Shrinkage vs number of trees",
+        "Early stopping on validation loss",
+        "XGBoost, LightGBM and CatBoost: regularised boosting with native missing-value handling"
+      ]
+    }
+  ]
+}

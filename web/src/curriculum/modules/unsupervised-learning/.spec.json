@@ -1,0 +1,243 @@
+{
+  "slug": "unsupervised-learning",
+  "order": 19,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Unsupervised learning: clustering and dimensionality reduction",
+  "tagline": "Finding structure without labels",
+  "summary": "K-means (the 2025 Final task) and choosing k, hierarchical, DBSCAN and spectral clustering, PCA, and t-SNE/UMAP for visualisation, plus anomaly detection.",
+  "prerequisites": [
+    "linear-algebra-deeper",
+    "model-evaluation"
+  ],
+  "syllabus": [
+    "IOAI 1C1 K-Means Clustering",
+    "IOAI 1C2 Principal Component Analysis",
+    "IOAI 1C3 t-SNE, UMAP",
+    "IOAI 1C4 DBSCAN, Hierarchical and Spectral Clustering",
+    "NOAI 2025 Final Q2: K-means from scratch",
+    "Anomaly detection (one-class SVM)"
+  ],
+  "paper_subtopics": [
+    "unsupervised",
+    "linear-algebra",
+    "numpy"
+  ],
+  "lessons": [
+    {
+      "slug": "k-means",
+      "title": "K-means clustering",
+      "summary": "Alternating between assigning points to the nearest centroid and moving centroids to the mean, choosing k with the elbow method, and its limits.",
+      "minutes": 20,
+      "objectives": [
+        "You can run K-means by hand for one iteration",
+        "You can explain inertia and the elbow method",
+        "You can explain why initialisation matters (k-means++)",
+        "You can recognise data where K-means fails"
+      ],
+      "concepts": [
+        {
+          "name": "Assign, then update",
+          "explain": "K-means places k centroids, assigns each point to its nearest centroid, then moves each centroid to the mean of its assigned points, repeating until nothing changes. Each step can only lower the total squared distance (inertia), so it always converges, though possibly to a poor local solution.",
+          "analogy": "Placing k bubble-tea shops: residents go to the nearest one, then each shop relocates to the middle of its customers, and repeat.",
+          "visual": {
+            "component": "KMeansStepper",
+            "kind": "stepper",
+            "shows": "A 2D dataset with draggable initial centroids, points coloured by assignment, Voronoi regions, and the inertia value after each half-step.",
+            "interaction": "Drag the initial centroids; step through assign and update; try a bad start that gets stuck; enable k-means++ initialisation.",
+            "aha": "Two simple alternating steps always reduce inertia, but the starting positions decide which solution you get."
+          }
+        },
+        {
+          "name": "Choosing k with the elbow",
+          "explain": "Inertia always falls as k grows (with k = n it is zero), so you cannot just minimise it. Plot inertia against k and look for the 'elbow' where adding clusters stops helping much; silhouette scores are an alternative.",
+          "analogy": "Adding more MRT lines always shortens journeys, but after a point each new line helps very little.",
+          "visual": {
+            "component": "ElbowPlot",
+            "kind": "interactive",
+            "shows": "The inertia-versus-k curve with the clustering for the selected k drawn beside it.",
+            "interaction": "Slide k from 1 to 10; change the true number of blobs in the data.",
+            "aha": "The elbow marks diminishing returns, not a minimum."
+          }
+        },
+        {
+          "name": "When K-means fails",
+          "explain": "K-means assumes roughly round clusters of similar size, because it only uses distance to centroids. It splits long, curved or nested clusters incorrectly and is sensitive to scaling and outliers.",
+          "analogy": "Drawing circles around groups of people standing in a long queue does not capture the queue.",
+          "visual": {
+            "component": "KMeansFailureGallery",
+            "kind": "interactive",
+            "shows": "Four datasets (blobs, moons, rings, uneven sizes) clustered by K-means, with the true groups as outlines.",
+            "interaction": "Switch datasets; change k; compare with DBSCAN's result via a toggle.",
+            "aha": "Pick a clustering method whose assumptions match the shape of your data."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Assign step and update step",
+        "Inertia (within-cluster sum of squares)",
+        "Elbow method",
+        "Spherical, similar-size cluster assumption"
+      ]
+    },
+    {
+      "slug": "hierarchical-dbscan-spectral",
+      "title": "Hierarchical, DBSCAN and spectral clustering",
+      "summary": "Clustering by merging, by density, and by graph connectivity, for data K-means cannot handle.",
+      "minutes": 22,
+      "objectives": [
+        "You can read a dendrogram and cut it into clusters",
+        "You can explain DBSCAN's eps and min_samples and its core, border and noise points",
+        "You can explain spectral clustering as clustering a similarity graph"
+      ],
+      "concepts": [
+        {
+          "name": "Hierarchical clustering and dendrograms",
+          "explain": "Agglomerative clustering starts with every point as its own cluster and repeatedly merges the two closest clusters. The merge history forms a tree (dendrogram); cutting it at a chosen height gives the clusters, so you choose k after seeing the structure.",
+          "analogy": "A family tree read upside down: individuals join into families, families into clans.",
+          "visual": {
+            "component": "DendrogramCutter",
+            "kind": "interactive",
+            "shows": "A dendrogram of 15 points beside the scatter plot, with a horizontal cut line; clusters below the cut are coloured on both views.",
+            "interaction": "Drag the cut height; switch the linkage (single, complete, average) and see the tree change.",
+            "aha": "One clustering run gives every possible number of clusters; the cut height chooses among them."
+          }
+        },
+        {
+          "name": "DBSCAN finds dense regions",
+          "explain": "DBSCAN marks a point as a core point if at least min_samples points lie within distance eps; clusters grow by connecting core points, border points join a nearby cluster, and isolated points are labelled noise. It finds clusters of any shape and does not need k, but struggles when densities vary a lot.",
+          "analogy": "Identifying crowds at a festival: wherever people are packed tightly together, that is a crowd; loners are not in any crowd.",
+          "visual": {
+            "component": "DBSCANExplorer",
+            "kind": "interactive",
+            "shows": "Moons and blob data with eps circles around points; core, border and noise points in distinct styles; clusters coloured.",
+            "interaction": "Slide eps and min_samples; drag points to create noise; switch datasets.",
+            "aha": "Density, not distance to a centre, defines the clusters, so curved shapes and outliers are handled naturally."
+          }
+        },
+        {
+          "name": "Spectral clustering uses a similarity graph",
+          "explain": "Spectral clustering connects similar points into a graph, then uses eigenvectors of the graph Laplacian to embed points so that well-connected groups become easy to separate, and finally runs K-means in that space. It follows connectivity rather than distance to a centre.",
+          "analogy": "Grouping students by who chats with whom on WhatsApp rather than by where they sit.",
+          "visual": {
+            "component": "SpectralGraph",
+            "kind": "interactive",
+            "shows": "Two-rings data with edges drawn between points whose similarity exceeds a threshold, and a side plot of points along the second Laplacian eigenvector showing two clean groups.",
+            "interaction": "Slide the similarity threshold (or neighbourhood size); see the graph, the eigenvector embedding and the final clusters update.",
+            "aha": "Turning data into a graph lets linear algebra find clusters that are connected but not round."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Agglomerative merging and linkage",
+        "DBSCAN handles arbitrary shapes and noise",
+        "eps/min_samples effects",
+        "Spectral: graph Laplacian eigenvectors"
+      ]
+    },
+    {
+      "slug": "pca",
+      "title": "Principal component analysis",
+      "summary": "Finding the directions of greatest variance, projecting onto them to reduce dimensions, and reading explained variance.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain PC1 as the direction of maximum variance",
+        "You can read an explained-variance chart and choose the number of components",
+        "You can explain why to standardise before PCA",
+        "You can reconstruct data from k components"
+      ],
+      "concepts": [
+        {
+          "name": "The direction of greatest spread",
+          "explain": "PCA finds the direction along which the data varies most (PC1), then the next most, at right angles (PC2), and so on. Projecting onto the top few components keeps most of the information in fewer numbers. Mathematically the components are the eigenvectors of the covariance matrix.",
+          "analogy": "Photographing a long MRT train from the side rather than head-on: the side view captures most of its shape.",
+          "visual": {
+            "component": "PCAProjector",
+            "kind": "interactive",
+            "shows": "A 2D tilted data cloud, a rotatable line through the centre, the projections of each point onto it as ticks, and the variance of the projections shown as a bar.",
+            "interaction": "Rotate the line and find the maximum variance; press 'snap to PC1'; see the reconstruction error bar shrink as variance grows.",
+            "aha": "Maximising projected variance is the same as minimising reconstruction error, and that direction is PC1."
+          }
+        },
+        {
+          "name": "Explained variance and reconstruction",
+          "explain": "Each component explains a share of the total variance (eigenvalue / sum of eigenvalues). Keeping the components that together explain, say, 95% of the variance compresses the data with little loss. Features should be standardised first, or large-unit features dominate.",
+          "analogy": "Summarising a long story in three sentences that capture almost all of the plot.",
+          "visual": {
+            "component": "PCAReconstruct",
+            "kind": "interactive",
+            "shows": "An explained-variance bar chart (scree plot) for 8×8 digit-like images generated in code, and a grid of digits reconstructed from k components.",
+            "interaction": "Slide k from 1 to 64; watch the reconstructions sharpen and the cumulative variance rise.",
+            "aha": "A handful of components often captures most of the structure, which is why PCA is a powerful feature-engineering step."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "PCs are orthogonal eigenvectors of the covariance",
+        "Explained variance ratio",
+        "Standardise first",
+        "PCA is linear and unsupervised"
+      ]
+    },
+    {
+      "slug": "tsne-umap-and-anomalies",
+      "title": "t-SNE, UMAP and anomaly detection",
+      "summary": "Non-linear maps for visualising high-dimensional data, how to read them safely, and spotting unusual points.",
+      "minutes": 18,
+      "objectives": [
+        "You can explain what t-SNE and UMAP preserve (local neighbourhoods)",
+        "You can avoid common misreadings (cluster sizes and distances)",
+        "You can describe one-class and density-based anomaly detection"
+      ],
+      "concepts": [
+        {
+          "name": "Neighbourhood-preserving maps",
+          "explain": "t-SNE and UMAP squash high-dimensional data into 2D while trying to keep each point's nearest neighbours nearby, so clusters become visible. Unlike PCA they are non-linear and are used mainly for visualisation. Their main knob (perplexity for t-SNE, n_neighbors for UMAP) sets how many neighbours each point cares about.",
+          "analogy": "Drawing a seating plan for a wedding: you keep friends at the same table, but the distance between tables means little.",
+          "visual": {
+            "component": "EmbeddingMapCompare",
+            "kind": "interactive",
+            "shows": "Precomputed 2D maps of a 10-cluster dataset (with a swiss-roll option) from PCA, t-SNE at several perplexities and UMAP at several n_neighbors, side by side with the same colours.",
+            "interaction": "Toggle method; slide perplexity or n_neighbors through the precomputed settings; hover a point to highlight its true neighbours.",
+            "aha": "Non-linear maps reveal clusters PCA blurs, but their output depends heavily on the settings."
+          }
+        },
+        {
+          "name": "Reading t-SNE plots safely",
+          "explain": "In t-SNE plots, cluster sizes and the gaps between clusters are not reliable; dense and sparse clusters can look the same size, and random noise can look like clusters at low perplexity. Use them to explore, not as proof.",
+          "analogy": "A London Tube map is great for finding connections but terrible for estimating walking distances.",
+          "visual": {
+            "component": "TSNEPitfalls",
+            "kind": "interactive",
+            "shows": "Three trick datasets (clusters of different density, different distances, pure noise) with their true layout next to their t-SNE map.",
+            "interaction": "Switch datasets and perplexity settings; reveal the true layout.",
+            "aha": "Only neighbourhood membership is trustworthy in a t-SNE plot."
+          }
+        },
+        {
+          "name": "Anomaly detection",
+          "explain": "Anomaly detection flags points unlike the bulk of the data, often trained only on normal examples. A one-class SVM learns a boundary around normal data; density methods (like DBSCAN noise or isolation-based scores) flag points in empty regions; autoencoders flag inputs they reconstruct badly.",
+          "analogy": "Airport security learns what normal luggage looks like, so anything unusual gets a second look.",
+          "visual": {
+            "component": "AnomalyBoundary",
+            "kind": "interactive",
+            "shows": "Normal training points with a learned boundary (one-class) and an anomaly-score heat map; new points are flagged when outside.",
+            "interaction": "Drag test points around; slide the boundary tightness (nu); switch to a density-based score.",
+            "aha": "You can detect the unusual without ever seeing labelled anomalies, but tightness trades false alarms against misses."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Local neighbourhood preservation",
+        "Perplexity/n_neighbors effect",
+        "Inter-cluster distances not meaningful",
+        "Visualisation only, not features",
+        "Anomaly detection from normal data only"
+      ]
+    }
+  ]
+}

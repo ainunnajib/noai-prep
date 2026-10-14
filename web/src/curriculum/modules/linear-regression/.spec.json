@@ -1,0 +1,232 @@
+{
+  "slug": "linear-regression",
+  "order": 14,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Linear regression and regularisation",
+  "tagline": "Fitting lines, planes and curves",
+  "summary": "Linear regression from residuals to the normal equation, implementing it with gradient descent exactly as in the 2025 Final, multiple and polynomial regression, MSE versus MAE, and L1/L2 regularisation.",
+  "prerequisites": [
+    "data-and-features",
+    "calculus-and-gradient-descent"
+  ],
+  "syllabus": [
+    "IOAI 1B1 Linear Regression",
+    "IOAI 1B3 L1 and L2 Regularization",
+    "IOAI 2A5 Loss Functions (MSE, MAE)",
+    "NOAI 2025 Final Q1: linear regression by gradient descent",
+    "Normal equations and pseudoinverse"
+  ],
+  "paper_subtopics": [
+    "regression",
+    "optimisation",
+    "training-regularisation",
+    "numpy"
+  ],
+  "lessons": [
+    {
+      "slug": "least-squares",
+      "title": "Linear regression and least squares",
+      "summary": "Residuals, mean squared error, and the line that makes the total squared error smallest.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute residuals and MSE for a small dataset",
+        "You can explain why squared errors are used",
+        "You can describe the loss surface over w and b"
+      ],
+      "concepts": [
+        {
+          "name": "Residuals as squares",
+          "explain": "For each point the residual is the actual value minus the prediction. Squaring residuals makes them all positive and punishes big misses heavily; the least-squares line has the smallest total squared area. The mean of these squares is the MSE.",
+          "analogy": "Fitting a straight plank along stepping stones: the plank should be as close as possible to all stones, and big gaps matter most.",
+          "visual": {
+            "component": "ResidualSquares",
+            "kind": "interactive",
+            "shows": "Data points with a line and an actual square drawn on each residual; the total square area and MSE are shown.",
+            "interaction": "Drag the line's two handles; press 'best fit' to snap to least squares; drag a single point to become an outlier and watch its square dominate.",
+            "aha": "Least squares literally minimises total square area, which is why outliers pull the line so strongly."
+          }
+        },
+        {
+          "name": "The loss surface over w and b",
+          "explain": "Every choice of slope w and intercept b gives one MSE value, so the loss forms a surface over the (w, b) plane. For linear regression this surface is a convex bowl with a single lowest point, which is the best-fit line.",
+          "analogy": "A topographic map of 'how bad' every possible plank position is, with one lowest valley.",
+          "visual": {
+            "component": "LossSurfaceWB",
+            "kind": "interactive",
+            "shows": "A heat-map/contour of MSE over (w, b) next to the data plot; a marker on the heat-map corresponds to the line on the data.",
+            "interaction": "Click or drag anywhere on the heat-map to set (w, b) and see the line move; drag the line to see the marker move.",
+            "aha": "Fitting a line is finding the bottom of a bowl in parameter space."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Residual = y − ŷ",
+        "MSE computation",
+        "Loss surface is a convex bowl",
+        "Interpreting slope and intercept"
+      ]
+    },
+    {
+      "slug": "regression-by-gradient-descent",
+      "title": "Regression by gradient descent (from scratch)",
+      "summary": "Deriving the MSE gradients and implementing the training loop in NumPy, exactly the 2025 Final Question 1.",
+      "minutes": 22,
+      "objectives": [
+        "You can write the gradients of MSE with respect to w and b",
+        "You can implement a vectorised gradient descent loop in NumPy",
+        "You can check convergence with the loss history"
+      ],
+      "concepts": [
+        {
+          "name": "The gradient formula, piece by piece",
+          "explain": "With predictions ŷ = Xw + b and error e = ŷ − y, the MSE gradient is ∂L/∂w = (2/n)·Xᵀe and ∂L/∂b = (2/n)·Σe. Each weight's gradient is the average of (error × its feature), so features that line up with the errors get pushed hardest.",
+          "analogy": "Adjusting the volume of each speaker in a hall by how much it contributed to the noise complaint.",
+          "visual": {
+            "component": "GradientPieces",
+            "kind": "stepper",
+            "shows": "A table of 5 data points with columns x, y, ŷ, e and e·x filling step by step, then summed and scaled into the gradient, then the parameter update.",
+            "interaction": "Step through the computation; edit w and b to see the gradient change sign.",
+            "aha": "The gradient is a weighted average of errors, which you can compute by hand for a small table."
+          }
+        },
+        {
+          "name": "Watching the line learn",
+          "explain": "Each iteration computes predictions, the error, the gradients and an update. Plotting the loss after each iteration should show a steady decrease; a rising or exploding loss means the learning rate is too high.",
+          "analogy": "Practising free throws: each attempt you adjust slightly based on how you missed, and your miss distance shrinks over time.",
+          "visual": {
+            "component": "GDLineFitLive",
+            "kind": "animation",
+            "shows": "Three linked panels: the data with the current line, the (w, b) contour map with the path so far, and the loss-versus-iteration curve.",
+            "interaction": "Play or step; set the learning rate and iterations; restart from a different initial line.",
+            "aha": "The line on the data, the dot in parameter space and the falling loss curve are three views of one process."
+          }
+        },
+        {
+          "name": "Simultaneous updates and the ½ convention",
+          "explain": "Many textbooks and the 2025 Final write the loss as (1/2m)·Σ(ŷ − y)², so the 2 from differentiating cancels and the gradient is (1/m)·Xᵀ(Xθ − y). That only rescales the learning rate, but with a fixed number of iterations it changes the rounded answer: on the 2025 data, 1000 steps at α = 0.01 give θ ≈ [0.003, 0.9987] with 1/m but [0.0, 1.0] with 2/m. If X already contains an intercept column, θ includes the bias, so do not add a separate b. Update all parameters from the same predictions: changing θ₀ first and then using it to update θ₁ is a different algorithm (it gives [0.0027, 0.9988] here). The line theta -= alpha * X.T @ (X @ theta - y) / m does it correctly.",
+          "analogy": "A group photo where everyone adjusts their position based on the same snapshot, rather than each person moving after watching the previous person move.",
+          "visual": {
+            "component": "SimultaneousUpdateCheck",
+            "kind": "interactive",
+            "shows": "The 2025 Final data (X = [[2, 2], [2, 4], [2, 6]], y = [2, 4, 6]) with θ after each iteration for three versions side by side: vectorised, a loop with a temporary copy, and a buggy sequential loop, compared with the expected [0.003, 0.9987].",
+            "interaction": "Run or step the iterations; toggle the ½ convention to see the effective learning rate and the 4-decimal answer change; switch the intercept column on and off.",
+            "aha": "Simultaneous updates and the same constants as the specification are what make your answer match the official one to four decimal places."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "∂MSE/∂w = −(2/n)Σx(y − ŷ)",
+        "Vectorised update with X.T @ error",
+        "Effect of learning rate and iterations",
+        "Loss history monotonic decrease",
+        "Simultaneous update; 1/m versus 2/m; intercept column already in X"
+      ]
+    },
+    {
+      "slug": "multiple-and-polynomial",
+      "title": "Multiple and polynomial regression",
+      "summary": "Many features in matrix form, the normal equation, and curves from polynomial features.",
+      "minutes": 18,
+      "objectives": [
+        "You can write predictions for many features as Xw",
+        "You can state the normal equation w = (XᵀX)⁻¹Xᵀy and when it fails",
+        "You can fit curves with polynomial features"
+      ],
+      "concepts": [
+        {
+          "name": "Matrix form and the normal equation",
+          "explain": "With n examples and d features, X has shape (n, d) and the predictions are Xw. Setting the gradient to zero gives the normal equation w = (XᵀX)⁻¹Xᵀy, a one-shot solution. It fails if XᵀX is singular (for example duplicated features), where the pseudoinverse still gives an answer; for huge d, gradient descent is cheaper.",
+          "analogy": "Solving for the answer with a formula versus walking downhill step by step to the same place.",
+          "visual": {
+            "component": "NormalEquationShapes",
+            "kind": "stepper",
+            "shows": "The shapes of X, Xᵀ, XᵀX, Xᵀy and w as labelled blocks multiplying together, and the resulting weights compared with gradient descent's answer.",
+            "interaction": "Change n and d with sliders; add a duplicated feature column and see XᵀX become singular.",
+            "aha": "The closed form is a few matrix products whose shapes you can check, but it needs XᵀX to be invertible."
+          }
+        },
+        {
+          "name": "Curves from straight-line maths",
+          "explain": "Adding features x², x³ lets a linear model fit curves, because the model is still linear in its weights: y = w₀ + w₁x + w₂x² + w₃x³. Higher degrees fit more wiggles and risk overfitting.",
+          "analogy": "Lego bricks are straight, but enough of them can build a curved arch.",
+          "visual": {
+            "component": "PolyBasisMixer",
+            "kind": "interactive",
+            "shows": "Basis curves 1, x, x², x³ scaled by weight sliders and their sum overlaid on data points.",
+            "interaction": "Slide each weight; press 'fit' to set them by least squares; increase the degree.",
+            "aha": "'Linear' regression means linear in the weights, not a straight line."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Matrix form and shapes",
+        "Normal equation and invertibility",
+        "Polynomial features are still linear in w",
+        "Pseudoinverse"
+      ]
+    },
+    {
+      "slug": "regularisation",
+      "title": "L1 and L2 regularisation",
+      "summary": "Penalising large weights to reduce overfitting; why L2 shrinks weights smoothly and L1 sets some exactly to zero; MSE versus MAE.",
+      "minutes": 20,
+      "objectives": [
+        "You can write the ridge (L2) and lasso (L1) losses",
+        "You can explain why L1 produces sparse weights",
+        "You can predict the effect of increasing λ (and of scikit-learn's C)",
+        "You can compare MSE and MAE on outliers"
+      ],
+      "concepts": [
+        {
+          "name": "Penalty shapes: circle versus diamond",
+          "explain": "Regularisation adds a penalty on weight size to the loss. Picture the allowed weights as a region: L2 (ridge) uses a circle, L1 (lasso) a diamond. The best fit is where the loss contours first touch the region, and for the diamond that is often a corner, where one weight is exactly zero.",
+          "analogy": "Packing a suitcase under an airline weight limit: L1 makes you leave whole items behind, L2 makes you pack lighter versions of everything.",
+          "visual": {
+            "component": "L1L2Constraint",
+            "kind": "interactive",
+            "shows": "Elliptical loss contours around the unregularised optimum and the L1 diamond or L2 circle; the constrained solution is marked where they touch, with its coordinates.",
+            "interaction": "Drag the unregularised optimum; slide the constraint size; toggle L1 and L2.",
+            "aha": "L1's corners make exact zeros likely, so it performs feature selection; L2 just shrinks."
+          }
+        },
+        {
+          "name": "Regularisation paths",
+          "explain": "As the penalty strength λ grows, all weights shrink; under lasso they hit zero one after another. Too much regularisation underfits. In scikit-learn's LogisticRegression and SVC, C = 1/λ, so a smaller C means stronger regularisation. The intercept is usually not penalised.",
+          "analogy": "Turning down the bass, mid and treble together; with lasso some knobs click fully off.",
+          "visual": {
+            "component": "RegularisationPath",
+            "kind": "interactive",
+            "shows": "Coefficient bars for 6 features and a plot of each coefficient against log λ, with validation error underneath.",
+            "interaction": "Slide λ (or C); toggle ridge or lasso; find the λ with the lowest validation error.",
+            "aha": "There is a sweet spot of regularisation, and C moves in the opposite direction to λ."
+          }
+        },
+        {
+          "name": "MSE versus MAE",
+          "explain": "MSE squares errors, so one big error dominates; MAE takes absolute values, so it is more robust to outliers. The MSE-optimal constant prediction is the mean; the MAE-optimal constant is the median. Huber loss behaves like MSE for small errors and MAE for big ones.",
+          "analogy": "MSE is a strict teacher who punishes one disastrous answer heavily; MAE treats every mark lost equally.",
+          "visual": {
+            "component": "RobustLossCompare",
+            "kind": "interactive",
+            "shows": "A dataset with two lines fitted by MSE and MAE, plus each loss as a function of a single residual.",
+            "interaction": "Drag one point far away as an outlier and watch the MSE line swing while the MAE line barely moves.",
+            "aha": "Your loss function encodes how much you fear big mistakes."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Loss + λ||w||² vs λ||w||₁",
+        "Sparsity from L1 corners",
+        "λ large → underfit",
+        "C is inverse regularisation strength",
+        "Bias not regularised",
+        "MAE robust to outliers"
+      ]
+    }
+  ]
+}

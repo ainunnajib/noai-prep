@@ -1,0 +1,319 @@
+{
+  "slug": "debugging-and-diagnosis",
+  "order": 33,
+  "part": "problem-solving",
+  "domain": "problem_solving",
+  "title": "Debugging and diagnosing ML models",
+  "tagline": "From symptom to cause to fix",
+  "summary": "Reading loss curves, a systematic debugging routine with shape checks, the PyTorch gotchas examiners love, numerical problems (NaN, overflow, vanishing and exploding gradients) and data problems (label bugs, leakage, distribution shift), in the scenario style of the Prelim and the code-reading style of the Final.",
+  "prerequisites": [
+    "training-deep-networks",
+    "model-evaluation"
+  ],
+  "syllabus": [
+    "NOAI Problem Solving: Debugging, Optimisation",
+    "Diagnosing loss curves, overfitting and underfitting",
+    "NaN losses, exploding gradients, numerical stability, softmax overflow",
+    "Label and pipeline bugs, chance-level accuracy, distribution shift",
+    "Systematic hypothesis-driven debugging",
+    "NOAI Computing: Debugging (shape errors, silent broadcasting, zero_grad, eval mode, devices, optimiser registration)"
+  ],
+  "paper_subtopics": [
+    "ml-debugging-diagnosis",
+    "code-debugging",
+    "training-regularisation",
+    "pytorch"
+  ],
+  "lessons": [
+    {
+      "slug": "reading-loss-curves",
+      "title": "Reading loss curves",
+      "summary": "What healthy, underfitting, overfitting, too-high and too-low learning-rate curves look like, and what to do about each.",
+      "minutes": 18,
+      "objectives": [
+        "You can diagnose common training curves",
+        "You can choose the most likely cause of oscillation, plateaus, divergence and a widening gap",
+        "You can propose a fix for each"
+      ],
+      "concepts": [
+        {
+          "name": "The loss curve clinic",
+          "explain": "Training and validation loss curves are a model's vital signs. Smooth falling curves close together are healthy; a widening gap means overfitting; both stuck high means underfitting or a bug; wild oscillation suggests too high a learning rate; a sudden spike to infinity suggests numerical instability.",
+          "analogy": "A doctor reading a patient's temperature chart to decide on the treatment.",
+          "visual": {
+            "component": "LossCurveClinic",
+            "kind": "interactive",
+            "shows": "A gallery of six symptom curves (training and validation) with a diagnosis menu; choosing a remedy redraws the curve after treatment.",
+            "interaction": "Pick a curve; choose a diagnosis and a remedy; see whether the redrawn curve improves.",
+            "aha": "Each failure has a recognisable curve shape, so diagnosis can be fast."
+          }
+        },
+        {
+          "name": "Learning-rate fingerprints",
+          "explain": "Too low a learning rate gives a slow, almost straight decline; too high gives oscillation or divergence; a good one drops quickly and then flattens. Changing the learning rate is usually the first experiment when training misbehaves.",
+          "analogy": "Driving with the accelerator barely pressed, floored, or just right.",
+          "visual": {
+            "component": "LRCurveFamily",
+            "kind": "interactive",
+            "shows": "A family of loss curves from the same toy model for learning rates spanning four orders of magnitude, with the selected curve highlighted.",
+            "interaction": "Slide the learning rate on a log scale; match a mystery curve to its learning rate.",
+            "aha": "Learning rate leaves a distinctive signature on the loss curve."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Oscillating loss → learning rate too high or batch too small",
+        "Flat high loss → underfitting or bug",
+        "Widening train-val gap → overfitting",
+        "Sudden divergence/NaN → instability"
+      ]
+    },
+    {
+      "slug": "systematic-debugging",
+      "title": "Systematic debugging and shape bugs",
+      "summary": "A debugging decision tree, overfitting one batch, decoding shape errors and catching silent broadcasting and wrong-dim bugs.",
+      "minutes": 24,
+      "objectives": [
+        "You can order debugging steps from cheapest and most likely to most expensive",
+        "You can use 'overfit one small batch' as a test",
+        "You can use the expected initial loss as a sanity check",
+        "You can decode shape errors and catch silent broadcasting and wrong-dim bugs"
+      ],
+      "concepts": [
+        {
+          "name": "The debugging decision tree",
+          "explain": "Before tuning hyperparameters, rule out bugs: look at a few inputs and labels, check shapes, check the initial loss is about ln K, and see if the model can overfit one small batch to near-zero loss. If it cannot, the problem is a bug in the model, loss or optimiser, not a lack of data or capacity.",
+          "analogy": "When the lights go out at home, check the main switch before calling an electrician to rewire the house.",
+          "visual": {
+            "component": "DebugDecisionTree",
+            "kind": "interactive",
+            "shows": "A clickable flowchart of yes/no checks leading to likely causes, starting from a symptom card (e.g. 'accuracy stuck at 10% on 10 classes').",
+            "interaction": "Pick a symptom and answer each check; the path highlights and ends at a suggested fix.",
+            "aha": "A fixed order of cheap checks finds most bugs faster than guessing."
+          }
+        },
+        {
+          "name": "Overfit one batch",
+          "explain": "Train repeatedly on a single small batch. A correct model and training loop should drive the loss close to zero. If it stalls, look for a missing zero_grad, a wrong loss or label format, a frozen model, or a learning rate far off.",
+          "analogy": "Testing a new recipe on one plate before cooking for the whole party.",
+          "visual": {
+            "component": "OverfitOneBatch",
+            "kind": "interactive",
+            "shows": "Loss curves of a toy model trained on a single batch under different injected bugs.",
+            "interaction": "Toggle bugs (missing zero_grad, labels shuffled, softmax before CrossEntropyLoss, frozen layers, learning rate too low) and run.",
+            "aha": "If you cannot overfit one batch, more data or epochs will not help."
+          }
+        },
+        {
+          "name": "Reading shape errors",
+          "explain": "'mat1 and mat2 shapes cannot be multiplied (32x512 and 256x10)' means the inner dimensions do not match: the layer expects 256 inputs but gets 512. Usually a Linear's in_features is wrong or a flatten is missing.",
+          "analogy": "Like a plug that does not fit the socket: the error tells you both shapes.",
+          "visual": {
+            "component": "ShapeErrorDetective",
+            "kind": "interactive",
+            "shows": "Real error messages with the model code; candidate fixes to choose from.",
+            "interaction": "Pick a fix; the corrected shapes flow through the model diagram or a new error appears.",
+            "aha": "The two shapes in the message tell you exactly where to look."
+          }
+        },
+        {
+          "name": "Silent bugs: broadcasting and wrong dims",
+          "explain": "Some bugs raise no error: subtracting (n,) from (n, 1) gives (n, n); softmax over the batch dim instead of classes gives probabilities that sum to 1 across samples; concatenating on dim 0 instead of 1 stacks images instead of channels. Check shapes and sanity values (probabilities sum to 1 per row).",
+          "analogy": "Like a spreadsheet formula copied with the wrong cell reference: it gives numbers, just not the right ones.",
+          "visual": {
+            "component": "SilentBugGallery",
+            "kind": "interactive",
+            "shows": "Cards with code that runs but is wrong, each with a 'sanity check' that reveals the problem.",
+            "interaction": "Run each card's sanity check; then pick the fix.",
+            "aha": "Sanity checks catch the bugs errors do not."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Inspect data and labels first",
+        "Initial loss ≈ ln K",
+        "Overfit a single batch",
+        "Change one thing at a time",
+        "Compare with a simple baseline",
+        "'mat1 and mat2 shapes cannot be multiplied' → wrong in_features or missing flatten"
+      ]
+    },
+    {
+      "slug": "pytorch-gotchas",
+      "title": "PyTorch gotchas and debugging tools",
+      "summary": "The bugs examiners love: zero_grad, eval mode, devices, graphs and optimiser registration.",
+      "minutes": 22,
+      "objectives": [
+        "You can spot missing zero_grad, eval or no_grad",
+        "You can spot device bugs and graph-breaking operations in custom losses",
+        "You can spot optimiser and freezing mistakes",
+        "You can use asserts, anomaly detection and profilers to find bugs and bottlenecks"
+      ],
+      "concepts": [
+        {
+          "name": "Training-loop gotchas",
+          "explain": "Missing optimizer.zero_grad() accumulates gradients; forgetting model.eval() leaves dropout and BatchNorm in training mode; not using torch.no_grad() at inference wastes memory; calling .item() or converting to NumPy inside a loss breaks the graph so the parameters get no gradient.",
+          "analogy": "Like forgetting to clear the whiteboard, switching off the test-mode light and photocopying your answer sheet instead of submitting it.",
+          "visual": {
+            "component": "TrainingLoopBugHunt",
+            "kind": "interactive",
+            "shows": "Short training-loop snippets, each with one bug; click the buggy line.",
+            "interaction": "Click a line to check; the explanation and the fix appear; a timer adds exam pressure.",
+            "aha": "A handful of patterns cover most PyTorch bugs."
+          }
+        },
+        {
+          "name": "Device and graph bugs",
+          "explain": "Hard-coded .cuda() inside forward() breaks CPU inference; tensors created inside forward without device=x.device end up on the wrong device. In-place operations on tensors needed for backward raise errors. A custom loss must return a tensor built from PyTorch operations (e.g. torch.mean) to keep the graph.",
+          "analogy": "Like a recipe that only works in one kitchen because it names a specific oven.",
+          "visual": {
+            "component": "DeviceGraphBugs",
+            "kind": "interactive",
+            "shows": "Code cards with device and graph bugs, paired with the error each produces.",
+            "interaction": "Match each card to its error; reveal device-agnostic fixes.",
+            "aha": "Use .to(device) and keep everything inside PyTorch operations."
+          }
+        },
+        {
+          "name": "Optimiser and freezing bugs",
+          "explain": "An optimiser only updates the parameters passed to it when it was created; replacing a layer afterwards leaves the new layer untrained. Setting requires_grad = False freezes parameters. A learning rate of 0 is not the same as freezing (weight decay may still change weights).",
+          "analogy": "Like a gym trainer working from an old member list: new members are never trained.",
+          "visual": {
+            "component": "OptimizerParamsView",
+            "kind": "interactive",
+            "shows": "A model diagram showing which parameters the optimiser holds and which require gradients.",
+            "interaction": "Replace a layer, freeze a block, recreate the optimiser; watch the highlights update.",
+            "aha": "Check what the optimiser actually holds."
+          }
+        },
+        {
+          "name": "Prints, asserts and profilers",
+          "explain": "print() shows variable values during execution, and assert x.shape == (B, T, C) stops at the first wrong shape. torch.autograd.set_detect_anomaly finds where NaN gradients appear, torch.profiler or cProfile shows where time goes, and torch.cuda.memory_allocated() exposes memory leaks. Measure rather than guess: a GPU can even be slower than a CPU for tiny models because of data-transfer overhead and small batches.",
+          "analogy": "Like checkpoints on a race route that record each runner's time.",
+          "visual": {
+            "component": "ShapeAssertions",
+            "kind": "interactive",
+            "shows": "A forward function with assert lines that can be toggled; a failing assert highlights the exact line.",
+            "interaction": "Introduce a shape bug with a toggle; run to see which assert catches it; switch to a profiler view of a slow loop.",
+            "aha": "Asserts turn silent bugs into loud ones at the right place."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Calling backward twice without zero_grad",
+        "model.train/eval",
+        "Custom loss returns scalar without graph",
+        "Implicit .cuda() in forward",
+        "Transfer learning fc weights unchanged",
+        "assert shapes, set_detect_anomaly, torch.profiler / cProfile, memory_allocated"
+      ]
+    },
+    {
+      "slug": "nan-and-numerical-issues",
+      "title": "NaNs, numerical issues and gradient diagnostics",
+      "summary": "Overflow in exp, log of zero, division by zero, exploding and vanishing gradients, the standard fixes, and per-layer gradient norms to locate the failing layer.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain why naive softmax overflows and how subtracting the max fixes it",
+        "You can identify sources of NaN and Inf (log 0, 0/0, overflow)",
+        "You can apply fixes: epsilon, log-sum-exp, clipping, lower learning rate, loss scaling",
+        "You can use per-layer gradient norms and anomaly detection to locate where training breaks"
+      ],
+      "concepts": [
+        {
+          "name": "Stable softmax",
+          "explain": "Computing e^1000 overflows to infinity, and infinity divided by infinity is NaN. Because softmax does not change when you subtract the same number from every logit, subtracting the maximum first keeps every exponent at or below 0 and the computation stable. Frameworks also use the log-sum-exp trick inside cross-entropy.",
+          "analogy": "Measuring building heights relative to the tallest one instead of from sea level, so the numbers stay manageable.",
+          "visual": {
+            "component": "StableSoftmax",
+            "kind": "interactive",
+            "shows": "Logit sliders that go up to 1000, the naive softmax result (turning into NaN), and the stable version, with intermediate exponent values shown.",
+            "interaction": "Drag logits to large values; toggle the max-subtraction.",
+            "aha": "A one-line shift prevents overflow without changing the answer."
+          }
+        },
+        {
+          "name": "How NaN spreads",
+          "explain": "Any arithmetic with NaN gives NaN, so a single bad value (from log(0), 0/0, sqrt of a negative, or an overflowed gradient) quickly contaminates the loss and then every weight after the next update. Tools like torch.autograd.set_detect_anomaly(True) point to the operation that first produced it.",
+          "analogy": "One drop of food colouring turns a whole glass of water red.",
+          "visual": {
+            "component": "NaNPropagation",
+            "kind": "animation",
+            "shows": "A computation graph where one node produces NaN and the contamination spreads forward to the loss and backward to all gradients and weights over two steps.",
+            "interaction": "Choose the source (log 0, divide by zero, overflow); play; insert an epsilon or clip to stop it.",
+            "aha": "Find the first NaN, not the last; everything after it is just fallout."
+          }
+        },
+        {
+          "name": "Per-layer gradient norms",
+          "explain": "Logging gradient norms per layer shows where learning fails. Tiny norms in early layers and large ones near the output (as in the 2026 Final) mean vanishing gradients: add residual connections, normalisation or better initialisation. Huge norms everywhere mean exploding gradients: clip and lower the learning rate.",
+          "analogy": "Like a water-pressure gauge at each floor of a building: low pressure on lower floors shows where the pipe is blocked.",
+          "visual": {
+            "component": "GradNormBars",
+            "kind": "interactive",
+            "shows": "Bars of gradient norm per layer at epoch 1 and epoch 50 from a past-paper scenario.",
+            "interaction": "Toggle fixes (residuals, BatchNorm, He init) and see the profile even out.",
+            "aha": "Gradient norm profiles locate the problem layer."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "exp overflow for large logits",
+        "Subtract max trick",
+        "log(0) and epsilon",
+        "NaN propagates through all later operations",
+        "torch.autograd.set_detect_anomaly",
+        "Per-layer gradient norms: tiny early (vanishing) vs huge everywhere (exploding)"
+      ]
+    },
+    {
+      "slug": "data-bugs-and-shift",
+      "title": "Data bugs, leakage and distribution shift",
+      "summary": "Label and preprocessing bugs, chance-level accuracy, train/test mismatch, covariate and concept drift, and validating on the right data.",
+      "minutes": 18,
+      "objectives": [
+        "You can recognise chance-level accuracy (1/K) and what it implies",
+        "You can spot label-mapping and preprocessing mismatches between training and testing",
+        "You can distinguish covariate shift from concept drift",
+        "You can design a time-based validation split"
+      ],
+      "concepts": [
+        {
+          "name": "Chance level is a red flag",
+          "explain": "With K balanced classes, guessing gives about 1/K accuracy. If training loss falls nicely but validation accuracy sits at 1/K, the model is learning something that does not transfer: often shuffled or misaligned labels, a different preprocessing at validation, or a class-index mapping mismatch.",
+          "analogy": "A student who aces practice papers but scores exactly what random guessing would on the real exam was probably practising with the wrong answer key.",
+          "visual": {
+            "component": "ChanceLevelMeter",
+            "kind": "interactive",
+            "shows": "A gauge for validation accuracy with the chance level marked, and a set of possible bugs that move the needle when toggled.",
+            "interaction": "Slide K; toggle bugs (labels shuffled, different normalisation at validation, swapped class mapping) and see accuracy collapse to chance.",
+            "aha": "Accuracy at exactly chance points to a pipeline bug, not a modelling problem."
+          }
+        },
+        {
+          "name": "Distribution shift",
+          "explain": "Models assume test data looks like training data. Covariate shift is when the inputs change (new customer demographics); concept drift is when the relationship changes (what counts as fraud evolves). A model trained on 2023 data may degrade in 2024, so validate on the most recent period and monitor after deployment.",
+          "analogy": "A weather model trained only on dry-season data struggles in the monsoon.",
+          "visual": {
+            "component": "DistributionShift",
+            "kind": "interactive",
+            "shows": "Training data and a classifier boundary, with test data whose distribution you can drag away; accuracy updates, and a concept-drift mode rotates the true boundary instead.",
+            "interaction": "Drag the test distribution; switch between covariate shift and concept drift.",
+            "aha": "A model's accuracy belongs to a distribution; when the world moves, the score moves."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Validation at 1/K while training loss falls → pipeline/label bug",
+        "Train vs test preprocessing mismatch",
+        "Covariate shift: P(x) changes; concept drift: P(y|x) changes",
+        "Temporal validation"
+      ]
+    }
+  ]
+}
