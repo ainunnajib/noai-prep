@@ -15,6 +15,7 @@ export { Slider, Segmented, Toggle, Button } from './components/interactive/Cont
 export { usePlayer, PlayerControls, useAnimationFrame, useBump, type Player } from './components/interactive/Player'
 export { Plot, usePlot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, VLine, Rect, DraggablePoint, type DotDatum } from './components/interactive/Plot'
 export { MatrixGrid } from './components/interactive/MatrixGrid'
+export { useContainerWidth, useNarrow } from './components/interactive/useContainerWidth'
 export { Bars, type BarDatum } from './components/interactive/Bars'
 export { NeuralNet } from './components/interactive/NeuralNet'
 export { PyRunner } from './components/interactive/PyRunner'

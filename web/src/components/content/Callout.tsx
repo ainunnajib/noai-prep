@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { RichText } from '../quiz/RichText'
 
 export type CalloutKind = 'idea' | 'analogy' | 'tip' | 'warn' | 'note' | 'try' | 'exam'
 
@@ -30,7 +31,7 @@ export function Callout({ kind = 'note', title, children }: { kind?: CalloutKind
         <svg className="callout-icon" viewBox="0 0 24 24" aria-hidden="true">
           {ICONS[kind]}
         </svg>
-        <span className="callout-label">{title ?? LABELS[kind]}</span>
+        <span className={`callout-label${title ? '' : ' is-default'}`}>{title ? <RichText text={title} inline /> : LABELS[kind]}</span>
       </div>
       <div className="callout-body">{children}</div>
     </aside>

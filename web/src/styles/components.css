@@ -31,9 +31,11 @@
   font-variation-settings: 'CASL' 1;
   font-weight: 750;
   font-size: var(--step--1);
+  color: var(--c-ink);
+}
+.callout-label.is-default {
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--c-ink);
 }
 .callout-body > :first-child {
   margin-top: 0;
@@ -125,6 +127,7 @@
   display: block;
   padding: 0 1rem;
   min-height: 1.55em;
+  white-space: pre;
 }
 .code-line.is-hl {
   background: var(--highlight-soft);
@@ -256,6 +259,13 @@
   border: 1.5px solid var(--ink);
   border-radius: var(--radius-l);
   background: var(--surface);
+}
+.steps-title {
+  font-family: var(--font-display);
+  font-variation-settings: 'CASL' 0.8;
+  font-weight: 750;
+  font-size: var(--step--1);
+  color: var(--ink-2);
 }
 .steps-head {
   display: flex;
@@ -404,11 +414,6 @@
   display: inline;
 }
 .term {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  padding: 0;
   cursor: help;
   border-bottom: 2px dotted var(--accent);
 }
@@ -428,13 +433,10 @@
   line-height: 1.45;
   z-index: 20;
   pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.12s ease;
+  display: none;
 }
 .term-tip.is-open {
-  opacity: 1;
-  visibility: visible;
+  display: block;
 }
 
 /* ================= layout helpers ================= */
@@ -450,11 +452,11 @@
   margin: 2.5rem 0 1rem;
   padding: 1.1rem 1.25rem;
   border-radius: var(--radius-l);
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--slate);
+  color: var(--slate-ink);
 }
 .takeaways-title {
-  color: var(--highlight);
+  color: var(--slate-accent);
   font-size: var(--step-1);
   margin-bottom: 0.4rem;
 }
@@ -466,11 +468,11 @@
   margin-top: 0.35rem;
 }
 .takeaways-body code {
-  background: color-mix(in srgb, var(--paper) 16%, transparent);
-  color: var(--paper);
+  background: color-mix(in srgb, var(--slate-ink) 16%, transparent);
+  color: var(--slate-ink);
 }
 .takeaways .katex {
-  color: var(--paper);
+  color: var(--slate-ink);
 }
 .hl,
 mark {
@@ -1017,7 +1019,7 @@ mark {
 /* ================= python runner ================= */
 .pyrunner {
   margin: 1.5rem 0;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--slate);
   border-radius: var(--radius-m);
   background: var(--surface);
   overflow: hidden;
@@ -1028,8 +1030,8 @@ mark {
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 0.5rem 0.35rem 0.9rem;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--slate);
+  color: var(--slate-ink);
 }
 .pyrunner-title {
   font-family: var(--font-display);
@@ -1042,10 +1044,10 @@ mark {
   gap: 0.35rem;
 }
 .pyrunner-bar .btn-ghost {
-  color: var(--paper);
+  color: var(--slate-ink);
 }
 .pyrunner-bar .btn-ghost:hover {
-  background: color-mix(in srgb, var(--paper) 14%, transparent);
+  background: color-mix(in srgb, var(--slate-ink) 14%, transparent);
 }
 .pyrunner-code {
   display: block;

@@ -52,7 +52,6 @@ export function CodeBlock({ code, language = 'python', title, highlight = [], sh
                         return <span key={k} className={`tok ${token.types.join(' ')}`}>{tp.children}</span>
                       })}
                     </span>
-                    {'\n'}
                   </span>
                 )
               })}

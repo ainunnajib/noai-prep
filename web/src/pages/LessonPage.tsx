@@ -13,6 +13,12 @@ import NotFound from './NotFound'
 
 const cache = new Map<string, LazyExoticComponent<ComponentType<Record<string, unknown>>>>()
 
+/** "You can explain X" -> "Explain X" (the list heading already says "you can"). */
+function tidyObjective(o: string) {
+  const t = o.replace(/^\s*(you (can|will be able to)|be able to|by the end,? you can)\s+/i, '')
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
 export function Tick({ done }: { done: boolean }) {
   return (
     <span className={`tick${done ? ' is-done' : ''}`} aria-label={done ? 'completed' : 'not completed'}>
@@ -110,7 +116,7 @@ export default function LessonPage() {
                 By the end of this lesson you can:
               </li>
               {lesson.objectives.map((o, i) => (
-                <li key={i}>{o}</li>
+                <li key={i}>{tidyObjective(o)}</li>
               ))}
             </ul>
           )}

@@ -88,7 +88,7 @@ The checkpoint from `quiz.ts` is appended automatically after the lesson. Lesson
 |---|---|
 | `<KeyIdea>`, `<Analogy>`, `<Tip>`, `<Mistake>`, `<Note>`, `<TryIt>`, `<ExamTip>` | callouts; optional `title="…"` |
 | `<Figure title caption wide>` | frame for any visual (your visuals should render their own `<Figure>`) |
-| `<Steps title>` + `<Step title="…">` | step-by-step walkthrough |
+| `<Steps title>` + `<Step title="…">` | step-by-step walkthrough (titles may contain $maths$) |
 | `<Tabs>` + `<Tab label="…">` | alternatives (e.g. Maths / Code) |
 | `<Reveal label="Show answer">` | hidden worked answer |
 | `<Term def="plain definition">word</Term>` | glossary hover/tap |
@@ -135,12 +135,12 @@ export default function GradientStep() {
 }
 ```
 
-Kit exports (`src/kit.ts`): `Figure, Controls, Readout, Slider, Segmented, Toggle, Button, usePlayer, PlayerControls, useAnimationFrame, useBump, Plot, usePlot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, VLine, Rect, DraggablePoint, MatrixGrid, Bars, NeuralNet, PyRunner, QuickCheck, QuestionCard, M, MBlock, Steps, Step, Tabs, Tab, Reveal, Term, Columns, Takeaways, Hl, callouts, CodeBlock, mulberry32, shuffled, sample, hashString`. Read `src/components/interactive/Plot.tsx` for props: everything in Plot is in **data coordinates**; `usePlot()` gives `xs`/`ys` scales for custom SVG.
+Kit exports (`src/kit.ts`): `useNarrow, useContainerWidth, Figure, Controls, Readout, Slider, Segmented, Toggle, Button, usePlayer, PlayerControls, useAnimationFrame, useBump, Plot, usePlot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, VLine, Rect, DraggablePoint, MatrixGrid, Bars, NeuralNet, PyRunner, QuickCheck, QuestionCard, M, MBlock, Steps, Step, Tabs, Tab, Reveal, Term, Columns, Takeaways, Hl, callouts, CodeBlock, mulberry32, shuffled, sample, hashString`. Read `src/components/interactive/Plot.tsx` for props: everything in Plot is in **data coordinates**; `usePlot()` gives `xs`/`ys` scales for custom SVG.
 
 Rules:
 - **Colours only from theme tokens** so light and dark mode both work: `var(--viz-1)` … `var(--viz-6)`, `var(--viz-pos)`, `var(--viz-neg)`, `var(--viz-axis)`, `var(--viz-grid)`, `var(--viz-ink)`, `var(--viz-muted)`, `var(--viz-fill)`, `var(--surface)`, `var(--surface-2)`, `var(--ink)`, `var(--ink-2)`, `var(--accent)`, `var(--highlight)`. Never hard-code hex colours. In SVG, set colours via `style={{ fill: …, stroke: … }}`.
 - For mixing: `color-mix(in srgb, var(--viz-1) 40%, var(--surface))`.
-- **Responsive**: SVG via `viewBox` (Plot does this). Nothing wider than its container; works at 360 px wide. Text in SVG ≥ 12 px in viewBox units.
+- **Responsive**: `Plot` sizes its viewBox in real pixels, so 12 px text stays 12 px on phones; plots get shorter as they get narrower (aspect ratio kept). Pass `minHeight` to keep a plot tall on phones when the aspect ratio doesn't matter, and use the kit's `useNarrow()` hook to switch a visual's layout (e.g. stack two panels) below ~520 px. Nothing may be wider than its container; everything must work at 360 px wide.
 - **Complete at rest**: the first frame already shows something meaningful (not an empty canvas waiting for a click).
 - **Deterministic data**: generate datasets with `mulberry32(seed)`, never `Math.random()` during render.
 - **Accessible**: every `Plot`/`svg` gets an `ariaLabel`; controls have labels; draggable points are keyboard-operable (DraggablePoint already is).

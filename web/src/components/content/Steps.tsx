@@ -1,4 +1,7 @@
 import { Children, isValidElement, useState, type ReactElement, type ReactNode } from 'react'
+import { RichText } from '../quiz/RichText'
+
+const rich = (t: ReactNode) => (typeof t === 'string' ? <RichText text={t} inline /> : t)
 
 /** One step inside <Steps>. */
 export function Step(props: { title: ReactNode; children: ReactNode }) {
@@ -23,7 +26,7 @@ export function Steps({ children, title }: { children: ReactNode; title?: ReactN
   return (
     <section className="steps" aria-label={typeof title === 'string' ? title : 'Step-by-step walkthrough'}>
       <div className="steps-head">
-        <span className="eyebrow">{title ?? 'Step by step'}</span>
+        <span className="steps-title">{rich(title ?? 'Step by step')}</span>
         <button type="button" className="btn btn-ghost btn-small" onClick={() => setAll((v) => !v)}>
           {all ? 'One at a time' : 'Show all steps'}
         </button>
@@ -34,7 +37,7 @@ export function Steps({ children, title }: { children: ReactNode; title?: ReactN
             <li key={k} className="steps-item">
               <div className="steps-item-title">
                 <span className="steps-num tabular">{k + 1}</span>
-                {s.props.title}
+                {rich(s.props.title)}
               </div>
               <div className="steps-item-body">{s.props.children}</div>
             </li>
@@ -50,7 +53,7 @@ export function Steps({ children, title }: { children: ReactNode; title?: ReactN
           <div className="steps-item" aria-live="polite">
             <div className="steps-item-title">
               <span className="steps-num tabular">{i + 1}</span>
-              {cur.props.title}
+              {rich(cur.props.title)}
               <span className="steps-count tabular">
                 {i + 1} / {n}
               </span>

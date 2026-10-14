@@ -51,11 +51,17 @@ export function Plot({
   ariaLabel,
   children,
   maxWidth,
+  minHeight,
   onPointerDown,
   onPointerMove,
 }: {
   x: [number, number]
   y: [number, number]
+  /**
+   * Keep the plot at least this tall (px) on narrow screens. This changes the aspect ratio on
+   * phones, so leave it unset for plots where x and y must share one scale (vectors, geometry).
+   */
+  minHeight?: number
   /** design width in px; the plot scales to its container but never exceeds maxWidth */
   width?: number
   height?: number
@@ -73,7 +79,7 @@ export function Plot({
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(designWidth)
   // Size the viewBox in real pixels (keeping the aspect ratio) so 12px text stays 12px on phones.
   const width = Math.max(200, Math.min(cap, measured))
-  const height = Math.round((designHeight * width) / designWidth)
+  const height = Math.max(minHeight ?? 0, Math.round((designHeight * width) / designWidth))
   const m: Margin = { top: 14, right: 16, bottom: 34, left: 40, ...margin }
   const clipId = useId().replace(/:/g, '')
   const xs = useMemo(() => scaleLinear().domain(x).range([m.left, width - m.right]), [x[0], x[1], m.left, m.right, width])

@@ -20,3 +20,9 @@ export function useContainerWidth<T extends HTMLElement>(fallback: number) {
   }, [])
   return [ref, width] as const
 }
+
+/** True when the element is narrower than `threshold` px (phones). Use to switch layouts inside a visual. */
+export function useNarrow<T extends HTMLElement>(threshold = 520) {
+  const [ref, width] = useContainerWidth<T>(threshold + 1)
+  return [ref, width < threshold] as const
+}
