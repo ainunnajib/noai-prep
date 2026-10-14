@@ -255,6 +255,11 @@ export default function ExamGuide() {
               <li>No calculator: practise mental arithmetic for dot products, matrix shapes, derivatives, simple probabilities and convolution output sizes.</li>
               <li>Learn to trace short Python, NumPy and PyTorch snippets in your head (shapes, slicing, list aliasing, broadcasting).</li>
               <li>Ties may be broken by domain performance and time taken, so steady pacing matters.</li>
+              <li>
+                If you must guess, eliminate first, then lean on a pattern from the 2026 paper: when one option was clearly longer and more specific than the rest, it was the
+                answer 85% of the time (205 of 240), and options starting with absolute words like <em>always</em>, <em>never</em> or <em>only</em> were right just once in 69.
+                It's a habit of past question writers, not a rule, so use it last.
+              </li>
             </ul>
             <Link to="/mock" className="btn btn-primary" style={{ justifySelf: 'start' }}>
               Take a timed mock exam

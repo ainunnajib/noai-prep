@@ -31,6 +31,13 @@ export default function PaperView() {
     }
   }, [meta])
 
+  const subtopics = useMemo(() => {
+    if (domain === 'all' || !qs) return []
+    const present = new Set(qs.filter((q) => q.domain === domain).map((q) => q.subtopic))
+    const ordered = Object.values(DOMAIN_SUBTOPICS).flat()
+    return ordered.filter((s) => present.has(s))
+  }, [qs, domain])
+
   const shown = useMemo(
     () => (qs ?? []).filter((q) => (domain === 'all' || q.domain === domain) && (subtopic === 'all' || q.subtopic === subtopic)),
     [qs, domain, subtopic],
@@ -96,7 +103,7 @@ export default function PaperView() {
           <select id="paper-subtopic" value={subtopic} disabled={domain === 'all'} onChange={(e) => { setSubtopic(e.target.value); setLimit(PAGE) }}>
             <option value="all">All topics</option>
             {domain !== 'all' &&
-              DOMAIN_SUBTOPICS[domain].map((s) => (
+              subtopics.map((s) => (
                 <option key={s} value={s}>
                   {SUBTOPIC_LABEL[s]}
                 </option>

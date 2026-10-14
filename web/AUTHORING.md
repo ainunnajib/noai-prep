@@ -60,6 +60,7 @@ export default questions
 - **4–6 questions per lesson**, NOAI style: four options, exactly one correct, distractors built from real misconceptions.
 - Mix styles: definition, quick computation (doable without a calculator), code reading (`code: '…'` field, rendered as Python), scenario/diagnosis, comparison.
 - `prompt`, `options` and `explanation` are Markdown: `$…$` maths and `` `code` `` work. In TS strings, escape backslashes: `'$\\sqrt{2}$'`.
+- Avoid answer give-aways that real NOAI papers suffer from: the correct option must **not** be systematically the longest or most detailed one (make distractors equally specific), and don't make every absolute-word option ("always", "never", "only") wrong.
 - Options are **shuffled** on screen. Never write "A", "option B", "all of the above" or "none of the above". Refer to options by content.
 - Explanations: 2–4 sentences: why the right answer is right and why the most tempting wrong one is wrong. Show arithmetic.
 - ids: `<module-slug>.<lesson-slug>.<n>`, unique.

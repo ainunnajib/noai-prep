@@ -47,6 +47,12 @@ export default function Practice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [all, domain, subtopic, difficulty, source, focus, round])
 
+  const subtopics = useMemo(() => {
+    if (domain === 'all' || !all) return []
+    const present = new Set(all.filter((q) => q.domain === domain && q.subtopic).map((q) => q.subtopic))
+    return Object.values(DOMAIN_SUBTOPICS).flat().filter((s) => present.has(s))
+  }, [all, domain])
+
   const queue = useMemo(() => shuffled(pool), [pool])
   const q = queue[pos]
 
@@ -124,7 +130,7 @@ export default function Practice() {
           <select id="practice-subtopic" value={subtopic} onChange={(e) => setSubtopic(e.target.value)} disabled={domain === 'all'}>
             <option value="all">All topics</option>
             {domain !== 'all' &&
-              DOMAIN_SUBTOPICS[domain].map((s) => (
+              subtopics.map((s) => (
                 <option key={s} value={s}>
                   {SUBTOPIC_LABEL[s]}
                 </option>
