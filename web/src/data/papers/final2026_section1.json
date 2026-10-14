@@ -1,0 +1,493 @@
+{
+ "paper": "final2026_section1",
+ "source": "NOAI 2026 Final Assessment, Section 1 MCQs (6 Mar 2026; 20 MCQs = 20 of 100 marks; Google Form items 2-21 = questions 1-20). Question paper: https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Final-Assessment-Section-1-MCQs-Google-Forms.pdf . Answer key: AISG's re-issued PDF https://noai.aisingapore.org/wp-content/uploads/2026/10/NOAI2026_FinalAssessment_20MCQs.pdf marks one option per question in bold.",
+ "official_key": [
+  1,
+  0,
+  1,
+  3,
+  2,
+  3,
+  2,
+  2,
+  1,
+  0,
+  3,
+  0,
+  0,
+  1,
+  2,
+  1,
+  2,
+  3,
+  0,
+  3
+ ],
+ "reconciliation": "Judge pass 2026-10-14. AISG's re-issued PDF (noai.aisingapore.org/wp-content/uploads/2026/10/NOAI2026_FinalAssessment_20MCQs.pdf, uploaded 13 Oct 2026 and linked as 'Final Assessment 20 MCQs' on the NOAI Learning Resources page) marks one option per question in bold-italic. The judge re-extracted the fonts with pdfplumber and mapped them to 0-based indices: [1, 0, 1, 3, 2, 3, 2, 2, 1, 0, 3, 0, 0, 1, 2, 1, 2, 3, 0, 3] (field official_key). Solver A and Solver B disagreed on Q2 (A 0 / B 1), Q8 (A 2 / B 0) and Q11 (A 3 / B 0). All three were re-solved, and the final answers follow the official key (0, 2, 3), with low/medium confidence and notes on the defensible alternatives. Q17: both solvers chose 0 against the official key's 2. Code execution shows all three masks are identical, so the final answer stays 0 and the explanation flags the official key. All stems and options were checked against both the Google-Form PDF text and the re-issued PDF (same text and order). Random spot-check of agreed items [6, 7, 10, 12, 13, 14, 16, 20], plus Q4, Q5, Q9, Q17 and Q18, was re-verified in Python. Explanations were fixed or extended in Q2, Q4, Q5, Q6, Q8, Q11, Q12, Q14 and Q17. Flawed or ambiguous items: Q5 (option 1 is equivalent), Q8 (symptom only appears in replica settings), Q11 (option 0 is defensible), Q14 (printed code order contradicts the symptom), Q17 (official key wrong), Q18 (8-word example keeps EOS).",
+ "questions": [
+  {
+   "n": 1,
+   "question": "You're implementing a Random Forest classifier and notice that increasing `n_estimators` from 100 to 1000 improves training accuracy from 99.2% to 99.8% but validation accuracy remains at 87.3%. The training time increased 10×. What does this indicate?",
+   "options": [
+    "The model is underfitting - need more complex base estimators (deeper trees)",
+    "Diminishing returns from ensemble size - the 100-tree model already captures ensemble diversity; additional trees only fit training noise without improving generalisation",
+    "Random Forest cannot overfit regardless of n_estimators due to bagging's variance reduction",
+    "The validation set is too small to show improvement - collect more validation data"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "random forest n_estimators",
+    "diminishing returns of ensemble size",
+    "generalisation gap",
+    "bias-variance trade-off"
+   ],
+   "explanation": "Training accuracy creeps from 99.2% to 99.8% while validation accuracy stays flat at 87.3%, so the extra 900 trees bought nothing that generalises. A random forest predicts by averaging its trees; once there are enough trees (here about 100) that average has settled, so more trees only cost time (10×). This is diminishing returns. \"Underfitting\" is wrong because 99% training accuracy is the opposite of underfitting. \"RF cannot overfit\" is also wrong as a blanket claim: the roughly 12-point train/validation gap shows the forest of deep trees *does* overfit. What is true is that adding more trees does not make the overfitting worse. More validation data would not change the conclusion, since a flat score across a 10× bigger forest already tells the story.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 1. The option's phrase 'additional trees only fit training noise' is imprecise: adding trees to a random forest does not increase overfitting (Breiman); it simply stops helping. Option 2 hides a half-truth (more trees does not mean more overfitting), but its 'cannot overfit' claim is false."
+  },
+  {
+   "n": 2,
+   "question": "Implementing gradient boosting from scratch, you write:\n\n```python\ndef gradient_boosting_regressor(X, y, n_estimators=100, learning_rate=0.1):\n    F = np.zeros(len(y))  # Initial prediction\n    models = []\n\n    for i in range(n_estimators):\n        residuals = y - F                       # Line A\n        tree = DecisionTreeRegressor(max_depth=3)\n        tree.fit(X, residuals)                  # Line B\n        models.append(tree)\n        F += learning_rate * tree.predict(X)    # Line C\n\n    return models\n```\n\nFor L2 loss (MSE), this implementation is correct. If you switch to L1 loss (MAE), which line(s) must change?",
+   "options": [
+    "Line A only - residuals should be sign(y - F) for L1 loss, representing the negative gradient of absolute error",
+    "Lines A and B - residuals become sign(y - F), and tree should fit median of residuals in each leaf instead of mean",
+    "Line C only - learning rate should adapt based on line search to find optimal step size for L1 loss",
+    "All lines must change - L1 loss requires completely different algorithm structure"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "advanced",
+   "style": "code-reading",
+   "concepts": [
+    "gradient boosting",
+    "pseudo-residuals = negative gradient",
+    "gradient of L1 vs L2 loss"
+   ],
+   "explanation": "Gradient boosting fits each new tree to the **negative gradient** of the loss with respect to the current prediction $F$. These targets are called pseudo-residuals. For MSE, $L=\\tfrac12(y-F)^2$, so $-\\partial L/\\partial F = y-F$, which is the plain residual; that is why Line A works. For MAE, $L=|y-F|$, so $-\\partial L/\\partial F=\\operatorname{sign}(y-F)$, and only Line A has to change. Fitting a tree to those targets (Line B) and taking a small step (Line C) stay exactly the same. The second option describes a refinement from Friedman's LAD_TreeBoost, which scikit-learn also uses: after fitting the tree to the signs, each leaf's output is reset to the median of the raw residuals $y-F$ in that leaf. This acts as a line search for the step size. It is a strong improvement rather than a must, and strictly it changes how the leaf values are computed, not the `tree.fit` call on Line B. Watch the scale, though. With sign targets every tree outputs values between −1 and +1, so each round moves $F$ by at most 0.1. In our test with targets of size about 100, starting from F = 0, Line A alone only cut the test MAE from 119 to 110 after 300 trees, while median leaves reached 32. On standardised targets the two versions were close (0.26 vs 0.24). In practice you would therefore also start $F$ at the median of $y$ and use median leaves. The last two options are wrong because the boosting loop itself works the same for any differentiable loss.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 0. Judge: Solver A chose 0 and Solver B chose 1; final 0, matching the official key and the textbook rule 'pseudo-residual = negative gradient = sign(y-F)'. Option 1 is a defensible 'more complete' answer. Friedman's LAD_TreeBoost (and sklearn's loss='absolute_error') fits the tree to sign(y-F) and then resets each leaf value to the median of y-F, a leaf-wise line search. That changes the leaf values, not the tree.fit call on Line B, and 'median of residuals' is ambiguous once the residuals have become signs. Judge's experiment (make_regression, 1000 samples, depth-3 trees, lr 0.1, F0 = 0): with raw targets (mean |y| about 107), test MAE after 300 trees was 110.5 for Line A only, 31.8 for median leaves and 32.1 for L2. With standardised targets the results were 0.264, 0.236 and 0.238. So Line A alone is correct but slow when y is large, because each step is capped at lr."
+  },
+  {
+   "n": 3,
+   "question": "You implement k-fold cross-validation with feature selection:\n\n```python\n# Approach A\nselector = SelectKBest(f_classif, k=10)\nX_selected = selector.fit_transform(X, y)  # Select on ALL data\nscores = cross_val_score(model, X_selected, y, cv=5)\n\n# Approach B\ndef cv_with_selection(X, y, model, k_features=10):\n    kfold = KFold(n_splits=5, shuffle=True, random_state=42)\n    scores = []\n    for train_idx, val_idx in kfold.split(X):\n        selector = SelectKBest(f_classif, k=k_features)\n        X_train_selected = selector.fit_transform(X[train_idx], y[train_idx])\n        X_val_selected = selector.transform(X[val_idx])\n        model.fit(X_train_selected, y[train_idx])\n        scores.append(model.score(X_val_selected, y[val_idx]))\n    return np.mean(scores)\n```\n\nApproach A reports 92% CV accuracy. Approach B reports 78% CV accuracy. Which is the reliable estimate?",
+   "options": [
+    "Approach A - fitting selector on all data provides more stable feature selection; Approach B has higher variance due to different features selected per fold",
+    "Approach B - feature selection must be inside CV loop to prevent data leakage; Approach A's 92% is optimistically biased because features were selected using validation fold information",
+    "Both are valid but measure different things - A measures performance with optimal features, B measures realistic deployment performance",
+    "Neither - feature selection should use a separate held-out set before any cross-validation"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "data leakage",
+    "cross-validation",
+    "feature selection inside the CV loop / Pipeline"
+   ],
+   "explanation": "In Approach A, `SelectKBest` looks at **all** rows to choose the 10 features most related to `y`, including the rows that later serve as validation folds. Information from the validation folds has therefore leaked into model building, so 92% is optimistically biased. On pure random-noise data (5000 features, 100 samples) we got 79% \"accuracy\" with Approach A versus 47% with Approach B, where chance is 50%. Approach B fits the selector only on each training fold and merely *applies* it to the validation fold, which mirrors how the model will meet truly unseen data, so 78% is the honest estimate. The \"higher variance\" argument for A misses the point: an unbiased but noisy estimate beats a precise but biased one. In practice, put the selector and the model into an sklearn `Pipeline` and pass that pipeline to `cross_val_score`.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 1."
+  },
+  {
+   "n": 4,
+   "question": "Implementing logistic regression with L2 regularisation, you compute the gradient:\n\n```python\ndef compute_gradient(X, y, weights, lambda_reg):\n    m = len(y)\n    predictions = sigmoid(X @ weights)\n\n    # Option A\n    gradient = (1/m) * X.T @ (predictions - y) + lambda_reg * weights\n\n    # Option B\n    gradient = (1/m) * X.T @ (predictions - y) + (lambda_reg/m) * weights\n\n    # Option C\n    gradient = (1/m) * X.T @ (predictions - y)\n    gradient[1:] += lambda_reg * weights[1:]  # Don't regularise bias\n\n    # Option D\n    gradient = (1/m) * X.T @ (predictions - y)\n    gradient[1:] += (lambda_reg/m) * weights[1:]  # Don't regularise bias\n\n    return gradient\n```\n\nWhich option follows scikit-learn's `LogisticRegression(penalty='l2')` convention?",
+   "options": [
+    "Option A - standard L2 regularisation adds λw to gradient",
+    "Option B - regularisation term should be scaled by 1/m for consistency with loss averaging",
+    "Option C - bias term (weights[0]) should not be regularised, but λ is not scaled by m",
+    "Option D - bias not regularised AND λ scaled by m, matching sklearn's C parameter (C = 1/λm)"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "code-reading",
+   "concepts": [
+    "L2 regularisation gradient",
+    "do not regularise the bias/intercept",
+    "sklearn C = inverse regularisation strength"
+   ],
+   "explanation": "scikit-learn minimises $\\tfrac12\\|w\\|^2 + C\\sum_{i=1}^{m}\\ell_i$, and with its default `lbfgs` solver it does **not** penalise the intercept. Multiplying that objective by the positive constant $\\frac{1}{Cm}$ does not move the minimum and gives the familiar averaged form $\\frac1m\\sum\\ell_i + \\frac{1}{2Cm}\\|w\\|^2$. Its gradient is $\\frac1m X^T(\\hat p-y)$ plus a shrinkage term on the **non-bias** weights only. Options A and B are out because they also shrink the bias `weights[0]`, which pulls the decision boundary towards the origin for no reason. Option D is the classic course form, $\\frac1m X^T(\\hat p-y)+\\frac{\\lambda}{m}w_{1:}$, with the bias excluded. It reproduces sklearn exactly when $\\lambda = 1/C$; we checked that the gradient is essentially zero (about $10^{-9}$) at sklearn's solution. Strictly, Option C's code also matches sklearn if you choose $\\lambda = 1/(Cm)$, and the option's own formula $C = 1/(\\lambda m)$ is off by a factor of $m$ (with D's code, $C = 1/\\lambda$). So C and D differ only in how $\\lambda$ is scaled. The intended answer is D, the convention that divides the penalty by $m$ like the data term; what clearly rules out A and B is that they regularise the bias.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 3. Imprecise option text: with Option D's code, sklearn's C corresponds to C = 1/λ, not C = 1/(λm) as the option claims. Option C's code matches sklearn just as well if λ = 1/(Cm) (verified numerically: both give a gradient of about 5e-10 at sklearn's optimum). So C and D differ only in how λ is scaled; what really separates them from A and B is leaving the bias unregularised. The liblinear solver *does* penalise the intercept."
+  },
+  {
+   "n": 5,
+   "question": "You're debugging a custom implementation of AdaBoost:\n\n```python\ndef adaboost(X, y, n_estimators=50):\n    n_samples = len(y)\n    weights = np.ones(n_samples) / n_samples\n    models, alphas = [], []\n\n    for _ in range(n_estimators):\n        tree = DecisionTreeClassifier(max_depth=1)\n        tree.fit(X, y, sample_weight=weights)\n        predictions = tree.predict(X)\n\n        incorrect = (predictions != y)\n        error = np.sum(weights * incorrect) / np.sum(weights)  # Line A\n\n        if error > 0.5:  # Line B\n            break\n\n        alpha = 0.5 * np.log((1 - error) / (error + 1e-10))  # Line C\n        weights *= np.exp(alpha * incorrect)                   # Line D\n        weights /= np.sum(weights)\n\n        models.append(tree)\n        alphas.append(alpha)\n\n    return models, alphas\n```\n\nThe model performs poorly. What's wrong?",
+   "options": [
+    "Error threshold in Line B should be >= 0.5, not > 0.5, to handle the edge case of random classifier",
+    "The alpha calculation is wrong - should be np.log((1 - error) / error) without the 0.5 factor",
+    "Weight update should be: weights *= np.exp(alpha * (2*incorrect - 1)), because correctly classified samples should have weights DECREASED (multiplied by exp(-alpha))",
+    "Weight update should use: weights *= np.exp(-alpha * incorrect), because incorrect samples should have decreased weights"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "advanced",
+   "style": "code-reading",
+   "concepts": [
+    "AdaBoost sample re-weighting",
+    "learner weight alpha",
+    "exponential loss update"
+   ],
+   "explanation": "Textbook AdaBoost updates each sample weight by $w_i \\leftarrow w_i\\,e^{-\\alpha\\,y_i h(x_i)}$ with labels $\\pm1$. Misclassified points are multiplied by $e^{+\\alpha}$ and correct ones by $e^{-\\alpha}$, so after normalising the hard points gain weight by a ratio of $e^{2\\alpha}$. Line D multiplies only the mistakes by $e^{\\alpha}$ and leaves correct points at ×1, so the re-weighting is only half as strong as the $\\alpha$ from Line C assumes. Writing `np.exp(alpha * (2*incorrect - 1))` gives $e^{+\\alpha}$ for mistakes and $e^{-\\alpha}$ for correct points, which is the textbook update. The last option is backwards: shrinking the weights of mistakes makes the booster *ignore* the hard points. The `>` vs `>=` edge case almost never matters. Note a flaw in this question: option 1 (dropping the 0.5) also gives a correct algorithm, called AdaBoost.M1. With $\\alpha$ doubled, multiplying only the mistakes by $e^{2\\alpha}$ gives the same re-weighting ratio as the textbook update, and doubling every $\\alpha$ does not change the sign of the final vote (we got identical predictions). The intended answer is option 2, and it is the standard symmetric form worth remembering.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 2. Flawed question: option 1 (drop the 0.5 in alpha) gives a mathematically identical model. That is AdaBoost.M1 (alpha = ln((1-e)/e) with w*exp(alpha*incorrect)), and doubling every alpha does not change the sign of the weighted vote. The judge re-verified that the predictions are identical (np.array_equal True). The original code is also not badly broken. Its reweighting is weaker (the last learner's weighted error becomes sqrt(e)/(sqrt(e)+sqrt(1-e)) < 0.5 rather than exactly 0.5), and in two independent tests (make_classification, 100 stumps) it scored as well as or slightly better than the 'fixed' versions (e.g. 0.852 vs 0.832 test accuracy). So the stem's 'performs poorly' is a stretch."
+  },
+  {
+   "n": 6,
+   "question": "You implement a custom loss function for multi-label classification:\n\n```python\nclass MultiLabelLoss(nn.Module):\n    def __init__(self):\n        super().__init__()\n\n    def forward(self, logits, targets):\n        # logits: (batch, num_classes), raw scores\n        # targets: (batch, num_classes), binary labels {0, 1}\n\n        # Option A\n        probs = torch.sigmoid(logits)\n        loss = -targets * torch.log(probs) - (1-targets) * torch.log(1-probs)\n        return loss.mean()\n\n        # Option B\n        loss = F.binary_cross_entropy_with_logits(logits, targets, reduction='mean')\n        return loss\n\n        # Option C\n        probs = torch.softmax(logits, dim=1)\n        loss = -targets * torch.log(probs)\n        return loss.sum(dim=1).mean()\n```\n\nWhich implementation is correct for multi-label classification?",
+   "options": [
+    "Option A - manual BCE implementation with sigmoid, mathematically correct but numerically unstable for extreme logits",
+    "Option B - PyTorch's built-in function handles numerical stability via log-sum-exp trick",
+    "Option C - softmax ensures probabilities sum to 1, which is required for classification",
+    "Options A and B are equivalent and both correct; Option C is wrong because softmax assumes mutually exclusive classes"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "classification",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "multi-label vs multi-class",
+    "sigmoid + binary cross-entropy",
+    "softmax assumes mutually exclusive classes",
+    "numerical stability of BCE with logits"
+   ],
+   "explanation": "In multi-label classification each class is an independent yes/no question (one photo can be both \"cat\" and \"outdoor\"). So each logit gets its own sigmoid and its own binary cross-entropy, $\\ell=-[t\\log\\sigma(z)+(1-t)\\log(1-\\sigma(z))]$. Option A writes this formula by hand and Option B calls the built-in version, so mathematically they compute the same loss; we got 0.30476 from both on ordinary logits. Option C uses softmax, which forces the class probabilities to sum to 1. That assumes exactly one class is true, which is wrong when several labels can be 1 at once. In practice, prefer B: in float32 $\\sigma(17)$ rounds to exactly 1, so A's $\\log(1-p)$ becomes $\\log 0=-\\infty$ and the loss turns into `inf`, while B stays finite. For a logit of 17 with target 0, B correctly gives about 17.0.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 3. Option 1 (B alone) is also defensible: A and B are equivalent mathematically but not numerically (A returned inf for extreme logits such as 30 or -120, while B stayed finite). Option A's own text admits the instability."
+  },
+  {
+   "n": 7,
+   "question": "Training a deep network, you observe gradient norms across layers:\n\n| Layer | Epoch 1 grad_norm | Epoch 50 grad_norm |\n|---|---|---|\n| Layer 1 (input) | 0.0003 | 0.0001 |\n| Layer 5 (middle) | 0.0012 | 0.0008 |\n| Layer 10 (output) | 0.8500 | 1.2300 |\n\nWhat problem does this indicate and which solution is most effective?",
+   "options": [
+    "Learning rate too high for early layers - use layer-wise learning rate decay (higher LR for early layers)",
+    "Batch normalisation statistics unstable - increase batch size or use group normalisation",
+    "Vanishing gradients in early layers - add residual/skip connections to provide gradient highways bypassing intermediate layers",
+    "Exploding gradients in output layer - apply gradient clipping with max_norm=1.0 to stabilise training"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "vanishing gradients",
+    "backpropagation chain rule",
+    "residual/skip connections"
+   ],
+   "explanation": "Gradient norms shrink by a factor of more than 1,000 from the output layer (about 0.85–1.23) to the input layer (about 0.0001–0.0003), and the gap gets worse by epoch 50. That is the classic picture of vanishing gradients. Backpropagation multiplies one derivative per layer; if those factors are mostly below 1, the product shrinks exponentially with depth, so the early layers barely learn. A residual connection computes $y = x + F(x)$, so $\\frac{\\partial y}{\\partial x} = 1 + F'(x)$. The \"+1\" path lets the gradient flow straight back to early layers. Exploding gradients would show huge norms (thousands or more), not values around 1, so clipping at 1.0 attacks the wrong problem. The first option contradicts itself: it blames a too-high learning rate, then raises the learning rate.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 2."
+  },
+  {
+   "n": 8,
+   "question": "You implement custom batch normalisation:\n\n```python\nclass BatchNorm1d(nn.Module):\n    def __init__(self, num_features, eps=1e-5, momentum=0.1):\n        super().__init__()\n        self.gamma = nn.Parameter(torch.ones(num_features))\n        self.beta = nn.Parameter(torch.zeros(num_features))\n        self.register_buffer('running_mean', torch.zeros(num_features))\n        self.register_buffer('running_var', torch.ones(num_features))\n        self.eps = eps\n        self.momentum = momentum\n\n    def forward(self, x):\n        if self.training:\n            mean = x.mean(dim=0)\n            var = x.var(dim=0, unbiased=False)\n\n            # Update running statistics\n            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean\n            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var\n\n            x_norm = (x - mean) / torch.sqrt(var + self.eps)\n        else:\n            x_norm = (x - self.running_mean) / torch.sqrt(self.running_var + self.eps)\n\n        return self.gamma * x_norm + self.beta\n```\n\nDuring training, loss converges well. During evaluation (`model.eval()`), predictions are poor. What's the bug?",
+   "options": [
+    "Running statistics update should use .detach() to prevent gradient flow: `self.momentum * mean.detach()`",
+    "Running statistics should be updated with unbiased variance (unbiased=True) to match evaluation behavior",
+    "The running statistics update breaks autograd - should use in-place operations: `self.running_mean.mul_(1-self.momentum).add_(self.momentum * mean)`",
+    "Momentum interpretation is inverted - PyTorch uses running_mean = momentum * running_mean + (1-momentum) * batch_mean"
+   ],
+   "answer": 2,
+   "domain": "computing",
+   "subtopic": "pytorch",
+   "difficulty": "advanced",
+   "style": "code-reading",
+   "concepts": [
+    "BatchNorm train vs eval statistics",
+    "register_buffer and in-place updates",
+    "autograd graph tracking of buffers"
+   ],
+   "explanation": "BatchNorm normalises with the current batch's statistics during training, but with the stored `running_mean`/`running_var` in `eval()` mode. So if those buffers are wrong, training looks fine but evaluation is poor. PyTorch's built-in BatchNorm updates the buffers **in place** and outside autograd. This code instead *re-assigns* brand-new tensors that still carry gradient history (`running_mean.requires_grad` becomes `True`, with an `AddBackward0` grad_fn). When the module runs as a temporary copy, for example as a replica under `nn.DataParallel` or through `torch.func.functional_call`, the re-assigned tensor is attached to the throw-away copy and lost. The real buffers then stay at 0 and 1, and eval normalises with the wrong numbers. An in-place update (`self.running_mean.mul_(1-m).add_(m*mean)`) writes into the buffer's actual storage, so it survives. That is the intended answer. Be aware that this question is shaky. In an ordinary single-device loop the original code works: our test gave the same eval accuracy (0.974) as `nn.BatchNorm1d`. The in-place line on its own also still records gradient history. `.detach()` (option 0) removes the gradient history but would not stop the updates being lost on replicas. The best fix combines both ideas: update in place inside `with torch.no_grad():`, which is what PyTorch does. Option 1 is a minor detail (PyTorch does use the unbiased variance for `running_var`, but the n/(n−1) factor is tiny). Option 3 is false: the code already uses PyTorch's convention, `(1-momentum)*running + momentum*batch`.",
+   "confidence": "low",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 2. Judge: Solver A chose 2 and Solver B chose 0 (.detach()); final 2, matching the official key. It is the only option whose fix can produce the stated symptom (eval-time buffers stuck at their initial values). Ambiguous/flawed. Judge re-ran it (Linear-BN-ReLU-Linear, 5 epochs, data offset +5): eval accuracy was 0.974 for the original, detach, in-place and nn.BatchNorm1d versions alike. So in a plain single-device loop nothing is wrong numerically. Original and in-place versions both leave running_mean with requires_grad=True and grad_fn AddBackward0, and copy.deepcopy(model) raises an error. Only .detach() or no_grad (option 0's point) removes that, so option 2's reason ('breaks autograd') is inaccurate. Under torch.func.functional_call the re-assigned buffer stayed at 0 while the in-place one tracked the data mean (about 3.2), which confirms that only in-place updates persist in replica-style execution (nn.DataParallel keeps in-place buffer updates from the device[0] replica)."
+  },
+  {
+   "n": 9,
+   "question": "Implementing learning rate warmup with cosine decay:\n\n```python\ndef get_lr(step, total_steps, warmup_steps, base_lr, min_lr=1e-6):\n    if step < warmup_steps:\n        # Linear warmup\n        return base_lr * step / warmup_steps\n    else:\n        # Cosine decay\n        progress = (step - warmup_steps) / (total_steps - warmup_steps)\n        return min_lr + 0.5 * (base_lr - min_lr) * (1 + math.cos(math.pi * progress))\n```\n\nTraining a transformer with `base_lr=1e-3`, `warmup_steps=1000`, `total_steps=100000`. At step 50000, what is the learning rate?",
+   "options": [
+    "~7.5e-4 (cosine has decayed about 25% from peak)",
+    "~5.0e-4 (cosine at midpoint, halfway between base_lr and min_lr)",
+    "~2.5e-4 (cosine has decayed about 75% from peak)",
+    "~1e-3 (still at peak learning rate)"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "learning-rate warmup",
+    "cosine decay schedule",
+    "schedule arithmetic"
+   ],
+   "explanation": "Step 50000 is past the warmup (1000 steps), so the cosine branch applies. First, $\\text{progress}=\\frac{50000-1000}{100000-1000}=\\frac{49000}{99000}\\approx0.495$, which gives $\\cos(\\pi\\times0.495)\\approx0.016$. Then $\\text{lr}=10^{-6}+0.5\\,(10^{-3}-10^{-6})(1+0.016)\\approx5.08\\times10^{-4}$, confirmed in Python. Cosine decay is symmetric, so at the midpoint of the decay phase the learning rate is halfway between `base_lr` and `min_lr`. To get 7.5e-4 or 2.5e-4 the cosine term would have to be $+0.5$ or $-0.5$, which happens one-third and two-thirds of the way through the decay. The peak 1e-3 is reached only at the end of warmup.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 1."
+  },
+  {
+   "n": 10,
+   "question": "You implement gradient accumulation for training with limited GPU memory:\n\n```python\naccumulation_steps = 4\noptimiser.zero_grad()\n\nfor i, (inputs, targets) in enumerate(dataloader):\n    outputs = model(inputs)\n    loss = criterion(outputs, targets)\n    loss = loss / accumulation_steps  # Line A\n    loss.backward()\n\n    if (i + 1) % accumulation_steps == 0:\n        optimiser.step()\n        optimiser.zero_grad()\n```\n\nWhy is Line A necessary?",
+   "options": [
+    "Dividing loss scales gradients to match effective batch size - without it, accumulated gradients would be 4× larger than training with actual batch size 4×",
+    "Dividing loss prevents numerical overflow when accumulating gradients across multiple backward passes",
+    "Dividing loss is optional - it only affects the scale of reported loss values for logging purposes",
+    "Dividing loss compensates for the reduced batch statistics in batch normalisation layers"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "gradient accumulation",
+    "loss.backward() adds into .grad",
+    "mean-reduced loss and effective batch size"
+   ],
+   "explanation": "`criterion` normally returns the **mean** loss over a mini-batch, and every `.backward()` call **adds** new gradients onto the existing `.grad`. Without Line A, four backward passes add up four mean-gradients, giving $4\\times$ the gradient of one real batch that is 4× as large. That is like silently multiplying the learning rate by 4. Dividing each loss by 4 turns the sum into an average. We checked: with the division the accumulated gradient equals the full-batch gradient exactly (ratio 1.0), and without it the ratio is 4.0. The division has nothing to do with overflow or logging. It also cannot fix BatchNorm, which still sees only the small micro-batches.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 0."
+  },
+  {
+   "n": 11,
+   "question": "Implementing data augmentation for medical image classification (chest X-rays):\n\n```python\ntrain_transform = transforms.Compose([\n    transforms.Resize(256),\n    transforms.CenterCrop(224),\n    transforms.RandomHorizontalFlip(p=0.5),\n    transforms.RandomRotation(degrees=30),\n    transforms.ColorJitter(brightness=0.3, contrast=0.3),\n    transforms.ToTensor(),\n    transforms.Normalise(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])\n])\n```\n\nA radiologist reviews the augmentation pipeline and identifies a critical issue. What is it?",
+   "options": [
+    "RandomRotation(30°) can rotate anatomical structures to unrealistic orientations - lungs appearing diagonal makes images clinically invalid for training",
+    "CenterCrop may remove diagnostically important regions at image edges - use RandomResizedCrop or full image with padding",
+    "ImageNet normalisation values are wrong for X-rays - should compute dataset-specific mean/std from chest X-ray training data",
+    "ColorJitter is inappropriate - X-rays are grayscale, and brightness/contrast changes could mask or create false pathological findings"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "domain-appropriate data augmentation",
+    "label-preserving transforms",
+    "medical imaging intensity as diagnostic signal"
+   ],
+   "explanation": "A good augmentation must not change what the correct label is. In a chest X-ray, brightness encodes tissue density: pneumonia or fluid shows up as a whiter (more opaque) patch, and a collapsed lung as a darker one. Randomly changing brightness and contrast by up to ±30% can wash out a subtle opacity or make a normal area look abnormal, so the image may no longer match its label. That is the clinical red flag the official answer picks. The \"grayscale\" remark hints that colour jitter was designed for everyday RGB photos, not for medical images where intensity carries meaning. Cropping 256→224 may trim a little at the edges, and ImageNet statistics are standard when fine-tuning an ImageNet-pretrained model, so options 1 and 2 are minor. Be aware this question is debatable. Option 0 is also a fair concern: chest X-rays are taken in a standard upright position, so ±10° is a more typical rotation range than ±30°, and mild brightness/contrast changes are in fact widely used for X-rays. The arguably biggest problem in the pipeline, `RandomHorizontalFlip`, which puts the heart on the wrong side, is not among the options. For the exam, remember the official reasoning: changing intensity can change the diagnosis.",
+   "confidence": "low",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 3. Judge: Solver A chose 3 and Solver B chose 0 (30° rotation); final 3, matching the official key. Ambiguous: several options are reasonable concerns. Option 0 (30° rotation is unrealistic for standardised PA/AP chest films, where about ±10° is typical) is a strong alternative. Mild brightness/contrast augmentation is widely used for X-rays, and ColorJitter's brightness/contrast work fine on grayscale images, so the 'X-rays are grayscale' argument is weak. The arguably biggest clinical problem, RandomHorizontalFlip (it moves the heart to the right, and laterality matters), is not offered. `transforms.Normalise` is the paper's British spelling; torchvision's class is `transforms.Normalize`."
+  },
+  {
+   "n": 12,
+   "question": "You implement a U-Net decoder with skip connections:\n\n```python\nclass UNetDecoder(nn.Module):\n    def __init__(self):\n        super().__init__()\n        # Encoder outputs: [64, 128, 256, 512] channels at decreasing resolutions\n\n        self.up1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)\n        self.conv1 = nn.Conv2d(512, 256, kernel_size=3, padding=1)  # 256 + 256 = 512\n\n        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)\n        self.conv2 = nn.Conv2d(256, 128, kernel_size=3, padding=1)  # 128 + 128 = 256\n\n        self.up3 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)\n        self.conv3 = nn.Conv2d(128, 64, kernel_size=3, padding=1)   # 64 + 64 = 128\n\n    def forward(self, x, skip_connections):\n        # skip_connections = [s1, s2, s3] from encoder (64, 128, 256 channels)\n        s1, s2, s3 = skip_connections\n\n        x = self.up1(x)                # 512 -> 256 channels, 2× resolution\n        x = torch.cat([x, s3], dim=1)  # Line A: concatenate with skip\n        x = self.conv1(x)\n\n        x = self.up2(x)\n        x = torch.cat([x, s2], dim=1)\n        x = self.conv2(x)\n\n        x = self.up3(x)\n        x = torch.cat([x, s1], dim=1)\n        x = self.conv3(x)\n\n        return x\n```\n\nThe model crashes at Line A with `RuntimeError: Sizes of tensors must match`. The encoder produces feature maps where each downsampling halves spatial dimensions. What causes this?",
+   "options": [
+    "ConvTranspose2d with stride=2 doesn't exactly double resolution when input dimensions are odd - use nn.Upsample(scale_factor=2) followed by Conv2d for precise size matching",
+    "Skip connection channels don't match - s3 has 256 channels but x after up1 also has 256, creating 512 input to conv1 which is correct",
+    "The concatenation dimension is wrong - should use dim=0 for batch concatenation instead of dim=1 for channel concatenation",
+    "Encoder and decoder must use same padding mode - if encoder uses padding='valid', decoder spatial sizes won't align with skip connections"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "advanced",
+   "style": "code-reading",
+   "concepts": [
+    "U-Net skip connections",
+    "odd spatial sizes and floor in downsampling",
+    "transposed convolution output size",
+    "channel-wise concatenation"
+   ],
+   "explanation": "Each encoder downsampling step halves the size and **rounds down**, so an odd size loses a pixel: 25 → 12. The decoder's `ConvTranspose2d(kernel_size=2, stride=2)` maps 12 → 24, and concatenating a 24×24 map with the 25×25 skip map `s3` raises exactly \"Sizes of tensors must match\" (we reproduced this error). So the root cause is odd spatial sizes, which the first option points at. Its wording is loose, though: `ConvTranspose2d(kernel_size=2, stride=2)` always exactly doubles (12→24, 13→26), and `nn.Upsample(scale_factor=2)` would also turn 12 into 24, so its suggested fix would not help by itself. The channel arithmetic is fine (256 + 256 = 512 matches `conv1`), so the second option is not a cause. Concatenating along dim=0 (the batch) would make no sense for a skip connection. The practical fix is to use input sizes divisible by $2^{\\text{depth}}$ (e.g. 256×256), or to pad, crop or interpolate `x` to `s3.shape[-2:]` before `torch.cat`.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 0. Option wording is imprecise: ConvTranspose2d(k=2, s=2) always exactly doubles (out = 2*in; 12→24, 13→26). The mismatch comes from flooring odd sizes in the encoder, and nn.Upsample(scale_factor=2) has the same problem (12→24), so the suggested fix does not fix it. Option 3 (valid padding) is also a real cause of U-Net misalignment in general (the original U-Net crops its skip maps), but the stem's 'each downsampling halves' points to the odd-size cause."
+  },
+  {
+   "n": 13,
+   "question": "Implementing Intersection over Union (IoU) for semantic segmentation evaluation:\n\n```python\ndef compute_iou(pred, target, num_classes):\n    \"\"\"\n    pred: (H, W) tensor with class indices\n    target: (H, W) tensor with class indices\n    \"\"\"\n    ious = []\n    for cls in range(num_classes):\n        pred_mask = (pred == cls)\n        target_mask = (target == cls)\n\n        intersection = (pred_mask & target_mask).sum().float()\n        union = (pred_mask | target_mask).sum().float()\n\n        if union == 0:\n            # Option A: Skip this class\n            continue\n            # Option B: IoU = 1.0 (both pred and target have no pixels of this class)\n            # ious.append(1.0)\n            # Option C: IoU = 0.0 (penalise missing class)\n            # ious.append(0.0)\n        else:\n            ious.append((intersection / union).item())\n\n    return np.mean(ious)  # mIoU\n```\n\nFor a dataset where class \"motorcycle\" rarely appears (only in 5% of images), which handling of `union == 0` gives the most meaningful mIoU?",
+   "options": [
+    "Option A (skip) - if class doesn't appear in both pred and target, it's not relevant for this image; including it would artificially inflate or deflate mIoU",
+    "Option B (IoU=1.0) - perfect agreement that class is absent; model correctly predicts no motorcycles when there are none",
+    "Option C (IoU=0.0) - penalises model for not predicting rare classes; encourages better rare class detection",
+    "Use frequency-weighted IoU instead - multiply each class IoU by its pixel frequency to reduce impact of rare classes"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "IoU / Jaccard index",
+    "mean IoU over classes",
+    "undefined 0/0 cases",
+    "rare classes in segmentation"
+   ],
+   "explanation": "If neither the prediction nor the ground truth contains any motorcycle pixels, IoU is $\\frac{0}{0}$: undefined, neither perfect nor zero. Motorcycles are absent from 95% of images, so Option B would hand out a free 1.0 for each of those images and inflate mIoU. Option C would add 0.0 and drag mIoU down even though the model did nothing wrong. Skipping the class keeps the average about classes that are actually present or predicted. A false-positive motorcycle still counts, because then union > 0 and its IoU is 0. Frequency weighting answers a different question and deliberately down-weights rare classes. Standard benchmarks such as PASCAL VOC go one step further and sum each class's intersections and unions over the whole dataset before dividing.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 0."
+  },
+  {
+   "n": 14,
+   "question": "Debugging a transfer learning pipeline for image classification:\n\n```python\n# Load pretrained ResNet\nmodel = torchvision.models.resnet50(pretrained=True)\n\n# Freeze all layers\nfor param in model.parameters():\n    param.requires_grad = False\n\n# Replace classifier\nmodel.fc = nn.Linear(2048, num_classes)\n\n# Train\noptimiser = torch.optim.Adam(model.parameters(), lr=0.001)\n\nfor epoch in range(num_epochs):\n    for inputs, targets in train_loader:\n        outputs = model(inputs)\n        loss = criterion(outputs, targets)\n        optimiser.zero_grad()\n        loss.backward()\n        optimiser.step()\n```\n\nAfter training, validation accuracy is only 52% (random baseline for 10-class problem is 10%). Inspecting the model, `fc.weight` values are identical to initialisation. What's wrong?",
+   "options": [
+    "Optimiser should only receive fc.parameters() - currently it receives all parameters including frozen ones, but since frozen params have requires_grad=False, gradients aren't computed for them anyway",
+    "The fc layer was added AFTER freezing parameters, so fc.weight.requires_grad is True, but optimiser was created before fc was modified - need to recreate optimiser",
+    "Requires_grad=False on backbone prevents gradient flow entirely - gradients don't propagate through frozen layers to reach fc layer",
+    "Learning rate is too low for training from scratch - fc layer with random init needs higher LR (e.g., 0.01) than fine-tuning would"
+   ],
+   "answer": 1,
+   "domain": "computing",
+   "subtopic": "pytorch",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "transfer learning / freezing layers",
+    "optimiser holds references to parameter tensors",
+    "requires_grad and gradient flow"
+   ],
+   "explanation": "A PyTorch optimiser keeps references to the exact parameter tensors it was given when it was created. If the optimiser is built *before* `model.fc` is replaced, it holds the old frozen fc weights. The new `nn.Linear` still receives gradients, but `optimiser.step()` never updates it, so `fc.weight` stays at its initial values, which is exactly the symptom described. (Notice that in the code as printed, the optimiser is actually created *after* the replacement, which would train fc normally. The symptom only makes sense if the real script built the optimiser first, so this is the intended answer.) The fix is to create the optimiser after replacing the head, ideally as `Adam(model.fc.parameters(), ...)`. The third option is false: fc is the last layer, so the loss gradient reaches it directly, and freezing earlier layers only stops *their* weights from being updated. The first option admits its own change would make no difference, and a learning rate that is too low gives slow learning, not weights that are *exactly* unchanged.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 1. Flawed question: in the code as printed, the optimiser IS created after model.fc is replaced, so the fc layer does train. We verified this with a small stand-in model (torchvision unavailable): fc weights changed, but stayed identical when the optimiser was created before the replacement. The symptom only matches the ordering that option 1 describes. 52% accuracy with an untrained random head is also implausible. (Separately, requires_grad=False does not stop BatchNorm running statistics in the frozen backbone from updating in train mode.)"
+  },
+  {
+   "n": 15,
+   "question": "Implementing mixed precision training:\n\n```python\nscaler = torch.cuda.amp.GradScaler()\n\nfor inputs, targets in train_loader:\n    optimiser.zero_grad()\n\n    with torch.cuda.amp.autocast():\n        outputs = model(inputs)\n        loss = criterion(outputs, targets)\n\n    # Option A\n    loss.backward()\n    optimiser.step()\n\n    # Option B\n    scaler.scale(loss).backward()\n    scaler.step(optimiser)\n    scaler.update()\n\n    # Option C\n    scaler.scale(loss).backward()\n    scaler.unscale_(optimiser)\n    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)\n    scaler.step(optimiser)\n    scaler.update()\n```\n\nTraining diverges with Option A but works with Option B. When would Option C be necessary instead of B?",
+   "options": [
+    "Option C is needed when training very deep networks to prevent gradient explosion",
+    "Option C is needed when batch size is very small, causing high gradient variance",
+    "Option C is needed when using gradient clipping - unscale_ converts gradients back to FP32 scale before clipping, otherwise clipping threshold is meaningless",
+    "Option C is only needed for debugging - it allows inspecting true gradient magnitudes"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "mixed precision (FP16) training",
+    "loss scaling with GradScaler",
+    "gradient clipping on unscaled gradients"
+   ],
+   "explanation": "In mixed precision, `GradScaler` multiplies the loss by a large factor $S$ (for example 65,536) before `backward()`, so that tiny FP16 gradients do not underflow to zero. That is why plain Option A diverges and Option B works. It also means every `.grad` is $S$ times too large until the scaler divides it back out inside `scaler.step()`. `clip_grad_norm_(max_norm=1.0)` compares the gradient norm with 1.0, so clipping the *scaled* gradients would use a meaningless threshold and cut far too much. `scaler.unscale_(optimiser)` divides by $S$ first, so clipping sees the true gradients, and `scaler.step()` then knows not to divide again. Deep networks, small batches or debugging do not by themselves require `unscale_`; gradient clipping, or anything else that reads gradient values, does.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 2."
+  },
+  {
+   "n": 16,
+   "question": "Implementing self-attention from scratch:\n\n```python\nclass SelfAttention(nn.Module):\n    def __init__(self, embed_dim, num_heads):\n        super().__init__()\n        self.num_heads = num_heads\n        self.head_dim = embed_dim // num_heads\n\n        self.q_proj = nn.Linear(embed_dim, embed_dim)\n        self.k_proj = nn.Linear(embed_dim, embed_dim)\n        self.v_proj = nn.Linear(embed_dim, embed_dim)\n        self.out_proj = nn.Linear(embed_dim, embed_dim)\n\n    def forward(self, x, mask=None):\n        B, T, C = x.shape\n\n        Q = self.q_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)\n        K = self.k_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)\n        V = self.v_proj(x).view(B, T, self.num_heads, self.head_dim).transpose(1, 2)\n\n        # Attention scores\n        scores = Q @ K.transpose(-2, -1)  # Line A\n\n        if mask is not None:\n            scores = scores.masked_fill(mask == 0, float('-inf'))\n\n        attn = F.softmax(scores, dim=-1)\n        out = attn @ V\n\n        out = out.transpose(1, 2).contiguous().view(B, T, C)\n        return self.out_proj(out)\n```\n\nThe attention weights are very peaked (one position gets ~99% weight). What scaling is missing at Line A?",
+   "options": [
+    "scores = (Q @ K.transpose(-2, -1)) / self.head_dim - scaling by d_k normalises for the number of dimensions summed",
+    "scores = (Q @ K.transpose(-2, -1)) / math.sqrt(self.head_dim) - scaling by √d_k prevents softmax saturation when dot products grow with dimension",
+    "scores = (Q @ K.transpose(-2, -1)) / math.sqrt(self.num_heads) - scaling by √num_heads balances contribution across heads",
+    "scores = F.normalise(Q, dim=-1) @ F.normalise(K, dim=-1).transpose(-2, -1) - cosine similarity instead of dot product"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "scaled dot-product attention",
+    "variance of a dot product grows with dimension",
+    "softmax saturation"
+   ],
+   "explanation": "If the entries of $q$ and $k$ have mean 0 and variance 1, the dot product $q\\cdot k=\\sum_{i=1}^{d_k} q_ik_i$ has variance $d_k$, so its typical size grows like $\\sqrt{d_k}$. Our simulation gave a standard deviation of about 8 for $d_k=64$ and about 22.5 for $d_k=512$. Large scores push softmax into saturation: one position takes almost all the weight and the gradients through the softmax vanish. Dividing by $\\sqrt{d_k}$ brings the standard deviation back to about 1; this is the \"scaled\" in scaled dot-product attention, $\\text{softmax}(QK^T/\\sqrt{d_k})\\,V$. Dividing by $d_k$ shrinks the scores too much, making attention close to uniform. $\\sqrt{\\text{num\\_heads}}$ has nothing to do with the size of a single head's dot product, and cosine similarity is a different design rather than the missing scale.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 1. `F.normalise` is the paper's British spelling of `F.normalize`."
+  },
+  {
+   "n": 17,
+   "question": "Implementing causal masking for autoregressive language modeling:\n\n```python\ndef create_causal_mask(seq_len):\n    # Option A\n    mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()\n    return ~mask  # Invert: True where attention allowed\n\n    # Option B\n    mask = torch.tril(torch.ones(seq_len, seq_len)).bool()\n    return mask\n\n    # Option C\n    mask = torch.ones(seq_len, seq_len).bool()\n    for i in range(seq_len):\n        mask[i, i+1:] = False\n    return mask\n```\n\nFor the sequence \"The cat sat\", position 2 (\"sat\") should attend to positions 0, 1, 2 but not future positions. Which implementation is correct?",
+   "options": [
+    "All three produce equivalent masks - they all create lower triangular matrix where mask[i,j]=True iff j<=i",
+    "Option A is wrong - triu with diagonal=1 creates upper triangular, and negation makes it lower triangular INCLUDING diagonal, but the logic is inverted for masked_fill",
+    "Option B and C are correct; Option A depends on how the mask is used (True=attend vs True=mask out)",
+    "Only Option C is correct - explicit loop is the only way to ensure correct diagonal handling"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "causal (look-ahead) mask",
+    "torch.triu / torch.tril",
+    "boolean mask conventions"
+   ],
+   "explanation": "Work it out for 3 tokens. `torch.triu(ones, diagonal=1)` is True strictly *above* the diagonal, which marks the future, and `~` flips it to True on and below the diagonal. `torch.tril(ones)` is True on and below the diagonal directly. The loop starts from all-True and sets `mask[i, i+1:] = False`, blanking everything to the right of the diagonal. All three return the same tensor, `[[1,0,0],[1,1,0],[1,1,1]]`; `torch.equal` confirmed this for several lengths. So row 2 (\"sat\") can see positions 0, 1 and 2. Whether True means \"attend\" or \"mask out\" depends on how you use the mask (`masked_fill(mask == 0, -inf)` needs True = attend), but that applies equally to all three outputs and does not single out Option A. Heads-up: AISG's published answer marks option 2 ('B and C are correct; A depends on how the mask is used'). Running the code shows that A, B and C return identical tensors, so we mark option 0 as correct. In the actual exam, the setters' expected answer was option 2.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 2. DISAGREES WITH THE OFFICIAL KEY. Solvers A and B independently chose 0, and the judge keeps 0. Running the three functions gives identical tensors (torch.equal True for n = 1, 3, 5, 17), and Option A's own code comment says 'True where attention allowed'. Option 0's statement (mask[i,j] True iff j<=i for all three) is exactly true. Option 2 wrongly implies that Option A behaves differently from B and C; the True=attend vs True=mask-out convention applies equally to all three. Site guidance: show answer 0, and state clearly that the official key marks option 2."
+  },
+  {
+   "n": 18,
+   "question": "Implementing a simple tokeniser for transformer training:\n\n```python\nclass SimpleTokeniser:\n    def __init__(self, vocab_size=10000):\n        self.vocab_size = vocab_size\n        self.word2idx = {'<PAD>': 0, '<UNK>': 1, '<BOS>': 2, '<EOS>': 3}\n        self.idx2word = {v: k for k, v in self.word2idx.items()}\n\n    def fit(self, texts):\n        word_freq = Counter()\n        for text in texts:\n            word_freq.update(text.lower().split())\n\n        # Add most frequent words to vocabulary\n        for word, _ in word_freq.most_common(self.vocab_size - 4):\n            idx = len(self.word2idx)\n            self.word2idx[word] = idx\n            self.idx2word[idx] = word\n\n    def encode(self, text, max_len=512):\n        tokens = [self.word2idx.get(w, self.word2idx['<UNK>'])\n                  for w in text.lower().split()]\n        tokens = [self.word2idx['<BOS>']] + tokens + [self.word2idx['<EOS>']]\n\n        # Padding\n        if len(tokens) < max_len:\n            tokens += [self.word2idx['<PAD>']] * (max_len - len(tokens))\n        else:\n            tokens = tokens[:max_len]\n\n        return tokens\n```\n\nWhen `max_len=10` and `text=\"Hello world how are you today my friend\"`, the encoding has a critical flaw. What is it?",
+   "options": [
+    "<BOS> and <EOS> count toward max_len - effective content length is max_len-2, which may truncate more content than intended",
+    "Padding tokens should be -100, not 0 - using 0 causes loss computation to include padding positions",
+    "Word-level tokenisation creates massive vocabulary - should use subword tokenisation (BPE) for open-vocabulary handling",
+    "Truncation removes <EOS> token - after truncating to 10 tokens, the sequence lacks end marker, confusing the model about sequence boundaries"
+   ],
+   "answer": 3,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "code-reading",
+   "concepts": [
+    "special tokens BOS/EOS/PAD",
+    "truncation and padding order",
+    "label ignore_index -100 vs input padding id"
+   ],
+   "explanation": "The code adds `<BOS>` and `<EOS>` **first** and truncates **afterwards**, so any input longer than `max_len − 2` words loses its last tokens, `<EOS>` included. Without an end marker the model cannot tell a finished sentence from a cut-off one. The fix is to truncate the content to `max_len − 2` tokens *before* adding BOS and EOS, which is what Hugging Face tokenizers do. Padding inputs with id 0 is fine: `-100` is a *label* value that `cross_entropy` ignores, not an input id. A word-level vocabulary is a design limitation, not a bug in this encoding. Careful counting matters, though: the example has 8 words, so BOS + 8 + EOS is exactly 10 tokens and `<EOS>` survives (`[2, 4, …, 11, 3]`). The bug only appears with 9 or more words; adding \"again\" gives `[2, 4, …, 11, 1]` with no EOS.",
+   "confidence": "medium",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 3. Flawed example: 'Hello world how are you today my friend' has 8 words, giving exactly 10 tokens with max_len=10. The else-branch slice therefore keeps <EOS>, so the flaw does not actually show for this input; it needs 9 or more words (verified by running the code). Option 0 describes the same design (a content budget of max_len-2) but is not itself a bug."
+  },
+  {
+   "n": 19,
+   "question": "Implementing BERT-style masked language modeling loss:\n\n```python\ndef compute_mlm_loss(model, input_ids, mask_prob=0.15):\n    batch_size, seq_len = input_ids.shape\n\n    # Create masking\n    rand = torch.rand(input_ids.shape)\n    mask_positions = (rand < mask_prob) & (input_ids != PAD_TOKEN)\n\n    # Create labels (-100 for non-masked positions)\n    labels = input_ids.clone()\n    labels[~mask_positions] = -100\n\n    # Replace masked tokens\n    masked_input = input_ids.clone()\n    masked_input[mask_positions] = MASK_TOKEN  # Line A\n\n    # Forward pass\n    logits = model(masked_input)\n\n    # Compute loss only on masked positions\n    loss = F.cross_entropy(logits.view(-1, vocab_size), labels.view(-1), ignore_index=-100)\n\n    return loss\n```\n\nBERT's original paper uses a more complex masking strategy at Line A. What is it and why?",
+   "options": [
+    "80% MASK token, 10% random token, 10% unchanged - prevents model from learning that MASK always means \"predict here\", improving fine-tuning where MASK doesn't exist",
+    "100% MASK token for training efficiency - the 80/10/10 split was only for ablation studies and not used in final model",
+    "Replace with learned [MASK] embedding instead of token - allows gradient flow through the mask position",
+    "Apply masking only to content words (nouns, verbs) not function words (the, is, a) - forces model to learn semantic rather than syntactic patterns"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "masked language modelling",
+    "80/10/10 masking rule",
+    "pre-training vs fine-tuning mismatch"
+   ],
+   "explanation": "BERT picks 15% of tokens to predict. Of those, 80% are replaced by `[MASK]`, 10% by a random token, and 10% are left unchanged. `[MASK]` never appears during fine-tuning or real use, so a model that only ever predicted at `[MASK]` positions would learn a habit that does not transfer. The random and unchanged cases make it keep a good representation of *every* token, because any input token might secretly be the one being tested. The 80/10/10 rule is part of the final BERT recipe (Devlin et al., 2019), not just an ablation. `[MASK]` already is a learned embedding, and BERT chooses tokens uniformly at random rather than by part of speech.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 0."
+  },
+  {
+   "n": 20,
+   "question": "Debugging a text classification fine-tuning pipeline:\n\n```python\n# Load pretrained BERT\ntokeniser = BertTokeniser.from_pretrained('bert-base-uncased')\nmodel = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=5)\n\n# Prepare data\ndef tokenise(text):\n    return tokeniser(text, padding='max_length', truncation=True, max_length=128, return_tensors='pt')\n\n# Training loop\nmodel.train()\nfor epoch in range(3):\n    for batch in train_loader:\n        inputs = tokenise(batch['text'])\n        inputs = {k: v.squeeze(0).to(device) for k, v in inputs.items()}\n        labels = batch['label'].to(device)\n\n        outputs = model(**inputs, labels=labels)\n        loss = outputs.loss\n\n        loss.backward()\n        optimiser.step()\n        optimiser.zero_grad()\n```\n\nValidation loss decreases for epoch 1, then increases sharply. Training loss keeps decreasing. What's the most likely cause?",
+   "options": [
+    "Missing gradient accumulation - batch size too small for stable training",
+    "The squeeze(0) operation corrupts batch dimension - should process entire batch together",
+    "Missing warmup scheduler - BERT requires linear warmup to stabilise early training",
+    "Learning rate too high - BERT fine-tuning requires very small LR (2e-5 to 5e-5); larger LR causes catastrophic forgetting of pretrained knowledge"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "fine-tuning learning rate",
+    "overfitting from train/val loss curves",
+    "catastrophic forgetting"
+   ],
+   "explanation": "Training loss keeps falling while validation loss rises after epoch 1, so the model is overfitting and forgetting rather than failing to train. BERT-base has about 110 million pretrained parameters, and fine-tuning should only nudge them gently. The BERT paper recommends learning rates of 2e-5 to 5e-5 for 2–4 epochs. A larger learning rate overwrites the general language knowledge learned in pre-training (catastrophic forgetting) and quickly memorises the small labelled set. Gradient accumulation and warmup affect early stability, not a train/validation split that opens after epoch 1. `squeeze(0)` only matters when the batch size is 1, and then it would crash rather than overfit. Fixes: lower the learning rate, use warmup with linear decay, add weight decay, and stop early based on validation loss.",
+   "confidence": "high",
+   "notes": "Official key (bold option in AISG's Oct-2026 PDF NOAI2026_FinalAssessment_20MCQs.pdf): index 3. The optimiser and learning rate are not shown in the code, so this answer is an inference from the symptom; the other options are clearly worse. `BertTokeniser` is the paper's British spelling of `BertTokenizer`."
+  }
+ ]
+}
