@@ -172,7 +172,7 @@ function SearchPanel({
   const pathA = margA.map(([u, v], i) => `${i ? 'L' : 'M'}${px(u).toFixed(1)},${sy(v).toFixed(1)}`).join('')
   const pathB = margB.map(([u, v], i) => `${i ? 'L' : 'M'}${sx(v).toFixed(1)},${py(u).toFixed(1)}`).join('')
 
-  const marker = (t: Trial, x: number, y: number, r: number, key: string) =>
+  const marker = (x: number, y: number, r: number, key: string) =>
     kind === 'grid' ? (
       <rect key={key} x={x - r} y={y - r} width={2 * r} height={2 * r} style={{ fill: col, stroke: 'var(--surface)', strokeWidth: 1.5 }} />
     ) : (
@@ -200,7 +200,7 @@ function SearchPanel({
         {trials.map((t, i) => (
           <line key={`ta${i}`} x1={px(t.a)} x2={px(t.a)} y1={TOP + STRIP} y2={sy(t.s)} style={{ stroke: col, strokeWidth: 1.2, opacity: 0.55 }} />
         ))}
-        {trials.map((t, i) => marker(t, px(t.a), sy(t.s), 3.5, `ma${i}`))}
+        {trials.map((t, i) => marker(px(t.a), sy(t.s), 3.5, `ma${i}`))}
         <text x={x0 + 4} y={TOP + 12} className="plot-label" style={{ fontSize: 11 }}>
           best score at each A
         </text>
@@ -211,12 +211,12 @@ function SearchPanel({
         {trials.map((t, i) => (
           <line key={`tb${i}`} x1={rx0} x2={sx(t.s)} y1={py(t.b)} y2={py(t.b)} style={{ stroke: col, strokeWidth: 1.2, opacity: 0.55 }} />
         ))}
-        {trials.map((t, i) => marker(t, sx(t.s), py(t.b), 3.5, `mb${i}`))}
+        {trials.map((t, i) => marker(sx(t.s), py(t.b), 3.5, `mb${i}`))}
 
         {/* main square */}
         <g aria-hidden="true">{cells}</g>
         <rect x={x0} y={y0} width={S} height={S} style={{ fill: 'none', stroke: 'var(--viz-axis)', strokeWidth: 1.25 }} />
-        {trials.map((t, i) => marker(t, px(t.a), py(t.b), 5.5, `m${i}`))}
+        {trials.map((t, i) => marker(px(t.a), py(t.b), 5.5, `m${i}`))}
         <circle cx={px(best.a)} cy={py(best.b)} r={11} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 2.2 }} />
 
         {/* axis labels */}

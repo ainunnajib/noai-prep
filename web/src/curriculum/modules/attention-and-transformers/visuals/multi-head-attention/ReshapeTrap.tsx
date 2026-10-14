@@ -27,7 +27,7 @@ function source(mode: Mode, hh: number, r: number, c: number): Src {
 }
 
 const rowOk = (mode: Mode, hh: number, r: number) =>
-  Array.from({ length: DK }, (_, c) => source(mode, hh, r, c)).every((p) => p.t === r && p.j === hh * DK + c)
+  Array.from({ length: DK }, (_, c) => source(mode, hh, r, c)).every((p, c) => p.t === r && p.j === hh * DK + c)
 
 const bg = (t: number, strong: boolean) => `color-mix(in srgb, ${TOK_COLOUR[t]} ${strong ? 60 : 30}%, var(--surface))`
 
