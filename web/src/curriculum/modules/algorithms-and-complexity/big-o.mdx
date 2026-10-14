@@ -1,3 +1,265 @@
-{/* stub: lesson 'Big-O: how cost grows' is being written */}
+import BigORace from './visuals/big-o/BigORace'
+import DominantTerm from './visuals/big-o/DominantTerm'
+import LoopCounter from './visuals/big-o/LoopCounter'
+import SpaceVsTime from './visuals/big-o/SpaceVsTime'
 
-This lesson is being written.
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const doublingCode = `def steps_log(n):
+    steps = 0
+    while n > 1:
+        n = n // 2
+        steps += 1
+    return steps
+
+def steps_linear(n):
+    steps = 0
+    for i in range(n):
+        steps += 1
+    return steps
+
+def steps_quadratic(n):
+    steps = 0
+    for i in range(n):
+        for j in range(n):
+            steps += 1
+    return steps
+
+for n in [250, 500, 1000]:
+    print(n, steps_log(n), steps_linear(n), steps_quadratic(n))`
+
+export const nestedHalvingCode = `count = 0
+for i in range(n):
+    j = n
+    while j > 1:
+        j = j // 2
+        count += 1`
+
+export const timingCode = `import time
+
+n = 10_000
+items_list = list(range(n))
+items_set = set(items_list)
+# none of these queries are stored: worst case
+queries = range(n, n + 1_000)
+
+start = time.perf_counter()
+found = sum(1 for q in queries if q in items_list)
+t_list = time.perf_counter() - start
+
+start = time.perf_counter()
+found = sum(1 for q in queries if q in items_set)
+t_set = time.perf_counter() - start
+
+print(f"list: {t_list:.4f} s")
+print(f"set:  {t_set:.6f} s")
+print(f"set faster by about {t_list / t_set:.0f}x")`
+
+Two programs can give exactly the same answer, yet one finishes before you blink and the other is still running next week. The difference is rarely the computer. It is how the amount of work **grows** as the input gets bigger. **Big-O notation** is the language for that growth: you will use it to choose between algorithms, to spot slow code before you run it, and to answer NOAI questions such as "what is the complexity of self-attention?" in a few seconds.
+
+## Count steps, not seconds
+
+<Analogy title="Finding a friend at the NDP">
+
+You are at the National Day Parade with 50,000 other people, looking for one friend. Checking faces one by one takes at most 50,000 checks, and if the crowd doubles, so does the number of checks. Now imagine instead that everyone has to shake hands with everyone else. That is $50{,}000 \times 49{,}999 \div 2 \approx 1.25$ billion handshakes, and doubling the crowd makes it about **four** times as many. Both jobs "involve everyone", but they grow in completely different ways.
+
+</Analogy>
+
+Timing a program in seconds is a poor way to judge an algorithm: the answer depends on the computer, the language and whatever else is running. Instead we count **steps**. A step is one basic operation that takes a small, fixed amount of time, such as comparing two numbers, adding, assigning a variable or reading `a[i]`. We write $n$ for the <Term def="How big the input is: the number of items in a list, characters in a string, tokens in a sentence, pixels in an image, and so on.">input size</Term> and ask: **how many steps does the algorithm take, as a function of $n$?** That function is its <Term def="How the number of steps an algorithm takes grows as its input size n grows.">time complexity</Term>.
+
+```python
+def total(nums):       # nums holds n numbers
+    s = 0              # 1 step
+    for x in nums:     # the loop body runs n times
+        s = s + x      # 1 step each time
+    return s           # 1 step
+```
+
+This takes $n + 2$ steps. For $n = 1{,}000$ that is 1,002 steps; for $n = 1{,}000{,}000$ it is 1,000,002. The "+ 2" stops mattering almost at once. What matters is that the work is **proportional to $n$**, and Big-O says exactly that: `total` is $O(n)$, read "order $n$" or "big-O of $n$".
+
+Unless a question says otherwise, Big-O describes the <Term def="The largest number of steps the algorithm can take over all inputs of size n, for example when the item you search for is not there at all.">worst case</Term>. Searching a list for a value that sits at the front takes one step, but we quote $O(n)$ because in the worst case (the value is last or missing) every item is checked.
+
+## The growth race
+
+A handful of growth rates cover almost everything you will meet:
+
+| Big-O | Name | Typical example | Steps when $n = 1{,}000$ |
+|---|---|---|---|
+| $O(1)$ | constant | read `a[5]`; look up a key in a dict | 1 |
+| $O(\log n)$ | logarithmic | binary search in a sorted list | about 10 |
+| $O(n)$ | linear | find the largest value in a list | 1,000 |
+| $O(n \log n)$ | "n log n" | good sorting, such as Python's `sorted()` | about 10,000 |
+| $O(n^2)$ | quadratic | compare every pair of items | 1,000,000 |
+| $O(2^n)$ | exponential | try every subset of the items | about $10^{301}$ |
+
+The one that surprises beginners is $\log n$. Here $\log_2 n$ answers the question **"how many times can I halve $n$ before I reach 1?"** Since $2^{10} = 1024$, halving 1,000 about ten times gets you to 1, so $\log_2 1000 \approx 10$. A million is about $2^{20}$, so $\log_2 1{,}000{,}000 \approx 20$. Multiplying the input by a thousand only **adds** about 10 steps.
+
+<BigORace />
+
+<KeyIdea>
+
+From slowest-growing to fastest-growing: $O(1) < O(\log n) < O(n) < O(n \log n) < O(n^2) < O(2^n)$. For large $n$, the class matters far more than a faster computer or a cleverer constant factor.
+
+</KeyIdea>
+
+<Note title="Which logarithm?">
+
+Computer scientists mean $\log_2$, but in Big-O the base does not matter: $\log_2 n = 3.32 \times \log_{10} n$, so different bases only differ by a constant factor, and Big-O ignores constant factors (as you are about to see).
+
+</Note>
+
+<QuickCheck
+  q="An $O(n^2)$ program takes 2 seconds when $n = 1{,}000$. Roughly how long will it take when $n = 3{,}000$?"
+  options={['6 seconds', '8 seconds', '18 seconds', '54 seconds']}
+  answer={2}
+  explain="Tripling $n$ multiplies an $n^2$ cost by $3^2 = 9$, so the time becomes $2 \times 9 = 18$ seconds. 6 seconds is what a linear, $O(n)$, program would take; 54 seconds would be cubic ($3^3 = 27$)."
+/>
+
+## What Big-O really means
+
+Here is the precise definition. We say $f(n) = O(g(n))$ if there are constants $c$ and $n_0$ such that
+
+$$
+f(n) \le c \cdot g(n) \quad \text{for every } n \ge n_0
+$$
+
+- $f(n)$ is the exact number of steps the algorithm takes on an input of size $n$, for example $3n^2 + 50n + 200$.
+- $g(n)$ is a simple comparison function, such as $n$, $n^2$ or $\log n$.
+- $c$ is a fixed positive number that does **not** depend on $n$.
+- $n_0$ is a starting size: the inequality only has to hold for large inputs, from $n_0$ onwards.
+
+In words: **from some size onwards, $f$ grows no faster than a constant multiple of $g$.** Big-O is an upper bound on growth. Two rules for simplifying follow straight from it:
+
+1. **Drop constant factors.** $5n$, $n/2$ and $100n$ are all $O(n)$, because the constant can be absorbed into $c$.
+2. **Keep only the dominant term.** In a sum, the fastest-growing term wins for large $n$, so $3n^2 + 50n + 200$ is $O(n^2)$.
+
+<Steps title="Show that $3n^2 + 50n + 200 = O(n^2)$">
+  <Step title="Bound each term by a multiple of $n^2$">
+    For every $n \ge 1$ we have $n \le n^2$ and $1 \le n^2$. So $50n \le 50n^2$ and $200 \le 200n^2$.
+  </Step>
+  <Step title="Add the bounds">
+    $3n^2 + 50n + 200 \le 3n^2 + 50n^2 + 200n^2 = 253n^2$.
+  </Step>
+  <Step title="Read off $c$ and $n_0$">
+    The definition is satisfied with $c = 253$ and $n_0 = 1$, so the cost is $O(n^2)$. The constant 253 is ugly, but Big-O does not care how big $c$ is, only that it exists.
+  </Step>
+  <Step title="Sanity-check with numbers">
+    At $n = 1000$: $3n^2 = 3{,}000{,}000$, $50n = 50{,}000$ and the constant is $200$. The $n^2$ term is already about 98% of the total of 3,050,200.
+  </Step>
+</Steps>
+
+<DominantTerm />
+
+<Mistake title="Treating Big-O as an exact running time">
+
+Big-O only describes growth for large $n$. An algorithm that takes $500n$ steps is $O(n)$, and one that takes $3n^2 + 50n + 200$ steps is $O(n^2)$, yet the quadratic one is faster for every $n$ up to 149; only from $n = 150$ onwards does the linear one win (and then it wins forever). Also, $O(2n)$ is not "twice as slow as $O(n)$": they are the same class.
+
+</Mistake>
+
+<ExamTip>
+
+When options list expressions, keep the fastest-growing term and drop its coefficient: $O(n^2 + n \log n) = O(n^2)$, $O(4n + \log n) = O(n)$, $O(2^n + n^3) = O(2^n)$. If there are two different input sizes, such as $n$ rows and $m$ columns, keep both: $O(nm)$ or $O(n + m)$.
+
+</ExamTip>
+
+## Reading complexity off code
+
+You rarely need to count steps exactly. Five rules get you the Big-O of most code:
+
+1. A simple statement (assignment, arithmetic, a comparison, `a[i]`) is $O(1)$.
+2. A loop costs **(number of times it runs) × (cost of its body)**. A loop over $n$ items with an $O(1)$ body is $O(n)$.
+3. **Nested loops multiply.** A loop over $n$ inside a loop over $n$ is $n \times n = O(n^2)$.
+4. **Blocks one after another add.** $O(n) + O(n) = O(n)$, and $O(n) + O(n^2) = O(n^2)$: the bigger one wins.
+5. **A loop that halves (or doubles) its variable runs about $\log_2 n$ times**, so it is $O(\log n)$.
+
+The quickest way to check a guess is the **doubling test**: how does the number of steps change when $n$ doubles? Try it on six snippets:
+
+<LoopCounter />
+
+| When $n$ doubles, the steps… | Complexity |
+|---|---|
+| stay the same | $O(1)$ |
+| go up by a fixed amount (+1) | $O(\log n)$ |
+| double (×2) | $O(n)$ |
+| slightly more than double | $O(n \log n)$ |
+| multiply by 4 | $O(n^2)$ |
+| multiply by 8 | $O(n^3)$ |
+| get squared | $O(2^n)$, since $2^{2n} = (2^n)^2$ |
+
+Run the doubling test yourself. The step counts are exact, so the pattern is easy to see:
+
+<PyRunner code={doublingCode} />
+
+Each time $n$ doubles, the halving loop gains 1 step, the single loop doubles and the nested loop quadruples. (The halving loop runs 9 times for $n = 1000$, not 10, because it stops at 1: the exact count is $\log_2 n$ rounded down.)
+
+### Hidden loops inside one line
+
+Rule 1 is only true for genuinely simple statements. Many single lines of Python hide a loop:
+
+| Python operation | Cost | Why |
+|---|---|---|
+| `len(a)`, `a[i]`, `a.append(x)`, `a.pop()` | $O(1)$ | the list stores its length and jumps straight to an index |
+| `x in a`, `a.index(x)`, `a.count(x)` on a list | $O(n)$ | checks the items one by one |
+| `a.insert(0, x)`, `a.pop(0)` | $O(n)$ | every other item has to shuffle along one place |
+| `a[i:j]`, `a.copy()`, `a + b` | $O(k)$ for $k$ items copied | builds a new list |
+| `sorted(a)`, `a.sort()` | $O(n \log n)$ | a clever sort called Timsort |
+| `x in s` for a set, `d[key]` for a dict | $O(1)$ on average | hashing (next lesson) |
+
+So a single loop containing `if q in items:` is really a loop inside a loop when `items` is a list: $O(n^2)$, not $O(n)$. Turning `items` into a set brings it back to $O(n)$. You can feel the difference:
+
+<PyRunner code={timingCode} />
+
+Your times will differ from anyone else's, but the set wins by a factor of hundreds or thousands every time.
+
+<QuickCheck
+  q="What is the time complexity of this code, in terms of $n$?"
+  code={nestedHalvingCode}
+  options={['$O(n)$', '$O(\\log n)$', '$O(n \\log n)$', '$O(n^2)$']}
+  answer={2}
+  explain="The inner `while` loop halves `j` from $n$ down to 1, so it runs about $\log_2 n$ times. It sits inside a loop that runs $n$ times, and nested loops multiply: $n \times \log n = O(n \log n)$. $O(n^2)$ would need the inner loop to run $n$ times, not $\log n$ times."
+/>
+
+## Time versus space
+
+Memory can grow with $n$ too. The <Term def="How the EXTRA memory an algorithm needs (beyond its input) grows with the input size n.">space complexity</Term> of an algorithm describes how the **extra** memory it needs grows with $n$. We don't count the input itself, only what the algorithm creates: new lists, sets, dicts, tables, copies.
+
+The two are often a trade. Here are two correct ways to check whether a list contains a repeated number:
+
+<SpaceVsTime />
+
+Comparing every pair uses $O(n^2)$ time but only $O(1)$ extra space: whatever the size of the list, it only remembers two positions, `i` and `j`. Keeping a set of the numbers seen so far uses $O(n)$ time but $O(n)$ extra space, because the set can grow to hold all $n$ numbers. Spending memory to save time is one of the most common moves in computing: <Term def="Kept answers that have already been worked out, so they can be looked up instead of computed again.">caches</Term>, hash tables and dynamic programming (later in this module) all do it.
+
+<Mistake title="Counting the input as extra space">
+
+A function that sums a list of $n$ numbers uses $O(1)$ extra space, even though the list has $n$ items: it only creates the running total. But `sorted(nums)` builds a brand-new list of $n$ items, so it needs $O(n)$ extra space.
+
+</Mistake>
+
+## Big-O in AI
+
+Every big idea in this module shows up inside AI systems, and Big-O is how you reason about what is feasible:
+
+- **Matrix multiplication.** Multiplying two $n \times n$ matrices fills $n^2$ output entries, and each entry is a sum of $n$ products, so it takes $n^2 \times n = n^3$ multiplications: $O(n^3)$.
+- **Self-attention.** A Transformer compares every token in a sequence with every other token, producing a table of $n \times n$ scores for a sequence of $n$ tokens. So time and memory grow as $O(n^2)$: a context twice as long costs four times as much attention work. This is why long contexts are expensive.
+
+<PastPaperQuestion paper="prelim2026" n={219} />
+
+- **Newton's method versus gradient descent.** For a model with $p$ parameters, Newton's method needs the <Term def="A p × p table of second derivatives: one row and one column for every parameter of the model.">Hessian</Term>, which has $p \times p$ entries, and then has to invert it (or solve equations with it), which costs about $p^3$ steps. For $p = 10{,}000$ that is $10^{12}$ steps for **every** update, and for a model with a billion parameters it is hopeless. Gradient descent only needs the $p$ numbers of the gradient.
+
+<PastPaperQuestion paper="prelim2026" n={45} />
+
+<ExamTip>
+
+With no calculator and about 36 seconds a question, rely on scaling instead of arithmetic. Memorise $2^{10} \approx 10^3$, so $\log_2$ of a thousand, a million and a billion are about 10, 20 and 30. If $n$ grows $k$ times, an $O(n)$ cost grows $k$ times, $O(n^2)$ grows $k^2$ times and $O(n^3)$ grows $k^3$ times.
+
+</ExamTip>
+
+<Takeaways>
+
+- Big-O describes how the number of steps grows with the input size $n$, usually in the worst case, ignoring constant factors and smaller terms.
+- Ranking: $O(1) < O(\log n) < O(n) < O(n \log n) < O(n^2) < O(2^n)$. Halving gives $\log n$; doubling $n$ adds one step.
+- Loops multiply when nested and add when one follows another. Watch for hidden loops such as `x in list`.
+- The doubling test reads complexity from step counts: ×2 is linear, ×4 is quadratic, +1 is logarithmic.
+- Space complexity counts extra memory. You can often buy time with memory, as a set does when it remembers what it has seen.
+
+</Takeaways>

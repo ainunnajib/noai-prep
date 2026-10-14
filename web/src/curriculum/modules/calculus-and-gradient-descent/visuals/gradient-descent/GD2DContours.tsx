@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Path, Dots, Arrow, Label, DraggablePoint, Axes, usePlot } from '../../../../../kit'
-import { useNarrow } from './useNarrow'
+import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Path, Dots, Arrow, Label, DraggablePoint, Axes, usePlot, useNarrow } from '../../../../../kit'
 
 /*
   Gradient descent on a two-parameter quadratic bowl

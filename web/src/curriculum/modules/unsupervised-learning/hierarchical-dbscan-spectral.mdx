@@ -1,3 +1,289 @@
-{/* stub: lesson 'Hierarchical, DBSCAN and spectral clustering' is being written */}
+import DendrogramCutter from './visuals/hierarchical-dbscan-spectral/DendrogramCutter'
+import DBSCANExplorer from './visuals/hierarchical-dbscan-spectral/DBSCANExplorer'
+import LaplacianToy from './visuals/hierarchical-dbscan-spectral/LaplacianToy'
+import SpectralGraph from './visuals/hierarchical-dbscan-spectral/SpectralGraph'
 
-This lesson is being written.
+export const spectralCode = `import numpy as np
+from sklearn.datasets import make_circles
+from sklearn.cluster import KMeans
+
+X, y = make_circles(n_samples=200, factor=0.4, noise=0.05, random_state=0)
+
+# 1. similarity graph: connect points closer than r = 0.3
+D = np.linalg.norm(X[:, None, :] - X[None, :, :], axis=2)
+W = ((D < 0.3) & (D > 0)).astype(float)
+
+# 2. Laplacian L = D - W (degrees on the diagonal)
+L = np.diag(W.sum(axis=1)) - W
+
+# 3. eigenvalues (ascending) and eigenvectors
+vals, vecs = np.linalg.eigh(L)
+vals = np.clip(vals, 0, None)        # rounding can give -0.0
+print("smallest eigenvalues:", np.round(vals[:4], 3))
+
+# 4. K-means on the rows of the first 2 eigenvectors
+U = vecs[:, :2]
+labels = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(U)
+acc = max((labels == y).mean(), (labels != y).mean())
+print(f"spectral: {acc:.2f} of points in the right ring")
+
+raw = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(X)
+acc = max((raw == y).mean(), (raw != y).mean())
+print(f"K-means on raw points: {acc:.2f}")`
+
+export const compareCode = `from sklearn.datasets import make_moons
+from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, SpectralClustering
+from sklearn.metrics import adjusted_rand_score
+
+X, y = make_moons(n_samples=200, noise=0.06, random_state=0)
+
+models = {
+    "K-means": KMeans(n_clusters=2, n_init=10, random_state=0),
+    "Agglomerative (single)": AgglomerativeClustering(n_clusters=2, linkage="single"),
+    "Agglomerative (ward)": AgglomerativeClustering(n_clusters=2, linkage="ward"),
+    "DBSCAN": DBSCAN(eps=0.2, min_samples=5),
+    "Spectral": SpectralClustering(n_clusters=2, affinity="nearest_neighbors",
+                                   n_neighbors=10, random_state=0),
+}
+for name, model in models.items():
+    labels = model.fit_predict(X)
+    n_noise = int((labels == -1).sum())
+    print(f"{name:24s} ARI = {adjusted_rand_score(y, labels):.2f}   noise points: {n_noise}")`
+
+K-means pictures every cluster as a round ball around a centre. Real data is often a chain, a crescent, a ring or a crowd with stragglers around it. This lesson gives you three other ideas of what a cluster *is*: a branch of a **family tree** of merges (hierarchical clustering), a **dense crowd** (DBSCAN), and a **well-connected group** in a network of similar points (spectral clustering). All three are on the IOAI syllabus, and NOAI asks which one fits which data.
+
+## Hierarchical clustering: build a family tree
+
+<Analogy title="A family tree, read upside down">
+
+Start with individuals. The two closest relatives (siblings) join into a family, families join into extended families, and those join into clans, until everyone belongs to one big tree. Reading the tree at different heights gives different groupings: siblings, families or clans. You never had to decide in advance how many groups you wanted.
+
+</Analogy>
+
+<Term def="Clustering that builds a tree of nested clusters. The bottom-up (agglomerative) version starts with every point alone and keeps merging the two closest clusters.">Agglomerative clustering</Term> works bottom-up:
+
+1. **Start** with every point as its own cluster: $n$ points, $n$ clusters.
+2. **Merge** the two closest clusters into one, and write down the distance at which they merged (the **merge height**).
+3. **Repeat** until only one cluster is left. That takes exactly $n - 1$ merges.
+
+Step 2 needs a rule for the distance between two **groups** of points. That rule is the <Term def="The rule for measuring the distance between two clusters in hierarchical clustering: closest pair (single), farthest pair (complete), average of all pairs (average), or the increase in within-cluster squared distance (Ward).">linkage</Term>. For clusters $A$ and $B$, write $d(a, b)$ for the distance between a point $a$ in $A$ and a point $b$ in $B$:
+
+- **Single linkage**: $\min_{a, b}\, d(a, b)$, the distance between the **closest** pair, one point from each cluster.
+- **Complete linkage**: $\max_{a, b}\, d(a, b)$, the distance between the **farthest** pair.
+- **Average linkage**: $\frac{1}{|A|\,|B|} \sum_{a, b} d(a, b)$, the average over all $|A| \times |B|$ pairs ($|A|$ is the number of points in $A$).
+- **Ward linkage** (scikit-learn's default) merges the pair of clusters that increases the total within-cluster squared distance, the inertia from K-means, the least.
+
+The whole merge history is drawn as a <Term def="A tree diagram of hierarchical clustering. Leaves at the bottom are the data points; each merge is drawn as a link at a height equal to the distance at which the two clusters merged.">dendrogram</Term>: the points are leaves along the bottom, and each merge is a ∩-shaped link drawn at its merge height. To get clusters, **cut** the tree with a horizontal line. Every vertical line the cut crosses is one cluster.
+
+<DendrogramCutter />
+
+<Steps title="Single linkage by hand: points 1, 2, 5, 9, 11 on a number line">
+  <Step title="Merge 1, height 1">
+    The closest pair is $1$ and $2$ (distance 1). Clusters: $\{1, 2\}, \{5\}, \{9\}, \{11\}$.
+  </Step>
+  <Step title="Merge 2, height 2">
+    Next closest: $9$ and $11$ (distance 2). Clusters: $\{1, 2\}, \{5\}, \{9, 11\}$.
+  </Step>
+  <Step title="Merge 3, height 3">
+    Single linkage uses the closest pair. $\{1, 2\}$ to $\{5\}$: closest pair $2$ and $5$, distance 3. $\{5\}$ to $\{9, 11\}$: distance 4. So $\{1, 2\}$ and $\{5\}$ merge at height 3.
+  </Step>
+  <Step title="Merge 4, height 4">
+    $\{1, 2, 5\}$ to $\{9, 11\}$: the closest pair is $5$ and $9$, distance 4. Everything is now one cluster.
+  </Step>
+  <Step title="Cut the tree">
+    The merge heights are 1, 2, 3, 4. A cut at height 2.5 sits above the first two merges and below the last two, so it leaves $5 - 2 = 3$ clusters: $\{1, 2\}, \{5\}, \{9, 11\}$.
+  </Step>
+</Steps>
+
+With **complete** linkage the first two merges are the same, but then $\{1, 2\}$ to $\{5\}$ is $\max(4, 3) = 4$ and $\{5\}$ to $\{9, 11\}$ is $\max(4, 6) = 6$, so $\{1, 2, 5\}$ forms at height 4, and the final merge is at $11 - 1 = 10$. Same first steps, a different tree.
+
+<QuickCheck
+  q="Clusters $A = \{1, 2\}$ and $B = \{5, 6\}$ lie on a number line. What is their **complete**-linkage distance?"
+  options={['5', '3', '4', '16']}
+  answer={0}
+  explain="Complete linkage uses the **farthest** pair: $6 - 1 = 5$. The closest pair ($5 - 2 = 3$) gives the single-linkage distance. The four pair distances $4, 5, 3, 4$ add up to 16, and their average, $16 / 4 = 4$, is the average-linkage distance."
+/>
+
+<Mistake title="Single linkage chains">
+
+Because single linkage only needs **one** close pair, a few "bridge" points between two groups can join them into one long, straggly cluster. In the visual, point O links the left and bottom groups long before either joins the right group. Complete and average linkage resist chaining and give more compact clusters (complete linkage is more easily pulled around by outliers).
+
+</Mistake>
+
+Hierarchical clustering has no random start, so it gives the same tree every time, and you choose the number of clusters **after** seeing the tree. The price is speed: it compares every pair of points, so the work grows at least with $n^2$, which is fine for thousands of points and too slow for millions. A merge can also never be undone, even if it later looks like a mistake.
+
+## DBSCAN: clusters are dense regions
+
+<Analogy title="Spotting crowds at a festival">
+
+From a drone above the NDP crowd, you call any tightly packed patch of people a crowd, however oddly shaped it is. Someone standing at the edge of a crowd still belongs to it. A person standing alone in the middle of the field is not in any crowd. You never had to say in advance how many crowds there would be.
+
+</Analogy>
+
+<Term def="Density-Based Spatial Clustering of Applications with Noise: grows clusters through regions where points are packed closely together and labels isolated points as noise.">DBSCAN</Term> has two settings:
+
+- **eps** ($\varepsilon$, "epsilon"): the radius of each point's neighbourhood.
+- **min_samples**: how many points (counting the point itself, as scikit-learn does) must lie within eps for the neighbourhood to count as dense.
+
+Every point then gets one of three roles:
+
+- A <Term def="In DBSCAN, a point with at least min_samples points (counting itself) within distance eps.">core point</Term> has at least min_samples points within eps.
+- A <Term def="In DBSCAN, a point that is not a core point but lies within eps of a core point, so it joins that core point's cluster.">border point</Term> is not core, but lies within eps of a core point.
+- A <Term def="In DBSCAN, a point that is neither core nor border: it lies in a sparse region and belongs to no cluster (label -1 in scikit-learn).">noise point</Term> is neither. scikit-learn labels it $-1$.
+
+A cluster is a chain of core points, each within eps of the next, plus the border points around them. The algorithm floods outwards: start at an unvisited core point, add all its neighbours, keep expanding from every new core point, and stop when the cluster cannot grow. Then start again from the next unvisited core point.
+
+<DBSCANExplorer />
+
+<Steps title="DBSCAN by hand: points 1, 2, 3, 6, 7, 8, 8.5, 12 with eps = 1, min_samples = 3">
+  <Step title="Count neighbours within 1 (including the point itself)">
+
+| point | neighbours within 1 | count | role |
+|---|---|---|---|
+| 1 | 1, 2 | 2 | border (2 is a core point within 1) |
+| 2 | 1, 2, 3 | 3 | **core** |
+| 3 | 2, 3 | 2 | border |
+| 6 | 6, 7 | 2 | border |
+| 7 | 6, 7, 8 | 3 | **core** |
+| 8 | 7, 8, 8.5 | 3 | **core** |
+| 8.5 | 8, 8.5 | 2 | border |
+| 12 | 12 | 1 | noise |
+
+  </Step>
+  <Step title="Connect core points">
+    Core points 7 and 8 are within 1 of each other, so they are in the same cluster. Core point 2 is far from both, so it starts a cluster of its own.
+  </Step>
+  <Step title="Result">
+    Cluster 1: $\{1, 2, 3\}$. Cluster 2: $\{6, 7, 8, 8.5\}$. Noise: 12. DBSCAN found two clusters without being told how many to look for.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+DBSCAN defines a cluster by **density**, not by distance to a centre: dense regions connected by core points become clusters, of **any shape**, and isolated points become **noise**. You set eps and min_samples instead of k.
+
+</KeyIdea>
+
+Raising eps (or lowering min_samples) makes more points core, so clusters grow and merge and fewer points are noise. Lowering eps does the opposite: clusters break up and more points become noise. A common way to choose eps is to sort every point's distance to its $k$-th nearest neighbour ($k$ = min_samples) and pick the distance where that curve bends sharply upwards.
+
+DBSCAN's weak spot is **one eps for the whole dataset**. In **Mixed density** above, two tight blobs sit close together and a third blob is spread out. An eps small enough to keep the tight pair apart (about 0.4 or less) turns most of the spread-out blob into noise, and an eps large enough to hold the spread-out blob together (about 0.7) also merges the tight pair. No single eps gets all three right. Extensions such as HDBSCAN and OPTICS handle varying density. Like every distance-based method, DBSCAN also works less well in very high dimensions, where all distances look alike.
+
+<PastPaperQuestion paper="prelim2026" n={260} />
+
+<ExamTip>
+
+Among the options above, DBSCAN is the right answer: K-means assumes round clusters of similar spread, and the regressions are not clustering methods at all. Exam questions pair DBSCAN with **arbitrary shapes**, **noise/outliers** and **no need to choose k**. If a question asks what DBSCAN *struggles* with, the answer is clusters of **very different densities** (and choosing eps).
+
+</ExamTip>
+
+## Spectral clustering: cluster the graph
+
+<Analogy title="WhatsApp groups, not seating plans">
+
+To find the friend groups in a class, you could look at where everyone sits (that is K-means: distance to a centre). Or you could look at who messages whom. Two students at opposite ends of the room can be in the same tight group chat. Spectral clustering looks at the **connections**: a group is a set of people with many links among themselves and few links to everyone else.
+
+</Analogy>
+
+<Term def="Clustering that builds a similarity graph of the data, uses eigenvectors of the graph Laplacian to give each point new coordinates, and runs K-means in that space.">Spectral clustering</Term> has four steps.
+
+**1. Build a similarity graph.** Every point is a node. Similar points are joined by an edge with a weight $w_{ij}$: for example $w_{ij} = 1$ if points $i$ and $j$ are closer than some radius $r$ (or are among each other's nearest neighbours) and $0$ otherwise, or a smooth weight such as $w_{ij} = e^{-\lVert x_i - x_j \rVert^2 / (2\sigma^2)}$ that is near 1 for close points and near 0 for far ones.
+
+**2. Build the graph Laplacian.** Put the weights in a matrix $W$. The <Term def="The total weight of the edges attached to a node: d_i = sum over j of w_ij.">degree</Term> of node $i$ is $d_i = \sum_j w_{ij}$, and $D$ is the diagonal matrix of degrees. The <Term def="The matrix L = D - W of a graph: node degrees on the diagonal, minus the edge weights off the diagonal. Its eigenvectors with small eigenvalues reveal well-connected groups.">graph Laplacian</Term> is
+
+$$
+L = D - W
+$$
+
+so it has each node's degree on the diagonal and $-w_{ij}$ off the diagonal. Every row adds up to 0.
+
+**3. Find the eigenvectors with the smallest eigenvalues.** An eigenvector $v$ of $L$ is a list of numbers, one per node, with $Lv = \lambda v$. Three facts make them useful:
+
+- The constant vector $(1, 1, \dots, 1)$ always has eigenvalue $\lambda_1 = 0$, because every row of $L$ adds up to 0.
+- For any vector $v$, $\;v^\top L v = \sum_{\text{edges } i\text{–}j} w_{ij}\,(v_i - v_j)^2$. This is small when nodes joined by strong edges get **similar** numbers. The eigenvectors with the smallest eigenvalues are exactly the "smoothest" ways to give every node a number.
+- If the graph falls into $c$ separate pieces, $L$ has exactly $c$ zero eigenvalues, and their eigenvectors are constant on each piece. If the pieces are joined by only a few weak edges, the eigenvalues are close to 0 and the eigenvectors are nearly constant on each group.
+
+**4. Cluster the new coordinates.** Give each point the entries of the first $k$ eigenvectors as its new coordinates and run K-means on them. For two clusters, the second eigenvector alone (the <Term def="The eigenvector of the second-smallest eigenvalue of the graph Laplacian. Its signs (or a split of its values) divide a graph into two well-separated groups.">Fiedler vector</Term>) is enough: split its values into a high group and a low group.
+
+<Steps title="Check it by hand: two pairs, A–B and C–D">
+  <Step title="Build W and L">
+    Edges A–B and C–D, weight 1 each, and no edge between the pairs. Every node has degree 1, so
+    $L = \begin{pmatrix} 1 & -1 & 0 & 0 \\ -1 & 1 & 0 & 0 \\ 0 & 0 & 1 & -1 \\ 0 & 0 & -1 & 1 \end{pmatrix}$.
+  </Step>
+  <Step title="The constant vector has eigenvalue 0">
+    $L \cdot (1, 1, 1, 1) = (1 - 1,\; -1 + 1,\; 1 - 1,\; -1 + 1) = (0, 0, 0, 0)$.
+  </Step>
+  <Step title="So does the vector that labels the pieces">
+    $L \cdot (1, 1, -1, -1) = (1 - 1,\; -1 + 1,\; -1 + 1,\; 1 - 1) = (0, 0, 0, 0)$. A second zero eigenvalue means a second piece, and the signs $+, +, -, -$ say which nodes are in which piece.
+  </Step>
+  <Step title="Add a weak link">
+    Join B and C with weight 0.1. Now $\lambda_2 \approx 0.095$, small but no longer 0, and the Fiedler vector is about $(0.52, 0.47, -0.47, -0.52)$: still positive on A, B and negative on C, D. The weak link barely changes the answer.
+  </Step>
+</Steps>
+
+<LaplacianToy />
+
+<SpectralGraph />
+
+<KeyIdea>
+
+Spectral clustering turns data into a **graph** of similar points, then uses the **eigenvectors of the Laplacian** $L = D - W$ with the smallest eigenvalues to give each point new coordinates in which well-connected groups are easy to separate. It follows **connectivity**, so it finds rings and moons that are connected but not round.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={25} />
+
+<Note>
+
+Real libraries usually use a **normalised** Laplacian, such as $I - D^{-1/2} W D^{-1/2}$, which copes better with groups of different sizes; the idea is the same. Spectral clustering still needs you to choose $k$ and a good similarity (the radius, $\sigma$ or number of neighbours), and an eigen-decomposition of an $n \times n$ matrix is slow for very large $n$. It is used in practice: at IOAI 2025, the reference solution to a task on telling authentic paintings from replicas, where most labels were missing, began with spectral clustering.
+
+</Note>
+
+## In code
+
+Spectral clustering from scratch on two rings: four lines for the graph, the Laplacian and the eigenvectors, then K-means on the new coordinates. Two separate rings give two zero eigenvalues.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={spectralCode} />
+
+```text
+smallest eigenvalues: [0.    0.    0.111 0.115]
+spectral: 1.00 of points in the right ring
+K-means on raw points: 0.51
+```
+
+All four methods on the same two moons. The <Term def="Adjusted Rand index: a score comparing a clustering with the true groups. 1 means a perfect match, about 0 means no better than random labels.">adjusted Rand index</Term> (ARI) compares a clustering with the true groups: 1 is a perfect match and about 0 is no better than random.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={compareCode} />
+
+```text
+K-means                  ARI = 0.26   noise points: 0
+Agglomerative (single)   ARI = 1.00   noise points: 0
+Agglomerative (ward)     ARI = 0.25   noise points: 0
+DBSCAN                   ARI = 1.00   noise points: 0
+Spectral                 ARI = 1.00   noise points: 0
+```
+
+Ward linkage fails here for the same reason as K-means: it also minimises squared distance to cluster centres. Single linkage succeeds because each moon is one unbroken chain of close points.
+
+## Which method when?
+
+| method | choose k first? | good at | weak spot |
+|---|---|---|---|
+| K-means | yes | round blobs of similar size | curves, rings, uneven groups, outliers |
+| Hierarchical | no: cut the tree later | a whole hierarchy of groups | slow on big data; single linkage chains |
+| DBSCAN | no | any shape, and it labels noise | very different densities; choosing eps |
+| Spectral | yes | connected shapes such as rings and moons | slow on big data; needs a good similarity graph |
+
+<ExamTip>
+
+Match the keyword to the method. "Arbitrary shapes", "outliers" or "noise", "number of clusters unknown": **DBSCAN**. "Dendrogram", "linkage", "merge the two closest clusters": **hierarchical**. "Graph Laplacian", "eigenvectors", "similarity graph", "connectivity": **spectral**. "Centroids", "inertia", "elbow": **K-means**. For dendrogram questions: number of clusters = number of vertical lines the cut crosses = $n$ minus the number of merges below the cut.
+
+</ExamTip>
+
+<Takeaways>
+
+- **Agglomerative clustering** starts with every point alone and repeatedly merges the two closest clusters; the **linkage** (single = closest pair, complete = farthest pair, average, Ward) defines "closest". **Cutting the dendrogram** at a height chooses the clusters.
+- **DBSCAN**: core points have at least min_samples points within eps; border points are near a core point; the rest is **noise**. It finds any shape and needs no k, but one eps struggles with **varying density**.
+- **Spectral clustering** builds a similarity graph, takes eigenvectors of the Laplacian $L = D - W$ with the smallest eigenvalues, and runs K-means on them. The number of zero eigenvalues equals the number of separate pieces.
+- Choose the method whose idea of a cluster (centre, tree, density or connectivity) matches your data.
+
+</Takeaways>

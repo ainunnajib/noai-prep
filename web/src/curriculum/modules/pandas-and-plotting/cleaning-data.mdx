@@ -1,3 +1,205 @@
-{/* stub: lesson 'Cleaning data: missing values, types and duplicates' is being written */}
+import MissingMap from './visuals/cleaning-data/MissingMap'
+import NaNFixer from './visuals/cleaning-data/NaNFixer'
+import DtypeDoctor from './visuals/cleaning-data/DtypeDoctor'
 
-This lesson is being written.
+Real data is messy. Sellers leave boxes blank, a sensor goes offline, prices arrive as the text `"450,000"`, and the same row gets entered twice. Some of these make your code crash, which is annoying but honest. The others give you a believable wrong answer, which is worse. This lesson is the ten-minute check-and-fix routine that comes before any model sees the data.
+
+## Finding the holes
+
+<Analogy>
+Before working out the class attendance rate, a teacher scans the register for blank boxes. Three blanks scattered across the term are a small fix. A column that is blank for most of the class (say, a CCA that only two students joined) is a different decision altogether. You look at the pattern of blanks first, and only then decide what to do.
+</Analogy>
+
+pandas marks a missing number as <Term def="Not a Number: a special floating-point value that pandas and NumPy use to mean 'missing'. Any arithmetic with NaN gives NaN.">NaN</Term> ("Not a Number"). Missing text may show up as `None` or `NaN`, and a missing date as `NaT` ("Not a Time"). pandas treats all of them as missing.
+
+To find them, `df.isna()` gives a table the same shape as `df`, with `True` wherever a value is missing. Python counts `True` as 1 and `False` as 0, so:
+
+- `df.isna().sum()` adds down each column: the **number** of missing values per column.
+- `df.isna().mean()` averages down each column: the **fraction** missing (number missing ÷ number of rows).
+- `df.isna().sum().sum()` adds those up again: the total for the whole table.
+
+`df.info()` from the last lesson shows the same thing from the other side, as non-null counts.
+
+<MissingMap />
+
+Why bother? Because missing values spread quietly:
+
+```python
+import numpy as np
+import pandas as pd
+
+s = pd.Series([30.0, np.nan, 31.0])
+print(s + 1)                 # arithmetic with NaN gives NaN
+print(s.mean())              # pandas skips NaN when it averages
+print(np.mean(s.to_numpy())) # NumPy does not
+print(np.nan == np.nan)      # NaN is not even equal to itself
+```
+
+```text
+0    31.0
+1     NaN
+2    32.0
+dtype: float64
+30.5
+nan
+False
+```
+
+pandas' `mean()` and `sum()` skip NaN by default, so your summary looks fine while the gaps are still there. NumPy returns `nan` instead, and scikit-learn models such as `LinearRegression` refuse to train at all: `fit` stops with `ValueError: Input X contains NaN.` You have to deal with the gaps yourself.
+
+<Mistake>
+Testing for missing values with `df['area'] == np.nan`. Because NaN is not equal to anything, not even another NaN, this is False for every row and finds nothing. Use `df['area'].isna()`.
+</Mistake>
+
+<QuickCheck
+  q="A weather table has 7 rows. `df.isna().sum()` prints `temp 3, rain 0, humid 1, uv 4`. Which statement is true?"
+  options={['`df.dropna()` keeps at most 3 rows', '`df.dropna()` removes the `uv` column', '`df.isna().mean()` shows 3 for `temp`', '`df.dropna(axis=1)` removes `rain`']}
+  answer={0}
+  explain="`uv` alone is missing in 4 of the 7 rows, and `dropna()` removes every **row** with any gap, so at most 7 − 4 = 3 rows survive (in fact only 1 does, because the other gaps fall on different days). `dropna()` never removes columns, `mean()` gives the fraction 3/7 ≈ 0.43 rather than the count, and `rain` has no gaps, so it is the one column `dropna(axis=1)` keeps."
+/>
+
+## Three ways to fix a gap: drop, fill or estimate
+
+<Analogy>
+A student missed one homework. To work out the class average you could leave that student out (drop), give them the class median mark (fill), or estimate their mark from the homeworks just before and after (interpolate). Each is a reasonable choice in some situations and a bad one in others.
+</Analogy>
+
+Two pieces of jargon you will meet in exam questions: keeping only the rows with no gaps at all is called <Term def="Analysing only the rows (samples) that have no missing values at all; every incomplete row is thrown away. In pandas: df.dropna().">complete-case analysis</Term>, and filling a gap with an estimated value (a median, the previous reading, a value on a line) is called <Term def="Replacing missing values with estimated ones, such as the column mean or median, the previous value, or an interpolated value.">imputation</Term>.
+
+| Code | What it does | Good for |
+|---|---|---|
+| `df.dropna()` | removes every **row** that has any NaN | few gaps, plenty of rows |
+| `df.dropna(axis=1)` | removes every **column** that has any NaN | a column that is mostly empty |
+| `df.dropna(subset=['temp'])` | removes rows where `temp` is missing, ignores other columns | when only some columns matter |
+| `df.fillna(0)` | replaces NaN with a constant | when the constant truly means something (0 mm of rain) |
+| `df['c'].fillna(df['c'].median())` | replaces NaN with that column's median | numbers in no particular order |
+| `df.ffill()` | copies the last known value forward | time series that change slowly |
+| `df.interpolate()` | draws a straight line between the neighbours | smooth time series |
+
+Each of these returns a **new** DataFrame and leaves `df` unchanged, so remember to keep the result: `df = df.dropna()`.
+
+Try them all on a week of readings from a weather station. Watch two things: how the **shape** changes and how the **means** move.
+
+<NaNFixer />
+
+Dropping loses real data; filling invents data. You can see which one a method did from the shape alone: if the shape shrinks, data was lost; if it stays the same, gaps were filled with made-up values.
+
+### How interpolate fills a gap
+
+For a gap at row $t$ with known values $y_0$ at row $t_0$ before it and $y_1$ at row $t_1$ after it, linear interpolation uses
+
+$$
+y = y_0 + (y_1 - y_0)\,\frac{t - t_0}{t_1 - t_0}
+$$
+
+In words: start from the value before the gap, $y_0$; the whole change across the gap is $y_1 - y_0$; and $\frac{t - t_0}{t_1 - t_0}$ is the fraction of the way through the gap that row $t$ sits. With one gap between two equally spaced neighbours, that fraction is $\frac{1}{2}$, so the gap gets the average of its two neighbours.
+
+<Steps title="Interpolating Thursday to Sunday by hand">
+  <Step title="Find the known neighbours">
+    Thursday (row 3) is 32.0 °C and Sunday (row 6) is 30.5 °C. Friday (row 4) and Saturday (row 5) are missing.
+  </Step>
+  <Step title="Work out the step per row">
+    The total change is $30.5 - 32.0 = -1.5$ over $6 - 3 = 3$ rows, so each row changes by $-1.5 / 3 = -0.5$.
+  </Step>
+  <Step title="Walk along the line">
+    Friday $= 32.0 - 0.5 = 31.5$ and Saturday $= 32.0 - 2 \times 0.5 = 31.0$. Check with the formula: for Saturday, $32.0 + (-1.5) \times \frac{5 - 3}{6 - 3} = 32.0 - 1.0 = 31.0$.
+  </Step>
+  <Step title="Compare with ffill">
+    `ffill()` would copy 32.0 into both days instead, making Friday and Saturday hotter than either real neighbour.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="The `price` column has two gaps and one 1,500,000 flat among otherwise 400,000 to 450,000 flats. The known prices are 400000, 420000, 450000 and 1500000. Which fill keeps the filled prices typical?"
+  options={["`df['price'].fillna(df['price'].median())`, which fills 435000", "`df['price'].fillna(df['price'].mean())`, which fills 692500", "`df['price'].fillna(0)`, which fills 0", "`df['price'].ffill()`, which copies the row above"]}
+  answer={0}
+  explain="The median of 400000, 420000, 450000 and 1500000 is $(420000 + 450000)/2 = 435000$, a typical flat. The mean is $2770000/4 = 692500$, pulled up by the one expensive flat and higher than three of the four real prices. Copying the row above only makes sense when rows are in a meaningful order, such as time."
+/>
+
+### When not to fill at all
+
+Some models can cope with gaps on their own. Tree-based models such as gradient-boosted trees (XGBoost, LightGBM, and scikit-learn's `HistGradientBoostingClassifier`) accept NaN and learn which branch missing values should follow. Distance-based and linear models (k-NN, SVM, linear regression) need complete numbers, so for them you must drop or fill first.
+
+Dropping rows also gets expensive fast when gaps are scattered. If each value is missing independently with probability 0.15, a row with 20 features is complete only when all 20 are present: probability $0.85^{20} \approx 0.04$. `dropna()` would throw away about 96% of the data.
+
+<PastPaperQuestion paper="prelim2026" n={259} />
+
+<PastPaperQuestion paper="prelim2026" n={101} />
+
+<ExamTip>
+For a "what is the shape after `dropna()`?" question, go row by row and keep only the rows with **no** NaN at all; the number of columns does not change. For `dropna(axis=1)` it is the other way round: keep only columns with no NaN, and the number of rows does not change. `fillna`, `ffill` and `interpolate` never change the shape.
+</ExamTip>
+
+## Wrong types and duplicate rows
+
+<Analogy>
+At stocktake you check two things: that every price tag shows a number rather than a smudge, and that no item has been counted twice. A data table needs exactly the same checks.
+</Analogy>
+
+When pandas reads a CSV file, it gives each column one dtype. If even a single entry in a column of numbers is not a clean number, such as `"585,000"` (commas) or `"unknown"`, the whole column is stored as text, dtype `object`. Nothing crashes yet, but text behaves differently from numbers:
+
+- Text is compared letter by letter, so `"720,000"` counts as larger than `"1,050,000"` (because "7" comes after "1").
+- Text cannot be averaged: `mean()` raises a `TypeError`.
+
+Fix types with:
+
+- `df['price'].str.replace(',', '').astype(int)`: remove the commas, then convert. `astype` raises an error if any entry still is not a number.
+- `pd.to_numeric(df['area'], errors='coerce')`: convert what can be converted and turn everything else (like `"unknown"`) into NaN, which you can then handle as in the previous section.
+
+For repeated rows, `df.duplicated()` marks each row that is an exact copy of an earlier row, `df.duplicated().sum()` counts them, and `df.drop_duplicates()` removes them, keeping the first copy. A duplicated row is counted twice in every mean, count and model fit.
+
+<DtypeDoctor />
+
+<Mistake title="errors='coerce' can hide a disaster">
+`pd.to_numeric(df['price'], errors='coerce')` on prices like `"585,000"` raises no error. It silently turns **every** price into NaN, because none of them is a number while it still has commas in it. Always run `df.isna().sum()` after a conversion to see how many values it turned into NaN.
+</Mistake>
+
+<Tip>
+You can often avoid the problem when you read the file: `pd.read_csv('flats.csv', thousands=',')` reads `"585,000"` as the number 585000. Then `value_counts()` (do the categories look right?), `sort_values()` (are the smallest and largest values believable?) and `describe()` (sensible min and max?) make quick sanity checks.
+</Tip>
+
+<QuickCheck
+  q="What does `pd.to_numeric(pd.Series(['12', '7', 'n/a']), errors='coerce')` give?"
+  options={['12.0, 7.0 and NaN, with dtype float64', "A `ValueError`, because 'n/a' is not a number", '12, 7 and 0, with dtype int64', "The same three strings, with dtype object"]}
+  answer={0}
+  explain="With `errors='coerce'`, anything that cannot be converted becomes NaN instead of raising an error. Because NaN is a float, the whole result is float64: 12.0, 7.0 and NaN. The `ValueError` is what you get with the default, `errors='raise'`."
+/>
+
+Here is the whole recipe on the messy file. Run it, then break it: skip the `drop_duplicates()` line and see which numbers change.
+
+<PyRunner packages={['pandas']} code={`import io
+import pandas as pd
+
+csv = """town,area,price
+Tampines,92,"585,000"
+Bedok,67,"398,000"
+Punggol,unknown,"720,000"
+Bedok,67,"398,000"
+Bishan,121,"1,050,000"
+Yishun,73,"455,000"
+"""
+df = pd.read_csv(io.StringIO(csv))
+print(df.dtypes)
+print(df['price'].max())          # compared as text!
+
+df['price'] = df['price'].str.replace(',', '').astype(int)
+df['area'] = pd.to_numeric(df['area'], errors='coerce')
+print(df.isna().sum())            # 'unknown' became 1 NaN
+print(df.duplicated().sum())      # 1 repeated row
+df = df.drop_duplicates()
+
+print(df.dtypes)
+print(df.shape)
+print(df['price'].max(), df['price'].mean())`} />
+
+<ExamTip>
+Know the four conversion behaviours cold: `astype(int)` on `"450,000"` raises `ValueError`; `pd.to_numeric(..., errors='coerce')` turns bad entries into NaN (and makes the column float64); `drop_duplicates()` compares **whole rows** unless you pass `subset=`; and every one of these returns a new object, so assign it back.
+</ExamTip>
+
+<Takeaways>
+- Count gaps with `df.isna().sum()` (per column) or `df.isna().mean()` (fraction); test for NaN with `isna()`, never with `== np.nan`.
+- `dropna()` removes rows (or columns with `axis=1`) and changes the shape; `fillna`, `ffill` and `interpolate` fill gaps and keep the shape. Dropping loses data, filling invents it.
+- Use the median for unordered numbers with outliers, `ffill` or `interpolate` for time series, and drop a column that is mostly empty.
+- Numbers stored as text (dtype `object`) sort and compare wrongly; fix them with `str.replace` + `astype` or `pd.to_numeric(errors='coerce')`, then recount the NaNs.
+- Remove repeated rows with `drop_duplicates()` before computing anything.
+</Takeaways>

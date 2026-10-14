@@ -1,3 +1,250 @@
-{/* stub: lesson 'Your first scikit-learn model' is being written */}
+import WhatFitDoes from './visuals/first-sklearn-model/WhatFitDoes'
+import RoleSorter from './visuals/first-sklearn-model/RoleSorter'
+import SklearnRecipe from './visuals/first-sklearn-model/SklearnRecipe'
 
-This lesson is being written.
+A straight line, a k-nearest-neighbours vote and a decision tree work in very different ways, yet in **scikit-learn**, Python's standard library for classical machine learning, you use all three with the same few lines of code. This lesson gives you the words every ML question uses (features, labels, parameters, hyperparameters) and that recipe. Once you know it, you can try any classical model in a minute.
+
+<Analogy title="A new property agent learning to price HDB flats">
+
+Before she has seen any sales, the agent's guesses are wild. Then she studies hundreds of past sales. For each flat she looks at the **floor area, storey and town** (the inputs), and then at the **price it actually sold for** (the answer). Slowly she builds rules of thumb such as "every extra square metre adds about \$5,000". Nobody gave her that number: she **learned** it from the data. Some things, though, were decided before she started. Her agency says "always compare with the 5 most similar recent sales" and "keep your rules simple". She did not learn those settings. They were **chosen** for her.
+
+</Analogy>
+
+Machine learning has a name for each of these ideas. Let's meet them one at a time.
+
+## Features and labels: the data
+
+Here are five HDB resale flats, written as a table:
+
+| floor_area (m²) | storey | town | resale_price (\$k) |
+|---|---|---|---|
+| 67 | 4 | Bishan | 420 |
+| 73 | 9 | Jurong West | 450 |
+| 92 | 11 | Tampines | 530 |
+| 110 | 15 | Sengkang | 610 |
+| 122 | 7 | Punggol | 680 |
+
+- Each row is one <Term def="One example in the dataset, such as one flat, one student or one email. Also called a sample, data point or observation.">sample</Term>: one flat.
+- The columns we use as inputs are the <Term def="An input variable the model uses to make a prediction, such as floor area. Features are stored together in a table called X.">features</Term>: floor area, storey and town.
+- The column we want to predict is the <Term def="The correct answer for a sample, which the model learns to predict, such as the resale price. Also called the target. Stored as y.">label</Term> (also called the **target**): the resale price.
+
+By convention the features are stored in a table called $X$ (capital, because it is a whole table) and the labels in a list called $y$ (small, because it is a single column). With $n$ samples and $d$ features, $X$ has $n$ rows and $d$ columns, which we write as its **shape** $(n, d)$, and $y$ has $n$ entries. For the table above, $X$ has shape $(5, 3)$ and $y$ has 5 entries.
+
+Learning from examples that come with their labels is called <Term def="Learning from examples that include the correct answer (the label), so the model can compare its predictions with the truth.">supervised learning</Term>. It comes in two flavours, depending on the label:
+
+- **Regression**: the label is a number on a scale, such as a price, a temperature or a test score.
+- **Classification**: the label is a category, such as pass or fail, spam or not spam, or the flat type (3-room, 4-room, 5-room).
+
+<PastPaperQuestion paper="prelim2026" n={136} />
+
+## Parameters: what the model learns
+
+A **model** is a function that turns the features of a sample into a prediction. The simplest model for price uses one feature:
+
+$$
+\hat{y} = w \times \text{area} + b
+$$
+
+- $\hat{y}$ ("y-hat") is the model's **predicted** price. The hat means "estimate", to keep it apart from $y$, the real price.
+- $w$ is the **weight**: how many thousand dollars each extra square metre adds.
+- $b$ is the **intercept** (or bias): a fixed amount added to every prediction.
+
+The numbers $w$ and $b$ are the model's <Term def="A number inside the model that training learns from the data, such as a weight or an intercept. You never type its value yourself.">parameters</Term>. Different values give different lines, so different predictions. **Training** (scikit-learn calls it **fitting**) means choosing the parameters that make the predictions as close as possible to the real labels. "Close" is measured by a <Term def="A single number that measures how wrong the model's predictions are on the training data. Training tries to make it as small as possible.">loss</Term>. For regression the usual loss is the **mean squared error**:
+
+$$
+\text{MSE} = \frac{1}{n}\sum_{i=1}^{n} \left(y_i - \hat{y}_i\right)^2
+$$
+
+Read it from the inside out. For each flat $i$, take the error $y_i - \hat{y}_i$ (real price minus predicted price). Square it, so that misses above and below the line both count as positive and big misses count a lot. Then add up ($\sum$) the squares for all $n$ flats and divide by $n$ to get the average. A perfect line has MSE 0.
+
+Now try to do the training yourself.
+
+<WhatFitDoes />
+
+You can get close, but `fit()` finds the line with the lowest possible MSE, $w \approx 4.62$ and $b \approx 111$. Every model's training works this way: pick a loss, then search for the parameters that make it smallest. Models differ only in what their parameters look like:
+
+- **Linear models**: one weight per feature, plus an intercept.
+- **Decision trees**: the yes/no questions and their split points, such as "is area ≤ 95?".
+- **Neural networks**: millions of weights.
+
+<KeyIdea>
+
+**Parameters are learned.** Training (fitting) means searching for the parameter values that make the loss on the training data as small as possible.
+
+</KeyIdea>
+
+## Hyperparameters: what you choose
+
+Some settings cannot be learned this way, because they decide *how* the learning happens or *how flexible* the model may be. These are <Term def="A setting you choose before training, such as the learning rate, the number of neighbours k or a tree's maximum depth. Training does not change it.">hyperparameters</Term>. You meet many of them in this course:
+
+- the **learning rate** and the number of **epochs** (passes over the data) in gradient descent;
+- **k**, the number of neighbours that vote in k-nearest neighbours (`n_neighbors` in scikit-learn);
+- the **maximum depth** of a decision tree (`max_depth`).
+
+| | Parameter | Hyperparameter |
+|---|---|---|
+| Who sets it? | the training algorithm, from the data | you, before training |
+| When? | during `fit()` | when you create the model |
+| Examples | weights $w$, intercept $b$, a tree's split points | learning rate, epochs, $k$, `max_depth` |
+| In scikit-learn | read afterwards as `model.coef_`, `model.intercept_` | written in the brackets: `KNeighborsClassifier(n_neighbors=5)` |
+
+How do you choose a good hyperparameter, then? You try several values and compare how well each trained model does on data it has not seen. That is the subject of the next lesson.
+
+<RoleSorter />
+
+<QuickCheck
+  q="In k-means clustering you choose k, the number of groups. The algorithm then moves the k group centres until they sit in the middle of their points. Which of these is a parameter?"
+  options={['The positions of the group centres', 'The number of groups k', 'The number of rounds you let it run', 'The features you decided to use']}
+  answer={0}
+  explain="The centre positions are found by the algorithm from the data, so they are parameters. The number of groups k and the number of rounds are chosen by you before training: hyperparameters. Choosing the features is a design decision about the data, not something the model learns."
+/>
+
+## The scikit-learn recipe
+
+<Analogy title="Same routine at every food court stall">
+
+Chicken rice or mala, every food court stall runs the same routine. You order (and add your options, such as "less spicy" or "no ice"), the stall cooks, and you collect your food. Once you know the routine, any stall is easy. scikit-learn works the same way: **create** the model (with your options, the hyperparameters), **fit** it (the model does the work of learning) and **predict** (collect the answer).
+
+</Analogy>
+
+Here is the whole recipe for the HDB flats:
+
+```python
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()          # 1. create (settings go in the brackets)
+model.fit(X_train, y_train)         # 2. fit: learn the parameters
+y_pred = model.predict(X_new)       # 3. predict labels for new rows
+print(model.score(X_test, y_test))  # 4. score the predictions
+```
+
+- `X_train` must be **two-dimensional**, like a table: a list of rows, one row per sample, one column per feature. Even with a single feature, each row is a list: `[[67], [73], [92]]`.
+- `y_train` is one-dimensional: one label per row, `[420, 450, 530]`.
+- `fit` returns the model itself. Learned parameters are stored on the model with names that **end in an underscore**, such as `coef_` and `intercept_`. The underscore is scikit-learn's way of saying "this exists only after fitting".
+- `score` predicts the rows you give it and compares the predictions with the true labels. Regressors return <Term def="The coefficient of determination: 1 means perfect predictions, 0 means no better than always predicting the average label.">R²</Term>, where 1 is perfect. Classifiers return **accuracy**, the fraction of correct predictions.
+
+Step through the same four lines for four different tools. Switch the model and watch how little changes.
+
+<SklearnRecipe />
+
+The last tab shows the other kind of object in scikit-learn. A **transformer** such as `StandardScaler` does not predict anything; it rewrites the features. It follows the matching recipe:
+
+- `fit(X)` learns what it needs from the training data (here the mean and standard deviation of each feature).
+- `transform(X)` applies it to any data.
+- `fit_transform(X)` does both in one call, and is meant for the training data only.
+
+<KeyIdea>
+
+Every scikit-learn model follows **create → fit → predict → score**. Hyperparameters go in when you **create** the model; parameters come out of **fit** (with names ending in `_`). Transformers use **fit → transform** instead.
+
+</KeyIdea>
+
+## Worked example: predict the output
+
+NOAI questions often show a short program and ask what it prints, with no computer to check. Try this one before reading the steps.
+
+```python
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+model.fit([[1], [2], [3]], [5, 7, 9])
+print(model.predict([[10]]))
+```
+
+<Steps title="Reading the code by hand">
+  <Step title="Look at the data">
+    The feature values are 1, 2, 3 and the labels are 5, 7, 9. Each step of 1 in $x$ adds 2 to $y$, and $5 = 2 \times 1 + 3$. So every point lies exactly on the line $y = 2x + 3$.
+  </Step>
+  <Step title="What does fit learn?">
+    `fit` finds the line with the smallest MSE. A line through every point has MSE 0, which cannot be beaten, so it learns `coef_` $= [2]$ and `intercept_` $= 3$. (Python may print the intercept as `3.000000000000001`: computers store decimals with tiny rounding errors.)
+  </Step>
+  <Step title="What does predict return?">
+    $\hat{y} = 2 \times 10 + 3 = 23$. `predict` returns a NumPy array of floats, one per row, so it prints `[23.]`.
+  </Step>
+  <Step title="Trap: one pair of brackets">
+    `model.predict([10])` crashes with `ValueError: Expected 2D array, got 1D array instead`. A single sample still needs to be a table with one row: `[[10]]`.
+  </Step>
+</Steps>
+
+Now run the HDB example yourself. Change the 100 to another floor area, or add a flat to the training data, and run it again.
+
+<PyRunner packages={['scikit-learn']} code={`from sklearn.linear_model import LinearRegression
+
+# Training data: 6 HDB flats
+X_train = [[67], [73], [92], [95], [110], [122]]   # floor area (m²)
+y_train = [420, 450, 530, 560, 610, 680]           # price ($k)
+
+model = LinearRegression()        # 1. create
+model.fit(X_train, y_train)       # 2. fit: learn the parameters
+
+print("w (coef_):", model.coef_)
+print("b (intercept_):", model.intercept_)
+print("prediction for 100 m²:", model.predict([[100]]))   # 3. predict
+
+X_test = [[84], [104]]            # 2 flats the model has never seen
+y_test = [500, 585]
+print("R² on test flats:", model.score(X_test, y_test))   # 4. score`} />
+
+To switch models, change only the import and the line that creates the model. This loop runs the same recipe on two classifiers, using the pass/fail data from the stepper above:
+
+<PyRunner packages={['scikit-learn']} code={`from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+
+# [hours revised, hours slept] for 12 students; label 1 = pass, 0 = fail
+X_train = [[1, 7], [2, 4], [2.5, 8], [3, 6], [3.5, 4.5], [5, 8],
+           [6, 7], [7, 5], [8, 3.5], [8, 8], [4.5, 7.5], [9, 6]]
+y_train = [0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1]
+X_test = [[2.2, 5.6], [5.6, 6.2], [7.4, 4.2], [3.6, 7.2]]
+y_test = [0, 1, 0, 0]
+
+for model in [KNeighborsClassifier(n_neighbors=3),
+              DecisionTreeClassifier(max_depth=2)]:
+    model.fit(X_train, y_train)          # same recipe for both
+    print(model)
+    print("  new student [6, 5] ->", model.predict([[6, 5]]))
+    print("  test accuracy:", model.score(X_test, y_test))`} />
+
+<Mistake title="Three classic slips">
+
+- **One pair of brackets.** `X` must be 2-D even for one feature or one sample: `[[100]]`, not `[100]`. With a NumPy array `x` of shape `(n,)`, write `x.reshape(-1, 1)`.
+- **Predicting before fitting.** A freshly created model has no parameters, so `predict` raises `NotFittedError`.
+- **Fitting on the test data.** Call `fit` (and `fit_transform`) on training data only. For test data use `predict`, `score` or `transform`, so that the test data stays unseen.
+
+</Mistake>
+
+<QuickCheck
+  q="What is wrong with this code?"
+  code={`scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)
+X_test_s = scaler.fit_transform(X_test)`}
+  options={['The test set is scaled with its own mean and standard deviation instead of the training ones', 'fit_transform must not be used on the training set', 'Nothing: fit_transform is the right way to scale every dataset', 'X_test_s will contain exactly the same numbers as X_train_s']}
+  answer={0}
+  explain="The second `fit_transform` re-fits the scaler, so the test data is measured with a different ruler (its own mean and standard deviation) from the one the model was trained with. The fix is `X_test_s = scaler.transform(X_test)`. Using `fit_transform` on the training set is exactly right."
+/>
+
+## Where the recipe sits in a project
+
+`fit` and `predict` are the middle of a longer journey. A real project first **collects** data, then **preprocesses** it (cleans missing values, encodes categories such as town into numbers, scales features), then **trains** models, **evaluates** them on data they have not seen and finally **deploys** the best one so people can use it. After deployment, monitoring often feeds new data back into collection.
+
+<PastPaperQuestion paper="prelim2026" n={291} />
+
+<ExamTip>
+
+How NOAI asks about this lesson:
+
+- **"Which is a hyperparameter?"** Learned from data means parameter (weights, biases, split points, cluster centres). Chosen before training means hyperparameter (learning rate, epochs, batch size, $k$, `max_depth`, number of trees, regularisation strength).
+- **"What does `fit` do?"** It minimises the loss on the training data to set the parameters. It does not choose hyperparameters and does not evaluate the model.
+- **Code reading.** Look for 1-D versus 2-D `X`, `fit_transform` on test data, and what `score` returns (R² for regressors, accuracy for classifiers).
+- **Regression or classification?** Look at the label: a number on a scale means regression; a category means classification.
+
+</ExamTip>
+
+<Takeaways>
+
+- **Features** ($X$, one row per sample) are the inputs; the **label** ($y$) is the answer to predict. A numeric label means regression; a category means classification.
+- **Parameters** (weights, intercepts, split points) are learned by `fit`, which minimises a loss such as the MSE on the training data.
+- **Hyperparameters** (learning rate, $k$, `max_depth`, epochs) are chosen by you when you create the model.
+- Every scikit-learn model follows **create → fit → predict → score**; transformers follow **fit → transform**. Learned attributes end in `_`.
+- `X` is always 2-D: `[[100]]`, not `[100]`. Fit on training data only.
+
+</Takeaways>

@@ -1,0 +1,332 @@
+/* Local styles for the "Matrices, shapes and matrix multiplication" visuals. Colours come from theme tokens only. */
+
+/* ---------- small HTML matrix with linked highlights ---------- */
+.mat {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+}
+.matName {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.25;
+}
+.matBody {
+  position: relative;
+  padding: 4px 9px;
+}
+.matBody::before,
+.matBody::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border: 2px solid var(--ink);
+}
+.matBody::before {
+  left: 0;
+  border-right: none;
+}
+.matBody::after {
+  right: 0;
+  border-left: none;
+}
+.matGrid {
+  display: grid;
+  gap: 3px;
+}
+.cell {
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  padding: 0;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+button.cell {
+  cursor: pointer;
+}
+button.cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.cellMuted {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* ---------- dominoes ---------- */
+.dominoRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  row-gap: 0.75rem;
+  width: 100%;
+}
+.dominoUnit {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+}
+.domino {
+  display: flex;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 18%, transparent);
+  overflow: hidden;
+}
+.half {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 46px;
+  padding: 2px 0;
+  transition: background-color 0.25s;
+}
+.half + .half {
+  border-left: 2px dashed color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.halfNum {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.15;
+  color: var(--ink);
+}
+.step {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.step:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.step:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.dominoCaption {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  font-weight: 650;
+  text-align: center;
+  line-height: 1.2;
+}
+.joint {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  transition: width 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.jointOk {
+  width: 6px;
+  color: var(--viz-pos);
+}
+.jointBad {
+  width: 30px;
+  color: var(--viz-neg);
+}
+.equals {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.shake {
+  animation: shake 0.45s ease-in-out;
+}
+.pop {
+  animation: pop 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shake,
+  .pop {
+    animation: none;
+  }
+  .joint {
+    transition: none;
+  }
+}
+
+/* ---------- text panels ---------- */
+.rule {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.5;
+}
+.errorBox {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 10%, var(--surface));
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.okBox {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 10%, var(--surface));
+  color: var(--ink);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.calc {
+  width: 100%;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.calcLine {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--ink);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.2rem 0.35rem;
+}
+.term {
+  padding: 0.05rem 0.35rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.aNum {
+  color: var(--viz-1);
+  font-weight: 750;
+}
+.bNum {
+  color: var(--viz-2);
+  font-weight: 750;
+}
+.outNum {
+  color: var(--viz-3);
+  font-weight: 800;
+}
+.badNum {
+  color: var(--viz-neg);
+  font-weight: 750;
+}
+.warn {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px dashed var(--viz-neg);
+  color: var(--ink);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem 1.25rem;
+  width: 100%;
+}
+.panel {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.4rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--rule);
+  min-width: 0;
+}
+.panelTitle {
+  font-family: var(--font-mono);
+  font-weight: 750;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.panelSub {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  text-align: center;
+}
+.op {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.svgText {
+  font-family: var(--font-body);
+}
+.monoText {
+  font-family: var(--font-mono);
+}

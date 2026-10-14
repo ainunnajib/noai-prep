@@ -1,3 +1,265 @@
-{/* stub: lesson 'Linear regression and least squares' is being written */}
+import ResidualSquares from './visuals/least-squares/ResidualSquares'
+import ResidualSumTrap from './visuals/least-squares/ResidualSumTrap'
+import LossSurfaceWB from './visuals/least-squares/LossSurfaceWB'
 
-This lesson is being written.
+export const lsCode = `import numpy as np
+
+# distance (km) and fare ($)
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([3, 4, 7, 7, 9])
+
+def mse(w, b):
+    y_hat = w * x + b  # predictions
+    r = y - y_hat      # residuals
+    return np.mean(r ** 2)
+
+print("friend's rule:", mse(2, 0))
+
+# least-squares line (formulas)
+dx = x - x.mean()
+dy = y - y.mean()
+w = np.sum(dx * dy) / np.sum(dx ** 2)
+b = y.mean() - w * x.mean()
+print("w =", w, " b =", b)
+print("MSE =", mse(w, b))
+
+# NumPy's built-in fit agrees
+print(np.polyfit(x, y, deg=1))`
+
+How much will a 6 km Grab ride cost? A model that answers with a **number** (a fare, a temperature, an HDB resale price) is doing <Term def="Predicting a number that can take any value on a scale (a continuous value), such as a price or a temperature, rather than choosing a category.">regression</Term>. The simplest regression model is a straight line. This lesson answers one question: out of all the lines you could draw through some data, which one is *best*? The answer, the **least-squares line**, gives you your first real loss function, and minimising it is exactly what gradient descent will do in the next lesson.
+
+<Analogy title="A plank over stepping stones">
+
+Five stepping stones cross a stream, not quite in a line, and you have one straight plank to lay over them. You want the plank close to every stone. A stone 1 cm below the plank is fine; a stone 30 cm below it is a sprained ankle. So the **big** gaps matter most. Linear regression lays the plank, the gaps are called *residuals*, and "least squares" is the rule that makes big gaps count far more than small ones.
+
+</Analogy>
+
+## The model: a straight line
+
+Here are five Grab rides (the four from the calculus module plus one more):
+
+| ride | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| distance $x$ (km) | 1 | 2 | 3 | 4 | 5 |
+| fare $y$ (dollars) | 3 | 4 | 7 | 7 | 9 |
+
+Linear regression predicts the fare with a straight line:
+
+$$
+\hat{y} = w\,x + b
+$$
+
+- $x$ is the input, here the distance. An input is called a <Term def="One measurable input to a model, such as distance, age or floor area.">feature</Term>.
+- $y$ is the true value we want to predict (the actual fare), called the <Term def="The true value the model should predict for an example; also called the label.">target</Term>.
+- $\hat{y}$ (say "y-hat") is the model's **prediction**. A hat always means "estimated by the model".
+- $w$ is the **slope**, which ML calls a *weight*: how much the prediction goes up when $x$ goes up by 1. Here, dollars per extra kilometre.
+- $b$ is the **intercept**, which ML calls the *bias*: the prediction when $x = 0$. Here, the base fare you pay before the car moves.
+
+$w$ and $b$ are the model's <Term def="The numbers inside a model that training adjusts to fit the data, such as w and b in ŷ = wx + b.">parameters</Term>, and *training* means choosing them. For example, the line $\hat{y} = 1.5x + 1.5$ reads "a base fare of 1.50 dollars plus 1.50 dollars per km", so it predicts a 6 km ride at $1.5 \times 6 + 1.5 = 10.5$ dollars.
+
+<PastPaperQuestion paper="prelim2026" n={138} />
+
+## Residuals: how far off is each prediction?
+
+For each example, the <Term def="The gap between the true value and the model's prediction: residual = y − ŷ.">residual</Term> is the true value minus the prediction:
+
+$$
+r_i = y_i - \hat{y}_i
+$$
+
+The subscript $i$ says which example: $r_3$ is the residual of ride 3. On a graph, the residual is the vertical gap between a point and the line.
+
+- $r > 0$: the point is **above** the line. The model *under*-predicted (the ride cost more than predicted).
+- $r < 0$: the point is **below** the line. The model *over*-predicted.
+- $r = 0$: the line passes exactly through the point.
+
+Suppose a friend's rule of thumb is "2 dollars per km, no base fare", i.e. $\hat{y} = 2x$:
+
+| ride | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| distance $x$ | 1 | 2 | 3 | 4 | 5 |
+| fare $y$ | 3 | 4 | 7 | 7 | 9 |
+| prediction $\hat{y} = 2x$ | 2 | 4 | 6 | 8 | 10 |
+| residual $r = y - \hat{y}$ | $+1$ | $0$ | $+1$ | $-1$ | $-1$ |
+
+Not bad, but is there a better line? To compare lines we need **one number** that scores a whole line. Least squares draws a square on every residual and adds up the areas. Try it:
+
+<ResidualSquares />
+
+## Why square the residuals?
+
+The obvious score would be to add the residuals up. It fails completely, because positive and negative residuals cancel. Look at the friend's rule: $1 + 0 + 1 - 1 - 1 = 0$, a "perfect" score for a line that is clearly not perfect. Worse, every line through the centre of the data has residuals that add up to exactly zero. The centre is the point $(\bar{x}, \bar{y})$, where $\bar{x}$ ("x-bar") is the mean of the $x$ values and $\bar{y}$ the mean of the $y$ values; here $(3, 6)$:
+
+<ResidualSumTrap />
+
+Squaring fixes this, and gives two more benefits:
+
+1. **No cancelling.** A square is never negative, so a miss above the line and a miss below it both add to the score.
+2. **Big misses count much more.** A miss of 1 costs $1^2 = 1$, a miss of 2 costs 4, a miss of 3 costs 9. So the best line never ignores any point badly. The price is that one <Term def="A data point far away from the pattern of the others, for example a surge-priced ride.">outlier</Term> can drag the whole line: change ride 5 to a surge fare of 15 dollars and the best line jumps from $1.5x + 1.5$ to $2.7x - 0.9$, with a nonsense *negative* base fare.
+3. **It is smooth.** $r^2$ is a parabola in $r$, with a slope everywhere and one clear bottom. The total turns out to be a smooth bowl over $(w, b)$, which is exactly what calculus and gradient descent need. (Absolute values $|r|$ also avoid cancelling, but have a sharp corner at 0. That loss, the MAE, returns in the regularisation lesson.)
+
+<QuickCheck
+  q="A surge fare makes one residual grow from 1 to 4. How many times bigger is that ride's square, i.e. its contribution to the total squared error?"
+  options={['16 times', '4 times', '3 times', '8 times']}
+  answer={0}
+  explain="The contribution is the residual squared: $1^2 = 1$ becomes $4^2 = 16$, so 16 times. A residual 4 times bigger costs $4^2 = 16$ times more. That is why least squares is so sensitive to outliers."
+/>
+
+## Mean squared error
+
+Average the squares and you get the most common loss for regression, the <Term def="The average of the squared residuals: MSE = (1/n) Σ (yᵢ − ŷᵢ)². Lower is better; 0 means a perfect fit.">mean squared error</Term> (MSE):
+
+$$
+\text{MSE} = \frac{1}{n} \sum_{i=1}^{n} \left(y_i - \hat{y}_i\right)^2
+$$
+
+Read it from the inside out:
+
+- $y_i - \hat{y}_i$ is the residual of example $i$;
+- $(\;\cdot\;)^2$ squares it: the area of its square in the visual above;
+- $\sum_{i=1}^{n}$ ("sigma") adds the squares for examples $i = 1, 2, \dots, n$, giving the **sum of squared errors** (SSE), the total orange area;
+- $\frac{1}{n}$ divides by the number of examples $n$, so the score is an average and does not grow just because you have more data.
+
+<KeyIdea>
+
+**Least squares** chooses the line with the smallest total area of residual squares, which is the same as the smallest MSE. Residual first, then square, then average.
+
+</KeyIdea>
+
+<Steps title="MSE of two lines, by hand">
+  <Step title="Friend's rule: square the residuals">
+    The residuals of $\hat{y} = 2x$ were $+1, 0, +1, -1, -1$. Their squares are $1, 0, 1, 1, 1$. Notice the minus signs disappear.
+  </Step>
+  <Step title="Friend's rule: sum, then average">
+    $\text{SSE} = 1 + 0 + 1 + 1 + 1 = 4$, so $\text{MSE} = 4 / 5 = 0.8$.
+  </Step>
+  <Step title="Line $\hat{y} = 1.5x + 1.5$: predictions">
+    $1.5 \times 1 + 1.5 = 3$, then $4.5$, $6$, $7.5$ and $9$ for rides 2 to 5.
+  </Step>
+  <Step title="Residuals and squares">
+    Residuals: $3 - 3 = 0$, $4 - 4.5 = -0.5$, $7 - 6 = 1$, $7 - 7.5 = -0.5$, $9 - 9 = 0$. Squares: $0, 0.25, 1, 0.25, 0$.
+  </Step>
+  <Step title="Compare">
+    $\text{SSE} = 1.5$ and $\text{MSE} = 1.5 / 5 = 0.3$. That is lower than 0.8, so this line fits better. In fact no line does better: it is the least-squares line.
+  </Step>
+</Steps>
+
+MSE is measured in *squared* units (dollars squared), which is hard to picture. Taking the square root gives the **root mean squared error**, $\text{RMSE} = \sqrt{\text{MSE}}$, back in dollars: $\sqrt{0.3} \approx 0.55$, so this line's predictions are typically about 55 cents off.
+
+<PastPaperQuestion paper="prelim2026" n={171} />
+
+<Mistake title="Square, then average (not the other way round)">
+
+Three slips that exam options love: averaging the residuals before squaring (for the friend's rule, $\left(\tfrac{0}{5}\right)^2 = 0$, the cancelling trap again); forgetting to divide by $n$ (that gives the SSE, 4, not the MSE, 0.8); and taking a square root you were not asked for (RMSE). Also, the residual is $y - \hat{y}$; some books use $\hat{y} - y$. The sign flips, but after squaring the MSE is identical.
+
+</Mistake>
+
+## The least-squares line
+
+For one feature there is a formula for the best line, using the means $\bar{x}$ and $\bar{y}$ again:
+
+$$
+w = \frac{\sum_i (x_i - \bar{x})(y_i - \bar{y})}{\sum_i (x_i - \bar{x})^2}, \qquad b = \bar{y} - w\,\bar{x}.
+$$
+
+The top of $w$ adds up "how far $x$ is from its mean times how far $y$ is from its mean": it is large and positive when big $x$ goes with big $y$. The bottom measures how spread out the $x$ values are. The formula for $b$ says the best line always passes through the centre point $(\bar{x}, \bar{y})$.
+
+<Steps title="The best line for the five rides">
+  <Step title="Means">
+    $\bar{x} = (1 + 2 + 3 + 4 + 5)/5 = 3$ and $\bar{y} = (3 + 4 + 7 + 7 + 9)/5 = 30/5 = 6$.
+  </Step>
+  <Step title="Deviations from the means">
+    $x - \bar{x}$: $-2, -1, 0, 1, 2$. $\quad y - \bar{y}$: $-3, -2, 1, 1, 3$.
+  </Step>
+  <Step title="Top and bottom">
+    Products: $6, 2, 0, 1, 6$, which sum to $15$. Squares of the $x$ deviations: $4, 1, 0, 1, 4$, which sum to $10$.
+  </Step>
+  <Step title="Slope and intercept">
+    $w = 15 / 10 = 1.5$ and $b = 6 - 1.5 \times 3 = 1.5$. The best line is $\hat{y} = 1.5x + 1.5$: a base fare of 1.50 dollars plus 1.50 dollars per km.
+  </Step>
+</Steps>
+
+<Reveal label="Where do these formulas come from?">
+
+The best line sits at the bottom of the MSE, where its slope in every direction is zero (partial derivatives, from the calculus module). Setting $\partial\,\text{MSE}/\partial b = -\tfrac{2}{n}\sum_i r_i = 0$ says the residuals of the best line add up to zero, which forces $\bar{y} = w\bar{x} + b$. Setting $\partial\,\text{MSE}/\partial w = -\tfrac{2}{n}\sum_i x_i r_i = 0$ and substituting gives the formula for $w$. So the least-squares line *does* have residuals summing to zero, but, as the trap above showed, so do infinitely many bad lines. Zero sum is necessary, not enough. With many features, the same idea becomes the *normal equation*, in the lesson on multiple regression.
+
+</Reveal>
+
+## The loss surface: a bowl over (w, b)
+
+Every choice of $w$ and $b$ gives one line, and every line gives one MSE. So you can draw the MSE as a landscape over the $(w, b)$ plane: a <Term def="A picture of the loss for every possible value of the parameters, like a map where height is the loss.">loss surface</Term>. Seen from above, with colour for height, it looks like a contour map of a valley:
+
+<LossSurfaceWB />
+
+For linear regression this landscape is always a **bowl**. Expand the MSE for the five rides and you get a quadratic in $w$ and $b$:
+
+$$
+\begin{aligned}
+\text{MSE}(w, b) = {} & 11w^2 + 6wb + b^2 \\
+& - 42w - 12b + 40.8
+\end{aligned}
+$$
+
+(check: $w = 1.5$, $b = 1.5$ gives $24.75 + 13.5 + 2.25 - 63 - 18 + 40.8 = 0.3$). A quadratic like this, with the squared terms winning, is shaped like a bowl: it is <Term def="Bowl-shaped: the straight line joining any two points of the graph never goes below the graph. A convex loss has no separate dips, so any lowest point is the lowest point.">convex</Term>, with exactly one lowest point and no other dips to get stuck in (as long as the $x$ values are not all equal). That lowest point is the least-squares line.
+
+Notice also that the bowl is a long, tilted valley. Making the line steeper (bigger $w$) can be partly made up for by starting it lower (smaller $b$), so many $(w, b)$ pairs along the valley floor have similar MSE. Keep this shape in mind: in the next lesson gradient descent walks down this exact bowl, and its long valley explains why the walk slows down near the end.
+
+<KeyIdea>
+
+Fitting a line means finding the bottom of a bowl: the MSE over $(w, b)$ is convex, with a single minimum, and that minimum is the least-squares line.
+
+</KeyIdea>
+
+## In code
+
+NumPy computes all the residuals at once with array arithmetic, so the MSE is one line. Run this, then change the friend's rule to other lines and try to beat 0.3 (you cannot).
+
+<PyRunner packages={['numpy']} code={lsCode} rows={23} />
+
+In scikit-learn the same fit is `LinearRegression`. Its input `X` must be 2-D (one row per example, one column per feature), and the fitted slope and intercept are stored in `coef_` and `intercept_`:
+
+```python
+import numpy as np
+from sklearn.linear_model import LinearRegression
+
+X = np.array([[1], [2], [3], [4], [5]])   # 2-D: one row per ride, one column (km)
+y = np.array([3, 4, 7, 7, 9])             # fares ($)
+
+model = LinearRegression().fit(X, y)
+print("w =", model.coef_, " b =", round(model.intercept_, 4))
+print("6 km ride:", model.predict([[6]]))
+```
+
+```text
+w = [1.5]  b = 1.5
+6 km ride: [10.5]
+```
+
+<ExamTip>
+
+How NOAI asks about this, and what to have ready:
+
+- **Definitions**: linear regression predicts a *continuous value*; MSE is the standard loss for *regression* (classification uses cross-entropy). Both appeared in the 2026 Prelim.
+- **MSE by hand** in under 30 seconds: residual, square, sum, divide by $n$. Wrong options are usually the SSE (no division), the mean residual (no squaring) or the RMSE (an extra square root).
+- **Reading a fitted line**: in $\hat{y} = wx + b$, $w$ is the change in prediction per unit of $x$ and $b$ is the prediction at $x = 0$.
+- **Quick check**: the least-squares line passes through $(\bar{x}, \bar{y})$. Plugging $\bar{x}$ into each option's line eliminates wrong answers fast.
+- **Outliers**: squaring makes MSE (and the least-squares line) very sensitive to them.
+
+</ExamTip>
+
+<QuickCheck
+  q="A model for HDB flats is: price (thousand dollars) $= 4 \times$ floor area (m²) $+ 120$. What does the 4 mean?"
+  options={['Each extra square metre adds about 4000 dollars to the predicted price', 'A flat of 4 m² is predicted to cost 120 thousand dollars', 'The predictions are typically off by 4 thousand dollars', 'The model predicts 4000 dollars for a flat with zero floor area']}
+  answer={0}
+  explain="The 4 is the slope $w$: one more m² raises the prediction by 4 thousand dollars. The 120 is the intercept $b$, the prediction at 0 m² (a flat that cannot exist, so here it is just where the line starts). A typical error size would be the RMSE, which is not part of the equation."
+/>
+
+<Takeaways>
+
+- Linear regression predicts a number with $\hat{y} = wx + b$: slope $w$ is the change per unit of $x$, intercept $b$ the prediction at $x = 0$.
+- A residual is $r = y - \hat{y}$: positive when the point is above the line.
+- $\text{MSE} = \frac{1}{n}\sum (y_i - \hat{y}_i)^2$: square first (no cancelling, big misses count most), then average. RMSE $= \sqrt{\text{MSE}}$ is in the original units.
+- The least-squares line has the smallest MSE; for one feature, $w = \frac{\sum (x - \bar{x})(y - \bar{y})}{\sum (x - \bar{x})^2}$ and $b = \bar{y} - w\bar{x}$.
+- MSE over $(w, b)$ is a convex bowl with one lowest point, the best line, which is why gradient descent can always find it.
+
+</Takeaways>

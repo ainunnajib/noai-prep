@@ -1,3 +1,229 @@
-{/* stub: lesson 'Vision tasks and object detection' is being written */}
+import VisionTaskSwitcher from './visuals/vision-tasks-and-detection/VisionTaskSwitcher'
+import NMSStepper from './visuals/vision-tasks-and-detection/NMSStepper'
+import DetectorPipelines from './visuals/vision-tasks-and-detection/DetectorPipelines'
 
-This lesson is being written.
+An image classifier tells you *what* is in a photo. A self-driving car, a crowd counter at an MRT platform or a tool that measures tumours also needs to know *where* things are and *how many* there are. This lesson lines up the family of vision tasks by how much "where" they give you. Then it opens up object detection: how detectors find boxes, why they produce duplicates, and the clean-up step, non-maximum suppression, that you should be able to run by hand in the exam.
+
+<Analogy title="Describing a photo of a hawker centre">
+
+Ask five people to describe the same photo of a busy hawker centre. The first just says "food court". The second draws a rectangle around every person and every tray. The third colours all the people orange, all the tables blue and the floor grey. The fourth gives every person their own colour, so you can count them. The fifth does both: every pixel is coloured, and every person is still told apart. Those are the five vision tasks of this lesson.
+
+</Analogy>
+
+## One scene, five tasks
+
+- <Term def="Giving one label to a whole image, e.g. 'cat' or 'street'. It says nothing about where the object is.">Image classification</Term> gives **one label for the whole image**.
+- <Term def="Finding every object of interest in an image and giving each one a class, a confidence score and a bounding box.">Object detection</Term> finds **every object** and gives each a class, a confidence score and a <Term def="The smallest axis-aligned rectangle around an object, usually stored as (x1, y1, x2, y2): the top-left and bottom-right corners.">bounding box</Term>.
+- <Term def="Labelling every pixel of an image with a class (road, car, sky...). Objects of the same class are not told apart.">Semantic segmentation</Term> labels **every pixel with a class**. Two touching cars become one "car" region.
+- <Term def="Giving each individual object its own pixel mask, so two cars are 'car 1' and 'car 2'. Usually covers only countable objects.">Instance segmentation</Term> gives **each object its own pixel mask**, so overlapping objects of the same class stay separate.
+- <Term def="Combining semantic and instance segmentation: every pixel gets a class, and pixels of countable objects also get an instance id.">Panoptic segmentation</Term> does **both**: every pixel gets a class, and countable objects also get an instance id.
+
+Two more words help. Countable objects such as cars and people are called <Term def="Countable objects with a clear shape, such as people, cars and dogs. Instance and panoptic segmentation separate them one by one.">things</Term>. Amorphous regions such as sky, road and grass are called <Term def="Uncountable background regions without a fixed shape, such as sky, road, grass and water. They get a class but no instance id.">stuff</Term>. Detection and instance segmentation only deal with things. Semantic and panoptic segmentation also label the stuff.
+
+<VisionTaskSwitcher />
+
+| Task | Answers | Output for an $H \times W$ image with $N$ objects | Typical model |
+|---|---|---|---|
+| classification | What is in the image? | one label (the top score out of $K$ classes) | ResNet |
+| detection | What objects, and roughly where? | $N$ rows of (box, class, score) | YOLO, SSD, Faster R-CNN, DETR |
+| semantic segmentation | Which class is each pixel? | an $H \times W$ map of class ids | U-Net (next lesson) |
+| instance segmentation | Which object is each pixel? | $N$ masks of size $H \times W$, each with a class | Mask R-CNN |
+| panoptic segmentation | Both, for every pixel | an $H \times W$ map of class ids plus instance ids | Panoptic FPN |
+
+<KeyIdea>
+
+The vision tasks differ in how much "where" information they produce: none (classification), a box per object (detection), a class per pixel (semantic), a mask per object (instance), or class and object for every pixel (panoptic).
+
+</KeyIdea>
+
+<QuickCheck
+  q="A farm wants to count every cow in drone photos and measure the outline of each one, even when cows stand touching each other. Which task fits best?"
+  options={['Instance segmentation', 'Semantic segmentation', 'Image classification', 'Object detection']}
+  answer={0}
+  explain="Touching cows must stay separate (count) and each needs an exact outline (pixel mask): that is instance segmentation. Semantic segmentation would merge touching cows into one 'cow' region, and detection gives boxes, not outlines."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={200} />
+
+## Boxes and IoU: a quick reminder
+
+A box is usually stored as $(x_1, y_1, x_2, y_2)$, its top-left and bottom-right corners. In images, $y$ points **down**, so $y_1 < y_2$. (YOLO stores boxes as centre, width and height instead; it is the same information.)
+
+To compare two boxes, detectors use <Term def="Intersection over union: the area where two shapes overlap divided by the area they cover together. 1 means identical, 0 means no overlap.">IoU</Term>, which you met in the model-evaluation module:
+
+$$
+\text{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|}
+$$
+
+$$
+|A \cup B| = |A| + |B| - |A \cap B|
+$$
+
+Here $|\cdot|$ means "area of". $A \cap B$ (A intersect B) is the region where the two boxes overlap, and $A \cup B$ (A union B) is everything that either box covers. To get the union we add the two areas and subtract the overlap once, because adding the two areas counts the overlap twice. IoU runs from 0 (no overlap) to 1 (identical boxes).
+
+<Steps title="IoU of P = (0, 0, 4, 4) and Q = (1, 0, 5, 4)">
+  <Step title="Overlap width and height">
+    Width: $\min(x_2) - \max(x_1) = \min(4, 5) - \max(0, 1) = 4 - 1 = 3$. Height: $\min(4, 4) - \max(0, 0) = 4$. If either came out negative, the overlap would be 0.
+  </Step>
+  <Step title="Intersection">
+    $3 \times 4 = 12$.
+  </Step>
+  <Step title="Union">
+    Each box is $4 \times 4 = 16$, so the union is $16 + 16 - 12 = 20$.
+  </Step>
+  <Step title="IoU">
+    $12 / 20 = 0.6$.
+  </Step>
+</Steps>
+
+## Non-maximum suppression
+
+A detector does not output one neat box per object. It scores thousands of candidate boxes, and several candidates around each object all fire with high confidence. <Term def="A clean-up step after detection: keep the highest-scoring box, delete any other box that overlaps it by more than an IoU threshold, and repeat with what is left.">Non-maximum suppression</Term> (NMS) removes these duplicates with a greedy loop:
+
+1. Throw away boxes whose confidence is below a cut-off (e.g. 0.3).
+2. Sort the remaining boxes by score, highest first.
+3. Take the top box and **keep** it.
+4. **Suppress** (delete) every remaining box of the same class whose IoU with it is **above** the threshold (e.g. 0.5).
+5. Repeat from step 3 with whatever is left, until no boxes remain.
+
+"Non-maximum suppression" says what it does: every box that is not the local maximum of its cluster gets suppressed. NMS is run separately for each class, so a person box never deletes a car box.
+
+<Analogy title="Echoes in the classroom">
+
+When several friends shout out the same answer at once, the teacher listens to the most confident voice and ignores the echoes. But a friend answering a *different* question is not an echo, even if they are sitting right next to the first one. NMS has to tell echoes from neighbours, and the IoU threshold is how it decides.
+
+</Analogy>
+
+<NMSStepper />
+
+The threshold is a trade-off. **Too low** (say 0.3) and NMS becomes trigger-happy: two different people standing close together overlap enough that one deletes the other. **Too high** (say 0.8) and near-copies of the same object survive as duplicates. Values around 0.45 to 0.6 are common.
+
+<Steps title="NMS by hand: P (0.9), Q (0.8), R (0.7), S (0.6), threshold 0.5">
+  <Step title="The boxes">
+    $P = (0, 0, 4, 4)$, $Q = (1, 0, 5, 4)$, $R = (5, 0, 9, 4)$, $S = (6, 1, 9, 4)$, all the same class, already sorted by score.
+  </Step>
+  <Step title="Pick P, compare">
+    Keep $P$. $\text{IoU}(P, Q) = 0.6$ (worked out above), which is above $0.5$, so $Q$ is suppressed. $R$ and $S$ start at $x = 5$ and $x = 6$, past $P$'s right edge at $x = 4$, so their IoU with $P$ is $0$: they stay.
+  </Step>
+  <Step title="Pick R, compare">
+    Keep $R$. Overlap of $R$ and $S$: width $9 - 6 = 3$, height $4 - 1 = 3$, so $9$. Union: $16 + 9 - 9 = 16$. $\text{IoU} = 9/16 \approx 0.56 > 0.5$, so $S$ is suppressed.
+  </Step>
+  <Step title="Result">
+    Nothing is left to pick. NMS keeps $\{P, R\}$: one box for each of the two objects.
+  </Step>
+</Steps>
+
+<Mistake title="Letting a suppressed box suppress others">
+
+Once a box is suppressed it is gone: it never gets a turn and cannot delete anything. Only *kept* boxes suppress. Also watch the direction of the threshold: boxes with IoU **above** the threshold are removed, so a **lower** threshold removes **more** boxes.
+
+</Mistake>
+
+Here is the same loop in NumPy, the kind of from-scratch function a Final-round task can ask for. Run it, then change the threshold to 0.6 and see $S$ survive.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def iou(box, boxes):
+    """IoU of one box with each row of boxes. Boxes are (x1, y1, x2, y2)."""
+    x1 = np.maximum(box[0], boxes[:, 0])
+    y1 = np.maximum(box[1], boxes[:, 1])
+    x2 = np.minimum(box[2], boxes[:, 2])
+    y2 = np.minimum(box[3], boxes[:, 3])
+    inter = np.clip(x2 - x1, 0, None) * np.clip(y2 - y1, 0, None)
+    area = lambda b: (b[..., 2] - b[..., 0]) * (b[..., 3] - b[..., 1])
+    return inter / (area(box) + area(boxes) - inter)
+
+def nms(boxes, scores, thr=0.5):
+    order = np.argsort(-scores)          # indices, highest score first
+    keep = []
+    while len(order) > 0:
+        best = order[0]
+        keep.append(int(best))           # keep the best remaining box
+        rest = order[1:]
+        overlaps = iou(boxes[best], boxes[rest])
+        order = rest[overlaps <= thr]    # drop boxes that overlap it too much
+    return keep
+
+boxes = np.array([[0, 0, 4, 4],    # P
+                  [1, 0, 5, 4],    # Q
+                  [5, 0, 9, 4],    # R
+                  [6, 1, 9, 4]])   # S
+scores = np.array([0.9, 0.8, 0.7, 0.6])
+
+print(iou(boxes[0], boxes[1:]))    # P against Q, R, S
+print(nms(boxes, scores, thr=0.5))`} />
+
+It prints `[0.6 0.  0. ]` and `[0, 2]`: indices 0 and 2 are $P$ and $R$. In PyTorch projects you would call the built-in `torchvision.ops.nms(boxes, scores, iou_threshold)`, which runs the same algorithm.
+
+<ExamTip>
+
+NMS questions usually give you scores and a table of IoUs. Work in score order, keep the top box, cross out everything above the threshold, and never let a crossed-out box cross out anything else. To fix "two nearby people detected as one", **raise** the IoU threshold; to fix "duplicate boxes on one object", **lower** it; to fix "confident boxes on nothing", raise the **confidence** cut-off.
+
+</ExamTip>
+
+## How detectors find boxes
+
+Every modern detector starts with a CNN backbone, often pretrained on ImageNet as in the previous lesson. They differ in how they turn its features into boxes.
+
+**Two-stage detectors: the R-CNN family.** First propose regions that might contain an object, then classify each one.
+
+- **R-CNN** (2014) used a hand-made algorithm called <Term def="A classic, non-learned algorithm that groups similar neighbouring pixels into regions to suggest about 2,000 boxes that might contain objects.">selective search</Term> to propose about 2,000 regions, then ran a CNN on every region separately. Accurate, but it took seconds per image.
+- **Fast R-CNN** ran the CNN once on the whole image and cut each region's features out of the shared feature map.
+- **Faster R-CNN** replaced selective search with a learned **region proposal network** (RPN). At every position of the feature map sit a few <Term def="Preset reference boxes of several sizes and shapes placed at every position of a feature map. The network predicts a score for each and small adjustments that turn it into a tighter box.">anchor boxes</Term>; the RPN scores each anchor for "is there an object?" and nudges its coordinates.
+- **Mask R-CNN** adds a third output to Faster R-CNN's second stage: a small pixel mask for each detected box. That makes it the classic model for **instance segmentation**.
+
+**One-stage detectors: YOLO and SSD.** Skip the proposal step and predict all boxes and classes in **one forward pass**. YOLO ("You Only Look Once") divides the image into an $S \times S$ grid. The cell that contains an object's centre is responsible for it, predicting $B$ boxes, each with $(x, y, w, h)$ and a confidence, plus $C$ class probabilities. SSD (Single Shot MultiBox Detector) does the same from several feature maps of different sizes, with preset default boxes, so it catches small and large objects. One pass makes them fast enough for real-time video.
+
+**Set prediction: DETR.** The DEtection TRansformer feeds the CNN features into a Transformer. A fixed number of learned *object queries* (e.g. 100) each output either a box with a class or "no object". During training each real object is matched to exactly one prediction, so duplicates are punished. That is why DETR needs **no anchors and no NMS**.
+
+<Analogy title="Two checkpoints or one smart gate">
+
+At an airport you might queue for a security check, then queue again at passport control: two stages, each doing one careful job. Changi's automated gates scan your passport and face in a single step and are much faster. Two-stage detectors are the two checkpoints; one-stage detectors are the single smart gate.
+
+</Analogy>
+
+<DetectorPipelines />
+
+| | Two-stage (Faster R-CNN) | One-stage (YOLO, SSD) | DETR |
+|---|---|---|---|
+| how boxes appear | propose regions, then classify each | predict from every grid cell in one pass | a set of query slots, matched one-to-one |
+| speed | slower | fast, real-time | slow to train, simple pipeline |
+| anchors? | yes (in the RPN) | SSD yes; YOLO depends on the version | no |
+| needs NMS? | yes | yes | no |
+
+<PastPaperQuestion paper="prelim2026" n={198} />
+
+### How big is YOLO's output?
+
+Each grid cell predicts $B$ boxes with 5 numbers each, $(x, y, w, h, \text{confidence})$, plus $C$ class probabilities, so $5B + C$ numbers per cell. With $S \times S$ cells the output has
+
+$$
+S \times S \times (5B + C)
+$$
+
+numbers. The original YOLO used $S = 7$, $B = 2$ and $C = 20$: $5 \times 2 + 20 = 30$ numbers per cell, and $7 \times 7 = 49$ cells, so $49 \times 30 = 1470$ numbers for the whole image.
+
+<QuickCheck
+  q="A YOLO-style head uses a 5 × 5 grid, B = 2 boxes per cell and C = 3 classes. How many numbers does it output?"
+  options={['325', '400', '275', '75']}
+  answer={0}
+  explain="Per cell: $5 \times 2 + 3 = 13$. Cells: $5 \times 5 = 25$. Total $25 \times 13 = 325$. 275 forgets the confidence (4 numbers per box), 400 gives every box its own class probabilities, and 75 counts only the class probabilities."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={257} />
+
+<ExamTip>
+
+Keyword map. "Region proposals", "selective search", "two-stage" → R-CNN family. "Region proposal network", "anchors" → Faster R-CNN. "Single pass", "grid", "real time" → YOLO (and SSD). "Mask branch", "instance segmentation" → Mask R-CNN. "Transformer", "object queries", "no NMS" → DETR. "Semantic segmentation", "skip connections" → U-Net.
+
+</ExamTip>
+
+<Takeaways>
+
+- Classification gives one label; detection gives a box, class and score per object; semantic segmentation a class per pixel; instance segmentation a mask per object; panoptic both for every pixel.
+- IoU = overlap area ÷ union area, and the union is area(A) + area(B) − overlap.
+- NMS: sort by score, keep the top box, delete same-class boxes with IoU above the threshold, repeat. A lower threshold deletes more.
+- Two-stage detectors (R-CNN, Fast/Faster R-CNN) propose regions and then classify them: accurate but slower. One-stage detectors (YOLO, SSD) predict everything in one pass: real-time.
+- Mask R-CNN = Faster R-CNN + a mask per box, for instance segmentation. DETR predicts a set of boxes with a Transformer and needs no anchors or NMS.
+
+</Takeaways>

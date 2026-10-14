@@ -1,3 +1,259 @@
-{/* stub: lesson 'Likelihood, entropy and cross-entropy' is being written */}
+import LikelihoodCurve from './visuals/likelihood-and-entropy/LikelihoodCurve'
+import EntropyBars from './visuals/likelihood-and-entropy/EntropyBars'
+import LossFromLikelihood from './visuals/likelihood-and-entropy/LossFromLikelihood'
 
-This lesson is being written.
+export const infoCode = `import numpy as np
+
+# Maximum likelihood for a coin: 7 heads, 3 tails
+h, t = 7, 3
+ps = np.linspace(0.01, 0.99, 99)        # candidate values of p
+log_lik = h * np.log(ps) + t * np.log(1 - ps)
+print("best p on the grid:", ps[np.argmax(log_lik)].round(2))
+
+# Entropy, cross-entropy and KL divergence, in bits
+def entropy(p):
+    return -np.sum(p * np.log2(p))
+
+def cross_entropy(p, q):
+    return -np.sum(p * np.log2(q))
+
+p = np.array([1/2, 1/4, 1/8, 1/8])   # truth: sun, cloud, rain, storm
+q = np.array([1/4, 1/8, 1/2, 1/8])   # your forecast
+print("H(p)     =", entropy(p))
+print("H(p, q)  =", cross_entropy(p, q))
+print("KL(p||q) =", cross_entropy(p, q) - entropy(p))
+print("KL(q||p) =", cross_entropy(q, p) - entropy(q))`
+
+In the last lesson we trained logistic regression with the log loss because it "punishes confident mistakes". That sounds like a matter of taste, but it is not: the same loss falls out of two big ideas. One comes from statistics (**maximum likelihood**: pick the model that makes the data most probable), the other from information theory (**entropy**: how surprised you are, on average). This lesson builds both from coin flips and weather forecasts and shows they are the same thing. Along the way you meet the KL divergence, which returns later in variational autoencoders, model distillation and the fine-tuning of language models.
+
+<Analogy title="Guessing a shooter's accuracy">
+
+Tonight a basketball player made 7 of her 10 free throws. What is her true shooting accuracy? If it were 50%, tonight would have been a fairly lucky night. If it were 95%, missing three would have been really unlucky. The most sensible guess is the accuracy that makes tonight's results **least surprising**, and that turns out to be 70%. That is maximum likelihood in one sentence.
+
+</Analogy>
+
+## Likelihood: how well does a guess explain the data?
+
+Flip a coin 10 times and get H H T H H H T H T H: 7 heads and 3 tails. Let $p$ be the probability of heads. $p$ is a <Term def="A number inside a model that we choose or learn from data, such as the probability of heads p, or the weights w and bias b.">parameter</Term>: we do not know it, and we want to estimate it from the data.
+
+If the coin really had heads-probability $p$, how probable was exactly this sequence? The flips are <Term def="Events that do not influence each other, so the probability of all of them happening is the product of their separate probabilities.">independent</Term>, so multiply: $p$ for each head and $1 - p$ for each tail.
+
+$$
+L(p) = p^7 (1 - p)^3
+$$
+
+This is the <Term def="The probability of the observed data, viewed as a function of the parameter: L(θ) = P(data | θ). The data stay fixed; the parameter varies.">likelihood</Term> of $p$. Try a few values:
+
+| guess $p$ | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 |
+|---|---|---|---|---|---|
+| $L(p) = p^7(1-p)^3$ | 0.00098 | 0.00179 | **0.00222** | 0.00168 | 0.00048 |
+
+$p = 0.7$ explains the flips best: about 2.3 times better than a fair coin. Choosing the parameter with the largest likelihood is called <Term def="Choosing the parameter values that make the observed data most probable (that maximise the likelihood).">maximum likelihood estimation</Term> (MLE), and the winner is written $\hat{p}$ ("p-hat"). For a coin it is always the obvious answer, $\hat{p} = \frac{\text{heads}}{\text{flips}}$.
+
+<LikelihoodCurve />
+
+Two warnings about the word. The likelihood is **not** the probability that $p$ is correct: it is the probability of the *data*, given $p$, and the 5 values in the table do not even add up to 1. (The probability of $p$ given the data is the *posterior* from Bayes' theorem, which needs a prior.) And for continuous data, such as heights, $L$ is built from probability *densities* (heights of a curve) instead of probabilities; everything else is the same.
+
+### Why maximise the log-likelihood?
+
+Even with 10 flips the likelihood is a tiny number, and with 1000 flips it underflows to 0 on a computer (the logarithms lesson showed this). Taking logs turns the product into a sum:
+
+$$
+\ell(p) = \ln L(p) = 7 \ln p + 3 \ln(1 - p)
+$$
+
+$\ln$ always goes up when its input goes up, so $\ell$ peaks at **the same** $p$ as $L$, just as the two curves in the visual show. To find the peak, set the derivative to zero (using $\frac{d}{dp}\ln p = \frac{1}{p}$):
+
+$$
+\begin{aligned}
+\frac{d\ell}{dp} = \frac{7}{p} - \frac{3}{1 - p} &= 0 \\
+\Rightarrow\; 7(1 - p) = 3p \;\Rightarrow\; p &= \tfrac{7}{10}
+\end{aligned}
+$$
+
+<KeyIdea>
+
+**Maximum likelihood**: choose the parameters that make the observed data most probable. In practice, maximise the log-likelihood (a sum, no underflow, same winner), or equivalently **minimise the negative log-likelihood**. For a coin, $\hat{p} = \frac{\text{heads}}{\text{flips}}$.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A coin gives 4 heads in 5 flips. Which value of $p$ maximises the likelihood $p^4(1 - p)$?"
+  options={['0.8', '1', '0.5', '0.25']}
+  answer={0}
+  explain="The MLE is heads ÷ flips $= 4/5 = 0.8$. Check: $0.8^4 \times 0.2 \approx 0.082$, more than $0.5^5 \approx 0.031$. $p = 1$ is tempting because heads dominated, but it gives likelihood $1^4 \times 0 = 0$: a coin that *always* lands heads could never have produced the tail you saw."
+/>
+
+### Logistic regression is maximum likelihood
+
+Now look at a classifier the same way. Each training example is like its own biased coin: the model says example $i$ is positive with probability $p_i = \sigma(\mathbf{w}^\top\mathbf{x}_i + b)$, and its label $y_i$ is the "flip". The probability of one label can be written $p_i^{\,y_i}(1 - p_i)^{1 - y_i}$ (that is $p_i$ when $y_i = 1$ and $1 - p_i$ when $y_i = 0$). Multiply over the $m$ examples, take minus the log and average:
+
+$$
+\begin{aligned}
+-\tfrac{1}{m}\ln L &= -\tfrac{1}{m}\sum_{i=1}^{m}\big[\, y_i \ln p_i \\
+&\qquad + (1 - y_i)\ln(1 - p_i) \,\big]
+\end{aligned}
+$$
+
+That is exactly the binary cross-entropy from the last lesson. **Minimising the log loss is maximum likelihood.** The loss was never a matter of taste.
+
+### MAP: adding a prior belief
+
+After just 3 flips that all land heads, the MLE is $\hat{p} = 3/3 = 1$: "this coin can never land tails". That is absurd, and it is overfitting in miniature. **Maximum a posteriori** (MAP) estimation uses Bayes' theorem instead: maximise likelihood × <Term def="Your belief about a parameter before seeing the data, written as a probability distribution.">prior</Term>. A prior proportional to $p^2(1-p)^2$ (a mild belief that coins are roughly fair) acts exactly like 2 extra imaginary heads and 2 extra tails, giving $\hat{p}_{\text{MAP}} = \frac{3 + 2}{3 + 4} \approx 0.71$. Switch on the prior in the visual above. The prior pulls the estimate towards 0.5 when data are scarce and fades away as data pile up. That is what **regularisation** does: in fact, L2 regularisation of a model's weights is MAP with a bell-shaped prior centred on zero.
+
+<PastPaperQuestion paper="prelim2026" n={64} />
+
+## Surprise and entropy
+
+Information theory starts from one question: how surprised should you be when something happens? A sure thing is no surprise at all; a 1-in-1000 event is very surprising. The <Term def="The information in an outcome of probability p: −log₂ p bits. Rare outcomes carry more surprise; a certain outcome carries none.">surprise</Term> of an outcome with probability $p$ is
+
+$$
+\text{surprise} = -\log_2 p \quad \text{bits}
+$$
+
+| probability | 1 | 1/2 | 1/4 | 1/8 | 1/1024 |
+|---|---|---|---|---|---|
+| surprise (bits) | 0 | 1 | 2 | 3 | 10 |
+
+A <Term def="The unit of information when logs are base 2: the information in one fair yes/no answer.">bit</Term> is the surprise of one fair coin flip, the information in one yes/no answer. Why a logarithm? Two independent events have probability $p_1 p_2$, and $-\log(p_1 p_2) = -\log p_1 - \log p_2$: their surprises **add**, as information should.
+
+The <Term def="The average surprise of a probability distribution: H(p) = −Σ pᵢ log pᵢ. It measures how unpredictable the outcome is.">entropy</Term> of a distribution is its **average surprise**, each outcome's surprise weighted by how often it happens:
+
+$$
+H(p) = -\sum_i p_i \log_2 p_i
+$$
+
+- A fair coin: $H = -\left(\tfrac12 \log_2 \tfrac12 + \tfrac12 \log_2 \tfrac12\right) = \tfrac12 + \tfrac12 = 1$ bit.
+- A coin that always lands heads: $H = -1 \log_2 1 = 0$. Nothing to learn from watching it.
+- A biased coin with $(0.9, 0.1)$: $H \approx 0.47$ bits. Mostly predictable.
+- Four equally likely outcomes: $H = \log_2 4 = 2$ bits. With $K$ equally likely outcomes, $H = \log_2 K$, the largest possible.
+
+Entropy measures **unpredictability**: high for a fair coin, zero for a certain outcome. It is also, roughly, the smallest average number of yes/no questions needed to pin down the outcome.
+
+<Note title="Bits and nats">
+
+With $\log_2$ the unit is the bit. Machine learning code uses the natural log $\ln$ (`np.log`, `torch.log`), and then the unit is the <Term def="The unit of information when logs are natural (base e). 1 bit = ln 2 ≈ 0.693 nats.">nat</Term>: a fair coin has entropy $\ln 2 \approx 0.693$ nats. Same idea, different ruler. When an exam writes plain "log" in a loss, assume $\ln$.
+
+</Note>
+
+<QuickCheck
+  q="Which of these has the highest entropy?"
+  options={['A fair four-sided die', 'A fair coin', 'A coin that always lands heads', 'A four-outcome distribution (0.7, 0.1, 0.1, 0.1)']}
+  answer={0}
+  explain="A fair four-sided die has $\log_2 4 = 2$ bits, the most possible for four outcomes. The fair coin has 1 bit, the certain coin 0 bits, and the lopsided four-outcome distribution about 1.36 bits: it has four outcomes, but one of them is very likely, so it is fairly predictable."
+/>
+
+## Cross-entropy: surprise when you believe the wrong thing
+
+<Analogy title="Packing with the wrong forecast">
+
+You pack for a trip using your weather app's forecast $q$. The weather actually behaves according to $p$. Every day you feel a surprise of $-\log q$ for whatever weather turns up, so trusting an app that says "rain is unlikely" hurts on rainy days. Cross-entropy is your average daily surprise. A friend who knew the true $p$ would feel only $H(p)$ on average; the extra you suffer is the KL divergence.
+
+</Analogy>
+
+The <Term def="The average surprise when outcomes follow p but you measure surprise with q: H(p, q) = −Σ pᵢ log qᵢ.">cross-entropy</Term> of a belief $q$ against the truth $p$ is
+
+$$
+H(p, q) = -\sum_i p_i \log q_i
+$$
+
+Read it as: outcome $i$ happens a fraction $p_i$ of the time (the truth), and each time it costs surprise $-\log q_i$ (measured with your belief). Two facts make it the perfect loss:
+
+1. $H(p, q) \ge H(p)$, with equality **only when** $q = p$. You can never beat the truth on average.
+2. The gap between them is the <Term def="KL(p‖q) = H(p, q) − H(p) = Σ pᵢ log(pᵢ/qᵢ): the extra average surprise from using q when the truth is p. Never negative; zero only when q = p; not symmetric.">Kullback–Leibler (KL) divergence</Term>:
+
+$$
+\begin{aligned}
+\mathrm{KL}(p \,\|\, q) &= H(p, q) - H(p) \\
+&= \sum_i p_i \log \frac{p_i}{q_i} \;\ge\; 0
+\end{aligned}
+$$
+
+KL measures how far $q$ is from $p$, but it is **not** a distance in the everyday sense: usually $\mathrm{KL}(p\,\|\,q) \neq \mathrm{KL}(q\,\|\,p)$. The weights in the sum are always the *first* distribution's probabilities, so swapping the two changes both the weights and the ratios.
+
+<EntropyBars />
+
+<Steps title="The weather example in bits">
+  <Step title="Truth and forecast">
+    Truth $p = (\tfrac12, \tfrac14, \tfrac18, \tfrac18)$ for (sun, cloud, rain, storm). Forecast $q = (\tfrac14, \tfrac18, \tfrac12, \tfrac18)$: it expects far too much rain.
+  </Step>
+  <Step title="Entropy of the truth">
+    Surprises under $p$: $1, 2, 3, 3$ bits. $H(p) = \tfrac12(1) + \tfrac14(2) + \tfrac18(3) + \tfrac18(3) = 0.5 + 0.5 + 0.375 + 0.375 = 1.75$ bits.
+  </Step>
+  <Step title="Cross-entropy">
+    Surprises under $q$: $-\log_2 \tfrac14 = 2$, $-\log_2 \tfrac18 = 3$, $-\log_2 \tfrac12 = 1$, $3$. Weight them by the **true** frequencies: $H(p, q) = \tfrac12(2) + \tfrac14(3) + \tfrac18(1) + \tfrac18(3) = 1 + 0.75 + 0.125 + 0.375 = 2.25$ bits.
+  </Step>
+  <Step title="KL divergence">
+    $\mathrm{KL}(p\,\|\,q) = 2.25 - 1.75 = 0.5$ bits: the forecast costs you half a bit of extra surprise per day.
+  </Step>
+  <Step title="The other direction">
+    Swap the roles: $H(q) = 1.75$ and $H(q, p) = \tfrac14(1) + \tfrac18(2) + \tfrac12(3) + \tfrac18(3) = 2.375$, so $\mathrm{KL}(q\,\|\,p) = 0.625$ bits. Not the same: KL is not symmetric.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={65} />
+
+### Cross-entropy as a classification loss
+
+For one training example the "truth" is its label written as a <Term def="A vector with a 1 in the position of the correct class and 0 everywhere else, e.g. class 2 of 4 is (0, 1, 0, 0).">one-hot</Term> distribution, for example $y = (0, 1, 0)$ for class 2 of 3. The model's predicted distribution is $q$. Only the true class has $y_i \neq 0$, so the sum collapses to one term:
+
+$$
+H(y, q) = -\sum_i y_i \ln q_i = -\ln q_{\text{true class}}
+$$
+
+The entropy of a one-hot label is 0 (there is no doubt about it), so here cross-entropy *equals* the KL divergence: training pushes the model's distribution towards the truth, and the loss reaches its minimum exactly when $q$ matches the label distribution. For two classes this is the binary cross-entropy. That is why "cross-entropy loss" and "log loss" and "negative log-likelihood" all name the same thing.
+
+<KeyIdea>
+
+Entropy $H(p)$ is the average surprise of the truth. Cross-entropy $H(p, q)$ is the average surprise when you predict with $q$. Their difference is $\mathrm{KL}(p\,\|\,q) \ge 0$, zero only when $q = p$, and not symmetric. **Cross-entropy = entropy + KL.** With one-hot labels, cross-entropy is minus the log of the probability given to the true class: the negative log-likelihood.
+
+</KeyIdea>
+
+## Every loss is a negative log-likelihood
+
+The same recipe explains the regression loss too. Choose a probability model for how the data could have arisen, write down the likelihood, take minus the log: out comes a loss.
+
+<LossFromLikelihood />
+
+| if you assume the target is... | the probability model | maximum likelihood means minimising |
+|---|---|---|
+| a number with bell-shaped (Gaussian) noise | normal distribution | **mean squared error** |
+| a number with spikier (Laplace) noise | Laplace distribution | mean absolute error |
+| yes/no, from a sigmoid | Bernoulli (one coin) | **binary cross-entropy** |
+| one of $K$ classes, from a softmax | categorical ($K$-sided die) | **cross-entropy** (next lesson) |
+
+So loss functions are not arbitrary: each one is a hidden assumption about the noise in your data. Use MSE for numbers and cross-entropy for categories, and you are doing maximum likelihood both times.
+
+## In code
+
+<PyRunner packages={['numpy']} code={infoCode} rows={22} />
+
+<Mistake title="Three classic slips">
+
+- **Likelihood is not the probability of the parameter.** $L(0.7) = 0.0022$ does not mean "0.22% chance that $p = 0.7$".
+- **Mixing log bases.** A fair coin has entropy 1 bit $= \ln 2 \approx 0.693$ nats. If options include both 1 and 0.693, check which log the question uses.
+- **KL is not a distance.** $\mathrm{KL}(p\,\|\,q) \neq \mathrm{KL}(q\,\|\,p)$ in general, and if $q$ gives probability 0 to something $p$ says can happen, $\mathrm{KL}(p\,\|\,q)$ is infinite.
+
+</Mistake>
+
+<ExamTip>
+
+How NOAI asks about this:
+
+- **MLE** maximises $P(\text{data} \mid \text{parameters})$. Not the posterior (that is MAP, which adds a prior) and not the accuracy. Coin: $\hat{p} = $ heads/flips.
+- **Why the log?** It turns a product of many small probabilities into a sum (no underflow) and keeps the same maximiser.
+- **Entropy anchors**: fair coin 1 bit; certain outcome 0; $K$ equally likely outcomes $\log_2 K$ bits (the maximum).
+- **Cross-entropy = entropy + KL**; KL $\ge 0$, $= 0$ only when the distributions match, and is asymmetric because the average is taken over the first distribution.
+- **Matching losses to likelihoods**: MSE ↔ Gaussian noise; cross-entropy ↔ Bernoulli/categorical outputs.
+
+</ExamTip>
+
+<Takeaways>
+
+- The likelihood $L(\theta) = P(\text{data} \mid \theta)$ scores how well a parameter explains the data; MLE picks the best one. 7 heads in 10 flips gives $\hat{p} = 0.7$.
+- Maximise the log-likelihood (a sum, same winner); training software minimises the negative log-likelihood. MAP adds a prior, which acts like regularisation.
+- Entropy $H(p) = -\sum p \log p$ is average surprise: 1 bit for a fair coin, 0 for a sure thing.
+- Cross-entropy $H(p, q) = -\sum p \log q = H(p) + \mathrm{KL}(p\,\|\,q)$; KL is never negative, zero only when $q = p$, and not symmetric.
+- Losses are negative log-likelihoods: MSE comes from Gaussian noise, (binary) cross-entropy from Bernoulli or categorical outputs. Minimising cross-entropy *is* maximum likelihood.
+
+</Takeaways>

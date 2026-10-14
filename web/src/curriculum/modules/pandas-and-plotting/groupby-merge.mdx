@@ -1,3 +1,315 @@
-{/* stub: lesson 'groupby, aggregation and merging' is being written */}
+import GroupByAnimation from './visuals/groupby-merge/GroupByAnimation'
+import JoinVenn from './visuals/groupby-merge/JoinVenn'
+import ColumnBuilder from './visuals/groupby-merge/ColumnBuilder'
 
-This lesson is being written.
+Which town has the priciest flats? Which students have no CCA? What is each flat's price per square metre? You cannot answer these by staring at a big table. Three moves turn a table into answers: **group** the rows and summarise each group, **merge** two tables that share an ID, and **add new columns** worked out from old ones. Almost every data notebook uses all three, and NOAI asks about each of them.
+
+<Analogy title="Collecting CCA fees by class">
+
+The CCA teacher has a stack of 400 payment forms. She sorts them into piles by class, totals each pile, and writes one line per class on a summary sheet. She never adds up the whole stack in one go, and her summary sheet has **one line per class**, not one per form. pandas calls this *split, apply, combine*, and the method that does it is `groupby`.
+
+</Analogy>
+
+## Split, apply, combine
+
+Here is the table we will use all lesson: a small DataFrame `df` of eight HDB resale flats, with `area` in square metres and `price` in thousands of dollars.
+
+| | town | flat_type | area | price |
+|---|---|---|---|---|
+| 0 | Tampines | 4-room | 90 | 520 |
+| 1 | Bishan | 3-room | 70 | 480 |
+| 2 | Woodlands | 4-room | 90 | 460 |
+| 3 | Tampines | 3-room | 70 | 400 |
+| 4 | Bishan | 4-room | 95 | 700 |
+| 5 | Woodlands | 3-room | 70 | 350 |
+| 6 | Tampines | 5-room | 110 | 640 |
+| 7 | Woodlands | 5-room | 125 | 540 |
+
+To get the average price in each town you write one line:
+
+```python
+df.groupby('town')['price'].mean()
+```
+
+Read it left to right:
+
+- `df.groupby('town')` **splits** the rows into groups, one for each different value in the `town` column. On its own it computes nothing. Printing it only shows something like `<...DataFrameGroupBy object at 0x7f...>`: a set of piles waiting for instructions.
+- `['price']` picks the column to summarise.
+- `.mean()` is the <Term def="A function that squashes many values into one number, such as mean, sum, count, max, min or median.">aggregation</Term>. It is **applied** to each group separately, and pandas **combines** the answers into one new result.
+
+<GroupByAnimation />
+
+In symbols, for each group $g$ the result is
+
+$$
+\text{result}[g] = \operatorname{agg}\big(\{\, x_i \;:\; \text{key}_i = g \,\}\big)
+$$
+
+- $g$ is one group name, such as `'Bishan'`.
+- $i$ numbers the rows, $x_i$ is row $i$'s value in the column being summarised (here `price`), and $\text{key}_i$ is row $i$'s value in the grouping column (here `town`).
+- The curly brackets collect the values of every row whose key equals $g$, and $\operatorname{agg}$ is the aggregation, for example the mean.
+
+In words: for each group, gather the values of the rows that belong to it, and squash them into one number.
+
+<KeyIdea>
+
+`df.groupby('A').mean()` splits the rows by the values of column `A`, takes the mean of each numeric column *inside each group*, and stacks the answers into a table with **one row per value of `A`**. The values of `A` become the row labels (the <Term def="The labels down the left side of a pandas table or Series. After a groupby, the group names become the index.">index</Term>), sorted.
+
+</KeyIdea>
+
+<Steps title="Average price per town, by hand">
+  <Step title="Split">
+    Bishan is rows 1 and 4, prices 480 and 700. Tampines is rows 0, 3 and 6, prices 520, 400 and 640. Woodlands is rows 2, 5 and 7, prices 460, 350 and 540.
+  </Step>
+  <Step title="Apply the mean to each pile">
+    Bishan: $(480 + 700) / 2 = 1180 / 2 = 590$. Tampines: $(520 + 400 + 640) / 3 = 1560 / 3 = 520$. Woodlands: $(460 + 350 + 540) / 3 = 1350 / 3 = 450$.
+  </Step>
+  <Step title="Combine">
+    pandas stacks the three answers into a Series whose index is the town names, in alphabetical order:
+
+```text
+town
+Bishan       590.0
+Tampines     520.0
+Woodlands    450.0
+Name: price, dtype: float64
+```
+
+  </Step>
+  <Step title="Answer the question">
+    Bishan has the highest average price. Notice that the eight rows became three: one per town. The mean of the whole column, 511.25, appears nowhere.
+  </Step>
+</Steps>
+
+### More columns, more aggregations
+
+Choose several columns with a list inside the brackets, and several aggregations with `agg`:
+
+```python
+df.groupby('town')[['area', 'price']].mean()          # 2 columns in, a DataFrame out
+df.groupby('town')['price'].agg(['mean', 'max', 'count'])
+df.groupby('town').size()                               # number of rows in each group
+```
+
+The middle line prints
+
+```text
+            mean  max  count
+town                        
+Bishan     590.0  700      2
+Tampines   520.0  640      3
+Woodlands  450.0  540      3
+```
+
+Three small tools help you use the result. `.count()` counts the *non-missing* values in each column, while `.size()` counts rows, including those with blanks. `.sort_values(ascending=False)` ranks the groups from largest to smallest. `.reset_index()` turns the town labels back into an ordinary column, which is handy before plotting or merging. You can also group by two columns, `df.groupby(['town', 'flat_type'])`, to get one row per *combination*.
+
+<Mistake title="Asking for the mean of a text column">
+
+`df.groupby('town').mean()` tries to average **every** other column, including `flat_type`, and "4-room" has no mean. In pandas 2.0 and later this raises a `TypeError`. Pick the numeric columns first, `df.groupby('town')[['area', 'price']].mean()`, or write `df.groupby('town').mean(numeric_only=True)`. Older pandas quietly dropped text columns, which is why many tutorials still show the short version.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={100} />
+
+<QuickCheck
+  q="Using the eight-flat table above, what does `df.groupby('flat_type')['price'].mean()` show for `'4-room'`?"
+  options={['560.0', '700', '1680', '511.25']}
+  answer={0}
+  explain="The 4-room rows are 0, 2 and 4, with prices 520, 460 and 700. Their mean is $(520 + 460 + 700) / 3 = 1680 / 3 = 560$. 1680 is the sum (that would be `.sum()`), 700 is the maximum, and 511.25 is the mean of all eight flats, which ignores the groups."
+/>
+
+## Merging tables on a key
+
+Real data arrives in pieces. The form teacher has a class list; the CCA office has a list of CCA members. Both contain each student's ID, so the ID is the <Term def="A column whose values identify a row and appear in both tables, so rows can be matched up. Also called the join key.">key</Term> that links them. Joining them is a <Term def="Combining two tables side by side by matching rows that have the same key value. pandas does it with pd.merge; databases call it a JOIN.">merge</Term>:
+
+```python
+result = pd.merge(students, cca, on='id', how='left')
+```
+
+- `students` is the **left** table and `cca` is the **right** table (simply the order you write them).
+- `on='id'` names the key column, which must exist in both tables.
+- `how=` decides what happens to rows whose key has **no partner** in the other table.
+
+<Analogy title="Matching the class list with the CCA list">
+
+For each student on the class list, you look up their ID in the CCA list and copy their CCA across. Easy for students in both lists. The real decisions are the leftovers: a student with no CCA, and a CCA record whose ID is not in this class.
+
+</Analogy>
+
+<JoinVenn />
+
+| `how=` | keeps | an unmatched row gets |
+|---|---|---|
+| `'inner'` (the default) | only keys found in both tables | dropped |
+| `'left'` | every row of the left table | `NaN` in the right table's columns |
+| `'right'` | every row of the right table | `NaN` in the left table's columns |
+| `'outer'` | every key from either table | `NaN` wherever it has no partner |
+
+`NaN` ("not a number") is pandas' marker for a missing value. You met it when cleaning data, and merges are one of the most common places it appears.
+
+<KeyIdea>
+
+Every join keeps the matched rows. The join type only decides which **unmatched** rows survive: inner keeps none, left keeps the left table's, right keeps the right table's, outer keeps all of them.
+
+</KeyIdea>
+
+<Steps title="Count the rows of a merge without running it">
+  <Step title="List the keys">
+    `students` has ids 101, 102, 103, 104. `cca` has ids 102, 103, 105.
+  </Step>
+  <Step title="Matched keys">
+    102 and 103 are in both, so every join type starts with these **2** rows. That is the whole of `inner`.
+  </Step>
+  <Step title="Add the unmatched rows that survive">
+    `left`: 2 + 2 (ids 101 and 104) = **4**. `right`: 2 + 1 (id 105) = **3**. `outer`: 2 + 2 + 1 = **5**.
+  </Step>
+  <Step title="Watch for duplicate keys">
+    If id 103 appears **twice** in `cca` (Chen is in Choir and Football), Chen matches two rows and appears twice. Every count goes up by 1: inner 3, left 5, right 4, outer 6. In general, a key that appears $k$ times on the left and $m$ times on the right gives $k \times m$ rows.
+  </Step>
+</Steps>
+
+Here is the real output of the left join (with no duplicates):
+
+```text
+    id   name class       cca
+0  101  Aisha    3A       NaN
+1  102    Ben    3A  Robotics
+2  103   Chen    3B     Choir
+3  104    Dev    3B       NaN
+```
+
+<Mistake title="“My merge made extra rows”">
+
+A left join can return **more** rows than the left table when the right table repeats a key. With many repeats on both sides the table can explode: 2 copies of a key on each side gives $2 \times 2 = 4$ rows. Before merging, check `cca['id'].duplicated().sum()`. You can also write `pd.merge(..., validate='many_to_one')`, which raises an error if the right table's keys are not unique.
+
+</Mistake>
+
+<Note title="Other ways to combine tables">
+
+`pd.concat([a, b])` **stacks** tables on top of each other (more rows, same columns) without matching any keys. When the key columns have different names, use `left_on='student_id', right_on='id'`. And `a.join(b)` is a shortcut that merges on the index instead of a column.
+
+</Note>
+
+<QuickCheck
+  q="`orders` has 10 rows. In `products`, every `product_id` appears exactly once, but 2 of the orders use a `product_id` that is not in `products`. How many rows does `pd.merge(orders, products, on='product_id', how='left')` return?"
+  options={['10', '8', '12', '2']}
+  answer={0}
+  explain="A left join keeps every row of the left table, `orders`. The 8 matched orders each match exactly one product, and the 2 unmatched orders stay with `NaN` in the product columns: 8 + 2 = 10. 8 rows would be an inner join, which drops the unmatched orders."
+/>
+
+## New columns: vectorised, map and apply
+
+To add a column, assign to a new name. The right-hand side can work on whole columns at once:
+
+```python
+df['psm'] = df['price'] / df['area']     # every row at once
+```
+
+For each row $i$ this computes $\text{psm}_i = \text{price}_i / \text{area}_i$. Row 0 gives $520 / 90 \approx 5.78$ thousand dollars, so about 5,780 dollars per square metre. You never write a loop: this is a <Term def="Written as one operation on whole columns or arrays, so pandas and NumPy run it in fast compiled code instead of a Python loop over the rows.">vectorised</Term> operation, exactly like NumPy arrays (each numeric pandas column is a NumPy array underneath). A single number is copied to every row, so `df['price'] * 1000` converts the whole column to dollars. Rows are lined up by their index, and if the name already exists, the old column is **overwritten**.
+
+<Analogy title="A spreadsheet formula, filled down">
+
+In a spreadsheet you type a formula once and fill it down the whole column. A vectorised pandas line is the same idea, except that it is one line of code and it is fast even for a million rows.
+
+</Analogy>
+
+Two more tools cover what plain arithmetic cannot:
+
+- **`map`** replaces each value using a dictionary (a look-up table):
+
+  ```python
+  region = {'Tampines': 'East', 'Bishan': 'Central', 'Woodlands': 'North'}
+  df['region'] = df['town'].map(region)    # a town missing from the dict becomes NaN
+  ```
+
+- **`apply`** runs your own Python function. On a column it calls the function once for every value; on a whole DataFrame with `axis=1` it calls it once for every **row**:
+
+  ```python
+  def label(p):
+      return 'high' if p >= 500 else 'low'
+
+  df['band'] = df['price'].apply(label)
+  # same numbers as psm, but far slower:
+  df['psm2'] = df.apply(lambda r: r['price'] / r['area'], axis=1)
+  ```
+
+  A <Term def="A small one-line function with no name, written lambda inputs: result. For example, lambda p: p * 2 doubles its input.">lambda</Term> is a quick one-line function, so `lambda r: r['price'] / r['area']` means "given a row `r`, return its price divided by its area".
+
+<ColumnBuilder />
+
+Why is `apply` so much slower? Each call is an ordinary Python function call that handles one row at a time, so a million rows means a million calls. The vectorised version hands the whole columns to NumPy, which loops in compiled C code. Most if-else labels have a vectorised form too: `np.where(df['price'] >= 500, 'high', 'low')` does the same job as the `label` function above.
+
+<KeyIdea>
+
+Prefer vectorised column arithmetic (and `np.where` for if-else). Use `map` for look-ups from a dictionary. Use `apply` only when there is no vectorised way to write it.
+
+</KeyIdea>
+
+<Mistake title="Forgetting axis=1">
+
+`df.apply(f)` on a DataFrame calls `f` once per **column** (the default, `axis=0`). To go row by row, you must write `df.apply(f, axis=1)`. It is the same axis idea as `np.sum(A, axis=1)`.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={98} />
+
+## All three together
+
+Run this, then change it: group by `flat_type` instead of `region`, or switch the merge to `how='inner'` after deleting Woodlands from `towns`.
+
+<PyRunner packages={['pandas']} code={`import pandas as pd
+
+df = pd.DataFrame({
+    'town': ['Tampines', 'Bishan', 'Woodlands', 'Tampines',
+             'Bishan', 'Woodlands', 'Tampines', 'Woodlands'],
+    'flat_type': ['4-room', '3-room', '4-room', '3-room',
+                  '4-room', '3-room', '5-room', '5-room'],
+    'area': [90, 70, 90, 70, 95, 70, 110, 125],
+    'price': [520, 480, 460, 400, 700, 350, 640, 540],   # $ thousands
+})
+towns = pd.DataFrame({'town': ['Bishan', 'Tampines', 'Woodlands'],
+                      'region': ['Central', 'East', 'North']})
+
+df['psm'] = df['price'] / df['area']              # 1. new column (vectorised)
+df = pd.merge(df, towns, on='town', how='left')   # 2. add each flat's region
+print(df.head(3))
+print()
+print(df.groupby('region')[['price', 'psm']].mean().round(2))   # 3. summarise
+print()
+print(df.groupby('flat_type')['price'].agg(['mean', 'count']))`} />
+
+You should see
+
+```text
+        town flat_type  area  price       psm   region
+0   Tampines    4-room    90    520  5.777778     East
+1     Bishan    3-room    70    480  6.857143  Central
+2  Woodlands    4-room    90    460  5.111111    North
+
+         price   psm
+region              
+Central  590.0  7.11
+East     520.0  5.77
+North    450.0  4.81
+
+            mean  count
+flat_type              
+3-room     410.0      3
+4-room     560.0      3
+5-room     590.0      2
+```
+
+<ExamTip>
+
+The Prelim tests these ideas in words, not long code. Learn three one-liners: **groupby = split, apply, combine, giving one row per group**; **the join type decides which unmatched rows survive** (inner: only matches, left: all left rows); **vectorised beats loops and apply** because it runs in compiled code. Distractors love the reversed version, such as "groups by the mean values" or "sorts by category", so read every option. To count merge rows in your head: matched rows, plus the unmatched rows the join keeps, and multiply when a key is repeated.
+
+</ExamTip>
+
+<Takeaways>
+
+- `df.groupby('A')['x'].mean()` splits the rows by `A`, takes the mean of `x` in each group and returns one row per group, indexed by `A`. Select numeric columns (or use `numeric_only=True`) before averaging.
+- `.agg(['mean', 'max', 'count'])` gives several summaries at once; `.size()` counts rows per group.
+- `pd.merge(a, b, on='key', how=...)` matches rows by key: inner keeps matches only, left keeps all of `a`, right keeps all of `b`, outer keeps everything, with `NaN` in the gaps. Duplicate keys multiply rows.
+- Make new columns with vectorised arithmetic like `df['price'] / df['area']`; use `map` for dictionary look-ups and `apply` (with `axis=1` for rows) only as a slow last resort.
+
+</Takeaways>

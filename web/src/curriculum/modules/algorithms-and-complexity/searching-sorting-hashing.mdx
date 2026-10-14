@@ -1,3 +1,318 @@
-{/* stub: lesson 'Searching, sorting, hashing and heaps' is being written */}
+import BinarySearchStepper from './visuals/searching-sorting-hashing/BinarySearchStepper'
+import SortVisualizer from './visuals/searching-sorting-hashing/SortVisualizer'
+import HashBuckets from './visuals/searching-sorting-hashing/HashBuckets'
+import HeapTopK from './visuals/searching-sorting-hashing/HeapTopK'
 
-This lesson is being written.
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const binarySearchCode = `def binary_search(a, target):
+    lo, hi = 0, len(a) - 1
+    steps = 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        steps += 1
+        if a[mid] == target:
+            return mid, steps
+        elif a[mid] < target:
+            lo = mid + 1      # go right
+        else:
+            hi = mid - 1      # go left
+    return -1, steps          # not found
+
+a = [3, 7, 11, 15, 18, 22, 26, 31, 35, 40, 44, 49, 53, 58, 62, 67]
+print(binary_search(a, 44))
+print(binary_search(a, 23))
+
+# 1,000,000 sorted even numbers
+big = list(range(0, 2_000_000, 2))
+print(binary_search(big, 1_234_568))
+print(binary_search(big, 7))`
+
+export const pairCode = `def has_pair_slow(nums, target):   # O(n^2)
+    n = len(nums)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if nums[i] + nums[j] == target:
+                return True
+    return False
+
+def has_pair_fast(nums, target):   # O(n)
+    seen = set()
+    for x in nums:
+        if target - x in seen:   # O(1)
+            return True
+        seen.add(x)
+    return False
+
+nums = [8, 3, 11, 5, 14, 2]
+print(has_pair_slow(nums, 16))   # 11 + 5
+print(has_pair_fast(nums, 16))
+print(has_pair_fast(nums, 30))
+
+# same key, same hash, every time
+print(hash("kopi") == hash("kopi"))
+d = {(1, 2): "a tuple can be a key"}
+print(d[(1, 2)])
+try:
+    d[[1, 2]] = "a list cannot"
+except TypeError as e:
+    print("TypeError:", e)`
+
+export const heapCode = `import heapq
+
+scores = [42, 77, 15, 63, 88, 51, 29, 95,
+          70, 34, 81, 58, 12, 99, 66, 47]
+
+# keep the 3 largest in a min-heap of size 3
+k = 3
+heap = []
+for x in scores:
+    if len(heap) < k:
+        heapq.heappush(heap, x)
+    elif x > heap[0]:
+        # x beats the smallest of the top k:
+        # pop the root and push x, O(log k)
+        heapq.heapreplace(heap, x)
+print(heap)              # a heap: not sorted
+print(sorted(heap, reverse=True))
+print(heapq.nlargest(3, scores))  # same job`
+
+Finding things and putting them in order are what computers spend much of their time doing. Your phone's contact search, a search engine's ranking, a language model choosing its next word from 50,000 candidates: underneath each one is a **search**, a **sort**, a **hash table** or a **heap**. This lesson builds all four from scratch and explains, using the Big-O tools from the last lesson, why each one costs what it costs.
+
+## Searching: one by one, or halve and halve again
+
+The simplest way to find a value is <Term def="Checking the items one by one from the start until you find the target or run out of items.">linear search</Term>: check the items one at a time. It works on any list, but in the worst case (the target is last or missing) it checks all $n$ items: $O(n)$.
+
+If the list is **sorted**, you can do something much cleverer.
+
+<Analogy title="Guess my number">
+
+A friend thinks of a number from 1 to 100 and answers each guess with "higher" or "lower". Guessing 1, 2, 3, … could take 100 guesses. Instead, guess 50. Whatever the answer, half the numbers are ruled out at once. Then guess the middle of what's left (25 or 75), and so on. You never need more than 7 guesses, because $2^7 = 128 \ge 100$.
+
+</Analogy>
+
+<Term def="A search on a SORTED list that compares the target with the middle item and throws away the half that cannot contain it, again and again.">Binary search</Term> does exactly this. Keep two markers, `lo` and `hi`, around the part of the list that could still contain the target. Look at the middle item `a[mid]`:
+
+- if it equals the target, you are done;
+- if it is **smaller** than the target, the target can only be to its right, so move `lo` to `mid + 1`;
+- if it is **bigger**, the target can only be to its left, so move `hi` to `mid - 1`.
+
+When `lo` passes `hi`, the range is empty and the target is not there.
+
+<BinarySearchStepper />
+
+### Why binary search is $O(\log n)$
+
+Each comparison halves the range. Starting with $n$ items, after one comparison at most $n/2$ remain, after two at most $n/4$, and after $k$ comparisons at most $n / 2^k$. The search must stop once fewer than one item remains, which happens when $2^k > n$. So the number of comparisons is about $\log_2 n$; precisely, at most $\lfloor \log_2 n \rfloor + 1$, where $\lfloor \cdot \rfloor$ means "round down".
+
+| Sorted items $n$ | Linear search (worst case) | Binary search (worst case) |
+|---|---|---|
+| 16 | 16 | 5 |
+| 1,000 | 1,000 | 10 |
+| 1,000,000 | 1,000,000 | 20 |
+| 1,000,000,000 | 1,000,000,000 | 30 |
+
+<Steps title="Search for 23 in the 16 numbers above, by hand">
+  <Step title="Whole list: lo = 0, hi = 15">
+    $\text{mid} = \lfloor (0 + 15)/2 \rfloor = 7$ and `a[7]` is 31. Since $31 > 23$, set `hi = 6`.
+  </Step>
+  <Step title="lo = 0, hi = 6">
+    $\text{mid} = \lfloor 6/2 \rfloor = 3$ and `a[3]` is 15. Since $15 < 23$, set `lo = 4`.
+  </Step>
+  <Step title="lo = 4, hi = 6">
+    $\text{mid} = 5$ and `a[5]` is 22. Since $22 < 23$, set `lo = 6`.
+  </Step>
+  <Step title="lo = 6, hi = 6">
+    $\text{mid} = 6$ and `a[6]` is 26. Since $26 > 23$, set `hi = 5`.
+  </Step>
+  <Step title="lo = 6 > hi = 5: stop">
+    The range is empty, so 23 is not in the list. That took 4 comparisons; linear search would have checked all 16.
+  </Step>
+</Steps>
+
+Here is the same algorithm in Python. Run it: a million items take at most 20 steps.
+
+<PyRunner code={binarySearchCode} />
+
+<Mistake title="Binary search on unsorted data">
+
+Binary search gives **wrong answers**, not just slow ones, when the list isn't sorted: it throws away the half that it *assumes* cannot contain the target. Switch on Shuffle in the visual above to watch it miss a number that is in the list. Sort first, or use linear search (or a set).
+
+</Mistake>
+
+<QuickCheck
+  q="A sorted list holds 1,000 student IDs. What is the largest number of comparisons binary search can need to find one ID, or to decide that it is missing?"
+  options={['10', '100', '500', '1,000']}
+  answer={0}
+  explain="Each comparison halves the range, and $2^{10} = 1024 > 1000$, so at most $\lfloor \log_2 1000 \rfloor + 1 = 9 + 1 = 10$ comparisons. 1,000 is the worst case for linear search, and 500 is roughly linear search's average when the ID is present."
+/>
+
+## Sorting: from $O(n^2)$ to $O(n \log n)$
+
+Sorting is worth doing because sorted data makes everything else easier: binary search, finding the median, spotting duplicates (they end up next to each other) and listing the top scores. There are dozens of sorting algorithms; three show the big ideas.
+
+<Analogy title="Sorting a pile of exam scripts">
+
+You could walk along the pile swapping any two neighbouring scripts that are out of order, over and over, until a whole walk makes no swap. Or you could split the pile among friends, have each friend sort a small pile, and then **merge** the sorted piles by repeatedly taking the smaller of the top scripts. The second way is far faster for a big pile.
+
+</Analogy>
+
+- <Term def="Repeatedly walk through the list swapping neighbours that are out of order. Each pass carries the largest remaining item to the end.">Bubble sort</Term> walks through the list swapping out-of-order neighbours. Each pass carries the largest remaining item to the end, so it needs up to $n - 1$ passes of up to $n - 1$ comparisons: $O(n^2)$.
+- <Term def="Build a sorted part one item at a time: take the next item and slide it left past every bigger item, like sorting playing cards in your hand.">Insertion sort</Term> works like sorting a hand of cards: take the next item and slide it left until it meets a smaller one. Worst case $O(n^2)$, but on nearly sorted data each item slides only a little, so it is close to $O(n)$.
+- <Term def="Split the list in half, sort each half (by the same method), then merge the two sorted halves into one sorted list.">Merge sort</Term> uses **divide and conquer**: split the list in half, sort each half (by merge sort again), then merge the two sorted halves.
+
+<SortVisualizer />
+
+### Why merging gives $n \log n$
+
+Merging two sorted lists is fast because you only ever compare their **front** items.
+
+<Steps title="Merge [1, 5, 8] with [2, 3, 9]">
+  <Step title="Compare 1 and 2">
+    1 is smaller, so it goes first. Output: [1].
+  </Step>
+  <Step title="Compare 5 and 2">
+    2 goes next. Output: [1, 2].
+  </Step>
+  <Step title="Compare 5 and 3">
+    3 goes next. Output: [1, 2, 3].
+  </Step>
+  <Step title="Compare 5 and 9, then 8 and 9">
+    5 goes, then 8. Output: [1, 2, 3, 5, 8]. The left list is now empty.
+  </Step>
+  <Step title="Copy what is left">
+    Append 9: [1, 2, 3, 5, 8, 9]. Six items took 5 comparisons. Merging two lists with $n$ items in total never takes more than $n - 1$ comparisons.
+  </Step>
+</Steps>
+
+Now count the whole of merge sort. Halving $n$ items down to single items takes $\log_2 n$ levels of splitting. On each level, all the merges together handle each of the $n$ items once, so each level costs about $n$ comparisons. In total: $n$ per level $\times \log_2 n$ levels $= O(n \log n)$. For a million items that is about 20 million comparisons instead of the 500 billion pairs that bubble sort may need.
+
+| Algorithm | Best case | Worst case | Extra space |
+|---|---|---|---|
+| Bubble sort (stops after a pass with no swaps) | $O(n)$ | $O(n^2)$ | $O(1)$ |
+| Insertion sort | $O(n)$ | $O(n^2)$ | $O(1)$ |
+| Merge sort | $O(n \log n)$ | $O(n \log n)$ | $O(n)$ |
+| Python's `sorted()` and `list.sort()` (Timsort) | $O(n)$ | $O(n \log n)$ | $O(n)$ |
+
+In real code, always use Python's built-in sort. It is a merge-and-insertion hybrid called <Term def="Python's built-in sorting algorithm: a hybrid of merge sort and insertion sort, O(n log n) in the worst case and very fast on partly sorted data.">Timsort</Term>, it is $O(n \log n)$, and it is **stable** (items that compare equal keep their original order). Sort by any rule with `key=`, for example `sorted(students, key=lambda s: s["score"], reverse=True)`.
+
+<Note title="A speed limit for sorting">
+
+Any sort that works only by comparing pairs of items needs about $n \log_2 n$ comparisons in the worst case, so $O(n \log n)$ is the best such an algorithm can do. Merge sort and Timsort reach that limit.
+
+</Note>
+
+<ExamTip>
+
+Searching **once**? A linear scan, $O(n)$, beats sorting first, $O(n \log n)$. Searching **many** times? Sort once, then each search is $O(\log n)$. With $q$ searches that is $O(n \log n + q \log n)$ instead of $O(qn)$.
+
+</ExamTip>
+
+## Hashing: jump straight to the answer
+
+Binary search is fast, but it still needs about 20 steps for a million items and it needs sorted data. A <Term def="A table that stores items in numbered buckets, using a hash function to compute each key's bucket. Python's dict and set are hash tables.">hash table</Term> does better: on average it finds a key in a **constant** number of steps, however many keys it holds.
+
+<Analogy title="Pigeonholes in the staff room">
+
+Each teacher's pigeonhole is labelled with the first letter of their surname. To deliver a note to Mr Tan you don't search every pigeonhole: you compute "T" from the name and go straight to that one. If Ms Teo also lives in "T", you check the few notes there, but you never look at the other 25 letters.
+
+</Analogy>
+
+The recipe has two parts:
+
+$$
+\text{bucket}(\text{key}) = h(\text{key}) \bmod m
+$$
+
+- $h$ is a <Term def="A function that turns a key into a whole number in a fixed, repeatable way: the same key always gives the same number.">hash function</Term>: it turns any key into a whole number, and the same key always gives the same number.
+- $m$ is the number of buckets, and $\bmod$ ("mod") takes the remainder after dividing by $m$, so the answer is always a bucket number from $0$ to $m - 1$.
+
+To **insert** a key, compute its bucket and put it there. To **look up** a key, compute the same bucket and check only the keys stored in it. Two different keys that land in the same bucket are a <Term def="Two different keys landing in the same bucket. With chaining, the bucket simply holds a short list of keys.">collision</Term>; here each bucket keeps a short chain (a little list) of its keys.
+
+<HashBuckets />
+
+With $n$ keys spread over $m$ buckets, the average chain has $\alpha = n/m$ keys, the <Term def="The average number of keys per bucket, n/m. Keeping it small keeps chains short and lookups fast.">load factor</Term>. A lookup costs one hash calculation plus a walk along one chain, so $O(1 + \alpha)$ on average. Python keeps $\alpha$ small by moving everything into a bigger table whenever it gets too full, so `d[key]`, `key in d`, `x in s` and `s.add(x)` are all **$O(1)$ on average**. The worst case is still $O(n)$: if every key collided (squeeze the visual down to 1 bucket), the table would be one long list. Good hash functions make that astronomically unlikely.
+
+<Steps title="Hash two keys by hand (toy hash, m = 8 buckets)">
+  <Step title="Add up the letters of 'kopi'">
+    With a = 1, b = 2, …, z = 26: k = 11, o = 15, p = 16, i = 9, so $h = 11 + 15 + 16 + 9 = 51$.
+  </Step>
+  <Step title="Take the remainder">
+    $51 \bmod 8 = 3$, because $51 = 6 \times 8 + 3$. So 'kopi' lives in bucket 3.
+  </Step>
+  <Step title="Now 'nasi'">
+    n = 14, a = 1, s = 19, i = 9, so $h = 43$ and $43 \bmod 8 = 3$. Bucket 3 again: a collision, so bucket 3's chain becomes kopi → nasi.
+  </Step>
+  <Step title="Look up 'nasi'">
+    Compute bucket 3, compare with 'kopi' (no), then 'nasi' (yes): 2 comparisons, whether the table holds 10 keys or 10 million.
+  </Step>
+</Steps>
+
+This is how hashing turns an $O(n^2)$ "check every pair" into $O(n)$. To find whether any two numbers add up to a target, remember each number in a set and ask whether `target - x` is already there:
+
+<PyRunner code={pairCode} />
+
+The last lines show the one rule hashing imposes: a key's hash must never change, so keys must be **immutable**. Tuples, strings and numbers can be dict keys or set items; lists cannot.
+
+<Mistake title="Using a list where a set belongs">
+
+`if x in banned:` inside a loop is $O(n)$ per check when `banned` is a list, so the loop is $O(n^2)$. Build `banned = set(banned)` once ($O(n)$) and every check becomes $O(1)$ on average. The price is memory: a hash table keeps spare empty buckets.
+
+</Mistake>
+
+## Heaps: the best few, without sorting everything
+
+Often you only want the **top $k$**: the 10 best scores, the 5 most likely next words, the 3 nearest neighbours. Sorting all $n$ items costs $O(n \log n)$ and keeps everything. A heap does less work.
+
+<Analogy title="A top-10 leaderboard">
+
+An arcade leaderboard only shows the top 10. When a new score arrives, the only question is: "does it beat the **lowest** score on the board?" If not, ignore it. If so, kick out the lowest and slot the new score in.
+
+</Analogy>
+
+A <Term def="A binary tree in which every parent is no bigger than its children, so the smallest item is always at the root. Stored compactly in a list.">min-heap</Term> is a binary tree with one rule: **every parent is no bigger than its children**. So the smallest item always sits at the root, and you can read it in $O(1)$. The tree is kept perfectly balanced (filled level by level), so it has only about $\log_2 n$ levels, and it is stored in an ordinary list: the children of position $i$ are at $2i + 1$ and $2i + 2$, and its parent is at $\lfloor (i - 1)/2 \rfloor$.
+
+- **Push** (add an item): put it at the end, then **sift up**, swapping with its parent while it is smaller. At most one swap per level: $O(\log n)$.
+- **Pop** or **replace** the root: put the new item at the root, then **sift down**, swapping with the smaller child while it is bigger. Also $O(\log n)$.
+
+To keep the $k$ **largest** items of a stream, use a **min**-heap of size $k$. Its root is the smallest of your current top $k$, the score to beat. Each new item costs one comparison with the root, plus $O(\log k)$ if it gets in.
+
+<HeapTopK />
+
+<Steps title="Keep the top 3 of the stream 42, 77, 15, 63, 88">
+  <Step title="42, then 77">
+    The heap has room: [42], then [42, 77]. The root 42 is the smallest.
+  </Step>
+  <Step title="15">
+    Push 15 at position 2. Its parent (position 0) is 42, which is bigger, so swap: [15, 77, 42]. The heap is now full.
+  </Step>
+  <Step title="63 beats the root 15">
+    Replace the root: [63, 77, 42]. Sift down: the smaller child is 42, and $42 < 63$, so swap: [42, 77, 63].
+  </Step>
+  <Step title="88 beats the root 42">
+    Replace the root: [88, 77, 63]. The smaller child is 63, so swap: [63, 77, 88]. The top 3 so far are 88, 77 and 63.
+  </Step>
+</Steps>
+
+For $n$ items the whole job costs $O(n \log k)$ time and only $O(k)$ memory, compared with $O(n \log n)$ time and $O(n)$ memory for sorting. With $n = 1{,}000{,}000$ and $k = 8$, that is about $1{,}000{,}000 \times 3 = 3$ million steps instead of 20 million, and it works on a stream too big to store. Python's `heapq` module provides the heap operations on a plain list:
+
+<PyRunner code={heapCode} />
+
+Top-$k$ selection is everywhere in AI. **Top-$k$ sampling** lets a language model choose its next word only from the $k$ most likely tokens, **beam search** keeps the $k$ best partial sentences at each step, and retrieval systems (such as RAG) fetch the $k$ documents most similar to a question.
+
+<PastPaperQuestion paper="prelim2026" n={230} />
+
+<ExamTip>
+
+Memorise this table; NOAI questions often just ask for one entry. Search: linear $O(n)$, binary $O(\log n)$ (sorted data only). Sort: bubble and insertion $O(n^2)$, merge and Python's sort $O(n \log n)$. Hash table (dict, set) lookup and insert: $O(1)$ average, $O(n)$ worst. Heap: peek at the minimum $O(1)$, push and pop $O(\log n)$, top $k$ of $n$ items $O(n \log k)$.
+
+</ExamTip>
+
+<Takeaways>
+
+- Binary search halves a **sorted** range each step: $O(\log n)$, about 20 comparisons for a million items. On unsorted data it gives wrong answers.
+- Bubble and insertion sort are $O(n^2)$; merge sort splits, sorts and merges in $O(n \log n)$. In practice use Python's `sorted()`.
+- A hash table computes a bucket from the key, so dict and set lookups are $O(1)$ on average; keys must be immutable.
+- A min-heap keeps the smallest item at the root with $O(\log n)$ push and pop; a size-$k$ min-heap finds the top $k$ of $n$ items in $O(n \log k)$.
+
+</Takeaways>

@@ -1,3 +1,294 @@
-{/* stub: lesson 'Multi-layer perceptrons' is being written */}
+import XorFold from './visuals/multilayer-perceptrons/XorFold'
+import ForwardPassStepper from './visuals/multilayer-perceptrons/ForwardPassStepper'
+import ParamCounter from './visuals/multilayer-perceptrons/ParamCounter'
+import MiniPlayground from './visuals/multilayer-perceptrons/MiniPlayground'
+import DepthFolds from './visuals/multilayer-perceptrons/DepthFolds'
 
-This lesson is being written.
+export const forwardCode = `import numpy as np
+
+x  = np.array([2, 1])            # 2 inputs
+W1 = np.array([[ 1, -1],
+               [-2,  1],
+               [ 1,  2]])        # 3 hidden neurons, 2 inputs each
+b1 = np.array([0, 1, -1])
+W2 = np.array([[2, -1, 1]])      # 1 output neuron, 3 hidden inputs
+b2 = np.array([-1])
+
+def relu(z):
+    return np.maximum(0, z)
+
+z1 = W1 @ x + b1                 # pre-activations of the hidden layer
+h  = relu(z1)                    # hidden layer outputs
+y  = W2 @ h + b2                 # output (no activation)
+print("z1 =", z1)
+print("h  =", h)
+print("y  =", y)
+
+# A batch of 4 inputs at once: one row per example
+X = np.array([[2, 1], [0, 0], [1, -1], [-3, 2]])
+H = relu(X @ W1.T + b1)          # shape (4, 3)
+Y = H @ W2.T + b2                # shape (4, 1)
+print("H shape:", H.shape, " Y shape:", Y.shape)
+print("outputs:", Y.ravel())
+
+n_params = W1.size + b1.size + W2.size + b2.size
+print("parameters:", n_params)`
+
+A single perceptron can only draw one straight line, which is why it fails on XOR. The fix that launched deep learning sounds almost too simple: use **many** neurons, arrange them in **layers**, and let each layer feed the next. The result is a <Term def="A neural network made of fully connected layers of neurons with non-linear activations between them. Also called a feed-forward network or dense network.">multi-layer perceptron</Term> (MLP). In this lesson you will push numbers through one by hand, count its parameters in seconds (a guaranteed exam mark), and watch one learn curved shapes live.
+
+<Analogy title="A team of map-makers">
+
+The council wants to mark a round neighbourhood on a map, but each junior map-maker may draw only **one straight line** with a ruler and shade one side of it. One junior can never fence in a round area. Hire four juniors to draw four lines, plus a manager whose rule is "a house is in the zone if it is on the shaded side of all four lines", and together they outline a four-sided shape around the neighbourhood. Add a second rank of managers who combine the first managers' shapes, and the team can outline almost any region. The juniors are the first **hidden layer**, the managers are the **later layers**, and the final decision is the **output layer**.
+
+</Analogy>
+
+## From one neuron to a network
+
+Recall a single neuron with two inputs. It computes a weighted sum plus a bias, then applies an <Term def="The function a neuron applies to its weighted sum, such as ReLU(z) = max(0, z) or the sigmoid. Without it, layers would only ever compute straight-line (linear) functions.">activation function</Term> $f$:
+
+$$
+z = w_1 x_1 + w_2 x_2 + b, \qquad a = f(z)
+$$
+
+Here $x_1, x_2$ are the inputs, $w_1, w_2$ the weights (how much each input counts), $b$ the bias (a shift), $z$ the weighted sum, often called the <Term def="The weighted sum z = w·x + b of a neuron before the activation function is applied.">pre-activation</Term>, and $a$ the neuron's output. In this lesson $f$ is usually **ReLU**, $\text{ReLU}(z) = \max(0, z)$: it passes positive numbers through and turns negative ones into 0.
+
+Now build a network from these neurons:
+
+- A **layer** is a group of neurons that all receive the same inputs. Each neuron has its own weights and its own bias, so each computes something different.
+- The **input layer** is just the features. It does no computing.
+- The <Term def="Any layer between the input layer and the output layer. Its values are not given in the training data; the network invents them.">hidden layers</Term> sit in the middle. They are "hidden" because the training data never says what their values should be: the network invents them.
+- The **output layer** produces the prediction.
+- Every layer here is <Term def="A layer in which every neuron receives every output of the previous layer. It computes f(Wx + b). PyTorch calls it nn.Linear.">fully connected</Term> (also called **dense**): each neuron receives every output of the layer before.
+
+<NeuralNet layers={[2, 3, 1]} layerLabels={['input layer', 'hidden layer', 'output layer']} height={240} ariaLabel="A 2-3-1 network: 2 inputs, 3 hidden neurons, 1 output" />
+
+We describe a network by its layer sizes: the picture shows a **2-3-1 network** (2 inputs, 3 hidden neurons, 1 output). The number of neurons in a layer is its <Term def="The number of neurons in a layer.">width</Term>; the number of layers is the network's <Term def="The number of layers in a network (usually counting the layers that have weights, i.e. hidden layers plus the output layer).">depth</Term>. Careful: when people say "a 2-layer network" they usually count only the layers that have weights (here the hidden and output layers), not the input layer.
+
+## Why a hidden layer helps: XOR, solved
+
+XOR outputs 1 when exactly one input is 1. Its two "1" points sit on opposite corners of a square, so no single straight line separates them. In the perceptron lesson you beat it with two step-function perceptrons feeding a third. Here is the same idea with ReLU neurons, from the textbook *Deep Learning* by Goodfellow, Bengio and Courville, and a new way to see **why** it works:
+
+$$
+\begin{aligned}
+h_1 &= \text{ReLU}(x_1 + x_2) \\
+h_2 &= \text{ReLU}(x_1 + x_2 - 1) \\
+y &= h_1 - 2h_2
+\end{aligned}
+$$
+
+| input $(x_1, x_2)$ | $x_1 + x_2$ | $h_1$ | $h_2$ | $y = h_1 - 2h_2$ | XOR |
+|---|---|---|---|---|---|
+| (0, 0) | 0 | 0 | 0 | 0 | 0 |
+| (0, 1) | 1 | 1 | 0 | **1** | 1 |
+| (1, 0) | 1 | 1 | 0 | **1** | 1 |
+| (1, 1) | 2 | 2 | 1 | 0 | 0 |
+
+Every row matches. The trick is in the middle columns: the hidden layer gives each input a **new description** $(h_1, h_2)$. The two "1" corners both become $(1, 0)$, while the "0" corners become $(0, 0)$ and $(2, 1)$. In this new space a single straight line does separate them, and the output neuron only has to draw that line.
+
+<XorFold />
+
+<KeyIdea>
+
+A hidden layer **re-describes** every input as a new list of numbers, one per hidden neuron. Thanks to the non-linear activation, this re-description can bend and fold the space so that a problem which was not linearly separable becomes separable, and then the output neuron's single straight line is enough. Training finds useful hidden features automatically; you never have to design them by hand.
+
+</KeyIdea>
+
+Switch the ReLU off in the visual and the trick fails. Without a bend, the hidden layer is a purely linear map: it can stretch, squash, rotate and slide the plane, but a linear map can never make XOR separable. (Here the four points end up on one straight line with the orange ones in the middle.) That is why hidden layers need a non-linear activation.
+
+## The forward pass in numbers
+
+Running an input through the network from left to right to get a prediction is called the <Term def="Computing a network's output from its input, layer by layer: multiply by the weights, add the biases, apply the activation, and pass the result on.">forward pass</Term>. One fully connected layer does all of its neurons at once with a matrix:
+
+$$
+\mathbf{h} = f(W\mathbf{x} + \mathbf{b})
+$$
+
+Symbol by symbol, for a layer with $n_\text{in}$ inputs and $n_\text{out}$ neurons:
+
+- $\mathbf{x}$ is the column of inputs, with $n_\text{in}$ numbers.
+- $W$ is the **weight matrix** with $n_\text{out}$ rows and $n_\text{in}$ columns. **Row $j$ holds the weights of neuron $j$**, one weight per input.
+- $W\mathbf{x}$ multiplies each row by the inputs: row $j$ times $\mathbf{x}$ is exactly neuron $j$'s weighted sum.
+- $\mathbf{b}$ is the column of biases, one per neuron, so $\mathbf{z} = W\mathbf{x} + \mathbf{b}$ holds all $n_\text{out}$ pre-activations.
+- $f$ is applied to each number separately, giving the layer's output $\mathbf{h}$.
+
+A network just repeats this. For our 2-3-1 network, with a superscript in brackets saying which layer a weight belongs to:
+
+$$
+\begin{aligned}
+\mathbf{h} &= \text{ReLU}\!\left(W^{(1)}\mathbf{x} + \mathbf{b}^{(1)}\right) \\
+\hat{y} &= W^{(2)}\mathbf{h} + b^{(2)}
+\end{aligned}
+$$
+
+where $\hat{y}$ ("y-hat") is the prediction. Step through it:
+
+<ForwardPassStepper />
+
+<Steps title="Forward pass by hand: x = (2, 1)">
+  <Step title="Hidden neuron 1: row (1, −1), bias 0">
+    $z_1 = 1 \cdot 2 + (-1) \cdot 1 + 0 = 1$, so $h_1 = \text{ReLU}(1) = 1$.
+  </Step>
+  <Step title="Hidden neuron 2: row (−2, 1), bias 1">
+    $z_2 = (-2) \cdot 2 + 1 \cdot 1 + 1 = -2$, so $h_2 = \text{ReLU}(-2) = 0$. This neuron is switched off for this input.
+  </Step>
+  <Step title="Hidden neuron 3: row (1, 2), bias −1">
+    $z_3 = 1 \cdot 2 + 2 \cdot 1 - 1 = 3$, so $h_3 = 3$. The hidden layer has turned $(2, 1)$ into $\mathbf{h} = (1, 0, 3)$.
+  </Step>
+  <Step title="Output neuron: weights (2, −1, 1), bias −1">
+    $\hat{y} = 2 \cdot 1 + (-1) \cdot 0 + 1 \cdot 3 - 1 = 4$. No activation here: the output layer's activation depends on the task (next lesson).
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+A neural network is just **multiply, add, squash**, repeated layer after layer: $\mathbf{h} = f(W\mathbf{x} + \mathbf{b})$, where $W$ has **one row per neuron** and one column per input.
+
+</KeyIdea>
+
+**Shapes must line up.** $W^{(1)}$ is $3 \times 2$ and $\mathbf{x}$ is $2 \times 1$; the inner numbers (2 and 2) match, and the answer is $3 \times 1$, one value per hidden neuron. The same rule tells you how big every weight matrix must be: a layer from $n_\text{in}$ to $n_\text{out}$ needs an $n_\text{out} \times n_\text{in}$ matrix.
+
+<PastPaperQuestion paper="prelim2026" n={9} />
+
+In real code we push a whole **batch** of examples through at once. Stack them as the rows of a matrix $X$ with shape (examples × features); then a layer computes $f(XW^\top + \mathbf{b})$, giving one row of outputs per example. This is exactly what PyTorch's `nn.Linear` does. Run it, then change `x` or a weight and run again:
+
+<PyRunner packages={['numpy']} code={forwardCode} />
+
+<QuickCheck
+  q="A ReLU neuron has weights $(3, -1)$ and bias $-1$. What does it output for the input $(2, 4)$?"
+  options={['1', '2', '0', '11']}
+  answer={0}
+  explain="$z = 3 \cdot 2 + (-1) \cdot 4 + (-1) = 6 - 4 - 1 = 1$, and $\text{ReLU}(1) = 1$. 2 forgets the bias, 11 ignores the minus signs, and ReLU outputs 0 only when $z \le 0$."
+/>
+
+## Counting parameters
+
+The <Term def="The numbers a model learns during training. For a dense network these are all the weights and biases.">parameters</Term> of an MLP are all its weights and biases. A fully connected layer from $n_\text{in}$ inputs to $n_\text{out}$ neurons has
+
+$$
+\underbrace{n_\text{in} \times n_\text{out}}_{\text{weights: one per connection}} + \underbrace{n_\text{out}}_{\text{biases: one per neuron}}
+$$
+
+parameters, and the whole network's count is the sum over its layers. Activation functions such as ReLU have **no** parameters, and neither does the input layer.
+
+<ParamCounter />
+
+<Steps title="Count the parameters of a 784-128-10 network">
+  <Step title="What is it?">
+    A classic digit classifier: a 28 × 28 image flattened into $784$ inputs, a hidden layer of 128 neurons, and 10 outputs (one per digit).
+  </Step>
+  <Step title="Layer 1: 784 → 128">
+    Weights $784 \times 128 = 100{,}352$ (split it: $784 \times 100 + 784 \times 28 = 78{,}400 + 21{,}952$). Biases $128$. Subtotal $100{,}480$.
+  </Step>
+  <Step title="Layer 2: 128 → 10">
+    Weights $128 \times 10 = 1{,}280$. Biases $10$. Subtotal $1{,}290$.
+  </Step>
+  <Step title="Add up">
+    $100{,}480 + 1{,}290 = 101{,}770$ parameters. Almost 99% of them sit in the first layer, the widest connection.
+  </Step>
+</Steps>
+
+<Mistake title="Three classic counting slips">
+
+- **Forgetting the biases.** $784 \times 128 + 128 \times 10 = 101{,}632$ is wrong; the biases add 138 more.
+- **Multiplying every layer size together.** $784 \times 128 \times 10$ counts nothing real. Weights only connect *neighbouring* layers.
+- **Counting neurons instead of parameters.** A 784-128-10 network has $128 + 10 = 138$ neurons with weights, but 101,770 parameters.
+
+</Mistake>
+
+In PyTorch the same network is two `nn.Linear` layers. (You will meet PyTorch properly in its own module; for now, read `nn.Linear(784, 128)` as "a dense layer from 784 inputs to 128 neurons".)
+
+```python
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Linear(784, 128),   # 784 inputs -> 128 hidden neurons
+    nn.ReLU(),             # no parameters
+    nn.Linear(128, 10),    # 128 hidden -> 10 outputs
+)
+
+for name, p in model.named_parameters():
+    print(name, tuple(p.shape), p.numel())
+print("total:", sum(p.numel() for p in model.parameters()))
+```
+
+```text
+0.weight (128, 784) 100352
+0.bias (128,) 128
+2.weight (10, 128) 1280
+2.bias (10,) 10
+total: 101770
+```
+
+Notice the weight shape `(128, 784)`: one row per output neuron, exactly as in $W\mathbf{x}$. The ReLU (layer number 1) does not appear at all, because it has nothing to learn.
+
+<ExamTip>
+
+Parameter counting is a fast, reliable mark: for each layer write "in × out + out", then add. Watch for questions that give only the hidden sizes (remember the input and output layers), and for options that leave out the biases, which are the most common trap. In the Final, `sum(p.numel() for p in model.parameters())` checks your count in one line.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={166} />
+
+<QuickCheck
+  q="How many parameters does a 10-5-1 fully connected network have?"
+  options={['61', '55', '50', '16']}
+  answer={0}
+  explain="Layer 1: $10 \times 5 + 5 = 55$. Layer 2: $5 \times 1 + 1 = 6$. Total $55 + 6 = 61$. 55 is only the first layer, 50 forgets every bias, and 16 counts neurons."
+/>
+
+## Watch a network learn shapes
+
+Time to train one. In the playground below the network sees two numbers per point (its coordinates) and must decide orange or blue. It learns by gradient descent: after each batch of points, every weight and bias is nudged slightly in the direction that lowers the loss. (How the network works out those directions, *backpropagation*, is the next module.)
+
+<MiniPlayground />
+
+<TryIt title="Five experiments (each takes under a minute)">
+
+1. **Too few neurons.** On the circle, press − until layer 1 has 2 neurons, then Play. Two straight folds cannot fence in a round blob, so accuracy stalls well below 100%. With 3 or more it can (usually). Tap each hidden neuron: every one draws a single straight fold line.
+2. **No activation.** Choose activation **none** and add layers. However deep you go, the boundary stays one straight line, because a stack of linear layers is still linear.
+3. **The spiral.** One layer of 2 neurons is hopeless. Try one layer of 8, then two layers of 8, and compare how quickly the test loss falls. Tap a layer-2 neuron: its map is already bent in several places, because it combines the folds of layer 1.
+4. **Learning rate.** The learning rate sets the size of each nudge. With 0.001 the loss creeps down slowly. With 0.3 the nudges are so big that the loss jumps around, and on harder data (try the spiral) the network can break and get stuck at about 0.693, the coin-flip line.
+5. **Test data.** Turn on the test points. Training loss is measured on the filled points the network learns from; test loss on hollow points it never trains on. When test loss climbs while training loss keeps falling, the network is memorising noise.
+
+</TryIt>
+
+## Width, depth and what a network can represent
+
+**Width.** Each first-layer ReLU neuron adds one straight fold to the input space, so a wider layer gives the next layer more folds to combine. With one input and $n$ ReLU neurons in a single hidden layer, the output is a bent line made of at most $n + 1$ straight pieces.
+
+**Depth.** A deeper layer folds the already-folded space again, so the number of pieces can multiply from layer to layer instead of just adding up. Two ReLU neurons are enough to make a "tent" shape that folds a line in half. Stack tent layers and watch:
+
+<DepthFolds />
+
+Ten such layers would make a zig-zag with $2^{10} = 1{,}024$ straight pieces from only 20 neurons, while a single hidden layer would need at least $1{,}023$ neurons for the same zig-zag.
+
+The <Term def="The theorem that a network with one hidden layer and a non-linear activation can approximate any continuous function on a bounded region as closely as you like, if the hidden layer is wide enough.">universal approximation theorem</Term> says that **one** hidden layer is already enough in principle: with a non-linear activation and enough neurons, it can approximate any continuous function on a bounded region as closely as you like. Read the fine print, though:
+
+- It says suitable weights **exist**. It does not promise that training will find them.
+- "Enough neurons" can mean an enormous number. Deeper networks usually reach the same accuracy with far fewer neurons and parameters, which is one reason modern networks are deep.
+
+More parameters are not automatically better either. A network with far more parameters than training examples can fit the noise in its training data: training loss keeps falling while test loss rises. That is **overfitting**, and spotting it from the numbers is a favourite exam question.
+
+<PastPaperQuestion paper="prelim2026" n={261} />
+
+<KeyIdea>
+
+**Width** adds more folds side by side; **depth** folds the folds, which is far more efficient for complicated shapes. One wide hidden layer can approximate any continuous function in principle (universal approximation), but in practice deeper networks need far fewer neurons, and any network can overfit if it has many parameters and little data.
+
+</KeyIdea>
+
+<ExamTip>
+
+Expect conceptual one-liners: a fully connected layer connects **every input to every output**; hidden layers plus non-linear activations give **non-linear decision boundaries**; the universal approximation theorem is about **one hidden layer, enough neurons, non-linear activation**, and it guarantees existence, not easy training. A big train-test gap means overfitting, not a need for a bigger network.
+
+</ExamTip>
+
+<Takeaways>
+
+- An MLP stacks fully connected layers: input layer, one or more hidden layers, output layer.
+- Each layer computes $\mathbf{h} = f(W\mathbf{x} + \mathbf{b})$, with $W$ of shape $n_\text{out} \times n_\text{in}$ (one row per neuron); the forward pass repeats this layer by layer.
+- Parameters per dense layer $= n_\text{in} \times n_\text{out} + n_\text{out}$; add over layers. 784-128-10 has 101,770.
+- Hidden layers with non-linear activations re-describe the data so that curved and enclosed boundaries (like XOR, circles and spirals) become possible.
+- Width adds folds; depth folds the folds. One wide layer can approximate anything in principle, but depth is usually far more efficient.
+
+</Takeaways>

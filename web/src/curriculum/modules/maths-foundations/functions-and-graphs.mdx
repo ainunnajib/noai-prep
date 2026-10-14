@@ -1,3 +1,258 @@
-{/* stub: lesson 'Functions and their graphs' is being written */}
+import FunctionPipeline from './visuals/functions-and-graphs/FunctionPipeline'
+import LineParabolaPlot from './visuals/functions-and-graphs/LineParabolaPlot'
+import PiecewiseGallery from './visuals/functions-and-graphs/PiecewiseGallery'
+import WhyKinks from './visuals/functions-and-graphs/WhyKinks'
 
-This lesson is being written.
+Every AI model, from a spam filter to a chatbot, is a **function**: numbers go in and an answer comes out. Every formula in this course (losses, activations, update rules) is written in function notation, and most of them are built from just three shapes: straight lines, U-shaped parabolas and graphs with a sharp kink. This lesson gives you the notation and all three shapes.
+
+<Analogy title="The drinks machine at the hawker centre">
+
+Press the kopi button and you get kopi, every single time. One input, exactly one output, and always the same output for the same input: that is a function. Now picture a coffee grinder that pours straight into a brewer. The output of the first machine becomes the input of the second. Chaining machines like this is called **composition**, and it is exactly how a neural network is built.
+
+</Analogy>
+
+## A function is a machine
+
+A <Term def="A rule that takes an input and gives back exactly one output.">function</Term> is a rule that turns each input into exactly one output. We write it like this:
+
+$$
+f(x) = 3x + 1
+$$
+
+- $f$ is the function's **name**. It could just as well be $g$, $h$ or $\text{loss}$.
+- $x$ inside the brackets is the **input**: a placeholder for whatever number you feed in.
+- $3x + 1$ is the **rule**: what the machine does to the input.
+
+To **evaluate** $f(2)$, replace every $x$ in the rule with 2: $f(2) = 3 \times 2 + 1 = 7$. The letter is only a placeholder, so $f(a) = 3a + 1$ and $f(-1) = 3 \times (-1) + 1 = -2$ use the same rule.
+
+<Mistake>
+
+$f(2)$ does **not** mean "$f$ times 2". Brackets straight after a function's name mean "feed this in". And put brackets around a negative input: with $g(x) = x^2$, $g(-3) = (-3)^2 = 9$, whereas $-3^2$ means $-(3^2) = -9$.
+
+</Mistake>
+
+A Python function is the same machine written as code: `def` names it, the input goes in the brackets, and `return` hands back the output.
+
+```python
+def f(x):
+    return 3 * x + 1
+
+print(f(2))   # 7
+```
+
+### Chaining machines: composition
+
+Take a second function, $g(x) = x^2$. The expression $f(g(2))$ means: feed 2 into $g$ first, then feed $g$'s output into $f$. Always work from the **inside out**:
+
+$$
+f(g(2)) = f(4) = 3 \times 4 + 1 = 13
+$$
+
+Swap the order and you get a different answer:
+
+$$
+g(f(2)) = g(7) = 7^2 = 49
+$$
+
+A chain like this is called a <Term def="A function made by feeding the output of one function into another, written f(g(x)). Some books write it (f ∘ g)(x), read 'f after g'.">composite function</Term>. Drop a ball through the machines below, then swap them.
+
+<FunctionPipeline />
+
+<KeyIdea>
+
+A function turns each input into exactly one output. In $f(g(x))$ the inner function $g$ acts **first** and $f$ acts on its result; swapping the order usually changes the answer.
+
+</KeyIdea>
+
+<Steps title="Worked example: $f(x) = 2x - 1$ and $g(x) = x^2$ at $x = -3$">
+  <Step title="Inside first: $g(-3)$">
+    $g(-3) = (-3)^2 = 9$. Squaring a negative number gives a positive one.
+  </Step>
+  <Step title="Then the outside: $f(9)$">
+    $f(9) = 2 \times 9 - 1 = 17$. So $f(g(-3)) = 17$.
+  </Step>
+  <Step title="Other order, inside first: $f(-3)$">
+    $f(-3) = 2 \times (-3) - 1 = -7$.
+  </Step>
+  <Step title="Then the outside: $g(-7)$">
+    $g(-7) = (-7)^2 = 49$. So $g(f(-3)) = 49$, not 17: the order matters.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="With $h(x) = x - 5$ and $k(x) = 2x$, what is $h(k(4))$?"
+  options={['$3$', '$-2$', '$8$', '$-1$']}
+  answer={0}
+  explain="Inside first: $k(4) = 2 \times 4 = 8$, then $h(8) = 8 - 5 = 3$. The other order gives $k(h(4)) = k(-1) = -2$, and $-1$ is just $h(4)$ on its own."
+/>
+
+Why does this matter for AI? A neural network is one big composite function. Each <Term def="One stage of a neural network: it takes a list of numbers in and passes a new list of numbers on to the next stage.">layer</Term> is a machine whose output feeds the next one, so a three-layer network computes $\text{output} = f_3(f_2(f_1(x)))$. The **chain rule**, which is how networks learn, works backwards through exactly this pipeline, one machine at a time.
+
+## Straight lines: $y = mx + c$
+
+The simplest graph is a straight line:
+
+$$
+y = mx + c
+$$
+
+- $m$ is the <Term def="How steep a line is: how much y changes when x increases by 1. Also called the gradient. A negative slope means the line goes downhill.">slope</Term>, also called the gradient: how much $y$ goes up when $x$ goes up by 1. In general, slope $=$ rise $\div$ run.
+- $c$ is the <Term def="The y-value where a graph crosses the y-axis, which is the output when x = 0.">intercept</Term>: the value of $y$ when $x = 0$, so it is where the line crosses the $y$-axis.
+
+A positive $m$ climbs from left to right, a negative $m$ falls, and $m = 0$ is flat. The bigger the size of $m$, the steeper the line. A road sign saying "gradient 1 in 10" means the road rises 1 metre for every 10 metres along: a slope of $1 \div 10 = 0.1$.
+
+**Finding a line from two points.** Through $(1, 3)$ and $(3, 7)$: the run is $3 - 1 = 2$ and the rise is $7 - 3 = 4$, so $m = 4 \div 2 = 2$. Then put one point into $y = 2x + c$: $3 = 2 \times 1 + c$, so $c = 1$. The line is $y = 2x + 1$.
+
+<LineParabolaPlot />
+
+In machine learning the same line is usually written $y = wx + b$: $w$ is called the **weight** and $b$ the **bias**. A linear regression model with one input is exactly this line, and training means finding good values for $w$ and $b$.
+
+In calculus, the slope of a graph is called its <Term def="The slope of a graph at a point, i.e. how fast the output changes as the input changes. You will learn to compute it in the calculus module.">derivative</Term>. A straight line has the same slope everywhere, so the derivative of $5x + 3$ is simply 5. The $+3$ only lifts the line up; it does not make it any steeper.
+
+<PastPaperQuestion paper="prelim2026" n={27} />
+
+## Parabolas: the shape of a loss
+
+A <Term def="The U-shaped graph of a squared expression such as y = x² or y = a(x − h)² + k.">parabola</Term> is the graph of a squared expression. The most useful way to write it is
+
+$$
+y = a(x - h)^2 + k
+$$
+
+Here is why this form is so handy. $(x - h)^2$ is a square, so it is never negative, and it equals 0 exactly when $x = h$. So when $a > 0$, $y$ is smallest at $x = h$, and that smallest value is $0 + k = k$. The lowest point, $(h, k)$, is called the <Term def="The turning point of a parabola: its lowest point if it opens upwards, its highest point if it opens downwards.">vertex</Term>.
+
+- $a > 0$ gives a U that opens upwards; $a < 0$ flips it into an upside-down U, and the vertex becomes the highest point.
+- A bigger size of $a$ gives a narrower U.
+- Watch the sign: $(x - 3)^2$ has its vertex at $x = +3$, and $(x + 1)^2 = (x - (-1))^2$ has it at $x = -1$.
+
+For example, $y = (x - 3)^2 + 1$ has its vertex at $(3, 1)$. Plugging in $x = 1, 2, 3, 4, 5$ gives $y = 5, 2, 1, 2, 5$: smallest in the middle and symmetric on both sides, like a skateboard bowl. A marble dropped anywhere in the bowl rolls to the bottom.
+
+Drag the point along the parabola below and watch its <Term def="The straight line that just touches a curve at one point and points the same way as the curve there. Its slope is the curve's slope at that point.">tangent</Term>, the straight line that just touches the curve at that point. Its slope is how steep the curve is right there.
+
+<LineParabolaPlot start="parabola" />
+
+The slope is negative on the way down, **0 at the vertex**, and positive on the way up. This one fact powers the main training algorithm in AI, **gradient descent**: to find the bottom, check the slope and step downhill until the slope is 0.
+
+**Why loss curves are parabolas.** Suppose a model predicts $w \times x$ and one training example has $x = 2$ and true answer 6. The squared error is
+
+$$
+L(w) = (2w - 6)^2 = \big(2(w - 3)\big)^2 = 4(w - 3)^2
+$$
+
+which is a parabola in $w$ with $a = 4$, $h = 3$, $k = 0$. Its vertex is at $w = 3$, where the prediction $3 \times 2 = 6$ is exactly right and the loss is 0. The bottom of the parabola is the best setting of the knob.
+
+<Tip>
+
+If a parabola is written expanded, as $y = ax^2 + bx + c$, its vertex is at $x = -\dfrac{b}{2a}$. For example $x^2 - 6x + 10$ is the same curve as $(x - 3)^2 + 1$, and $-\dfrac{-6}{2 \times 1} = 3$.
+
+</Tip>
+
+<QuickCheck
+  q="Where is the vertex of $y = 2(x + 1)^2 - 4$?"
+  options={['$(-1, -4)$', '$(1, -4)$', '$(-1, 4)$', '$(2, -4)$']}
+  answer={0}
+  explain="Rewrite $(x + 1)$ as $(x - (-1))$, so $h = -1$, and $k = -4$. The tempting $(1, -4)$ forgets the sign flip inside the bracket; the 2 only changes how narrow the U is, not where the vertex sits."
+/>
+
+## Kinks and jumps: $|x|$, ReLU and steps
+
+Some functions are glued together from pieces, using one rule on one side of a point and a different rule on the other. They are called <Term def="Defined by different rules on different parts of the input range, e.g. one rule for x < 0 and another for x ≥ 0.">piecewise</Term> functions, and three of them are everywhere in AI.
+
+- **Absolute value** $|x|$ is the distance from 0, so $|-3| = 3$ and $|3| = 3$. As pieces: $|x| = -x$ when $x < 0$ (for example $-(-3) = 3$) and $|x| = x$ when $x \ge 0$. Its graph is a V with a sharp corner at 0.
+- **ReLU**, short for <Term def="ReLU(x) = max(0, x). The most widely used activation function in deep learning.">Rectified Linear Unit</Term>, is $\text{ReLU}(x) = \max(0, x)$, where $\max$ picks the larger of the two numbers. So $\text{ReLU}(-2) = \max(0, -2) = 0$ and $\text{ReLU}(3) = 3$. Its graph is flat at 0 for negative inputs and the line $y = x$ (slope 1) for positive ones.
+- A **step** function jumps: it outputs 0 for $x < 0$ and 1 for $x \ge 0$. The perceptron (1958), one of the earliest artificial neurons, used it.
+
+For contrast, the gallery also shows the **sigmoid** $\sigma(x)$, a smooth S-shaped curve that squashes every input into the range 0 to 1. The next lesson explains its formula.
+
+<Analogy title="A car-park barrier">
+
+Below the threshold nothing moves: the output is 0. Above it, the car moves freely. The behaviour changes suddenly at the threshold, and that sudden change is the kink.
+
+</Analogy>
+
+There are two different ways for a graph to change suddenly:
+
+- A graph is <Term def="A function is continuous if you can draw its graph without lifting your pen: no jumps or gaps.">continuous</Term> if you can draw it without lifting your pen. $|x|$, ReLU and the sigmoid are continuous; the step function is not, because it **jumps**.
+- A graph is <Term def="A function is differentiable at a point if it has one clear tangent (one slope) there. Corners and jumps are not differentiable.">differentiable</Term> at a point if it has one clear tangent there. At a **corner**, the slope just to the left and the slope just to the right disagree: $-1$ and $+1$ for $|x|$, 0 and 1 for ReLU. There is no single tangent, so the function is not differentiable at that point, even though it is continuous.
+
+<PiecewiseGallery />
+
+This is why calculus books write the slope of $|x|$ as $\text{sign}(x)$: $-1$ for negative $x$, $+1$ for positive $x$, and undefined at exactly 0. Code cannot leave a gap, so libraries simply pick a value at 0 by convention. PyTorch, for example, uses slope 0 at $x = 0$ for both ReLU and $|x|$. It hardly matters in practice, because an input is rarely exactly 0.
+
+<KeyIdea>
+
+A **corner** (as in $|x|$ and ReLU at 0) is where the slope changes suddenly: the graph is continuous there but not differentiable. A **jump** (as in the step function) is worse: the graph is not even continuous.
+
+</KeyIdea>
+
+### Why a network needs kinks
+
+Compose two straight lines, say $g(x) = 3x - 1$ and $f(z) = 2z + 5$:
+
+$$
+f(g(x)) = 2(3x - 1) + 5 = 6x + 3
+$$
+
+That is just another straight line. However many linear machines you chain, the result is one straight line, so a "deep" network made only of linear layers is no smarter than a single line. Putting a kinked function such as ReLU between the layers fixes this. That in-between function is called an <Term def="A non-linear function, such as ReLU or sigmoid, applied after each linear layer of a neural network so that the network can model curved shapes.">activation function</Term>.
+
+<WhyKinks />
+
+<PastPaperQuestion paper="prelim2026" n={163} />
+
+<PastPaperQuestion paper="prelim2026" n={162} />
+
+<ExamTip>
+
+Expect quick recall here: ReLU is $\max(0, x)$; its outputs are never negative; it is continuous everywhere but not differentiable at $x = 0$; its slope is 0 for negative inputs and 1 for positive ones. For any $f(g(x))$ question, write down the inner value first. The wrong options are usually built from doing the outer function first.
+
+</ExamTip>
+
+## In Python
+
+Run this to check the lesson's numbers. In NumPy, `np.abs` and `np.maximum` work on a whole array at once, one element at a time.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def f(x):
+    return 3 * x + 1
+
+def g(x):
+    return x ** 2
+
+print("f(g(2)) =", f(g(2)), "  g(f(2)) =", g(f(2)))
+
+def relu(x):
+    return max(0, x)
+
+print("ReLU of -2, 0, 3:", relu(-2), relu(0), relu(3))
+
+xs = np.array([-2, -1, 0, 1, 2])
+print("|x|     ", np.abs(xs))
+print("ReLU    ", np.maximum(0, xs))
+print("step    ", (xs >= 0).astype(int))`} />
+
+Expected output:
+
+```text
+f(g(2)) = 13   g(f(2)) = 49
+ReLU of -2, 0, 3: 0 0 3
+|x|      [2 1 0 1 2]
+ReLU     [0 0 0 1 2]
+step     [0 0 1 1 1]
+```
+
+<Mistake>
+
+`np.maximum(0, xs)` (with "imum") compares 0 with **each** element and returns an array: that is ReLU. `np.max(xs)` returns the single largest element, and `np.max(0, xs)` is an error. Mixing them up is a classic bug in from-scratch ReLU code.
+
+</Mistake>
+
+<Takeaways>
+
+- A function gives exactly one output for each input, and $f(2)$ means "feed 2 in". Evaluate $f(g(x))$ from the inside out; the order matters.
+- In $y = mx + c$, the slope $m$ is rise $\div$ run and the intercept $c$ is the value at $x = 0$. A line has the same slope everywhere.
+- $y = a(x - h)^2 + k$ has its vertex at $(h, k)$. The tangent's slope is 0 there, which is the idea behind gradient descent.
+- $|x|$ and $\text{ReLU}(x) = \max(0, x)$ have a corner at 0 (continuous, not differentiable); a step function jumps (not continuous).
+- Lines chained with lines stay lines; kinked activation functions such as ReLU let a network bend.
+
+</Takeaways>

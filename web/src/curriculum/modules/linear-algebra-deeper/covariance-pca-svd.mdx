@@ -1,3 +1,331 @@
-{/* stub: lesson 'Covariance, PCA and SVD' is being written */}
+import CovarianceEllipse from './visuals/covariance-pca-svd/CovarianceEllipse'
+import PCAProjector from './visuals/covariance-pca-svd/PCAProjector'
+import SVDStepper from './visuals/covariance-pca-svd/SVDStepper'
+import LowRankPicture from './visuals/covariance-pca-svd/LowRankPicture'
+import LengthKeeper from './visuals/covariance-pca-svd/LengthKeeper'
+import QRAndFrobenius from './visuals/covariance-pca-svd/QRAndFrobenius'
 
-This lesson is being written.
+A dataset with two numeric columns is a cloud of points, and the shape of that cloud (how wide it is, which way it leans) fits into a small table called the **covariance matrix**. Its eigenvectors are exactly the directions that **PCA** keeps when it squeezes many features into a few. The **SVD**, a factorisation that works for every matrix, is how computers find them, and much more. The lesson ends with the special matrices NOAI likes to ask about: orthogonal, positive definite, QR and the Frobenius norm.
+
+<Analogy title="The NDP crowd at Marina Bay">
+
+Look down from a helicopter at the crowd watching the National Day fireworks. People spread out a long way along the waterfront promenade but only a little way back from the water. To describe the crowd you need its centre, how far it spreads in each direction, and which way its long side points. The covariance matrix records the spread and the lean. PCA reads off the long direction: "most of the crowd's variety is *along the waterfront*".
+
+</Analogy>
+
+## The covariance matrix: a cloud in a table
+
+In *Probability and statistics* you met the covariance of two features, $\operatorname{Cov}(x, y) = \frac1n \sum_i (x_i - \bar x)(y_i - \bar y)$, and saw that $\operatorname{Cov}(x, x)$ is just the variance of $x$. For data with two features, collect every pairing in one table:
+
+$$
+C = \begin{bmatrix} \operatorname{Var}(x) & \operatorname{Cov}(x, y) \\ \operatorname{Cov}(y, x) & \operatorname{Var}(y) \end{bmatrix}
+$$
+
+How to read it:
+
+- **Diagonal: the variances.** How spread out the cloud is along the x-axis and along the y-axis.
+- **Off-diagonal: the covariance.** Its sign is the lean of the cloud: positive means it rises from left to right, negative means it falls, and about 0 means no lean.
+- **Always symmetric.** $\operatorname{Cov}(x, y) = \operatorname{Cov}(y, x)$, because each product $(x_i - \bar x)(y_i - \bar y)$ is the same whichever factor you write first.
+
+With $d$ features the <Term def="A d×d table whose entry (i, j) is the covariance of feature i with feature j. The diagonal holds the variances; the matrix is always symmetric.">covariance matrix</Term> is $d \times d$, and entry $(i, j)$ is the covariance of feature $i$ with feature $j$. In matrix form, if the $n \times d$ matrix $X_c$ holds the **centred** data (each column has had its mean subtracted), then
+
+$$
+C = \frac{1}{n} X_c^T X_c
+$$
+
+The shapes work out as $(d \times n)(n \times d) = d \times d$, and entry $(i, j)$ multiplies column $i$ by column $j$ row by row and averages: exactly the covariance.
+
+<CovarianceEllipse />
+
+<Steps title="Covariance matrix of the points (4, 3), (3, 4), (1, 0), (0, 1)">
+  <Step title="Centre">
+    The mean is $(2, 2)$. Subtract it: the centred points are $(2, 1)$, $(1, 2)$, $(-1, -2)$ and $(-2, -1)$.
+  </Step>
+  <Step title="Variances (diagonal)">
+    $\operatorname{Var}(x) = \frac{4 + 1 + 1 + 4}{4} = 2.5$ and $\operatorname{Var}(y) = \frac{1 + 4 + 4 + 1}{4} = 2.5$.
+  </Step>
+  <Step title="Covariance (off-diagonal)">
+    $\operatorname{Cov}(x, y) = \frac{2 \cdot 1 + 1 \cdot 2 + (-1)(-2) + (-2)(-1)}{4} = \frac{8}{4} = 2$.
+  </Step>
+  <Step title="Assemble and read">
+    $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$: equal spread along both axes, and a strong upward lean.
+  </Step>
+</Steps>
+
+<Mistake title="np.cov's two surprises">
+
+`np.cov(X)` treats each **row** as a variable, so for the usual layout (one row per data point) you need `np.cov(X, rowvar=False)`. It also divides by $n - 1$; pass `bias=True` to divide by $n$ as we do here.
+
+</Mistake>
+
+## PCA: the direction of greatest spread
+
+Suppose you must describe each point with **one** number instead of two. Choose a direction, a unit vector $u$, and record each centred point's <Term def="The projection of a point onto a line: the foot of the perpendicular from the point. For a unit direction u, its position along the line is the dot product u · x.">shadow</Term> on the line through the centre in that direction. For a centred point $x$, the shadow sits at position $z = u \cdot x$ along the line.
+
+Which direction loses the least? The one along which the shadows are **most spread out**. Spread means variance, and the variance of the shadows works out to be $u^T C u$. Hunt for the best direction yourself:
+
+<PCAProjector />
+
+The peak always sits exactly on the top eigenvector of $C$, and its height is the top eigenvalue.
+
+<Reveal label="Why the best direction is an eigenvector">
+
+The variance of the shadows is $\frac1n\sum_k (u \cdot x_k)^2 = \frac1n\sum_k u^T x_k x_k^T u = u^T C u$.
+
+$C$ is symmetric, so (from the last lesson) it has perpendicular unit eigenvectors $v_1, v_2$ with eigenvalues $\lambda_1 \ge \lambda_2$. Write any unit vector as $u = a v_1 + b v_2$ with $a^2 + b^2 = 1$. Then $Cu = a\lambda_1 v_1 + b\lambda_2 v_2$, and because $v_1 \cdot v_2 = 0$,
+
+$$
+u^T C u = \lambda_1 a^2 + \lambda_2 b^2
+$$
+
+This is a weighted average of $\lambda_1$ and $\lambda_2$ with weights $a^2$ and $b^2$ that add up to 1. It is largest, $\lambda_1$, when $u = \pm v_1$, and smallest, $\lambda_2$, when $u = \pm v_2$.
+
+</Reveal>
+
+<KeyIdea>
+
+**PCA = the eigenvectors of the covariance matrix, sorted by eigenvalue.** The first <Term def="One of the new axes found by PCA: an eigenvector of the covariance matrix. PC1 points along the direction of greatest variance, PC2 along the greatest remaining variance at right angles to PC1, and so on.">principal component</Term> (PC1) is the eigenvector with the largest eigenvalue, the direction of greatest variance, and that eigenvalue *is* the variance along it.
+
+</KeyIdea>
+
+<Steps title="The PCA recipe, run on our four points">
+  <Step title="Centre (and standardise if the units differ)">
+    Centred points: $(2, 1)$, $(1, 2)$, $(-1, -2)$, $(-2, -1)$.
+  </Step>
+  <Step title="Covariance matrix">
+    $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$, from the steps above.
+  </Step>
+  <Step title="Eigenvalues and eigenvectors, largest first">
+    Trace $= 5$ and $\det = 6.25 - 4 = 2.25$. Two numbers with sum 5 and product 2.25: $\lambda_1 = 4.5$ and $\lambda_2 = 0.5$. Check: $C\begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 4.5 \\ 4.5 \end{bmatrix}$, so PC1 $= \tfrac{1}{\sqrt2}[1, 1]$ and PC2 $= \tfrac{1}{\sqrt2}[1, -1]$.
+  </Step>
+  <Step title="Explained variance ratio">
+    PC1 explains $\frac{\lambda_1}{\lambda_1 + \lambda_2} = \frac{4.5}{5} = 90\%$ of the variance. The total, $\lambda_1 + \lambda_2 = 5$, is the trace of $C$: the sum of the variances.
+  </Step>
+  <Step title="Project">
+    Each point's new single feature is its shadow $z = \text{PC1} \cdot x$. For $(2, 1)$: $z = \frac{2 + 1}{\sqrt2} \approx 2.12$. The four scores are $2.12, 2.12, -2.12, -2.12$, and their variance is $4.5 = \lambda_1$.
+  </Step>
+</Steps>
+
+With $d$ features you keep the top $k$ eigenvectors as the columns of a $d \times k$ matrix $W_k$, and the new data is $Z = X_c W_k$, an $n \times k$ matrix.
+
+<PastPaperQuestion paper="prelim2026" n={14} />
+
+<QuickCheck
+  q="A dataset's covariance matrix is $\begin{bmatrix} 9 & 0 \\ 0 & 1 \end{bmatrix}$. Which statement is correct?"
+  options={['PC1 points along the x-axis and explains 90% of the variance', 'PC1 points along the line y = x, because both features vary', 'PC1 points along the y-axis, because the smaller variance carries the signal', 'PC1 points along the x-axis and explains 100% of the variance, because the off-diagonal entries are 0']}
+  answer={0}
+  explain="The matrix is diagonal, so its eigenvectors are the axes and its eigenvalues are 9 and 1. The biggest, 9, belongs to the x-axis, which explains $\frac{9}{9 + 1} = 90\%$. Zero off-diagonal entries mean the features are uncorrelated, not that the y-direction has no variance: it still holds the other 10%."
+/>
+
+<Mistake title="Forgetting to standardise">
+
+PCA chases big numbers. If one feature is monthly income in dollars (variance in the millions) and another is age in years, PC1 will point almost exactly along income just because of the units. When features are measured in different units, standardise each one (z-scores) before PCA.
+
+</Mistake>
+
+## SVD: turn, stretch, turn
+
+Eigenvectors need a square matrix, and even then a rotation has none. The <Term def="Singular value decomposition: writing any m×n matrix as A = UΣVᵀ, with U and V orthogonal and Σ diagonal with non-negative entries σ₁ ≥ σ₂ ≥ … (the singular values).">singular value decomposition</Term> works for **every** matrix, of any shape:
+
+$$
+A = U \Sigma V^T
+$$
+
+- $V$ is an orthogonal matrix (defined properly below; for now, a pure turn, possibly with a mirror flip). Its columns $v_i$ are special input directions, and $V^T$ turns them onto the axes.
+- $\Sigma$ (capital sigma) is diagonal. Its entries $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ are the <Term def="The diagonal entries σ₁ ≥ σ₂ ≥ … ≥ 0 of Σ in the SVD: the stretch factors of the matrix along its special directions.">singular values</Term>, the stretch factors along the axes.
+- $U$ is orthogonal too. Its columns $u_i$ are the output directions, and $U$ turns the stretched axes into place.
+
+Read the product right to left, as it acts on a vector: $Ax = U(\Sigma(V^T x))$. In 2-D the unit circle is turned (still a circle), stretched into an oval with half-widths $\sigma_1$ and $\sigma_2$, then turned again. **The singular values are the half-widths of the oval that $A$ makes from the unit circle**: the oval you saw in the eigenvector hunt.
+
+<SVDStepper />
+
+Facts to remember:
+
+- $Av_i = \sigma_i u_i$: each special input direction is sent to its special output direction, stretched by $\sigma_i$. Unlike $Av = \lambda v$, the output direction may differ from the input.
+- The singular values are the square roots of the eigenvalues of $A^TA$, because $A^TA = V\Sigma^T\Sigma V^T$. They are never negative.
+- **The number of non-zero singular values is the rank.**
+- For a symmetric matrix with no negative eigenvalues, such as a covariance matrix, the singular values are the eigenvalues.
+- The condition number from the rank lesson, $\kappa = \sigma_{\max} / \sigma_{\min}$, is the ratio of the oval's longest and shortest half-widths.
+
+<Steps title="Singular values of $A = \begin{bmatrix} 3 & 0 \\ 4 & 5 \end{bmatrix}$">
+  <Step title="Form $A^TA$">
+    $A^TA = \begin{bmatrix} 3 & 4 \\ 0 & 5 \end{bmatrix}\begin{bmatrix} 3 & 0 \\ 4 & 5 \end{bmatrix} = \begin{bmatrix} 25 & 20 \\ 20 & 25 \end{bmatrix}$.
+  </Step>
+  <Step title="Its eigenvalues, by the trace and determinant">
+    Trace 50, determinant $625 - 400 = 225$. Two numbers with sum 50 and product 225: 45 and 5.
+  </Step>
+  <Step title="Square roots">
+    $\sigma_1 = \sqrt{45} \approx 6.71$ and $\sigma_2 = \sqrt5 \approx 2.24$.
+  </Step>
+  <Step title="Check with the area">
+    $\sigma_1\sigma_2 = \sqrt{225} = 15 = |\det A| = |3 \times 5 - 0 \times 4|$. The two stretches multiply areas by 15, and the turns change nothing.
+  </Step>
+</Steps>
+
+SVD is also how computers actually do PCA. Take the SVD of the centred data, $X_c = U\Sigma V^T$. Since $U^TU = I$,
+
+$$
+C = \tfrac1n X_c^T X_c = V\,\tfrac{\Sigma^T\Sigma}{n}\,V^T
+$$
+
+so the columns of $V$ are the principal components and $\lambda_i = \sigma_i^2 / n$. scikit-learn's `PCA` works this way (dividing by $n - 1$ instead of $n$).
+
+<PastPaperQuestion paper="prelim2026" n={17} />
+
+### Low-rank approximation
+
+Multiplying out the SVD writes $A$ as a sum of simple layers, each a column times a row, biggest first:
+
+$$
+A = \sigma_1 u_1 v_1^T + \sigma_2 u_2 v_2^T + \sigma_3 u_3 v_3^T + \dots
+$$
+
+Keeping only the first $k$ layers gives $A_k$, the **best rank-$k$ approximation** of $A$: no other matrix of rank $k$ is closer. For an $m \times n$ matrix it needs only $k(m + n + 1)$ numbers instead of $mn$.
+
+<LowRankPicture />
+
+The same idea powers LoRA, a popular way to fine-tune large language models: instead of changing a huge weight matrix directly, it learns a small low-rank update to it.
+
+## Orthogonal and positive definite matrices
+
+An <Term def="A square matrix whose columns are perpendicular unit vectors, so QᵀQ = I. It only rotates or reflects, so it keeps every length and angle.">orthogonal matrix</Term> $Q$ has columns that are perpendicular to each other and of length 1. Entry $(i, j)$ of $Q^TQ$ is the dot product of column $i$ with column $j$: 1 when $i = j$ and 0 otherwise, so
+
+$$
+Q^TQ = I, \qquad\text{which means}\qquad Q^{-1} = Q^T
+$$
+
+Its inverse costs nothing: just transpose. It keeps every length, because $\lVert Qx \rVert^2 = (Qx)^T(Qx) = x^T Q^T Q x = x^T x = \lVert x \rVert^2$. Rotations and reflections are orthogonal (determinant $+1$ or $-1$); shears and stretches are not. $U$ and $V$ in the SVD are orthogonal, and neural networks are sometimes initialised with orthogonal weight matrices so that signals keep their size from layer to layer, avoiding the explosions you saw with power iteration.
+
+A symmetric matrix $A$ is <Term def="A symmetric matrix A with xᵀAx > 0 for every non-zero vector x; equivalently, all its eigenvalues are positive. Its quadratic form is a bowl.">positive definite</Term> if $x^TAx > 0$ for every non-zero vector $x$. For $A = \begin{bmatrix} a & b \\ b & c \end{bmatrix}$, the number $x^TAx = ax^2 + 2bxy + cy^2$ is a <Term def="An expression like ax² + 2bxy + cy²: a sum of squared and cross terms, written xᵀAx for a symmetric matrix A.">quadratic form</Term>, a curved surface over the plane. Measured along the eigenvectors (coordinates $s$ and $t$) it becomes simply $\lambda_1 s^2 + \lambda_2 t^2$, so:
+
+- **All eigenvalues positive** $\iff$ positive definite: a bowl with one lowest point.
+- Some eigenvalues 0, none negative: **positive semi-definite**, a trough ($x^TAx \ge 0$).
+- Mixed signs: a saddle. All negative: a dome (negative definite).
+
+Every covariance matrix is positive semi-definite, because $u^TCu$ is the variance of the shadows along $u$, which can never be negative. And a positive definite Hessian (the matrix of second derivatives) at a point where the gradient is zero means a local minimum: the bowl at the bottom of a loss function.
+
+<LengthKeeper />
+
+<QuickCheck
+  q="Which of these symmetric matrices is positive definite?"
+  options={['$\\begin{bmatrix} 2 & -1 \\\\ -1 & 2 \\end{bmatrix}$', '$\\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\end{bmatrix}$', '$\\begin{bmatrix} 1 & 0 \\\\ 0 & 0 \\end{bmatrix}$', '$\\begin{bmatrix} -1 & 0 \\\\ 0 & -3 \\end{bmatrix}$']}
+  answer={0}
+  explain="Use the trace and determinant. For $\begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}$: trace 4, det $4 - 1 = 3$, so the eigenvalues are 3 and 1, both positive. $\begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}$ has only positive entries but eigenvalues 3 and $-1$ (try $x = [1, -1]$: $x^TAx = 1 - 4 + 1 = -2$). The diagonal $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ has an eigenvalue of 0 (only semi-definite), and the last one is negative definite."
+/>
+
+## QR and the Frobenius norm
+
+**QR decomposition** writes a matrix as $A = QR$, where $Q$ has perpendicular unit columns (orthogonal) and $R$ is **upper triangular**. The classic recipe, <Term def="A procedure that turns a set of vectors into perpendicular unit vectors spanning the same space, by subtracting from each vector its shadows on the ones before it and rescaling to length 1.">Gram–Schmidt</Term>, straightens the columns one at a time:
+
+<Steps title="QR of $A = \begin{bmatrix} 3 & 1 \\ 4 & 2 \end{bmatrix}$ (columns $a_1 = (3, 4)$, $a_2 = (1, 2)$)">
+  <Step title="Normalise the first column">
+    $\lVert a_1 \rVert = 5$, so $q_1 = (0.6, 0.8)$.
+  </Step>
+  <Step title="Measure the shadow of $a_2$ on $q_1$">
+    $q_1 \cdot a_2 = 0.6 \times 1 + 0.8 \times 2 = 2.2$.
+  </Step>
+  <Step title="Subtract the shadow">
+    $w = a_2 - 2.2\,q_1 = (1 - 1.32,\ 2 - 1.76) = (-0.32,\ 0.24)$, which is perpendicular to $q_1$ (check: $0.6 \times -0.32 + 0.8 \times 0.24 = 0$).
+  </Step>
+  <Step title="Normalise, and record the recipe in R">
+    $\lVert w \rVert = 0.4$, so $q_2 = (-0.8, 0.6)$. Then $Q = \begin{bmatrix} 0.6 & -0.8 \\ 0.8 & 0.6 \end{bmatrix}$ and $R = \begin{bmatrix} 5 & 2.2 \\ 0 & 0.4 \end{bmatrix}$, because $a_1 = 5q_1$ and $a_2 = 2.2q_1 + 0.4q_2$.
+  </Step>
+</Steps>
+
+$R$ is upper triangular because the first column is built from $q_1$ alone, the second from $q_1$ and $q_2$, and so on. QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back-substitution instead of inverting $X^TX$ (which, as you saw in the rank lesson, squares the condition number). Repeating QR steps (the *QR algorithm*) is also a classic way to compute eigenvalues.
+
+The **Frobenius norm** measures the size of a whole matrix: treat it as one long list of numbers and take the ordinary length (the L2 norm):
+
+$$
+\lVert A \rVert_F = \sqrt{\sum_i \sum_j a_{ij}^2}
+$$
+
+For $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$ it is $\sqrt{1 + 4 + 4 + 16} = \sqrt{25} = 5$. It also equals $\sqrt{\sigma_1^2 + \sigma_2^2 + \dots}$; this matrix has rank 1, so its only non-zero singular value is 5. It measures the error of a low-rank approximation, and weight decay on a weight matrix $W$ adds a multiple of $\lVert W \rVert_F^2$ to the loss.
+
+<QRAndFrobenius />
+
+<PastPaperQuestion paper="prelim2026" n={20} />
+
+<ExamTip title="Know which letter does which job">
+
+Most NOAI questions on this topic are one-line definitions, and the wrong options swap the roles around. Covariance matrix: symmetric, variances on the diagonal. PCA: eigenvectors of $C$ are the directions, eigenvalues the variance along them. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
+
+</ExamTip>
+
+## In code
+
+Here is the whole lesson in NumPy and scikit-learn, on the four points from the worked examples. Eigenvectors and singular vectors may come out with flipped signs on your machine (both directions along a line are equally valid), which also flips the signs of the scores.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.decomposition import PCA
+
+X = np.array([[4, 3], [3, 4], [1, 0], [0, 1]], dtype=float)
+
+# 1. centre, 2. covariance (divide by n)
+Xc = X - X.mean(axis=0)
+C = Xc.T @ Xc / len(X)
+print("C =\\n", C)
+
+# 3. eigen-decomposition (eigh: for symmetric matrices, ascending order)
+vals, vecs = np.linalg.eigh(C)
+order = np.argsort(vals)[::-1]          # largest first
+vals, vecs = vals[order], vecs[:, order]
+print("eigenvalues:", vals)
+print("PC1:", vecs[:, 0].round(4))
+print("explained variance ratio:", (vals / vals.sum()).round(3))
+
+# 4. project onto PC1: one number per point
+print("scores on PC1:", (Xc @ vecs[:, 0]).round(4))
+
+# The same from the SVD of the centred data
+U, S, Vt = np.linalg.svd(Xc)
+print("singular values:", S.round(4))
+print("S**2 / n:", (S**2 / len(X)).round(4))
+
+# scikit-learn agrees (up to the sign of each component)
+pca = PCA(n_components=2).fit(X)
+print("sklearn PC1:", pca.components_[0].round(4))
+print("sklearn ratio:", pca.explained_variance_ratio_.round(3))
+
+# QR and the Frobenius norm
+A = np.array([[3.0, 1.0], [4.0, 2.0]])
+Q, R = np.linalg.qr(A)
+print("Q =\\n", Q.round(3))
+print("R =\\n", R.round(3))
+print("Q.T @ Q =\\n", (Q.T @ Q).round(3))
+B = np.array([[1, 2], [2, 4]])
+print("Frobenius norm:", np.linalg.norm(B))`} />
+
+NumPy's QR may differ from the hand calculation by signs: on our machine the first column of $Q$ and the first row of $R$ came out negated. Flipping the sign of a column of $Q$ together with the matching row of $R$ leaves the product $QR$ unchanged. In the Final round you may need PCA in PyTorch, where the same SVD route looks like this:
+
+```python
+import torch
+
+X = torch.tensor([[4., 3.], [3., 4.], [1., 0.], [0., 1.]])
+Xc = X - X.mean(dim=0)                       # centre each column
+U, S, Vh = torch.linalg.svd(Xc, full_matrices=False)
+print(S)                                     # singular values
+print(S**2 / X.shape[0])                     # variances along the PCs
+print(Vh[0])                                 # PC1 (the sign may differ)
+Z = Xc @ Vh[0]                               # project onto PC1
+print(Z)
+```
+
+```text
+tensor([4.2426, 1.4142])
+tensor([4.5000, 0.5000])
+tensor([-0.7071, -0.7071])
+tensor([-2.1213, -2.1213,  2.1213,  2.1213])
+```
+
+PyTorch returned PC1 as $[-0.71, -0.71]$, the same line pointing the other way, so every score has flipped sign too. Other useful functions: `torch.linalg.eigh`, `torch.linalg.qr` and `torch.linalg.matrix_norm` (Frobenius by default).
+
+<Takeaways>
+
+- The covariance matrix is symmetric, with variances on the diagonal and covariances (the lean of the cloud) off it; $C = \frac1n X_c^TX_c$ for centred data.
+- PCA: the principal components are the eigenvectors of $C$, sorted by eigenvalue; each eigenvalue is the variance along its component, and $\lambda_i / \sum \lambda$ is its explained variance ratio.
+- SVD: every matrix is $A = U\Sigma V^T$, turn, stretch, turn. The singular values are the stretches, the number of non-zero ones is the rank, and keeping the biggest gives the best low-rank approximation.
+- Orthogonal: $Q^TQ = I$, so $Q^{-1} = Q^T$ and lengths are preserved. Positive definite: all eigenvalues $> 0$, a bowl.
+- QR: $Q$ orthogonal times $R$ upper triangular, built by Gram–Schmidt. Frobenius norm: $\sqrt{\text{sum of squared entries}}$.
+
+</Takeaways>

@@ -1,0 +1,161 @@
+/* Dynamic-programming table and graph visuals. Colours come only from theme tokens. */
+
+.inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+
+.inputLabel {
+  display: grid;
+  gap: 0.15rem;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.input {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  width: 9rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  text-transform: uppercase;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.gridWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  gap: 2px;
+  justify-content: start;
+}
+
+.head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.cell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.arrow {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.opts {
+  margin: 0.3rem 0;
+  padding-left: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.align {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.col {
+  --c: var(--viz-muted);
+  display: inline-grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: color-mix(in srgb, var(--c) 14%, var(--surface));
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+  min-width: 1.6rem;
+}
+
+.opName {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: var(--ink-2);
+}
+
+.match {
+  --c: var(--viz-muted);
+}
+
+.sub {
+  --c: var(--viz-2);
+}
+
+.del {
+  --c: var(--viz-neg);
+}
+
+.ins {
+  --c: var(--viz-3);
+}
+
+/* graph traversal */
+.queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-height: 1.9rem;
+}
+
+.chip {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 14%, var(--surface));
+  color: var(--ink);
+}
+
+.order {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.order b {
+  color: var(--ink);
+}

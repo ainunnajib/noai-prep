@@ -1,3 +1,171 @@
-{/* stub: lesson 'How to study so it sticks' is being written */}
+import { PRELIM } from '../../../data/facts'
+import { modules } from '../../registry'
+import ForgettingCurve from './visuals/how-to-study/ForgettingCurve'
+import StudyPlanner from './visuals/how-to-study/StudyPlanner'
+import LessonAnatomy from './visuals/how-to-study/LessonAnatomy'
 
-This lesson is being written.
+export const LESSON_MIN = modules.filter((m) => m.slug !== 'road-to-ioai').reduce((s, m) => s + m.lessons.reduce((t, l) => t + l.minutes, 0), 0)
+export const LESSON_H = Math.round(LESSON_MIN / 60)
+export const PLAN_H = Math.round(LESSON_H * 1.5)
+
+Most students study by re-reading their notes and highlighting. It feels productive, but memory research ranks it among the least effective ways to learn. This lesson shows the two habits that work far better, **testing yourself** and **spacing your reviews**, and then helps you build a plan that finishes this course before the Prelim on {PRELIM.dateLabel.split(',')[0]}.
+
+## Why re-reading fools you
+
+When you read a page for the second time, it feels familiar, and familiar *feels* like knowing. But recognising something on the page is not the same as being able to produce it from memory, fast, with four tempting options in front of you.
+
+The fix is <Term def="Pulling information out of your memory without looking, for example answering a question, writing a summary from memory or using a flashcard.">retrieval practice</Term>: closing the notes and making yourself recall. In a classic 2006 experiment by Roediger and Karpicke, students who re-read a passage did slightly better on a test five minutes later, but **a week later the students who had tested themselves remembered much more**. Each effortful recall strengthens the memory, and every failed recall shows you a gap to fix.
+
+<Mistake>
+
+Highlighting, re-reading and copying out notes feel like hard work, but they mostly train *recognition*. If your study session involves no moment where you have to answer something without looking, it was mostly re-reading.
+
+</Mistake>
+
+## The forgetting curve
+
+<Analogy title="Topping up your EZ-Link card">
+
+Your memory of a topic is like the value on an EZ-Link card: it drains as days go by. Small, regular top-ups keep it from running out; one big panic top-up at the gantry gets you through that one trip, and then it starts draining again. Unlike an EZ-Link card, though, every good top-up also makes your memory drain **more slowly** afterwards.
+
+</Analogy>
+
+Here is a simple model of how much of one topic you still remember:
+
+$$
+R = 2^{-t/h}
+$$
+
+- $R$ is your **retention**: the fraction of the topic you can still recall, from 1 (all of it) down to 0.
+- $t$ is the number of days since you last learnt or reviewed it.
+- $h$ is the **half-life**: the number of days it takes to forget half. Every $h$ days, $R$ halves again.
+
+Every review resets $R$ to 1 (100%) and makes the half-life longer. In the model, the half-life is multiplied by $g = 1 + k(1 - R)$, where $R$ is how much you still remembered just before the review, and $k = 3$ if you **test yourself** but only $k = 1$ if you **re-read**. Two things follow: testing beats re-reading, and reviewing a little *after* you have started to forget (but not after you have forgotten everything) grows the half-life the most.
+
+<Steps title="Review when half is gone (half-life starts at 2 days)">
+  <Step title="No review at all">
+    After 2 days $R = \tfrac12$, after 4 days $\tfrac14$, after 6 days $\tfrac18 = 12.5\%$. After 10 days, five half-lives, only $\tfrac{1}{32} \approx 3\%$ is left.
+  </Step>
+  <Step title="First self-test on day 2">
+    Half is gone, so $R = \tfrac12$ and $g = 1 + 3 \times \tfrac12 = 2.5$. The half-life grows from 2 days to $2 \times 2.5 = 5$ days.
+  </Step>
+  <Step title="Keep reviewing when half is gone">
+    The next review is 5 days later (day 7), and $h$ becomes $5 \times 2.5 = 12.5$ days. Then 12.5 days later (about day 19), and $h$ becomes about 31 days. Then about day 50, and $h \approx 78$ days.
+  </Step>
+  <Step title="Spot the pattern">
+    The gaps between reviews grow: **2, 5, 12½, 31 days**. That is spaced review: little and often at first, then rarer and rarer. Four self-tests in 50 days keep a topic that would otherwise have vanished in two weeks.
+  </Step>
+  <Step title="Exam day">
+    If day 0 is 21 December, the Prelim is day 60. The last review was about 9 days earlier, with a half-life of about 78 days: 9 days is roughly an eighth of a half-life, so you still remember about $2^{-1/8} \approx 0.92$, or **92%**.
+  </Step>
+</Steps>
+
+<ForgettingCurve />
+
+<KeyIdea>
+
+**Test yourself, and space it out.** Review just as you start to forget; each well-timed self-test makes the memory fade more slowly, so the gaps between reviews can keep growing.
+
+</KeyIdea>
+
+<QuickCheck
+  q="In the model $R = 2^{-t/h}$, a topic has a half-life of $h = 3$ days and you do not review it. What fraction do you still remember after 9 days?"
+  options={['$\\tfrac18$', '$\\tfrac13$', '$\\tfrac19$', '$\\tfrac16$']}
+  answer={0}
+  explain="9 days is $9 \div 3 = 3$ half-lives, so $R = 2^{-3} = \tfrac18$: halve it three times ($1 \to \tfrac12 \to \tfrac14 \to \tfrac18$). $\tfrac13$ divides by 3 instead of halving three times, and $\tfrac19$ is one over the number of days."
+/>
+
+<ExamTip>
+
+AI Singapore says the Prelim's time pressure is deliberate: "internalised knowledge enables fast, accurate responses". You cannot look anything up, and you have about 36 seconds. That is exactly what spaced self-testing builds. From January, spend 10 minutes a day on flashcards of formulas, definitions and "classic contrasts" (for example, precision versus recall).
+
+</ExamTip>
+
+## Study like a model that generalises
+
+Machine learning has a name for the student who memorises answers: **overfitting**. A model <Term def="Fits its training examples so closely, quirks and noise included, that it does badly on new examples it has never seen.">overfits</Term> when it learns its training examples by heart and then fails on new ones. A student who memorises that "2026 Q46 was 6" has learnt nothing that helps with a 2027 question. The cure is the same for models and students: practise on many varied examples, and for every question explain why each *wrong* option is wrong.
+
+<PastPaperQuestion paper="prelim2026" n={142} />
+
+ML also has a rule for measuring honestly, and it is a great rule for studying. Models are tuned on a <Term def="Data used to make decisions while building a model, such as which settings (hyperparameters) to use. It is separate from the final test set.">validation set</Term> and scored once at the end on a <Term def="Data kept completely unseen until the very end, used once to estimate how well a finished model does on new data.">test set</Term> that was never touched before. If you keep re-sitting the same mock paper after studying its answers, your score climbs but stops telling you anything: you have tuned yourself to that test set. Keep at least one full mock paper **unseen** and sit it once, under exam conditions, as your honest estimate. The question below describes this exact mistake in ML language. A <Term def="A setting you choose before training, such as the learning rate, rather than something the model learns.">hyperparameter</Term> is a setting you choose before training.
+
+<PastPaperQuestion paper="prelim2026" n={292} />
+
+## Your personal study plan
+
+<Analogy title="Planning a CCA season">
+
+A coach does not decide the training load by mood. They count the weeks to the competition and spread the work so the team peaks on the day, with a lighter week of match practice at the end. Your plan works the same way, and the "competition" is {PRELIM.dateLabel.split(',')[0]}.
+
+</Analogy>
+
+The planning arithmetic is one division:
+
+$$
+\text{hours per week} = \frac{\text{total study hours}}{\text{weeks available}}
+$$
+
+- **Total study hours** = the lesson time of this course multiplied by about 1.5, because practice questions, checkpoints and reviews take time too.
+- **Weeks available** = weeks from your start to two weeks before the Prelim. Keep those last two weeks for full mock exams.
+
+<Steps title="How many hours a week?">
+  <Step title="Add up the course">
+    The lessons before the Prelim add up to about {LESSON_H} hours. With practice and reviews: {LESSON_H} × 1.5 ≈ **{PLAN_H} hours**.
+  </Step>
+  <Step title="Count the weeks">
+    From Monday 12 October 2026 to Friday 5 February 2027 (two weeks before the Prelim) is 116 days, which is about 16.6 weeks.
+  </Step>
+  <Step title="Divide">
+    {PLAN_H} ÷ 16.6 ≈ **{Math.round(PLAN_H / 16.6)} hours a week**, or under an hour a day.
+  </Step>
+  <Step title="Now start in December instead">
+    From Monday 7 December there are only 60 days, about 8.6 weeks: {PLAN_H} ÷ 8.6 ≈ **{Math.round(PLAN_H / 8.6)} hours a week**. Waiting eight weeks roughly **doubles the weekly load**.
+  </Step>
+</Steps>
+
+<StudyPlanner />
+
+Because the Final is only 14 days after the Prelim, the Final labs (from-scratch NumPy and PyTorch tasks) are *inside* this plan, not after it. Once you reach January, do one Final-lab task a week alongside your Prelim revision.
+
+A five-hour week can look like this:
+
+| When | What | Time |
+| --- | --- | --- |
+| Mon, Wed, Fri | One new lesson, including its checkpoint | 3 × 50 min |
+| Saturday | Spaced review: redo the checkpoints from 1 week and 3 weeks ago without notes, then 10 timed MCQs | 80 min |
+| Every day | Flashcards | 7 × 10 min |
+| **Total** | 150 + 80 + 70 = 300 minutes | **5 h** |
+
+<Tip>
+
+Keep a **mistake log**: every question you get wrong, with one line on *why*. Redo the log every Saturday. Your own mistakes are the best flashcards you will ever have.
+
+</Tip>
+
+## How a lesson on this site works
+
+<Analogy title="A hawker set meal">
+
+A set meal from your favourite stall always comes with the same courses in the same order, so you know what is coming and can pace yourself. Every lesson here follows the same arc too.
+
+</Analogy>
+
+Each lesson moves through the same parts: an opening, an analogy, interactive visuals, the formal idea, a worked example, code where it helps, common mistakes, exam tips, real NOAI questions, a quick check, a summary and a checkpoint quiz. Knowing the arc lets you use each part *on purpose*. Before you click below, predict: which part of a lesson do you think matters most for learning?
+
+<LessonAnatomy />
+
+<KeyIdea>
+
+**Predict before you drag.** Saying what you expect a visual to do before you touch it, and then checking, is the fastest way to learn from it. A wrong prediction is not a failure: it is the lesson finding exactly the thing you misunderstood.
+
+</KeyIdea>
+
+<Takeaways>
+
+- Re-reading builds a feeling of familiarity; **testing yourself** (retrieval practice) builds memory you can use under time pressure.
+- Memory fades like $R = 2^{-t/h}$. Each review resets it, and a **spaced** self-test makes the half-life grow, so reviews can get further and further apart.
+- A cram the night before props up one exam briefly; spaced reviews keep the knowledge for the Prelim, the Final two weeks later, and beyond.
+- **Plan backwards**: hours per week = total study hours ÷ weeks available. Starting early keeps it to about five hours a week; the Final labs belong *inside* the plan.
+- In every lesson, predict before you drag, try each worked step before clicking Next, and redo checkpoints a few days later.
+
+</Takeaways>

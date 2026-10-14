@@ -1,3 +1,209 @@
-{/* stub: lesson 'Word embeddings' is being written */}
+import OneHotVsDense from './visuals/word-embeddings/OneHotVsDense'
+import EmbeddingSpace2D from './visuals/word-embeddings/EmbeddingSpace2D'
+import SkipGramWindow from './visuals/word-embeddings/SkipGramWindow'
+import EmbeddingLookup from './visuals/word-embeddings/EmbeddingLookup'
 
-This lesson is being written.
+To TF-IDF, "chilli" and "spicy" are two unrelated columns: a search for one will never find the other. **Word embeddings** fix this by giving every word a short list of numbers chosen so that words with similar meanings get similar lists. This one idea sits inside every modern language model, from search engines to ChatGPT, and the same trick works for images and sounds too.
+
+## One-hot vectors: every word equally different
+
+The simplest way to turn a word into numbers is the <Term def="A vector as long as the vocabulary with a single 1 in the position of the word and 0 everywhere else.">one-hot vector</Term> you met in [Encoding categories](#/learn/data-and-features/encoding-categories): as long as the vocabulary, with a single 1 at the word's id. It has two problems:
+
+- **It is huge.** With a 50,000-word vocabulary, every word is 50,000 numbers, all but one of them 0.
+- **It knows nothing about meaning.** Two different one-hot vectors never have a 1 in the same place, so their dot product is 0. Every pair of different words has cosine similarity 0 and distance $\sqrt{2}$: "king" is exactly as unlike "queen" as it is unlike "bus".
+
+<OneHotVsDense />
+
+## Embeddings: short, dense and learned
+
+An <Term def="A short, dense list of real numbers that represents a word (or a token, image, sound...). The numbers are learned so that similar things get similar vectors.">embedding</Term> gives each word a **dense** vector: every entry is a real number, usually not 0. It is also **short**, typically 50 to 1,000 numbers whatever the vocabulary size (the well-known Google News Word2Vec vectors have 300), and its numbers are **learned** from data so that words used in similar ways end up with similar vectors.
+
+<Analogy title="A map of hawker dishes">
+
+Imagine placing every hawker dish on a map. Noodle dishes end up in one corner and rice dishes in another, and moving "east" always means "soup version of the same dish". You never wrote any rules: the positions came from which dishes people order together. An embedding is such a map, but with hundreds of directions instead of two.
+
+</Analogy>
+
+<EmbeddingSpace2D />
+
+To measure how similar two embeddings are, use <Hl>cosine similarity</Hl>, the same score you used to rank documents: close to 1 means the vectors point the same way (similar meaning), close to 0 means unrelated.
+
+<KeyIdea>
+
+In an embedding space, **similar meaning = similar direction**, and **relationships become directions**: the arrow from "man" to "king" is roughly the same as the arrow from "woman" to "queen".
+
+</KeyIdea>
+
+That second fact gives the famous **analogy arithmetic**. To answer "man is to king as woman is to ?", compute
+
+$$
+\mathbf{t} = \mathbf{v}_{\text{king}} - \mathbf{v}_{\text{man}} + \mathbf{v}_{\text{woman}}
+$$
+
+where $\mathbf{v}_{\text{king}}$ is the embedding of "king" and so on. In words: start at king, take away "man-ness", add "woman-ness". Then answer with the word whose vector has the highest cosine similarity with $\mathbf{t}$, **leaving out the three question words** (otherwise the answer is often just "king" again).
+
+<Steps title="Analogy by hand with 3-number vectors">
+  <Step title="The vectors">
+    king $= [0.9, 0.8, 0.1]$, man $= [0.1, 0.9, 0.2]$, woman $= [0.1, 0.2, 0.9]$, queen $= [0.9, 0.1, 0.8]$.
+  </Step>
+  <Step title="Subtract and add, entry by entry">
+    $\mathbf{t} = [0.9 - 0.1 + 0.1,\; 0.8 - 0.9 + 0.2,\; 0.1 - 0.2 + 0.9] = [0.9, 0.1, 0.8]$.
+  </Step>
+  <Step title="Find the nearest word">
+    $\mathbf{t}$ is exactly queen's vector, so $\cos(\mathbf{t}, \text{queen}) = 1$. With real embeddings the result only lands **near** queen, and queen is simply the closest word.
+  </Step>
+  <Step title="A cosine for comparison">
+    $\cos(\text{king}, \text{queen}) = \dfrac{0.81 + 0.08 + 0.08}{\sqrt{1.46}\,\sqrt{1.46}} = \dfrac{0.97}{1.46} \approx 0.66$: similar, but not the same word.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="In a 2-D embedding, france = [1, 4], paris = [2, 5] and japan = [4, 1]. Which vector should be closest to “tokyo”?"
+  options={['$[5, 2]$', '$[3, 0]$', '$[7, 10]$', '$[-1, -1]$']}
+  answer={0}
+  explain="france is to paris as japan is to ?, so compute paris − france + japan $= [2 - 1 + 4,\; 5 - 4 + 1] = [5, 2]$. $[3, 0]$ subtracts the wrong way (france − paris + japan), $[7, 10]$ adds all three, and $[-1, -1]$ is just france − paris."
+/>
+
+<Mistake title="Reading meaning into single numbers">
+
+The toy vectors above have readable entries, but real embedding dimensions do not mean "royalty" or "gender": the meaning is spread across many numbers, and only **directions and distances** carry it. Analogies also work only approximately, and they copy the biases in the training text (for example, linking jobs with one gender).
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={206} />
+
+## Where the numbers come from: Word2Vec
+
+Nobody types in embeddings. They are learned from plain text using the <Term def="The idea that words appearing in similar contexts tend to have similar meanings.">distributional hypothesis</Term>: words that appear in similar contexts have similar meanings. As the linguist J. R. Firth put it, "you shall know a word by the company it keeps". If you always see someone at the basketball court, they probably play basketball; if "laksa" and "mee siam" keep appearing next to "spicy", "bowl" and "hawker", they are probably similar things.
+
+<Term def="A 2013 method from Google that learns word embeddings by training a tiny network to predict nearby words.">Word2Vec</Term> turns this into a prediction game played over a **context window**, the words at most a few positions either side of a centre word:
+
+- **Skip-gram**: given the centre word, predict each context word.
+- **CBOW** (continuous bag of words): given all the context words, predict the centre word.
+
+<SkipGramWindow />
+
+The labels come from the text itself, so no human annotation is needed: this is <Term def="Learning where the training labels are created automatically from the data itself, e.g. hiding a word and predicting it.">self-supervised learning</Term>. A billion words of text give billions of free training pairs.
+
+The model is a tiny network with **no activation function** in the middle. The centre word goes in as a one-hot vector, a weight matrix turns it into a $d$-number vector (its embedding), and a second matrix gives a score for every word in the vocabulary:
+
+<NeuralNet layers={[6, 3, 6]} layerLabels={['one-hot in (V)', 'embedding (d)', 'scores (V)']} ariaLabel="Word2Vec skip-gram network: a one-hot input of size V, a hidden layer of size d, and V output scores" />
+
+For a centre word $c$ with vector $\mathbf{v}_c$, the probability that word $o$ appears in its context is a softmax over dot products:
+
+$$
+P(o \mid c) = \frac{\exp(\mathbf{u}_o \cdot \mathbf{v}_c)}{\sum_{w=1}^{V} \exp(\mathbf{u}_w \cdot \mathbf{v}_c)}
+$$
+
+Here $\mathbf{u}_o$ is the "output" vector of word $o$, the dot product $\mathbf{u}_o \cdot \mathbf{v}_c$ is a score that is large when the two vectors point the same way, and dividing by the sum over all $V$ words turns the scores into probabilities. Training nudges $\mathbf{v}_c$ towards the vectors of words that really appear near $c$, so words with similar neighbours drift to similar places. (Summing over 50,000+ words for every pair is slow, so real Word2Vec uses a shortcut called **negative sampling**: it compares the true context word with a handful of random words instead.) After training, the rows of the first weight matrix are the embeddings.
+
+<QuickCheck
+  q="A 5-word sentence is turned into skip-gram pairs with a window of 2 (up to 2 words on each side). How many (centre, context) pairs does it give?"
+  options={['14', '20', '10', '8']}
+  answer={0}
+  explain="Count the context words of each position: the first word has 2 (the next two), the second has 3, the middle word has 4, then 3 and 2. That is $2 + 3 + 4 + 3 + 2 = 14$. 20 assumes every word has 4 neighbours, forgetting the sentence edges; 8 is the answer for a window of 1."
+/>
+
+Two relatives often appear in exam options. **GloVe** learns vectors from a big table of how often each pair of words occurs together, and **fastText** builds a word's vector from its character pieces, so even an unseen word gets a vector (the same idea as subword tokens).
+
+<PastPaperQuestion paper="prelim2026" n={207} />
+
+## An embedding layer is a lookup table
+
+In PyTorch, `nn.Embedding(V, d)` stores a weight matrix $E$ with **one row per token id**: shape $(V, d)$. Feeding in a sequence of $T$ token ids returns a $(T, d)$ matrix whose row $t$ is row `ids[t]` of $E$. Nothing is multiplied: it simply looks rows up.
+
+This is exactly the same as multiplying one-hot vectors by $E$. If $\mathbf{x}$ is the one-hot vector of id $i$, then $\mathbf{x} E$ adds up the rows of $E$ weighted by $\mathbf{x}$, and every weight is 0 except the 1 at position $i$, so $\mathbf{x} E = E_i$, row $i$.
+
+<Steps title="Lookup = one-hot × table">
+  <Step title="The table">
+    $V = 4$ tokens, $d = 2$: $E = \begin{bmatrix} 0.1 & 0.2 \\ 0.5 & -0.3 \\ 0.9 & 0.4 \\ -0.2 & 0.7 \end{bmatrix}$ (rows are ids 0 to 3).
+  </Step>
+  <Step title="Look up ids [2, 0, 2]">
+    Copy rows 2, 0 and 2: the output is $\begin{bmatrix} 0.9 & 0.4 \\ 0.1 & 0.2 \\ 0.9 & 0.4 \end{bmatrix}$, shape $(3, 2)$. The repeated id gives the same row twice.
+  </Step>
+  <Step title="The same with one-hot">
+    The one-hot of id 2 is $[0, 0, 1, 0]$, and $[0, 0, 1, 0]\,E = 0 \cdot E_0 + 0 \cdot E_1 + 1 \cdot E_2 + 0 \cdot E_3 = [0.9, 0.4]$: row 2 again.
+  </Step>
+</Steps>
+
+<EmbeddingLookup />
+
+The rows start as random numbers and are **learned by backpropagation** like any other weights: only the rows of tokens that appear in a batch get a non-zero gradient. You can also start from pretrained vectors (Word2Vec, GloVe) and fine-tune them. The table is often big: BERT-base's token-embedding table is $30{,}522 \times 768 \approx 23.4$ million numbers. Setting `padding_idx` keeps the `[PAD]` row at zero, as in the tokenisation lesson.
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+torch.manual_seed(0)
+# a table for V = 10 token ids, d = 3 numbers each
+emb = nn.Embedding(num_embeddings=10, embedding_dim=3)
+print(emb.weight.shape)        # one row per token id
+
+ids = torch.tensor([1, 2, 3, 1, 5])   # "the uncle cooks the laksa"
+out = emb(ids)
+print(out.shape)               # (T, d)
+
+# the lookup is just row selection ...
+print(torch.equal(out, emb.weight[ids]))
+# ... and equals one-hot vectors times the table
+one_hot = F.one_hot(ids, num_classes=10).float()  # (5, 10)
+print(torch.allclose(one_hot @ emb.weight, out))
+
+# learnable numbers: V * d
+print(sum(p.numel() for p in emb.parameters()))
+```
+
+```text
+torch.Size([10, 3])
+torch.Size([5, 3])
+True
+True
+30
+```
+
+Here is the analogy arithmetic in NumPy. Run it, then add your own words and vectors.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+# tiny 3-number "embeddings" (real ones have hundreds of numbers)
+vecs = {
+    "king":  np.array([0.9, 0.8, 0.1]),
+    "queen": np.array([0.9, 0.1, 0.8]),
+    "man":   np.array([0.1, 0.9, 0.2]),
+    "woman": np.array([0.1, 0.2, 0.9]),
+    "laksa": np.array([0.0, 0.3, 0.3]),
+}
+
+def cosine(a, b):
+    return a @ b / (np.linalg.norm(a) * np.linalg.norm(b))
+
+print("cos(king, queen) =", round(cosine(vecs["king"], vecs["queen"]), 3))
+
+# man is to king as woman is to ?
+target = vecs["king"] - vecs["man"] + vecs["woman"]
+print("king - man + woman =", target)
+for word, v in vecs.items():
+    if word not in ("king", "man", "woman"):   # never answer with an input
+        print(f"  {word:6} {cosine(target, v):.3f}")`} />
+
+## Beyond single words
+
+- **Static vs contextual.** Word2Vec gives "bank" one vector, whether it is a river bank or a bank account. Models like BERT and GPT produce a **contextual** embedding: a different vector for each occurrence, computed from the whole sentence. You will meet these with Transformers.
+- **Anything can be embedded.** Sentences, images and audio clips can all be mapped to vectors so that similar items are close. CLIP puts images and their captions in the same space, so a photo of chicken rice lands near the words "chicken rice". Semantic search and RAG compare such embeddings with cosine similarity, exactly like the TF-IDF search in the previous lesson but able to match "chilli" with "spicy".
+
+<ExamTip>
+
+Expect definitions and quick reasoning. Embeddings are **dense, low-dimensional, learned** vectors (not one-hot, not sparse); one-hot vectors are **orthogonal**, so all pairs look equally different. Word2Vec **predicts context words (skip-gram) or the centre word from its context (CBOW)** and is **self-supervised**. An embedding layer is a **lookup table** of shape (vocabulary size, embedding size), equal to one-hot × weight matrix, with $V \times d$ parameters. For analogy questions, compute $b - a + c$ entry by entry and pick the nearest remaining word.
+
+</ExamTip>
+
+<Takeaways>
+
+- One-hot vectors are huge, sparse and **orthogonal**: every pair of words looks equally different.
+- Embeddings are short, dense, learned vectors; **cosine similarity** measures how similar two words are, and relationships become **directions** ($\text{king} - \text{man} + \text{woman} \approx \text{queen}$).
+- Word2Vec learns them by predicting context words (**skip-gram**) or the centre word (**CBOW**) from a sliding window: self-supervised, labels come free from text.
+- `nn.Embedding(V, d)` is a $(V, d)$ table; lookup = row selection = one-hot × table, trained by backprop.
+- Contextual models (BERT, GPT) give each occurrence its own vector, and images and audio can be embedded too.
+
+</Takeaways>

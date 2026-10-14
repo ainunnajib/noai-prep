@@ -1,3 +1,269 @@
-{/* stub: lesson 'Reading formulas: Σ, subscripts and hats' is being written */}
+import SigmaLoopStepper from './visuals/sigma-notation-and-subscripts/SigmaLoopStepper'
+import NotationDecoder from './visuals/sigma-notation-and-subscripts/NotationDecoder'
+import FormulaToCode from './visuals/sigma-notation-and-subscripts/FormulaToCode'
 
-This lesson is being written.
+Machine-learning formulas are written in a compact shorthand: $\Sigma$ and $\Pi$, little numbers below and above letters, hats, bars and Greek letters. To a beginner the 2025 Final's update rule, $\theta_j := \theta_j - \alpha \frac{1}{m}\sum_{i=1}^{m}\big(h_\theta(x^{(i)}) - y^{(i)}\big)x_j^{(i)}$, looks terrifying. By the end of this lesson you will read it aloud, explain every mark in it, and turn it into two lines of NumPy.
+
+<Analogy title="A receipt from the hawker centre">
+
+A receipt lists each item on its own line (chicken rice \$4, teh peng \$2, kaya toast \$3) and prints the total at the bottom: \$9. The symbol $\Sigma$ is that total line. It says "go down the list, one line at a time, and add everything up". The little number next to each item, "line 1, line 2, line 3", is a **subscript**.
+
+</Analogy>
+
+## $\Sigma$ means "add them all up"
+
+$\Sigma$ is the capital Greek letter **sigma**, the Greek "S", for **S**um:
+
+$$
+\sum_{i=1}^{n} x_i = x_1 + x_2 + x_3 + \dots + x_n
+$$
+
+Read it as "the sum of $x_i$ for $i$ from 1 to $n$". Every part has a job:
+
+- $i$ is the <Term def="A counting variable that steps through positions 1, 2, 3, … It only exists inside the Σ; any letter can be used.">index</Term>, a counter, like the loop variable in a `for` loop.
+- $i = 1$ underneath says where the counter **starts**.
+- $n$ on top says where it **stops** (and $n$ itself is included).
+- $x_i$ is the **term**: what to add each time. The subscript $i$ means "the $i$-th item of the list $x$", so $x_1$ is the first item and $x_3$ the third.
+
+With $x = [3, 1, 4, 2]$, so that $n = 4$:
+
+$$
+\sum_{i=1}^{4} x_i = x_1 + x_2 + x_3 + x_4 = 3 + 1 + 4 + 2 = 10
+$$
+
+The term can be any expression involving $i$. For example $\sum_{i=1}^{4} i^2 = 1 + 4 + 9 + 16 = 30$ (no list at all: the counter itself is squared), and $\sum_{i=1}^{3} (2i + 1) = 3 + 5 + 7 = 15$.
+
+That "start a total at 0, then add one term per step" is exactly a `for` loop with a running total:
+
+```python
+x = [3, 1, 4, 2]
+total = 0
+for i in range(len(x)):    # i = 0, 1, 2, 3
+    total = total + x[i]
+print(total)               # 10
+```
+
+One catch: maths usually counts from 1, but Python counts from 0. The maths term $x_1$ is the Python item `x[0]`, and $x_n$ is `x[n - 1]`. That is why the loop uses `range(len(x))` and not `range(1, n + 1)`.
+
+<SigmaLoopStepper />
+
+<KeyIdea>
+
+$\sum_{i=1}^{n} (\text{term})$ means: start a running total at 0, and for $i = 1, 2, \dots, n$ add the term. It is a `for` loop, and in NumPy it is usually a single `np.sum(...)` or `np.mean(...)`.
+
+</KeyIdea>
+
+### Two sums you will see everywhere
+
+The **mean** (average) is a sum divided by the count. A bar over a letter means "mean of":
+
+$$
+\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i
+$$
+
+For $[2, 4, 6, 8, 10]$: the sum is 30 and $n = 5$, so $\bar{x} = 30 / 5 = 6$.
+
+<PastPaperQuestion paper="prelim2026" n={46} />
+
+The **mean squared error** (MSE) measures how far a model's predictions are from the truth. Here $y_i$ is the true value and $\hat{y}_i$ ("y-hat") is the model's prediction for item $i$:
+
+$$
+\text{MSE} = \frac{1}{n}\sum_{i=1}^{n} \left(y_i - \hat{y}_i\right)^2
+$$
+
+Read it from the inside out: for each item take the error $y_i - \hat{y}_i$, square it (so that $+2$ and $-2$ count the same, and big errors count a lot), add the squares up, then divide by $n$.
+
+<Steps title="MSE by hand">
+  <Step title="The data">
+    True values $y = [3, 5, 2, 6]$, predictions $\hat{y} = [2, 5, 4, 5]$, so $n = 4$.
+  </Step>
+  <Step title="Errors $y_i - \hat{y}_i$">
+    $3 - 2 = 1$, $\;5 - 5 = 0$, $\;2 - 4 = -2$, $\;6 - 5 = 1$.
+  </Step>
+  <Step title="Square them">
+    $1, \;0, \;4, \;1$. The negative error became positive.
+  </Step>
+  <Step title="Sum, then divide by $n$">
+    $\sum = 1 + 0 + 4 + 1 = 6$, so $\text{MSE} = 6 / 4 = 1.5$. In NumPy: `np.mean((y - y_hat) ** 2)`.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={171} />
+
+Three rules let you rearrange sums, and they are just ordinary algebra applied term by term:
+
+- A constant factor comes outside: $\sum_{i=1}^{n} c\,x_i = c\sum_{i=1}^{n} x_i$.
+- A sum of two things splits: $\sum_{i=1}^{n} (a_i + b_i) = \sum_{i=1}^{n} a_i + \sum_{i=1}^{n} b_i$.
+- Adding the same constant $n$ times: $\sum_{i=1}^{n} c = n\,c$.
+
+<Mistake title="The sum of squares is not the square of the sum">
+
+$\sum x_i^2$ squares each term **first** and then adds. $\left(\sum x_i\right)^2$ adds first and squares the total. For $x = [1, 2]$: $1^2 + 2^2 = 5$, but $(1 + 2)^2 = 9$. Variance and MSE use the sum of squares. Look carefully at where the brackets and the little $2$ sit.
+
+</Mistake>
+
+### $\Pi$ means "multiply them all"
+
+$\Pi$ is the capital Greek letter **pi**, the Greek "P", for **P**roduct. It works exactly like $\Sigma$ but multiplies:
+
+$$
+\prod_{i=1}^{n} p_i = p_1 \times p_2 \times \dots \times p_n
+$$
+
+As a loop, the running product must start at **1**, not 0 (starting at 0 would make every product 0). In NumPy it is `np.prod(p)`. You will meet $\Pi$ in **likelihoods**: if a model gives three independent examples the probabilities $0.9$, $0.8$ and $0.5$ of their true labels, the probability of getting all three is $\prod_{i=1}^{3} p_i = 0.9 \times 0.8 \times 0.5 = 0.36$. As the logarithms lesson showed, taking logs turns this product into a sum: $\ln \prod_i p_i = \sum_i \ln p_i$. That is why you so often see $\sum \log$ in loss functions.
+
+Do not confuse capital $\Pi$ (product) with the number $\pi \approx 3.14$, or capital $\Sigma$ (sum) with lowercase $\sigma$ (the sigmoid function or a standard deviation).
+
+<QuickCheck
+  id="mf-sigma-qc1"
+  q="If $p = [0.5, 0.4, 0.5]$, what is $\prod_{i=1}^{3} p_i$?"
+  options={['1.4', '0.1', '0.467', '0']}
+  answer={1}
+  explain="$\Pi$ multiplies: $0.5 \times 0.4 \times 0.5 = 0.1$. Adding gives $1.4$ (that is $\Sigma$, not $\Pi$), $0.467$ is the mean, and $0$ is what a loop gives if the running product wrongly starts at 0."
+/>
+
+## Subscripts, superscripts and hats
+
+A dataset is a table: one **row** per <Term def="One data point, such as one student, one photo or one house. Also called a sample or an instance.">example</Term> and one **column** per <Term def="One measured input, such as hours of revision or a pixel's brightness. Also called a variable or attribute.">feature</Term>. ML formulas need to point at single cells of that table, so they use two kinds of index at once. The convention used in the 2025 Final (and in Andrew Ng's famous courses) is:
+
+| Notation | Read it as | Meaning |
+|---|---|---|
+| $x^{(i)}$ | "x of example i" | the whole $i$-th example: one row, a vector of features |
+| $x_j^{(i)}$ | "x sub j of example i" | feature $j$ of example $i$: one cell |
+| $y^{(i)}$ | "y of example i" | the true answer (label) of example $i$ |
+| $\hat{y}^{(i)}$ | "y-hat of example i" | the model's **prediction** for example $i$ |
+| $m$ | "m" | the number of examples (rows) |
+| $n$ | "n" | the number of features (columns) |
+
+The superscript in **brackets** is a label, not a power: $x^{(2)}$ means "example 2", while $x^2$ means "$x$ squared". And when a formula only has one kind of index, as in the first half of this lesson, $x_i$ simply means item $i$ of a list.
+
+Here is a tiny dataset of four students: hours of revision $x_1$, hours of sleep $x_2$, the real test score $y$ and a model's predicted score $\hat{y}$.
+
+| example $i$ | $x_1$ (revision, h) | $x_2$ (sleep, h) | $y$ (score) | $\hat{y}$ (predicted) |
+|---|---|---|---|---|
+| 1 | 2 | 7 | 55 | 58 |
+| 2 | 5 | 6 | 72 | 69 |
+| 3 | 8 | 8 | 90 | 92 |
+| 4 | 5 | 5 | 67 | 65 |
+
+So $x_2^{(3)} = 8$ (example 3, sleep), $y^{(2)} = 72$, $\hat{y}^{(2)} = 69$, $m = 4$ and $n = 2$.
+
+<NotationDecoder />
+
+A **hat** always means "predicted" or "estimated": $\hat{y}$ is the model's guess for $y$, and $\hat{p}$ an estimated probability. A **bar** means "mean": $\bar{x}$. Greek letters usually name the numbers a model learns or the settings you choose:
+
+| Symbol | Name | Usual meaning in ML |
+|---|---|---|
+| $\theta$ or $w$, and $b$ | theta; w for weights, b for bias | the parameters the model learns |
+| $\alpha$ or $\eta$ | alpha, eta | the learning rate (step size) |
+| $\lambda$ | lambda | regularisation strength |
+| $\mu$, $\sigma$ | mu, sigma | mean and standard deviation; $\sigma(z)$ is also the sigmoid function |
+| $\epsilon$ | epsilon | a tiny number such as $10^{-8}$ that avoids dividing by zero |
+| $:=$ or $\leftarrow$ | "becomes" | replace the old value with a new one (like `=` in Python) |
+
+<QuickCheck
+  id="mf-sigma-qc2"
+  q="In the students table above, what is $x_1^{(3)}$?"
+  options={['5', '8', '90', '2']}
+  answer={1}
+  explain="The superscript $(3)$ picks example 3, the third row; the subscript 1 picks feature 1, revision hours. That cell is 8. The value 5 is $x_1^{(2)}$ (the wrong row), 2 is $x_1^{(1)}$, and 90 is $y^{(3)}$, the label of example 3 rather than one of its features."
+/>
+
+<Mistake title="Different books, different letters">
+
+Some textbooks use $n$ for the number of examples and $d$ or $p$ for the number of features, and some write the example index as a subscript, $x_i$. Never assume: before reading a formula, find the sentence that says what each letter means. NOAI questions usually define their symbols, so read the stem carefully.
+
+</Mistake>
+
+## Translating a formula into code
+
+You can now read any formula symbol by symbol. To turn one into code, use this recipe:
+
+1. **Name every symbol** and say in words what it is.
+2. **Write down its shape**: one number, a list of $m$ numbers, or a table of $m \times n$.
+3. **Turn each $\Sigma$ into a loop**, or into `np.sum`, `np.mean` or the matrix product `@`.
+4. **Test on a tiny example** you can check by hand before trusting it.
+
+Here is the rule from the 2025 NOAI Final, Task 1. You do not need to know *why* it works yet (that is gradient descent, coming in the calculus module); today the job is only to translate it.
+
+$$
+\theta_j := \theta_j - \alpha \cdot \frac{1}{m} \sum_{i=1}^{m} \left(h_\theta(x^{(i)}) - y^{(i)}\right) x_j^{(i)}
+$$
+
+where $h_\theta(x^{(i)}) = \theta_0 x_0^{(i)} + \theta_1 x_1^{(i)}$ is the model's prediction for example $i$, so it is really $\hat{y}^{(i)}$ in different clothes. In words: "for every parameter $j$, the new $\theta_j$ is the old $\theta_j$ minus the learning rate times the average, over all $m$ examples, of (prediction minus truth) times feature $j$".
+
+<FormulaToCode />
+
+<Steps title="One update by hand">
+  <Step title="Set up">
+    $X = \begin{bmatrix} 2 & 2 \\ 2 & 4 \\ 2 & 6 \end{bmatrix}$, $\;y = [2, 4, 6]$, $\;\alpha = 0.01$, $\;m = 3$, and $\theta$ starts at $[0, 0]$.
+  </Step>
+  <Step title="Predictions and errors">
+    With $\theta = [0, 0]$ every prediction $h_\theta(x^{(i)})$ is 0, so the errors $h - y$ are $-2, -4, -6$.
+  </Step>
+  <Step title="The Σ for $j = 0$">
+    Multiply each error by feature 0 (all 2s) and add: $(-2)(2) + (-4)(2) + (-6)(2) = -24$. Divide by $m$: $-24 / 3 = -8$.
+  </Step>
+  <Step title="The Σ for $j = 1$">
+    Multiply by feature 1 ($2, 4, 6$): $(-2)(2) + (-4)(4) + (-6)(6) = -4 - 16 - 36 = -56$. Divide by 3: $-18.667$.
+  </Step>
+  <Step title="Update both together">
+    $\theta_0 = 0 - 0.01 \times (-8) = 0.08$ and $\theta_1 = 0 - 0.01 \times (-18.667) = 0.1867$. Both use the **old** $\theta = [0, 0]$.
+  </Step>
+</Steps>
+
+The two-line NumPy version uses `@`, NumPy's matrix product. You will meet it properly in the vectors and matrices module; for now, all you need is that `@` multiplies matching entries and adds them up, so it performs a $\Sigma$ for you. `X @ theta` computes every prediction at once, and `X.T @ errors` (where `X.T` is $X$ with rows and columns swapped) computes the $\Sigma$ over examples for every $j$ at once. Run both versions and check that they agree:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+X = np.array([[2, 2], [2, 4], [2, 6]])
+y = np.array([2, 4, 6])
+alpha, m, n = 0.01, 3, 2
+
+def update_loops(theta):
+    new_theta = [0.0] * n
+    for j in range(n):                       # every theta_j
+        total = 0.0
+        for i in range(m):                   # the sum over examples i
+            h = theta[0] * X[i][0] + theta[1] * X[i][1]
+            total += (h - y[i]) * X[i][j]
+        new_theta[j] = theta[j] - alpha * total / m
+    return np.array(new_theta)
+
+def update_numpy(theta):
+    errors = X @ theta - y                   # h(x) - y for every example
+    return theta - alpha * X.T @ errors / m  # every theta_j at once
+
+theta = np.zeros(2)
+print("one update, loops:", update_loops(theta))
+print("one update, NumPy:", update_numpy(theta))
+
+for step in range(1000):
+    theta = update_numpy(theta)
+print("after 1000 updates:", np.round(theta, 4))`} />
+
+You should see `[0.08 0.18666667]` twice, matching the hand calculation, and `[0.003 0.9987]` after 1,000 updates: exactly the answer the 2025 Final expected. Writing the loop version first and comparing it with the vectorised one on a tiny example is the safest way to check a translation. Replacing Python loops by whole-array operations like this is called <Term def="Writing one operation that acts on a whole array (such as X @ theta or np.sum(x ** 2)) instead of a Python for loop. NumPy then runs the loop in fast compiled code.">vectorisation</Term>.
+
+<PastPaperQuestion paper="prelim2026" n={98} />
+
+<Mistake title="Updating one θ before computing the next">
+
+The $:=$ applies to every $j$ **at the same time**: all the new values are computed from the old $\theta$. If your loop overwrites `theta[0]` and then uses the new `theta[0]` to compute `theta[1]`, the result drifts from the expected one (on the 2025 data it gives $[0.0027, 0.9988]$ instead of $[0.003, 0.9987]$, which loses the marks). Store the new values separately, or use the vectorised version, which updates everything at once.
+
+</Mistake>
+
+<ExamTip>
+
+In the Prelim, formula questions test **recognition**: $\frac{1}{n}\sum (y_i - \hat{y}_i)^2$ is MSE, $\frac{1}{n}\sum |y_i - \hat{y}_i|$ is MAE, $-\sum y \log \hat{y}$ is cross-entropy, and a $\Pi$ of probabilities is a likelihood. In the Final, the formula is given and you must code it: name the symbols, write the shapes, translate each $\Sigma$, and test on the provided data before you trust your answer.
+
+</ExamTip>
+
+<Takeaways>
+
+- $\sum_{i=1}^{n} x_i$ adds the terms for $i = 1$ to $n$: a `for` loop with a running total from 0, or `np.sum(x)`. Maths counts from 1, Python from 0.
+- $\prod_{i=1}^{n} p_i$ multiplies them: the running product starts at 1, or `np.prod(p)`. Likelihoods are products, and logs turn them into sums.
+- In a dataset, $x_j^{(i)}$ is feature $j$ of example $i$ (row $i$, column $j$), $m$ counts examples, and the bracketed superscript is a label, not a power.
+- A hat means predicted ($\hat{y}$), a bar means mean ($\bar{x}$), and $\theta$, $\alpha$, $\lambda$ name parameters, the learning rate and regularisation strength.
+- To code a formula: name each symbol, write its shape, turn each $\Sigma$ into a loop or `@`/`.sum()`, update all parameters together, and test on a tiny example.
+
+</Takeaways>

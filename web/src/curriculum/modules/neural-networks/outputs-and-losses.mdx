@@ -1,3 +1,283 @@
-{/* stub: lesson 'Output layers and loss functions' is being written */}
+import HeadLossMatcher from './visuals/outputs-and-losses/HeadLossMatcher'
+import DoubleSoftmax from './visuals/outputs-and-losses/DoubleSoftmax'
+import SaturationRace from './visuals/outputs-and-losses/SaturationRace'
+import BaselineLossCheck from './visuals/outputs-and-losses/BaselineLossCheck'
 
-This lesson is being written.
+The hidden layers of a network build useful features. The **output layer** has to turn them into an answer of the right *kind*: a price, a yes or no, one digit out of ten, or a set of tags. The output layer and the loss function must match that kind of answer. Get the pairing wrong and nothing crashes: the network simply trains slowly, badly, or not at all, which makes it one of the sneakiest bugs in deep learning. This lesson gives you the four standard pairings, explains why PyTorch wants the network's **raw scores**, and hands you a free sanity check: the loss you should see before training even starts.
+
+<Analogy title="The right container for the takeaway">
+
+At a hawker centre, soup goes in a bowl with a lid, satay goes in a paper bag, and a drink goes in a cup with a straw. Put the soup in the paper bag and the food is still fine, but you will have a mess by the time you get home. A network's output layer is the container for its answer: a number, a probability, a choice among options, or several yes/no answers at once. Each kind of answer has its own container and its own way of being checked.
+
+</Analogy>
+
+## Logits: what the last layer really outputs
+
+The output layer is an ordinary fully connected layer: it computes $\mathbf{z} = W\mathbf{h} + \mathbf{b}$ from the last hidden layer $\mathbf{h}$. Its raw outputs are called <Term def="The raw, unsquashed scores produced by a network's last layer, before any sigmoid or softmax. They can be any real number.">logits</Term>: any real numbers, positive or negative, with no particular range. The output layer together with whatever we do to its logits is often called the network's <Term def="The final part of a network that turns features into the answer for a particular task: the output layer, its activation, and the matching loss.">head</Term>.
+
+To turn logits into an answer we may squash them with one of two functions you met in the classification module:
+
+- The **sigmoid** $\sigma(z) = \dfrac{1}{1 + e^{-z}}$ turns **one** logit into a probability between 0 and 1. Big positive $z$ gives nearly 1, big negative $z$ nearly 0, and $\sigma(0) = 0.5$.
+- The **softmax** turns **K** logits $z_1, \dots, z_K$ into $K$ probabilities that are all positive and add up to 1:
+
+$$
+p_k = \frac{e^{z_k}}{e^{z_1} + e^{z_2} + \dots + e^{z_K}}
+$$
+
+Each logit is exponentiated (made positive), then divided by the total so they share 100%. The biggest logit always gets the biggest probability.
+
+## Four kinds of task, four heads
+
+| Task | Example | Output layer | Turn logits into | Loss | PyTorch |
+|---|---|---|---|---|---|
+| **Regression** | an HDB flat's resale price | 1 output (one per target) | nothing: use it as it is | mean squared error (or mean absolute error) | `nn.MSELoss` (`nn.L1Loss`) |
+| **Binary** classification | spam or not | 1 logit | sigmoid | binary cross-entropy | `nn.BCEWithLogitsLoss` |
+| **Multi-class** classification | which digit, 0 to 9 | $K$ logits | softmax | cross-entropy | `nn.CrossEntropyLoss` |
+| **Multi-label** classification | which dishes are in a photo | $K$ logits | a separate sigmoid on each | binary cross-entropy on each label | `nn.BCEWithLogitsLoss` |
+
+### Regression: a raw number
+
+The output can be any size, so the last layer has **no activation**: squashing it with a sigmoid would make 118 impossible to predict. For $N$ examples with true values $y_i$ and predictions $\hat{y}_i$:
+
+$$
+\text{MSE} = \frac{1}{N}\sum_{i=1}^{N} (y_i - \hat{y}_i)^2, \qquad \text{MAE} = \frac{1}{N}\sum_{i=1}^{N} |y_i - \hat{y}_i|
+$$
+
+The <Term def="Mean squared error: the average of the squared differences between predictions and true values. The standard regression loss.">MSE</Term> averages the squared errors; the <Term def="Mean absolute error: the average of the absolute (unsigned) differences between predictions and true values.">MAE</Term> averages the plain sizes of the errors. Predict $3$ and $5$ when the truth is $2$ and $9$: the errors are $1$ and $4$, so $\text{MSE} = (1 + 16)/2 = 8.5$ but $\text{MAE} = (1 + 4)/2 = 2.5$. The single big miss supplies 16 of the 17 squared units: MSE punishes large errors much harder, while MAE is less thrown by a few outliers.
+
+<PastPaperQuestion paper="prelim2026" n={171} />
+
+### Binary classification: one logit and a sigmoid
+
+One yes/no question needs one logit $z$. The probability of "yes" is $p = \sigma(z)$, and the loss is <Term def="The loss for a yes/no prediction: L = −[y ln p + (1 − y) ln(1 − p)], where y is 1 or 0 and p is the predicted probability of 1.">binary cross-entropy</Term>:
+
+$$
+L = -\big[\, y \ln p + (1 - y)\ln(1 - p) \,\big]
+$$
+
+where $y$ is 1 for "yes" and 0 for "no". Only one term is ever switched on: the loss is $-\ln$ of the probability the model gave to what actually happened.
+
+### Multi-class classification: K logits and a softmax
+
+Exactly one of $K$ classes is correct, so the head has $K$ logits and a softmax shares 100% probability between them. The <Term def="For one example, minus the natural log of the probability the model gave to the true class: L = −ln p(true class).">cross-entropy</Term> loss is minus the log of the probability given to the true class:
+
+$$
+L = -\ln p_{\text{true class}}
+$$
+
+For logits $(2, 1, 0)$ the softmax gives about $(0.665, 0.245, 0.090)$. If the first class is the correct one, $L = -\ln 0.665 \approx 0.41$; if the third class is correct, $L = -\ln 0.090 \approx 2.41$.
+
+<PastPaperQuestion paper="prelim2026" n={182} />
+
+### Multi-label classification: K logits, K separate sigmoids
+
+Now several labels can be true at once: a food photo can show chicken rice **and** satay. Each label is its own yes/no question, so each of the $K$ logits gets its **own** sigmoid and its own binary cross-entropy, and the loss is their average. The target is a list of 0s and 1s, such as $(1, 1, 0, 0, 0)$, and the predicted probabilities do **not** have to add up to 1. A softmax here would be wrong: it would force chicken rice and satay to share one 100%.
+
+<HeadLossMatcher />
+
+<KeyIdea>
+
+Match the head to the answer: a **number** gets no activation and MSE (or MAE); **one yes/no** gets one logit, a sigmoid and binary cross-entropy; **one of K** gets K logits, a softmax and cross-entropy; **several yes/nos** get K logits, a sigmoid on each and binary cross-entropy on each.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A music app tags each song with any of 20 moods (calm, happy, sad, …), and a song can have several. Which head and loss fit?"
+  options={['20 logits, a sigmoid on each, binary cross-entropy', '20 logits, a softmax, cross-entropy', '1 logit, a sigmoid, binary cross-entropy', '20 outputs, no activation, mean squared error']}
+  answer={0}
+  explain="Several moods can be true at once, so this is multi-label: 20 independent yes/no questions, each with its own sigmoid and binary cross-entropy (`nn.BCEWithLogitsLoss` with a 0/1 target of length 20). A softmax would force the 20 probabilities to add up to 1, as if exactly one mood were allowed."
+/>
+
+## Why PyTorch wants raw logits
+
+Look again at the PyTorch column: `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss` take the **logits** and apply the softmax or sigmoid **inside** the loss. So the model itself should end with a plain `nn.Linear` layer, with no softmax or sigmoid after it. There are two good reasons.
+
+**1. Numerical stability.** Computers store numbers with limited precision. In PyTorch's default 32-bit floats, $\sigma(20)$ rounds to exactly $1.0$, so a hand-made loss that needs $\ln(1 - p)$ ends up taking $\ln 0$. Computing the loss straight from the logit avoids that subtraction, using the identity $-\ln \sigma(z) = \ln(1 + e^{-z})$:
+
+```python
+import torch
+import torch.nn as nn
+
+z = torch.tensor([20.0])    # a very confident logit...
+y = torch.tensor([0.0])     # ...but the true label is 0
+
+p = torch.sigmoid(z)
+print(p)                             # exactly 1.0 in float32
+print(nn.BCELoss()(p, y))            # needs log(1 - p) = log(0)
+print(nn.BCEWithLogitsLoss()(z, y))  # works from the logit
+```
+
+```text
+tensor([1.])
+tensor(100.)
+tensor(20.)
+```
+
+`nn.BCELoss` cannot take $\ln 0 = -\infty$, so PyTorch clamps the log at $-100$ and reports a meaningless 100. `nn.BCEWithLogitsLoss` never forms $1 - p$ and gets the true loss, $\ln(1 + e^{20}) \approx 20$.
+
+`CrossEntropyLoss` does the same for softmax: it computes $\ln p_k = z_k - \ln\sum_j e^{z_j}$ after subtracting the largest logit, so $e^{z}$ can never overflow even for logits like 1,000.
+
+**2. A simple, strong gradient.** For both pairings, sigmoid with binary cross-entropy and softmax with cross-entropy, the slope of the loss with respect to each logit is just
+
+$$
+\frac{\partial L}{\partial z_k} = p_k - y_k
+$$
+
+"predicted probability minus target". Wrong and confident means a big push; right means almost no push. (The classification module derives this for the sigmoid; the softmax case works out the same way, and the backpropagation module uses the result constantly.)
+
+When you **do** want probabilities, for example to show "93% spam" to a user, apply `torch.sigmoid` or `torch.softmax` to the logits yourself after the model. To pick the predicted class you do not even need that: softmax never changes which logit is largest, so `logits.argmax(dim=1)` gives the same answer.
+
+<DoubleSoftmax />
+
+Here "push" means $\partial L / \partial z_\text{true}$, the slope that gradient descent follows: the more negative, the harder the true class's logit is pushed up. Here is the same bug in code:
+
+```python
+import torch
+import torch.nn as nn
+
+logits = torch.tensor([[4.0, 1.0, 0.0]])   # one example, 3 classes (raw scores)
+target = torch.tensor([0])                  # the true class is class 0
+
+loss_fn = nn.CrossEntropyLoss()
+print(loss_fn(logits, target))                        # right: pass raw logits
+print(loss_fn(torch.softmax(logits, dim=1), target))  # bug: softmax applied twice
+```
+
+```text
+tensor(0.0659)
+tensor(0.5932)
+```
+
+The model is already 94% sure of the right class, so the true loss is tiny (0.066). With the extra softmax the loss reads 0.593, and it can never go below $\ln(1 + 2/e) \approx 0.55$ however good the model becomes.
+
+<Mistake title="Softmax (or sigmoid) twice">
+
+Ending the model with `nn.Softmax` and then using `nn.CrossEntropyLoss`, or ending with `nn.Sigmoid` and then using `nn.BCEWithLogitsLoss`, squashes the scores twice. Nothing crashes, but training is slow and the loss stalls above zero. Keep the model's last layer as a plain `nn.Linear` and let the loss do the squashing.
+
+</Mistake>
+
+<Mistake title="Targets in the wrong shape or type">
+
+- `nn.CrossEntropyLoss` wants targets as **class indices**: a tensor of shape `(N,)` with integer (long) values from 0 to $K - 1$, not one-hot rows.
+- `nn.BCEWithLogitsLoss` wants **float** 0/1 targets with exactly the same shape as the logits.
+- Regression has a silent shape trap. A model with one output returns shape `(N, 1)`; if the targets have shape `(N,)`, `nn.MSELoss` broadcasts them into an $N \times N$ grid and compares every prediction with every target:
+
+```python
+import torch
+import torch.nn as nn
+
+pred = torch.tensor([[1.0], [2.0], [3.0], [4.0]])   # model output, shape (4, 1)
+target = torch.tensor([1.0, 2.0, 3.0, 4.0])         # labels, shape (4,)
+
+print(nn.MSELoss()(pred, target))             # perfect predictions... but not 0!
+print(nn.MSELoss()(pred.squeeze(1), target))  # shapes match: 0
+```
+
+```text
+UserWarning: Using a target size (torch.Size([4])) that is different to the input size (torch.Size([4, 1])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+tensor(2.5000)
+tensor(0.)
+```
+
+The predictions are perfect, yet the first loss is 2.5. PyTorch only prints a warning, so always check that prediction and target shapes match.
+
+</Mistake>
+
+<ExamTip>
+
+Remember the two equations `nn.CrossEntropyLoss` = log-softmax + negative log-likelihood, and `nn.BCEWithLogitsLoss` = sigmoid + binary cross-entropy (in one stable step). Questions often ask which layer to remove ("the softmax at the end of the model") or which loss to pick for multi-label data ("BCE with logits, not cross-entropy"). In the Final, a hand-written loss that takes `log` of a softmax or sigmoid is a classic source of `nan` or `inf`.
+
+</ExamTip>
+
+## Why not use MSE for classification?
+
+Mean squared error also gets smaller as $p$ approaches the target, so why not use it with a sigmoid? Look at the push each loss gives the logit. With $p = \sigma(z)$:
+
+$$
+\begin{aligned}
+\text{binary cross-entropy:} \quad & \frac{\partial L}{\partial z} = p - y \\[4pt]
+\text{squared error } (y - p)^2\text{:} \quad & \frac{\partial L}{\partial z} = 2(p - y)\,\underbrace{p(1 - p)}_{\sigma'(z)}
+\end{aligned}
+$$
+
+The squared-error push is multiplied by the sigmoid's slope $\sigma'(z) = p(1 - p)$, which is almost zero whenever the sigmoid is <Term def="A sigmoid or tanh is saturated when its input is far from 0: the output is pinned near its limit and its slope is nearly 0, so gradients through it are tiny.">saturated</Term>, that is, whenever the model is very sure. Take a model that is confidently **wrong**: $y = 1$ but $z = -6$, so $p \approx 0.0025$. Binary cross-entropy pushes with $p - 1 \approx -1.00$; squared error pushes with only $2(-0.9975)(0.0025)(0.9975) \approx -0.005$, about 200 times weaker. The more wrong the model, the less it learns: exactly backwards.
+
+<SaturationRace />
+
+<PastPaperQuestion paper="prelim2026" n={262} />
+
+## The starting loss tells you something
+
+Before training, a network's weights are small random numbers, so its logits are all close to 0. Softmax of equal logits gives every class the same probability, $1/K$. Whatever the true class is, the cross-entropy is then
+
+$$
+L_\text{start} = -\ln\frac{1}{K} = \ln K
+$$
+
+So a well-behaved $K$-class classifier should start with a loss close to $\ln K$:
+
+| classes $K$ | 2 | 3 | 4 | 5 | 10 | 100 | 1000 |
+|---|---|---|---|---|---|---|---|
+| $\ln K$ | 0.693 | 1.099 | 1.386 | 1.609 | 2.303 | 4.605 | 6.908 |
+
+You only need two values to rebuild the table without a calculator: $\ln 2 \approx 0.693$ and $\ln 10 \approx 2.303$. Then $\ln 4 = 2\ln 2$, $\ln 5 = \ln 10 - \ln 2$, $\ln 100 = 2\ln 10$ and $\ln 1000 = 3\ln 10$. (The coin-flip line at 0.693 in the playground of the previous lesson was exactly $\ln 2$.)
+
+<BaselineLossCheck />
+
+Check it on a real, untrained PyTorch network with 10 classes:
+
+```python
+import math
+import torch
+import torch.nn as nn
+
+torch.manual_seed(0)
+model = nn.Sequential(nn.Linear(784, 128), nn.ReLU(), nn.Linear(128, 10))
+
+x = torch.rand(256, 784)             # a batch of 256 fake "images"
+y = torch.randint(0, 10, (256,))     # labels: class indices 0..9
+
+loss = nn.CrossEntropyLoss()(model(x), y)
+print(f"first loss {loss.item():.3f}   ln 10 = {math.log(10):.3f}")
+```
+
+```text
+first loss 2.316   ln 10 = 2.303
+```
+
+<Steps title="Reading the first loss of a 10-class model">
+  <Step title="About 2.3">
+    Healthy: the model is unsure, exactly as an untrained model should be.
+  </Step>
+  <Step title="Much higher, say 60">
+    The model is confidently wrong before it has learned anything: its logits are huge. Suspect inputs that were never normalised (feed the network above raw pixel values from 0 to 255 instead of 0 to 1 and its first loss is about 62) or an output layer that starts with weights far too big.
+  </Step>
+  <Step title="Much lower, say 0.01, before any training">
+    Impossible for an honest untrained model. Suspect the loss itself, for example arguments passed in the wrong order or the loss computed on the wrong tensor. (If instead the loss crashes to almost 0 within a few steps, suspect a leak: the answer is hidden in the inputs.)
+  </Step>
+  <Step title="Starts at 2.3 but never falls below about 1.46">
+    The double-softmax bug: equal logits stay equal after a second softmax, so it starts at $\ln K$ like a healthy model, but the floor $\ln(1 + 9/e) \approx 1.46$ gives it away.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A freshly initialised classifier for 4 balanced classes prints its first loss. Which value is about right?"
+  options={['1.39', '0.25', '0.69', '4.00']}
+  answer={0}
+  explain="Each class gets probability about $1/4$, so the loss is $-\ln\frac14 = \ln 4 = 2\ln 2 \approx 1.386$. 0.25 is the probability, not the loss; 0.69 is $\ln 2$, the value for two classes; 4 is $K$ itself."
+/>
+
+<ExamTip>
+
+"Initial loss for $K$ balanced classes" is a quick mental-maths question: answer $\ln K$, and remember $\ln 10 \approx 2.30$. For binary cross-entropy the starting value is $\ln 2 \approx 0.69$.
+
+</ExamTip>
+
+<Takeaways>
+
+- Logits are the raw outputs of the last layer. Regression uses them as they are with MSE or MAE; binary uses one logit with a sigmoid and binary cross-entropy; multi-class uses K logits with softmax and cross-entropy; multi-label uses K logits with a separate sigmoid and binary cross-entropy for each.
+- `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss` take raw logits and apply softmax or sigmoid inside, for numerical stability and the clean gradient $p - y$. Never add your own softmax or sigmoid before them.
+- MSE on a sigmoid output learns very slowly when the model is confidently wrong, because its gradient is multiplied by $\sigma'(z) \approx 0$.
+- An untrained $K$-class classifier should start with loss $\approx \ln K$ (2.30 for 10 classes). A very different first loss means a bug.
+
+</Takeaways>

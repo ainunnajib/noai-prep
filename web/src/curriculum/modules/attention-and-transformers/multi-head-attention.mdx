@@ -1,3 +1,220 @@
-{/* stub: lesson 'Multi-head attention' is being written */}
+import HeadPatterns from './visuals/multi-head-attention/HeadPatterns'
+import HeadSplitter from './visuals/multi-head-attention/HeadSplitter'
+import ReshapeTrap from './visuals/multi-head-attention/ReshapeTrap'
+import ParamCounter from './visuals/multi-head-attention/ParamCounter'
 
-This lesson is being written.
+One attention layer gives every word one row of weights: one way of looking at the sentence. But words are linked in several ways at once (who did what, which word came just before, which words are the same), and one row of weights cannot point sharply at all of them. **Multi-head attention** runs several smaller attentions side by side, each free to learn its own way of looking. It is in every Transformer, and the NOAI 2026 Final (Task 3) asked students to build it in PyTorch, so this lesson ends with the code and the reshapes that trip people up.
+
+## One head, one way of looking
+
+Recall the previous lesson: a query is compared with every key, softmax turns the scores into weights, and the output is the weighted average of the values,
+
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V .
+$$
+
+Each row of weights adds up to 1. That is a fixed budget. Take the sentence *"the students who won the quiz cheered"*. The word *cheered* would like to look at *students* (who cheered?) and also at *quiz* (what came just before?). With a single row of weights it has to split its budget between them, and the weighted average it produces is a blur of both.
+
+<Analogy>
+A hawker food competition has a panel of judges: one scores taste, one presentation, one value for money. Each judge fills in a separate score sheet at the same time, and the final verdict combines all the sheets. One judge trying to score everything at once would give a muddled mark. Multi-head attention is the panel: each <Term def="One complete, independent copy of the attention calculation, with its own learned query, key and value projections. A multi-head layer runs several heads side by side.">head</Term> is one judge with its own score sheet.
+</Analogy>
+
+<HeadPatterns />
+
+<KeyIdea>
+Multi-head attention runs $h$ attention heads in parallel. Each head has its **own** learned projections, so it can learn its own pattern of who looks at whom. The heads' outputs are glued together and mixed at the end.
+</KeyIdea>
+
+Nobody programs these patterns. Every head starts with random weights, and training shapes each one into whatever pattern helps the model most. When researchers looked inside a trained BERT model (Clark et al., 2019), they found heads that attend to the previous word, heads that park their attention on separator tokens, and heads that follow grammar, such as a verb finding its object.
+
+## The recipe: split, attend, glue, mix
+
+Here is the whole layer in one line. Do not panic: every symbol is explained underneath.
+
+$$
+\text{MultiHead}(X) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\,W^O
+\quad\text{where}\quad
+\text{head}_i = \text{Attention}\big(XW_i^Q,\; XW_i^K,\; XW_i^V\big)
+$$
+
+- $X$ is the input: one row per token, so it is a $T \times d_\text{model}$ matrix. $T$ is the number of tokens (code often calls it `L` or `seq_len`) and <Term def="The length of every token's vector inside a Transformer, also called the model width or hidden size. 512 in the original Transformer, 768 in BERT-base.">$d_\text{model}$</Term> is the length of each token's vector.
+- $h$ is the number of heads.
+- $W_i^Q, W_i^K, W_i^V$ are head $i$'s own <Term def="A learned matrix that turns each token's vector into a new vector, here a query, key or value. In PyTorch it is an nn.Linear layer.">projection</Term> matrices, each of size $d_\text{model} \times d_k$. Multiplying by them turns every token into that head's query, key and value.
+- $d_k$ is the size of one head, often called `head_dim`:
+
+$$
+d_k = \frac{d_\text{model}}{h}
+$$
+
+- $\text{Attention}$ is the scaled dot-product attention above, so $\text{head}_i$ is a $T \times d_k$ matrix: one small answer per token from head $i$.
+- $\text{Concat}$ <Term def="Join side by side. Concatenating h matrices of size T × d_k along their columns gives one T × (h·d_k) matrix.">concatenates</Term> the $h$ answers side by side: $T \times (h \cdot d_k) = T \times d_\text{model}$.
+- $W^O$ is a $d_\text{model} \times d_\text{model}$ output projection that mixes the heads' findings together.
+
+For example, the original Transformer used $d_\text{model} = 512$ and $h = 8$, so $d_k = 512 / 8 = 64$; BERT-base uses $768 / 12 = 64$.
+
+**The trick that makes it fast.** We never build $h$ separate small layers. Put the $h$ small matrices $W_1^Q, \dots, W_h^Q$ side by side and you get one big $d_\text{model} \times d_\text{model}$ matrix $W^Q$. So the code projects **once** with a big `nn.Linear(d_model, d_model)` and then cuts the result into $h$ slices of $d_k$ columns: slice $i$ is exactly $XW_i^Q$.
+
+<Analogy>
+A CCA committee of four reviews a stack of camp applications. Every member reads **every** application, but each holds only a quarter of the checklist (safety, budget, schedule, food). They work at the same time, then the secretary staples their notes together and writes one summary. Heads see every token, but each works on its own slice of the features; $W^O$ is the secretary.
+</Analogy>
+
+Is it expensive to run $h$ attentions? No. The main cost of attention is the score table $QK^\top$, which takes $T \times T \times (\text{vector length})$ multiplications. With $h$ heads of length $d_k$ that is $h \cdot T^2 \cdot d_k = T^2 \cdot d_\text{model}$, the same as one big head. You get $h$ patterns for about the price of one.
+
+## Following the shapes
+
+In real code the input also has a batch axis: <Term def="Several examples processed together in one tensor. B is the number of sentences in the batch.">$B$</Term> sentences at once, so the input is a tensor of shape $(B, T, d_\text{model})$. Splitting into heads is then a pair of reshapes. Play the animation and watch every number.
+
+<HeadSplitter />
+
+Why the `transpose`? Matrix multiplication with `@` works on the **last two** axes and treats every axis in front as a batch of separate problems. Attention needs each head's tokens and features as the last two axes, $(T, d_k)$. After `view` the last two axes are $(h, d_k)$, which is wrong; `transpose(1, 2)` swaps the token and head axes, giving $(B, h, T, d_k)$. Now one `@` computes all $B \times h$ heads in parallel.
+
+<Steps title="Shapes for B = 2, T = 5, d_model = 12, h = 3">
+  <Step title="Head size">
+    $d_k = 12 / 3 = 4$.
+  </Step>
+  <Step title="Project">
+    `Q = W_q(x)` keeps the shape: $(2, 5, 12)$. The same happens for `K` and `V`.
+  </Step>
+  <Step title="Split the last axis">
+    `view(2, 5, 3, 4)` cuts each token's 12 numbers into 3 chunks of 4: $(B, T, h, d_k) = (2, 5, 3, 4)$.
+  </Step>
+  <Step title="Heads to the front">
+    `transpose(1, 2)` gives $(B, h, T, d_k) = (2, 3, 5, 4)$.
+  </Step>
+  <Step title="Attention in every head">
+    Scores `Q @ K.transpose(-2, -1)` are $(2, 3, 5, 5)$: one $5 \times 5$ table per sentence per head. Weights `@ V` give $(2, 3, 5, 4)$.
+  </Step>
+  <Step title="Merge and mix">
+    `transpose(1, 2)` gives $(2, 5, 3, 4)$; `contiguous().view(2, 5, 12)` gives $(2, 5, 12)$; `W_o` keeps $(2, 5, 12)$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A BERT-base layer has $d_\text{model} = 768$ and 12 heads. What is the size $d_k$ of each head?"
+  options={['64', '768', '9216', '12']}
+  answer={0}
+  explain="$d_k = d_\text{model} / h = 768 / 12 = 64$. Each head gets a 64-number slice of every token, not the full 768; $768 \times 12 = 9216$ multiplies instead of divides."
+/>
+
+## In PyTorch
+
+This is the layer as NOAI's scaffold names it (`W_q`, `W_k`, `W_v`, `W_o`). The `forward` takes `query`, `key` and `value` separately: for **self-attention** you pass the same `x` three times; the next lesson uses different inputs for cross-attention.
+
+```python
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads):
+        super().__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads          # size of each head
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+
+    def split(self, x):                           # (B, T, d_model) -> (B, h, T, d_k)
+        B, T, _ = x.shape
+        return x.view(B, T, self.num_heads, self.d_k).transpose(1, 2)
+
+    def forward(self, query, key, value, mask=None):
+        B, T, _ = query.shape
+        Q = self.split(self.W_q(query))           # (B, h, T, d_k)
+        K = self.split(self.W_k(key))
+        V = self.split(self.W_v(value))
+        scores = Q @ K.transpose(-2, -1) / math.sqrt(self.d_k)   # (B, h, T, T)
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
+        attn = F.softmax(scores, dim=-1)
+        out = attn @ V                            # (B, h, T, d_k)
+        out = out.transpose(1, 2).contiguous().view(B, T, self.d_model)
+        return self.W_o(out), attn
+
+torch.manual_seed(0)
+mha = MultiHeadAttention(d_model=12, num_heads=3)
+x = torch.randn(2, 5, 12)                         # B=2 sentences, T=5 tokens
+out, attn = mha(x, x, x)                          # self-attention: q, k, v all from x
+print("output:", tuple(out.shape))
+print("weights:", tuple(attn.shape))
+print("rows sum to 1:", torch.allclose(attn.sum(-1), torch.ones(2, 3, 5)))
+print("parameters:", sum(p.numel() for p in mha.parameters()))
+```
+
+```text
+output: (2, 5, 12)
+weights: (2, 3, 5, 5)
+rows sum to 1: True
+parameters: 624
+```
+
+The output has the same shape as the input, which is what lets us stack many of these layers. The weights come out as $(B, h, T, T)$: one $T \times T$ table per sentence **per head**. (The NOAI scaffold also applies dropout to the weights; that does not change any shape.)
+
+Now the classic bug. Many people try to jump straight to $(B, h, T, d_k)$ with a single `view`. The shape is right and nothing crashes. Try it:
+
+<ReshapeTrap />
+
+<Mistake title="Skipping the transpose: right shape, wrong numbers">
+`view` (and `reshape`) never move numbers: they read memory row by row and cut it into the new shape. `x.view(B, h, T, d_k)` therefore cuts token A's row in half and treats the second half as "token B". The model trains without errors, just badly, and shape-only tests cannot catch it. Always split with `view(B, T, h, d_k).transpose(1, 2)` and merge with `transpose(1, 2)` **before** the final `view`.
+</Mistake>
+
+<Mistake title="view after transpose without contiguous()">
+`transpose` does not move data either: it only changes the order in which memory is read. `view` refuses to work on such a tensor:
+
+```text
+RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+```
+
+The fix is `out.transpose(1, 2).contiguous().view(B, T, d_model)` (or `.reshape(B, T, d_model)`, which copies when it has to).
+</Mistake>
+
+Here is a real Final question with a complete multi-head implementation. Read it line by line: you can now follow every reshape, and the missing piece comes from the previous lesson.
+
+<PastPaperQuestion paper="final2026" n={16} />
+
+## Counting the parameters
+
+How big is a multi-head attention layer? Each of `W_q`, `W_k`, `W_v`, `W_o` is an `nn.Linear(d_model, d_model)`, which stores a $d_\text{model} \times d_\text{model}$ weight matrix and $d_\text{model}$ biases. Four of them:
+
+$$
+\text{parameters} = 4\,(d_\text{model}^2 + d_\text{model})
+$$
+
+The number of heads $h$ does not appear: heads only **slice** the matrices, they do not add to them.
+
+<ParamCounter />
+
+<Steps title="Parameters for d_model = 512, h = 8">
+  <Step title="One weight matrix">
+    $512 \times 512 = 262{,}144$ weights.
+  </Step>
+  <Step title="Four weight matrices">
+    $4 \times 262{,}144 = 1{,}048{,}576$.
+  </Step>
+  <Step title="Add the biases">
+    $4 \times 512 = 2{,}048$, so the total is $1{,}048{,}576 + 2{,}048 = 1{,}050{,}624$. With 1, 8 or 16 heads it is the same number, which PyTorch's own `nn.MultiheadAttention(512, h)` confirms.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A multi-head attention layer has $d_\text{model} = 10$, $h = 2$ heads, and biases in all four projections. How many parameters does it have?"
+  options={['440', '400', '880', '220']}
+  answer={0}
+  explain="$4(d^2 + d) = 4(100 + 10) = 440$. Forgetting the biases gives 400. Multiplying by the 2 heads (880) is the classic trap: heads slice the matrices, they do not copy them."
+/>
+
+<ExamTip>
+Three patterns cover most NOAI questions on this topic. **Head size**: $d_k = d_\text{model}/h$. **Shapes**: $(B, T, d) \to$ `view` $\to (B, T, h, d_k) \to$ `transpose(1, 2)` $\to (B, h, T, d_k)$, with weights $(B, h, T, T)$ and output back to $(B, T, d)$. **Parameters**: $4(d^2 + d)$, whatever $h$ is. Learn $512^2 = 262{,}144$ and $768^2 = 589{,}824$ so you never multiply under time pressure.
+</ExamTip>
+
+<Takeaways>
+- Multi-head attention runs $h$ attention heads in parallel; each has its own projections, so each can learn a different pattern, and $W^O$ mixes their answers.
+- Head size $d_k = d_\text{model} / h$, so $d_\text{model}$ must be divisible by $h$. The total cost is about the same as one big head.
+- Split with `view(B, T, h, d_k).transpose(1, 2)` to get $(B, h, T, d_k)$; merge with `transpose(1, 2).contiguous().view(B, T, d_model)`. Skipping the transpose gives the right shape but the wrong numbers.
+- Attention weights have shape $(B, h, T, T)$; the output has the input's shape $(B, T, d_\text{model})$.
+- Parameters: $4(d_\text{model}^2 + d_\text{model})$, independent of the number of heads.
+</Takeaways>

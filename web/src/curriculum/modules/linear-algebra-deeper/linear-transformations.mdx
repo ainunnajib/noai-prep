@@ -1,3 +1,223 @@
-{/* stub: lesson 'A matrix is a transformation of space' is being written */}
+import GridWarper from './visuals/linear-transformations/GridWarper'
+import MatrixMatch from './visuals/linear-transformations/MatrixMatch'
+import ComposeOrder from './visuals/linear-transformations/ComposeOrder'
 
-This lesson is being written.
+In the last module you multiplied matrices number by number. That is how a computer does it, but it hides what a matrix actually **does**. Push every point of the plane through a matrix and the whole grid moves at once: it stretches, turns, slants, flips or gets flattened. Once you can *see* a matrix like this, the rest of this module (rank, eigenvectors, PCA and SVD) turns from formulas into pictures, and many NOAI questions can be answered by imagining the picture instead of grinding through arithmetic.
+
+<Analogy title="A fishing net pinned to the floor">
+
+Lay a square fishing net flat on a void deck floor and nail one knot down: that knot is the origin. Now pick up two knots, the one a single square to the east and the one a single square to the north, and put them down somewhere new. If the strings must stay straight, stay parallel and stay evenly spaced, every other knot in the net is forced into exactly one place. You only chose where **two** knots go. A 2×2 matrix is exactly that choice: its two columns say where those two knots land.
+
+</Analogy>
+
+## Moving every point at once
+
+A <Term def="A rule that takes every input vector and gives back an output vector. Multiplying by a matrix (x goes to Ax) is one.">transformation</Term> is a rule that sends every point (every vector) to a new point. Multiplying by a matrix is one: each point $x$ goes to $Ax$. Instead of following one point at a time, picture the whole plane covered in grid lines and watch all of it move together.
+
+Transformations that come from matrices are called <Term def="A transformation T with T(u + v) = T(u) + T(v) and T(cu) = c T(u). In pictures: the origin stays put and grid lines stay straight, parallel and evenly spaced.">linear</Term>. You can recognise them by three rules you can see:
+
+1. The origin does not move: $A\mathbf{0} = \mathbf{0}$.
+2. Straight lines stay straight.
+3. Grid lines that were parallel and evenly spaced stay parallel and evenly spaced.
+
+Behind those pictures sit two algebra rules. For any vectors $u, v$ and any number $c$:
+
+$$
+\begin{aligned}
+A(u + v) &= Au + Av, \\
+A(cu) &= c\,(Au).
+\end{aligned}
+$$
+
+The first says "move the sum" gives the same as "move each piece, then add". The second says "move a doubled arrow" gives the same as "move the arrow, then double it". Sliding the whole plane 2 to the right is **not** linear (the origin moves), and neither is bending lines into curves.
+
+<Note>
+
+A neural-network layer computes $Wx + b$. The $Wx$ part is a linear transformation. Adding the <Term def="An extra vector b added after the matrix multiplication in a layer, Wx + b. It shifts every output by the same amount.">bias</Term> $b$ then slides everything over, so the origin moves; $Wx + b$ is called an *affine* map (linear, then shifted).
+
+</Note>
+
+## The columns are the whole recipe
+
+Two arrows matter most: $\hat\imath = (1, 0)$, one step along the x-axis, and $\hat\jmath = (0, 1)$, one step along the y-axis. They are the <Term def="The arrows (1, 0) and (0, 1) in 2-D, or (1, 0, 0), (0, 1, 0) and (0, 0, 1) in 3-D: one step along each axis. Every vector is built from them.">standard basis vectors</Term>, read "i-hat" and "j-hat". Multiply them by a matrix and the columns pop out:
+
+$$
+\begin{bmatrix} a & b \\ c & d \end{bmatrix}\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} a \\ c \end{bmatrix},
+\quad
+\begin{bmatrix} a & b \\ c & d \end{bmatrix}\begin{bmatrix} 0 \\ 1 \end{bmatrix} = \begin{bmatrix} b \\ d \end{bmatrix}.
+$$
+
+So **column 1 is where $\hat\imath$ lands and column 2 is where $\hat\jmath$ lands.** Why is that enough to know where *every* point lands? The point $(x, y)$ means "$x$ steps of $\hat\imath$ plus $y$ steps of $\hat\jmath$". By the two linearity rules, the moved point is "$x$ steps of the moved $\hat\imath$ plus $y$ steps of the moved $\hat\jmath$":
+
+$$
+A\begin{bmatrix} x \\ y \end{bmatrix} = x\begin{bmatrix} a \\ c \end{bmatrix} + y\begin{bmatrix} b \\ d \end{bmatrix}.
+$$
+
+- $x$ and $y$ are the input point's coordinates: how many steps along each axis.
+- $(a, c)$ is column 1, the new home of $\hat\imath$; $(b, d)$ is column 2, the new home of $\hat\jmath$.
+- The right-hand side is a <Term def="A sum of vectors, each multiplied by a number, such as 2u + 3v.">linear combination</Term> of the columns: the same recipe ($x$ of the first, $y$ of the second), applied to the new arrows.
+
+<GridWarper />
+
+<KeyIdea>
+
+A matrix is a complete recipe for moving space, and **its columns are the recipe**: column $j$ is where the $j$-th basis arrow lands. Every other point follows, because $A(x, y) = x \cdot (\text{column } 1) + y \cdot (\text{column } 2)$.
+
+</KeyIdea>
+
+<Steps title="Where does $A = \begin{bmatrix} 2 & -1 \\ 1 & 1 \end{bmatrix}$ send the point $(3, 2)$?">
+  <Step title="Read off the columns">
+    $\hat\imath$ lands on column 1, $(2, 1)$. $\hat\jmath$ lands on column 2, $(-1, 1)$.
+  </Step>
+  <Step title="Scale each column by the point's coordinates">
+    The point is 3 steps of $\hat\imath$ and 2 steps of $\hat\jmath$, so take $3 \cdot (2, 1) = (6, 3)$ and $2 \cdot (-1, 1) = (-2, 2)$.
+  </Step>
+  <Step title="Add">
+    $(6, 3) + (-2, 2) = (4, 5)$. So $A(3, 2) = (4, 5)$.
+  </Step>
+  <Step title="Check with row · column">
+    Row 1: $2 \times 3 + (-1) \times 2 = 4$. Row 2: $1 \times 3 + 1 \times 2 = 5$. Same answer, as it must be: it is the same multiplication, organised by columns instead of rows.
+  </Step>
+</Steps>
+
+Building a matrix runs the other way. If you are told where $\hat\imath$ and $\hat\jmath$ go, write those two arrows down as **columns**, side by side, and you have the matrix.
+
+<QuickCheck
+  q="A transformation sends $(1, 0)$ to $(3, 1)$ and $(0, 1)$ to $(-1, 2)$. Which matrix is it?"
+  options={[String.raw`$\begin{bmatrix} 3 & -1 \\ 1 & 2 \end{bmatrix}$`, String.raw`$\begin{bmatrix} 3 & 1 \\ -1 & 2 \end{bmatrix}$`, String.raw`$\begin{bmatrix} 1 & 3 \\ 2 & -1 \end{bmatrix}$`, String.raw`$\begin{bmatrix} -1 & 3 \\ 2 & 1 \end{bmatrix}$`]}
+  answer={0}
+  explain="Write the images as columns: column 1 is $(3, 1)$ and column 2 is $(-1, 2)$. Writing them as rows instead gives $\begin{bmatrix} 3 & 1 \\ -1 & 2 \end{bmatrix}$, which sends $(1, 0)$ to $(3, -1)$: a different transformation. The other two put the arrows in the wrong slots, so $(1, 0)$ would not land on $(3, 1)$."
+/>
+
+<Mistake>
+
+Writing the images of $\hat\imath$ and $\hat\jmath$ as **rows** instead of columns. That gives the <Term def="The matrix with rows and columns swapped: entry (i, j) moves to (j, i). Written A with a superscript T.">transpose</Term> $A^T$, which is a different transformation unless $A$ happens to be symmetric. Always check: $A$ times $(1, 0)$ must give back the first column.
+
+</Mistake>
+
+## A gallery of transformations
+
+Most matrices in exam questions belong to one of five families. Each is easiest to remember by asking one question: where do $\hat\imath$ and $\hat\jmath$ go? The last column uses the determinant from the previous module, the factor by which areas are scaled (negative if the picture is mirrored).
+
+| Family | Matrix | Where $\hat\imath$ and $\hat\jmath$ go | det |
+|---|---|---|---|
+| Scaling | $\begin{bmatrix} s_x & 0 \\ 0 & s_y \end{bmatrix}$ | stay on their own axes, stretched by $s_x$ and $s_y$ | $s_x s_y$ |
+| Rotation by $\theta$ | $\begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix}$ | both turn by $\theta$; lengths stay 1 | $1$ |
+| Shear (horizontal) | $\begin{bmatrix} 1 & k \\ 0 & 1 \end{bmatrix}$ | $\hat\imath$ stays; $\hat\jmath$ slides sideways to $(k, 1)$ | $1$ |
+| Reflection in the y-axis | $\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$ | $\hat\imath$ flips to $(-1, 0)$; $\hat\jmath$ stays | $-1$ |
+| Projection onto the x-axis | $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ | $\hat\imath$ stays; $\hat\jmath$ is crushed to $(0, 0)$ | $0$ |
+
+A few words on each:
+
+- **Scaling** matrices are <Term def="A square matrix whose only non-zero entries are on the main diagonal (top-left to bottom-right).">diagonal</Term>; a negative entry also flips that axis.
+- **Rotation** (anticlockwise, the maths convention for a positive angle). Turning $\hat\imath$ by $\theta$ puts it on the <Term def="The circle of radius 1 centred at the origin. The point at angle θ on it is (cos θ, sin θ).">unit circle</Term> at $(\cos\theta, \sin\theta)$: that is column 1. $\hat\jmath$ always stays $90°$ ahead of $\hat\imath$, which puts it at $(-\sin\theta, \cos\theta)$: that is where the minus sign comes from. With $\theta = 90°$ ($\cos 90° = 0$, $\sin 90° = 1$) the matrix is $\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$: $\hat\imath$ points up, $\hat\jmath$ points left. Rotations keep every length and every angle.
+- **Shear.** Push the top of a stack of exercise books sideways: each layer slides by an amount proportional to its height. Horizontal lines stay horizontal; vertical lines lean over. Areas do not change (det 1).
+- **Reflection.** Other mirrors: the x-axis is $\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$ (upside down) and the line $y = x$ is $\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$ (swap the two coordinates). Every reflection keeps areas but flips orientation, so det $= -1$: the winking smiley winks with the other eye.
+- **Projection.** Every point drops onto a line, like a shadow. Onto the line $y = x$ it is $\begin{bmatrix} \tfrac12 & \tfrac12 \\ \tfrac12 & \tfrac12 \end{bmatrix}$. Projecting twice changes nothing more ($P^2 = P$), and because a whole dimension is crushed, det $= 0$ and there is no way to undo it. The next lesson is about exactly this kind of collapse.
+
+<MatrixMatch />
+
+<Mistake title="Which way does it turn?">
+
+$\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$ turns $90°$ **anticlockwise** ($\hat\imath$ goes up to $(0, 1)$), while $\begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix}$ turns $90°$ **clockwise** ($\hat\imath$ goes down to $(0, -1)$). Don't try to memorise where the minus sign sits; read column 1 and see where $\hat\imath$ went.
+
+</Mistake>
+
+<ExamTip>
+
+To name a 2×2 matrix in a few seconds, read its columns as two arrows:
+- **diagonal** → scaling (negative entry: plus a flip);
+- columns **perpendicular and of length 1** → rotation if det $= +1$, reflection if det $= -1$;
+- 1s on the diagonal and **one** non-zero entry off it → shear;
+- det $= 0$ (one column a multiple of the other) → the plane is squashed onto a line.
+
+</ExamTip>
+
+## Matrices that change the dimension
+
+Matrices don't have to be square. An $m \times n$ matrix has $n$ columns, one for each input direction, and each column holds $m$ numbers. So it takes vectors with $n$ numbers to vectors with $m$ numbers: **the number of columns is the input size and the number of rows is the output size.**
+
+- A 3×2 matrix takes 2-D points into 3-D. Its two columns are where $\hat\imath$ and $\hat\jmath$ land in 3-D space, so the flat plane becomes a tilted sheet floating in space.
+- A 2×3 matrix takes 3-D points down to 2-D, like a camera turning a 3-D scene into a flat photo.
+
+This is exactly what a <Term def="A neural-network layer in which every input is connected to every output. It multiplies the input vector by a weight matrix and adds a bias.">fully connected layer</Term> does. In PyTorch, `nn.Linear(784, 128)` stores a weight matrix $W$ of shape 128×784 (outputs × inputs) and turns each 784-pixel image vector into 128 numbers. Entry $W_{ij}$ is the weight on the connection from input $j$ to output $i$, so there is one weight for every (input, output) pair: $784 \times 128 = 100{,}352$ weights.
+
+<PastPaperQuestion paper="prelim2026" n={166} />
+
+## One move after another
+
+Do $B$ first, then $A$. A point $x$ goes to $Bx$, and then $Bx$ goes to $A(Bx)$. Matrix multiplication is defined precisely so that a single matrix does both moves:
+
+$$
+(AB)\,x = A\,(B\,x).
+$$
+
+- $B$ is the **first** move: it sits on the right, next to $x$.
+- $A$ is the **second** move, on the left.
+- $AB$ is the single matrix for "first $B$, then $A$". Read a product **right to left**, like $f(g(x))$ for functions: the matrix closest to $x$ acts first.
+
+Doing one transformation after another is called <Term def="Doing one transformation and then another. For matrices, 'first B, then A' is the product AB.">composition</Term>. It also explains the column rule of matrix multiplication: column 1 of $AB$ is $A$ times column 1 of $B$, which says "follow $\hat\imath$: $B$ sends it to its first column, then $A$ moves it again".
+
+<Analogy title="Socks and shoes">
+
+Socks then shoes, or shoes then socks: the same two moves, but a very different result (and a strange look at school). Matrices behave the same way. Rotating then shearing is not shearing then rotating.
+
+</Analogy>
+
+<Steps title="Rotate by 90° and shear, in both orders">
+  <Step title="The two moves">
+    Rotation $R = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$ (turn $90°$ anticlockwise) and shear $S = \begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$.
+  </Step>
+  <Step title="Rotate first, then shear: the matrix $SR$">
+    Follow $\hat\imath$: $R$ sends $(1, 0)$ to $(0, 1)$, then $S$ sends $(0, 1)$ to $(1, 1)$. Follow $\hat\jmath$: $R$ sends $(0, 1)$ to $(-1, 0)$, then $S$ leaves $(-1, 0)$ where it is. So $SR = \begin{bmatrix} 1 & -1 \\ 1 & 0 \end{bmatrix}$.
+  </Step>
+  <Step title="Shear first, then rotate: the matrix $RS$">
+    Follow $\hat\imath$: $S$ leaves $(1, 0)$ alone, then $R$ turns it to $(0, 1)$. Follow $\hat\jmath$: $S$ sends $(0, 1)$ to $(1, 1)$, then $R$ turns $(1, 1)$ to $(-1, 1)$. So $RS = \begin{bmatrix} 0 & -1 \\ 1 & 1 \end{bmatrix}$.
+  </Step>
+  <Step title="Compare">
+    $SR \neq RS$. You can confirm one entry by row · column: the top-left of $SR$ is $1 \times 0 + 1 \times 1 = 1$, but the top-left of $RS$ is $0 \times 1 + (-1) \times 0 = 0$.
+  </Step>
+</Steps>
+
+<ComposeOrder />
+
+<KeyIdea>
+
+$AB$ means **do $B$ first, then $A$**, because $(AB)x = A(Bx)$. Swapping the order swaps the moves, so in general $AB \neq BA$. Non-commutativity is not an algebra quirk: it is literally doing the moves in a different order.
+
+</KeyIdea>
+
+Some pairs do <Term def="Two matrices commute when AB = BA: doing them in either order gives the same result.">commute</Term>: two rotations (turning $30°$ then $60°$ is the same as $60°$ then $30°$), two scalings (diagonal matrices), and anything paired with $I$ or with $kI$ (scaling every direction equally). A $180°$ rotation is $-I$, which is why it commutes with the shear in the visual above.
+
+Two more rules follow from "moves in order". Grouping doesn't matter but order does: $(AB)C = A(BC)$, because both mean "$C$, then $B$, then $A$". And undoing a chain happens in reverse, $(AB)^{-1} = B^{-1}A^{-1}$: you take your shoes off before your socks.
+
+The shape rule you learnt for products now has a reason too. In $AB$, the outputs of $B$ are fed into $A$, so they must be the right size: $B$ produces vectors with (rows of $B$) numbers, and $A$ accepts vectors with (columns of $A$) numbers, so these two counts must be equal. For example, $B$ of shape 2×4 takes 4-D to 2-D, $A$ of shape 3×2 takes 2-D to 3-D, and $AB$ is 3×4: straight from 4-D to 3-D.
+
+<PastPaperQuestion paper="prelim2026" n={9} />
+
+## Why neural networks need activation functions
+
+Stack two linear layers with nothing in between: $y = W_2(W_1x)$. By the composition rule this equals $(W_2W_1)x$, which is **one** matrix. If $W_1$ is 4×3 and $W_2$ is 2×4, then $W_2W_1$ is a single 2×3 matrix that does the whole job. However many linear layers you stack, the result is still one linear transformation: straight grid lines in, straight grid lines out. That is why networks put a non-linear <Term def="A function applied to every number after a layer, such as ReLU(z) = max(0, z). It bends the transformation so stacked layers can model curved patterns.">activation function</Term>, such as ReLU, between layers. It bends the grid, so a stack of layers can carve out curved boundaries that no single matrix could.
+
+<QuickCheck
+  q="A network computes `y = W2 @ (W1 @ x)` with no activation function. Which single matrix gives the same output for every input `x`?"
+  options={['`W2 @ W1`', '`W1 @ W2`', '`W1 + W2`', '`W2 * W1` (element-wise)']}
+  answer={0}
+  explain="$W_2(W_1x) = (W_2W_1)x$: the matrix that acts first, $W_1$, sits on the right. `W1 @ W2` would mean 'do $W_2$ first', which is a different transformation (here the shapes don't even fit). Adding or element-wise multiplying the matrices has nothing to do with doing one move after another."
+/>
+
+<ExamTip>
+
+"Apply $A$, then $B$" is written $BA$, not $AB$. When a question describes moves in words, write the matrices from **right to left** in the order they happen. And if you need to show $AB \neq BA$, one entry that differs is enough; never multiply out both matrices in full under time pressure.
+
+</ExamTip>
+
+<Takeaways>
+
+- A matrix moves the whole plane: the origin stays put and grid lines stay straight, parallel and evenly spaced. That is what *linear* means.
+- Column $j$ of $A$ is where the $j$-th basis arrow lands, and $A(x, y) = x \cdot \text{col}_1 + y \cdot \text{col}_2$.
+- Diagonal = scaling; $\begin{bmatrix} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{bmatrix}$ = rotation; $\begin{bmatrix} 1 & k \\ 0 & 1 \end{bmatrix}$ = shear; perpendicular unit columns with det $-1$ = reflection; det $0$ = squash onto a line.
+- An $m \times n$ matrix takes $n$-dimensional inputs to $m$-dimensional outputs (columns = inputs, rows = outputs).
+- $AB$ means "first $B$, then $A$". Order matters ($AB \neq BA$ in general), and stacked linear layers collapse into one matrix, which is why activations are needed.
+
+</Takeaways>

@@ -1,3 +1,232 @@
-{/* stub: lesson 'Exceptions and debugging' is being written */}
+import ExceptionZoo from './visuals/exceptions-debugging/ExceptionZoo'
+import TryExceptFlow from './visuals/exceptions-debugging/TryExceptFlow'
+import PythonBugHunt from './visuals/exceptions-debugging/PythonBugHunt'
 
-This lesson is being written.
+Everyone's code crashes, experts included. What separates them from beginners is what happens next: an expert reads the error message, which almost always says **what** went wrong and **where**, and then hunts the cause down step by step. NOAI checks both skills, by asking for the likely cause of an error and for correct error-handling code, and the Final's programming tasks depend on them.
+
+## Reading an error message
+
+When something goes wrong while a program runs, Python creates an <Term def="An object Python creates ('raises') when something goes wrong while the program runs, such as dividing by zero. If nothing handles it, the program stops.">exception</Term>, a report of the problem, and **raises** it. If nothing handles the exception, the program stops and prints a <Term def="The error report Python prints when an exception is not handled: the chain of lines that were running (most recent call last) and, at the bottom, the exception type and message.">traceback</Term>:
+
+```python
+def average(nums):
+    return sum(nums) / len(nums)
+
+scores = []
+print(average(scores))
+```
+
+```text
+Traceback (most recent call last):
+  File "main.py", line 5, in <module>
+    print(average(scores))
+          ~~~~~~~^^^^^^^^
+  File "main.py", line 2, in average
+    return sum(nums) / len(nums)
+           ~~~~~~~~~~^~~~~~~~~~~
+ZeroDivisionError: division by zero
+```
+
+(Output from Python 3.13, with the file path shortened. In Jupyter, `File "main.py"` reads like `Cell In[3]` instead.)
+
+<Steps title="How to read a traceback">
+  <Step title="Read the last line first">
+    `ZeroDivisionError: division by zero` gives the exception **type** (before the colon) and a **message** (after it). This line alone often tells you the cause.
+  </Step>
+  <Step title="Then find where it happened">
+    The last `File ..., line N` entry is the line that actually failed: line 2, inside `average`. The `~~~^^^` marks point at the exact operation, here the `/`.
+  </Step>
+  <Step title="Read upwards to see how you got there">
+    Each earlier entry is a call that led there: line 5 called `average(scores)`. So the real cause is upstream: `scores` was empty, and `len([])` is 0.
+  </Step>
+</Steps>
+
+## The common exceptions
+
+<Analogy title="Dashboard warning lights">
+A car's dashboard has a different light for each problem: oil, battery, tyre pressure. A driver who knows the symbols knows where to look before even opening the bonnet. Exception names work the same way.
+</Analogy>
+
+- **`IndexError`**: a position out of range, e.g. `nums[3]` when `nums` has 3 items.
+- **`KeyError`**: a dictionary key that isn't there, e.g. `d["teh"]` when `"teh"` was never added.
+- **`TypeError`**: the wrong **type** for the operation, e.g. `"Score: " + 90` or `len(42)`.
+- **`ValueError`**: the right type but a bad **value**, e.g. `int("abc")`.
+- **`ZeroDivisionError`**: dividing by zero, e.g. `total / len([])`.
+- **`NameError`**: a name that was never defined, often a typo such as `prnt("hi")`.
+- **`AttributeError`**: the object has no attribute or method of that name, e.g. `"abc".append("d")`.
+
+The pair that trips people up is `TypeError` versus `ValueError`. Ask: **could any value of this type work?** `int()` happily converts many strings (`int("42")` is fine), so `int("abc")` is a bad *value*: `ValueError`. But no value of type `NoneType` can be converted, so `int(None)` is a `TypeError`.
+
+<ExceptionZoo />
+
+<KeyIdea>
+The exception's name is the first clue: `IndexError` means "a position past the end" (very often an off-by-one), `KeyError` means "a missing dict key", `TypeError` means "wrong kind of object", `ValueError` means "right kind, unusable value".
+</KeyIdea>
+
+<QuickCheck
+  id="exceptions-debugging.qc1"
+  q={"What does `int(\"3.5\")` do?"}
+  options={[
+    'Raises a `TypeError`',
+    'Returns `3`',
+    'Raises a `ValueError`',
+    'Returns `3.5`',
+  ]}
+  answer={2}
+  explain={"`int()` accepts strings, so the type is fine, but the string must look like a whole number. `\"3.5\"` does not, so Python raises `ValueError: invalid literal for int() with base 10: '3.5'`. (`int(3.5)` with a float, not a string, would return 3; `int(float(\"3.5\"))` does too.)"}
+/>
+
+<PastPaperQuestion paper="prelim2026" n={126} />
+
+## Handling errors with try and except
+
+Some errors are expected: a user types "abc" where a number belongs, or a data file has a bad row. Instead of crashing, you can **handle** the exception.
+
+<Analogy title="Sports day wet-weather plan">
+Try to hold sports day on the field. If it rains, fall back to the hall. If it doesn't rain, hand out the medals outdoors. Either way, the chairs get packed up at the end.
+</Analogy>
+
+```python
+try:
+    risky()        # might raise
+except ValueError:
+    handle_it()    # only on ValueError
+else:
+    celebrate()    # only if no error
+finally:
+    clean_up()     # always runs
+```
+
+The rules, in order:
+
+1. The `try` block runs. If a line raises an exception, the rest of the `try` block is **abandoned** at once.
+2. Python checks the `except` clauses **from top to bottom** and runs the **first** one whose type matches. At most one `except` block runs.
+3. `else` runs only if the `try` block finished with no exception at all.
+4. `finally` runs **every time**: after success, after a handled error, and even when an unhandled error is about to stop the program.
+5. If no `except` matches, the exception carries on outwards (after `finally` runs) and, if nothing else catches it, the program crashes.
+
+<TryExceptFlow />
+
+`else` and `finally` are optional; a `try` needs at least one `except` or a `finally`. Python's keyword is `except`, not `catch` (that is Java and JavaScript). And every block needs at least one real statement: a block containing only a comment is a `SyntaxError`, so write `pass` for an intentionally empty block.
+
+<QuickCheck
+  id="exceptions-debugging.qc2"
+  q="What does this print, line by line?"
+  code={[
+    "for x in [2, 0]:",
+    "    try:",
+    "        print(10 // x)",
+    "    except ZeroDivisionError:",
+    "        print(\"zero\")",
+    "    finally:",
+    "        print(\"end\")",
+  ].join("\n")}
+  options={[
+    '`5`, `zero`, `end`',
+    '`5`, `end`, `end`',
+    '`5`, `end`, `zero`',
+    '`5`, `end`, `zero`, `end`',
+  ]}
+  answer={3}
+  explain="With `x = 2`, `10 // 2` prints `5`, nothing is raised, and `finally` prints `end`. With `x = 0`, `10 // 0` raises `ZeroDivisionError`, the `except` block prints `zero`, and `finally` prints `end` again. `finally` runs on every pass, error or not."
+/>
+
+Here is a realistic use: cleaning messy input without stopping at the first bad value. Run it, then add `"5.5"` to the list and predict what happens.
+
+<PyRunner code={[
+  "raw = [\"12\", \"7\", \"abc\", \"0\"]",
+  "for text in raw:",
+  "    try:",
+  "        n = int(text)",
+  "        print(60 / n)",
+  "    except ValueError:",
+  "        print(text, \"is not a number\")",
+  "    except ZeroDivisionError:",
+  "        print(\"cannot divide by 0\")",
+].join("\n")} />
+
+You can also **raise** exceptions yourself, to stop early with a clear message when an input makes no sense. The 2026 Final's scaffold did exactly this: `raise ValueError(f"Unknown criterion: {self.criterion}")`.
+
+```python
+def set_learning_rate(lr):
+    if lr <= 0:
+        raise ValueError("lr must be positive")
+    return lr
+```
+
+<Mistake title="A bare except hides real bugs">
+`except:` with no type (or `except Exception:`) catches **everything**, including mistakes you never meant to allow:
+
+```python
+try:
+    result = proces(data)  # typo!
+except:
+    result = None  # NameError hidden
+```
+
+The misspelt `proces` raises a `NameError`, but the bare `except` swallows it. The program keeps running with `result = None`, and the typo surfaces much later as a confusing failure somewhere else. Catch only the exceptions you expect, such as `except ValueError:`, and let real bugs crash loudly where they happen.
+</Mistake>
+
+## Debugging systematically
+
+Not every bug raises an exception. The worst ones run quietly and give a wrong answer. For those, guessing and randomly changing code wastes time. Use a routine instead.
+
+<Analogy title="A doctor's diagnosis">
+A good doctor doesn't prescribe at random. They note the symptoms, run tests, and narrow the possible causes down until only one is left, and only then treat it.
+</Analogy>
+
+<Steps title="A five-step debugging routine">
+  <Step title="Reproduce it">
+    Make the bug happen on purpose with the **smallest** input you can, and write down the expected and actual results. For example, `average([4, 8, 6])` should be 6.0 but gives 4.67.
+  </Step>
+  <Step title="Read the error, if there is one">
+    Last line first (type and message), then the line number, as above.
+  </Step>
+  <Step title="Look inside">
+    Print, or assert, the intermediate values: loop counters, running totals, shapes. Find the **first** place where reality differs from what you expected.
+  </Step>
+  <Step title="Narrow it down">
+    If the code is long, check a value halfway through. If it is already wrong there, the bug is in the first half, so check halfway into that half, and so on. Each check halves the suspects.
+  </Step>
+  <Step title="Fix one thing and re-test">
+    Change only the faulty line, then re-run the same small test to confirm. Keep the test so the bug cannot quietly return.
+  </Step>
+</Steps>
+
+<PythonBugHunt />
+
+The bug was an <Term def="An error where a loop or index is one step too many or too few, e.g. range(1, n) instead of range(n), or n instead of n - 1. The most common bug in loops.">off-by-one error</Term>: the loop started at 1 instead of 0. Off-by-one errors and wrong variable names are the two most common culprits. The `print` probes did not fix anything; they turned an invisible mistake into a visible wrong number (`i` never equals 0).
+
+An <Term def="A statement that checks a condition you believe must be true; if it is false, Python raises AssertionError with your message. Great for checking shapes and lengths.">assert</Term> is a print probe that checks itself. It is silent when all is well and stops the program the moment an assumption breaks, which is ideal for checking data shapes in ML code:
+
+```python
+X = [[1, 2], [3, 4], [5, 6]]
+y = [0, 1]
+assert len(X) == len(y), "X and y must have the same length"
+```
+
+```text
+Traceback (most recent call last):
+  File "main.py", line 3, in <module>
+    assert len(X) == len(y), "X and y must have the same length"
+           ^^^^^^^^^^^^^^^^
+AssertionError: X and y must have the same length
+```
+
+<Note title="Print debugging cannot help with a SyntaxError">
+A `SyntaxError` (a missing colon, an unclosed bracket, a block containing only a comment) is found **before** the program starts, so none of your `print` calls ever run. Read the message instead: Python points at the problem with a `^`.
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={127} />
+
+<ExamTip>
+NOAI asks this topic in three ways. First, **name the cause**: match the exception name to its family (`IndexError` → index ≥ length, often off-by-one). Second, **spot correct handling**: `try` followed by `except` is complete on its own; `else` and `finally` are optional; `catch` is not Python. Third, **find the faulty line** in a short snippet: check loop ranges (`range(1, n)`, `range(n + 1)`), `=` versus `==`, and indentation (is the `return` inside the loop by mistake?).
+</ExamTip>
+
+<Takeaways>
+- Read a traceback from the bottom: exception type and message, then the failing line, then upwards to see how you got there.
+- `IndexError` = position too big, `KeyError` = missing key, `TypeError` = wrong type, `ValueError` = right type but bad value, `ZeroDivisionError` = dividing by 0.
+- In `try`/`except`/`else`/`finally`, the first matching `except` runs, `else` runs only if there was no error, and `finally` always runs.
+- Catch specific exceptions; a bare `except:` hides real bugs.
+- Debug with a routine: reproduce, read, print or assert intermediate values, halve the suspect code, fix one thing and re-test.
+</Takeaways>

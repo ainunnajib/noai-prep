@@ -1,3 +1,226 @@
-{/* stub: lesson 'Learning-rate schedules and warm-up' is being written */}
+import LRRangeTest from './visuals/learning-rate-warmup-schedules/LRRangeTest'
+import ScheduleDesigner from './visuals/learning-rate-warmup-schedules/ScheduleDesigner'
+import ScheduleLossCoupling from './visuals/learning-rate-warmup-schedules/ScheduleLossCoupling'
 
-This lesson is being written.
+Of all the settings you choose before training, the **learning rate** matters most. Too small and training crawls; too big and every step overshoots, the loss bounces or explodes to `NaN`. Worse, the best learning rate **changes during training**. This lesson shows how to find a good value in a couple of minutes, how to change it on a plan (a schedule), and why Transformers begin with a **warm-up**.
+
+## One learning rate is not enough
+
+Gradient descent updates every weight with $w \leftarrow w - \eta\, g$, where $g$ is the gradient and $\eta$ (eta) is the learning rate: the size of each step downhill.
+
+<Analogy title="Driving into a carpark">
+
+You start slowly as you turn in from the road, cruise down the ramps when the way is clear, then creep into your parking lot. The same speed all the way would be either painfully slow on the ramps or a crash at the end.
+
+</Analogy>
+
+Early in training the weights are far from any minimum, so big steps make fast progress. Late in training you are near a minimum, and mini-batch gradients are noisy: big steps now bounce from one side of the valley to the other and the loss stops improving. Shrinking the learning rate as training goes on (called **annealing** or **decay**) lets the model settle into the bottom of the valley.
+
+<PastPaperQuestion paper="prelim2026" n={41} />
+
+## Finding a good learning rate: the range test
+
+<Analogy title="Heating oil in a wok">
+
+You turn the flame up a little at a time and watch. Nothing happens, then the oil shimmers nicely, then it starts smoking. You back off a little from the smoking point. The range test does the same with the learning rate.
+
+</Analogy>
+
+The <Term def="A quick experiment to choose a learning rate: train for a few hundred steps while multiplying the learning rate by a constant factor each step, and plot the loss against the learning rate.">learning-rate range test</Term> (also called the LR finder):
+
+1. Start with a tiny learning rate, such as $10^{-4}$.
+2. After every mini-batch, multiply the learning rate by the same factor, so it grows **exponentially**, up to about 10.
+3. Record the (smoothed) loss at each learning rate, and stop once the loss explodes.
+4. Plot loss against learning rate on a **log scale** (each grid line is 10 times the last).
+
+<LRRangeTest />
+
+The curve always has the same three parts. On the left it is **flat**: the steps are too small to change anything. In the middle it **falls steeply**: these learning rates train fast. Past its lowest point it **shoots up**: steps overshoot and training falls apart. The lowest point itself is already at the edge of trouble, so the usual rule of thumb is to pick a learning rate about **ten times smaller than the one at the minimum** (or where the curve falls most steeply). The whole test costs one short run.
+
+<Steps title="How fast does the learning rate grow?">
+  <Step title="The plan">
+    Go from $10^{-4}$ to $10$ in 100 steps. That is a factor of $\frac{10}{10^{-4}} = 10^5$ in total.
+  </Step>
+  <Step title="Factor per step">
+    Each step multiplies by $(10^5)^{1/100} = 10^{0.05} \approx 1.12$, so the learning rate grows by about 12% per step.
+  </Step>
+  <Step title="Every 20 steps is one power of 10">
+    $(10^{0.05})^{20} = 10^1$. After 40 steps the learning rate is $10^{-4} \times 10^2 = 0.01$. That is why the plot uses a log axis: equal steps in time are equal distances on the axis.
+  </Step>
+</Steps>
+
+<ExamTip>
+
+When a question shows a range-test plot, the answer is **below** the minimum of the curve, on the steep downhill part, not at the minimum and never past it. The flat left end is "too small", not "safest".
+
+</ExamTip>
+
+## Schedules: changing the learning rate on a plan
+
+A <Term def="A rule that sets the learning rate at each training step (or epoch), for example decaying it over time or warming it up at the start.">learning-rate schedule</Term> sets the learning rate for each step $t$. The notation we use:
+
+- $\eta_t$ is the learning rate at step $t$; $\eta_{\max}$ is the base (peak) rate and $\eta_{\min}$ the lowest.
+- $T$ is the total number of steps; $W$ is the number of warm-up steps.
+
+**Step decay** keeps the rate fixed, then multiplies it by a factor $\gamma$ (gamma) every $S$ steps or epochs:
+
+$$
+\eta_t = \eta_{\max} \cdot \gamma^{\lfloor t / S \rfloor}
+$$
+
+$\lfloor t/S \rfloor$ means "divide and round **down**": it counts how many cuts have happened so far. With $\eta_{\max} = 0.1$, $\gamma = 0.1$ and $S = 30$ epochs: epochs 0 to 29 use $0.1$, epochs 30 to 59 use $0.01$, from epoch 60 it is $0.001$.
+
+**Cosine decay** glides smoothly from $\eta_{\max}$ to $\eta_{\min}$ along half a cosine wave:
+
+$$
+\eta_t = \eta_{\min} + \tfrac12\,(\eta_{\max} - \eta_{\min})\left(1 + \cos\frac{\pi t}{T}\right)
+$$
+
+Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta_{\max}$. At $t = T$, $\cos \pi = -1$, so the bracket is 0 and $\eta_T = \eta_{\min}$. Halfway, $\cos\frac{\pi}{2} = 0$, so $\eta = \eta_{\min} + \frac12(\eta_{\max} - \eta_{\min})$: **exactly midway** between the two.
+
+**Linear warm-up** ramps the rate up in a straight line from 0 over the first $W$ steps, $\eta_t = \eta_{\max} \cdot \frac{t}{W}$, and then hands over to a decay schedule. **Warm-up + cosine** is the standard recipe for Transformers: the cosine then runs over the remaining $T - W$ steps, using $t - W$ in place of $t$.
+
+<ScheduleDesigner />
+
+<Steps title="Warm-up + cosine by hand: η_max = 0.001, W = 1000, T = 10000, η_min = 0">
+  <Step title="Step 250 (still warming up)">
+    $250 < 1000$, so $\eta = 0.001 \times \frac{250}{1000} = 0.001 \times 0.25 = 0.00025$.
+  </Step>
+  <Step title="Step 1000 (warm-up done)">
+    $\eta = 0.001 \times \frac{1000}{1000} = 0.001$, the peak.
+  </Step>
+  <Step title="Step 5500: how far through the decay?">
+    The cosine runs from step 1000 to step 10000, which is 9000 steps. Step 5500 is $5500 - 1000 = 4500$ steps in: $\frac{4500}{9000} = \frac12$ of the way.
+  </Step>
+  <Step title="Step 5500: the rate">
+    $\eta = 0 + \tfrac12(0.001 - 0)\,(1 + \cos\tfrac{\pi}{2}) = 0.0005 \times (1 + 0) = 0.0005$: halfway in the decay, halfway down.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A model trains with η_max = 0.1 and step decay that multiplies the rate by 0.5 every 10 epochs. What learning rate is used in epoch 25 (counting from epoch 0)?"
+  options={['0.025', '0.05', '0.0125', '0.01']}
+  answer={0}
+  explain="$\lfloor 25/10 \rfloor = 2$ cuts have happened (at epochs 10 and 20), so $\eta = 0.1 \times 0.5^2 = 0.025$. One cut gives 0.05, and three cuts (0.0125) would need epoch 30."
+/>
+
+## Why warm up?
+
+At the very start of training the weights are random, so the gradients are large and point in erratic directions. With **Adam** there is a second problem. Adam divides each step by $\sqrt{\hat v}$, its running average of squared gradients. After only a handful of steps, that average is based on a few noisy numbers, so for some weights it is far too small, and dividing by it gives them **huge steps**. A full-size learning rate at step 1 can throw a Transformer into a bad region from which it never recovers: the loss spikes or becomes `NaN`.
+
+<Term def="Starting training with a small learning rate and increasing it (usually linearly) to the target value over the first few hundred or thousand steps.">Warm-up</Term> keeps the steps small while Adam's statistics settle and the network moves out of the steep, chaotic starting region. Once things are calm, the full learning rate is safe and makes fast progress.
+
+<Analogy title="Warming up before a run">
+
+You jog for the first few minutes before you sprint, so that your muscles are ready for the effort, and you ease off as you approach the finish line. Warm-up, then decay.
+
+</Analogy>
+
+The toy model below has exactly the problem warm-up solves: its loss valley is steep where training starts and gentle near the bottom. Try the presets:
+
+<ScheduleLossCoupling />
+
+Every schedule leaves a fingerprint on the loss curve. Learn to read them:
+
+| What you see in the loss curve | Likely cause | What to do |
+|---|---|---|
+| explodes or turns `NaN` in the first few hundred steps | learning rate too high at the start | add warm-up, or lower the peak rate |
+| a sudden cliff-like drop at a fixed epoch | a step-decay cut at that epoch | nothing: that is the schedule working |
+| keeps bouncing at the same level, never settles | constant learning rate too high to settle | add decay (step or cosine) |
+| smooth decline that flattens gently at the end | cosine decay | nothing |
+| very slow, smooth, almost straight decline | learning rate too small | raise it (use a range test) |
+
+<PastPaperQuestion paper="prelim2026" n={283} />
+
+<PastPaperQuestion paper="prelim2026" n={286} />
+
+## Two more schedules: 1cycle and ReduceLROnPlateau
+
+**1cycle** rises from a low rate (typically $\eta_{\max}/25$) to the peak over the first 30% or so of training, then anneals to **far below** where it started. Choose 1cycle in the designer above to see it. The high-rate middle explores widely and helps the model escape sharp, narrow minima; the long low tail lets it settle. It is popular for training CNNs quickly with SGD.
+
+**ReduceLROnPlateau** is not a fixed plan at all. It watches the **validation loss** and, when it has stopped improving for a while, cuts the learning rate by a factor (for example $\times 0.1$). It uses the same "patience" idea as early stopping, but instead of stopping training it lowers the learning rate.
+
+## In PyTorch
+
+A scheduler wraps the optimiser and changes its learning rate each time you call `sched.step()`. Here is warm-up + cosine written with `LambdaLR`, which multiplies the base rate by any function you give it:
+
+```python
+import math
+import torch
+
+model = torch.nn.Linear(4, 1)
+opt = torch.optim.AdamW(model.parameters(), lr=0.001)
+
+warmup, total = 1000, 10000
+
+def lr_factor(step):                      # multiplies the base lr
+    if step < warmup:
+        return step / warmup              # linear warm-up from 0
+    progress = (step - warmup) / (total - warmup)
+    return 0.5 * (1 + math.cos(math.pi * progress))   # cosine down to 0
+
+sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_factor)
+
+for step in range(total + 1):
+    if step in (0, 250, 1000, 5500, 10000):
+        print(step, round(opt.param_groups[0]["lr"], 6))
+    opt.step()          # (forward and backward pass would go before this)
+    sched.step()
+```
+
+```text
+0 0.0
+250 0.00025
+1000 0.001
+5500 0.0005
+10000 0.0
+```
+
+These are exactly the numbers we worked out by hand. Step decay and ReduceLROnPlateau are built in:
+
+```python
+import torch
+
+opt = torch.optim.SGD(torch.nn.Linear(4, 1).parameters(), lr=0.1)
+sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="min", factor=0.1, patience=2)
+
+val_losses = [0.90, 0.70, 0.60, 0.61, 0.62, 0.63, 0.55, 0.56]
+for epoch, v in enumerate(val_losses, start=1):
+    sched.step(v)                       # give it the validation loss
+    print(epoch, v, round(opt.param_groups[0]["lr"], 6))
+```
+
+```text
+1 0.9 0.1
+2 0.7 0.1
+3 0.6 0.1
+4 0.61 0.1
+5 0.62 0.1
+6 0.63 0.01
+7 0.55 0.01
+8 0.56 0.01
+```
+
+The best loss was $0.60$ at epoch 3. With `patience=2` the scheduler tolerates two epochs without improvement (4 and 5) and cuts the rate by 10 after the third (epoch 6). For a fixed step decay, `torch.optim.lr_scheduler.StepLR(opt, step_size=30, gamma=0.1)` gives the 0.1 → 0.01 → 0.001 pattern from earlier when you call `sched.step()` once per epoch.
+
+<Mistake title="Counting steps in the wrong unit">
+
+A scheduler counts calls to `sched.step()`, nothing else. `StepLR(step_size=30)` means "every 30 calls". Call it once per epoch and that is 30 epochs; call it once per mini-batch and it is 30 batches, so the rate collapses almost immediately. Also call `opt.step()` **before** `sched.step()` in each iteration; PyTorch warns if you swap them.
+
+</Mistake>
+
+<ExamTip>
+
+Schedule questions are arithmetic once you can picture the curve. Warm-up: a straight-line fraction, $\eta_{\max} \cdot \frac{t}{W}$. Cosine: halfway through is exactly midway between $\eta_{\max}$ and $\eta_{\min}$. Step decay: count the cuts with "divide and round down", then multiply by $\gamma$ that many times. Know $\cos 0 = 1$, $\cos\frac{\pi}{2} = 0$ and $\cos\pi = -1$.
+
+</ExamTip>
+
+<Takeaways>
+
+- The learning rate is the most important hyperparameter, and the best value is big early and small late.
+- A **range test** grows the learning rate exponentially in one short run; choose about 10 times below the loss minimum.
+- **Step decay** multiplies by $\gamma$ at fixed steps (sudden drops in the loss); **cosine** glides from $\eta_{\max}$ to $\eta_{\min}$ and is exactly midway at the halfway point.
+- **Warm-up** ramps the rate up linearly at the start, because early gradients are wild and Adam's statistics are unreliable; it is standard for Transformers.
+- **1cycle** goes up then far down on a fixed plan; **ReduceLROnPlateau** cuts the rate only when validation loss stalls.
+
+</Takeaways>

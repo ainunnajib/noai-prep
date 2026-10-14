@@ -1,3 +1,193 @@
-{/* stub: lesson 'Vectors: arrows and lists of numbers' is being written */}
+import VectorPlayground from './visuals/vectors/VectorPlayground'
+import VectorAddScale from './visuals/vectors/VectorAddScale'
+import DataAsVectors from './visuals/vectors/DataAsVectors'
 
-This lesson is being written.
+Every AI model, from a spam filter to ChatGPT, only ever works with lists of numbers. A photo, a sentence and a student's report card all have to become a list of numbers before a model can learn from them. That list is called a **vector**, and it is the single most important object in this course. This lesson shows you two ways to picture one, and the two operations everything else is built on: adding and scaling.
+
+<Analogy title="Directions to school">
+You step out of Bishan MRT and a friend says: "walk 3 blocks east, then 4 blocks north". That instruction is one thing made of two numbers, $[3, 4]$. You can write it down as a list, or you can draw it on a map as a single arrow from the station to the school gate. Both carry exactly the same information.
+</Analogy>
+
+## One object, two pictures
+
+A <Term def="An ordered list of numbers. A list of 2 or 3 numbers can also be drawn as an arrow.">vector</Term> is an ordered list of numbers, written in square brackets: $\mathbf{v} = [3, 4]$. Each number is called a <Term def="One of the numbers inside a vector. The first component of [3, 4] is 3, the second is 4.">component</Term> (or entry). The order matters: $[3, 4]$ means "3 across, 4 up", while $[4, 3]$ means "4 across, 3 up", a different arrow.
+
+To draw a 2-number vector, start at the <Term def="The point (0, 0) where the x-axis and y-axis cross.">origin</Term> $(0, 0)$, move along the x-axis by the first number and up the y-axis by the second, then draw an arrow from start to finish. A negative number just means go the other way: left instead of right, or down instead of up.
+
+<VectorPlayground />
+
+Two things to notice in the figure:
+
+- **The arrow and the list are the same object.** Change one and the other changes with it. That is why we can borrow ideas from geometry (length, angle, "pointing the same way") and use them on data.
+- **In data mode, a vector is usually drawn as a dot.** A scatter plot is a picture of many vectors at once, each drawn only by its tip. Two students with similar records are two dots close together. Finding "similar" things (similar songs, similar photos, similar sentences) is, at heart, finding vectors that are close.
+
+An arrow does not have to start at the origin. The vector $[3, 4]$ means "move 3 across and 4 up" wherever you begin, so you may slide the arrow anywhere on the page without changing it (as long as you do not rotate or stretch it). We use this in a moment to add vectors.
+
+**Notation.** Books write vectors in bold ($\mathbf{v}$) or with a small arrow ($\vec{v}$). The components are labelled with subscripts showing their position: for $\mathbf{v} = [3, 4]$, $v_1 = 3$ and $v_2 = 4$. You will also see a vector written as a column, $\begin{bmatrix} 3 \\ 4 \end{bmatrix}$. For now it means the same thing; the difference between rows and columns starts to matter in the matrix lessons.
+
+<QuickCheck
+  q="Which vector is the arrow that goes 2 to the left and 5 up?"
+  options={['$[-2, 5]$', '$[2, -5]$', '$[5, -2]$', '$[-5, 2]$']}
+  answer={0}
+  explain="The first component is the move across (left is negative, so $-2$) and the second is the move up ($+5$). $[5, -2]$ has the right numbers in the wrong order: order matters in a vector."
+/>
+
+## How many numbers? Dimension
+
+The <Term def="The number of components in a vector. [3, 4] has dimension 2; a list of 784 pixel values has dimension 784.">dimension</Term> of a vector is simply how many numbers it holds. A vector with $n$ numbers lives in **$n$-dimensional space**, written $\mathbb{R}^n$ (say "R n"): the set of all lists of $n$ real numbers. So $[3, 4]$ is in $\mathbb{R}^2$, the flat page, and a student's three marks, such as $[90, 80, 40]$, form a vector in $\mathbb{R}^3$, the space around you.
+
+This is how data becomes vectors. In a data table, each **row** is one example (a student, a house, an email) and each **column** is a <Term def="One measured property of each example, i.e. one column of a data table, such as 'Maths mark' or 'floor area'.">feature</Term>. One row, read across, is a vector whose dimension is the number of features.
+
+<DataAsVectors />
+
+With three features you can still draw the arrow. With four or more you cannot, but nothing else changes: you still add, scale and compare the lists in exactly the same way. Real models live far beyond 3-D:
+
+- a house described by $[\text{size}, \text{age}, \text{rooms}, \text{price}]$ is a vector in $\mathbb{R}^4$;
+- a $28 \times 28$ greyscale image is $28 \times 28 = 784$ brightness values, one vector in $\mathbb{R}^{784}$;
+- a language model stores each word as a vector of hundreds or even thousands of numbers.
+
+<KeyIdea>
+A vector is an **ordered list of $n$ numbers**, and $n$ is its dimension. With 2 or 3 numbers you can also draw it as an arrow; with more you just keep the list. One row of a data table is one vector.
+</KeyIdea>
+
+## Adding and scaling
+
+<Analogy title="Two trips, one destination">
+Take the MRT 3 stops east, then a bus 2 stops north. You end up exactly where a single combined trip of "3 east and 2 north" would take you: that is adding two vectors. Doing the same walk twice, end to end, takes you twice as far in the same direction: that is multiplying a vector by 2.
+</Analogy>
+
+There are two basic operations, and both work **component by component**. For two vectors $\mathbf{u} = [u_1, u_2]$ and $\mathbf{v} = [v_1, v_2]$ and a single number $c$:
+
+$$
+\begin{gathered}
+\mathbf{u} + \mathbf{v} = [\,u_1 + v_1,\ u_2 + v_2\,] \\[4pt]
+c\,\mathbf{u} = [\,c\,u_1,\ c\,u_2\,]
+\end{gathered}
+$$
+
+In words: to **add**, add the first components together and the second components together. To **scale**, multiply every component by $c$. The number $c$ is called a <Term def="A single ordinary number, as opposed to a list. Multiplying a vector by a scalar stretches, shrinks or flips it.">scalar</Term>, because it scales the arrow. **Subtracting** is adding a flipped copy: $\mathbf{u} - \mathbf{v} = \mathbf{u} + (-1)\mathbf{v} = [u_1 - v_1,\ u_2 - v_2]$.
+
+The same rules hold for any dimension (just keep going through all $n$ components), but both vectors must have the **same** dimension: $[1, 2] + [1, 2, 3]$ is not defined, because the third component has no partner.
+
+Now the pictures. Adding is **tip to tail**: slide $\mathbf{v}$ so that its tail sits on the tip of $\mathbf{u}$; the sum runs from the start of $\mathbf{u}$ to the end of $\mathbf{v}$. Scaling stretches the arrow when $c > 1$, shrinks it when $0 < c < 1$, collapses it to the <Term def="The vector whose components are all 0, e.g. [0, 0]. It has no length and no direction.">zero vector</Term> when $c = 0$, and flips it to point the opposite way when $c$ is negative.
+
+<VectorAddScale />
+
+<KeyIdea>
+Vector arithmetic is done **component by component**: add matching entries, or multiply every entry by the scalar. In pictures, adding is placing arrows tip to tail, and scaling stretches, shrinks or flips an arrow along its own line.
+</KeyIdea>
+
+### Worked example
+
+<Steps title="Let $\mathbf{u} = [1, 3]$ and $\mathbf{v} = [4, -2]$">
+  <Step title="Scale: find $2\mathbf{u}$">
+    Multiply each component by 2: $2\mathbf{u} = [2 \times 1,\ 2 \times 3] = [2, 6]$. Same direction as $\mathbf{u}$, twice as long.
+  </Step>
+  <Step title="Add: find $2\mathbf{u} + \mathbf{v}$">
+    Add matching components: $[2, 6] + [4, -2] = [2 + 4,\ 6 + (-2)] = [6, 4]$.
+  </Step>
+  <Step title="Subtract: find $\mathbf{u} - \mathbf{v}$">
+    $[1 - 4,\ 3 - (-2)] = [-3, 5]$. Careful with the second component: subtracting $-2$ is adding 2. Writing the brackets in, $3 - (-2)$, is the easiest way to avoid a sign slip.
+  </Step>
+  <Step title="Average: find $\tfrac{1}{2}(\mathbf{u} + \mathbf{v})$">
+    First add, $\mathbf{u} + \mathbf{v} = [5, 1]$, then scale by $\tfrac{1}{2}$: $[2.5, 0.5]$. This is the **midpoint** between the two tips. The "class average" in the table figure above was made the same way: add the four rows, then scale by $\tfrac{1}{4}$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="What is $3\,[1, -2] + [0, 4]$?"
+  options={['$[3, -2]$', '$[3, -6]$', '$[1, 2]$', '$[3, 10]$']}
+  answer={0}
+  explain="Scale first: $3\,[1, -2] = [3, -6]$. Then add component by component: $[3 + 0,\ -6 + 4] = [3, -2]$. $[3, -6]$ forgets the addition, and $[3, 10]$ comes from dropping the minus sign on $-6$."
+/>
+
+## Words and pictures become vectors too
+
+A <Term def="A vector with a single 1 at the word's own position in the vocabulary and 0 everywhere else.">one-hot vector</Term> is the simplest way to turn a word into numbers. Number the words in your vocabulary, then give each word a vector of zeros with a single 1 in its own slot. With the 5-word vocabulary *cat, dog, rice, noodle, bus*, "dog" becomes $[0, 1, 0, 0, 0]$. These vectors are as long as the whole vocabulary (often 50,000 entries), almost entirely zeros (**sparse**), and every pair of words looks equally unrelated.
+
+Modern models instead learn a word <Term def="A short list of real numbers (say 300) learned for each word, arranged so that words with similar meanings get similar vectors.">embedding</Term>: a short, **dense** vector of real numbers, placed so that words with related meanings end up close together.
+
+<Columns min={220}>
+<MatrixGrid
+  label="One-hot (sparse): cat, dog, rice"
+  data={[[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0]]}
+  heat={[0, 1]}
+  cellSize={34}
+  ariaLabel="One-hot vectors for cat, dog and rice"
+/>
+<MatrixGrid
+  label="Embedding (dense, made-up values): cat, dog, rice"
+  data={[[0.8, 0.6, -0.3], [0.7, 0.7, -0.2], [-0.4, 0.1, 0.9]]}
+  diverging
+  heat
+  cellSize={44}
+  format={(v) => v.toFixed(1)}
+  ariaLabel="Small dense embedding vectors for cat, dog and rice"
+/>
+</Columns>
+
+Look at the right-hand grid: the rows for *cat* and *dog* are nearly the same list of numbers, and *rice* is quite different. In the next lesson you will measure "nearly the same" with a single number.
+
+<PastPaperQuestion paper="prelim2026" n={206} />
+
+## In code: a Python list is not a vector
+
+Python lists **look** like vectors, but `+` and `*` do something completely different with them. This trips up a lot of people in code-reading questions.
+
+```python
+u = [2, 1]
+v = [1, 3]
+print(u + v)     # the lists are glued together
+print(3 * u)     # the list is repeated three times
+```
+
+```text
+[2, 1, 1, 3]
+[2, 1, 2, 1, 2, 1]
+```
+
+To do vector maths you use **NumPy** (the next module teaches it properly). A NumPy array does the component-by-component arithmetic you just learned:
+
+```python
+import numpy as np
+
+u = np.array([2, 1])
+v = np.array([1, 3])
+print(u + v)          # add matching components
+print(3 * u)          # scale every component
+print(u - v)
+print(0.5 * (u + v))  # the midpoint
+print(u.shape)
+```
+
+```text
+[3 4]
+[6 3]
+[ 1 -2]
+[1.5 2. ]
+(2,)
+```
+
+Without NumPy you would need a loop: `result = [u[i] + v[i] for i in range(len(u))]`. Writing one operation on whole arrays instead of a Python loop is called <Term def="Writing one operation that acts on whole arrays (like u + v) instead of a Python loop over the elements. NumPy then runs the loop in fast, pre-compiled C code.">vectorisation</Term>. It is shorter to read, and NumPy runs the hidden loop in fast compiled code, often 10 to 100 times faster than a Python loop.
+
+<Note title="Two meanings of 'dimension'">
+`u.shape` is `(2,)`: one axis holding 2 numbers. In maths we call `u` a **2-dimensional vector** (2 components). NumPy calls the same array **1-dimensional** (`u.ndim` is 1) because it has a single axis. Both are right; they count different things. A 300-number word embedding is a 300-dimensional vector stored as a 1-D array of shape `(300,)`.
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={98} />
+
+<Mistake>
+Reading `[1, 2] + [3, 4]` in a code question and answering `[4, 6]`. With plain Python lists the answer is `[1, 2, 3, 4]`; only NumPy arrays (or PyTorch tensors) add component by component. Always check whether the variables are lists or arrays before you answer.
+</Mistake>
+
+<ExamTip>
+NOAI questions on this topic are fast one-step checks: add or scale small vectors, count a vector's dimension from a description of the data, or predict what `+` and `*` print for lists versus arrays. In the 36 seconds you have, write subtractions with brackets, such as $3 - (-2)$, so that you never lose a sign.
+</ExamTip>
+
+<Takeaways>
+- A vector is an ordered list of numbers; with 2 or 3 numbers you can also draw it as an arrow (go across, then up).
+- Its dimension is how many numbers it holds. A row of a data table is a vector, with one component per feature.
+- Add and subtract component by component (tip to tail in pictures); a scalar multiplies every component, stretching, shrinking or flipping the arrow.
+- Vectors must have the same dimension to be added.
+- Python lists concatenate with `+`; NumPy arrays add like vectors (vectorisation).
+</Takeaways>

@@ -1,3 +1,239 @@
-{/* stub: lesson 'Lists: ordered collections' is being written */}
+import ListBoxes from './visuals/lists/ListBoxes'
+import GridIndexer from './visuals/lists/GridIndexer'
+import ComprehensionBuilder from './visuals/lists/ComprehensionBuilder'
+import { LIST_PLAYGROUND } from './visuals/lists/snippets'
 
-This lesson is being written.
+A class has 40 marks, a photo has a million pixels, a sentence has dozens of words. Nobody wants a million separate variables. A **list** keeps many values together, in order, under one name. Lists are also the doorway to NumPy arrays and PyTorch tensors, the containers that hold the data and the weights of every model in this course.
+
+## Making a list
+
+```python
+marks = [72, 85, 64, 90]
+print(marks)
+print(len(marks))
+print(type(marks))
+```
+
+```text
+[72, 85, 64, 90]
+4
+<class 'list'>
+```
+
+A <Term def="An ordered collection of values, written inside square brackets and separated by commas, for example [72, 85, 64]. Lists can be changed after they are made.">list</Term> is written with square brackets, with commas between its **items** (also called elements). `len()` counts the items, just as it counted characters in a string. A list can hold any values, even a mix such as `[3, "lah", True]`, and `[]` is an empty list.
+
+<Analogy title="A train with numbered carriages">
+
+Picture an MRT train whose carriages are numbered 0, 1, 2, … from the front. Each carriage carries one item. You can read what is in carriage 2, swap its cargo, add a carriage at the end, or take one out of the middle (and the carriages behind it move up a number).
+
+</Analogy>
+
+## Reading items: indexing and slicing
+
+Lists use exactly the same indexing and slicing rules as strings:
+
+```python
+marks = [72, 85, 64, 90]
+print(marks[0])      # the first item
+print(marks[3])      # the last item
+print(marks[-1])     # also the last item, counted from the end
+print(marks[1:3])    # a slice: items 1 and 2 (stop is excluded)
+```
+
+```text
+72
+90
+90
+[85, 64]
+```
+
+A list with `len(marks)` items has valid indices `0` to `len(marks) - 1`, and `-1` down to `-len(marks)` from the end. Here that means 0 to 3, or −1 to −4. Ask for anything else, such as `marks[4]`, and Python stops with `IndexError: list index out of range`. A slice gives back a **new** list, even if it has only one item.
+
+## Changing a list
+
+Here is the big difference from strings. Strings are immutable: `word[0] = "b"` raises `TypeError: 'str' object does not support item assignment`. Lists are <Term def="Can be changed after it is created. Changing a mutable object changes it in place, so every name that refers to it sees the change.">mutable</Term>: you can change them **in place**, without making a new list. Each line below changes the same list `marks`:
+
+```python
+marks = [72, 85, 64, 90]
+marks[2] = 70           # replace the item at index 2
+print(marks)
+marks.append(88)        # add one item at the end
+print(marks)
+marks.insert(1, 50)     # put 50 at index 1; later items shift right
+print(marks)
+last = marks.pop()      # remove the last item AND return it
+print(last, marks)
+first = marks.pop(0)    # remove the item at index 0 and return it
+print(first, marks)
+marks.remove(85)        # remove the first item equal to 85
+print(marks)
+```
+
+```text
+[72, 85, 70, 90]
+[72, 85, 70, 90, 88]
+[72, 50, 85, 70, 90, 88]
+88 [72, 50, 85, 70, 90]
+72 [50, 85, 70, 90]
+[50, 70, 90]
+```
+
+`append`, `insert`, `pop` and `remove` are <Term def="A function that belongs to a value and is called with a dot after it, such as marks.append(88). List methods usually change the list itself.">methods</Term>: functions called with a dot after the list. Try them all, and break them:
+
+<ListBoxes />
+
+<KeyIdea>
+
+A list keeps items in order and can be changed in place. Every valid index lies between `0` and `len(list) - 1` (or `-len(list)` and `-1`); anything outside that range is an `IndexError`.
+
+</KeyIdea>
+
+Two operators also work on lists. `+` joins two lists into a **new** list (this is called <Term def="Joining sequences end to end: [1, 2] + [3, 4] gives [1, 2, 3, 4].">concatenation</Term>), and `*` repeats a list:
+
+```python
+a = [1, 2]
+b = [3, 4]
+print(a + b)
+print([0] * 3)
+print(a, b)
+```
+
+```text
+[1, 2, 3, 4]
+[0, 0, 0]
+[1, 2] [3, 4]
+```
+
+`a` and `b` are unchanged: `+` builds a new list. Watch out when you meet NumPy later: for NumPy arrays, `+` adds item by item instead, so `np.array([1, 2]) + np.array([3, 4])` gives `[4 6]`. Exam questions love that difference.
+
+<PastPaperQuestion paper="prelim2026" n={80} />
+
+<Mistake title="append adds exactly one item">
+
+`append` puts its argument in as a **single** item, even if that argument is a list:
+
+```python
+a = [1, 2]
+a.append([3, 4])
+print(a, len(a))
+```
+
+```text
+[1, 2, [3, 4]] 3
+```
+
+To add the items one by one, use `a.extend([3, 4])` or `a = a + [3, 4]`. A second classic: `a = a.append(5)` sets `a` to `None`, because `append` changes the list and returns nothing. Just write `a.append(5)`.
+
+</Mistake>
+
+<Note title="Two names, one list">
+
+Because lists are mutable, `b = a` does **not** copy a list. It puts a second name tag on the same list, so `b.append(4)` changes what you see through `a` as well. When you need an independent copy, write `b = a.copy()`. The Python toolkit module returns to this in detail.
+
+</Note>
+
+Most `IndexError`s come from the same off-by-one slip: forgetting that the last index is `len - 1`, not `len`. The loop `for i in range(len(marks) + 1):` crashes on its last pass, while `for i in range(len(marks)):` visits exactly the valid indices.
+
+<PastPaperQuestion paper="prelim2026" n={126} />
+
+## Lists of lists: grids
+
+A list can contain other lists. A list of rows makes a table, and a table of numbers is how computers store spreadsheets, game boards and images.
+
+<Analogy title="A cinema seat map">
+
+To find your seat, you go to the row first, then count along to the seat number. Nobody goes to "seat 7" first and then looks for the row. Nested lists work the same way: row first, then column.
+
+</Analogy>
+
+```python
+grid = [[1, 2, 3],
+        [4, 5, 6]]
+print(grid[1])
+print(grid[1][2])
+print(len(grid), len(grid[0]))
+```
+
+```text
+[4, 5, 6]
+6
+2 3
+```
+
+Read `grid[1][2]` from left to right. `grid[1]` is the inner list at index 1, the row `[4, 5, 6]`. Then `[2]` picks item 2 of that row, which is `6`. `len(grid)` counts the rows (2), and `len(grid[0])` counts the items in one row, which is the number of columns (3).
+
+<GridIndexer />
+
+<KeyIdea>
+
+In a nested list, `grid[r]` is a whole row and `grid[r][c]` is one cell: **row first, then column**. NumPy arrays, images and PyTorch tensors all keep this order.
+
+</KeyIdea>
+
+<Steps title="Work out m[2][0] + m[-3][1] by hand">
+  <Step title="Write the rows with their indices">
+    `m = [[5, 1], [2, 9], [6, 3]]` has 3 rows: row 0 is `[5, 1]`, row 1 is `[2, 9]` and row 2 is `[6, 3]`.
+  </Step>
+  <Step title="m[2][0]">
+    Row 2 is `[6, 3]`; its item 0 is `6`.
+  </Step>
+  <Step title="m[-3][1]">
+    With 3 rows, index −3 is the same as index $3 - 3 = 0$, so the row is `[5, 1]`; its item 1 is `1`.
+  </Step>
+  <Step title="Add">
+    $6 + 1 = 7$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="With `grid = [[1, 2], [3, 4], [5, 6]]`, what is `grid[2][0]`?"
+  options={['`5`', '`3`', '`2`', '`IndexError`']}
+  answer={0}
+  explain="Row first: `grid[2]` is the third inner list, `[5, 6]`. Then item 0 of that row is `5`. Reading it column first would look for a column 2 that a two-item row does not have, which is where the tempting `IndexError` comes from."
+/>
+
+A real example: each image in the famous MNIST dataset of handwritten digits is a grid of 28 rows of 28 numbers, each from 0 (black) to 255 (white). `image[r][c]` is the brightness of one pixel. When you meet images in NumPy and PyTorch, the same "row first" rule holds: height comes before width.
+
+## Building a list with a loop
+
+Loops and lists go together. The usual way to build a list is to start empty and `append` inside a loop:
+
+```python
+squares = []
+for x in range(5):
+    squares.append(x ** 2)
+print(squares)
+```
+
+```text
+[0, 1, 4, 9, 16]
+```
+
+Python also has a one-line way to write exactly this, called a <Term def="A one-line way to build a list from a loop: [expression for x in sequence]. It gives the same result as starting with [] and appending inside a for loop.">list comprehension</Term>: `squares = [x ** 2 for x in range(5)]`. Read it as "the list of `x ** 2`, for each `x` in `range(5)`".
+
+<ComprehensionBuilder />
+
+<PastPaperQuestion paper="prelim2026" n={82} />
+
+<PyRunner code={LIST_PLAYGROUND} />
+
+<ExamTip>
+
+List questions in the Prelim are quick wins if you avoid the traps:
+
+- `+` on lists **joins** them (`[1, 2] + [3, 4]` is `[1, 2, 3, 4]`); on NumPy arrays it **adds** item by item.
+- The last valid index is `len - 1`. `IndexError: list index out of range` means you asked for an index that is too big (or below `-len`).
+- `append` adds one item (even a whole list); `pop()` removes **and returns** the last item.
+- `grid[r][c]` is row first, then column. `range(n)` in a comprehension starts at 0, so `[x ** 2 for x in range(3)]` is `[0, 1, 4]`.
+
+</ExamTip>
+
+<Takeaways>
+
+- A list `[a, b, c]` holds items in order; `len()` counts them, and indexing and slicing work exactly as for strings.
+- Lists are mutable: `x[i] = v`, `append`, `insert`, `pop` and `remove` change the list in place, while `+` makes a new list.
+- Valid indices run from `0` to `len - 1` (or `-len` to `-1`). Anything else raises `IndexError`.
+- A list of lists is a grid: `grid[r]` is a row and `grid[r][c]` is one cell, row first then column, just like NumPy arrays and images.
+- Build lists with `append` in a loop, or in one line with a list comprehension: `[x ** 2 for x in range(5)]`.
+
+</Takeaways>

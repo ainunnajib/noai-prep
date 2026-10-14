@@ -1,3 +1,218 @@
-{/* stub: lesson 'Softmax, cross-entropy and multi-class problems' is being written */}
+import SoftmaxBars from './visuals/softmax-and-multiclass/SoftmaxBars'
+import CrossEntropyTarget from './visuals/softmax-and-multiclass/CrossEntropyTarget'
+import MultiLabelToggle from './visuals/softmax-and-multiclass/MultiLabelToggle'
 
-This lesson is being written.
+export const smCode = `import numpy as np
+
+def softmax(z):
+    z = z - np.max(z)        # biggest logit becomes 0: same p, no overflow
+    e = np.exp(z)
+    return e / e.sum()
+
+z = np.array([2.0, 1.0, 0.0])
+p = softmax(z)
+print("softmax:", p.round(3), " sum:", round(p.sum(), 6))
+print("all logits + 10:", softmax(z + 10).round(3))
+print("temperature 0.5:", softmax(z / 0.5).round(3))
+print("temperature 5:  ", softmax(z / 5).round(3))
+print("loss if class 0 is true:", round(-np.log(p[0]), 3))
+print("loss if class 2 is true:", round(-np.log(p[2]), 3))
+
+big = np.array([1000.0, 999.0])
+print("naive e^z:", np.exp(big))          # overflows to inf
+print("stable softmax:", softmax(big).round(3))
+p10 = softmax(np.zeros(10))              # 10 classes, equal logits
+print("first loss, 10 equal logits:", round(-np.log(p10[0]), 3))`
+
+Is this handwritten digit a 0, 1, 2, … or 9? Which of 1000 objects is in this photo? Which of 50,000 tokens should a language model write next? Most real classifiers choose between **many** classes, and logistic regression's single probability is not enough: we need a whole probability distribution, one number per class, adding up to 1. The tool that makes one is **softmax**, and the loss that trains it is the cross-entropy from the last lesson. This lesson also untangles a favourite exam trap: *multi-class* versus *multi-label*.
+
+<Analogy title="Splitting a prize pool">
+
+A hawker competition has a prize pool to share among the finalists. Instead of sharing it in proportion to the judges' scores, the organisers give each finalist a share that grows **exponentially** with their score: every extra point multiplies a finalist's share by about 2.7. The whole pool is always given out, so the shares add up to 100%; the top scorer gets the biggest slice; and a lead of just a few points turns into a huge advantage. That is softmax.
+
+</Analogy>
+
+## Logits: one score per class
+
+A classifier with $K$ classes first computes $K$ raw scores, one per class. For a linear model, class $k$ has its own weights and bias: $z_k = \mathbf{w}_k^\top\mathbf{x} + b_k$. In a neural network they are the outputs of the last layer. These raw scores are called <Term def="The raw, unnormalised scores a classifier outputs, one per class, before softmax turns them into probabilities. They can be any real numbers.">logits</Term>. A bigger logit means "more likely", but logits are not probabilities: they can be negative and they do not add up to 1. For example, a model looking at a photo might output $\mathbf{z} = (2, 1, 0)$ for (cat, dog, bird).
+
+## Softmax
+
+Softmax makes every score positive by exponentiating it, then divides by the total so the results add up to 1:
+
+$$
+p_i = \operatorname{softmax}(\mathbf{z})_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
+$$
+
+- $z_i$ is the logit of class $i$, and $e^{z_i}$ is always positive, even when $z_i$ is negative;
+- the bottom, $\sum_j e^{z_j}$, adds the exponentials of **all** $K$ logits, so it is the same for every class;
+- $p_i$ is the model's probability for class $i$.
+
+<Steps title="Softmax of z = (2, 1, 0), by hand">
+  <Step title="Exponentiate">
+    $e^2 \approx 7.39$, $\;e^1 \approx 2.72$, $\;e^0 = 1$.
+  </Step>
+  <Step title="Add them up">
+    $7.39 + 2.72 + 1 = 11.11$.
+  </Step>
+  <Step title="Divide each by the total">
+    $p \approx (7.39, 2.72, 1) / 11.11 \approx (0.665, 0.245, 0.090)$. They add up to 1, and the biggest logit has the biggest probability.
+  </Step>
+  <Step title="Shift every logit by 10">
+    $\mathbf{z} = (12, 11, 10)$ gives $e^{12}, e^{11}, e^{10}$: each is $e^{10}$ times bigger, and so is the total, so the factor $e^{10}$ cancels. The probabilities are **exactly the same**.
+  </Step>
+</Steps>
+
+<SoftmaxBars />
+
+Four properties to remember:
+
+1. **A distribution.** Every $p_i$ is between 0 and 1, and $\sum_i p_i = 1$.
+2. **Order is kept.** The largest logit always gets the largest probability, so the predicted class is $\arg\max_i z_i$ whether or not you apply softmax.
+3. **Only differences matter.** Adding the same constant to every logit changes nothing (it is *shift-invariant*). Real code uses this: it subtracts the largest logit first, so that $e^{z}$ never overflows.
+4. **Differences are magnified exponentially.** A lead of 1 in the logits makes one class $e \approx 2.7$ times as likely as another; a lead of 5 makes it $e^5 \approx 148$ times as likely. Softmax is a "soft" version of picking the maximum, hence the name.
+
+With two classes, softmax is the sigmoid in disguise: dividing top and bottom by $e^{z_1}$ gives
+
+$$
+\frac{e^{z_1}}{e^{z_1} + e^{z_2}} = \frac{1}{1 + e^{-(z_1 - z_2)}} = \sigma(z_1 - z_2)
+$$
+
+So logistic regression is softmax regression with $K = 2$, using only the difference of the two logits.
+
+<QuickCheck
+  q="A 3-class model outputs logits $(\ln 2, \ln 3, \ln 5)$. What are the softmax probabilities?"
+  options={['$(0.2, 0.3, 0.5)$', '$(\\tfrac13, \\tfrac13, \\tfrac13)$', '$(0, 0, 1)$', '$(2, 3, 5)$']}
+  answer={0}
+  explain="$e^{\ln 2} = 2$, $e^{\ln 3} = 3$ and $e^{\ln 5} = 5$; the total is 10, so $p = (0.2, 0.3, 0.5)$. $(2, 3, 5)$ forgets to divide by the total, and $(0, 0, 1)$ is a hard argmax, which softmax only approaches when the gaps are huge."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={182} />
+
+### Temperature
+
+Dividing the logits by a <Term def="A positive number T that the logits are divided by before softmax. T < 1 sharpens the distribution, T > 1 flattens it.">temperature</Term> $T$ before the softmax, $p_i = e^{z_i/T} / \sum_j e^{z_j/T}$, controls how confident the distribution is. For $\mathbf{z} = (2, 1, 0)$: $T = 0.5$ gives $(0.867, 0.117, 0.016)$, sharper; $T = 5$ gives $(0.402, 0.329, 0.269)$, flatter. As $T \to 0$ softmax becomes a hard argmax (one-hot); as $T \to \infty$ it becomes uniform. Language models use temperature when *sampling* the next token: low temperature gives safe, repetitive text, high temperature gives varied, riskier text.
+
+<PastPaperQuestion paper="prelim2026" n={229} />
+
+## Cross-entropy for many classes
+
+For one example whose true class is $c$, the target is the one-hot vector $\mathbf{y}$ (a 1 in position $c$, 0 elsewhere), and the loss is the cross-entropy from the last lesson:
+
+$$
+L = -\sum_{k=1}^{K} y_k \ln p_k = -\ln p_c
+$$
+
+**Minus the log of the probability given to the correct class.** Everything else the model says is ignored by the loss directly, but it matters indirectly, since all the probabilities share a total of 1. With $\mathbf{p} = (0.665, 0.245, 0.090)$: if the photo really is a cat, $L = -\ln 0.665 \approx 0.41$; if it is a bird, $L = -\ln 0.090 \approx 2.41$.
+
+The gradient of this loss with respect to each logit is, once again, "prediction minus truth":
+
+$$
+\frac{\partial L}{\partial z_k} = p_k - y_k
+$$
+
+For the true class this is $p_c - 1 < 0$, so gradient descent **raises** its logit; for every other class it is $p_k > 0$, so their logits are **lowered**, each in proportion to how much probability it wrongly took.
+
+<CrossEntropyTarget />
+
+<KeyIdea>
+
+Softmax turns logits into probabilities: $p_i = e^{z_i} / \sum_j e^{z_j}$. Only the differences between logits matter, and they are magnified exponentially. The multi-class loss is cross-entropy, $L = -\ln p_{\text{correct}}$, and its gradient with respect to the logits is $\mathbf{p} - \mathbf{y}$.
+
+</KeyIdea>
+
+### A sanity check: the first loss is about ln K
+
+A freshly initialised network has small random weights, so its $K$ logits are nearly equal and softmax gives every class about $\frac{1}{K}$. The first loss is therefore about $-\ln\frac{1}{K} = \ln K$: about $0.69$ for 2 classes, $2.30$ for 10 classes, $6.91$ for 1000. If your first loss is far from $\ln K$, suspect a bug (wrong labels, a softmax applied twice, a bad initialisation) before you train for hours.
+
+### Label smoothing
+
+With a one-hot target the loss only reaches 0 when $p_c = 1$, which needs the true logit to be *infinitely* far above the others. So training keeps pushing logits apart, and the model becomes over-confident (the visual shows the gap growing step after step). <Term def="Replacing the one-hot target with a softened one, e.g. 0.9 for the true class and the remaining 0.1 shared among the classes, so the model is not pushed towards infinite confidence.">Label smoothing</Term> softens the target: for example 0.9 for the true class and the remaining 0.1 shared out among the classes. PyTorch's version, `CrossEntropyLoss(label_smoothing=ε)`, uses $(1 - \varepsilon)\,\mathbf{y} + \frac{\varepsilon}{K}$; with $\varepsilon = 0.1$ and $K = 4$ that is $0.925$ for the true class and $0.025$ for each of the others. Now the best possible prediction is that soft target itself, which needs only a finite logit gap ($\ln\frac{0.925}{0.025} = \ln 37 \approx 3.6$), and the loss can never fall below the target's entropy ($\approx 0.35$ nats). Label smoothing usually gives better-**calibrated** probabilities: a model that says 90% is right about 90% of the time.
+
+## Multi-class or multi-label?
+
+<Analogy title="Choosing a CCA vs ticking subjects you like">
+
+The CCA form says "choose **one**": you cannot be in both the band and the basketball team, so the options compete. A survey that says "tick **every** subject you enjoy" is different: maths, art and chemistry can all be ticked, and ticking one does not untick another.
+
+</Analogy>
+
+- <Term def="Each example belongs to exactly one of K classes, e.g. a digit is 3 or 7, never both.">Multi-class</Term> classification: exactly one label is correct (a digit is a 3 *or* a 7). Use **one softmax** over the $K$ logits with **cross-entropy**, and predict the argmax.
+- <Term def="Each example can have any number of labels at once, e.g. a photo tagged both 'dog' and 'cat'.">Multi-label</Term> classification: any number of labels can be true at once (a photo with a dog *and* a cat). Use an **independent sigmoid** on each logit with **binary cross-entropy** per label, and predict every label whose probability is at least 0.5.
+
+<MultiLabelToggle />
+
+With two animals in the photo, softmax *must* split one unit of probability between them (about 0.6 and 0.4), so it can only name one, and adding a third animal makes things worse. The sigmoids give each animal that is present about 0.9 or more, independently of the others. Softmax assumes the classes are mutually exclusive, so it is wrong for multi-label problems.
+
+| task | example | output layer | loss (PyTorch) |
+|---|---|---|---|
+| binary | spam or not | 1 logit, sigmoid | binary cross-entropy (`BCEWithLogitsLoss`) |
+| multi-class | which digit, 0 to 9 | $K$ logits, softmax | cross-entropy (`CrossEntropyLoss`) |
+| multi-label | which tags apply to a photo | $K$ logits, a sigmoid each | binary cross-entropy per label (`BCEWithLogitsLoss`) |
+
+## In code
+
+NumPy, with the max-subtraction trick that every library uses:
+
+<PyRunner packages={['numpy']} code={smCode} rows={24} />
+
+PyTorch (the Final's programming tasks use it; you meet it fully in the PyTorch module). Two details cause countless bugs: `nn.CrossEntropyLoss` expects **raw logits** (it applies log-softmax itself) and **class indices** as targets.
+
+```python
+import torch
+import torch.nn as nn
+
+logits = torch.tensor([[2.0, 1.0, 0.0],
+                       [0.5, 2.5, -1.0]])   # 2 examples, 3 classes: raw scores
+targets = torch.tensor([0, 1])               # class indices, not one-hot
+
+ce = nn.CrossEntropyLoss()                   # does log-softmax + NLL itself
+print(ce(logits, targets))
+print(ce(torch.softmax(logits, dim=1), targets))   # BUG: softmax twice
+print(nn.CrossEntropyLoss(label_smoothing=0.1)(logits, targets))
+
+# Multi-label: each of 3 tags is its own yes/no question
+tag_logits = torch.tensor([[3.0, 2.5, -2.0]])
+tags = torch.tensor([[1.0, 1.0, 0.0]])       # dog AND cat, no bird
+print(torch.sigmoid(tag_logits))
+print(nn.BCEWithLogitsLoss()(tag_logits, tags))
+```
+
+```text
+tensor(0.2804)
+tensor(0.7225)
+tensor(0.4221)
+tensor([[0.9526, 0.9241, 0.1192]])
+tensor(0.0848)
+```
+
+The first loss, $0.2804$, is the average of $-\ln 0.665$ (example 1, class 0) and $-\ln 0.858$ (example 2, class 1). Applying softmax first gives a wrong, much larger loss and badly weakened gradients, yet no error message: the classic silent bug.
+
+<Mistake title="Two silent bugs">
+
+- **Softmax before `CrossEntropyLoss`.** The loss already contains a (log-)softmax, so applying another one squashes the logits twice. Feed raw logits. The same goes for `BCEWithLogitsLoss`: do not apply a sigmoid first.
+- **Softmax for multi-label data.** If several labels can be true together, softmax forces them to compete. Use a sigmoid per label with binary cross-entropy.
+
+</Mistake>
+
+<ExamTip>
+
+How NOAI asks about softmax and multi-class problems:
+
+- **Softmax facts**: outputs are positive and sum to 1; adding a constant to all logits changes nothing; with 2 classes it reduces to the sigmoid of the difference. Quick trick: logits $(\ln a, \ln b, \ln c)$ give $\frac{(a, b, c)}{a + b + c}$.
+- **Cross-entropy**: $L = -\ln p_{\text{correct}}$; gradient $\mathbf{p} - \mathbf{y}$; first loss of an untrained $K$-class model $\approx \ln K$ (2.30 for 10 classes).
+- **Temperature**: higher $T$ flattens the distribution (more random sampling); lower $T$ sharpens it.
+- **Multi-class vs multi-label**: one softmax + cross-entropy versus independent sigmoids + binary cross-entropy. "Softmax assumes mutually exclusive classes" is the key phrase.
+- **PyTorch**: `CrossEntropyLoss` takes raw logits and class indices.
+
+</ExamTip>
+
+<Takeaways>
+
+- Softmax turns $K$ logits into a probability distribution: $p_i = e^{z_i}/\sum_j e^{z_j}$. Outputs are positive, add up to 1 and keep the order of the logits.
+- Only differences between logits matter (adding a constant changes nothing), and softmax magnifies them exponentially; temperature $T$ sharpens ($T < 1$) or flattens ($T > 1$) the result.
+- Multi-class loss: cross-entropy $= -\ln p_{\text{correct}}$, with gradient $\mathbf{p} - \mathbf{y}$. An untrained model starts near $\ln K$. Label smoothing softens the target so the logits stay finite.
+- Multi-class (exactly one label): softmax + cross-entropy. Multi-label (any number of labels): a sigmoid per label + binary cross-entropy.
+- In PyTorch, `CrossEntropyLoss` and `BCEWithLogitsLoss` take raw logits; never apply softmax or sigmoid before them.
+
+</Takeaways>

@@ -1,3 +1,344 @@
-{/* stub: lesson 'Making decisions with if' is being written */}
+import ComparisonLine from './visuals/decisions/ComparisonLine'
+import TruthTableToggle from './visuals/decisions/TruthTableToggle'
+import FlowchartRunner from './visuals/decisions/FlowchartRunner'
+import { AI_DECISIONS } from './visuals/decisions/snippets'
 
-This lesson is being written.
+So far, every program you have written runs every line, every time. Useful programs have to **choose**. A spam filter decides "spam" or "not spam", a game decides whether you have won, and inside every neural network a tiny rule decides whether a number is passed on or replaced by zero. In Python, choices are made with `if`, and every choice starts with a question whose answer is yes or no.
+
+## Questions with yes-or-no answers
+
+In the last lessons you met the type `bool`, which has exactly two values: `True` and `False`. These are called <Term def="Values that are either True or False. Named after the mathematician George Boole; their type in Python is bool.">Booleans</Term>. A <Term def="An expression that compares two values and gives back True or False, for example score >= 50.">comparison</Term> is a question you ask Python about two values, and its answer is always a Boolean.
+
+| Operator | The question it asks | Example |
+|---|---|---|
+| `==` | equal to? | `7 == 7` gives `True` |
+| `!=` | not equal to? | `7 != 7` gives `False` |
+| `<` | less than? | `3 < 7` gives `True` |
+| `<=` | less than or equal to? | `7 <= 7` gives `True` |
+| `>` | greater than? | `3 > 7` gives `False` |
+| `>=` | greater than or equal to? | `8 >= 7` gives `True` |
+
+Careful with the first one: **two** equals signs compare. A single `=` is assignment, which you met in the variables lesson.
+
+A comparison is an expression, just like `2 + 3`, so you can print it or store it in a variable:
+
+```python
+score = 72
+print(score >= 50)
+print(score == 100)
+print(score != 100)
+print(score < 72, score <= 72)
+passed = score >= 50
+print(passed, type(passed))
+```
+
+```text
+True
+False
+True
+False True
+True <class 'bool'>
+```
+
+Look at `score < 72` (False) and `score <= 72` (True). The only difference is whether 72 itself counts. Explore the boundary yourself:
+
+<ComparisonLine />
+
+<KeyIdea>
+
+A comparison asks a yes-or-no question and always produces a Boolean, `True` or `False`. `<` and `>` leave the boundary out; `<=` and `>=` include it.
+
+</KeyIdea>
+
+<Note title="Comparing text, mixed types and floats">
+
+- **Text** compares too. `"cat" == "cat"` is `True`, and `"apple" < "banana"` is `True`: Python compares letter by letter, like a dictionary (but every capital letter counts as smaller than every small letter, so `"Zebra" < "apple"` is also `True`).
+- **Different types are never equal.** `"3" == 3` is `False`, because the text `"3"` is not the number `3`.
+- **Floats are stored approximately** (you saw `0.1 + 0.2` in the arithmetic lesson), so `0.1 + 0.2 == 0.3` is `False`. To compare floats, check that they are close instead: `abs((0.1 + 0.2) - 0.3) < 1e-9` is `True`.
+
+</Note>
+
+Python has one more comparison word, `is`, and exam questions like to ask how it differs from `==`. `==` asks "do these have the same **value**?" `is` asks "are these the very same **object** in the computer's memory?" Two lists made separately with the same contents (you will meet lists properly in two lessons) are equal, but they are not the same object:
+
+```python
+x = [1, 2]
+y = [1, 2]
+print(x == y, x is y)
+```
+
+```text
+True False
+```
+
+So to compare values, always use `==`. Programmers use `is` almost only to check for `None`, Python's special "nothing here" value, as in `if result is None:`.
+
+<PastPaperQuestion paper="prelim2026" n={84} />
+
+## Combining questions: and, or, not
+
+<Analogy title="The school gate rule">
+
+A school lets you leave early if you have a parent's note **and** a teacher's approval, **or** it is a public holiday. The guard at the gate does not agonise over it. They check each fact (yes or no) and combine the answers by a fixed rule. Python does the same with `and`, `or` and `not`.
+
+</Analogy>
+
+Python has three <Term def="Words that combine True/False values into a new True/False value: and, or, not.">logical operators</Term>:
+
+- `A and B` is `True` only when **both** `A` and `B` are `True`.
+- `A or B` is `True` when **at least one** of them is `True` (both is fine too).
+- `not A` flips the value: `not True` is `False` and `not False` is `True`.
+
+A <Term def="A table that lists every possible combination of True/False inputs, and the result of a condition for each one.">truth table</Term> lists every possible case. With two inputs there are only $2 \times 2 = 4$ cases, so you can check any condition completely by trying all four. Flip the switches, then type your own condition:
+
+<TruthTableToggle />
+
+<KeyIdea>
+
+`and` needs both sides `True`, `or` needs at least one, `not` flips. When they are mixed, Python works out comparisons first, then `not`, then `and`, then `or`. Brackets override this order.
+
+</KeyIdea>
+
+Why `and` before `or`? Write `True` as 1 and `False` as 0. Then `and` behaves like multiplication ($1 \times 0 = 0$: one False makes the whole thing False) and `or` behaves like addition (any 1 makes the total non-zero, which counts as True). Just as $\times$ comes before $+$ in BODMAS, `and` comes before `or`. And because comparisons come first of all, `score >= 50 and score < 65` needs no brackets.
+
+The school rule in Python is `note and approval or holiday`. Wei Ling has a parent's note, her teacher has not approved, and it is not a holiday, so `note = True`, `approval = False` and `holiday = False`.
+
+<Steps title="Can Wei Ling leave early?">
+  <Step title="Put in the values">
+    `note and approval or holiday` becomes `True and False or False`.
+  </Step>
+  <Step title="`and` comes first">
+    `True and False` is `False`, because `and` needs both sides to be `True`. The expression is now `False or False`.
+  </Step>
+  <Step title="Then `or`">
+    `False or False` is `False`, because neither side is `True`. She stays in school.
+  </Step>
+  <Step title="Now make it a public holiday">
+    With `holiday = True`: `True and False or True` becomes `False or True`, which is `True`. The holiday alone is enough, because `or` needs only one `True` side.
+  </Step>
+</Steps>
+
+Brackets can change the meaning completely. Here the rule is "aged 13 or over, **and** has either a note or a holiday":
+
+```python
+age = 11
+has_note = False
+is_holiday = True
+print(age >= 13 and (has_note or is_holiday))
+print(age >= 13 and has_note or is_holiday)
+```
+
+```text
+False
+True
+```
+
+With brackets, `age >= 13` is `False`, so the whole `and` is `False`. Without brackets, Python reads the second line as `(age >= 13 and has_note) or is_holiday`, and the holiday makes it `True`, so an 11-year-old walks out. If in doubt, add brackets: they cost nothing and say exactly what you mean.
+
+<Tip title="Chained comparisons">
+
+Python lets you write a range check the way you would in maths: `50 <= score < 65` means `50 <= score and score < 65`.
+
+</Tip>
+
+<QuickCheck
+  q="In the four rows of the truth table for `A or B`, how many rows give `False`?"
+  options={['1', '0', '2', '3']}
+  answer={0}
+  explain="`or` is `False` only when **both** sides are `False`, so just one row (A = False, B = False) gives `False`. The other three rows each have at least one `True`. (For `A and B` it is the other way round: three rows give `False` and only one gives `True`.)"
+/>
+
+## Making a choice: if and else
+
+Now we can use a condition to choose which lines run.
+
+```python
+temperature = 34
+if temperature > 30:
+    print("Drink water!")
+    print("Stay in the shade.")
+else:
+    print("Nice weather.")
+print("Have a good day.")
+```
+
+```text
+Drink water!
+Stay in the shade.
+Have a good day.
+```
+
+Change the first line to `temperature = 27` and the output becomes:
+
+```text
+Nice weather.
+Have a good day.
+```
+
+Here is what each part does:
+
+- `if temperature > 30:` is the word `if`, a condition, then a **colon**. The colon means "a block follows".
+- The lines under it are indented by 4 spaces. <Term def="Spaces at the start of a line. In Python they are not decoration: they show which lines belong to which if, else or loop.">Indentation</Term> is how Python knows which lines belong to the `if`. Lines indented by the same amount under a colon form a <Term def="A group of lines that belong together, marked in Python by being indented by the same amount (usually 4 spaces) under a line that ends in a colon.">block</Term>.
+- If the condition is `True`, the `if` block runs. If it is `False`, the `else` block runs instead. Exactly one of the two runs.
+- `print("Have a good day.")` is not indented, so it belongs to neither block. It always runs, after the choice is made.
+- `else` is optional. An `if` without an `else` simply does nothing when its condition is `False`.
+
+<Mistake title="Three ways to upset the if">
+
+Python checks the shape of your code before running any of it, so these mistakes stop the program at once:
+
+| You wrote | Python says |
+|---|---|
+| `if score == 100` (no colon) | `SyntaxError: expected ':'` |
+| `if score = 100:` (one `=`) | `SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?` |
+| the line under the `if` not indented | `IndentationError: expected an indented block after 'if' statement on line 2` |
+
+The middle one is the classic: `=` assigns, `==` compares, and an `if` needs a comparison.
+
+</Mistake>
+
+## More than two choices: elif
+
+<Analogy title="Finding your PSLE Achievement Level">
+
+To turn a PSLE subject score into an Achievement Level, you check the bands in order. 90 or more is AL1. Otherwise, 85 or more is AL2. Otherwise, 80 or more is AL3, and so on down. Every score lands in exactly one band: the first one whose condition it meets.
+
+</Analogy>
+
+Python's version is `elif`, short for "else if". Here is a simpler grading scheme with four bands:
+
+```python
+score = 72
+if score >= 80:
+    band = "A"
+elif score >= 65:
+    band = "B"
+elif score >= 50:
+    band = "C"
+else:
+    band = "U"
+print(band)
+```
+
+```text
+B
+```
+
+Python checks the conditions from top to bottom, runs only the block under the **first** condition that is `True`, and skips all the rest, even ones that would also be `True` (72 is also `>= 50`). The `else` catches every score that matched nothing.
+
+Notice that the `B` line says only `score >= 65`, not "65 or more but under 80". It doesn't need to: Python only reaches that line if `score >= 80` was already `False`. The order of the checks carries information. That is also why order can go badly wrong:
+
+<FlowchartRunner />
+
+<KeyIdea>
+
+In an `if` / `elif` / `else` chain, **exactly one** block runs: the first one whose condition is `True`, or the `else` if none is. Order matters, so put the strictest condition first.
+
+</KeyIdea>
+
+<Steps title="Trace it by hand with score = 64">
+  <Step title="Line 2: is 64 >= 80?">
+    `False`. Skip line 3 and go to the next check.
+  </Step>
+  <Step title="Line 4: is 64 >= 65?">
+    `False`: 64 is one short. Go to the next check.
+  </Step>
+  <Step title="Line 6: is 64 >= 50?">
+    `True`. Run line 7, so `band = "C"`. The rest of the chain, including the `else`, is skipped.
+  </Step>
+  <Step title="Line 10: print(band)">
+    This line is outside the chain, so it always runs. It prints `C`.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A student puts the checks in this order. Which band does a score of 90 get?"
+  code={'if score >= 50:\n    band = "C"\nelif score >= 80:\n    band = "A"\nelse:\n    band = "U"'}
+  options={['`C`', '`A`', '`U`', '`A`, then it changes to `C`']}
+  answer={0}
+  explain={'Python checks `score >= 50` first. `90 >= 50` is `True`, so `band = "C"` runs and the rest of the chain is skipped: the `score >= 80` check is never even looked at. In one `if`/`elif` chain only one branch runs, so the band cannot be set to `A` and then changed.'}
+/>
+
+<Mistake title="Separate ifs are separate questions">
+
+`elif` belongs to the chain above it. A new `if` starts a **new** question, and every `if` whose condition is `True` runs:
+
+```python
+score = 85
+if score >= 80:
+    band = "A"
+if score >= 65:
+    band = "B"
+if score >= 50:
+    band = "C"
+print(band)
+```
+
+```text
+C
+```
+
+All three conditions are `True`, so `band` becomes `"A"`, then `"B"`, then `"C"`. With `elif` instead of the second and third `if`, Python would have stopped after `"A"`. Also remember that an `else` belongs only to the `if` (or `elif` chain) directly above it.
+
+</Mistake>
+
+<Tip title="When a branch misbehaves, print">
+
+If your program takes the wrong branch, add a `print` just before the `if` to see what Python actually sees, for example `print("score is", score, type(score))`. A classic surprise is a score stored as the text `"72"` instead of the number `72`. Then `"72" >= 50` does not quietly give a wrong answer: it raises `TypeError: '>=' not supported between instances of 'str' and 'int'`. Printing values while the program runs is the simplest debugging tool there is.
+
+</Tip>
+
+<PastPaperQuestion paper="prelim2026" n={127} />
+
+## Decisions inside AI
+
+Two decisions you will meet again and again in this course:
+
+```python
+# 1. A classifier turns a probability into a label
+p_spam = 0.83
+if p_spam >= 0.5:
+    label = "spam"
+else:
+    label = "not spam"
+print(label)
+
+# 2. ReLU, the most common activation function in neural networks
+x = -2.5
+if x > 0:
+    y = x
+else:
+    y = 0
+print(y)
+```
+
+```text
+spam
+0
+```
+
+The first is a **threshold**: the model gives a probability, and an `if` turns it into a decision. The second is <Term def="Rectified Linear Unit: keep a positive number as it is, and replace a negative number (or zero) with 0. Used inside almost every modern neural network.">ReLU</Term>: positive numbers pass through, everything else becomes 0. A whole family of models, **decision trees**, is nothing more than `if` / `else` questions placed inside each other.
+
+Python can also write a short if/else on one line, called a <Term def="A one-line if/else that produces a value: value_if_true if condition else value_if_false.">conditional expression</Term>: `y = x if x > 0 else 0` does exactly what the four-line ReLU above does. Try both decisions with your own numbers:
+
+<PyRunner code={AI_DECISIONS} />
+
+<ExamTip>
+
+NOAI Prelim code questions usually ask "what is printed?", and you have about 36 seconds each. Trace like a machine:
+
+1. Write down the value of every variable.
+2. Check the conditions from top to bottom. Inside one condition, do comparisons first, then `not`, then `and`, then `or`.
+3. In an `if` / `elif` chain, stop at the first `True`. Treat separate `if` statements as separate questions.
+4. Watch for the favourite traps: `=` versus `==`, `>` versus `>=` exactly at the boundary, and an `else` that belongs only to the `if` directly above it.
+
+</ExamTip>
+
+<Takeaways>
+
+- A comparison (`==`, `!=`, `<`, `<=`, `>`, `>=`) asks a yes-or-no question and gives `True` or `False`. `=` assigns; `==` compares.
+- `and` needs both sides `True`, `or` needs at least one, and `not` flips. Python does comparisons, then `not`, then `and`, then `or`; brackets override.
+- `if condition:` runs the indented block only when the condition is `True`; `else:` runs when it is `False`.
+- In an `if` / `elif` / `else` chain exactly one block runs: the first `True` one. Put the strictest condition first.
+- AI is full of decisions: a threshold turns a probability into a label, and ReLU is a one-line `if`.
+
+</Takeaways>

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Rect, Label, DraggablePoint, useAnimationFrame } from '../../../../../kit'
-import { useNarrow } from './useNarrow'
+import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Rect, Label, DraggablePoint, useAnimationFrame, useNarrow } from '../../../../../kit'
 
 /*
   A blindfolded hiker (a ball) on a 1-D loss landscape. Drop or drag the ball, let go,

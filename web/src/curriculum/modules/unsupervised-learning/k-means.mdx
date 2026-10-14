@@ -1,3 +1,249 @@
-{/* stub: lesson 'K-means clustering' is being written */}
+import KMeansStepper from './visuals/k-means/KMeansStepper'
+import KMeansPlusPlus from './visuals/k-means/KMeansPlusPlus'
+import ElbowPlot from './visuals/k-means/ElbowPlot'
+import KMeansFailureGallery from './visuals/k-means/KMeansFailureGallery'
 
-This lesson is being written.
+export const scratchCode = `import numpy as np
+
+def kmeans(X, centroids, max_iter=10):
+    X = np.asarray(X, dtype=float)
+    C = np.asarray(centroids, dtype=float)
+    for it in range(max_iter):
+        # assign: squared distances, shape (n, k)
+        D = ((X[:, None, :] - C[None, :, :]) ** 2).sum(axis=2)
+        labels = D.argmin(axis=1)
+        # update: each centroid -> mean of its points
+        new_C = C.copy()
+        for j in range(len(C)):
+            if np.any(labels == j):  # empty: keep old
+                new_C[j] = X[labels == j].mean(axis=0)
+        inertia = ((X - new_C[labels]) ** 2).sum()
+        print(it + 1, labels, new_C.round(4).tolist(), round(inertia, 2))
+        if np.allclose(new_C, C):  # nothing moved
+            break
+        C = new_C
+    return C, labels
+
+points = [(2, 4), (2, 8), (2, 10), (10, 2), (10, 4), (10, 0)]
+C, labels = kmeans(points, [(2, 4), (2, 8)])`
+
+export const sklearnCode = `from sklearn.cluster import KMeans
+from sklearn.datasets import make_blobs
+
+X, _ = make_blobs(n_samples=300, centers=4, cluster_std=0.8, random_state=0)
+
+for k in range(1, 8):
+    km = KMeans(n_clusters=k, init="k-means++", n_init=10, random_state=0).fit(X)
+    print(f"k = {k}: inertia = {km.inertia_:7.1f}")`
+
+A music app holds millions of songs and not one genre tag. Can a program sort them into groups of similar-sounding songs by itself? That job is called <Term def="Grouping examples so that similar ones end up in the same group, without being told what the groups are.">clustering</Term>, and the most famous way to do it is **K-means**. It is two lines of logic repeated until nothing changes, and it matters for NOAI twice over: the Prelim asks how it works and how to choose k, and the 2025 Final asked students to code it from scratch for 25 marks.
+
+<Analogy title="Bubble-tea shops in a new estate">
+
+A chain opens 3 bubble-tea shops in a new HDB estate, at random spots. Every resident walks to the **nearest** shop. Each month, every shop **moves to the middle of its own customers** (the average of their block positions), and then residents again pick their nearest shop. Shops keep relocating until no resident changes shop. Shops = centroids, residents = data points, "pick the nearest shop" = the assign step, "move to the middle" = the update step.
+
+</Analogy>
+
+## What K-means is trying to do
+
+The data is $n$ points $x_1, x_2, \dots, x_n$. Each point is a vector of features, for example a song's tempo and loudness. There are **no labels**: nobody says which group a point belongs to. That makes K-means <Term def="Learning from data that has no labels: the algorithm finds structure, such as groups, by itself.">unsupervised</Term>.
+
+You choose $k$, the number of clusters. It is a <Term def="A setting chosen by you before training, not learned from the data (for example k in K-means or the learning rate).">hyperparameter</Term>. K-means then looks for $k$ <Term def="The centre of a cluster: the average position (mean) of the points assigned to it.">centroids</Term> $\mu_1, \dots, \mu_k$ (say "mew") and gives every point to one cluster, so that points sit close to their own centroid. It scores a clustering with its **inertia**:
+
+$$
+\text{inertia} = \sum_{i=1}^{n} \big\lVert x_i - \mu_{c_i} \big\rVert^2
+$$
+
+- $c_i$ is the cluster that point $i$ belongs to (a number from 1 to $k$), so $\mu_{c_i}$ is **its** centroid.
+- $\lVert x_i - \mu_{c_i} \rVert^2$ is the **squared** distance from the point to its centroid: square the gap in each feature and add them up (Pythagoras without the square root).
+- $\sum_{i=1}^{n}$ adds this up over all $n$ points.
+
+Inertia is also called the <Term def="Within-cluster sum of squares: the total squared distance from every point to its own cluster's centroid. Same thing as inertia.">within-cluster sum of squares</Term> (WCSS). Small inertia means tight clusters, with every point close to its centre.
+
+<KeyIdea>
+
+K-means splits unlabelled points into $k$ clusters, each with a centroid, and tries to make the **inertia** (total squared distance from each point to its own centroid) as small as possible.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={137} />
+
+## The algorithm: assign, then update
+
+Finding the best clustering directly would mean trying every way of splitting the points, which is hopeless. K-means instead improves a guess with two alternating steps:
+
+1. **Start.** Place $k$ centroids, for example at $k$ randomly chosen data points.
+2. **Assign.** Give each point to its nearest centroid:
+   $c_i = \arg\min_j \lVert x_i - \mu_j \rVert^2$. Read "$\arg\min_j$" as "the $j$ that makes this smallest".
+3. **Update.** Move each centroid to the mean of the points assigned to it:
+   $\mu_j = \frac{1}{|S_j|} \sum_{i \in S_j} x_i$, where $S_j$ is the set of points in cluster $j$ and $|S_j|$ is how many there are.
+4. **Repeat** steps 2 and 3 until an assign step changes nothing. Then the centroids cannot move either: K-means has <Term def="Reached a state where repeating the steps changes nothing, so the algorithm stops.">converged</Term>.
+
+The tinted regions in the visual show where each centroid "wins": every spot in a region is closer to that centroid than to any other. The boundaries are straight lines exactly halfway between two centroids.
+
+<KMeansStepper />
+
+## Why it always stops, and why it can stop in the wrong place
+
+Neither step can ever make the inertia go **up**:
+
+- **Assign** only moves a point to a centroid that is at least as close as its old one, so its squared distance shrinks or stays the same.
+- **Update** puts each centroid at the mean of its points, and the mean is exactly the spot with the smallest total squared distance to a set of points. Try the cluster $\{1, 2, 6\}$ on a number line: from the mean 3 the squared distances add up to $4 + 1 + 9 = 14$; from 2 they add up to $1 + 0 + 16 = 17$, and from 4 to $9 + 4 + 4 = 17$.
+
+The inertia keeps falling or stays flat, and there are only finitely many ways to split $n$ points into $k$ groups, so K-means cannot go on for ever. But "stopped" does not mean "best". With the **Bad start** button above, two centroids share one blob, and neither step can ever pull one of them out: the run ends at a <Term def="A solution that cannot be improved by small changes (here, by another assign or update step), even though a much better solution exists elsewhere.">local minimum</Term> with about four times the best inertia.
+
+<KeyIdea>
+
+Each step can only lower the inertia, so K-means **always converges**. It converges to the nearest "valley", though, and which valley you reach depends on where the centroids **start**.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A cluster contains the points 1, 2 and 6 on a number line. Where does the update step put its centroid?"
+  options={['3', '2', '3.5', '4']}
+  answer={0}
+  explain="The update step moves the centroid to the **mean**: $(1 + 2 + 6) / 3 = 9 / 3 = 3$. The median (2) is a different statistic; its total squared distance is 17, worse than the mean's 14."
+/>
+
+## One round by hand
+
+This is the data from the NOAI 2025 Final K-means task: six points, $k = 2$. We start with the centroids $C_1 = (2, 4)$ and $C_2 = (2, 8)$. To find the **nearest** centroid you can compare **squared** distances and skip the square roots, because a smaller distance always has a smaller square.
+
+<Steps title="K-means by hand: points (2,4), (2,8), (2,10), (10,2), (10,4), (10,0)">
+  <Step title="Round 1, assign">
+
+Squared distance from each point to $C_1 = (2, 4)$ and to $C_2 = (2, 8)$:
+
+| point | to $C_1$ | to $C_2$ | nearest |
+|---|---|---|---|
+| (2, 4) | $0$ | $0 + 16 = 16$ | $C_1$ |
+| (2, 8) | $0 + 16 = 16$ | $0$ | $C_2$ |
+| (2, 10) | $0 + 36 = 36$ | $0 + 4 = 4$ | $C_2$ |
+| (10, 2) | $64 + 4 = 68$ | $64 + 36 = 100$ | $C_1$ |
+| (10, 4) | $64 + 0 = 64$ | $64 + 16 = 80$ | $C_1$ |
+| (10, 0) | $64 + 16 = 80$ | $64 + 64 = 128$ | $C_1$ |
+
+  </Step>
+  <Step title="Round 1, update">
+    $C_1$ = mean of (2, 4), (10, 2), (10, 4), (10, 0) $= \left(\frac{2+10+10+10}{4}, \frac{4+2+4+0}{4}\right) = (8, 2.5)$. $C_2$ = mean of (2, 8), (2, 10) $= (2, 9)$. Inertia: $61$.
+  </Step>
+  <Step title="Round 2, assign: one point switches">
+    (2, 4) is now $36 + 2.25 = 38.25$ from $C_1 = (8, 2.5)$ but only $0 + 25 = 25$ from $C_2 = (2, 9)$, so it moves to $C_2$. The other five points stay where they were.
+  </Step>
+  <Step title="Round 2, update">
+    $C_1$ = mean of (10, 2), (10, 4), (10, 0) $= (10, 2)$. $C_2$ = mean of (2, 4), (2, 8), (2, 10) $= (2, \tfrac{22}{3}) \approx (2, 7.3333)$. Inertia: $26.67$.
+  </Step>
+  <Step title="Round 3: nothing changes, so stop">
+    Every point keeps its cluster, so the centroids stay put. Converged, with final centroids $(10, 2)$ and $(2, 7.3333)$.
+  </Step>
+</Steps>
+
+The inertia only went down: $61 \to 26.67$ (and the very first assignment, measured from the starting centroids, scored $216$). The exam's own start, $(2, 2)$ and $(10, 1)$, reaches the same two clusters in a single round, but lists them in the other order, $[(2, 7.3333), (10, 2)]$. That matters in the Final, where an automatic grader compares your list with the expected one: keep centroid $j$ tied to starting centroid $j$.
+
+## Smarter starts: k-means++
+
+Because the start decides which valley you land in, real libraries do two things:
+
+- **Several restarts.** Run K-means from several different starts and keep the run with the lowest inertia. In scikit-learn this is `n_init`.
+- **k-means++ seeding.** Choose the first centroid as a random data point. Choose each next centroid at random too, but give each point $x$ a chance proportional to $D(x)^2$, where $D(x)$ is the distance from $x$ to the **nearest centroid chosen so far**:
+
+$$
+P(x) = \frac{D(x)^2}{\sum_{x'} D(x')^2}
+$$
+
+The bottom is the sum of $D^2$ over all points, so the chances add up to 1. A point twice as far away gets four times the chance. Points in groups that have no centroid yet are far from every chosen centroid, so they are the likeliest picks, and the starting centroids spread out across the data. It is still random, so it can occasionally put two centroids in one group; that is why scikit-learn combines k-means++ (its default `init`) with several restarts.
+
+<KMeansPlusPlus />
+
+<QuickCheck
+  q="After the first centroid is chosen, three candidate points are at distances 1, 1 and 2 from it. Under k-means++, what is the chance that the point at distance 2 becomes the next centroid?"
+  options={['2/3', '1/2', '1/3', '1/4']}
+  answer={0}
+  explain="Square the distances: $1, 1, 4$, which add up to $6$. The far point's chance is $4/6 = 2/3$. Using plain distances ($2/4 = 1/2$) is the trap: k-means++ uses **squared** distances, which favours far points even more."
+/>
+
+## In code
+
+Here is K-means from scratch in NumPy, run on the worked example. The distance table `D` has one row per point and one column per centroid, `argmin(axis=1)` picks each row's nearest centroid, and a boolean mask averages each cluster. Each line prints the round, the labels, the new centroids and the inertia. Run it, then change the starting centroids.
+
+<PyRunner packages={['numpy']} code={scratchCode} />
+
+```text
+1 [0 1 1 0 0 0] [[8.0, 2.5], [2.0, 9.0]] 61.0
+2 [1 1 1 0 0 0] [[10.0, 2.0], [2.0, 7.3333]] 26.67
+3 [1 1 1 0 0 0] [[10.0, 2.0], [2.0, 7.3333]] 26.67
+```
+
+In practice you call scikit-learn. After `fit`, the model holds `cluster_centers_`, `labels_` and `inertia_`. This loop prints the inertia for $k = 1$ to $7$ on 300 points drawn from 4 blobs:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={sklearnCode} />
+
+```text
+k = 1: inertia =  2978.6
+k = 2: inertia =  1348.9
+k = 3: inertia =   708.8
+k = 4: inertia =   369.5
+k = 5: inertia =   326.3
+k = 6: inertia =   292.4
+k = 7: inertia =   260.2
+```
+
+Look at the drops: about 1630, 640, 340, then only 43, 34 and 32. The big savings stop after $k = 4$, which is the true number of blobs. (A different library version may print slightly different digits for the larger k.)
+
+## Choosing k: the elbow method
+
+Why not just pick the $k$ with the smallest inertia? Because inertia **always** falls as $k$ grows: an extra centroid can always sit nearer some points. With $k = n$, every point is its own centroid and the inertia is exactly 0, which is a useless clustering. So instead:
+
+- **Elbow method.** Plot inertia against $k$. The curve drops steeply while each new cluster splits a real group off, then flattens once new clusters only split real groups in two. Choose the $k$ at the bend, the "elbow".
+- **Silhouette score.** For each point, let $a$ be its mean distance to the other points in its own cluster and $b$ its mean distance to the points of the nearest other cluster. Its silhouette is $s = \frac{b - a}{\max(a, b)}$, between $-1$ and $1$: near 1 means "snug in its own cluster, far from the next". Choose the $k$ with the highest average $s$.
+- **Domain knowledge.** A T-shirt maker that sells sizes S, M and L wants $k = 3$, whatever the curve says.
+
+<ElbowPlot />
+
+<PastPaperQuestion paper="prelim2026" n={146} />
+
+<ExamTip>
+
+"Inertia keeps decreasing as k increases, so choose the largest k" is a classic wrong option. Inertia **always** decreases with k; the elbow marks **diminishing returns**, not a minimum. Also do not mix up the two k's: in k-nearest neighbours, k is the number of **neighbours** that vote (supervised); in K-means, k is the number of **clusters** (unsupervised).
+
+</ExamTip>
+
+## When K-means fails
+
+K-means knows only one thing about a cluster: its centre. Every point joins the nearest centre, so the boundaries between clusters are always straight lines halfway between two centroids. That works well when clusters are:
+
+- **round** (roughly <Term def="Ball-shaped: spread out equally in every direction around a centre, like a round blob.">spherical</Term>) blobs, rather than curves, rings or long streaks;
+- of **similar size and spread**, because a boundary halfway between two centroids cuts into a big, spread-out group;
+- built from features on **similar scales**, and free of big **outliers** (one extreme point drags the mean towards it).
+
+It also forces **every** point into some cluster, even an obvious outlier, and you must choose $k$ in advance.
+
+<KMeansFailureGallery />
+
+<KeyIdea>
+
+Pick a clustering method whose assumptions match the shape of your data. K-means assumes round, similar-sized blobs. For curved shapes, uneven groups or noisy data, density-based (DBSCAN) or graph-based (spectral) methods, the next lesson, do better.
+
+</KeyIdea>
+
+<Mistake title="Forgetting to scale the features">
+
+Cluster customers by age (20 to 60 years) and monthly income (2000 to 10000 dollars) and the distance is almost all income: a gap of 1000 dollars outweighs a gap of 40 years. K-means then clusters by income alone. Standardise each feature first, $z = \frac{x - \text{mean}}{\text{standard deviation}}$ (scikit-learn's `StandardScaler`), so that every feature counts on the same scale.
+
+</Mistake>
+
+<ExamTip>
+
+NOAI questions on K-means are usually one of: *which algorithm is unsupervised* (K-means, PCA); *what the update step does* (moves each centroid to the **mean** of its points); *how to choose k* (elbow or silhouette, plus domain knowledge); *why the results change between runs* (random initialisation, so use k-means++ and several restarts); *which method for curved shapes, noise or varying density* (DBSCAN, not K-means). For a by-hand round, compare squared distances: no square roots needed.
+
+</ExamTip>
+
+<Takeaways>
+
+- K-means alternates **assign** (each point joins its nearest centroid) and **update** (each centroid moves to the mean of its points) until nothing changes.
+- **Inertia** = total squared distance from each point to its own centroid. Neither step can increase it, so K-means always converges, but possibly to a poor local minimum that depends on the start.
+- **k-means++** spreads the starting centroids out (chance $\propto D(x)^2$), and **several restarts** (`n_init`) keep the best run.
+- Inertia always falls as k grows, so choose k at the **elbow** (or with the silhouette score), not at the minimum.
+- K-means assumes **round, similar-sized clusters on similar scales**. It fails on moons, rings, long streaks and very uneven groups, and it gives every outlier a cluster.
+
+</Takeaways>

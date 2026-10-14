@@ -1,3 +1,188 @@
-{/* stub: lesson 'Computational graphs' is being written */}
+import GraphBuilderForward from './visuals/computational-graphs/GraphBuilderForward'
+import LocalSlopeNudge from './visuals/computational-graphs/LocalSlopeNudge'
+import GateRulesCards from './visuals/computational-graphs/GateRulesCards'
 
-This lesson is being written.
+A neural network's loss is one enormous formula with thousands, sometimes billions, of knobs (the weights) inside it. To learn, the network must know, for **every** knob, which way to turn it to make the loss smaller. Nobody differentiates a formula that size by hand. Instead, the computer breaks it into a chain of tiny steps, each so simple that its derivative is obvious. That chain is a **computational graph**, and PyTorch builds one behind the scenes every time you run a model.
+
+<Analogy title="A hawker stall as a flowchart">
+
+Picture a chicken rice stall drawn as a flowchart. One station poaches the chicken. The next cooks the rice in the chicken's stock, a third pounds the chilli, and the last one plates everything. Each station only needs its own inputs and only knows its own job; the poaching station does not care how the plating works. If the plate comes out too salty, you can trace back station by station to see who added how much. A computational graph is that flowchart for a calculation, and backpropagation (next lesson) is the tracing back.
+
+</Analogy>
+
+## From a formula to a graph
+
+Take the loss of the simplest model in this course: a line $\hat y = wx + b$ that predicts a target $y$ from one input $x$, scored by the <Term def="The square of (prediction − target). It is 0 for a perfect prediction and grows quickly as the prediction moves away from the target.">squared error</Term>:
+
+$$
+L = (wx + b - y)^2
+$$
+
+Here $w$ (the weight) and $b$ (the bias) are the knobs the model learns, $x$ is the input, $y$ is the correct answer, and $L$ is the loss: one number that says how wrong the prediction is. To draw the graph, do the calculation exactly as you would by hand, one operation at a time, and give each intermediate result a name:
+
+| Step | Operation | New value |
+|---|---|---|
+| 1 | multiply the weight by the input | $p = w \times x$ |
+| 2 | add the bias: this is the prediction | $\hat y = p + b$ |
+| 3 | subtract the target: the error | $e = \hat y - y$ |
+| 4 | square the error: the loss | $L = e^2$ |
+
+A <Term def="A diagram of a calculation. Each node is one elementary operation (or an input), and arrows show which values feed into which operation.">computational graph</Term> draws this table as a picture. Every operation becomes a **node** (a circle). Every starting value becomes a **leaf** (a box), and an arrow, called an **edge**, carries each value to the node that uses it. The order comes from the brackets, exactly as in BODMAS: innermost first. In the graphs below, the inputs the model learns ($w$ and $b$, called <Term def="Numbers inside a model that training adjusts, such as weights and biases.">parameters</Term>) have indigo boxes; inputs that come from the data ($x$ and $y$) have grey ones.
+
+<GraphBuilderForward />
+
+## The forward pass
+
+Running the graph from left to right is called the <Term def="Evaluating a computational graph from the inputs to the output, computing each node's value in turn.">forward pass</Term>. There is only one rule: a node can be computed once every value flowing into it is known. Listing the nodes so that each one comes after all of its inputs is called a <Term def="An ordering of a graph's nodes in which every node comes after all the nodes that feed into it.">topological order</Term>; for a chain like ours it is simply left to right.
+
+<Steps title="Forward pass with $w = 2,\ x = 3,\ b = 1,\ y = 5$">
+  <Step title="Multiply">
+    $p = w \times x = 2 \times 3 = 6$.
+  </Step>
+  <Step title="Add">
+    $\hat y = p + b = 6 + 1 = 7$. The model predicts 7.
+  </Step>
+  <Step title="Subtract">
+    $e = \hat y - y = 7 - 5 = 2$. The prediction is 2 too high.
+  </Step>
+  <Step title="Square">
+    $L = e^2 = 2^2 = 4$.
+  </Step>
+</Steps>
+
+The forward pass **keeps** every intermediate value ($p = 6$, $\hat y = 7$, $e = 2$). The backward pass will need them, which is one reason training a network uses much more memory than just making predictions with it.
+
+<QuickCheck
+  q="How many operation nodes (circles) does the computational graph of $(2a + b)^2$ need?"
+  options={['3', '2', '4', '6']}
+  answer={0}
+  explain="One node per operation: multiply ($2 \times a$), add ($+\,b$) and square. The numbers $2$, $a$ and $b$ are leaves (boxes), not operations, so 6 counts the leaves as well. Answering 2 forgets that $2a$ is itself a multiplication, and the brackets are not an operation."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={43} />
+
+## Local derivatives: what each node knows
+
+The forward pass tells every node its value. Training also needs **sensitivity**: if one input to a node changes a little, how much does the node's output change? For one node and one of its inputs, that rate is the <Term def="The derivative of one node's output with respect to one of its inputs, holding the node's other inputs fixed. It is the slope of that single small operation.">local derivative</Term>.
+
+Take the multiply node $p = w \times x$ with $w = 2$ and $x = 3$. Nudge $w$ up by $0.1$: $p$ becomes $2.1 \times 3 = 6.3$, so it went up by $0.3$, which is **3 times** the nudge. So
+
+$$
+\frac{\partial p}{\partial w} = 3 = x .
+$$
+
+The curly $\partial$ is read "partial": it means only $w$ changes while $x$ stays fixed, exactly as in the partial-derivatives lesson. Notice that the slope with respect to $w$ is the *other* input, $x$. By the same argument, nudging $x$ moves $p$ by $w$ times as much, so $\frac{\partial p}{\partial x} = w = 2$.
+
+<LocalSlopeNudge />
+
+Every node type has its own one-line rule. These seven cover almost every graph you will meet in NOAI:
+
+| Node | Output | Local derivative for each input |
+|---|---|---|
+| add | $a + b$ | $1$ and $1$ |
+| subtract | $a - b$ | $1$ for $a$, $-1$ for $b$ |
+| multiply | $a \times b$ | $b$ for $a$, and $a$ for $b$ (the *other* input) |
+| square | $a^2$ | $2a$ |
+| sigmoid | $\sigma(a) = \dfrac{1}{1 + e^{-a}}$ | $\sigma(a)\,\big(1 - \sigma(a)\big)$ |
+| max | $\max(a, b)$ | $1$ for the larger input, $0$ for the other |
+| ReLU | $\max(0, a)$ | $1$ if $a > 0$, otherwise $0$ |
+
+None of these needs more than a line of school calculus. The sigmoid rule comes from the derivative-rules lesson: if a sigmoid node outputs $0.8$, its local derivative is $0.8 \times 0.2 = 0.16$, and it can never be more than $0.5 \times 0.5 = 0.25$. The local derivative is evaluated at the node's **current** values, which is why the forward pass must come first.
+
+<KeyIdea>
+
+A computational graph turns one hard derivative into many easy ones. Each node needs only two things: its inputs (to compute its value on the way forward) and its own local derivative rule.
+
+</KeyIdea>
+
+<Mistake title="Multiply gives the other input">
+
+For $p = w \times x$, the local derivative with respect to $w$ is $x$, **not** $w$. Students who write $w$ are mixing it up with the power rule. And for a subtraction $e = \hat y - y$, the second input gets $-1$, not $1$: raising the target $y$ *lowers* the error.
+
+</Mistake>
+
+<QuickCheck
+  q="A multiply node computes $p = w \times x$ with $w = 4$ and $x = -2$. What is its local derivative $\frac{\partial p}{\partial w}$?"
+  options={['$-2$', '$4$', '$-8$', '$1$']}
+  answer={0}
+  explain="For a product, the slope with respect to one input is the other input: $\frac{\partial p}{\partial w} = x = -2$. Check with a nudge: $4.1 \times (-2) = -8.2$, which is $-0.2$ away from $-8$, that is $-2$ times the nudge of $0.1$. The value $4$ is $w$ itself, and $-8$ is the node's output, not its slope."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={34} />
+
+## Sending a gradient back through one gate
+
+Here is how local derivatives get used. Suppose a node is told how much the final loss $L$ changes per unit change in the node's **output**. That number is called the <Term def="∂L/∂(this node's output): how much the final loss changes per unit change in this node's output. During the backward pass it arrives from the node that comes after.">upstream gradient</Term>, written $g$. With one multiplication, the node can then work out how much $L$ changes per unit change in each of its **inputs**:
+
+$$
+\frac{\partial L}{\partial\, \text{input}} = \underbrace{\frac{\partial L}{\partial\, \text{output}}}_{\text{upstream } g} \times \underbrace{\frac{\partial\, \text{output}}{\partial\, \text{input}}}_{\text{local derivative}}
+$$
+
+This is the **chain rule**, and in words it says that rates multiply. If the loss moves 2 units for every unit the output moves, and the output moves 3 units for every unit the input moves, then the loss moves $2 \times 3 = 6$ units for every unit the input moves. The gradients are drawn in orange because they flow the opposite way to the values: from the output back towards the inputs. Nodes like these are often called <Term def="Another name for a node that performs one simple operation, such as an add gate or a multiply gate, by analogy with logic gates.">gates</Term>.
+
+<GateRulesCards />
+
+Three patterns cover most of backpropagation:
+
+- **Add distributes.** Every input receives exactly $g$, because each local derivative is 1.
+- **Multiply swaps.** Each input receives $g$ times the **other** input's value. A big input makes the *other* input's gradient big.
+- **Max routes.** The larger input receives all of $g$; the smaller one receives $0$, because nudging it does not change the output at all. ReLU is a max with 0, so it passes $g$ through when its input is positive and blocks it otherwise.
+
+Square and sigmoid are **scalers**: square multiplies $g$ by $2a$, and sigmoid multiplies it by $\sigma(1 - \sigma)$, which is at most $0.25$. That last fact is why gradients fade in deep sigmoid networks, a story for the vanishing-gradients lesson.
+
+<ExamTip>
+
+With the gate table memorised, local-derivative questions take seconds. Watch for three traps in the options: giving a multiply input its **own** value instead of the other input's, dropping the **minus sign** on a subtracted input, and writing the sigmoid's derivative as $\sigma(x)$ (that "slope equals height" property belongs to $e^x$). Also remember the one-line definition: a computational graph is a graph of operations and their dependencies, which automatic differentiation walks backwards with the chain rule.
+
+</ExamTip>
+
+## A first taste of the backward pass
+
+Chain the local derivatives from $L$ back to $w$ along the graph, multiplying as you go:
+
+$$
+\begin{aligned}
+\frac{\partial L}{\partial w} &= \underbrace{2e}_{\text{square}} \times \underbrace{1}_{\text{subtract}} \times \underbrace{1}_{\text{add}} \times \underbrace{x}_{\text{multiply}} \\
+&= (2 \times 2) \times 1 \times 1 \times 3 = 12 .
+\end{aligned}
+$$
+
+Check it with a nudge. With $w = 2.01$ instead of $2$, the forward pass gives $\hat y = 7.03$, $e = 2.03$ and $L = 2.03^2 = 4.1209$. The loss rose by $0.1209$, almost exactly $12 \times 0.01 = 0.12$. So increasing $w$ increases the loss, and gradient descent will turn $w$ down. The next lesson does this systematically, one edge at a time, getting the gradient for every input in a single backward sweep.
+
+## PyTorch draws the graph for you
+
+When you compute with tensors marked `requires_grad=True`, PyTorch records every operation as a node while the forward pass runs. Each result remembers the node that made it in its `.grad_fn`:
+
+```python
+import torch
+
+w = torch.tensor(2.0, requires_grad=True)   # a weight: we want its gradient
+b = torch.tensor(1.0, requires_grad=True)   # a bias: we want its gradient
+x = torch.tensor(3.0)                       # data: no gradient needed
+y = torch.tensor(5.0)
+
+p = w * x          # node 1: multiply
+y_hat = p + b      # node 2: add
+e = y_hat - y      # node 3: subtract
+L = e ** 2         # node 4: square
+
+print(L)
+print(type(L.grad_fn).__name__, "<-", type(e.grad_fn).__name__,
+      "<-", type(y_hat.grad_fn).__name__, "<-", type(p.grad_fn).__name__)
+```
+
+```text
+tensor(4., grad_fn=<PowBackward0>)
+PowBackward0 <- SubBackward0 <- AddBackward0 <- MulBackward0
+```
+
+Those four names are the four circles you drew, from the loss back to the multiply. Each one stores its operation's local-derivative rule and the input values it needs. PyTorch builds a fresh graph on every forward pass, so the graph can change from one input to the next.
+
+<Takeaways>
+
+- A computational graph splits a formula into single operations (nodes) joined by arrows (edges) that carry values; the inputs are leaves.
+- The forward pass computes the nodes in order, left to right, and keeps every intermediate value for later.
+- A node's local derivative is the slope of its own tiny operation: add $1$, subtract $\pm 1$, multiply "the other input", square $2a$, sigmoid $\sigma(1-\sigma) \le 0.25$, max $1$ for the winner and $0$ for the loser.
+- Gradient into an input = upstream gradient × local derivative (the chain rule). Add distributes, multiply swaps, max routes.
+
+</Takeaways>

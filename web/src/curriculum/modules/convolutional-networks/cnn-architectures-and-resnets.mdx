@@ -1,3 +1,271 @@
-{/* stub: lesson 'CNN architectures and ResNets' is being written */}
+import CNNPipeline from './visuals/cnn-architectures-and-resnets/CNNPipeline'
+import FeatureHierarchy from './visuals/cnn-architectures-and-resnets/FeatureHierarchy'
+import ArchitectureGallery from './visuals/cnn-architectures-and-resnets/ArchitectureGallery'
+import DegradationCurves from './visuals/cnn-architectures-and-resnets/DegradationCurves'
+import ResidualBlockFlow from './visuals/cnn-architectures-and-resnets/ResidualBlockFlow'
 
-This lesson is being written.
+You now know every part of a CNN: convolution, padding and stride, pooling. This lesson snaps them together into complete networks, follows the tensor shapes from photo to prediction, tours the famous architectures, and ends with one small idea, the **residual connection**, that made networks with more than 100 layers trainable. NOAI asks about all three: shape tracing, the feature hierarchy, and what ResNet changed.
+
+<Analogy title="A factory line">
+
+Picture a factory that turns a big block of raw material into a small, labelled product. Each station does a simple job: one cuts, one presses, one sorts. The block gets **smaller** at every station, but what is left is **denser and more refined**, until at the end a label pops out: "car". A CNN is that factory. The photo starts wide and shallow ($3 \times 32 \times 32$), and each stage makes it smaller in height and width but deeper in channels, until a dense layer stamps on the class.
+
+</Analogy>
+
+## The shape journey through a CNN
+
+Almost every classic CNN repeats one pattern:
+
+1. **Convolution → ReLU** (once or a few times): detect patterns; the number of channels usually grows (16, 32, 64, …).
+2. **Pooling** (or a stride-2 conv): halve the height and width.
+3. At the end, **flatten** (or global average pool) and use a **dense** (fully connected) layer to produce one score per class, turned into probabilities by softmax.
+
+Why grow the channels while shrinking the maps? As the maps get coarser, each position covers a larger receptive field and describes something more complex, and there are more kinds of complex thing to describe than kinds of edge. More channels keep the information from being squeezed out.
+
+<CNNPipeline />
+
+Tracing shapes by hand is the core skill, because the first dense layer must be told its input size, and that number depends on every layer before it.
+
+<Steps title="Trace a small CNN for 32 × 32 colour images">
+  <Step title="Input">
+    One RGB image: $(3, 32, 32)$ in PyTorch's $(C, H, W)$ order.
+  </Step>
+  <Step title="Conv 3×3, 16 filters, padding 1, stride 1">
+    Size $\lfloor (32 + 2 - 3)/1 \rfloor + 1 = 32$, so $(16, 32, 32)$. Parameters: each filter has $3 \times 3 \times 3 = 27$ weights plus 1 bias, so $(27 + 1) \times 16 = 448$.
+  </Step>
+  <Step title="Max-pool 2×2">
+    Height and width halve, channels stay: $(16, 16, 16)$. No parameters.
+  </Step>
+  <Step title="Conv 3×3, 32 filters, padding 1">
+    $(32, 16, 16)$. Parameters: $(3 \times 3 \times 16 + 1) \times 32 = 145 \times 32 = 4640$.
+  </Step>
+  <Step title="Max-pool 2×2, then flatten">
+    $(32, 8, 8)$, and flattening lines up $32 \times 8 \times 8 = 2048$ numbers.
+  </Step>
+  <Step title="Dense layer to 10 classes">
+    `nn.Linear(2048, 10)`: $2048 \times 10 + 10 = 20{,}490$ parameters. Total: $448 + 4640 + 20{,}490 = 25{,}578$. Notice that 80% of the parameters sit in the one dense layer.
+  </Step>
+</Steps>
+
+Here is the same network in PyTorch, printing the shape after every layer. Running a dummy tensor through a model like this is the quickest way to find the right `in_features`.
+
+```python
+import torch
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Conv2d(3, 16, kernel_size=3, padding=1),   # 3 -> 16 channels
+    nn.ReLU(),
+    nn.MaxPool2d(2),                              # halve H and W
+    nn.Conv2d(16, 32, kernel_size=3, padding=1),  # 16 -> 32 channels
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    nn.Flatten(),                                 # (32, 8, 8) -> 2048
+    nn.Linear(32 * 8 * 8, 10),                    # 10 class scores
+)
+
+x = torch.randn(1, 3, 32, 32)   # one 32x32 colour image, (N, C, H, W)
+for layer in model:
+    x = layer(x)
+    print(f"{layer.__class__.__name__:<10}{tuple(x.shape)}")
+
+print("parameters:", sum(p.numel() for p in model.parameters()))
+```
+
+```text
+Conv2d    (1, 16, 32, 32)
+ReLU      (1, 16, 32, 32)
+MaxPool2d (1, 16, 16, 16)
+Conv2d    (1, 32, 16, 16)
+ReLU      (1, 32, 16, 16)
+MaxPool2d (1, 32, 8, 8)
+Flatten   (1, 2048)
+Linear    (1, 10)
+parameters: 25578
+```
+
+<QuickCheck
+  q="The same network is given 64 × 64 colour images instead (both convs 3×3 with padding 1, both pools 2×2). How many numbers come out of `Flatten`?"
+  options={['8,192', '32,768', '4,096', '6,272']}
+  answer={0}
+  explain="Padding 1 keeps each conv's size, so $64 \to 64 \to 32$ (pool) $\to 32 \to 16$ (pool), giving $32 \times 16 \times 16 = 8192$. Forgetting one pool gives $32 \times 32 \times 32 = 32{,}768$; using 16 channels gives 4096; and 6272 $= 32 \times 14 \times 14$ is what you get if the convs had no padding."
+/>
+
+<ExamTip>
+
+For shape questions, write the shape after **every** layer down the margin: convs change $C$ (to the number of filters) and maybe $H, W$ (by $\lfloor (n + 2p - k)/s \rfloor + 1$); pools halve $H, W$ and keep $C$; flatten multiplies $C \times H \times W$. The error `mat1 and mat2 shapes cannot be multiplied` almost always means the flatten size and the first `nn.Linear`'s `in_features` disagree.
+
+</ExamTip>
+
+## From edges to objects
+
+What do all those channels detect? When researchers visualised trained networks (Zeiler and Fergus, 2014, is the classic study), they found a clear <Term def="The way a deep CNN's features get more complex with depth: edges and colours in early layers, textures and parts in the middle, whole objects near the end.">feature hierarchy</Term>:
+
+- **Early layers** respond to edges at different angles and to blobs of colour, the same kind of filters you designed by hand in the convolution lesson.
+- **Middle layers** combine edges into textures and simple parts: rings, grids, fur, eyes, wheels.
+- **Late layers** combine parts into whole objects: faces, cars, cats.
+
+Nobody programs this. It emerges from training, because building complex detectors out of simpler ones is the most economical way to reduce the loss, and because each layer's receptive field is larger than the one before (a late neuron can see most of the image).
+
+<FeatureHierarchy />
+
+This is also why <Term def="Reusing a network trained on one big task (often ImageNet) as the starting point for a new task, instead of training from scratch.">transfer learning</Term> works so well: edges and textures are useful for almost any image task, so the early and middle layers of a network trained on millions of photos can be reused for X-rays or hawker-food photos, with only the last layers retrained. The vision-tasks module shows how.
+
+<PastPaperQuestion paper="prelim2026" n={195} />
+
+## Landmark architectures
+
+Four networks mark the milestones. <Term def="A dataset of about 1.2 million training photos in 1000 classes. Its yearly competition (ILSVRC, 2010 to 2017) was the benchmark that showed deep CNNs work.">ImageNet</Term> results are given as <Term def="The percentage of test images whose true class is NOT among the model's five highest-scoring guesses.">top-5 error</Term>.
+
+<ArchitectureGallery />
+
+| Network | Year | Key idea to remember |
+|---|---|---|
+| LeNet-5 | 1998 | conv → pool → conv → pool → dense; read handwritten digits |
+| AlexNet | 2012 | big CNN on GPUs with ReLU, dropout and augmentation; won ImageNet by a huge margin |
+| VGG-16 | 2014 | only 3×3 convs and 2×2 pools, stacked 16 layers deep |
+| ResNet | 2015 | residual (skip) connections; 152 layers; global average pooling head |
+
+The trend is clear: smaller kernels, more depth, fewer giant dense layers. VGG-16 has 138 million parameters, and 124 million of them are in its three dense layers; ResNet-50 replaces those with global average pooling and a single dense layer, and has only 25.6 million in total despite being three times deeper. But "just go deeper" hit a wall first.
+
+## Deeper is not automatically better
+
+Here is a thought experiment. Train a 20-layer network. Now build a 56-layer network by copying those 20 layers and adding 36 layers that do nothing: each one outputs exactly its input (an <Term def="A function that returns its input unchanged: f(x) = x.">identity mapping</Term>). This 56-layer network makes exactly the same predictions as the 20-layer one. So the *best* 56-layer network should be **at least as good** as the 20-layer one, at least on the training data.
+
+Yet when He and colleagues trained plain 20- and 56-layer networks in 2015, the 56-layer one had **higher training error**. They called this the <Term def="Adding more layers to a plain (non-residual) network makes even its TRAINING error worse. It is an optimisation problem, not overfitting.">degradation problem</Term>.
+
+<DegradationCurves />
+
+<Mistake title="Degradation is not overfitting">
+
+Overfitting means **low** training error but high test error: the model memorised the training set. Here the deeper plain network is worse on the **training** set itself, so it is not memorising anything. The problem is optimisation: gradient descent cannot find the good weights (such as "copy + identity") that we know exist. Part of the reason is the vanishing gradients you met in the backpropagation module; another is that it is surprisingly hard for a stack of conv-ReLU layers to learn to do nothing.
+
+</Mistake>
+
+## The residual block
+
+ResNet's fix is to stop asking layers to learn the whole mapping. A <Term def="A block that outputs F(x) + x: its layers learn only a correction F to the input, which is added back by a skip connection.">residual block</Term> passes its input $x$ around the layers through a <Term def="A connection that carries a layer's input past one or more layers and adds (or, in U-Net, concatenates) it to their output.">skip connection</Term> and adds it to their output:
+
+$$
+y = \mathrm{ReLU}\big(F(x) + x\big)
+$$
+
+Here $x$ is the block's input tensor, $F(x)$ is what the block's layers compute (conv → BatchNorm → ReLU → conv → BatchNorm in ResNet), and $y$ is the output. The layers only have to learn the **residual** $F(x) = (\text{what we want}) - x$, a correction to the input.
+
+<Analogy title="Tracked changes">
+
+Improving an essay with tracked changes is easier than rewriting it from scratch every time: if a paragraph is already fine, you simply make no changes. A residual block works the same way. If the best thing a block can do is nothing, its layers just output $F(x) = 0$ (weights near zero, which is easy), and the block passes $x$ through untouched. Extra blocks can no longer make things worse, which removes the degradation problem.
+
+</Analogy>
+
+<QuickCheck
+  q="For one residual block, the best thing to do turns out to be leaving its input unchanged. What must its layers $F$ learn to output?"
+  options={['Zero: $F(x) = 0$, so $y = x$', 'A copy of the input: $F(x) = x$', 'Minus the input: $F(x) = -x$', 'One: $F(x) = 1$, so the gradient is 1']}
+  answer={0}
+  explain="The output is $F(x) + x$, so $F(x) = 0$ gives exactly $x$. Copying the input would output $2x$, and $F(x) = -x$ would output zero. Learning zero is easy: weights near zero produce it, which is why residual blocks can 'switch themselves off'."
+/>
+
+The addition has one strict rule: $F(x)$ and $x$ **must have the same shape**. When a block halves the size with stride 2 or changes the number of channels, the skip connection gets a <Term def="A 1×1 convolution (with the same stride as the main path, usually followed by BatchNorm) on the skip connection that reshapes x so that it can be added to F(x).">projection shortcut</Term>: a 1×1 convolution with the same stride, which reshapes $x$ to match.
+
+<ResidualBlockFlow />
+
+<Steps title="A downsampling block, shape by shape">
+  <Step title="Input">
+    $x$ has shape $(64, 56, 56)$. The block should output 128 channels at half the size.
+  </Step>
+  <Step title="Main path">
+    Conv 3×3, 128 filters, stride 2, padding 1: $\lfloor (56 + 2 - 3)/2 \rfloor + 1 = 28$, so $(128, 28, 28)$. The second conv 3×3 (stride 1, padding 1) keeps $(128, 28, 28)$. That is $F(x)$.
+  </Step>
+  <Step title="Try the plain shortcut">
+    $(128, 28, 28) + (64, 56, 56)$: the shapes differ, so PyTorch raises an error.
+  </Step>
+  <Step title="Add a projection">
+    A 1×1 conv from 64 to 128 channels with stride 2 turns $x$ into $(128, 28, 28)$. It costs only $64 \times 128 = 8192$ weights, against $73{,}728 + 147{,}456$ for the two 3×3 convs. Now $F(x) + x$ works.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={205} />
+
+### Why gradients flow: the "+1"
+
+The skip connection also fixes the backward pass. Differentiate $y = F(x) + x$ (ignoring the final ReLU):
+
+$$
+\frac{\partial y}{\partial x} = \frac{\partial F}{\partial x} + 1
+$$
+
+The $\frac{\partial F}{\partial x}$ term is the gradient through the layers, which may be tiny; the $+1$ comes from the skip connection, which passes the gradient straight back unchanged.
+
+<Steps title="Two blocks, plain versus residual">
+  <Step title="Set up">
+    Suppose each block's layers have local slope $F' = 0.1$ (small, as in a deep network that is struggling).
+  </Step>
+  <Step title="Plain: multiply the slopes">
+    Two plain blocks: $\frac{\partial z}{\partial x} = F_2' \times F_1' = 0.1 \times 0.1 = 0.01$. With 10 blocks it would be $0.1^{10}$: the gradient vanishes.
+  </Step>
+  <Step title="Residual: multiply (1 + slope)">
+    $\frac{\partial z}{\partial x} = (1 + F_2')(1 + F_1') = 1 + F_1' + F_2' + F_1'F_2' = 1.21$. Expanding the brackets always leaves a **1**: the path that skips both blocks. However small the $F'$ are, the gradient reaches the early layers.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="final2026" n={7} />
+
+In PyTorch a residual block is a small `nn.Module` whose `forward` ends with `out + self.shortcut(x)`:
+
+```python
+import torch
+import torch.nn as nn
+
+class ResidualBlock(nn.Module):
+    def __init__(self, c_in, c_out, stride=1):
+        super().__init__()
+        self.conv1 = nn.Conv2d(c_in, c_out, 3, stride=stride, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(c_out)
+        self.conv2 = nn.Conv2d(c_out, c_out, 3, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(c_out)
+        self.shortcut = nn.Identity()               # plain "+ x"
+        if stride != 1 or c_in != c_out:            # shapes differ: project x
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(c_in, c_out, 1, stride=stride, bias=False),
+                nn.BatchNorm2d(c_out))
+
+    def forward(self, x):
+        out = torch.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))             # this is F(x)
+        return torch.relu(out + self.shortcut(x))   # F(x) + x, then ReLU
+
+x = torch.randn(1, 64, 56, 56)
+print(ResidualBlock(64, 64)(x).shape)
+print(ResidualBlock(64, 128, stride=2)(x).shape)
+
+block = ResidualBlock(64, 128, stride=2)
+block.shortcut = nn.Identity()                      # remove the projection
+try:
+    block(x)
+except RuntimeError as e:
+    print("RuntimeError:", e)
+```
+
+```text
+torch.Size([1, 64, 56, 56])
+torch.Size([1, 128, 28, 28])
+RuntimeError: The size of tensor a (28) must match the size of tensor b (56) at non-singleton dimension 3
+```
+
+The convs have `bias=False` because the <Term def="BatchNorm: a layer that normalises each channel using the batch's mean and standard deviation, then rescales with a learned scale and shift. Covered in the training-deep-networks module.">BatchNorm</Term> right after them adds its own learned shift, so a bias would be wasted. ResNet stacks dozens of these blocks: ResNet-50 ends with maps of shape $(2048, 7, 7)$, a global average pool and one dense layer.
+
+<ExamTip>
+
+ResNet's innovation is the **skip connection**, $y = F(x) + x$. Traps in the options: ResNet did *not* invent BatchNorm (it uses it; BatchNorm was published earlier in 2015); identity skips add **no** parameters (they do not "reduce model size" either); and the benefit is that deep networks become **trainable** (gradient flow, easy identity), not that each layer becomes more powerful. If a question shows tiny gradient norms in early layers and healthy ones near the output, the diagnosis is vanishing gradients and residual connections are a standard fix. Do not confuse ResNet's skips (add) with U-Net's (concatenate).
+
+</ExamTip>
+
+<Takeaways>
+
+- A CNN is a shape journey: conv blocks grow $C$, pools shrink $H$ and $W$, and flatten (or global average pooling) feeds a dense classifier. Trace $(C, H, W)$ after every layer to get `in_features` right.
+- Trained CNNs learn a **feature hierarchy**: edges and colours → textures and parts → objects. This is why pretrained layers transfer to new tasks.
+- Landmarks: **LeNet** (the template), **AlexNet** (GPUs, ReLU, dropout; won ImageNet 2012), **VGG** (only 3×3 convs), **ResNet** (skip connections, 152 layers).
+- **Degradation**: deeper plain networks can have *higher training error*, an optimisation problem, not overfitting.
+- A **residual block** outputs $F(x) + x$: learning "no change" is easy ($F = 0$), the $+1$ in $\frac{\partial y}{\partial x}$ keeps gradients flowing, and a 1×1 projection fixes shape mismatches.
+
+</Takeaways>

@@ -1,3 +1,224 @@
-{/* stub: lesson 'What NOAI is and where it leads' is being written */}
+import { PRELIM, FINAL, TIMELINE, DOMAINS, IOAI_RESULTS, LINKS, CONTACT_EMAIL, FACTS_CHECKED_ON } from '../../../data/facts'
+import SelectionFunnel from './visuals/what-is-noai/SelectionFunnel'
+import CountdownTimeline from './visuals/what-is-noai/CountdownTimeline'
+import EligibilityChecker from './visuals/what-is-noai/EligibilityChecker'
 
-This lesson is being written.
+export const WRITE_IN = (TIMELINE.find((t) => t.title === 'Direct write-ins close')?.date ?? 'by 27 Nov 2026').replace(/^by\s+/, '')
+export const SIGN_UP = (TIMELINE.find((t) => t.title === 'Schools register interest')?.date ?? '15 Jan 2027').split('–').pop().trim()
+
+The **National Olympiad in Artificial Intelligence (NOAI)** is Singapore's national AI competition for students. It is free, you need no AI experience to sit the first round, and the strongest students go on to represent Singapore at the **International Olympiad in AI**, which Singapore hosts in July 2027. This lesson is your map: the stages, the dates that matter, and how to get in.
+
+## Who runs what
+
+Four names come up again and again in this course:
+
+- **NOAI** is the national competition. It has two rounds: a **Preliminary Round** (the "Prelim") that every eligible student can sit, and a **Final** for the top 150.
+- **<Term def="AI Singapore: the national AI programme, hosted by NUS and NTU. It organises both NOAI rounds.">AI Singapore (AISG)</Term>** organises both NOAI rounds.
+- **<Term def="Nanyang Technological University. After NOAI, NTU runs the selection test and training that choose Singapore's IOAI team.">NTU</Term>** runs the selection test and training that turn NOAI finalists into a national team.
+- **<Term def="International Olympiad in Artificial Intelligence: a yearly world contest in AI for school students, first held in 2024.">IOAI</Term>** is the international contest. It started in 2024 and moves to a new host country every year.
+
+Singapore has medalled at every IOAI so far:
+
+<ul>
+  {IOAI_RESULTS.map((r) => (
+    <li key={r.year}>
+      <strong>{r.year}</strong>: {r.result}
+    </li>
+  ))}
+</ul>
+
+## The selection funnel
+
+<Analogy title="Getting into the National Day Parade">
+
+Thousands of people arrive at the stadium gates. A ticket check lets some through, a bag check comes next, and then you find your seat. There are fewer people at each checkpoint, and **each checkpoint checks something different**. NOAI works the same way.
+
+</Analogy>
+
+There are four checkpoints between you and the IOAI team:
+
+1. **The Prelim** ({PRELIM.dateLabel}). Every eligible student whose school signs up: {PRELIM.questions} <Term def="Multiple-choice questions: each has four options and exactly one correct answer.">MCQs</Term> in {PRELIM.minutes} minutes.
+2. **The Final** ({FINAL.dateLabel}). The top 150 from the Prelim: 20 MCQs plus 3 Python programming tasks.
+3. **NTU selection and training** (May to June 2027). About the top 60 finalists sit NTU's Selection Test; about 10 reach a week-long residential camp.
+4. **The IOAI team** (4 to 10 July 2027, in Singapore). Between 4 and 8 Singapore Citizens and PRs.
+
+<SelectionFunnel />
+
+The numbers matter less than the last line of each card. **Each stage rewards a different skill**, so the way you prepare has to change as you go:
+
+| Stage | What it rewards | How you train it |
+| --- | --- | --- |
+| Prelim | **Breadth and speed**: knowing a little about a lot, and recalling it in seconds | Short lessons, regular self-testing, timed MCQ sets |
+| Final | **Implementation**: writing a classic algorithm from scratch in Python | Coding each algorithm yourself, without AI help |
+| NTU and IOAI | **Modelling**: building, testing and improving a model on real data | Open-ended tasks and past IOAI problems |
+
+<KeyIdea>
+
+NOAI is a series of filters, and each one tests something new: breadth and speed (Prelim), then from-scratch coding (Final), then real-model building (NTU and IOAI). Train the skills in that order, but **start each one before you need it**.
+
+</KeyIdea>
+
+<Note title="Your award tier is not the last word">
+
+NTU runs its own Selection Test and training and re-ranks everyone it invites. A student who won Bronze at NOAI 2025 went on to place 2nd in the world at IOAI 2025.
+
+</Note>
+
+<QuickCheck
+  q="Which skill does the Prelim mainly reward?"
+  options={['Fast, accurate recall across many topics', 'Writing long Python programs from scratch', 'Training and tuning a model on a real dataset', 'Explaining ideas in written essays']}
+  answer={0}
+  explain="The Prelim is 150 short MCQs in 90 minutes across five domains, so it rewards breadth and speed. Writing algorithms from scratch is what the Final's programming section tests, and building real models is the NTU and IOAI stage."
+/>
+
+## What the Prelim covers
+
+The Prelim spreads its questions across **five domains**. AI Singapore has not published the 2027 split, but in the 2026 Prelim (300 questions) the domains were almost equal, so expect roughly 30 of this year's 150 questions from each.
+
+<Figure title="Questions per domain in the 2026 Prelim" caption="Each bar is one domain of the 300-question 2026 paper. The split was almost even, so no domain is safe to skip.">
+  <Bars data={DOMAINS.map((d) => ({ label: d.title, value: d.share2026 }))} format={(v) => `${v}`} ariaLabel="2026 Prelim questions per domain" />
+</Figure>
+
+<ul>
+  {DOMAINS.map((d) => (
+    <li key={d.domain}>
+      <strong>{d.title}</strong>: {d.items.join(', ')}
+    </li>
+  ))}
+</ul>
+
+That looks like a lot, and it is: the course you are starting covers all of it from zero. The good news is that most Prelim questions are **short**. The median 2026 question, including its four options, was about 140 characters long, about the length of one text message. Here are two real ones from 2026, one from Mathematics and one from Computing. Give yourself about 36 seconds each. (Hint for the second: `len` is short for "length".)
+
+<PastPaperQuestion paper="prelim2026" n={46} />
+
+<PastPaperQuestion paper="prelim2026" n={78} />
+
+If you got both, you have just answered two real Prelim questions. Most are harder than these, but most are this short: the challenge is the **breadth**, not the length.
+
+## The dates that matter
+
+<Analogy title="Revise backwards from the timetable">
+
+Before a big exam you do not plan forwards ("I'll see how far I get"). You start from the exam date and work backwards: this topic needs three weeks, so it must start on this date. Plan NOAI the same way.
+
+</Analogy>
+
+Here is the whole 2027 calendar:
+
+<div className="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>What</th>
+      </tr>
+    </thead>
+    <tbody>
+      {TIMELINE.map((t) => (
+        <tr key={t.title}>
+          <td>{t.key ? <strong>{t.date}</strong> : t.date}</td>
+          <td>
+            {t.key ? <strong>{t.title}</strong> : t.title}: {t.detail}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+The table is hard to feel. Drag the marker below to see it as time you actually have.
+
+<CountdownTimeline />
+
+<Steps title="How long until the Prelim? (from Wed 14 Oct 2026)">
+  <Step title="Days left in October">
+    October has 31 days, so after the 14th there are $31 - 14 = 17$ days left.
+  </Step>
+  <Step title="Add the whole months">
+    November, December and January: $30 + 31 + 31 = 92$ days.
+  </Step>
+  <Step title="Add February up to the Prelim">
+    The Prelim is on 19 February: $17 + 92 + 19 = 128$ days.
+  </Step>
+  <Step title="Turn days into weeks">
+    $128 = 18 \times 7 + 2$, so the Prelim is **18 weeks and 2 days** away. That sounds long, but it includes school exams and holidays.
+  </Step>
+  <Step title="Prelim to Final">
+    February 2027 has 28 days (2027 is not a leap year). From 19 February: $28 - 19 = 9$ days to the end of February, plus 5 days of March, gives $9 + 5 = 14$ days. **The Final is exactly two weeks after the Prelim**, also on a Friday.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A friend plans to start practising Python coding only after she hears she is in the top 150. Why is that risky?"
+  options={['The Final comes two weeks after the Prelim and rewards from-scratch coding, which takes weeks to build', 'The Final is multiple choice only, so practising code before it is wasted effort', 'Finalists are chosen by a separate coding test, so she will never reach the Final', 'Prelim results are released only after the Final has already taken place']}
+  answer={0}
+  explain="Only 14 days separate the Prelim (19 Feb) from the Final (5 Mar), and the Final's biggest section is three Python programming tasks. Writing algorithms from scratch is a skill built over weeks, so it has to start before the Prelim. The Final is not MCQ-only: it has 20 MCQs and 3 programming tasks."
+/>
+
+<Mistake>
+
+Treating the Prelim as the finish line. The Final rewards a different skill, and two weeks is not enough to learn it from scratch. Start the Final labs (from-scratch NumPy and PyTorch) in January, while you are still revising for the Prelim.
+
+</Mistake>
+
+## Who can enter, and how to register
+
+<Analogy title="Like an inter-school competition">
+
+For an inter-school competition, your CCA teacher sends in the team list; you cannot just turn up on the day. NOAI registration also goes through your school.
+
+</Analogy>
+
+The rules for NOAI 2027:
+
+- **MOE students.** Full-time students below age 20 in an MOE secondary school, IP school, JC, ITE or polytechnic can enter, **whatever their nationality**. You register through your school: each school appoints an NOAI teacher representative, and the school signs up with AI Singapore by **{SIGN_UP}**. Requests from individual MOE students are not accepted.
+- **Everyone else who is eligible applies directly** by emailing **{CONTACT_EMAIL}** by **{WRITE_IN}**. That covers home-schooled Singapore Citizens and PRs; students between schools (for example, finished Sec 4 and waiting to start JC or poly); and private or international school students, who are considered case by case. Approved students sit the Prelim at the AI Singapore office at NUS and compete for the same 150 Final places.
+- **It is free** for every student accepted.
+- **Only Singapore Citizens and PRs** can be picked for the IOAI team.
+
+<EligibilityChecker />
+
+<KeyIdea>
+
+Anyone eligible can compete in NOAI, reach the Final and win an award. Citizenship matters only at the very last step: the national team.
+
+</KeyIdea>
+
+<Tip>
+
+Not sure whether your school has signed up? Ask a teacher this week. Schools sign up for free, AI Singapore runs the Prelim centrally, and the deadline for schools is {SIGN_UP}. If nobody knows about it, point them to the <a href={LINKS.noai2027} target="_blank" rel="noreferrer">NOAI 2027 page</a>.
+
+</Tip>
+
+## Where it leads: the IOAI syllabus
+
+IOAI publishes a syllabus that every contest task must follow. The latest is the IOAI 2026 Syllabus, and AI Singapore's own advice is to "review the IOAI syllabus". It has four sections:
+
+| Section | Examples of what is in it |
+| --- | --- |
+| Foundational skills and classical ML | Python, NumPy, pandas, PyTorch; regression, decision trees, K-means, evaluation metrics |
+| Neural networks and deep learning | Gradient descent, backpropagation, attention, Transformers, regularisation |
+| Computer vision | Convolutions, segmentation with U-Net, GANs, CLIP, diffusion models |
+| Language and audio | Text classification, BERT, language modelling, Whisper |
+
+Each of its 60 topics is tagged **Theory** (understand how it works), **Practice** (know when to use it and how to call it in code) or **Both**. Two rules in it are worth remembering: "breadth should be prioritized over depth", and topics that are not listed are excluded. The NOAI Prelim adds two areas the IOAI syllabus does not list as sections of their own: **Mathematics** and **Problem solving** (debugging and system design). This course covers all of them; the last module, *Beyond NOAI: the road to IOAI 2027*, goes deeper into the NTU and IOAI stages.
+
+<ExamTip>
+
+On Prelim day you sit a Google Form in your school's computer lab at 9:30 am. Pen and paper for rough work are the only things allowed: no calculator, notes, AI tools or websites. The next lesson shows exactly how the papers are scored and what that means for your strategy.
+
+</ExamTip>
+
+<Takeaways>
+
+- NOAI has two rounds, both run by AI Singapore: the **Prelim** (open entry, {PRELIM.questions} MCQs in {PRELIM.minutes} minutes) and the **Final** (top 150, 20 MCQs + 3 Python programming tasks). NTU then picks about 60 finalists for selection and training, and a team of 4 to 8 goes to IOAI.
+- Each stage rewards a different skill: **breadth and speed**, then **from-scratch coding**, then **real-model building**.
+- Key dates: Prelim **19 Feb 2027**; Final **5 Mar 2027** (14 days later); NTU Selection Test **8 May 2027**; IOAI in Singapore **4–10 Jul 2027**.
+- MOE students register **through their school** (school deadline {SIGN_UP}); home-schooled, between-school and private or international students email **{CONTACT_EMAIL}** by {WRITE_IN}.
+- Anyone eligible can compete; only Singapore Citizens and PRs can join the IOAI team.
+
+</Takeaways>
+
+<div style={{ fontSize: '0.85rem', color: 'var(--ink-3)' }}>
+  Facts checked against the official NOAI pages on {FACTS_CHECKED_ON}. Rules can change, so confirm on the <a href={LINKS.noai2027} target="_blank" rel="noreferrer">NOAI 2027 page</a> and the <a href={LINKS.faqs} target="_blank" rel="noreferrer">FAQ</a>.
+</div>

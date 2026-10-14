@@ -1,6 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Plot, Grid, Axes, FnPath, Path, Rect, DraggablePoint, M } from '../../../../../kit'
-import { useNarrow } from './useNarrow'
+import { Figure, Controls, Readout, Segmented, Toggle, Plot, Grid, Axes, FnPath, Path, Rect, DraggablePoint, M, useNarrow } from '../../../../../kit'
 
 /*
   The chord test for convexity. Two draggable points sit on the curve; the straight line

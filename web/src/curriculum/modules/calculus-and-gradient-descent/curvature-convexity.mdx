@@ -1,3 +1,285 @@
-{/* stub: lesson 'Curvature: second derivatives, convexity and the Hessian' is being written */}
+import CurvatureExplorer from './visuals/curvature-convexity/CurvatureExplorer'
+import ConvexChord from './visuals/curvature-convexity/ConvexChord'
+import SaddleSurface from './visuals/curvature-convexity/SaddleSurface'
+import TaylorFit from './visuals/curvature-convexity/TaylorFit'
+import HessianCost from './visuals/curvature-convexity/HessianCost'
 
-This lesson is being written.
+The gradient tells you which way is downhill, and when it is zero you know the ground is flat. But flat ground could be the bottom of a valley, the top of a hill, or the middle of a mountain pass. To tell them apart you need to know how the ground **bends**: its curvature, measured by second derivatives. Curvature also explains which losses are easy to minimise, and it powers a faster but very expensive alternative to gradient descent called Newton's method.
+
+## Second derivatives measure bending
+
+The <Term def="The derivative of the derivative, written f″(x). It measures how fast the slope is changing: positive means the curve bends upwards, negative means it bends downwards.">second derivative</Term> $f''(x)$ is the derivative of $f'(x)$. It tells you how the **slope** is changing as $x$ increases:
+
+- $f''(x) > 0$: the slope is increasing, so the curve bends **upwards** ($\cup$), like a bowl.
+- $f''(x) < 0$: the slope is decreasing, so the curve bends **downwards** ($\cap$), like a cap.
+
+For example, $x^2$ has $f''(x) = 2$, so it bends up everywhere, and $-x^2$ has $f''(x) = -2$. The cubic $x^3$ has $f''(x) = 6x$: it bends down for $x < 0$ and up for $x > 0$. A point where the bending switches direction, like $x = 0$ here, is an <Term def="A point where a curve switches from bending up to bending down, or the other way round.">inflection point</Term>.
+
+Now combine this with flat ground. A <Term def="A point where the derivative (with many inputs: the whole gradient) is zero, so the ground is flat there. Also called a stationary point.">critical point</Term> is a point where $f'(x) = 0$. The **second-derivative test** classifies it:
+
+- $f'(x) = 0$ and $f''(x) > 0$: flat and bending up, the bottom of a $\cup$. A **local minimum**.
+- $f'(x) = 0$ and $f''(x) < 0$: flat and bending down, the top of a $\cap$. A **local maximum**.
+- $f'(x) = 0$ and $f''(x) = 0$: the test cannot decide. At $x = 0$, $x^4$ has a minimum, $-x^4$ a maximum and $x^3$ neither, yet all three have $f' = f'' = 0$ there.
+
+<Steps title="Find and classify the critical points of f(x) = x³ − 3x">
+  <Step title="Slope">
+    $f'(x) = 3x^2 - 3$.
+  </Step>
+  <Step title="Set the slope to zero">
+    $3x^2 - 3 = 0$, so $x^2 = 1$: $x = 1$ or $x = -1$.
+  </Step>
+  <Step title="Check the bending">
+    $f''(x) = 6x$. At $x = 1$, $f''(1) = 6 > 0$: a local minimum, with $f(1) = 1 - 3 = -2$. At $x = -1$, $f''(-1) = -6 < 0$: a local maximum, with $f(-1) = 2$.
+  </Step>
+  <Step title="Local is not global">
+    $f(-3) = -27 + 9 = -18$, far below $-2$, and $f$ keeps falling as $x$ goes further left. So $x = 1$ is only a *local* minimum: this function has no global minimum at all.
+  </Step>
+</Steps>
+
+<CurvatureExplorer />
+
+<QuickCheck
+  q="$f(x) = x^3 - 6x^2$ has critical points at $x = 0$ and $x = 4$. What kind of point is $x = 4$?"
+  options={['A local minimum', 'A local maximum', 'An inflection point with zero slope', 'Not a critical point, because $f(4) \\neq 0$']}
+  answer={0}
+  explain="$f'(x) = 3x^2 - 12x$ and $f''(x) = 6x - 12$. At $x = 4$, $f''(4) = 24 - 12 = 12 > 0$, so the curve bends up there: a local minimum. (At $x = 0$, $f''(0) = -12 < 0$, a local maximum.) A critical point needs a zero *slope*, not a zero value."
+/>
+
+## Convex functions: one valley only
+
+<Analogy title="A marble in a wok">
+
+Drop a marble anywhere into a wok and it always rolls to the same spot, the single bottom. There are no bumps or side pockets where it could get stuck. Functions shaped like a wok are called **convex**.
+
+</Analogy>
+
+Here is the precise test. Pick any two points on the graph and join them with a straight line, a <Term def="A straight line segment joining two points on a curve.">chord</Term>. A function is <Term def="A function whose graph never rises above any chord: every straight line joining two points on the graph lies on or above the graph. For a smooth function of one input this is the same as f″(x) ≥ 0 everywhere.">convex</Term> if **every chord lies on or above the graph**:
+
+$$
+f\big(\lambda a + (1-\lambda)\,b\big) \;\le\; \lambda f(a) + (1-\lambda)\,f(b)
+$$
+
+for all inputs $a$ and $b$ and every number $\lambda$ between 0 and 1.
+
+- $a$ and $b$ are any two inputs, the two ends of the chord.
+- $\lambda$ (lambda) is a mixing number between 0 and 1. As it goes from 0 to 1, the input $\lambda a + (1-\lambda)b$ slides from $b$ to $a$.
+- The left side is the height of the **curve** at that in-between input; the right side is the height of the **chord** there.
+- So the inequality says: *the curve is never above the chord.*
+
+For smooth functions of one input there is a quicker test: $f$ is convex exactly when $f''(x) \ge 0$ everywhere, i.e. it never bends downwards.
+
+<ConvexChord />
+
+| Function | Second derivative | Convex? |
+|---|---|---|
+| $x^2$ | $2$ | yes |
+| $e^x$ | $e^x > 0$ | yes, even though it has no minimum at all |
+| $\lvert x \rvert$ | $0$, except at the kink where it does not exist | yes: the chord test still works |
+| $x^4 - x^2$ | $12x^2 - 2$, negative near $x = 0$ | no |
+| $x^3$ | $6x$, negative when $x < 0$ | no |
+
+<KeyIdea>
+
+For a convex function, **every local minimum is a global minimum**. A downhill walker cannot be trapped in the wrong valley because there is only one, so gradient descent with a suitable learning rate is guaranteed to reach the global minimum (when one exists).
+
+</KeyIdea>
+
+<Reveal label="Why is every local minimum global? (a three-line argument)">
+
+Suppose a convex $f$ had a local minimum at $a$, but some other point $b$ was lower: $f(b) < f(a)$. The chord from $(a, f(a))$ to $(b, f(b))$ slopes down towards $b$, so just next to $a$ the chord is *below* the height $f(a)$. Convexity says the curve is on or below the chord, so the curve just next to $a$ is also below $f(a)$. Then $a$ was not a local minimum after all, so no lower point $b$ can exist.
+
+</Reveal>
+
+Which machine-learning losses are convex?
+
+- **Linear regression with mean squared error: convex.** The Grab loss from the previous lesson, $L(w) = 7.5\,(w - 2)^2 + 0.75$, has $L''(w) = 15 > 0$: a perfect bowl.
+- **Logistic regression with cross-entropy (log loss): convex.**
+- **Neural networks: not convex.** Here is one reason. Swap two hidden neurons (together with their weights) and the network computes exactly the same thing, so two different weight settings share the same lowest loss. Average those two settings and the two neurons become identical twins, which usually makes the network worse. The loss is low at both ends and higher in the middle, so the curve rises above the chord: exactly what convexity forbids.
+
+<PastPaperQuestion paper="prelim2026" n={75} />
+
+## Many inputs: the Hessian
+
+With two inputs, take partial derivatives of the partial derivatives. $f_{xx} = \frac{\partial^2 f}{\partial x^2}$ means "differentiate with respect to $x$ twice", and the **mixed** partial $f_{xy}$ means "differentiate with respect to $x$, then with respect to $y$". For the smooth functions in this course the order does not matter: $f_{xy} = f_{yx}$. Arrange all of them in a square table and you get the <Term def="The square matrix of all second-order partial derivatives of a function. With n inputs it is n × n and symmetric. It describes how the surface bends in every direction.">Hessian</Term>:
+
+$$
+H = \begin{bmatrix} f_{xx} & f_{xy} \\ f_{yx} & f_{yy} \end{bmatrix}
+$$
+
+With $n$ inputs the Hessian is an $n \times n$ matrix, and it is symmetric. The gradient (first derivatives) says which way is downhill; the Hessian (second derivatives) says how the ground bends.
+
+<Steps title="The Hessian of f(x, y) = x² + 3xy + y²">
+  <Step title="First partial derivatives">
+    $f_x = 2x + 3y$ and $f_y = 3x + 2y$. Both are 0 at $(0, 0)$, so the origin is a critical point.
+  </Step>
+  <Step title="Second partial derivatives">
+    $f_{xx} = 2$, $f_{yy} = 2$, and $f_{xy} = f_{yx} = 3$. So $H = \begin{bmatrix} 2 & 3 \\ 3 & 2 \end{bmatrix}$.
+  </Step>
+  <Step title="Along the axes it curves up">
+    Walking along the $x$-axis ($y = 0$) gives $f = x^2$; along the $y$-axis, $f = y^2$. Both bend up, so it *looks* like a minimum.
+  </Step>
+  <Step title="Along a diagonal it curves down">
+    Walk along the line $y = -x$: $f(t, -t) = t^2 - 3t^2 + t^2 = -t^2$, which bends **down**. So the origin is not a minimum: it is a saddle.
+  </Step>
+</Steps>
+
+The curvature in a direction $u$ (a unit vector) is $u^\top H u$. Its largest and smallest values over all directions are the two <Term def="Special numbers attached to a square matrix. For a symmetric matrix such as a Hessian, they are the largest and smallest curvatures over all directions. You will meet them properly in the linear algebra modules.">eigenvalues</Term> of $H$. Here they are $5$ (along $y = x$) and $-1$ (along $y = -x$). Their signs classify the critical point:
+
+- All eigenvalues positive: $H$ is <Term def="A symmetric matrix whose eigenvalues are all positive. As a Hessian it means the surface curves upwards in every direction.">positive definite</Term>. It curves up in every direction: a **local minimum**.
+- All eigenvalues negative: negative definite. A **local maximum**.
+- Some positive and some negative: a <Term def="A critical point where the surface curves up in some directions and down in others, like a horse saddle or a mountain pass.">saddle point</Term>.
+- Some eigenvalue zero: the test cannot decide.
+
+<Analogy title="A mountain pass">
+
+A road over a mountain pass climbs to the pass and then descends: along the road, the pass is the highest point. But the pass sits between two peaks: walking across the road from peak to peak, the pass is the lowest point. Up in one direction and down in the other is exactly a saddle point.
+
+</Analogy>
+
+<SaddleSurface />
+
+For a 2 × 2 Hessian you rarely need the eigenvalues themselves. From the vectors-and-matrices module you know $\det H$ and $\operatorname{trace} H$; it turns out that $\det H = \lambda_1 \lambda_2$ and $\operatorname{trace} H = \lambda_1 + \lambda_2$. So:
+
+- $\det H < 0$: the eigenvalues have opposite signs, so it is a **saddle**.
+- $\det H > 0$ and $\operatorname{trace} H > 0$: both positive, a **minimum**.
+- $\det H > 0$ and $\operatorname{trace} H < 0$: both negative, a **maximum**.
+- $\det H = 0$: the test cannot decide.
+
+For $\begin{bmatrix} 2 & 3 \\ 3 & 2 \end{bmatrix}$: $\det H = 2 \times 2 - 3 \times 3 = -5 < 0$, a saddle, with no eigenvalues needed.
+
+<Mistake title="Two traps">
+
+"The gradient is zero, so we have found a minimum." Maxima and saddle points have zero gradient too; zero gradient only means the ground is **flat**. And "both diagonal entries of $H$ are positive, so it is a minimum." The diagonal only gives the curvature along the axes; $x^2 + 3xy + y^2$ has positive diagonal entries and is still a saddle. Check $\det H$ (or the eigenvalues).
+
+</Mistake>
+
+<QuickCheck
+  q="At a critical point of a loss, the Hessian is $H = \begin{bmatrix} -2 & 1 \\ 1 & -3 \end{bmatrix}$. What is the point?"
+  options={['A local maximum', 'A local minimum', 'A saddle point', 'The test cannot decide']}
+  answer={0}
+  explain="$\det H = (-2)(-3) - 1 \times 1 = 5 > 0$, so both eigenvalues have the same sign, and $\operatorname{trace} H = -5 < 0$, so both are negative: negative definite, a local maximum. A saddle would need $\det H < 0$."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={38} />
+
+Saddle points matter in deep learning. With millions of parameters, a true minimum must curve up in *every one* of millions of directions, so critical points with some up and some down directions, saddles, are far more common. Near a saddle the gradient is tiny, so plain gradient descent can slow to a crawl, although the noise of training on small batches of data usually pushes it off. The Hessian also explains the previous lesson: its largest eigenvalue $\lambda_{\max}$ is the steepest curvature, which caps the learning rate at $\eta < 2/\lambda_{\max}$, and a big ratio $\lambda_{\max}/\lambda_{\min}$ is the long, narrow valley that makes gradient descent zig-zag.
+
+## Taylor approximation: every smooth curve is nearly a parabola
+
+Zoom in on a smooth function near a point $x_0$ and it looks like a simple polynomial, its <Term def="An approximation of a smooth function near a point x₀ by a polynomial built from its derivatives at x₀: a line (first order), a parabola (second order), and so on.">Taylor approximation</Term>:
+
+$$
+f(x_0 + d) \;\approx\; f(x_0) + f'(x_0)\,d + \tfrac{1}{2}\, f''(x_0)\, d^2
+$$
+
+- $d$ is a small step away from $x_0$.
+- The first two terms, $f(x_0) + f'(x_0)\,d$, are the tangent line: right height, right slope. Stopping there is the **first-order** approximation.
+- The last term adds the right amount of bending, turning the line into a parabola: the **second-order** approximation. The $\tfrac{1}{2}$ is there so that the parabola's second derivative is exactly $f''(x_0)$.
+
+The full Taylor series keeps adding higher-order terms, but optimisation stops at first or second order. The approximation is only trustworthy **locally**: close to $x_0$ it is excellent, far away it can be badly wrong.
+
+<Steps title="Estimate e^0.1 without a calculator">
+  <Step title="Pick a nearby point you know">
+    Use $f(x) = e^x$ at $x_0 = 0$. Every derivative of $e^x$ is $e^x$, so $f(0) = f'(0) = f''(0) = 1$.
+  </Step>
+  <Step title="First order">
+    $e^{0.1} \approx 1 + 1 \times 0.1 = 1.1$.
+  </Step>
+  <Step title="Second order">
+    $e^{0.1} \approx 1 + 0.1 + \tfrac{1}{2} \times 0.1^2 = 1 + 0.1 + 0.005 = 1.105$. The true value is $1.10517\ldots$
+  </Step>
+</Steps>
+
+Gradient descent trusts only the first-order model, the tangent line. A line has no bottom, so you must choose how far to follow it: that is the learning rate. The second-order model, a parabola, *has* a bottom, and you can jump straight to it.
+
+## Newton's method: jump to the bottom of the parabola
+
+The parabola $f(x) + f'(x)\,d + \tfrac{1}{2} f''(x)\,d^2$ has slope $f'(x) + f''(x)\,d$ in $d$. Setting that to zero gives $d = -f'(x)/f''(x)$, so <Term def="An optimisation method that fits a parabola using the first and second derivatives, then jumps to its lowest point: x ← x − f′(x)/f″(x).">Newton's method</Term> repeats
+
+$$
+x_{\text{new}} = x - \frac{f'(x)}{f''(x)}.
+$$
+
+Compare it with gradient descent, $x - \eta\,f'(x)$: Newton's method is gradient descent with the learning rate $\eta = 1/f''(x)$, the "land on the bottom in one step" value from the previous lesson, recomputed at every point. Where the curve bends sharply it steps cautiously; where it is gently curved it strides.
+
+<Steps title="Newton's method on f(x) = x² − 6x + 5, starting at x = 10">
+  <Step title="Derivatives">
+    $f'(x) = 2x - 6$, so $f'(10) = 14$. And $f''(x) = 2$.
+  </Step>
+  <Step title="One Newton step">
+    $x_{\text{new}} = 10 - \dfrac{14}{2} = 3$.
+  </Step>
+  <Step title="Check">
+    $f'(3) = 0$ and $f'' > 0$: it is the minimum, reached in one step. For any quadratic the parabola *is* the function, so Newton always lands in one jump. Gradient descent with $\eta = 0.1$ would only move from 10 to $10 - 1.4 = 8.6$.
+  </Step>
+</Steps>
+
+<TaylorFit />
+
+Two lessons from the visual. Near a minimum, Newton's method is extremely fast: once it is close, the number of correct digits roughly doubles every step. But it is only as good as its parabola. Where $f'' < 0$ the parabola opens downwards and Newton happily jumps to a **maximum**, and where $f''$ is close to 0 it jumps absurdly far.
+
+With many parameters the update becomes
+
+$$
+\mathbf{w} \leftarrow \mathbf{w} - H^{-1}\, \nabla L(\mathbf{w})
+$$
+
+where $H^{-1}$ is the inverse of the Hessian, playing the role of $1/f''$. It rescales every direction by its own curvature, so a long, narrow valley is treated like a round bowl: on a quadratic loss, Newton's method reaches the minimum in a single step with no zig-zag at all. The catch is the cost. With $n$ parameters the Hessian has $n^2$ entries, and solving with it takes about $n^3$ arithmetic operations every step, written $O(n^3)$.
+
+<HessianCost />
+
+<PastPaperQuestion paper="prelim2026" n={74} />
+
+That is why deep learning sticks to **first-order** methods (gradient descent, SGD, momentum, Adam): they need only the gradient, $n$ numbers, which backpropagation computes at roughly the cost of a couple of forward passes. Models with few parameters can afford some curvature information: scikit-learn's `LogisticRegression` uses the `lbfgs` solver by default, a "quasi-Newton" method that builds a cheap approximation of the curvature from recent gradients instead of computing the full Hessian.
+
+## In code
+
+NumPy can check a Hessian's eigenvalues and take a Newton step. `np.linalg.solve(A, g)` computes $A^{-1} g$ without forming the inverse, which is faster and more accurate. The second half runs on the long, narrow valley from the previous lesson.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+H = np.array([[2.0, 3.0],
+              [3.0, 2.0]])          # Hessian of x² + 3xy + y²
+print("eigenvalues:", np.linalg.eigvalsh(H))
+print("det:", round(np.linalg.det(H), 6), " trace:", np.trace(H))
+
+# The long valley L = 0.5 * (0.1 * w1² + w2²) from the last lesson
+A = np.array([[0.1, 0.0],
+              [0.0, 1.0]])          # its Hessian
+w0 = np.array([-4.0, 2.0])
+
+# Newton: w - H⁻¹ ∇L (solve() avoids forming the inverse)
+w = w0 - np.linalg.solve(A, A @ w0)
+print("Newton, after 1 step:", w)
+
+# Gradient descent with a safe learning rate
+w = w0.copy()
+for step in range(1, 1000):
+    w = w - 1.8 * (A @ w)
+    if np.linalg.norm(w) < 0.01:
+        print("Gradient descent: within 0.01 of the minimum after", step, "steps")
+        break`} />
+
+`np.linalg.eigvalsh` (for symmetric matrices) prints the eigenvalues $-1$ and $5$: mixed signs, a saddle. Newton lands on $[0, 0]$ in one step, while gradient descent needs 31 zig-zagging steps to get within 0.01 of it.
+
+<ExamTip>
+
+These ideas appear in NOAI mostly as quick recall and diagnosis questions:
+
+- The **Hessian** is the matrix of **second-order partial derivatives**.
+- At a critical point: Hessian **positive definite** (all eigenvalues $> 0$) means a local **minimum**; negative definite a maximum; mixed signs a **saddle**. For 2 × 2: $\det H < 0$ means saddle.
+- **Taylor series**: used to **approximate a function locally**, near one point.
+- **Newton's method**: $x - f'/f''$, or $\mathbf{w} - H^{-1}\nabla L$. Fast near a minimum, but storing the Hessian costs $O(n^2)$ memory and inverting it $O(n^3)$ time, so it is rarely used for deep networks.
+- **Convex**: every chord on or above the graph ($f'' \ge 0$); every local minimum is global, so gradient descent with a suitable learning rate reaches the global minimum. Linear and logistic regression losses are convex; neural network losses are not.
+
+</ExamTip>
+
+<Takeaways>
+
+- The second derivative measures bending: $f'' > 0$ bends up, $f'' < 0$ bends down. At a critical point ($f' = 0$), $f'' > 0$ means a local minimum and $f'' < 0$ a local maximum.
+- A function is convex when every chord lies on or above its graph ($f'' \ge 0$ in 1-D). For convex functions every local minimum is global, so gradient descent can reach it.
+- The Hessian is the matrix of second partial derivatives. Its eigenvalues are the extreme curvatures: all positive means minimum, all negative maximum, mixed signs saddle.
+- A Taylor approximation replaces a function near a point by a line (first order) or a parabola (second order).
+- Newton's method jumps to the bottom of that parabola, $\mathbf{w} - H^{-1}\nabla L$: very fast, but $O(n^2)$ memory and $O(n^3)$ work per step make it impractical for networks with millions of weights.
+
+</Takeaways>

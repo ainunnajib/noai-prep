@@ -1,6 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Segmented, Slider, Plot, Grid, Axes, FnPath, Path, Rect, Dots, Label, VLine, DraggablePoint, M } from '../../../../../kit'
-import { useNarrow } from './useNarrow'
+import { Figure, Controls, Readout, Segmented, Slider, Plot, Grid, Axes, FnPath, Path, Rect, Dots, Label, VLine, DraggablePoint, M, useNarrow } from '../../../../../kit'
 
 /*
   Why the learning rate has a hard limit. For L(w) = (c/2) w² the update is

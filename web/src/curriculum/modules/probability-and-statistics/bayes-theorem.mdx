@@ -1,3 +1,241 @@
-{/* stub: lesson 'Bayes' theorem' is being written */}
+import BayesGrid from './visuals/bayes-theorem/BayesGrid'
+import BaseRateCurve from './visuals/bayes-theorem/BaseRateCurve'
+import PriorPosteriorBars from './visuals/bayes-theorem/PriorPosteriorBars'
 
-This lesson is being written.
+A test for a rare condition catches 90% of the people who have it. You test positive. How worried should you be? Most people say "90% worried". The real answer is closer to 15%. The tool that gets this right is **Bayes' theorem**. It turns "how likely is the evidence if the hypothesis is true?" into "how likely is the hypothesis now that I have seen the evidence?", and the same idea powers spam filters, the Naive Bayes classifier and much of modern machine learning.
+
+## The puzzle
+
+Here is the set-up we will use for the whole first half of the lesson.
+
+- 1% of people have a certain condition. This is the <Term def="How common something is in the whole population before you look at any evidence. Also called the base rate.">prevalence</Term>, also called the <Term def="The proportion of the population with the condition, before any test. Another name for prevalence.">base rate</Term>.
+- The test catches 90% of people who have it. This is the test's <Term def="The probability that the test is positive for someone who really has the condition: P(positive | condition). Also called the true positive rate or recall.">sensitivity</Term>, $P(+ \mid \text{condition}) = 0.9$.
+- The test also wrongly flags 5% of healthy people. This is the <Term def="The probability that the test is positive for someone who does NOT have the condition: P(positive | healthy).">false-positive rate</Term>, $P(+ \mid \text{healthy}) = 0.05$.
+
+Make a guess before reading on.
+
+<QuickCheck
+  q="Someone tests positive. Roughly how likely is it that they really have the condition?"
+  options={['About 15%', 'About 90%', 'About 95%', 'About 50%']}
+  answer={0}
+  explain="Healthy people outnumber sick people 99 to 1, so the 5% of healthy people who are wrongly flagged outnumber the sick people who are correctly flagged. The counting below shows it is about 9 true positives for every 50 false positives, roughly 15%. If you guessed 90%, you confused P(positive | condition) with P(condition | positive), which is exactly the trap this lesson is about."
+/>
+
+<Analogy>
+Imagine a haze alarm at your school that sometimes beeps on clear days. If real haze is rare, most of the beeps you ever hear will be on clear days, even if the sensor is good. A beep is evidence of haze, but it can't overcome how rare haze is on its own.
+</Analogy>
+
+## Bayes by counting people
+
+The surest way to get this right is to stop thinking about percentages and **count people**. Picture 1000 people and sort them into four groups.
+
+<BayesGrid />
+
+Do it by hand with 10,000 people, so that every count comes out a whole number.
+
+<Steps title="Counting 10,000 people">
+  <Step title="Split by the true condition">
+    1% of 10,000 = **100** people have the condition. The other **9,900** are healthy.
+  </Step>
+  <Step title="Test the people who have it">
+    The test catches 90% of the 100: **90** true positives. The other 10 are missed (false negatives).
+  </Step>
+  <Step title="Test the healthy people">
+    It wrongly flags 5% of the 9,900: **495** false positives.
+  </Step>
+  <Step title="Look only at the positives">
+    Everyone who tests positive: $90 + 495 = 585$ people. Of them, only 90 have the condition.
+  </Step>
+  <Step title="Divide">
+    $P(\text{condition} \mid +) = \frac{90}{585} = \frac{2}{13} \approx 15.4\%$. More than 5 out of 6 positive results are false alarms.
+  </Step>
+</Steps>
+
+<KeyIdea>
+When the prior is small, even an accurate test produces mostly false positives, because there are so many more healthy people for the false-positive rate to act on.
+</KeyIdea>
+
+Ignoring the base rate and answering "90%" is so common it has a name: the <Term def="The mistake of judging P(A | B) while ignoring how rare or common A is in the first place (its base rate).">base-rate fallacy</Term>. Underneath it is the mix-up from the last lesson: $P(+ \mid \text{condition}) = 0.9$ and $P(\text{condition} \mid +) \approx 0.15$ are different questions with very different answers.
+
+## From counting to the formula
+
+Bayes' theorem is that counting argument written with symbols. Start from the multiplication rule of the previous lesson, which can be written two ways, because "A and B" is the same event as "B and A":
+
+$$
+\begin{aligned}
+P(A \cap B) &= P(A \mid B)\,P(B) \\
+             &= P(B \mid A)\,P(A)
+\end{aligned}
+$$
+
+Divide both sides by $P(B)$ and you get **Bayes' theorem**:
+
+$$
+P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}
+$$
+
+Each piece has a name. In the medical test, $A$ is "has the condition" and $B$ is "tests positive".
+
+| Symbol | Name | Meaning | In our example |
+|---|---|---|---|
+| $P(A)$ | <Term def="Your belief in the hypothesis BEFORE you see the evidence.">prior</Term> | belief before the evidence | $0.01$ |
+| $P(B \mid A)$ | <Term def="How probable the evidence is IF the hypothesis is true. Not a probability of the hypothesis.">likelihood</Term> | how probable the evidence is if $A$ is true | $0.9$ |
+| $P(B)$ | evidence | how probable the evidence is overall | $0.0585$ |
+| $P(A \mid B)$ | <Term def="Your updated belief in the hypothesis AFTER seeing the evidence.">posterior</Term> | belief after the evidence | $\approx 0.154$ |
+
+The denominator $P(B)$ counts **every way** to test positive: true positives plus false positives. This is called the *law of total probability*:
+
+$$
+\begin{aligned}
+P(B) = {} & P(B \mid A)\,P(A) \\
+          & + P(B \mid \text{not } A)\,P(\text{not } A)
+\end{aligned}
+$$
+
+<Steps title="The same answer from the formula">
+  <Step title="Numerator: the true positives">
+    $P(+ \mid \text{condition})\,P(\text{condition}) = 0.9 \times 0.01 = 0.009$. (Out of 10,000 people, that is the 90.)
+  </Step>
+  <Step title="Denominator: all positives">
+    $0.009 + 0.05 \times 0.99 = 0.009 + 0.0495 = 0.0585$. (That is the 585.)
+  </Step>
+  <Step title="Divide">
+    $\frac{0.009}{0.0585} = \frac{90}{585} = \frac{2}{13} \approx 0.154$. It matches the count exactly, because the formula *is* the count.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={52} />
+
+<QuickCheck
+  q="$P(A) = 0.2$, $P(B \mid A) = 0.5$ and $P(B) = 0.25$. What is $P(A \mid B)$?"
+  options={['$0.4$', '$0.1$', '$0.5$', '$0.625$']}
+  answer={0}
+  explain="$P(A \mid B) = \frac{0.5 \times 0.2}{0.25} = \frac{0.1}{0.25} = 0.4$. The value 0.1 is $P(A \cap B)$, the numerator before you divide by $P(B)$. Answering 0.5 just copies $P(B \mid A)$, the classic confusion of the two directions."
+/>
+
+<Mistake>
+Treating $P(B \mid A)$ as if it were $P(A \mid B)$. "90% of people with the condition test positive" does **not** mean "90% of people who test positive have the condition". To turn one into the other you always need the prior $P(A)$.
+</Mistake>
+
+<ExamTip>
+Without a calculator, don't push decimals through the formula. Imagine 1000 (or 10,000) people, fill in the four counts (true positives, false negatives, false positives, true negatives), then compute **true positives ÷ all positives**. For definition questions: Bayes' theorem computes $P(A \mid B)$ from $P(B \mid A)$; the prior is $P(A)$; the posterior is $P(A \mid B)$.
+</ExamTip>
+
+## The base rate changes everything
+
+Keep the test exactly the same and change only how common the condition is.
+
+<BaseRateCurve />
+
+With the default test, a positive result means about 15% at 1% prevalence, about 67% at 10% prevalence, and about 95% at 50% prevalence. The test did not change; the prior did. Choose **2** positive tests in a row: at 1% prevalence the belief jumps from 15% to about 77%. That is why doctors confirm a surprising positive with a second, independent test.
+
+<Note title="Why AI cares: precision on rare classes">
+A fraud detector or disease classifier is a test, too. Its **precision**, the fraction of flagged cases that are real, is exactly a posterior: $P(\text{real} \mid \text{flagged})$. When the positive class is rare, a model can have high accuracy and a low false-positive rate and *still* have poor precision, because the many negatives produce many false alarms. Always check precision on imbalanced data.
+</Note>
+
+## Bayes as a learning rule: prior to posterior
+
+Bayes' theorem is more than a formula for medical tests. It is a recipe for **learning from evidence**: start with a belief, see a clue, update the belief, repeat.
+
+<Analogy>
+You are trying to guess where your friend is: at the hawker centre, at the library, or at home. Each clue they let slip, such as a photo of kopi or a very quiet phone call, makes some places more believable and others less. You never become certain, but each clue shifts your guess.
+</Analogy>
+
+When there are several hypotheses $H_1, H_2, H_3$ and a piece of evidence $E$, Bayes' theorem for each one is
+
+$$
+P(H_i \mid E) = \frac{P(E \mid H_i)\,P(H_i)}{\sum_j P(E \mid H_j)\,P(H_j)}
+$$
+
+The denominator is the same for every hypothesis. It is just the total of the numerators, there only to make the posteriors add up to 1. So the whole rule fits in one line:
+
+$$
+\text{posterior} \;\propto\; \text{likelihood} \times \text{prior}
+$$
+
+The symbol $\propto$ means "is proportional to": multiply prior by likelihood for every hypothesis, then divide each result by their total. That last step is called <Term def="Dividing a set of numbers by their total so that they add up to 1.">normalising</Term> (or renormalising).
+
+<PriorPosteriorBars />
+
+<Steps title="Clue 1 with an even prior">
+  <Step title="Prior">
+    No idea where they are: $\frac{1}{3}$ each for hawker centre, library and home.
+  </Step>
+  <Step title="Likelihoods of the clue">
+    They send a photo of kopi. That is quite likely at a hawker centre (0.6), unlikely in a library where drinks are banned (0.1), possible at home (0.3).
+  </Step>
+  <Step title="Multiply">
+    $\frac{1}{3} \times 0.6 = 0.2$, $\quad \frac{1}{3} \times 0.1 \approx 0.033$, $\quad \frac{1}{3} \times 0.3 = 0.1$. These add to $\frac{1}{3}$, not 1.
+  </Step>
+  <Step title="Normalise">
+    Divide each by $\frac{1}{3}$: the posterior is $0.6, 0.1, 0.3$. With an even prior, the posterior has the same shape as the likelihoods.
+  </Step>
+  <Step title="Repeat">
+    The posterior $0.6, 0.1, 0.3$ becomes the prior for clue 2, and so on. Today's posterior is tomorrow's prior.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="Two hypotheses start at $P(H_1) = P(H_2) = 0.5$. A clue has $P(E \mid H_1) = 0.8$ and $P(E \mid H_2) = 0.2$. What is $P(H_1 \mid E)$?"
+  options={['$0.8$', '$0.4$', '$0.5$', '$0.6$']}
+  answer={0}
+  explain="Multiply: $0.5 \times 0.8 = 0.4$ and $0.5 \times 0.2 = 0.1$. Normalise by the total $0.5$: $0.4 / 0.5 = 0.8$. The value 0.4 is the unnormalised product; you must still divide by the total."
+/>
+
+### Naive Bayes: the spam filter
+
+A **Naive Bayes** classifier is exactly this learning rule with words as the clues. The hypotheses are "spam" and "not spam". The prior is how common spam is. Each word in an email is a clue with a likelihood under each class, learnt by counting words in labelled emails. To combine many words, it multiplies all their likelihoods, which assumes the words are independent of each other once you know the class. That assumption is the "naive" part.
+
+For example, say 40% of emails are spam, the word "free" appears in 50% of spam but 10% of normal email, and "prize" appears in 30% of spam but 2% of normal email. For an email containing both words:
+
+- spam: $0.4 \times 0.5 \times 0.3 = 0.06$
+- not spam: $0.6 \times 0.1 \times 0.02 = 0.0012$
+
+After normalising, $P(\text{spam} \mid \text{free, prize}) = \frac{0.06}{0.06 + 0.0012} \approx 0.98$.
+
+The independence assumption is usually false ("free" and "prize" tend to appear together), but the classifier only needs to get the **ranking** of the classes right, so it often works surprisingly well. It is also very fast to train.
+
+<PastPaperQuestion paper="prelim2026" n={158} />
+
+## In Python
+
+Here is Bayes' theorem as a function, checked by simulating a million people, plus a second test that uses the first posterior as its prior.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def posterior(prior, sens, fpr):
+    """P(condition | positive test), by Bayes' theorem."""
+    evidence = sens * prior + fpr * (1 - prior)   # P(positive)
+    return sens * prior / evidence
+
+print("Bayes formula:", round(posterior(0.01, 0.90, 0.05), 4))
+
+# Check by simulating a million people
+rng = np.random.default_rng(0)
+n = 1_000_000
+sick = rng.random(n) < 0.01
+positive = np.where(sick, rng.random(n) < 0.90, rng.random(n) < 0.05)
+print("Simulation:   ", round(sick[positive].mean(), 4))
+
+# Test again: the first posterior is the second prior
+p1 = posterior(0.01, 0.90, 0.05)
+p2 = posterior(p1, 0.90, 0.05)
+print("After two positive tests:", round(p2, 4))`} />
+
+The output is:
+
+```text
+Bayes formula: 0.1538
+Simulation:    0.1539
+After two positive tests: 0.766
+```
+
+`sick[positive]` keeps only the people who tested positive, so its mean is the fraction of them who are really sick. The simulation is the counting picture from the start of the lesson, done a million times.
+
+<Takeaways>
+- Bayes' theorem: $P(A \mid B) = \dfrac{P(B \mid A)\,P(A)}{P(B)}$. It turns $P(B \mid A)$ into $P(A \mid B)$.
+- Prior = belief before the evidence; likelihood = how probable the evidence is under the hypothesis; posterior = belief after.
+- Count people: posterior = true positives ÷ all positives. With a rare condition, most positives are false alarms (the base-rate fallacy).
+- Posterior ∝ likelihood × prior, then normalise. Each posterior becomes the prior for the next piece of evidence.
+- Naive Bayes multiplies word likelihoods, assuming the words are independent given the class.
+</Takeaways>

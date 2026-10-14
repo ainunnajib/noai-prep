@@ -1,3 +1,281 @@
-{/* stub: lesson 'U-Net segmentation' is being written */}
+import SkipDetailDemo from './visuals/u-net-segmentation/SkipDetailDemo'
+import TransposedConvStepper from './visuals/u-net-segmentation/TransposedConvStepper'
+import UNetShapeTracer from './visuals/u-net-segmentation/UNetShapeTracer'
+import CenterCropper from './visuals/u-net-segmentation/CenterCropper'
 
-This lesson is being written.
+A classifier looks at a scan and says "tumour: yes". A surgeon needs more: *which pixels* are tumour? Giving every pixel its own label is called segmentation, and the network most people reach for is **U-Net**, built in 2015 by Olaf Ronneberger, Philipp Fischer and Thomas Brox to outline cells in microscope images. A whole programming task in the NOAI 2026 Final was about a U-Net that crashed because two feature maps had different sizes. By the end of this lesson you will be able to trace every shape in a U-Net by hand and fix that crash.
+
+## From one label per image to one label per pixel
+
+<Term def="Giving every pixel of an image a class label (road, car, sky...). All pixels of the same class get the same label, even if they belong to different objects.">Semantic segmentation</Term> asks for a class for **every pixel**. If there are $K$ classes, the network outputs $K$ scores for each pixel, so for one image the output has shape $(K, H, W)$: the same height and width as the picture. In PyTorch, with a batch of $N$ images, the output is `(N, K, H, W)`. To turn scores into a label map you take the highest score at each pixel, `logits.argmax(dim=1)`, which gives shape `(N, H, W)`. Training uses ordinary cross-entropy, averaged over all pixels: `nn.CrossEntropyLoss` accepts `(N, K, H, W)` scores and `(N, H, W)` integer labels directly.
+
+Here is the difficulty. To decide **what** a pixel shows, a network needs context: a grey pixel could be road, roof or sky, and only the surroundings tell you which. CNNs get context by downsampling: every pooling layer halves the height and width, so later layers "see" a larger area of the image. A classifier squeezes a $224 \times 224$ photo all the way down to $7 \times 7$. But a $7 \times 7$ map cannot say **where** a boundary is to the nearest pixel. Segmentation needs both answers at once.
+
+<Analogy title="Summarise, then rewrite with the original open">
+
+Your teacher asks you to retell a 30-page history chapter. First you squeeze it into a one-page summary of key points: perfect for understanding what the chapter is *about*, but the exact dates and names are gone. Then you rewrite the full story from your summary. Written from the summary alone, the result is vague. If you can glance back at the original pages while you rewrite, you get the big picture *and* the exact details. In a U-Net the summary is the **encoder**, the rewriting is the **decoder**, and glancing back at the original pages is the **skip connections**.
+
+</Analogy>
+
+## The U shape: encoder, bottleneck, decoder
+
+A U-Net has three parts, drawn as a letter U.
+
+- The <Term def="The first half of the network. It repeatedly applies convolutions and then downsamples, so the feature maps get smaller but have more channels. It works out WHAT is in the image.">encoder</Term> (the left arm, going down). Each level applies two $3 \times 3$ convolutions with ReLU, then a $2 \times 2$ max pool that halves the height and width. The number of channels doubles at each level: 64, 128, 256, 512.
+- The <Term def="The deepest, smallest feature map in the middle of an encoder-decoder network. It has the largest view of the image but the least spatial detail.">bottleneck</Term> (the bottom of the U): the smallest map, which sees the most context.
+- The <Term def="The second half of the network. It repeatedly upsamples the feature maps back to full size so that it can make a prediction for every pixel. It works out WHERE things are.">decoder</Term> (the right arm, going up). Each level **upsamples** by 2, joins the result with the encoder map of the same size, and applies two $3 \times 3$ convolutions. A final $1 \times 1$ convolution turns each pixel's channels into $K$ class scores.
+
+The horizontal bridges are the <Term def="In U-Net: a direct path that copies an encoder feature map across to the decoder level of the same size, where it is concatenated with the upsampled map.">skip connections</Term>. They copy each encoder map straight across the U to the decoder level with the same size. Why bother, when the bottleneck has already seen everything? Explore what each level still knows about *where* the object is.
+
+<SkipDetailDemo />
+
+With every skip off, the decoder only has the $4 \times 4$ bottleneck to work from. Enlarging it smoothly gives blobs: boundaries land in roughly the right place, and anything thinner than a bottleneck square, like the road, is lost. Each skip connection hands the decoder a sharper map. Early segmentation networks that upsampled straight from a coarse map produced exactly these blobby masks, which is why the skips matter so much.
+
+<KeyIdea>
+
+The encoder finds **what** is in the image by shrinking it; the decoder rebuilds full resolution to say **where**. Skip connections carry the encoder's high-resolution maps across the U, so the decoder gets the context from below *and* the fine detail from the side.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={223} />
+
+## Why concatenate, not add?
+
+A U-Net joins the two maps with `torch.cat([skip, up], dim=1)`. Remember that PyTorch stores images as `(N, C, H, W)`: batch, channels, height, width. So `dim=1` stacks the two maps along the **channel** axis: 128 channels from the skip plus 128 from the decoder give 256 channels. For this to work, every other dimension (N, H and W) must match **exactly**. That one rule causes all the crashes later in this lesson.
+
+ResNet's skip connections **add** instead ($x + F(x)$). Why does U-Net concatenate? The convolution that comes next gives every input channel its own weights. After concatenation, it can learn one set of weights for the sharp "where" channels from the skip and a different set for the "what" channels from below: in symbols, $W_a * \text{skip} + W_b * \text{up}$. Adding first would force the two to share weights ($W_a = W_b$), mixing them before the network could decide how much to trust each. Concatenation costs more channels, but it keeps the decoder's options open.
+
+<QuickCheck
+  q="The skip map has shape (1, 128, 64, 64) and the upsampled decoder map has shape (1, 128, 64, 64). What shape comes out of torch.cat([skip, up], dim=1)?"
+  options={['(1, 256, 64, 64)', '(2, 128, 64, 64)', '(1, 128, 128, 64)', '(1, 128, 64, 64)']}
+  answer={0}
+  explain="dim=1 is the channel axis, so the channels add: 128 + 128 = 256, while N, H and W stay the same. (2, 128, 64, 64) is what dim=0 would give: two images in a batch, which is not what a skip connection means. The next convolution must therefore be built with in_channels=256."
+/>
+
+<Mistake title="Concatenating on the wrong axis">
+
+`torch.cat([skip, up], dim=0)` stacks along the **batch** axis: it pretends the skip map is another image. It may even run without an error, and then the next convolution complains that it expected 256 channels but got 128. Skip connections always join along `dim=1`, and the decoder convolution's `in_channels` must equal the **sum** of the two channel counts.
+
+</Mistake>
+
+## Upsampling with a transposed convolution
+
+How does the decoder make a map bigger? The most common layer is the <Term def="A learnable upsampling layer (nn.ConvTranspose2d). Each input value multiplies the whole kernel, and the results are added into a larger output, spaced by the stride. Sometimes misleadingly called 'deconvolution'.">transposed convolution</Term>. Think of a rubber stamp: for each input value, press the kernel onto a bigger sheet, with the ink multiplied by that value, and move along by the stride before the next press. Where two presses overlap, the ink adds up. The kernel's values are **learned**, so the network learns how to fill in the new pixels.
+
+<TransposedConvStepper />
+
+The output size follows from where the last stamp lands. With $n$ input values per row, the last stamp starts at position $(n - 1) \cdot s$ and is $k$ wide, so the full row has $(n - 1)s + k$ cells. Padding $p$ then trims $p$ cells from each end:
+
+$$
+n_{\text{out}} = (n - 1)\,s - 2p + k
+$$
+
+Here $n$ is the input height (or width), $s$ the stride (the spacing between stamps), $p$ the padding (cells trimmed from each edge) and $k$ the kernel size. Compare the ordinary convolution formula, $n_{\text{out}} = \lfloor (n + 2p - k)/s \rfloor + 1$. Ignore the rounding and solve it for the input size: $n = (n_{\text{out}} - 1)s - 2p + k$, the same formula with input and output swapped. A transposed convolution undoes a convolution's change in **shape** (not its values). A convolution with $k = 2, s = 2$ turns $8 \times 8$ into $4 \times 4$, and the transposed convolution with $k = 2, s = 2$ turns $4 \times 4$ back into $8 \times 8$.
+
+<Steps title="Output sizes by hand">
+  <Step title="The U-Net standard: $k = 2, s = 2, p = 0$">
+    $(n - 1) \cdot 2 - 0 + 2 = 2n$. It exactly doubles: $57 \to 114$, $12 \to 24$. The stamps tile the output with no gaps and no overlaps.
+  </Step>
+  <Step title="The stepper's default: $n = 2, k = 3, s = 2, p = 0$">
+    $(2 - 1) \cdot 2 - 0 + 3 = 5$. The stamps are 3 wide but only 2 apart, so the middle row and column are stamped twice.
+  </Step>
+  <Step title="With padding: $n = 7, k = 3, s = 2, p = 1$">
+    $(7 - 1) \cdot 2 - 2 + 3 = 13$. Not 14! This is why U-Nets use $k = 2, s = 2$: it doubles cleanly.
+  </Step>
+</Steps>
+
+In PyTorch the layer is `nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride)`. Setting the kernel to all ones reproduces the stepper's first example:
+
+```python
+import torch
+import torch.nn as nn
+
+x = torch.tensor([[[[1., 2.],
+                    [3., 4.]]]])            # shape (N, C, H, W) = (1, 1, 2, 2)
+
+up = nn.ConvTranspose2d(1, 1, kernel_size=2, stride=2, bias=False)
+with torch.no_grad():
+    up.weight.fill_(1.0)                    # a 2x2 kernel of ones
+    y = up(x)
+print(y)
+print(y.shape)
+```
+
+```text
+tensor([[[[1., 1., 2., 2.],
+          [1., 1., 2., 2.],
+          [3., 3., 4., 4.],
+          [3., 3., 4., 4.]]]])
+torch.Size([1, 1, 4, 4])
+```
+
+<Note title="Checkerboard artefacts">
+
+When the kernel size is not a multiple of the stride ($k = 3, s = 2$), some output pixels receive more stamps than their neighbours. A network then tends to produce faint checkerboard patterns, a problem made famous by the Distill article "Deconvolution and Checkerboard Artifacts" (2016). Two common cures: use $k = 2, s = 2$ as U-Net does, or upsample with a fixed method (`nn.Upsample(scale_factor=2)`, nearest or bilinear) followed by an ordinary convolution.
+
+</Note>
+
+<QuickCheck
+  q="What height does nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1) produce from a 7×7 input?"
+  options={['13', '14', '15', '4']}
+  answer={0}
+  explain="$(n-1)s - 2p + k = 6 \cdot 2 - 2 + 3 = 13$. 15 forgets to subtract $2p$, 14 assumes stride 2 always doubles, and 4 is the ordinary convolution formula $\lfloor (7 + 2 - 3)/2 \rfloor + 1$, which shrinks instead of growing."
+/>
+
+## Tracing shapes through the U
+
+Every shape in a U-Net comes from four rules. Learn them and you can trace any network:
+
+1. A $3 \times 3$ convolution with **same** padding ($p = 1$) keeps the size: $\lfloor (n + 2 - 3)/1 \rfloor + 1 = n$. With **valid** padding ($p = 0$) it loses 2: $n - 2$. Two of them per level lose 4.
+2. A $2 \times 2$ max pool halves and **rounds down**: $\lfloor n / 2 \rfloor$, so $25 \to 12$.
+3. A transposed convolution with $k = 2, s = 2$ doubles: $2n$.
+4. Concatenation adds channels and needs equal height and width.
+
+<UNetShapeTracer />
+
+<Steps title="The 2026 Final's network: a 256×256 input with valid padding">
+  <Step title="Encoder level 1">
+    Two valid $3 \times 3$ convs: $256 \to 254 \to 252$, with 64 channels. Pool: $126$.
+  </Step>
+  <Step title="Encoder level 2">
+    $126 \to 124 \to 122$: the skip map `x2` is $128 \times 122 \times 122$. Pool: $61$.
+  </Step>
+  <Step title="Bottleneck">
+    $61 \to 59 \to 57$, with 256 channels.
+  </Step>
+  <Step title="Upsample">
+    The transposed convolution doubles: $57 \to 114$, halving the channels to 128.
+  </Step>
+  <Step title="Crash">
+    `torch.cat` is asked to join a $122 \times 122$ map with a $114 \times 114$ map: "Sizes of tensors must match". Valid convolutions shrank the encoder map by 8 more pixels than the decoder map.
+  </Step>
+</Steps>
+
+There are two ways to get a mismatch. **Valid padding** makes every encoder map bigger than the decoder map it meets, at every level. **Odd sizes** cause trouble even with same padding: pooling turns 25 into 12, the decoder doubles 12 to 24, and $24 \ne 25$. The lost pixel never comes back.
+
+<QuickCheck
+  q="A U-Net with same padding and four 2×2 pooling steps is given a 200×200 image. What happens?"
+  options={['The deepest concatenation fails: skip 25×25, upsampled 24×24', 'It works: 200 is even, so every pool divides exactly', 'The top concatenation fails: skip 200×200, upsampled 192×192', 'It works, but the output is 192×192']}
+  answer={0}
+  explain="Pooling gives $200 \to 100 \to 50 \to 25 \to 12$ (floor of 12.5). The decoder doubles 12 to 24, but the deepest skip map is 25×25, so torch.cat crashes there before any higher level is reached. Being even is not enough: the size must be divisible by $2^4 = 16$, and $200/16 = 12.5$."
+/>
+
+## A tiny U-Net in PyTorch
+
+Here is a complete two-level U-Net with same padding. Read the comments for the shapes, then look at what happens with a 50×50 input.
+
+```python
+import torch
+import torch.nn as nn
+
+def double_conv(c_in, c_out):
+    return nn.Sequential(
+        nn.Conv2d(c_in, c_out, kernel_size=3, padding=1), nn.ReLU(),
+        nn.Conv2d(c_out, c_out, kernel_size=3, padding=1), nn.ReLU())
+
+class TinyUNet(nn.Module):
+    def __init__(self, in_ch=3, num_classes=2):
+        super().__init__()
+        self.enc1 = double_conv(in_ch, 64)
+        self.enc2 = double_conv(64, 128)
+        self.pool = nn.MaxPool2d(2)
+        self.bottleneck = double_conv(128, 256)
+        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        self.dec2 = double_conv(256, 128)   # 128 from the skip + 128 from up2
+        self.up1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.dec1 = double_conv(128, 64)    # 64 from the skip + 64 from up1
+        self.head = nn.Conv2d(64, num_classes, kernel_size=1)
+
+    def forward(self, x):
+        s1 = self.enc1(x)                   # (N, 64, H, W)       kept for the skip
+        s2 = self.enc2(self.pool(s1))       # (N, 128, H/2, W/2)  kept for the skip
+        b = self.bottleneck(self.pool(s2))  # (N, 256, H/4, W/4)
+        d2 = self.dec2(torch.cat([s2, self.up2(b)], dim=1))
+        d1 = self.dec1(torch.cat([s1, self.up1(d2)], dim=1))
+        return self.head(d1)                # (N, num_classes, H, W)
+
+torch.manual_seed(0)
+model = TinyUNet()
+logits = model(torch.randn(1, 3, 64, 64))
+print(logits.shape)
+print(logits.argmax(dim=1).shape)
+
+try:
+    model(torch.randn(1, 3, 50, 50))
+except RuntimeError as e:
+    print("50x50:", e)
+```
+
+```text
+torch.Size([1, 2, 64, 64])
+torch.Size([1, 64, 64])
+50x50: Sizes of tensors must match except in dimension 1. Expected size 25 but got size 24 for tensor number 1 in the list.
+```
+
+The 64×64 image works ($64 \to 32 \to 16 \to 32 \to 64$) and gives 2 scores per pixel; `argmax(dim=1)` turns them into a $64 \times 64$ label map. The 50×50 image crashes: $50 \to 25 \to 12$, and $2 \times 12 = 24 \ne 25$. The error message even says so: "except in dimension 1" means only the channels may differ.
+
+## Fixing a mismatch with a centre crop
+
+The original 2015 U-Net used valid convolutions throughout (its $572 \times 572$ input gave a $388 \times 388$ output) and fixed every mismatch the same way: **crop the bigger encoder map down to the decoder's size, keeping the middle**. You always crop the encoder map, because you cannot crop a small map to make it bigger. Cutting the same amount from each side keeps the crop lined up with the part of the image that the decoder map describes:
+
+$$
+\text{start} = \left\lfloor \frac{H_{\text{enc}} - H_{\text{dec}}}{2} \right\rfloor
+$$
+
+$H_{\text{enc}}$ is the encoder (skip) map's height, $H_{\text{dec}}$ the decoder map's height, and $\lfloor \cdot \rfloor$ means round down (Python's `//`). Then keep the rows from $\text{start}$ up to, but not including, $\text{start} + H_{\text{dec}}$: exactly $H_{\text{dec}}$ rows. Do the same for the width. For the Final's network: $\text{start} = (122 - 114) // 2 = 4$, so keep rows 4 to 117, which is exactly 114 rows.
+
+<CenterCropper />
+
+In PyTorch the crop is one slice on the last two axes (dims 2 and 3 of `(N, C, H, W)`), written as **start plus length**:
+
+```python
+import torch
+
+def center_crop(layer, target_shape):
+    _, _, h, w = layer.shape
+    th, tw = target_shape[2], target_shape[3]
+    top = (h - th) // 2
+    left = (w - tw) // 2
+    return layer[:, :, top:top + th, left:left + tw]
+
+skip = torch.randn(1, 128, 122, 122)   # encoder map (valid padding)
+up = torch.randn(1, 128, 114, 114)     # decoder map after ConvTranspose2d
+cropped = center_crop(skip, up.shape)
+print(cropped.shape)
+print(torch.cat([cropped, up], dim=1).shape)
+
+odd = torch.randn(1, 256, 25, 25)      # odd size before pooling
+print(center_crop(odd, (1, 256, 24, 24)).shape)
+```
+
+```text
+torch.Size([1, 128, 114, 114])
+torch.Size([1, 256, 114, 114])
+torch.Size([1, 256, 24, 24])
+```
+
+<Mistake title="Three crops that look right but are not">
+
+- **`layer[:, :, d:-d, d:-d]`** with `d = (h - th) // 2`. When the difference is odd it keeps one row too many ($15 \to 12$: $d = 1$ keeps 13 rows), and when the sizes are equal, `0:-0` means `0:0`, an **empty** tensor.
+- **Hard-coding** `layer[:, :, 4:118, 4:118]`. It fixes the 256×256 case and breaks for every other input size. Always compute the crop from the two shapes.
+- **Slicing the wrong axes**, such as `layer[top:top + th]`, which crops the batch. Height and width are dims 2 and 3.
+
+</Mistake>
+
+Cropping is not the only fix. With **same** padding you can choose input sizes divisible by $2^{\text{depth}}$ (for example 256 with four pools: $256 / 16 = 16$), so nothing is ever rounded down. Or you can resize the decoder map with `F.interpolate` or pad it with `F.pad`. Each has a cost: cropping throws away the border of the skip map (and makes the output smaller than the input, so the label masks must be cropped too), while padding and resizing invent or stretch values instead of keeping only real ones.
+
+<ExamTip>
+
+Prelim questions on U-Net are short recall: U-Net is for **segmentation**, its skip connections **preserve spatial detail for precise localisation**, and transposed convolutions **upsample**. The Final goes deeper: in 2026, Task 2 gave students a U-Net with valid padding that crashed at `torch.cat`. They had to write `center_crop(layer, target_shape)` and then compute mean IoU (the next lesson). Under exam pressure, trace the sizes with the four rules, write each shape as a comment, and compute the crop from `layer.shape`, never from numbers you worked out by hand.
+
+</ExamTip>
+
+<Takeaways>
+
+- A U-Net is an **encoder** (convolve and pool: learn *what*), a **bottleneck**, and a **decoder** (upsample: recover *where*), ending in a $1 \times 1$ convolution that outputs `(N, K, H, W)` class scores.
+- **Skip connections** copy encoder maps across the U and **concatenate** them on `dim=1`: channels add up, and height and width must match exactly.
+- A **transposed convolution** stamps the kernel once per input value and adds the overlaps; its output size is $(n - 1)s - 2p + k$, which is $2n$ for $k = s = 2$.
+- Mismatches come from **valid padding** (each 3×3 conv loses 2 pixels) and **odd sizes** (pooling floors, $25 \to 12 \to 24$).
+- Fix them with a **centre crop** of the encoder map: `start = (H_enc - H_dec) // 2`, slice `start:start + H_dec` on dims 2 and 3.
+
+</Takeaways>

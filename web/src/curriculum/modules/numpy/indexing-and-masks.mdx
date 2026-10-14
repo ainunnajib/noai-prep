@@ -1,3 +1,252 @@
-{/* stub: lesson 'Indexing, slicing and boolean masks' is being written */}
+import SliceHighlighter from './visuals/indexing-and-masks/SliceHighlighter'
+import MaskFilter from './visuals/indexing-and-masks/MaskFilter'
+import ViewCopyLink from './visuals/indexing-and-masks/ViewCopyLink'
+import MemoryStrip from './visuals/indexing-and-masks/MemoryStrip'
 
-This lesson is being written.
+export const MASK_CODE = `import numpy as np
+
+x = np.array([3, -1, 4, -1, 5])
+mask = x > 0
+print(mask)
+print(x[mask])
+print(mask.sum(), mask.mean())
+print(x[(x > 0) & (x < 5)])
+
+x[x < 0] = 0          # set every negative to 0
+print(x)
+
+# accuracy in one line
+y    = np.array([1, 0, 1, 1, 0])
+pred = np.array([1, 0, 0, 1, 1])
+print((pred == y).mean())`
+
+Real data work is mostly *picking things out*: the first 100 rows for training, the pixel column of one feature, every exam mark above 50, the predictions that were wrong. In NumPy you do all of this with square brackets, without a single loop. This lesson covers the three ways to pick (integers, slices and boolean masks), then answers a question that causes real bugs: when you pick part of an array, do you get **a new array or a window onto the old one**?
+
+<Analogy title="A cinema seating plan">
+
+A cinema seat is named by its row and then its seat number: row 2, seat 3. A NumPy element is named the same way, `arr[2, 3]`: row first, then column. And just as an usher might say "the whole of row 2" or "seat 3 in every row", a colon `:` means "all of them" along that direction.
+
+</Analogy>
+
+## Rows, columns and single elements
+
+For a 2-D array, the first index picks along axis 0 (rows) and the second along axis 1 (columns). Both count from 0, and negative numbers count from the end, so `-1` is the last one.
+
+- `arr[2, 3]` is one element: row 2, column 3.
+- `arr[0]` (or `arr[0, :]`) is the whole first **row**.
+- `arr[:, 0]` is the whole first **column**: every row, column 0.
+- `arr[1:3, ::2]` uses <Term def="A range of positions written start:stop:step. It starts at start, stops BEFORE stop, and moves step at a time. Any part can be left out: start defaults to 0, stop to the end and step to 1.">slices</Term> on both axes: rows 1 up to (not including) 3, and every second column.
+
+A slice `start:stop:step` works exactly like Python's `range`: begin at `start`, stop **before** `stop`, and move `step` at a time. Leave out `start` to begin at 0, leave out `stop` to run to the end, and leave out `step` to move 1 at a time. So `::2` means "from the start to the end, every second one", and `::-1` means "backwards".
+
+<SliceHighlighter />
+
+<KeyIdea>
+
+The first index chooses **rows** (axis 0), the second chooses **columns** (axis 1), and `:` keeps a whole axis. An **integer** index removes that axis from the result; a **slice** keeps it, even if it selects only one item.
+
+</KeyIdea>
+
+That last point explains a classic surprise. `arr[0]` and `arr[0:1]` pick the same six numbers, but `arr[0]` has shape `(6,)` while `arr[0:1]` has shape `(1, 6)`: the slice keeps the row axis with length 1.
+
+<Steps title="Work out arr[1:3, ::2] by hand (arr = np.arange(30).reshape(5, 6))">
+  <Step title="Rows">
+    `1:3` means rows 1 and 2 (stop at 3, not including it): 2 rows.
+  </Step>
+  <Step title="Columns">
+    `::2` means columns 0, 2 and 4 (start at 0, step 2, up to the end): 3 columns.
+  </Step>
+  <Step title="Values">
+    Element `[r, c]` of `arr` is $6r + c$. Row 1 gives 6, 8, 10 and row 2 gives 12, 14, 16.
+  </Step>
+  <Step title="Shape">
+    Both indices are slices, so both axes stay: shape $(2, 3)$, printed as `[[ 6  8 10] [12 14 16]]` over two lines.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={95} />
+
+<QuickCheck
+  q="With `arr = np.arange(30).reshape(5, 6)` (so `arr[r, c]` is $6r + c$), what is `arr[-1, 1:4]`?"
+  options={['`[25 26 27]`', '`[25 26 27 28]`', '`[24 25 26]`', '`[7 13 19]`']}
+  answer={0}
+  explain="`-1` is the last row, row 4, holding 24 to 29. The slice `1:4` takes columns 1, 2 and 3 (not 4), giving 25, 26, 27. `[7 13 19]` is column 1 of rows 1 to 3, which is `arr[1:4, 1]`: the indices in the wrong order."
+/>
+
+<Mistake title="arr[:][0] is not the first column">
+
+`arr[:, 0]` is the first column. But `arr[:][0]` is the first **row**: `arr[:]` is simply the whole array, and `[0]` then picks its first row. Put both indices inside **one** pair of brackets, separated by a comma.
+
+</Mistake>
+
+## Boolean masks: filtering without loops
+
+Compare an array with a number and you get an array of the same shape filled with `True` and `False`, one for each element. This is called a <Term def="An array of True/False values, the same shape as the data, used to pick out the elements where it is True.">boolean mask</Term>. Put the mask inside the brackets and NumPy keeps only the elements where it is `True`, read row by row into a 1-D array.
+
+<Analogy title="A stencil">
+
+Hold a stencil over a page and only the cut-out parts show through. The mask is the stencil: `True` is a hole, `False` is solid card.
+
+</Analogy>
+
+Three moves cover almost every use:
+
+- **Filter**: `x[x > 0]` keeps the positive values.
+- **Combine**: `(x > 0) & (x < 5)` means "and", `(x < 0) | (x > 9)` means "or", and `~mask` flips every value. Each comparison needs its own brackets.
+- **Count and measure**: in arithmetic `True` counts as 1 and `False` as 0, so `mask.sum()` counts the Trues and `mask.mean()` is the fraction that are True.
+
+That last move turns any comparison into a metric. Accuracy is the fraction of predictions that match the labels, so it is just `(pred == y).mean()`.
+
+<MaskFilter />
+
+<Steps title="x = np.array([3, -1, 4, -1, 5])">
+  <Step title="Make the mask">
+    `x > 0` compares every element with 0: `[ True False  True False  True]`, same shape as `x`.
+  </Step>
+  <Step title="Filter">
+    `x[x > 0]` keeps the elements under the Trues: `[3 4 5]`.
+  </Step>
+  <Step title="Count and measure">
+    `(x > 0).sum()` is $1 + 0 + 1 + 0 + 1 = 3$ and `(x > 0).mean()` is $3 \div 5 = 0.6$.
+  </Step>
+  <Step title="Assign through a mask">
+    `x[x < 0] = 0` overwrites only the negative elements, giving `[3 0 4 0 5]`. That one line is the ReLU activation you will meet in neural networks.
+  </Step>
+</Steps>
+
+<PyRunner packages={['numpy']} code={MASK_CODE} />
+
+<Mistake title="and, or and missing brackets">
+
+`x > 0 and x < 5` and `x > 0 & x < 5` both crash with `ValueError: The truth value of an array with more than one element is ambiguous`. Python's `and` wants a single True or False, not a whole array, and `&` is evaluated *before* `>`, so without brackets the comparisons get scrambled. Always write `(x > 0) & (x < 5)`.
+
+</Mistake>
+
+<ExamTip title="Masks in the Final">
+
+Segmentation metrics are pure mask arithmetic. The 2026 Final's IoU (intersection over union) question computed `(pred_mask & target_mask).sum()` for the overlap and `(pred_mask | target_mask).sum()` for the union, with masks made by `pred == cls`. If you can read this lesson's masks, you can read that code.
+
+</ExamTip>
+
+## Views and copies
+
+When you slice a NumPy array, NumPy does **not** copy the numbers. It gives you a <Term def="A new array object that looks at the SAME memory as an existing array. Changing a view changes the original, and the other way round.">view</Term>: a new array object that reads the same memory with a different shape or starting point. That makes slicing instant even for huge arrays, but it means **editing the slice edits the original**.
+
+Not every kind of indexing can be a view. The rules:
+
+- **Basic indexing** (integers and slices, like `a[1]`, `a[:, 2]`, `a[1:3, ::2]`), plus `a.T` and usually `reshape`, give **views**.
+- **Fancy indexing** (a list or array of positions, like `a[[0, 2]]`) and **boolean masks** (`a[a > 6]`) always give **copies**, because an arbitrary choice of positions cannot, in general, be described by one starting point and a fixed step.
+- `.copy()` always gives an independent copy.
+
+<Analogy title="A window or a photograph">
+
+A view is a window onto a garden: if someone plants a tree, you see it through the window. A copy is a photograph of the garden: it shows the garden as it was when you took it, and changes to either one do not reach the other.
+
+</Analogy>
+
+<ViewCopyLink />
+
+```python
+import numpy as np
+a = np.array([1, 2, 3, 4])
+b = a[1:3]        # basic slice: a view
+b[0] = 99
+print(a)
+
+c = a[[1, 2]]     # fancy indexing: a copy
+c[0] = -5
+print(a)
+print(np.shares_memory(a, b), np.shares_memory(a, c))
+```
+
+```text
+[ 1 99  3  4]
+[ 1 99  3  4]
+True False
+```
+
+<Note title="Lists behave the other way">
+
+Slicing a Python **list** makes a copy: after `s = lst[1:3]`, changing `s` leaves `lst` alone. Slicing a NumPy **array** makes a view. Exam questions sometimes test exactly this difference.
+
+</Note>
+
+<QuickCheck
+  q="Which values does `a` hold after this code runs?"
+  code={'import numpy as np\na = np.arange(5)\nb = a[a > 2]\nb[0] = 100'}
+  options={['0, 1, 2, 3, 4', '0, 1, 2, 100, 4', '100, 1, 2, 3, 4', '0, 1, 2, 100, 100']}
+  answer={0}
+  explain="`a[a > 2]` uses a boolean mask, so `b` is a copy holding `[3 4]`. Changing `b[0]` to 100 changes only the copy, and `a` is still `[0 1 2 3 4]`. With a basic slice such as `b = a[3:]` the edit would have reached `a`."
+/>
+
+<Mistake title="Changing your data by accident">
+
+`X_small = X[:100]` followed by `X_small -= X_small.mean()` also changes the first 100 rows of `X`, because `X_small` is a view. If you mean to work on a separate piece, write `X_small = X[:100].copy()`.
+
+</Mistake>
+
+## Memory layout and strides
+
+The first lesson showed that an array is one strip of memory plus **strides**: how many bytes to jump to move one step along each axis. A 2-D array is stored in row-major order, row 0 first, then row 1, and so on. Every view is just a different way of reading the *same* strip, described by three things: a starting offset, a shape and a pair of strides. For a 2-D view:
+
+$$
+\text{byte of } v[i, j] = \text{offset} + i \times \text{stride}_0 + j \times \text{stride}_1
+$$
+
+Here $i$ and $j$ are the row and column in the view, $\text{offset}$ is where the view starts in the strip, and the two strides are the byte jumps for one step down and one step across.
+
+The transpose `a.T` turns rows into columns without moving a single byte: it just **swaps the two strides**. A slice with a step, like `a[:, ::2]`, doubles a stride. That is why these are views and cost nothing.
+
+<MemoryStrip />
+
+<Steps title="Find a.T[1, 2] in memory (a = np.arange(12).reshape(3, 4), int64)">
+  <Step title="Strides of a">
+    Each int64 is 8 bytes and a row holds 4 of them, so `a.strides` is $(4 \times 8, 8) = (32, 8)$.
+  </Step>
+  <Step title="Strides of a.T">
+    The transpose swaps them: `a.T.strides` is $(8, 32)$, and its shape is $(4, 3)$.
+  </Step>
+  <Step title="Byte offset">
+    $1 \times 8 + 2 \times 32 = 8 + 64 = 72$ bytes from the start.
+  </Step>
+  <Step title="Read the value">
+    Byte 72 is slot $72 \div 8 = 9$, which holds 9. Check: `a.T[1, 2]` is `a[2, 1]` $= 2 \times 4 + 1 = 9$. ✓
+  </Step>
+</Steps>
+
+A view whose elements sit one after another in row-major order, with no gaps, is called <Term def="An array whose elements sit one after another in memory in row-major order, with no gaps. Reading it in order means stepping exactly one itemsize each time.">C-contiguous</Term>. `a` is; `a.T` is not, because reading it in order jumps $+32, +32, -56, \dots$ bytes. Most of the time you never notice, but some operations need contiguous memory. `np.ascontiguousarray(a.T)` (or `a.T.copy()`) makes a contiguous copy, with strides `(24, 8)`.
+
+<PastPaperQuestion paper="prelim2026" n={105} />
+
+<ExamTip title="Why PyTorch code says .contiguous()">
+
+PyTorch tensors have strides too, and `tensor.view(...)` only works on memory that is laid out contiguously. That is why transformer code, including the self-attention code in the 2026 Final, writes `out.transpose(1, 2).contiguous().view(B, T, C)`. Without `.contiguous()` the view fails:
+
+```python
+import torch
+x = torch.arange(12).reshape(3, 4)
+t = x.T
+print(t.is_contiguous())
+try:
+    t.view(12)
+except RuntimeError as e:
+    print("RuntimeError:", e)
+print(t.contiguous().view(12))
+```
+
+```text
+False
+RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+tensor([ 0,  4,  8,  1,  5,  9,  2,  6, 10,  3,  7, 11])
+```
+
+</ExamTip>
+
+<Takeaways>
+
+- `arr[i, j]` is row `i`, column `j`; `arr[0]` is the first row and `arr[:, 0]` the first column. Slices `start:stop:step` exclude `stop`; integers drop an axis, slices keep it.
+- A comparison makes a boolean mask of the same shape; `arr[mask]` keeps the True elements, `&`/`|`/`~` combine masks (with brackets), and `mask.mean()` turns a comparison into a metric such as accuracy.
+- Basic slices, `.T` and `reshape` give **views** that share memory, so edits flow back to the original; fancy indexing and masks give **copies**; use `.copy()` for independence.
+- Every view is (offset, shape, strides) over one strip of memory: the transpose just swaps the strides, which is why it costs nothing but is no longer contiguous.
+
+</Takeaways>

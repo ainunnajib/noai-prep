@@ -1,3 +1,325 @@
-{/* stub: lesson 'Dropout, weight decay, early stopping and augmentation' is being written */}
+import DropoutMask from './visuals/regularising-deep-networks/DropoutMask'
+import DecayAndStop from './visuals/regularising-deep-networks/DecayAndStop'
+import AugmentGapCurves from './visuals/regularising-deep-networks/AugmentGapCurves'
 
-This lesson is being written.
+export const earlyStopCode = `val_losses = [0.90, 0.70, 0.62, 0.60, 0.61, 0.63, 0.59, 0.64, 0.66, 0.68]
+patience = 3
+
+best, best_epoch, wait = float("inf"), 0, 0
+for epoch, loss in enumerate(val_losses, start=1):
+    if loss < best:
+        best, best_epoch, wait = loss, epoch, 0
+        print(f"epoch {epoch}: {loss:.2f}  new best -> save checkpoint")
+    else:
+        wait += 1
+        print(f"epoch {epoch}: {loss:.2f}  no improvement ({wait}/{patience})")
+        if wait >= patience:
+            print(f"stop after epoch {epoch}; restore epoch {best_epoch} (val loss {best:.2f})")
+            break`
+
+A modern network has far more weights than it has training examples. That makes it powerful, and also dangerous: in a famous 2017 experiment, standard image networks reached 100% training accuracy on photos whose labels had been **shuffled at random**. A big enough network can memorise anything. This lesson covers the four everyday tools that stop it memorising and make it learn patterns instead: **dropout, weight decay, early stopping and data augmentation**. All four turn up regularly in NOAI papers.
+
+## The problem: memorising instead of learning
+
+Recall from [generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): a model **overfits** when it fits the training data, noise and all, so well that it does worse on new data. You spot it when the **training loss keeps falling while the validation loss stops falling and starts to rise**. The difference between the two is the **generalisation gap**.
+
+<Term def="Any technique that makes a model generalise better by limiting how closely it can fit its training data. It usually costs a little training accuracy and gains validation accuracy.">Regularisation</Term> is the name for anything that shrinks that gap. Each tool below attacks memorising from a different side:
+
+- **dropout** makes the network itself unreliable during training,
+- **weight decay** keeps the weights small,
+- **early stopping** limits how long the network trains,
+- **augmentation** gives it more varied data.
+
+## Dropout: train with random players missing
+
+<Analogy title="The football team with random substitutes">
+
+A coach makes random players sit out every drill. Nobody can rely on passing to the star striker, because the star might be on the bench. Every player has to learn to be useful with whoever happens to be on the pitch. On match day, the whole team plays, and it is stronger because nobody depends on any one teammate.
+
+</Analogy>
+
+<Term def="A regularisation layer that, during training only, sets each activation to zero with probability p and multiplies the survivors by 1/(1 − p).">Dropout</Term> does this to neurons. At every training step, each neuron in a dropout layer is switched off (its output set to 0) with probability $p$, independently of the others. A different random set is switched off at the next step. Step through it:
+
+<DropoutMask />
+
+Notice the factor printed above the hidden layers. When half the neurons are missing, the next layer would receive only about half its usual total input. So the survivors are **scaled up by** $\frac{1}{1-p}$ to make up for it. This version is called **inverted dropout**, and it is what PyTorch's `nn.Dropout` does.
+
+### The formula
+
+For one neuron with output $h$:
+
+$$
+\tilde{h} = \frac{m}{1-p}\,h
+$$
+
+$$
+m = \begin{cases} 0 & \text{with probability } p \\ 1 & \text{with probability } 1-p \end{cases}
+$$
+
+- $h$ is the neuron's normal output and $\tilde{h}$ (say "h tilde") is what the next layer receives during training.
+- $m$ is the **mask**: a fresh random 0 or 1 for every neuron at every step.
+- $p$ is the **drop probability**, a hyperparameter you choose (commonly 0.1 to 0.5).
+
+Why divide by $1 - p$? Work out the **average** (expected) value of $\tilde{h}$. With probability $1-p$ the neuron is kept and sends $\frac{h}{1-p}$; with probability $p$ it sends 0:
+
+$$
+\text{average of } \tilde{h} = (1-p)\cdot\frac{h}{1-p} + p \cdot 0 = h.
+$$
+
+On average, nothing changes. That is exactly what the running average in the visual showed.
+
+<Steps title="Dropout by hand: h = [2, 4, 6, 8] with p = 0.5">
+  <Step title="Work out the scale">
+    $\frac{1}{1 - 0.5} = 2$. Every survivor is doubled.
+  </Step>
+  <Step title="Apply one random mask, say m = [1, 0, 1, 0]">
+    Kept neurons are doubled, dropped ones become 0: $[2\times2,\ 0,\ 6\times2,\ 0] = [4, 0, 12, 0]$. Total $= 16$.
+  </Step>
+  <Step title="Another step, another mask, say m = [0, 1, 1, 1]">
+    $[0,\ 8,\ 12,\ 16]$. Total $= 36$.
+  </Step>
+  <Step title="Compare with no dropout">
+    The real total is $2 + 4 + 6 + 8 = 20$. Single steps give 16 or 36, but each neuron is kept half the time and doubled when kept, so the totals **average** 20.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A layer uses dropout with $p = 0.2$. During training, a neuron whose normal output is 3.0 is kept. What value does it pass on?"
+  options={['3.75', '2.4', '3.0', '3.6']}
+  answer={0}
+  explain="Survivors are divided by $1 - p = 0.8$: $3.0 / 0.8 = 3.75$. Multiplying by 0.8 (2.4) scales the wrong way, and 3.6 comes from multiplying by $1 + p$, which is not the same as dividing by $1 - p$."
+/>
+
+### Why it works
+
+- **No co-dependence.** A neuron cannot rely on one particular partner being present, so each one has to learn features that are useful on their own. Researchers call the habit it prevents <Term def="When neurons only work in a fixed combination with each other, so the group fits quirks of the training data instead of general features.">co-adaptation</Term>.
+- **A free ensemble.** With 12 hidden neurons there are $2^{12} = 4096$ possible thinned networks, and every step trains a different one. They all share the same weights. An <Term def="A group of models whose predictions are combined (for example averaged). Averaging cancels out the individual models' mistakes.">ensemble</Term> of many models usually beats any single one, and dropout gets something similar almost for free.
+
+### At test time, dropout is off
+
+When you evaluate or deploy the model you want the full team and a **repeatable** answer, so dropout does nothing at all: every neuron is used and nothing is rescaled. In PyTorch you switch modes with `model.train()` and `model.eval()`:
+
+```python
+import torch
+import torch.nn as nn
+
+torch.manual_seed(0)
+drop = nn.Dropout(p=0.5)
+x = torch.ones(8)
+
+drop.train()            # training mode (the default)
+print(drop(x))
+print(drop(x))
+
+drop.eval()             # evaluation mode
+print(drop(x))
+```
+
+```text
+tensor([0., 0., 2., 0., 0., 0., 2., 2.])
+tensor([0., 2., 2., 2., 2., 0., 2., 2.])
+tensor([1., 1., 1., 1., 1., 1., 1., 1.])
+```
+
+Each training call drops a different random half and doubles the rest ($\frac{1}{1-0.5} = 2$). In evaluation mode the input passes through unchanged.
+
+<Mistake title="Three classic dropout mix-ups">
+
+- **Forgetting `model.eval()`** before testing. Dropout stays on, so predictions are noisy and accuracy changes every time you run it.
+- **Reading $p$ the wrong way round.** In PyTorch, `nn.Dropout(p=0.3)` *drops* 30% and keeps 70%. The original 2014 paper (and old TensorFlow code) used $p$ for the probability of *keeping* a neuron. Read the question carefully.
+- **Scaling in the wrong place.** The original dropout did not scale during training; instead it multiplied the weights by the keep probability at test time. Inverted dropout scales by $\frac{1}{1-p}$ during training so that test time needs no change. Both give the same average.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={113} />
+
+## Weight decay: keep the weights small
+
+A network that fits noise usually does it with **large weights**: big weights let the output swing sharply between neighbouring inputs, so the model can bend around every training point. Small weights give smoother functions that cannot jump to fit each point.
+
+<Analogy title="Trimming a hedge">
+
+A gardener trims the hedge a little every week, whatever else happens. Branches that are genuinely useful keep growing back faster than they are cut; stray shoots never get far. That weekly trim is weight decay. Deciding to stop pruning on the day the hedge looks its best is early stopping, the next tool.
+
+</Analogy>
+
+<Term def="A regularisation method that shrinks every weight a little towards zero at every update step, multiplying it by (1 − ηλ).">Weight decay</Term> adds one small extra pull to every update. The usual gradient-descent step is $w \leftarrow w - \eta g$. With weight decay it becomes
+
+$$
+\begin{aligned}
+w &\leftarrow w - \eta\,(g + \lambda w) \\
+  &= \underbrace{(1 - \eta\lambda)\,w}_{\text{shrink}} \;-\; \underbrace{\eta\, g}_{\text{usual step}}
+\end{aligned}
+$$
+
+- $w$ is one weight and $g$ is the gradient of the loss with respect to it.
+- $\eta$ (eta) is the learning rate.
+- $\lambda$ (lambda) is the **weight decay** strength, for example 0.0005 or 0.01.
+
+Read it from the right: take the normal gradient step, but first multiply the weight by $1 - \eta\lambda$, a number slightly **less than 1**. With $\eta = 0.1$ and $\lambda = 0.01$ that factor is $0.999$: every weight loses 0.1% of its size at every step unless the data keeps pushing it back.
+
+For plain gradient descent this is exactly the same as **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. You met the same penalty as ridge regression in [the regularisation lesson](#/learn/linear-regression/regularisation).
+
+<Steps title="One step with weight decay: w = 5, g = 3, η = 0.1, λ = 0.2">
+  <Step title="Shrink factor">
+    $1 - \eta\lambda = 1 - 0.1 \times 0.2 = 0.98$.
+  </Step>
+  <Step title="Shrink the weight">
+    $0.98 \times 5 = 4.9$.
+  </Step>
+  <Step title="Take the usual gradient step">
+    $4.9 - 0.1 \times 3 = 4.9 - 0.3 = 4.6$.
+  </Step>
+  <Step title="Check in one line">
+    $5 - 0.1 \times (3 + 0.2 \times 5) = 5 - 0.1 \times 4 = 4.6$. Without decay it would have been $5 - 0.3 = 4.7$.
+  </Step>
+</Steps>
+
+PyTorch agrees. Every optimiser takes a `weight_decay` argument:
+
+```python
+import torch
+
+w = torch.tensor([5.0], requires_grad=True)
+opt = torch.optim.SGD([w], lr=0.1, weight_decay=0.2)
+
+loss = 3 * w.sum()      # a toy loss whose gradient is 3
+loss.backward()
+opt.step()
+print(w.data)
+```
+
+```text
+tensor([4.6000])
+```
+
+### Adam needs AdamW
+
+Adam (from [the previous lesson](#/learn/training-deep-networks/momentum-and-adam)) gives every weight its own step size: it divides each step by $\sqrt{\hat v}$, the typical size of that weight's recent gradients. If you add $\lambda w$ into the gradient, that decay gets divided too. Picture two weights, both equal to 1: one has gradients of size about 10, the other about 0.1. The extra pull $\lambda w$ is divided by roughly 10 for the first and 0.1 for the second, so the second weight is decayed about **100 times harder**. The decay is no longer the same gentle trim for everyone.
+
+<Term def="Adam with decoupled weight decay: the shrink (1 − ηλ)w is applied directly to the weights, separately from Adam's adaptive step, so every weight decays at the same rate.">AdamW</Term> ("Adam with decoupled weight decay") fixes this by applying the shrink **separately**, outside Adam's division:
+
+$$
+w \leftarrow w - \eta\left(\frac{\hat m}{\sqrt{\hat v} + \epsilon} + \lambda w\right)
+$$
+
+The first term is the normal Adam step; the second, $\eta\lambda w$, shrinks every weight by the same factor $1 - \eta\lambda$. In PyTorch, `torch.optim.Adam(..., weight_decay=λ)` is the L2 version and `torch.optim.AdamW(..., weight_decay=λ)` is the decoupled one. AdamW, typically with $\lambda$ between 0.01 and 0.1, is the standard choice for Transformers.
+
+<QuickCheck
+  q="Why do Transformer recipes use AdamW rather than Adam with an L2 penalty added to the loss?"
+  options={[
+    "AdamW shrinks every weight by the same factor, while Adam divides an L2 term by each weight's gradient size",
+    "AdamW adds the penalty $\\lambda \\sum |w|$, which makes many weights exactly zero",
+    "AdamW turns weight decay off during training and applies it only at evaluation time",
+    "AdamW replaces the learning rate with $\\lambda$, so there is one fewer hyperparameter",
+  ]}
+  answer={0}
+  explain="In Adam, an L2 term added to the gradient is divided by $\sqrt{\hat v}$ like everything else, so weights with large gradients barely decay. AdamW applies $w \leftarrow w - \eta\lambda w$ separately, the same for every weight. The $\sum |w|$ penalty is L1 regularisation, and AdamW still needs a learning rate."
+/>
+
+## Early stopping: quit while you are ahead
+
+Training longer is not always better. The validation loss usually falls, flattens, and then **rises** as the network starts memorising. <Term def="Watching the validation loss during training, keeping a copy of the weights from the best epoch so far, and stopping once it has not improved for a set number of epochs (the patience).">Early stopping</Term> watches it after every epoch and:
+
+1. saves a <Term def="A saved copy of the model's weights at one moment in training, so you can go back to it later.">checkpoint</Term> whenever the validation loss reaches a new best;
+2. counts the epochs since the last improvement;
+3. stops when that count reaches the <Term def="How many epochs in a row without a new best validation loss early stopping will tolerate before it stops training.">patience</Term>, and **restores the best checkpoint**, not the last weights.
+
+Why not stop the moment the validation loss goes up once? Because validation curves are bumpy. A single bad epoch is often followed by a new best. Patience lets training ride out the bumps.
+
+Here are both tools on real curves from a small network trained on 200 handwritten digits:
+
+<DecayAndStop />
+
+Notice that the two tools work in a similar way. Weights start small and grow as training goes on. Weight decay keeps pulling them back; early stopping simply ends training before they have grown far. Both limit how far the model can drift into memorising noise.
+
+<Steps title="Early stopping by hand with patience 3">
+  <Step title="The validation losses">
+    Epochs 1 to 10: 0.90, 0.70, 0.62, 0.60, 0.61, 0.63, 0.59, 0.64, 0.66, 0.68.
+  </Step>
+  <Step title="Epochs 1 to 4: each is a new best">
+    Save a checkpoint each time. Best so far: $0.60$ at epoch 4. Counter $= 0$.
+  </Step>
+  <Step title="Epochs 5 and 6: no improvement">
+    $0.61$ and $0.63$ are worse than $0.60$. Counter $= 1$, then $2$. Patience is 3, so keep going.
+  </Step>
+  <Step title="Epoch 7: a new best">
+    $0.59 < 0.60$. Save the checkpoint and reset the counter to 0. (With patience 2 we would already have stopped and missed this.)
+  </Step>
+  <Step title="Epochs 8, 9, 10: no improvement">
+    Counter $= 1, 2, 3$. It reaches the patience, so **stop after epoch 10 and restore epoch 7** (validation loss $0.59$).
+  </Step>
+</Steps>
+
+Run the same logic and try `patience = 2`:
+
+<PyRunner code={earlyStopCode} />
+
+In a PyTorch training loop the "checkpoint" is a copy of the model's `state_dict()` (its dictionary of weights): save it with `best_state = copy.deepcopy(model.state_dict())` at each new best, and at the end call `model.load_state_dict(best_state)`.
+
+<ExamTip>
+
+Early stopping prevents **overfitting**, not underfitting, and it watches the **validation** loss, never the training loss (training loss almost always keeps falling). Stopping *too* early, with too little patience, can leave the model underfitted.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={178} />
+
+## Data augmentation: more variety for free
+
+<Analogy title="Reading anyone's handwriting">
+
+If you learn Chinese characters only from your own neat writing, your aunt's quick scrawl will defeat you. Practise reading the same characters written by many different hands, slanted, smudged and squashed, and you learn what makes each character *that* character. You are not memorising one picture; you are learning what stays the same.
+
+</Analogy>
+
+<Term def="Creating extra training examples by applying random changes that keep the label the same, such as flips, crops, small rotations or added noise.">Data augmentation</Term> makes new training examples by applying random, **label-preserving** changes to the ones you have. A cat photo flipped left to right, cropped a little, or made slightly darker is still a cat. Every epoch the network sees fresh random versions, so it cannot memorise exact pixels; it has to learn the <Term def="A change to the input that should not change the answer. A cat shifted 3 pixels to the left is still a cat, so the classifier should be invariant to small shifts.">invariances</Term> you care about.
+
+Common choices:
+
+| Data | Typical augmentations |
+|---|---|
+| Images | flips, random crops and shifts, small rotations, colour jitter (brightness, contrast), noise |
+| Text | swapping words for synonyms, back-translation (translate to another language and back) |
+| Audio | time shifts, background noise, small speed or pitch changes |
+
+Augmentation is applied **only to the training data**, on the fly, as each batch is loaded. Validation and test data stay untouched, because they must measure performance on real, unaltered examples.
+
+<AugmentGapCurves />
+
+Look at what changed and what did not: the network and the 150 training images are identical in every curve. Only the variety of what the network sees changed, and the gap closed.
+
+<Mistake title="Augmentation that changes the answer">
+
+A transform is only safe if the label survives it. Flipping a photo of a dog left to right is fine; flipping a handwritten **2** or the letter **b** is not (b becomes d). Rotating a **6** by 180° makes a **9**. Turning a street scene upside down creates something the model will never see. And pushing the strength too far makes images unrecognisable, which causes underfitting.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={288} />
+
+## All four on one page
+
+| Tool | What it does | When it is active | In PyTorch |
+|---|---|---|---|
+| Dropout | zeroes each activation with probability $p$, scales survivors by $\frac{1}{1-p}$ | training only; off after `model.eval()` | `nn.Dropout(p=0.5)` |
+| Weight decay | multiplies weights by $1 - \eta\lambda$ every update | every optimiser step | `weight_decay=λ`; use `AdamW` with Adam |
+| Early stopping | stops when validation loss has not improved for `patience` epochs; restores best checkpoint | checked after each epoch | your own loop, saving `state_dict()` |
+| Augmentation | random label-preserving changes to inputs | training data only | e.g. `torchvision.transforms` |
+
+They combine well. A typical image classifier uses augmentation, weight decay and early stopping together; a Transformer typically uses AdamW with weight decay and dropout of about 0.1.
+
+<ExamTip>
+
+Scenario questions often describe high training accuracy and much lower validation accuracy, then ask for a fix. Anything on this page (or more data, or a smaller model) is a good answer. Training for **more epochs**, **removing** dropout or **adding** layers makes overfitting worse. If both accuracies are low, the model is underfitting, and more regularisation is the wrong medicine.
+
+</ExamTip>
+
+<Takeaways>
+
+- **Dropout** zeroes each neuron with probability $p$ during training and scales survivors by $\frac{1}{1-p}$, so the average is unchanged; it is switched off by `model.eval()`.
+- **Weight decay** multiplies every weight by $1 - \eta\lambda$ each step, keeping weights small; with Adam, use **AdamW** so the decay is not distorted by the adaptive step sizes.
+- **Early stopping** keeps the checkpoint with the best **validation** loss and stops after `patience` epochs without improvement.
+- **Augmentation** applies label-preserving random changes to **training** data only, closing the gap without changing the model.
+- All four fight overfitting; none of them helps a model that is already underfitting.
+
+</Takeaways>

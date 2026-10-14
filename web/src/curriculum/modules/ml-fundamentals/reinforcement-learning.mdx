@@ -1,3 +1,223 @@
-{/* stub: lesson 'Reinforcement learning: learning from rewards' is being written */}
+import RLLoop from './visuals/reinforcement-learning/RLLoop'
+import GridworldAgent from './visuals/reinforcement-learning/GridworldAgent'
+import BanditBars from './visuals/reinforcement-learning/BanditBars'
+import { banditCode } from './visuals/reinforcement-learning/code'
 
-This lesson is being written.
+How did a computer teach itself to play Go better than any human, without studying a single human game? Or learn dozens of Atari video games from nothing but the screen and the score? Nobody showed it the right moves. It tried things, won or lost points, and slowly learned what works. That is **reinforcement learning** (RL), the third main way machines learn, after learning from labelled examples and finding patterns in unlabelled data.
+
+<Analogy title="Training a dog with treats">
+
+You never explain to a dog what "sit" means. You say "sit", wait, and give a treat when its bottom hits the floor. At first it tries all sorts of things; the actions that earn treats become more frequent, the ones that earn nothing fade away. The dog is never shown the right answer, only told, after the fact, whether things went well.
+
+</Analogy>
+
+## Three ways to learn
+
+<Columns min={210}>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Supervised learning**
+
+- **Gets**: examples *with the correct answer* (labels).
+- **Feedback**: the right answer for every example.
+- **Goal**: predict the label of new examples.
+- **Example**: spam filter, HDB price prediction.
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Unsupervised learning**
+
+- **Gets**: examples with *no* answers.
+- **Feedback**: none.
+- **Goal**: find structure, such as groups.
+- **Example**: grouping customers, PCA.
+
+</div>
+<div style={{ border: '2px solid var(--accent-line)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--accent-soft)' }}>
+
+**Reinforcement learning**
+
+- **Gets**: no dataset; it collects experience by acting.
+- **Feedback**: a *reward*, a number saying how good the outcome was, often delayed.
+- **Goal**: choose actions that get the most total reward.
+- **Example**: game-playing, robots, traffic lights.
+
+</div>
+</Columns>
+
+Two things make RL different. First, a reward says *how well* you did, never *what you should have done*: a dog that gets no treat is not told which trick would have worked. Second, the agent's own actions decide what it experiences next, so learning happens over **sequences** of decisions, and a reward can arrive long after the action that earned it.
+
+<PastPaperQuestion paper="noai2025" n={3} />
+
+<PastPaperQuestion paper="prelim2026" n={136} />
+
+## The loop: agent, environment, state, action, reward
+
+Every RL problem has the same five ingredients:
+
+- The <Term def="The learner and decision-maker: the program (or animal) that chooses actions.">agent</Term> is the learner that makes decisions.
+- The <Term def="Everything outside the agent that it interacts with: it reacts to the agent's actions with rewards and new situations.">environment</Term> is everything it interacts with.
+- A <Term def="A description of the current situation, such as a board position or a robot's location.">state</Term> describes the current situation.
+- An <Term def="A choice the agent can make in a state, such as a chess move or 'turn left'.">action</Term> is a choice the agent makes.
+- A <Term def="A number the environment sends back after each action: positive is good, negative is bad.">reward</Term> is a number from the environment after each action: positive is good, negative is bad.
+
+They form a loop. At each time step $t$ the agent observes the state $s_t$, takes an action $a_t$, and the environment replies with a reward $r_{t+1}$ and a new state $s_{t+1}$. One complete run, from the start until the game ends, is called an <Term def="One complete run of the loop from a starting state until it ends (the game is over, the goal is reached).">episode</Term>.
+
+<RLLoop />
+
+What the agent learns is a <Term def="The agent's rule for choosing an action in each state, often written π (pi). A good policy collects a lot of total reward.">policy</Term>, usually written $\pi$ (the Greek letter pi): a rule that says which action to take in each state. The aim is the policy that collects the most **total** reward over the whole episode, not just the next reward.
+
+<KeyIdea>
+
+An **agent** takes **actions** in an **environment**, which answers with a **reward** and a new **state**. RL searches for a **policy** (state → action) that maximises the total future reward, using only this trial-and-error feedback: no answer key.
+
+</KeyIdea>
+
+## Adding up rewards: return and discount
+
+Because rewards can be delayed, the agent cares about the sum of all the rewards still to come. Rewards far in the future are usually counted for a bit less, using a <Term def="A number γ (gamma) between 0 and 1 that shrinks future rewards: the next reward counts in full, and each step further into the future multiplies a reward by another γ.">discount factor</Term> $\gamma$ (the Greek letter gamma). The **return** from time $t$ is
+
+$$
+G_t = r_{t+1} + \gamma\, r_{t+2} + \gamma^2\, r_{t+3} + \dots
+$$
+
+- $r_{t+1}, r_{t+2}, \dots$ are the rewards received after each of the coming actions.
+- $\gamma$ is between 0 and 1 (0.9 and 0.99 are common). A reward $k$ steps after the first is multiplied by $\gamma^k$, so later rewards count less.
+- With $\gamma$ close to 1 the agent is patient; with $\gamma$ close to 0 it only cares about the next reward.
+
+<Steps title="The return of a three-step path, with γ = 0.9">
+  <Step title="The rewards">
+    The agent's next three moves earn $r_1 = 0$, $r_2 = 0$ and $r_3 = 10$ (it reaches the goal on the third move).
+  </Step>
+  <Step title="Discount each one">
+    $G = 0 + 0.9 \times 0 + 0.9^2 \times 10$.
+  </Step>
+  <Step title="Work it out">
+    $0.9^2 = 0.81$, so $G = 0.81 \times 10 = 8.1$.
+  </Step>
+  <Step title="Compare paths">
+    A five-move path to the same goal is worth $0.9^4 \times 10 \approx 6.6$, and grabbing a reward of $+2$ straight away is worth just $2$. The discount makes **shorter** routes to the big reward the most valuable, and the agent will happily wait three moves for 8.1 instead of taking 2 now.
+  </Step>
+</Steps>
+
+The expected return when you start in a state and then follow your policy is that state's <Term def="How good it is to be in a state: the total (discounted) reward you can expect from there on if you follow your policy.">value</Term>. A tile one move from a $+10$ goal has value 10, two moves away $0.9 \times 10 = 9$, three moves away $8.1$, and so on. You will see exactly these numbers appear in the next visual.
+
+<QuickCheck
+  q="With discount $\gamma = 0.5$, an agent's next three rewards are 4, 4 and 8. What is the return $G$?"
+  options={['8', '16', '10', '6']}
+  answer={0}
+  explain="$G = 4 + 0.5 \times 4 + 0.5^2 \times 8 = 4 + 2 + 2 = 8$. Adding without discounting gives 16, and using $\gamma$ instead of $\gamma^2$ for the third reward gives $4 + 2 + 4 = 10$: each step further away gets one more factor of $\gamma$."
+/>
+
+## Watching an agent learn
+
+Here is a real learning agent, a few dozen lines of code, in a small maze. It has already played 15 episodes; press Reset to watch it from the very beginning, when it knows nothing. In the first episodes it wanders at random, often giving up after 40 moves. The first time it stumbles onto the goal, only the tile it came from learns that one of its moves is good. Next time, the tile before that learns that it leads to a good tile, and so the value of the goal **leaks backwards**, one tile at a time, until arrows lead from the start to the goal.
+
+<GridworldAgent />
+
+The agent in the visual uses a classic method called **Q-learning**. It keeps a score $Q(s, a)$ for every state and action. After each move it computes a fresh estimate, the **target**: the reward it just got plus the discounted value of where it landed. Then it nudges the old score towards the target:
+
+$$
+\text{target} = r + \gamma \max_{a'} Q(s', a')
+$$
+
+$$
+Q(s, a) \leftarrow Q(s, a) + \alpha \, \big(\text{target} - Q(s, a)\big)
+$$
+
+- $s$ is the tile it was on, $a$ the move it made, $r$ the reward it got and $s'$ the tile it landed on.
+- $\max_{a'} Q(s', a')$ is the score of the best move from the new tile: its current estimate of how good $s'$ is.
+- $\alpha$ is the learning rate: with $\alpha = 0.5$ each update moves the score halfway towards the new evidence.
+
+NOAI's RL questions so far have tested ideas rather than this formula, so you need not memorise it. Do notice the idea, though: learning is just many small corrections driven by rewards. The arrows are the policy and the tile colours are the values.
+
+<Mistake title="“The agent will do what I meant”">
+
+The agent maximises exactly the reward you give it, nothing else. Set the pit's reward to $+10$ in the visual and the agent treats the pit as a second goal, and it often ends up preferring it, because it is one move closer. It has no idea that a pit is "bad"; it only knows what pays. Real RL systems do this too (a boat-racing agent once learned to spin in circles collecting bonus points instead of finishing the race), so designing the reward carefully is a big part of RL.
+
+</Mistake>
+
+## Exploration versus exploitation
+
+Try this in the maze: switch exploration off and press Reset. The agent still learns a route, but it keeps repeating whatever first worked, so about a third of the maze never gets a plan (watch "tiles with a plan" get stuck at around 10 of 15). With exploration on, it fills in almost the whole map, at the price of the occasional fall into the pit. Every learning agent faces this central dilemma of RL:
+
+- <Term def="Choosing the action that currently looks best, to collect reward now.">Exploitation</Term>: do what currently looks best, to collect reward now.
+- <Term def="Trying an action that may not look best, to learn more about it; it may reveal something better.">Exploration</Term>: try something else, to learn whether it is better.
+
+<Analogy title="Lunch at the hawker centre">
+
+Your favourite stall is reliably good. Do you go there again (exploit), or try the new stall that might be even better, or might be terrible (explore)? Only ever eating at your favourite means you may never discover the best stall in the centre. Always trying a new one means you rarely enjoy the best one you already know.
+
+</Analogy>
+
+The simplest way to balance the two is <Term def="A rule for choosing actions: with probability ε pick a random action (explore), otherwise pick the action with the highest estimated value (exploit).">epsilon-greedy</Term>, with a small number $\varepsilon$ (the Greek letter epsilon):
+
+$$
+a = \begin{cases} \text{random action} & \text{probability } \varepsilon \\[2pt] \arg\max_a Q(a) & \text{probability } 1 - \varepsilon \end{cases}
+$$
+
+Here $Q(a)$ is the current estimate of how good action $a$ is, and $\arg\max_a Q(a)$ means "the action whose estimate is largest" (the *argument* that gives the *maximum*).
+
+After each try, the estimate for the chosen action is updated as a running average of the rewards it has given so far:
+
+$$
+Q \leftarrow Q + \frac{r - Q}{N}
+$$
+
+where $r$ is the new reward and $N$ is how many times that action has now been tried.
+
+<Steps title="Running average for one stall">
+  <Step title="Meal 1 scores 6">
+    $N = 1$: $Q = 0 + \dfrac{6 - 0}{1} = 6$.
+  </Step>
+  <Step title="Meal 2 scores 8">
+    $N = 2$: $Q = 6 + \dfrac{8 - 6}{2} = 7$, the average of 6 and 8.
+  </Step>
+  <Step title="Meal 3 scores 4">
+    $N = 3$: $Q = 7 + \dfrac{4 - 7}{3} = 6$, the average of 6, 8 and 4.
+  </Step>
+</Steps>
+
+Now play the dilemma yourself. This setting, one state with several actions whose rewards you must discover, is called a <Term def="A simplified RL problem with a single state and several actions (arms), each giving random rewards with an unknown average. Named after slot machines, 'one-armed bandits'.">multi-armed bandit</Term>.
+
+<BanditBars />
+
+<KeyIdea>
+
+You need some exploration to discover the best option, but every exploring step is a step not spent on the best option you know. With $\varepsilon = 0$ you can get stuck with whatever you tried first; with $\varepsilon = 1$ you never use what you learned. A small $\varepsilon$ such as 0.1 usually does best.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A diner's estimate for every stall starts at 0. On day 1 they try chicken rice and score 6. With ε = 0, what happens next?"
+  options={['They eat chicken rice every day, because 6 beats every other estimate of 0', 'They try each of the other stalls once, then settle on the best one', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
+  answer={0}
+  explain="With ε = 0 the diner always exploits: chicken rice's estimate of 6 is higher than the untried stalls' 0, so they never try anything else, even though nasi lemak (average 8) is better. Trying each stall once is a different strategy; it needs exploration built in."
+/>
+
+Here is the same experiment in NumPy. One detail: `np.argmax` picks the *first* of several equal values, so with $\varepsilon = 0$ this diner always starts at, and then sticks with, stall 0 (chicken rice, average 6), scoring about 600.
+
+<PyRunner packages={['numpy']} code={banditCode} />
+
+In practice, $\varepsilon$ is often started high and shrunk as the agent learns: explore a lot while you know little, then exploit more once your estimates are good.
+
+<ExamTip>
+
+The IOAI syllabus does not list reinforcement learning, but NOAI papers do ask about it (see the 2025 question above), at the level of ideas and vocabulary:
+
+- **"What makes it RL?"** Learning from rewards and penalties while interacting with an environment. Traps: "labelled training data" (that's supervised) and "clustering" (unsupervised).
+- **Name the parts** in a scenario: agent, environment, state, action, reward, policy, value. A reward is a number; a policy is a rule from states to actions.
+- **ε-greedy**: with probability $\varepsilon$ explore at random, otherwise exploit. With $k$ actions, the best-looking action is chosen with probability $1 - \varepsilon + \varepsilon / k$, because the random pick can land on it too.
+- **Discounting**: the next reward counts in full, the one after is multiplied by $\gamma$, then $\gamma^2$, and so on. $0.9^2 = 0.81$ and $0.5^3 = 0.125$ are worth knowing by heart.
+
+</ExamTip>
+
+<Takeaways>
+
+- RL learns by trial and error from **rewards**, not from labelled answers: the agent's own actions create its experience, and rewards can be delayed.
+- The loop: the **agent** sees a **state**, takes an **action**; the **environment** returns a **reward** and the next state. The agent learns a **policy** that maximises total future reward.
+- The **return** adds up future rewards, each step further away multiplied by another factor $\gamma$; the **value** of a state is the return you can expect from it.
+- **Exploration vs exploitation**: ε-greedy explores with probability $\varepsilon$ and exploits otherwise; some exploration is needed, too much wastes reward.
+
+</Takeaways>

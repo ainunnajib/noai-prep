@@ -1,3 +1,213 @@
-{/* stub: lesson 'Plotting data with matplotlib and seaborn' is being written */}
+import AnscombeQuartet from './visuals/plotting-data/AnscombeQuartet'
+import PlotChooser from './visuals/plotting-data/PlotChooser'
+import PlotRecipeBuilder from './visuals/plotting-data/PlotRecipeBuilder'
+import TrainingCurves from './visuals/plotting-data/TrainingCurves'
 
-This lesson is being written.
+A table of ten thousand numbers tells you almost nothing at a glance; one good picture of it tells you a lot. Data scientists plot **before** they model, to catch odd values, skewed columns and hidden patterns, and **while** they train, to watch a model learn. This lesson is about choosing the right plot for your question and drawing it with matplotlib and seaborn, the two plotting libraries that NOAI and IOAI expect you to know.
+
+<Analogy title="Three weather pictures">
+
+The weather service shows a rain map (where is it raining now?), a temperature line through the day (how is it changing?) and a bar chart of rainfall per month (which month was wettest?). Same weather, three questions, three different pictures. Choosing a plot works the same way: **the question decides the picture**.
+
+</Analogy>
+
+## Why look at the data at all?
+
+Summary numbers such as the mean feel precise, but they can hide almost everything. In 1973 the statistician Francis Anscombe made four tiny datasets, now called <Term def="Four small datasets made by F. J. Anscombe in 1973 that share the same means, variances, correlation and best-fit line but look completely different when plotted.">Anscombe's quartet</Term>, that share the same mean, the same <Term def="A number from −1 to 1 that measures how closely two columns follow a straight-line trend. 1 means a perfect rising line, 0 means no straight-line trend.">correlation</Term> and the same best-fit line. Only a plot tells them apart.
+
+<AnscombeQuartet />
+
+<KeyIdea>
+
+Always look at a plot before you trust a summary number or fit a model. A curve, an <Term def="A value far away from the rest of the data, such as one flat costing three times as much as the others.">outlier</Term> or one far-away point can change the whole story while the averages stay the same.
+
+</KeyIdea>
+
+## Pick the plot for the question
+
+Five plots answer most questions you will ask about a table:
+
+- A <Term def="A plot of how one numeric column is spread out. The range is cut into equal-width intervals called bins, and each bar's height counts the values in that bin.">histogram</Term> shows how **one numeric column** is spread out. Its range is cut into equal intervals called *bins*, and each bar counts the values in one bin.
+- A <Term def="A plot with one dot per row, placing one numeric column across and another up, to show whether they are related.">scatter plot</Term> shows the **relationship between two numeric columns**: one dot per row.
+- A **line plot** joins points in order, so it shows **change over time** (or over training steps).
+- A **bar chart** compares **one number per category**, such as the average price in each town.
+- A <Term def="A summary of a distribution: the box spans the middle half of the values (from the first to the third quartile), a line marks the median, whiskers reach the furthest normal values and dots mark outliers.">box plot</Term> compares the **spread** of a numeric column across categories and marks outliers.
+
+All five thumbnails below are drawn from the same 144 HDB resale flats (price in thousands of dollars). Try each question.
+
+<PlotChooser />
+
+Here is the same choice as a cheat sheet, with the matplotlib call and its seaborn equivalent:
+
+- **How is one numeric column spread out?** Histogram: `ax.hist(df['price'], bins=12)` or `sns.histplot(data=df, x='price')`.
+- **Are two numeric columns related?** Scatter: `ax.scatter(df['area'], df['price'])` or `sns.scatterplot(data=df, x='area', y='price')`.
+- **How does something change over time (or over training steps)?** Line: `ax.plot(x, y)` or `sns.lineplot(data=df, x='year', y='price')`.
+- **How does one number compare across categories?** Bar: `ax.bar(names, values)` or `sns.barplot(data=df, x='town', y='price')`.
+- **How do spread and outliers compare across categories?** Box: `ax.boxplot(groups)` or `sns.boxplot(data=df, x='flat_type', y='price')`.
+
+<KeyIdea>
+
+Relationship → scatter. Distribution → histogram (or box plot to compare groups). Change over time → line. Comparing categories → bar.
+
+</KeyIdea>
+
+<QuickCheck
+  q="You want to compare how many students are in each of five CCAs. Which plot fits best?"
+  options={['A bar chart', 'A histogram', 'A line plot', 'A scatter plot']}
+  answer={0}
+  explain="The CCAs are categories and you have one number (the count) for each, so a bar chart fits. A histogram looks similar but its x-axis is a numeric scale cut into bins, such as scores from 0 to 100. A line would suggest an order between CCAs that does not exist, and a scatter plot needs two numeric columns."
+/>
+
+### Reading a histogram
+
+The shape of a histogram is the story. A single hump that is symmetric means most values are near the middle. A long tail on the right, like the HDB prices above, is called <Term def="A distribution with a long tail on the right: most values are small or medium and a few are very large. The large values pull the mean above the median.">right skew</Term>: a few very large values pull the **mean** above the **median**. The number of bins matters too. With too few bins every shape looks like a block; with too many, random noise looks like a pattern. You will try this with the bins slider further down.
+
+### Reading a box plot
+
+A box plot squeezes a whole column into five numbers. The <Term def="The values that cut sorted data into four equal parts. Q1 has a quarter of the values below it, Q2 is the median and Q3 has three quarters below it.">quartiles</Term> $Q_1$ and $Q_3$ mark where a quarter and three quarters of the sorted values lie, and
+
+$$
+\text{IQR} = Q_3 - Q_1
+$$
+
+is the <Term def="Q3 − Q1: the width of the middle half of the data. It ignores the extreme quarter at each end, so outliers barely change it.">interquartile range</Term>, the width of the middle half of the data. A value counts as an outlier when it lies more than $1.5 \times \text{IQR}$ beyond the box, that is below $Q_1 - 1.5\,\text{IQR}$ or above $Q_3 + 1.5\,\text{IQR}$. These two limits are called the *fences*.
+
+<Steps title="Draw a box plot by hand: 9 bus waiting times (minutes)">
+  <Step title="Sort and find the median">
+    The times are 2, 4, 5, 5, 6, 7, 8, 9, 20. With 9 values the median is the 5th: **6**.
+  </Step>
+  <Step title="Find the quartiles">
+    $Q_1 = 5$ (the 3rd value) and $Q_3 = 8$ (the 7th value), so the box runs from 5 to 8 with a line at 6. The IQR is $8 - 5 = 3$.
+  </Step>
+  <Step title="Work out the fences">
+    Lower fence: $5 - 1.5 \times 3 = 0.5$. Upper fence: $8 + 1.5 \times 3 = 12.5$.
+  </Step>
+  <Step title="Draw whiskers and outliers">
+    The whiskers stretch to the furthest values inside the fences: down to **2** and up to **9**. The 20 is beyond 12.5, so it is drawn as a separate dot: an outlier. Notice that the mean, $66 / 9 \approx 7.33$, is dragged above the median by that one bus.
+  </Step>
+</Steps>
+
+<PyRunner packages={['pandas']} code={`import pandas as pd
+
+wait = pd.Series([2, 4, 5, 5, 6, 7, 8, 9, 20])   # minutes
+q1, med, q3 = wait.quantile([0.25, 0.5, 0.75])
+iqr = q3 - q1
+low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+print('Q1 =', q1, ' median =', med, ' Q3 =', q3, ' IQR =', iqr)
+print('fences:', low, 'and', high)
+print('outliers:', wait[(wait < low) | (wait > high)].tolist())
+print('whiskers end at', wait[wait >= low].min(), 'and', wait[wait <= high].max())
+print('mean =', round(wait.mean(), 2), ' median =', wait.median())`} />
+
+<Note>
+
+With only a handful of values, different tools can disagree slightly on quartiles because there are several ways to interpolate between neighbours. pandas, NumPy and matplotlib all use the same default (linear interpolation), which is what this example uses. In the exam, use the method the question gives you.
+
+</Note>
+
+<QuickCheck
+  q="A box plot has $Q_1 = 40$ and $Q_3 = 60$. Which of these values would be drawn as an outlier dot?"
+  options={['95', '85', '30', '15']}
+  answer={0}
+  explain="IQR $= 60 - 40 = 20$, so the fences are $40 - 1.5 \times 20 = 10$ and $60 + 1.5 \times 20 = 90$. Only 95 lies outside them. 85 and 30 are outside the box but still inside the fences, so the whiskers reach them; 15 is also above the lower fence of 10."
+/>
+
+## Figures, axes and the plotting recipe
+
+matplotlib draws on a <Term def="In matplotlib, the whole picture or window: the canvas that holds one or more Axes.">Figure</Term>: the whole canvas. Inside it sit one or more <Term def="In matplotlib, one individual plot inside a figure, with its own x-axis, y-axis, title and data. Not the same as an axis line: one Axes has two axis lines.">Axes</Term>, and each Axes is **one plot** with its own x-axis, y-axis, title and data. (The name is confusing: one *Axes* contains two *axis* lines.) Every matplotlib plot follows the same four-step recipe:
+
+```python
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots()                  # 1. a figure holding one axes
+ax.scatter(df['area'], df['price'])       # 2. ONE plotting call on the axes
+ax.set_xlabel('floor area (m²)')          # 3. label the axes and add a title
+ax.set_ylabel('price ($k)')
+ax.set_title('Price against floor area')
+plt.show()                                # 4. display it
+```
+
+Only step 2 changes between plot types: `ax.plot` for lines, `ax.scatter` for points, `ax.hist` for distributions, `ax.bar` for categories and `ax.boxplot` for box plots. If the plotting calls pass `label='…'`, then `ax.legend()` adds a key.
+
+<Analogy title="Easel, paper, brush">
+
+`plt.subplots()` sets up the easel (the figure) and clips sheets of paper onto it (the axes). The plotting call is the brush you choose for this drawing. The labels are the caption you write underneath so other people know what they are looking at.
+
+</Analogy>
+
+<PlotRecipeBuilder />
+
+Several plots side by side are a grid of axes. `plt.subplots(nrows, ncols)` returns the figure and the axes together:
+
+- `fig, ax = plt.subplots()` gives a single Axes, `ax`.
+- `fig, (ax1, ax2) = plt.subplots(1, 2)` gives two Axes side by side, unpacked into two names.
+- `fig, axes = plt.subplots(2, 3)` gives a NumPy array of Axes with shape `(2, 3)`: 2 rows and 3 columns. You pick one by row and column, so `axes[0, 2]` is the top-right plot.
+
+You will also see a shorter "pyplot" style in quick notebooks: `plt.plot(x, y)`, `plt.xlabel('…')`, `plt.title('…')`. These draw on whichever axes is current, which is fine for one plot but confusing for several. The two styles map one-to-one: `plt.xlabel` ↔ `ax.set_xlabel`, `plt.title` ↔ `ax.set_title`.
+
+<QuickCheck
+  q="After `fig, axes = plt.subplots(2, 2)`, which expression gives the Axes in the top-right corner?"
+  options={['`axes[0, 1]`', '`axes[1, 0]`', '`axes[1]`', '`axes[2]`']}
+  answer={0}
+  explain="`axes` is a 2 × 2 NumPy array indexed `[row, column]` from 0, so the top row is 0 and the right column is 1: `axes[0, 1]`. `axes[1, 0]` is bottom-left. `axes[1]` is the whole bottom row (an array of two Axes), and `axes[2]` is out of range for an array with 2 rows."
+/>
+
+## seaborn: statistical plots in one line
+
+<Term def="A Python library built on matplotlib that draws common statistical plots straight from a DataFrame and its column names, with labels and legends added for you.">seaborn</Term> (imported as `sns`) is built on top of matplotlib. You hand it the whole DataFrame and the **names** of the columns, and it does the grouping, colouring, axis labels and legend for you:
+
+```python
+import seaborn as sns
+
+fig, ax = plt.subplots()
+sns.boxplot(data=df, x='flat_type', y='price', hue='town', ax=ax)
+ax.set_title('Price by flat type and town')
+plt.show()
+```
+
+The `hue` argument splits the data by a category column and gives each group its own colour, with a legend. Here it draws three boxes (Bishan, Tampines, Woodlands) side by side for each flat type. In plain matplotlib you would loop over the groups yourself. Other seaborn calls you will meet:
+
+- `sns.histplot(data=df, x='price', hue='flat_type')`: overlapping histograms, one colour per flat type.
+- `sns.scatterplot(data=df, x='area', y='price', hue='town')`: dots coloured by town.
+- `sns.countplot(data=df, x='town')`: a bar chart of how many rows each category has.
+- `sns.heatmap(df.corr(numeric_only=True), annot=True)`: a grid coloured by the correlation between every pair of numeric columns, a favourite first look before modelling.
+
+Because seaborn returns the matplotlib Axes it drew on (or draws on the one you pass with `ax=`), the usual `ax.set_title` and `ax.set_xlabel` calls still work afterwards.
+
+<Mistake title="The plot is right, the message is wrong">
+
+- **No labels or units.** "price" could be dollars or thousands of dollars. Always label both axes, with units.
+- **A line through categories.** Joining Bishan, Tampines and Woodlands with a line suggests an order and a trend that do not exist. Use bars.
+- **A bar chart that does not start at zero.** Bar heights are compared by eye, so cutting off the bottom makes small differences look huge.
+- **Histogram vs bar chart.** A histogram's x-axis is a numeric scale cut into bins, so its bars touch. A bar chart's x-axis is a list of separate categories.
+
+</Mistake>
+
+## The line plot you will draw most: training curves
+
+When a model trains, it repeatedly measures its <Term def="A single number that measures how wrong a model's predictions are. Training tries to make it as small as possible.">loss</Term>, a number for how wrong its predictions are, and nudges itself to lower it. One full pass through the training data is an <Term def="One complete pass through all of the training data during training.">epoch</Term>. People plot two losses against epoch: the **training loss**, on the data the model learns from, and the **validation loss**, on a <Term def="Data held back from training and used only to check how well the model does on examples it has not learned from.">validation set</Term> that the model never trains on. The shape of these two lines is one of the most common things NOAI asks you to diagnose.
+
+<TrainingCurves />
+
+When validation loss rises while training loss keeps falling, the model is <Term def="Fitting the training data so closely, including its noise, that performance on new data gets worse.">overfitting</Term>. A simple cure is <Term def="Stopping training at the epoch where the validation loss is lowest (or after it stops improving for a few epochs) and keeping that version of the model.">early stopping</Term>: keep the model from the epoch with the lowest validation loss.
+
+<PastPaperQuestion paper="prelim2026" n={178} />
+
+<PastPaperQuestion paper="prelim2026" n={269} />
+
+<ExamTip>
+
+Prelim questions on plotting are quick recall, so learn the mapping cold: **relationship → scatter, distribution → histogram or box, over time → line, categories → bar, correlations between many columns → heatmap**. Know the recipe names too: `plt.subplots` returns `(fig, ax)`, an **Axes** is one plot (not an axis line), and `plt.subplots(2, 3)` gives an axes array of shape `(2, 3)`. For box plots, the outlier fences are $Q_1 - 1.5\,\text{IQR}$ and $Q_3 + 1.5\,\text{IQR}$: easy mental maths once you know them. For training curves: wild oscillation means the learning rate is too high, and a rising validation loss means overfitting.
+
+</ExamTip>
+
+<Takeaways>
+
+- Plot first: summary numbers can hide curves, outliers and single points that drive a trend (Anscombe's quartet).
+- The question decides the plot: scatter for relationships, histogram or box plot for distributions, line for change over time, bar for categories.
+- A box spans $Q_1$ to $Q_3$ with the median inside; values beyond $1.5 \times \text{IQR}$ from the box are outliers.
+- The matplotlib recipe is always `fig, ax = plt.subplots()`, one plotting call on `ax`, then labels and a title; `plt.subplots(r, c)` gives a grid of axes.
+- seaborn draws statistical plots straight from a DataFrame and column names, and `hue` splits them by a category with a legend.
+
+</Takeaways>

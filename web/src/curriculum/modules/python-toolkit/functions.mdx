@@ -1,3 +1,246 @@
-{/* stub: lesson 'Functions: reusable recipes' is being written */}
+import FunctionMachine from './visuals/functions/FunctionMachine'
+import ScopeBubbles from './visuals/functions/ScopeBubbles'
+import ArgsPacker from './visuals/functions/ArgsPacker'
 
-This lesson is being written.
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const addCode = `def add(a, b):
+    print(a + b)
+
+result = add(2, 3)
+print(result)`
+
+export const localCode = `def f():
+    y = 5
+    return y * 2
+
+z = f()
+print(y)`
+
+export const lossCode = `def mean(nums):
+    return sum(nums) / len(nums)
+
+def mse(y, y_hat):
+    total = 0
+    for i in range(len(y)):
+        total += (y[i] - y_hat[i]) ** 2
+    return total / len(y)
+
+print(mean([2, 4, 9]))
+print(mse([1, 2, 3], [1, 3, 5]))`
+
+You have already used plenty of functions: `print()`, `len()`, `range()`. Now you will write your own. Every AI program is built out of them: a <Term def="A function that measures how wrong a model's predictions are. Training tries to make it as small as possible.">loss function</Term>, a training step, a `predict` method. The NOAI Prelim asks you to read and debug them, and the Final's programming tasks ask you to write them from scratch, such as a `softmax(x)` function that turns a list of scores into probabilities.
+
+## Defining and calling a function
+
+<Analogy title="A drink vending machine">
+
+You put in coins and press a choice (the inputs), the machine does its work inside, and a can drops out of the chute (the output). You don't need to know how it works inside to use it, and you can use it again and again.
+
+</Analogy>
+
+A <Term def="A named, reusable block of code. You define it once with def, then run it as many times as you like by calling it.">function</Term> packages a calculation under a name:
+
+```python
+def area(w, h):          # def, the name, the parameters, a colon
+    return w * h         # the indented body; return hands back a value
+
+a = area(3, 4)           # call the function with arguments 3 and 4
+print(a)                 # 12
+print(area(5, 2) + 1)    # 11: the returned value can be used in a sum
+```
+
+Reading it piece by piece:
+
+- `def` starts a function definition, and `area` is its name.
+- `w` and `h` are <Term def="The names listed in brackets in a def line. They receive the values passed in when the function is called.">parameters</Term>: empty slots waiting for values.
+- The indented lines are the **body**. They run only when the function is **called**, never when it is defined.
+- `area(3, 4)` is a <Term def="Running a function by writing its name followed by brackets containing the arguments, e.g. area(3, 4).">call</Term>. The values `3` and `4` are <Term def="The actual values you pass into a function when you call it. They are matched to the parameters.">arguments</Term>, and they are matched to the parameters in order: `w = 3`, `h = 4`.
+- `return w * h` sends the result back to wherever the call was made, so `area(3, 4)` turns into `12`.
+
+<FunctionMachine />
+
+## return versus print
+
+This is the most common beginner mix-up, and examiners know it. `print` **shows** a value on the screen; `return` **hands it back** to the code that called the function. A function that never reaches a `return` hands back the special value `None`, meaning "nothing".
+
+```python
+def double(x):
+    print(x * 2)     # shows 8, but returns nothing
+
+y = double(4)
+print(y)
+```
+
+```text
+8
+None
+```
+
+The `8` appears while `double` runs, but `y` receives `None`, so `y + 1` would crash with `TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'`. Two more facts about `return`:
+
+- It ends the function immediately. Any lines after it in the body do not run.
+- It can hand back several values at once as a tuple: `return min(nums), max(nums)`. Then `lo, hi = min_max([4, 1, 7])` unpacks them, giving `lo = 1` and `hi = 7`.
+
+<KeyIdea>
+
+Parameters are the slots; arguments are the values you pass in. **return** hands a value back so later code can use it. **print** only displays it, and a function without return gives back **None**.
+
+</KeyIdea>
+
+<QuickCheck
+  q="What does this code print?"
+  code={addCode}
+  options={['5, then None', '5, then 5', 'None, then 5', 'Only 5']}
+  answer={0}
+  explain="Calling `add(2, 3)` runs `print(a + b)`, which shows 5. The function has no return, so it hands back None, which is stored in `result` and printed on the second line. 'Only 5' forgets that the last line prints too."
+/>
+
+## Default values and keyword arguments
+
+A parameter can have a <Term def="A value written in the def line, as in lr=0.1. It is used whenever the caller leaves that argument out.">default value</Term>, which is used when the caller leaves that argument out. This is how ML libraries let you call a model with sensible settings and change only the ones you care about.
+
+```python
+def update(w, grad, lr=0.1):
+    return w - lr * grad
+
+print(update(2.0, 4))          # lr not given, so the default 0.1 is used
+print(update(2.0, 4, lr=0.5))  # a keyword argument sets lr by name
+```
+
+```text
+1.6
+0.0
+```
+
+Arguments matched by their position, like `2.0` and `4`, are <Term def="An argument matched to a parameter by its position in the call: the first argument fills the first parameter, and so on.">positional arguments</Term>. Writing `lr=0.5` in the call is a <Term def="An argument passed as name=value, e.g. lr=0.5. It goes to the parameter with that name, so the order does not matter.">keyword argument</Term>: it goes to the parameter called `lr`, wherever that parameter is in the list. Two rules keep Python from getting confused:
+
+- In the `def` line, parameters with defaults come **after** those without: `def f(x=1, y):` is a `SyntaxError`.
+- In a call, keyword arguments come **after** positional ones: `update(lr=0.5, 2.0, 4)` is a `SyntaxError`.
+
+<Steps title="Trace update(2.0, 4) by hand">
+  <Step title="Match the arguments">
+    Positional arguments fill parameters in order: `w = 2.0` and `grad = 4`. Nothing was passed for `lr`, so it takes its default, `lr = 0.1`.
+  </Step>
+  <Step title="Work out the body">
+    $\text{lr} \times \text{grad} = 0.1 \times 4 = 0.4$, and $w - 0.4 = 2.0 - 0.4 = 1.6$.
+  </Step>
+  <Step title="Return">
+    `return` hands back `1.6`, and `print` shows it.
+  </Step>
+  <Step title="Now with lr=0.5">
+    $0.5 \times 4 = 2.0$, and $2.0 - 2.0 = 0.0$. This tiny function is exactly one step of <Term def="The method that trains most AI models: repeatedly nudge each weight a small step in the direction that lowers the loss.">gradient descent</Term>: $w_{\text{new}} = w - \eta \cdot \text{gradient}$, where $\eta$ (eta) is the <Term def="A small positive number that sets how big each training step is. You choose it before training.">learning rate</Term> `lr`.
+  </Step>
+</Steps>
+
+Now write some of your own. Edit `mean` or `mse` (the mean squared error, a common loss), or add a new function, and run it:
+
+<PyRunner code={lossCode} />
+
+The second line prints `1.6666666666666667`: the squared errors are $0^2 = 0$, $1^2 = 1$ and $2^2 = 4$, and $(0 + 1 + 4) / 3 = 5/3$.
+
+## Scope: local and global variables
+
+<Analogy title="A classroom and the school PA system">
+
+An announcement made in your classroom stays in your classroom. An announcement over the PA system reaches every class. Variables created inside a function are like classroom announcements: the rest of the program never hears them.
+
+</Analogy>
+
+A variable created inside a function (including its parameters) is a <Term def="A variable created inside a function, including its parameters. It exists only while that call is running.">local variable</Term>. It exists only while that call runs, and it disappears when the function returns. A variable created in the main program, outside every function, is a <Term def="A variable created in the main program, outside every function. Every part of the program can read it.">global variable</Term>. The part of a program where a name can be seen is its <Term def="The region of a program in which a name can be used. Each function call has its own local scope.">scope</Term>.
+
+When Python meets a name, it searches the scopes from the inside out:
+
+1. **Local**: the function that is running right now.
+2. **Global**: the main program.
+3. **Built-in**: Python's own names, such as `print` and `len`.
+
+It uses the first match it finds. If there is none, you get a `NameError`.
+
+<ScopeBubbles />
+
+<KeyIdea>
+
+Assigning to a name inside a function creates a **local** variable, even if a global one has the same name. Lookup goes from the inside out: local, then global, then built-in. So a function can read a global, but assigning to that name inside the function makes a separate local copy and leaves the global alone.
+
+</KeyIdea>
+
+<Mistake title="UnboundLocalError: updating a global inside a function">
+
+```python
+count = 0
+def add_one():
+    count = count + 1   # crashes
+add_one()
+```
+
+Because `count` is assigned somewhere inside `add_one`, Python treats `count` as local **everywhere** in that function. So the right-hand side tries to read a local `count` that has no value yet: `UnboundLocalError: cannot access local variable 'count' where it is not associated with a value`. The clean fix is to pass the value in and return the new one: `def add_one(count): return count + 1`, then `count = add_one(count)`. (Python also has a `global count` statement, but code that changes globals from inside functions is hard to debug.)
+
+</Mistake>
+
+<QuickCheck
+  q="What happens when this code runs?"
+  code={localCode}
+  options={["NameError: name 'y' is not defined", '5', '10', 'None']}
+  answer={0}
+  explain="`y` is local to `f`. It existed only while `f` was running and vanished when `f` returned, so the main program has no `y` to print. The value 10 was returned and is stored in `z`, not in `y`."
+/>
+
+## *args and **kwargs: any number of arguments
+
+<Analogy title="The 'extras' bag at check-in">
+
+At an airport counter, your suitcase gets its own tag, and everything else goes into one bag marked "extras". Python does the same when a function is called with more arguments than it has named parameters.
+
+</Analogy>
+
+Sometimes a function should accept *any* number of arguments, like `print`, which happily takes one, two or ten. A parameter written with one star, `*args`, collects all the extra **positional** arguments into a **tuple**. A parameter with two stars, `**kwargs`, collects all the extra **keyword** arguments into a **dict**.
+
+```python
+def total(*args):
+    return sum(args)
+
+print(total(1, 2, 3))   # 6: args is the tuple (1, 2, 3)
+print(total())          # 0: args is the empty tuple ()
+
+def describe(**kwargs):
+    for key, value in kwargs.items():
+        print(key, '=', value)
+
+describe(lr=0.1, epochs=5)   # kwargs is {'lr': 0.1, 'epochs': 5}
+```
+
+```text
+6
+0
+lr = 0.1
+epochs = 5
+```
+
+<ArgsPacker />
+
+Python fills the parameters in a fixed order: named parameters first (by position, or by name for keyword arguments), then `*args` takes the leftover positional arguments, then `**kwargs` takes the leftover keyword arguments. The names `args` and `kwargs` are only a convention; the stars do the work. The stars also work the other way round when you *call* a function: `f(*[1, 2])` spreads a list into positional arguments, and `f(**{'lr': 0.1})` spreads a dict into keyword arguments. You will see `model(**inputs)` in <Term def="A popular library of ready-made, pretrained AI models such as BERT and GPT-2.">Hugging Face</Term> code for exactly this reason.
+
+<PastPaperQuestion paper="prelim2026" n={85} />
+
+<ExamTip>
+
+One star means a tuple of extra **positional** arguments; two stars mean a dict of extra **keyword** arguments. Expect distractors that swap the two, or that describe default values (`def f(x=0)`) instead. In "what does this print?" questions, remember that a one-item tuple prints with a comma, `(3,)`, and that a function without `return` gives `None`.
+
+</ExamTip>
+
+<Note title="One-line functions: lambda">
+
+`lambda x: x ** 2` is a tiny function with no name. It is handy when another function needs a function as its input, for example `sorted(['kopi', 'teh', 'bandung'], key=lambda w: len(w))` sorts by length and gives `['teh', 'kopi', 'bandung']`.
+
+</Note>
+
+<Takeaways>
+
+- `def name(params):` defines a function; its body runs only when you call `name(args)`, and arguments are matched to parameters in order or by name.
+- `return` hands a value back to the caller; `print` only displays it. With no `return`, a function gives `None`.
+- Defaults such as `lr=0.1` make arguments optional, and keyword arguments set them by name.
+- Variables made inside a function are local. Lookup goes local, then global, then built-in.
+- `*args` packs extra positional arguments into a tuple; `**kwargs` packs extra keyword arguments into a dict.
+
+</Takeaways>

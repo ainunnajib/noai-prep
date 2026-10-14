@@ -1,3 +1,197 @@
-{/* stub: lesson 'Your first model: fitting a line by hand' is being written */}
+import LineFitPlayground from './visuals/fit-a-line-by-hand/LineFitPlayground'
+import SquaredErrorPreview from './visuals/fit-a-line-by-hand/SquaredErrorPreview'
+import MSECalculator from './visuals/fit-a-line-by-hand/MSECalculator'
+import LossBowl from './visuals/fit-a-line-by-hand/LossBowl'
 
-This lesson is being written.
+A property agent can glance at a flat's size and guess its price. In this lesson you will build a model that does the same, using nothing but a straight line, and you will learn the one number that tells you how wrong a model is. These two ideas, **a model with knobs** and **a loss that scores it**, sit under every machine learning system, from this humble line to ChatGPT.
+
+## The data: 30 HDB flats
+
+The figures in this lesson show 30 resale flats. Each dot is one flat: how far right it sits is its floor area in square metres, and how high it sits is its resale price in thousands of dollars. The numbers are made up but realistic.
+
+In ML language, the floor area is the <Term def="An input that the model uses to make its prediction, such as floor area. Also called an input variable.">feature</Term> (the input, called $x$) and the price is the <Term def="The value we want to predict, such as the price. In the training data each example comes with its true target, the label.">target</Term> (what we want to predict, called $y$). Since every flat comes with its true price, this is supervised learning, and since the answer is a number, it is <Term def="A supervised task whose answer is a number on a continuous scale, such as a price.">regression</Term>.
+
+## A model is a function with knobs
+
+Bigger flats cost more, and the dots roughly follow a straight line. So our model is a line:
+
+$$
+\hat{y} = w\,x + b
+$$
+
+Read it symbol by symbol:
+
+- $x$ is the floor area of a flat (the input).
+- $\hat{y}$, said "y-hat", is the model's **predicted** price. The hat means "estimate", to keep it apart from the true price $y$.
+- $w$ is the **slope**: how many thousand dollars each extra square metre adds. ML calls it a <Term def="A number inside a model that multiplies an input. For a straight line it is the slope.">weight</Term>.
+- $b$ is the **intercept**: the height of the line where $x = 0$. ML calls it a <Term def="A number inside a model that is added on at the end, shifting every prediction up or down. For a straight line it is the intercept.">bias</Term>. It slides the whole line up or down.
+
+This is the $y = mx + c$ from school maths with new names: $w$ plays the part of $m$, and $b$ plays the part of $c$.
+
+<Analogy>
+Making kopi has two knobs: how much sugar and how much milk. You taste, adjust, and taste again until it is just right. Our model also has two knobs, $w$ and $b$. "Training" means turning them until the line fits the data.
+</Analogy>
+
+Try it. Turn the knobs until the line looks right, then use your model to price a flat.
+
+<LineFitPlayground />
+
+The flats never change; only the knobs do. That is the key split in machine learning. The **data** ($x$ and $y$ for every flat) is fixed, and the **<Term def="The adjustable numbers inside a model that training sets, here w and b.">parameters</Term>** ($w$ and $b$) are what we choose. Once chosen, the model works on any flat, even one it has never seen: put in an area, get out a price.
+
+<KeyIdea>
+A model is a function with adjustable knobs called **parameters**. For a line, $\hat{y} = wx + b$, the parameters are $w$ and $b$. **Training** means finding the parameter values that fit the data best.
+</KeyIdea>
+
+<Mistake>
+Don't read $b$ as "the price of a 0 m² flat". No flat has zero area, and the line is only trustworthy near the data (about 45 to 150 m²). Think of $b$ simply as the knob that moves the line up and down.
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={138} />
+
+## Loss: measuring how wrong the line is
+
+Judging a line "by eye" doesn't scale. A computer needs a single number that says how wrong a line is, so that it can compare two lines and keep the better one.
+
+Start with one flat. Its <Term def="The actual value minus the predicted value, y − ŷ. Positive means the model guessed too low; negative means it guessed too high.">residual</Term> is how far the model missed it:
+
+$$
+\text{residual} = y - \hat{y}
+$$
+
+that is, the actual price minus the predicted price. A positive residual means the model guessed too low; a negative one means it guessed too high. On the plot, a residual is the vertical gap between a dot and the line.
+
+Why not just average the residuals? Because they cancel. Miss one flat by $+50$ and another by $-50$ and the average is 0, as if the line were perfect. So we **square** each residual first. Squaring does two jobs at once:
+
+1. A square is never negative, so misses can't cancel out.
+2. Big misses count much more: a miss of 10 costs $10^2 = 100$, but a miss of 50 costs $50^2 = 2500$, which is 25 times as much for a miss only 5 times as big.
+
+Then average the squares. The result is the <Term def="The average of the squared residuals. The standard loss for regression: lower means a better fit.">mean squared error (MSE)</Term>:
+
+$$
+\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}\left(y_i - \hat{y}_i\right)^2
+$$
+
+- $n$ is the number of examples (here, 30 flats), and $i$ numbers them $1, 2, \dots, n$.
+- $y_i$ is the actual price of flat $i$, and $\hat{y}_i = w\,x_i + b$ is the predicted price.
+- $\left(y_i - \hat{y}_i\right)^2$ is that flat's squared residual.
+- $\sum_{i=1}^{n}$ means "add this up for every flat from 1 to $n$", and $\frac{1}{n}$ turns the total into an average.
+
+In words: **square every miss, then take the average.** A number that scores a model like this is called a <Term def="A single number that measures how wrong a model's predictions are. Training tries to make it as small as possible. Also called a cost.">loss</Term>. Lower is better.
+
+<Analogy>
+Think of darts where you lose points for missing the bullseye, and the penalty is the distance *squared*. Ten throws that land a little off cost far less than one throw that hits the wall.
+</Analogy>
+
+<SquaredErrorPreview />
+
+<KeyIdea>
+**MSE = the average of the squared residuals.** One number sums up how wrong a model is: lower means a better fit. Squaring stops misses from cancelling and makes big misses, such as outliers, very loud.
+</KeyIdea>
+
+### A worked example you can do by hand
+
+<Steps title="Which of two lines fits three flats better?">
+  <Step title="The data and the first line">
+    Flats A, B and C have areas $70$, $90$ and $110$ m² and sold for $460$, $530$ and $670$ (S\$ thousands). Line 1 is $\hat{y} = 5x + 100$.
+  </Step>
+  <Step title="Predict">
+    $5 \times 70 + 100 = 450$, $\;5 \times 90 + 100 = 550$, $\;5 \times 110 + 100 = 650$.
+  </Step>
+  <Step title="Residuals: actual minus predicted">
+    $460 - 450 = +10$, $\;530 - 550 = -20$, $\;670 - 650 = +20$.
+  </Step>
+  <Step title="Square, add, average">
+    $10^2 + (-20)^2 + 20^2 = 100 + 400 + 400 = 900$, so $\text{MSE} = 900 \div 3 = 300$.
+  </Step>
+  <Step title="Line 2: $\hat{y} = 4x + 200$">
+    Predictions $480, 560, 640$; residuals $-20, -30, +30$; squares $400 + 900 + 900 = 2200$; $\text{MSE} = 2200 \div 3 \approx 733$. Line 1 has the lower MSE, so it fits better.
+  </Step>
+</Steps>
+
+<MSECalculator />
+
+<Note title="What unit is the MSE in?">
+Because the residuals are squared, the MSE is in "thousands of dollars, squared", which is hard to picture. Taking its square root gives the **root mean squared error** (RMSE), back in thousands of dollars: for line 1, $\sqrt{300} \approx 17$, so it typically misses by about S\$17k.
+</Note>
+
+<QuickCheck
+  q="A model's residuals on three flats are $2$, $-4$ and $4$ (S\$ thousands). What is its MSE?"
+  options={['$12$', '$36$', '$0.67$', '$3.33$']}
+  answer={0}
+  explain="Square each residual: $4 + 16 + 16 = 36$. Then average: $36 \div 3 = 12$. The tempting $36$ forgets to divide by $n$; $0.67$ averages the residuals without squaring (so they partly cancel); $3.33$ averages their sizes without squaring."
+/>
+
+<Reveal label="Peek at the code (optional)">
+
+You won't need code until later in the course, but here is the same calculation in NumPy, the Python library used in the NOAI Final. Notice how closely it follows the formula.
+
+```python
+import numpy as np
+
+area  = np.array([70, 90, 110])      # x: floor area (m²)
+price = np.array([460, 530, 670])    # y: actual price (S$k)
+
+w, b = 5, 100
+pred = w * area + b                  # ŷ = w·x + b
+residuals = price - pred             # y − ŷ
+mse = np.mean(residuals ** 2)        # average of the squares
+print(pred)
+print(residuals)
+print(mse)
+```
+
+```text
+[450 550 650]
+[ 10 -20  20]
+300.0
+```
+
+</Reveal>
+
+<ExamTip>
+NOAI asks about MSE in two ways. **Recall:** MSE is the standard loss for regression (predicting a number); classification uses other losses, such as cross-entropy, which you will meet later. **Quick computation:** square, add, divide by $n$. The traps in the options are the sum without dividing, the average of the residuals without squaring, and the average of their sizes without squaring. Also remember that MSE is *sensitive to outliers*: the mean absolute error (MAE), which averages the sizes $|y - \hat{y}|$ instead of the squares, is less affected by one wild point.
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={171} />
+
+## The loss curve: a valley to find
+
+Now flip your point of view. So far the data sat on the axes and the line moved. Instead, put the **knob** on the horizontal axis and the **loss** on the vertical axis.
+
+To keep it to one knob, fix the intercept at $b = 100$ and try different slopes $w$. Every slope gives one line, and every line gives one MSE:
+
+| $w$ | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|
+| MSE | 41,432 | 11,595 | 1,650 | 11,596 | 41,435 |
+
+Plot those pairs and they trace a U-shaped curve: the <Term def="A graph of the loss against a parameter. The lowest point marks the best parameter value.">loss curve</Term>.
+
+<Analogy>
+Imagine walking in a valley in thick fog. You can't see the bottom, but you can feel whether the ground under your feet slopes down. Finding the best model is finding the lowest point of this valley.
+</Analogy>
+
+<LossBowl />
+
+The best slope is $w \approx 5$, at the very bottom of the curve, and that is exactly the line that runs through the middle of the cloud. "Best model" and "lowest point of the loss" are the same thing. That idea drives all of machine learning.
+
+Notice that the bottom is **not** zero. The lowest MSE is about 1,650, a typical miss of about $\sqrt{1650} \approx 41$, or S\$41k. No straight line passes through all 30 flats, because price depends on more than size: town, floor level, age of the lease.
+
+<KeyIdea>
+Every choice of parameters gives one value of the loss. The best model is the one at the **lowest point of the loss**, so training a model means searching for the bottom of a valley.
+</KeyIdea>
+
+<QuickCheck
+  q="With $b$ fixed, a student tries five slopes and gets these MSE values: $w = 1$: 90, $w = 2$: 40, $w = 3$: 10, $w = 4$: 30, $w = 5$: 85. Which slope should she keep?"
+  options={['$w = 3$', '$w = 5$', '$w = 1$', '$w = 4$']}
+  answer={0}
+  explain="Lower loss means a better fit, so pick the lowest MSE: 10 at $w = 3$, the bottom of the U. $w = 5$ has the highest MSE, and $w = 4$ is past the bottom, on the side where the loss is climbing again."
+/>
+
+With two knobs, $w$ and $b$, the loss becomes a bowl-shaped surface instead of a curve. Real models have thousands or even billions of knobs, so nobody can draw their loss, let alone look for the bottom by eye. In the next lesson you will meet **gradient descent**: a way for the computer to feel which way is downhill and walk to the bottom by itself.
+
+<Takeaways>
+- A **model** is a function with **parameters** (knobs). For a line $\hat{y} = wx + b$, the parameters are the slope $w$ and the intercept $b$; the data stays fixed.
+- A **residual** is actual minus predicted, $y - \hat{y}$.
+- **MSE** $= \frac{1}{n}\sum (y_i - \hat{y}_i)^2$: square every miss, then average. Squaring stops misses cancelling and punishes big misses (outliers) heavily. It is the standard loss for regression.
+- Plotting the loss against a parameter gives a valley: the **best model sits at the lowest point of the loss**, which is not usually zero.
+</Takeaways>

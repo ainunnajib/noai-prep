@@ -1,0 +1,319 @@
+/* Shared look for the code panes and output consoles in this lesson's visuals. */
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.stack {
+  display: grid;
+  gap: 0.75rem;
+}
+.pane {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+.pane .lines {
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.lines .line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.1rem;
+  padding: 0 0.35rem 0 0.25rem;
+  border-left: 3px solid transparent;
+}
+.isNext {
+  background: var(--highlight-soft);
+  border-left-color: var(--highlight);
+}
+.isBad {
+  background: var(--bad-soft);
+  border-left-color: var(--bad);
+}
+.gutter {
+  flex: none;
+  display: inline-flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.2rem;
+  width: 2.6em;
+  color: var(--ink-3);
+  user-select: none;
+}
+.marker {
+  display: inline-block;
+  width: 1.1em;
+  text-align: center;
+  font-size: 0.8em;
+}
+.markerNext {
+  color: var(--accent);
+}
+.markerDone {
+  color: var(--ok);
+}
+.markerBad {
+  color: var(--bad);
+  font-weight: 800;
+}
+.code {
+  flex: 1;
+  min-width: 0;
+  white-space: pre;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.lineNo {
+  border-radius: 4px;
+  padding: 0 0.15em;
+}
+.iconBtn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.iconBtn:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.iconOn {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.console {
+  margin: 0;
+  padding: 0.45rem 0.7rem 0.55rem;
+  min-height: 4.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  background: var(--surface);
+  color: var(--ink);
+  overflow-x: auto;
+}
+.outRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.1rem 0.35rem;
+  margin: 0 -0.35rem;
+  border-radius: 5px;
+}
+.outNew {
+  background: var(--highlight-soft);
+}
+.outText {
+  white-space: pre;
+}
+.outTag {
+  flex: none;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.empty {
+  color: var(--ink-3);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+.status {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.status strong {
+  color: var(--ink);
+}
+.btnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  align-items: center;
+}
+.spacer {
+  flex: 1;
+}
+
+/* ---------- traceback ---------- */
+.tb {
+  color: var(--bad);
+  white-space: pre;
+}
+.tbLine {
+  display: block;
+  min-height: 1.5em;
+  padding: 2px 0;
+}
+.part {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  white-space: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  outline: 1.5px dashed var(--c);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--c) 9%, transparent);
+}
+.partBlock {
+  display: inline-block;
+  vertical-align: top;
+}
+.part:hover {
+  background: color-mix(in srgb, var(--c) 18%, transparent);
+}
+.part:focus-visible {
+  outline: 3px solid var(--accent);
+}
+.partOn {
+  outline: 2.5px solid var(--c);
+  background: color-mix(in srgb, var(--c) 24%, transparent);
+}
+.explain {
+  width: 100%;
+  padding: 0.65rem 0.85rem 0.75rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--rule);
+  border-left: 5px solid var(--c);
+  background: var(--surface);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.explainHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-family: var(--font-display);
+  font-weight: 750;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  background: var(--c);
+  flex: none;
+}
+.fix {
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed var(--rule);
+}
+.fix code {
+  font-size: 0.85rem;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+@media (max-width: 520px) {
+  .pane .lines,
+  .console {
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- scenario chips ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.chipsLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-right: 0.2rem;
+}
+.chip {
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.chipOn,
+.chipOn:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}

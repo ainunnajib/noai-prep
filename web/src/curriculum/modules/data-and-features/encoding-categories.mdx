@@ -1,3 +1,239 @@
-{/* stub: lesson 'Encoding categories and text' is being written */}
+import EncodingCompare from './visuals/encoding-categories/EncodingCompare'
+import LinearOnCodes from './visuals/encoding-categories/LinearOnCodes'
+import VocabBuilder from './visuals/encoding-categories/VocabBuilder'
 
-This lesson is being written.
+Models do arithmetic: they multiply features by weights, add them up and measure distances. But "Bedok", "4-room" and the sentence "the cat sat on the mat" are not numbers. Before a model can use them, you must turn them into numbers, and the way you do it quietly decides what the model is able to learn. Get it wrong and the model believes things that are simply not true, such as "Clementi is twice Bedok".
+
+<Analogy title="Numbering the MRT lines">
+
+You could number the MRT lines 1 (East-West), 2 (North-South), 3 (Circle) and so on. The numbers are handy labels, but nobody thinks the Circle Line is "three times" the East-West Line, or that the North-South Line lies "between" the other two. A model, though, has no common sense: give it those numbers and it will happily do arithmetic with them.
+
+</Analogy>
+
+## Categories: with and without an order
+
+A <Term def="A feature whose values are names of groups (categories) rather than measured amounts, such as town, colour or flat type.">categorical feature</Term> takes values from a fixed set of groups. There are two kinds:
+
+- **Nominal**: the categories have **no natural order**. Town, MRT line, blood type, favourite CCA.
+- **Ordinal**: the categories have a **real order**. Flat type (2-room < 3-room < 4-room < 5-room), T-shirt size (S < M < L), exam grade (A > B > C).
+
+The kind of feature decides the right encoding.
+
+## Label encoding invents an order
+
+The quickest idea is <Term def="Replacing each category by an integer code, e.g. Ang Mo Kio = 0, Bedok = 1, Clementi = 2. Called ordinal encoding when the codes follow a real order.">label encoding</Term>: give each category an integer, usually in alphabetical order. Ang Mo Kio = 0, Bedok = 1, Clementi = 2. To a model, those integers are amounts:
+
+- **Order**: Bedok sits "between" Ang Mo Kio and Clementi.
+- **Spacing**: Clementi − Bedok = Bedok − Ang Mo Kio, so the two "gaps" are equal.
+- **Size**: Clementi (2) is "twice" Bedok (1).
+
+None of this is true; it is an accident of the alphabet. A k-NN model would think flats in Ang Mo Kio and Bedok are more alike than flats in Ang Mo Kio and Clementi, purely because A and B are neighbours in the alphabet.
+
+## One-hot encoding: one column per category
+
+<Term def="Replacing a categorical column with one 0/1 column per category: the column of the row's own category is 1 and all the others are 0.">One-hot encoding</Term> gives every category its own 0/1 column. A row has a 1 in its own category's column and 0 everywhere else:
+
+| town | is_AMK | is_Bedok | is_Clementi |
+|---|---|---|---|
+| Bedok | 0 | 1 | 0 |
+| Ang Mo Kio | 1 | 0 | 0 |
+| Clementi | 0 | 0 | 1 |
+
+Each category becomes a vector with a single 1. Any two **different** categories differ in exactly two positions (one has a 1 where the other has a 0, and the other way round), so their Euclidean distance is always
+
+$$
+\sqrt{1^2 + 1^2} = \sqrt{2}.
+$$
+
+Every pair of towns is equally far apart: no order, no "between", no "twice".
+
+<EncodingCompare />
+
+<KeyIdea>
+
+Integer codes tell the model that categories have an order and equal spacing. Use **one-hot encoding** for nominal categories (no order), and **ordinal encoding** only when the order is real.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A colour column has the categories red, green and blue, and is one-hot encoded. What is the Euclidean distance between the encoded vectors for red and blue?"
+  options={['$\\sqrt{2}$', '$1$', '$2$', '$0$']}
+  answer={0}
+  explain="Red is $[1, 0, 0]$ and blue is $[0, 0, 1]$. They differ in two positions by 1 each, so the distance is $\sqrt{1^2 + 0^2 + 1^2} = \sqrt{2}$. The answer 2 is what label codes red = 0, blue = 2 would give: exactly the fake spacing that one-hot encoding avoids."
+/>
+
+## What a linear model can do with each encoding
+
+The damage is easiest to see with a linear model. With label encoding it can only learn $\text{price} \approx w \times \text{code} + b$, a single straight line through the codes. Every town is forced onto that line, in whatever order the codes happen to follow.
+
+<LinearOnCodes />
+
+With alphabetical codes the best line is almost flat and the typical error is about \$71k. Renumber the towns and the line, and the error, change (to about \$39k or \$58k), although nothing about the flats has changed. With one-hot encoding the model learns a separate weight for each town, so it predicts each town at its own average level, and the typical error drops to about \$20k (what is left is the variation between flats within a town).
+
+Tree models suffer less from label encoding, because a tree can split the codes several times ("code below 1.5", then "code above 3.5"...) to carve out each town. But they need extra splits to undo an order that was never there, so one-hot (or a library's built-in categorical support) is still the safer default.
+
+## Ordinal encoding: when the order is real
+
+For an ordinal feature, integer codes are not a bug but a feature. Flat type encoded as 2-room = 0, 3-room = 1, 4-room = 2, 5-room = 3 tells the model, correctly, that a 4-room flat lies between a 3-room and a 5-room flat. One-hot encoding would throw that information away. (The codes still assume equal steps between neighbouring categories, which is usually a fair approximation.)
+
+<Mistake title="Letting the computer choose the order">
+
+scikit-learn's `OrdinalEncoder` sorts categories **alphabetically** unless you tell it otherwise. For sizes S, M, L that gives L = 0, M = 1, S = 2, which is the wrong order. Always spell out the order: `OrdinalEncoder(categories=[["S", "M", "L"]])`.
+
+</Mistake>
+
+<PyRunner packages={['pandas', 'scikit-learn']} code={`import pandas as pd
+from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
+
+df = pd.DataFrame({
+    "town": ["Bedok", "Ang Mo Kio", "Clementi", "Bedok"],
+    "flat_type": ["4-room", "3-room", "5-room", "3-room"],
+})
+
+# one-hot with pandas: one 0/1 column per town
+print(pd.get_dummies(df["town"], dtype=int))
+
+# one-hot with scikit-learn: fit on training data, ignore unseen towns later
+enc = OneHotEncoder(handle_unknown="ignore")
+enc.fit(df[["town"]])
+print(enc.categories_)
+print(enc.transform(pd.DataFrame({"town": ["Clementi", "Punggol"]})).toarray())
+
+# ordinal encoding for a column whose order is real: spell the order out!
+ordinal = OrdinalEncoder(categories=[["2-room", "3-room", "4-room", "5-room"]])
+print(ordinal.fit_transform(df[["flat_type"]]).ravel())`} />
+
+Two details in that output matter in practice. The encoder learns its list of categories from the **training** data, like a scaler learns its mean. And `handle_unknown="ignore"` turns a category never seen in training (Punggol) into a row of all zeros instead of crashing.
+
+<Note title="The dummy-variable trap">
+
+With $K$ categories, the $K$ one-hot columns always add up to 1, so any one of them can be worked out from the others. For plain linear regression this redundancy makes the best weights non-unique, so people often drop one column: `pd.get_dummies(..., drop_first=True)` keeps $K - 1$ columns, and the dropped category becomes the "baseline". Regularised models and trees do not need this.
+
+</Note>
+
+## Too many categories
+
+One-hot encoding adds one column per category. That is fine for a few dozen HDB towns, but a column such as postal code or user ID can have tens of thousands of categories. One-hot then creates a huge, almost-all-zero table, and most categories appear in only a handful of rows, too few to learn a weight from. This is called <Term def="Having a very large number of distinct categories in one column, such as postal codes or user IDs.">high cardinality</Term>. Common fixes:
+
+- **Group rare categories** into a single `"other"` category.
+- **Frequency encoding**: replace each category by how often it occurs.
+- **Target encoding**: replace each category by the average target value for that category. This is powerful but leaks the answer unless the averages are computed on training folds only.
+- **Embeddings**: let a neural network learn a short, dense vector for each category (you will meet these with text, below).
+
+Watch out for categories that *look* like numbers. Postal codes, phone numbers and student IDs are digits, but 560123 is not "more" than 460123. They are nominal categories, and treating them as quantities invents an order.
+
+## Text: from words to ids
+
+Text needs the same treatment, one word at a time. The pipeline has three steps:
+
+1. **Tokenise**: split the text into <Term def="The units a text is split into before a model sees it: whole words, pieces of words (subwords) or single characters.">tokens</Term>. Here we lowercase and split into words.
+2. **Build a vocabulary**: give every distinct token in the training text its own integer id. The <Term def="The fixed mapping from every known token to its integer id, built from the training text.">vocabulary</Term> is just this word → id table.
+3. **Encode**: replace each token of a sentence by its id.
+
+Two special tokens are added first. <Term def="The unknown token: the id used for any word that is not in the vocabulary.">`[UNK]`</Term> stands for any word the vocabulary has never seen, so new text never crashes the model. <Term def="The padding token: filler added to the end of short sequences so every sequence in a batch has the same length.">`[PAD]`</Term> fills up short sentences, because a batch of sentences must form a rectangular table (a tensor) of equal-length rows.
+
+<VocabBuilder />
+
+Notice what the vocabulary means for the model: it can only ever "read" the words in that table. Everything else collapses into the single id for `[UNK]`, so "sofa", "couch" and "durian" all look identical. Raising the minimum frequency makes the vocabulary smaller (rare words, often typos, are left out) at the price of more `[UNK]`s.
+
+<Steps title="Encode “the dog sat on a sofa” with padded length 8">
+  <Step title="The vocabulary">
+    `[PAD]` = 0, `[UNK]` = 1, the = 2, cat = 3, sat = 4, on = 5, mat = 6, dog = 7, log = 8, a = 9, saw = 10.
+  </Step>
+  <Step title="Look up each word">
+    the → 2, dog → 7, sat → 4, on → 5, a → 9, and sofa is not in the vocabulary, so sofa → 1 (`[UNK]`).
+  </Step>
+  <Step title="Pad to length 8">
+    Six ids plus two `[PAD]`s: $[2, 7, 4, 5, 9, 1, 0, 0]$.
+  </Step>
+</Steps>
+
+<PyRunner code={`from collections import Counter
+
+train = ["The cat sat on the mat", "The dog sat on the log", "A cat saw a dog"]
+
+# 1. tokenise (lowercase, split on spaces) and count every word
+counts = Counter(w for s in train for w in s.lower().split())
+print(counts)
+
+# 2. vocabulary: special tokens first, then each word seen at least min_freq times
+min_freq = 1
+vocab = {"[PAD]": 0, "[UNK]": 1}
+for word, c in counts.items():          # in order of first appearance
+    if c >= min_freq:
+        vocab[word] = len(vocab)
+print(vocab)
+
+# 3. encode a new sentence: unknown words -> [UNK], then pad or cut to max_len
+def encode(sentence, max_len=8):
+    ids = [vocab.get(w, vocab["[UNK]"]) for w in sentence.lower().split()]
+    ids = ids[:max_len]
+    return ids + [vocab["[PAD]"]] * (max_len - len(ids))
+
+print(encode("the dog sat on a sofa"))`} />
+
+<QuickCheck
+  q="With the vocabulary above, what is the encoding of “a log saw the cat” padded to length 6?"
+  options={['$[9, 8, 10, 2, 3, 0]$', '$[9, 8, 10, 2, 3]$', '$[9, 1, 10, 2, 3, 0]$', '$[0, 9, 8, 10, 2, 3]$']}
+  answer={0}
+  explain="Every word is in the vocabulary: a = 9, log = 8, saw = 10, the = 2, cat = 3. That is 5 ids, so one `[PAD]` (0) is added at the end to reach length 6. Forgetting the padding gives only 5 ids; `log` is not unknown; and padding goes after the words here, not before."
+/>
+
+### From ids to vectors
+
+An id is still just a label: word 10 is not "more" than word 2. So ids are fed to a model either as one-hot vectors (as long as the whole vocabulary, almost all zeros) or, much more often, through an <Term def="A learnable lookup table that maps each id to a short, dense vector of numbers. Training moves the vectors so that useful similarities appear, e.g. related words end up close together.">embedding</Term> layer, which looks up a short, dense, learnable vector for each id. In PyTorch:
+
+```python
+import torch
+import torch.nn as nn
+
+torch.manual_seed(0)
+ids = torch.tensor([[2, 7, 4, 5, 9, 1, 0, 0]])   # one encoded sentence: shape (1, 8)
+emb = nn.Embedding(num_embeddings=11, embedding_dim=4, padding_idx=0)
+vectors = emb(ids)
+print(vectors.shape)     # (batch, sequence length, embedding size)
+print(vectors[0, 0])     # the learnable vector for id 2 ("the")
+print(vectors[0, -1])    # [PAD] (id 0) is always the zero vector
+```
+
+```text
+torch.Size([1, 8, 4])
+tensor([ 0.3223, -1.2633,  0.3500,  0.3081], grad_fn=<SelectBackward0>)
+tensor([0., 0., 0., 0.], grad_fn=<SelectBackward0>)
+```
+
+`num_embeddings` must equal the vocabulary size (11 here), and `padding_idx=0` keeps the `[PAD]` vector fixed at zero. The values start random; training adjusts them. The module on text as data takes this much further.
+
+<PastPaperQuestion paper="prelim2026" n={206} />
+
+Word-level vocabularies have two problems: they grow huge, and any new word becomes `[UNK]`. Modern models use **subword** tokenisers (such as BPE or WordPiece) that split rare words into known pieces, so "durians" might become "durian" + "s" and nothing is ever completely unknown.
+
+<PastPaperQuestion paper="prelim2026" n={224} />
+
+## Putting the whole module so far together
+
+A real tabular dataset usually needs every step from these three lessons, each one fitted on the training data only: impute missing values, deal with outliers, scale the numerical features, and encode the categorical ones.
+
+<PastPaperQuestion paper="prelim2026" n={293} />
+
+<ExamTip>
+
+How NOAI asks about this:
+
+- **Why not integer codes?** Label encoding of a nominal feature imposes a **false order and spacing**; one-hot does not.
+- **When are integer codes fine?** For a truly **ordinal** feature (sizes, grades, flat types), as long as the codes follow the real order.
+- **Counting columns**: one-hot of $K$ categories gives $K$ columns ($K - 1$ with `drop_first=True`). Any two different one-hot vectors are $\sqrt{2}$ apart and have dot product 0.
+- **High cardinality**: one-hot explodes; group rare categories, use frequency or target encoding, or learn embeddings.
+- **Vocabulary questions**: unseen words map to `[UNK]`, short sequences are filled with `[PAD]`, and the vocabulary is built from the **training** text only. Subword tokenisation (BPE, WordPiece) shrinks the vocabulary and avoids unknown words.
+
+</ExamTip>
+
+<Takeaways>
+
+- Nominal categories (no order) need **one-hot encoding**: one 0/1 column per category, every pair $\sqrt{2}$ apart.
+- Integer codes invent an order and equal spacing; use them only for **ordinal** features, in the real order (spell it out for `OrdinalEncoder`).
+- Learn the categories from the training data and decide what happens to unseen ones (`handle_unknown="ignore"` for one-hot, `[UNK]` for text).
+- Very many categories call for grouping, frequency or target encoding, or learned embeddings.
+- Text becomes numbers by tokenising, building a vocabulary (word → id, plus `[PAD]` and `[UNK]`) and encoding each sentence as a padded list of ids.
+
+</Takeaways>

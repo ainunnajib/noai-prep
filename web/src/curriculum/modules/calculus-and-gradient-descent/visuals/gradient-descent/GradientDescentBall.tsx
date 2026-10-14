@@ -1,6 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, DraggablePoint, MBlock, usePlot } from '../../../../../kit'
-import { useNarrow } from './useNarrow'
+import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, DraggablePoint, MBlock, usePlot, useNarrow } from '../../../../../kit'
 
 /*
   Gradient descent on L(w) = w². The learner sets the learning rate, presses Step or Play,

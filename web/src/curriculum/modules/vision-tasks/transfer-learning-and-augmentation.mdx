@@ -1,3 +1,270 @@
-{/* stub: lesson 'Transfer learning and image augmentation' is being written */}
+import PretrainedFeatureSpace from './visuals/transfer-learning-and-augmentation/PretrainedFeatureSpace'
+import FreezeDial from './visuals/transfer-learning-and-augmentation/FreezeDial'
+import AugmentationPlayground from './visuals/transfer-learning-and-augmentation/AugmentationPlayground'
+import LabelSafetyCheck from './visuals/transfer-learning-and-augmentation/LabelSafetyCheck'
 
-This lesson is being written.
+Training a strong image classifier from scratch takes around a million labelled photos and days of GPU time. You will almost never have that. More often you have a few hundred photos of the thing you care about and an afternoon. Two ideas close the gap. **Transfer learning** borrows a network someone else has already trained on millions of images. **Augmentation** stretches your own small dataset by showing the model a slightly different version of every picture each time it sees it. Most real computer-vision projects, and many IOAI tasks, are solved this way.
+
+<Analogy title="Hiring an experienced chef">
+
+A hawker stall wants to add Peranakan dishes to its menu. It could train a teenager who has never cooked, or it could hire a chef with ten years in a Cantonese kitchen. The experienced chef already has knife skills, a feel for heat and a trained sense of taste. They only need to learn the new recipes. A pretrained network is that experienced chef: it already knows how to *see* edges, textures and shapes, and only needs to learn your new classes.
+
+</Analogy>
+
+## What a pretrained network already knows
+
+The standard training ground for vision models is <Term def="A dataset of about 1.28 million labelled training photos in 1,000 everyday categories (dog breeds, cars, mushrooms, guitars and many more). Networks trained on it are the usual starting point for vision tasks.">ImageNet</Term>. A <Term def="Already trained on some, usually much larger, dataset. You download the trained weights and reuse them instead of starting from random numbers.">pretrained</Term> network such as ResNet-18 has learned to sort those photos into 1,000 classes. To do that, it had to learn useful ways of describing images. In the CNN module you saw what those descriptions are: early layers detect edges and colour blobs, middle layers detect textures and parts (eyes, wheels, leaves), and late layers combine them into whole objects. Edges and textures look the same in almost every photo, so these features are useful far beyond ImageNet.
+
+Think of the network as two parts:
+
+- the <Term def="The main body of a pretrained network: every layer except the final classification layer. It turns an image into a vector of features.">backbone</Term>: every layer except the last. For ResNet-18 it ends by averaging each of its 512 final feature maps into one number, so every image becomes a list of **512 numbers**;
+- the <Term def="The final layer or layers that turn the feature vector into the outputs for one particular task, such as one score per class.">head</Term>: the last layer, `Linear(512, 1000)`, which turns those 512 numbers into scores for ImageNet's 1,000 classes.
+
+Cut off the head and the backbone becomes an <Term def="A network, or part of one, that turns an input such as an image into a vector of numbers describing it.">encoder</Term>: a machine that turns any image into a 512-number <Term def="A vector of numbers that represents an item (an image, a word, a sound) so that similar items get similar vectors.">embedding</Term>, also called a feature vector. The useful property is that similar-looking images get nearby vectors. Here is that idea at toy scale: a tiny CNN was trained to tell 8 basic shapes apart (our miniature ImageNet), then frozen and used, unchanged, to describe pictures of cats, houses and cars it had never been trained on.
+
+<PretrainedFeatureSpace />
+
+Why are raw pixels so bad at this? Two cats in opposite corners of the frame share almost no pixel values, while a cat and a house drawn on the same orange background share most of theirs. Pixel distance measures *where the colours are*, not *what is there*. The encoder's features respond to shapes such as pointed ears, roofs and wheels, and its final averaging step throws away where in the image they appeared. So a cat lands near other cats. In this toy example, "label an image with the class of its nearest neighbour" is right 48% of the time on raw pixels but 93% of the time on the frozen encoder's features.
+
+<KeyIdea>
+
+A pretrained backbone is a general-purpose image-to-vector machine. Its features transfer to new tasks because edges, textures and parts look much the same in almost every kind of photo. So even a simple classifier on top of them works with very little data.
+
+</KeyIdea>
+
+ImageNet works so well as a teacher because it is both **large** and **diverse**. A network can only master a thousand very different categories by learning general visual features, not tricks that fit one narrow kind of picture.
+
+<PastPaperQuestion paper="prelim2026" n={202} />
+
+## Feature extraction or fine-tuning?
+
+There are two ways to reuse a pretrained network for your own classes. Both start the same way: replace the 1,000-class head with a new, randomly initialised layer that has one output per class of yours.
+
+1. **Feature extraction.** <Term def="Stop a weight from changing during training. In PyTorch you set requires_grad = False on its parameters, so no gradient is computed for it and the optimiser leaves it alone.">Freeze</Term> the whole backbone and train only the new head. The backbone is used purely as a fixed encoder.
+2. **Fine-tuning.** Start from the pretrained weights and keep training some or all of the backbone on your data, using a **small learning rate**.
+
+Why a small learning rate? The pretrained weights are already good. Big updates, especially early on when the new head is still random and its gradients are large and noisy, would overwrite them. The network then loses what it knew, which is called <Term def="When training on a new task changes the weights so much that the network loses what it had learned before.">catastrophic forgetting</Term>. A common recipe is to train the new head first with the backbone frozen, then unfreeze the top blocks and give them a learning rate about 10 times smaller than the head's.
+
+<Analogy title="A new hire">
+
+A new hire at a company first learns the office's own procedures (the head) while keeping all the habits that made them good at their job (the frozen backbone). Only after a few months, once they understand the new place, do they start adjusting deeper habits, and then only gently.
+
+</Analogy>
+
+How much should you unfreeze? Explore it below.
+
+<FreezeDial />
+
+The usual rule of thumb depends on two questions: how much labelled data do you have, and how similar are your images to everyday photos?
+
+| | similar to ImageNet (pets, food, vehicles) | different (X-rays, satellite, microscopy) |
+|---|---|---|
+| **small dataset** | feature extraction: freeze the backbone, train only a new head | keep early layers frozen; gently fine-tune the top block or two; heavy augmentation |
+| **large dataset** | fine-tune the upper blocks or the whole network, small learning rate | fine-tune the whole network (pretrained weights are still a better start than random) |
+
+<KeyIdea>
+
+Little data: train little. Different data: change more. Whatever you unfreeze, train it gently with a small learning rate.
+
+</KeyIdea>
+
+### How many weights does feature extraction train?
+
+<Steps title="ResNet-18 as a feature extractor for 5 hawker dishes">
+  <Step title="Count what the backbone hands over">
+    The frozen backbone turns each photo into $512$ numbers.
+  </Step>
+  <Step title="Count the new head's weights">
+    The new head is `Linear(512, 5)`: one weight for every (feature, class) pair, so $512 \times 5 = 2560$ weights, plus one bias per class, $5$. Total $2560 + 5 = 2565$ trainable parameters.
+  </Step>
+  <Step title="Compare with the frozen part">
+    The backbone holds $11\,176\,512$ parameters. So we train $2565$ out of $11\,179\,077$, about $0.02\%$ of the model.
+  </Step>
+  <Step title="Why it matters">
+    A few hundred photos are plenty to fit 2,565 numbers, but nowhere near enough to fit 11 million. Feature extraction is fast, cheap and hard to overfit.
+  </Step>
+</Steps>
+
+In general, a linear layer from $n$ features to $k$ classes has $n \times k + k$ parameters: $n \times k$ weights plus $k$ biases.
+
+<QuickCheck
+  q="ResNet-50's backbone outputs 2,048 features. You freeze the backbone and add a new head `nn.Linear(2048, 10)`. How many parameters will be trained?"
+  options={['20,490', '20,480', '2,058', '2,048']}
+  answer={0}
+  explain="Weights $2048 \times 10 = 20\,480$, plus 10 biases, gives $20\,490$. Forgetting the biases gives 20,480; adding instead of multiplying gives 2,058."
+/>
+
+### In PyTorch
+
+This is the pattern you will meet in Final-round notebooks (it needs `torchvision`, which downloads the ImageNet weights):
+
+```python
+import torch, torch.nn as nn
+from torchvision import models
+
+model = models.resnet18(weights="IMAGENET1K_V1")   # ImageNet-pretrained ResNet-18
+
+for p in model.parameters():        # 1. freeze every pretrained weight
+    p.requires_grad = False
+model.fc = nn.Linear(512, 5)        # 2. new head for 5 classes (new layers start trainable)
+
+def trainable(m):
+    return sum(p.numel() for p in m.parameters() if p.requires_grad)
+
+print(trainable(model))
+
+optimiser = torch.optim.Adam(model.fc.parameters(), lr=1e-3)   # 3. optimise the head only
+```
+
+```text
+2565
+```
+
+Later, to fine-tune, unfreeze the last stage (`layer4`) and give it a smaller learning rate than the head by passing two **parameter groups** to the optimiser:
+
+```python
+for p in model.layer4.parameters():   # unfreeze the last stage
+    p.requires_grad = True
+
+print(trainable(model))
+
+optimiser = torch.optim.Adam([        # build the optimiser AFTER changing the model
+    {"params": model.layer4.parameters(), "lr": 1e-4},   # gentle: pretrained weights
+    {"params": model.fc.parameters(),     "lr": 1e-3},   # faster: brand-new head
+])
+```
+
+```text
+8396293
+```
+
+Older code, including the 2026 Final paper, writes `pretrained=True` instead of `weights=...`, for example `models.resnet50(pretrained=True)`. It does the same thing.
+
+<Mistake title="Building the optimiser too early">
+
+An optimiser keeps references to the exact parameter tensors it was given when it was created. If you create it first and *then* replace `model.fc`, the optimiser is still holding the old head's weights. The new head gets gradients but is never updated, so it stays at its random starting values and accuracy stays poor. Always change the model first (freeze, replace the head, unfreeze), then build the optimiser.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={121} />
+
+<ExamTip>
+
+Quick keyword map for MCQs. "Small dataset, similar images" → freeze the backbone, train a new head. "Freeze a layer" in PyTorch → `param.requires_grad = False`, not deleting the layer and not setting the learning rate to 0. "Fine-tune" → small learning rate. "Transfer learning" → pretrained weights as the starting point.
+
+</ExamTip>
+
+## Augmentation: more training data for free
+
+<Term def="Creating extra training examples by applying random changes that keep the label true (flips, crops, rotations, colour changes, noise) to existing images, usually on the fly each time an image is loaded.">Data augmentation</Term> applies a random, label-preserving change to an image **every time it is loaded** for training. Nothing extra is stored on disk: each epoch the model simply sees a new variant of every photo.
+
+<Analogy title="Recognising a friend">
+
+You recognise your friend whether they are wearing a cap, standing in the shade of an HDB void deck or turned sideways. You learned that because you have seen them in all those situations. Augmentation gives the model the same experience: the same cat, seen from many slightly different angles and in many different lights.
+
+</Analogy>
+
+<AugmentationPlayground />
+
+Each augmentation teaches the model to ignore one kind of change it will meet in real photos:
+
+| Augmentation | What it imitates | torchvision |
+|---|---|---|
+| horizontal flip | the same object facing the other way | `RandomHorizontalFlip` |
+| random (resized) crop | the object at different positions and sizes, or partly cut off | `RandomResizedCrop` |
+| small rotation | a tilted camera | `RandomRotation` |
+| colour jitter | different lighting and camera colour settings | `ColorJitter` |
+| noise or blur | cheap, grainy or shaky cameras | `GaussianBlur`, or add noise yourself |
+| cutout (random erasing) | something standing in front of the object | `RandomErasing` |
+
+Why does this help? Suppose you have 500 training photos and train for 40 epochs. Without augmentation the model gets $500 \times 40 = 20\,000$ looks at the data, but only 500 distinct pictures, so it can simply memorise them. With augmentation, those 20,000 looks are 20,000 different pictures. The model cannot memorise exact pixels; it has to learn features that survive the changes. That makes augmentation a form of <Term def="Any technique that reduces overfitting by making it harder for a model to memorise its training data, for example dropout, weight decay, early stopping and augmentation.">regularisation</Term>: it narrows the gap between training and validation accuracy.
+
+Augmentation is for the **training set only**. Validation and test images go through a fixed, deterministic pipeline, so every evaluation sees exactly the same images and scores can be compared fairly:
+
+```python
+from torchvision import transforms
+
+stats = dict(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])   # ImageNet's
+
+train_tf = transforms.Compose([               # random: a new version every epoch
+    transforms.RandomResizedCrop(224, scale=(0.6, 1.0)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),
+    transforms.ToTensor(),
+    transforms.Normalize(**stats),
+])
+test_tf = transforms.Compose([                # fixed: the same every time
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(**stats),
+])
+```
+
+Notice `Normalize` with ImageNet's mean and standard deviation in both pipelines. A pretrained network expects its inputs scaled the way they were during pretraining, so you reuse those statistics.
+
+<QuickCheck
+  q="A classifier trained on 800 images reaches 99% training accuracy but only 70% validation accuracy. Which change most directly targets this problem?"
+  options={['Add random crops, flips and colour jitter to the training images', 'Train for more epochs so validation accuracy catches up', 'Apply the same random augmentations to the validation images', 'Unfreeze the whole backbone and raise the learning rate']}
+  answer={0}
+  explain="A big train-validation gap is overfitting, and augmentation is a regulariser: it stops the model memorising exact pixels. More epochs usually widen the gap. Randomly augmenting the validation set only makes its score noisy. Unfreezing everything with a high learning rate adds capacity and risks catastrophic forgetting."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={288} />
+
+## When augmentation breaks the label
+
+An augmentation is only "free data" if the label is still true afterwards. Some changes alter the meaning: a 6 turned upside down is a 9, and a mirrored "turn left" sign says "turn right". Others keep the label but create images the model will never meet.
+
+<Analogy title="A mirror-image map">
+
+Imagine preparing for a drive around Singapore by studying a map that has been flipped left to right. Jurong would be in the east and Changi in the west. You would practise hard and learn exactly the wrong directions. Training on label-breaking augmentations does the same to a model.
+
+</Analogy>
+
+Try to predict each verdict before you reveal it.
+
+<LabelSafetyCheck />
+
+Before using an augmentation, ask two questions:
+
+1. **Is the label still true?** If the change can turn one class into another (6 into 9, b into d, left arrow into right arrow) or wipe out the evidence (a faint spot on a scan), do not use it.
+2. **Could a real test image look like this?** Upside-down cats and back-to-front digits do not occur, so training on them wastes effort.
+
+Use it only when both answers are yes. That is why augmentation is really **domain knowledge**: for overhead satellite or microscope images every flip and rotation is realistic, for street photos only the horizontal flip is, and for text and digits no flip is.
+
+<QuickCheck
+  q="Which augmentation is least appropriate for a model that reads handwritten digits?"
+  options={['Rotating every image by 180°', 'Rotating by a random angle between −10° and 10°', 'Shifting the digit a few pixels with a random crop', 'Making the ink slightly lighter or darker']}
+  answer={0}
+  explain="A 180° rotation turns a 6 into a 9 (and a 9 into a 6), so the label becomes wrong. Small rotations, small shifts and changes in ink darkness all happen in real handwriting and keep the digit the same."
+/>
+
+<Mistake title="Augmenting the test set by accident">
+
+If you pass the random training pipeline to your validation or test data, every evaluation sees different images. Scores jump around from run to run and no longer measure performance on real, untouched images. Keep two pipelines. (Test-time augmentation, which averages predictions over a few fixed flips or crops, is a different and deliberate technique.)
+
+</Mistake>
+
+<ExamTip>
+
+"Which augmentation is inappropriate?" questions are a favourite. Look for a change that **flips the class** (6/9, b/d, arrows, left/right findings in medical images) or **destroys the evidence** (strong brightness changes on subtle medical findings). For everyday photos, horizontal flip is the standard safe choice and vertical flip usually is not. And remember what augmentation is *for*: reducing overfitting, not speeding up training.
+
+</ExamTip>
+
+## The recipe for a small vision dataset
+
+1. Start from a pretrained backbone and normalise inputs with its statistics.
+2. Replace the head and train it with the backbone frozen.
+3. If you have more data, or your images look unlike everyday photos, unfreeze the top blocks and fine-tune with a learning rate about 10 times smaller than the head's.
+4. Throughout, use label-safe augmentation on the training set only, and judge every change by validation accuracy.
+
+<Takeaways>
+
+- A pretrained backbone is an **encoder**: it turns any image into a feature vector in which similar images sit close together.
+- **Feature extraction** freezes the backbone (`requires_grad = False`) and trains only a new head: best for small datasets of everyday-looking images.
+- **Fine-tuning** also updates some or all pretrained layers, with a small learning rate to avoid catastrophic forgetting: use it with more data or a different domain.
+- **Augmentation** applies random, label-preserving changes to training images each epoch. It is regularisation: it reduces overfitting.
+- Only use augmentations that keep the label true and could occur in real test images: no flips for digits or text, no horizontal flip for arrows.
+
+</Takeaways>

@@ -1,3 +1,188 @@
-{/* stub: lesson 'NumPy patterns for from-scratch ML' is being written */}
+import DistanceMatrixHeatmap from './visuals/from-scratch-patterns/DistanceMatrixHeatmap'
+import ArgOpsPlayground from './visuals/from-scratch-patterns/ArgOpsPlayground'
+import OutputFormatChecker from './visuals/from-scratch-patterns/OutputFormatChecker'
+import { KMEANS_CODE } from './visuals/from-scratch-patterns/snippets'
 
-This lesson is being written.
+In the Final you will implement classic algorithms (K-means, k-nearest neighbours, an evaluation metric, a boosting step) inside a prepared Jupyter notebook, and hidden tests will check what your functions return. The maths is usually the easy part. What costs marks is turning "for every point, for every centroid…" into array code, and returning the answer in *exactly* the format the test expects. This lesson is a toolbox of ten NumPy moves that cover most of that work.
+
+<Analogy title="The distance table on the MRT map">
+
+Nobody works out the distance between two MRT stations from scratch each time: there is one table listing every station against every other station, and you just read off the cell you need. Most from-scratch algorithms start the same way: build the whole table of distances in one go, then read the answers off it.
+
+</Analogy>
+
+## The ten moves
+
+Here is the whole toolbox at a glance; the rest of the lesson takes the moves one group at a time.
+
+1. **Every pairwise difference:** `X[:, None, :] - C[None, :, :]`. *K-means, kNN.*
+2. **Distances (square, sum over features, root):** `np.sqrt((diff ** 2).sum(axis=-1))`. *K-means, kNN.*
+3. **The nearest one per row:** `D.argmin(axis=1)`. *K-means assignment.*
+4. **The k nearest per row:** `np.argsort(D, axis=1)[:, :k]`. *kNN.*
+5. **Average one group with a mask:** `X[labels == j].mean(axis=0)`. *K-means update.*
+6. **Count classes, take a vote:** `np.unique(y, return_counts=True)` or `np.bincount(y)`. *kNN vote, class balance.*
+7. **Choose element by element:** `np.where(cond, a, b)`. *Thresholds, ReLU.*
+8. **Signs and medians:** `np.sign(r)`, `np.median(r)`. *Boosting with absolute error.*
+9. **Metrics in one line:** `(pred == y).mean()`, `((pred - y) ** 2).mean()`. *Accuracy, MSE.*
+10. **Return the exact format:** `np.round(x, 4)`, `.tolist()`, `float(x)`. *Every graded function.*
+
+## Moves 1 to 3: every distance at once
+
+Say `X` holds $n$ points with $d$ features each, shape $(n, d)$, and `C` holds $k$ centroids, shape $(k, d)$. A <Term def="The centre of a cluster: the average position of the points assigned to it.">centroid</Term> is the centre of a cluster. K-means needs the <Term def="A table D with one row per point and one column per centroid (or per training point), where D[i, j] is the distance between point i and centroid j.">distance matrix</Term> $D$ of shape $(n, k)$:
+
+$$
+D_{ij} = \sqrt{\sum_{f=1}^{d} \left(X_{if} - C_{jf}\right)^2}
+$$
+
+- $i$ picks a point (a row of `X`) and $j$ picks a centroid (a row of `C`).
+- $f$ runs over the $d$ features. $X_{if} - C_{jf}$ is the gap between point $i$ and centroid $j$ in feature $f$.
+- Square the gaps, add them up, take the square root: Pythagoras in $d$ dimensions, the <Term def="The straight-line distance between two points: the square root of the sum of squared differences in each coordinate.">Euclidean distance</Term>.
+
+The beginner's version is a double loop. It is correct, but slow in Python, and its loops are easy to get wrong:
+
+```python
+D = np.zeros((n, k))
+for i in range(n):
+    for j in range(k):
+        D[i, j] = np.sqrt(((X[i] - C[j]) ** 2).sum())
+```
+
+The NumPy version builds all $n \times k$ differences in one broadcast:
+
+```python
+diff = X[:, None, :] - C[None, :, :]       # (n, 1, d) - (1, k, d) -> (n, k, d)
+D = np.sqrt((diff ** 2).sum(axis=-1))      # sum over the d features -> (n, k)
+labels = D.argmin(axis=1)                  # nearest centroid for each point -> (n,)
+```
+
+`X[:, None, :]` inserts a length-1 axis in the middle, turning $(n, d)$ into $(n, 1, d)$; `C[None, :, :]` turns $(k, d)$ into $(1, k, d)$. Lined up from the right, $d$ matches $d$, and the two 1s stretch, so `diff[i, j]` is exactly `X[i] - C[j]`, for every pair.
+
+<DistanceMatrixHeatmap />
+
+<Steps title="Three points, two centroids, by hand">
+  <Step title="The data">
+    `X = [[0, 0], [2, 1], [5, 4]]`, shape $(3, 2)$. `C = [[1, 0], [4, 4]]`, shape $(2, 2)$. So `diff` has shape $(3, 2, 2)$ and `D` will be $(3, 2)$.
+  </Step>
+  <Step title="Squared distances, row 0: point (0, 0)">
+    To $(1, 0)$: $(0-1)^2 + (0-0)^2 = 1$. To $(4, 4)$: $(-4)^2 + (-4)^2 = 32$.
+  </Step>
+  <Step title="Rows 1 and 2">
+    Point $(2, 1)$: $1^2 + 1^2 = 2$ and $(-2)^2 + (-3)^2 = 13$. Point $(5, 4)$: $4^2 + 4^2 = 32$ and $1^2 + 0^2 = 1$.
+  </Step>
+  <Step title="Assign">
+    Squared distances $\begin{bmatrix} 1 & 32 \\ 2 & 13 \\ 32 & 1 \end{bmatrix}$; the smallest in each row is in column 0, 0, 1, so `labels` is `[0 0 1]`. Taking square roots ($1$, $\sqrt{2} \approx 1.41$, …) cannot change which entry is smallest, so for `argmin` you may skip `np.sqrt` altogether.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="`X` has shape `(100, 2)` and `C` has shape `(3, 2)`. What is the shape of `X[:, None, :] - C[None, :, :]`?"
+  options={['`(100, 3, 2)`', '`(100, 3)`', '`(3, 100, 2)`', 'It raises a `ValueError`']}
+  answer={0}
+  explain="The operands have shapes $(100, 1, 2)$ and $(1, 3, 2)$. Right to left: $2 = 2$, then $1$ stretches to $3$, then $1$ stretches to $100$. The result is $(100, 3, 2)$: a difference vector for every (point, centroid) pair. Summing over `axis=-1` then gives the $(100, 3)$ distance matrix."
+/>
+
+<Mistake title="Forgetting the None">
+
+`X - C` with shapes $(100, 2)$ and $(3, 2)$ fails: $100$ against $3$. With $(4, 2)$ and $(4, 2)$ it runs, but it computes point 0 minus centroid 0, point 1 minus centroid 1 and so on: a row-by-row difference, not all pairs. The `None`s are what make "every pair" happen.
+
+</Mistake>
+
+## Moves 4 to 6: neighbours, groups and votes
+
+**k-nearest neighbours.** To classify test points, build the distance matrix from every test point to every training point, shape $(m, n)$, then keep the $k$ closest. `np.argsort` returns the positions that would sort each row, so its first $k$ columns are the nearest neighbours. Indexing the training labels with that $(m, k)$ array of positions gives each point's $k$ neighbour labels, and a vote decides.
+
+```python
+idx = np.argsort(D, axis=1)[:, :3]     # (m, 3): positions of the 3 nearest training points
+votes = y_train[idx]                   # (m, 3): their labels
+pred = np.array([np.bincount(v).argmax() for v in votes])
+```
+
+`np.bincount(v)` counts how many times each whole number 0, 1, 2, … appears in `v`, so `.argmax()` of it is the most common label. `np.unique(y, return_counts=True)` does the same job for any labels and returns the sorted distinct values with their counts.
+
+<PastPaperQuestion paper="prelim2026" n={140} />
+
+**K-means update.** After assigning labels, each centroid moves to the mean of its points. A <Term def="An array of True/False values with the same length as the data, used to pick out the rows where the condition is True.">boolean mask</Term> picks one cluster's rows:
+
+```python
+for j in range(k):
+    mask = labels == j                 # (n,) True where the point belongs to cluster j
+    if mask.any():                     # an empty cluster would give nan
+        C[j] = X[mask].mean(axis=0)    # (d,): the average point of cluster j
+```
+
+A short loop over the $k$ clusters is fine: $k$ is small, and the expensive $n \times k$ part is already vectorised. The `if` matters: if no point chose centroid $j$, `X[mask]` has shape $(0, d)$ and its mean is an array of `nan` ("not a number") with the warning `RuntimeWarning: Mean of empty slice`. Keeping the old centroid (or re-seeding it) is the usual fix.
+
+## Moves 7 to 9: arg-functions, where, sign
+
+<ArgOpsPlayground />
+
+A few facts that the playground makes visible:
+
+- `argmax`/`argmin` return a **position**; `max`/`min` return a **value**. For cluster assignment you need the position. With ties, the *first* position wins.
+- `np.where(cond, a, b)` picks from `a` where `cond` is True and from `b` elsewhere: `np.where(p >= 0.5, 1, 0)` turns probabilities into class predictions, and `np.where(z > 0, z, 0)` is ReLU.
+- `np.sign(r)` gives $-1$, $0$ or $1$. In gradient boosting with the absolute-error loss $|y - F|$, the direction to move each prediction $F$ is `np.sign(y - F)`, and the best single constant prediction is the <Term def="The middle value once the numbers are sorted; with an even count, the average of the two middle values.">median</Term> of `y` (`np.median`), just as for squared error it is the **mean**.
+- Metrics are one line each: accuracy `(pred == y).mean()` (True counts as 1), mean squared error `((pred - y) ** 2).mean()`, mean absolute error `np.abs(pred - y).mean()`.
+
+<QuickCheck
+  q="A row of distances is `d = np.array([2.0, 0.5, 3.1])`. What do `d.argmin()` and `d.min()` return?"
+  options={['`1` and `0.5`', '`0.5` and `1`', '`1` and `1`', '`0` and `0.5`']}
+  answer={0}
+  explain="`argmin` gives the position of the smallest value: index 1 (counting from 0). `min` gives the value itself, 0.5. Mixing them up assigns every point to a cluster numbered by a distance, which is a classic from-scratch bug."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={47} />
+
+Put moves 1 to 5 together and you have K-means. Run it and watch the labels and centroids settle; then try changing the starting centroids `C`.
+
+<PyRunner packages={['numpy']} code={KMEANS_CODE} />
+
+```text
+0 [0 1 1 1 1 1 1] [[1.0, 1.0], [3.5, 4.5833]]
+1 [0 0 1 1 1 1 1] [[1.25, 1.5], [3.9, 5.1]]
+2 [0 0 1 1 1 1 1] [[1.25, 1.5], [3.9, 5.1]]
+```
+
+By step 1 the labels stop changing, so the centroids stop moving: K-means has converged.
+
+## Move 10: return exactly what the grader expects
+
+An automatic grader calls your function and compares the result with a stored answer. Some tests compare **exactly** (`==`); others allow a small **tolerance** (`np.allclose`, `np.testing.assert_allclose`). You usually cannot see which, so the only safe answer is one that matches the stub's instructions to the letter: the right **type**, the right **shape**, and the right **rounding**.
+
+<OutputFormatChecker />
+
+<Steps title="A checklist before you submit a function">
+  <Step title="Type">
+    Read the docstring. "A list" means `.tolist()`; "a float" means `float(x)`; "a list of tuples" means `[tuple(r) for r in arr.tolist()]`. A NumPy array is not a list, and a tuple never equals a list.
+  </Step>
+  <Step title="Shape">
+    `(n,)` and `(n, 1)` hold the same numbers but are different answers. Print `.shape` and compare with the example in the docstring.
+  </Step>
+  <Step title="Rounding">
+    Round only the final output, with `np.round(x, 4)` (or `round(float(x), 4)` for one number). Rounding in the middle of a calculation adds errors. Note that NumPy rounds exact halves to the nearest **even** digit: `np.round(2.5)` is `2.0` and `np.round(0.125, 2)` is `0.12`.
+  </Step>
+  <Step title="Edge cases">
+    Empty clusters, division by zero (precision when nothing is predicted positive, IoU when a class appears nowhere), and negative zero: `np.round(-0.00001, 4)` prints `-0.0`, and adding `0.0` turns it into `0.0`.
+  </Step>
+  <Step title="Return, don't print">
+    The test sees only what your function **returns**. A function that prints the perfect answer and returns `None` scores zero.
+  </Step>
+</Steps>
+
+Edge cases are often where a metric's *definition* matters. Mean <Term def="Intersection over Union: the number of pixels (or items) that both the prediction and the truth mark as a class, divided by the number that either of them marks as that class.">IoU</Term> averages, over the classes, the ratio $\frac{|\text{pred} \cap \text{true}|}{|\text{pred} \cup \text{true}|}$: overlap divided by combined area. If a class appears in *neither* the prediction nor the ground truth, that ratio is $\frac{0}{0}$: undefined, neither perfect nor zero. The usual choice is to skip that class, so that it neither inflates nor drags down the average; a class that is predicted but absent still counts, with IoU 0.
+
+<PastPaperQuestion paper="final2026" n={13} />
+
+<ExamTip>
+
+Prelim questions on this material are short: what kNN bases its prediction on, how K-means assigns points, the median or mean of a small list. The Final tests the *doing*: in 2025 the programming tasks included K-means, and in 2026 gradient boosting and mean IoU, each built from these moves. Before writing any loop in a Final task, ask "which axis am I reducing over, and what shape do I want at the end?", write that shape as a comment, and check it with `print(x.shape)`.
+
+</ExamTip>
+
+<Takeaways>
+
+- `X[:, None, :] - C[None, :, :]` gives every pairwise difference, shape $(n, k, d)$; square, `sum(axis=-1)` and `np.sqrt` give the $(n, k)$ distance matrix.
+- `D.argmin(axis=1)` assigns clusters, `np.argsort(D, axis=1)[:, :k]` finds neighbours, and `X[labels == j].mean(axis=0)` updates a centroid (guard against empty clusters).
+- arg-functions return **positions**; `np.where`, `np.sign`, `np.unique`/`np.bincount` and one-line metrics cover most of the rest.
+- Return exactly what the stub asks for: type (`.tolist()`, `float`), shape, and `np.round(x, 4)` on the final output. Return, don't print.
+
+</Takeaways>

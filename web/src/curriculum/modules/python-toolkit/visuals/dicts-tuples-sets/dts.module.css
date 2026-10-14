@@ -1,0 +1,270 @@
+/* Local styles for the dicts-tuples-sets visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: stretch;
+  min-width: 0;
+}
+
+.code {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.prompt {
+  color: var(--ink-2);
+  user-select: none;
+}
+
+.comment {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.out {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.err {
+  color: var(--viz-neg);
+  font-weight: 700;
+}
+
+.ok {
+  color: var(--viz-pos);
+  font-weight: 700;
+}
+
+.status {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+  min-height: 2.8em;
+}
+
+.status b {
+  color: var(--ink);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.rowLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-right: 0.25rem;
+}
+
+.chip {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--surface-2);
+}
+
+.chipOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.count {
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.input {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  width: 9.5ch;
+  padding: 0.3rem 0.5rem;
+  min-height: 34px;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.svgText {
+  font-family: var(--font-mono);
+}
+
+/* ---------- MutabilitySorter ---------- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 148px), 1fr));
+  gap: 0.6rem;
+  width: 100%;
+}
+
+@media (min-width: 700px) {
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  padding: 0.55rem 0.55rem 0.6rem;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.cardMut {
+  border-color: color-mix(in srgb, var(--viz-1) 55%, var(--rule));
+  background: color-mix(in srgb, var(--viz-1) 6%, var(--surface));
+}
+
+.cardImm {
+  border-color: color-mix(in srgb, var(--viz-2) 60%, var(--rule));
+  background: color-mix(in srgb, var(--viz-2) 7%, var(--surface));
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.typeName {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.verdict {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.cardCode {
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cardBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sortBtn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink-2);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.sortBtn:hover {
+  background: var(--surface-2);
+}
+
+.note {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.bins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.bin {
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-m);
+  border: 2px dashed var(--rule);
+  min-height: 3.6rem;
+}
+
+.binMut {
+  border-color: color-mix(in srgb, var(--viz-1) 55%, var(--rule));
+}
+
+.binImm {
+  border-color: color-mix(in srgb, var(--viz-2) 60%, var(--rule));
+}
+
+.binTitle {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.3rem;
+}
+
+.binItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--ink);
+}

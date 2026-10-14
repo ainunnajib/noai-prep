@@ -1,0 +1,234 @@
+/* styles for the plotting-data visuals */
+
+.question {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  border: 1.5px solid var(--accent-line);
+  color: var(--ink);
+}
+.qEyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.qText {
+  font-family: var(--font-display);
+  font-variation-settings: 'CASL' 0.6;
+  font-weight: 700;
+  font-size: 1.08rem;
+  line-height: 1.35;
+  margin-top: 0.15rem;
+}
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.6rem;
+  width: 100%;
+}
+.thumb {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.45rem 0.45rem 0.4rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+.thumb:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-1px);
+}
+.thumb:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.thumbName {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.thumbRight {
+  border-color: var(--viz-pos);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--viz-pos) 30%, transparent);
+}
+.thumbWrong {
+  border-color: var(--viz-neg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--viz-neg) 25%, transparent);
+  opacity: 0.8;
+}
+.feedback {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+}
+.good {
+  background: color-mix(in srgb, var(--viz-pos) 13%, var(--surface));
+  border-left: 4px solid var(--viz-pos);
+}
+.bad {
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+  border-left: 4px solid var(--viz-neg);
+}
+.neutral {
+  background: var(--surface-2);
+  border-left: 4px solid var(--viz-muted);
+  color: var(--ink-2);
+}
+.code {
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: pre;
+}
+.codeLine {
+  display: block;
+  padding-left: 0.5rem;
+  margin-left: -0.5rem;
+  border-left: 4px solid transparent;
+}
+.codeComment {
+  color: var(--ink-3);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  width: 100%;
+}
+.score {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
+/* recipe builder */
+.figFrame {
+  position: relative;
+  width: 100%;
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 2px dashed transparent;
+  background: var(--surface);
+  transition: border-color 0.2s ease;
+}
+.figFrameOn {
+  border-color: var(--viz-5);
+}
+.figTag {
+  position: absolute;
+  top: -0.7rem;
+  left: 0.6rem;
+  padding: 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--viz-5);
+  background: var(--surface);
+}
+.scroller {
+  width: 100%;
+  overflow-x: auto;
+}
+.axesGrid {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+}
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.keyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.keySwatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border: 2px dashed currentColor;
+  border-radius: 2px;
+}
+.preview {
+  width: 100%;
+  overflow-x: auto;
+}
+.tbl {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.tbl th {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink-2);
+  padding: 0.15rem 0.45rem;
+  border-bottom: 1.5px solid var(--ink-3);
+  text-align: right;
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 0.14rem 0.45rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.colX {
+  background: color-mix(in srgb, var(--viz-1) 14%, var(--surface));
+}
+.colY {
+  background: color-mix(in srgb, var(--viz-2) 16%, var(--surface));
+}
+.colH {
+  background: color-mix(in srgb, var(--viz-3) 16%, var(--surface));
+}
+.tblCaption {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  text-align: center;
+  margin-top: 0.2rem;
+}
+.ctrlStack {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+.verdict {
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+}

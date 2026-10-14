@@ -1,3 +1,291 @@
-{/* stub: lesson 'Dictionaries, tuples and sets' is being written */}
+import DictLookup from './visuals/dicts-tuples-sets/DictLookup'
+import SetVenn from './visuals/dicts-tuples-sets/SetVenn'
+import MutabilitySorter from './visuals/dicts-tuples-sets/MutabilitySorter'
 
-This lesson is being written.
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const wordCountCode = `text = "the cat sat on the mat the end"
+counts = {}
+for word in text.split():
+    counts[word] = counts.get(word, 0) + 1
+print(counts)
+print(counts['the'])`
+
+Lists are great for keeping things in order, but AI code needs other kinds of collections too. A language model keeps a count for every word, a <Term def="A small group of training examples that a model processes together in one step.">batch</Term> of images has a fixed shape such as `(32, 3, 224, 224)`, and a dataset has a handful of distinct labels hidden among thousands of rows. Python has a built-in container for each of these jobs: the **dictionary**, the **tuple** and the **set**. This lesson shows how each one works inside, so you can choose the right one and predict what code will do.
+
+## Dictionaries: look things up by key
+
+<Analogy title="Stall numbers at a hawker centre">
+
+Tell a friend "meet me at stall #01-23" and they walk straight there. They don't start at the first stall and check every signboard until they find yours. A dictionary works the same way: give it a key and it goes straight to the value.
+
+</Analogy>
+
+A <Term def="A Python container (type dict) that stores key: value pairs and finds a value from its key very quickly.">dictionary</Term> (type `dict`) stores pairs. Each pair has a <Term def="The label you use to look something up in a dictionary, such as 'kopi'. Keys are unique and must be immutable.">key</Term> and a <Term def="The data stored under a key in a dictionary. It can be any Python object.">value</Term>, written `key: value` inside curly braces.
+
+```python
+prices = {'kopi': 1.2, 'teh': 1.1}   # two key: value pairs
+print(prices['kopi'])                # look up by key -> 1.2
+prices['milo'] = 1.5                 # a new key adds a pair
+prices['kopi'] = 1.3                 # an existing key gets its value replaced
+print(len(prices))                   # 3 pairs
+print(prices)
+```
+
+```text
+1.2
+3
+{'kopi': 1.3, 'teh': 1.1, 'milo': 1.5}
+```
+
+Three rules to remember:
+
+- **Keys are unique.** Assigning to a key that already exists replaces its value; it never adds a second `'kopi'`.
+- **Square brackets do everything.** `prices[key]` reads, and `prices[key] = value` adds or updates.
+- **An empty dict is `{}`** (or `dict()`). Then add pairs one at a time. Since Python 3.7, a dict remembers the order in which keys were added, so printing it or looping over it follows that order.
+
+To loop over a dict, `.items()` gives you each pair as `(key, value)`:
+
+```python
+for drink, price in prices.items():
+    print(drink, price)
+```
+
+### How can a dict find a key without searching?
+
+A list of 1,000,000 pairs might have to be checked one item at a time. A dict skips the search with a <Term def="A function that turns a key into a whole number in a fixed, repeatable way. The same key always gives the same number.">hash function</Term>. It turns the key into a whole number, and that number picks a numbered **slot** in a table:
+
+$$
+\text{slot} = \text{hash}(\text{key}) \bmod n
+$$
+
+- $\text{hash}(\text{key})$ is a whole number calculated from the key. The same key always gives the same number.
+- $n$ is the number of slots in the table.
+- $\bmod$ means "the remainder after dividing", which is Python's `%`. The remainder is always between $0$ and $n - 1$, so it is a valid slot number.
+
+To look a key up later, Python recalculates the same slot and jumps straight there. If that slot holds a *different* key (two keys can land on the same slot, which is called a <Term def="When two different keys hash to the same slot. Python then tries other slots until it finds the key or an empty slot.">collision</Term>), it tries another slot. An **empty** slot means the key is not in the dict.
+
+<DictLookup />
+
+<Steps title="Hash two keys by hand (toy hash, 8 slots)">
+  <Step title="Add up the letters of 'teh'">
+    With a = 1, b = 2, …, z = 26: t = 20, e = 5, h = 8, so the toy hash is $20 + 5 + 8 = 33$.
+  </Step>
+  <Step title="Take the remainder">
+    $33 \bmod 8 = 1$, because $33 = 4 \times 8 + 1$. So `'teh'` lives in slot 1.
+  </Step>
+  <Step title="Now hash 'milo'">
+    m = 13, i = 9, l = 12, o = 15, so the sum is $49$, and $49 \bmod 8 = 1$ (since $49 = 6 \times 8 + 1$). Slot 1 again: a collision!
+  </Step>
+  <Step title="Look up 'milo'">
+    Python checks slot 1, finds `'teh'` (the wrong key), and moves on to another slot. Here that is slot 2. If slot 2 is empty, `'milo'` is not in the dict. Two checks, not a search through every key.
+  </Step>
+</Steps>
+
+Python's real `hash()` spreads keys far more evenly than our toy, and Python keeps at least a third of the slots empty, so a lookup almost always ends after checking one or two slots. When the table gets too full, Python moves everything into a bigger table. That spare room is the price of speed: dicts use extra memory so that every lookup takes about the same short time. This is why word counts, vocabularies and <Term def="A store of answers that have already been worked out, so they can be looked up instead of computed again.">caches</Term> are almost always dicts.
+
+<KeyIdea>
+
+A dict turns each key into a slot number with a hash function, so finding a key takes about the same time whether the dict holds 10 keys or 10 million. A list has to be searched item by item.
+
+</KeyIdea>
+
+### When the key is missing
+
+Asking for a key that isn't there is the most common dict error. There are four ways to ask, and only the first one crashes:
+
+```python
+prices['sirap']          # KeyError: 'sirap'
+prices.get('sirap')      # None
+prices.get('sirap', 0)   # 0, the default you gave
+'sirap' in prices        # False
+```
+
+When the key *is* there, the first three all give its value and `in` gives `True`.
+
+This makes `.get()` perfect for counting, a job you will do constantly in AI (word counts, label counts, vocabulary sizes). Run it, then try your own sentence:
+
+<PyRunner code={wordCountCode} />
+
+The first time the loop meets a word, `.get(word, 0)` gives 0, so the word is stored with count 1. Each later time, it gives the current count, and the loop stores one more.
+
+<Mistake title="counts[word] += 1 on a brand-new key">
+
+`counts[word] += 1` means `counts[word] = counts[word] + 1`, which first *reads* `counts[word]`. For a word you haven't seen yet, that read raises `KeyError`. Use `counts.get(word, 0) + 1`, or check `if word in counts` first.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={79} />
+
+<QuickCheck
+  q="What does this code print?"
+  code={`stock = {'kaya': 3}
+stock['egg'] = stock.get('egg', 0) + 2
+stock['kaya'] = 5
+print(stock)`}
+  options={["{'kaya': 5, 'egg': 2}", "{'kaya': 3, 'egg': 2, 'kaya': 5}", "{'kaya': 8, 'egg': 2}", "KeyError: 'egg'"]}
+  answer={0}
+  explain="`.get('egg', 0)` returns the default 0 because 'egg' is missing, so 'egg' is stored as 0 + 2 = 2. Assigning to 'kaya' again replaces 3 with 5: keys are unique, so a dict can never hold 'kaya' twice, and the old value is not added to the new one."
+/>
+
+## Tuples: sequences that never change
+
+<Analogy title="Your NRIC">
+
+Once your NRIC is issued, its characters are fixed. You can read any of them, but you can't rub one out and write another. A tuple is a list with the same promise.
+
+</Analogy>
+
+A <Term def="An ordered sequence written with round brackets, such as (3, 4). Once created, its items can't be changed.">tuple</Term> is written with round brackets. You can index it, slice it and loop over it like a list, but you can't change it:
+
+```python
+point = (3, 4)
+print(point[0])   # 3
+w, h = point      # w = 3, h = 4
+point[0] = 9      # TypeError!
+```
+
+The second line reads an item, exactly as with a list. The third line is called <Term def="Assigning the items of a tuple (or list) to several names at once: w, h = (3, 4) sets w = 3 and h = 4.">unpacking</Term>: the two items go into two names at once. The last line crashes with `TypeError: 'tuple' object does not support item assignment`.
+
+Two details catch people out. A one-item tuple needs a comma: `(5,)` is a tuple, but `(5)` is just the number 5 in brackets. And the commas, not the brackets, make the tuple: `return lo, hi` returns the tuple `(lo, hi)`.
+
+You will meet tuples constantly in AI code because the **shapes** of arrays are tuples. In <Term def="The standard Python library for fast arrays of numbers. You will learn it in a later module.">NumPy</Term>, `np.zeros((2, 3)).shape` is `(2, 3)`, and in <Term def="A Python library for building and training neural networks. Its arrays are called tensors.">PyTorch</Term> a <Term def="PyTorch's name for an array of numbers with any number of dimensions, e.g. a batch of images.">tensor</Term>'s `.shape` is a `torch.Size`, which is a kind of tuple:
+
+```python
+import torch
+x = torch.zeros(32, 3, 224, 224)  # 32 RGB images
+print(x.shape)
+print(isinstance(x.shape, tuple))
+batch, channels, height, width = x.shape
+print(channels, height)
+```
+
+```text
+torch.Size([32, 3, 224, 224])
+True
+3 224
+```
+
+Why use a tuple when a list exists? A shape or a coordinate should never be changed by accident, and a tuple guarantees that. As you will see below, a tuple can also be a dictionary key and a list can't.
+
+## Sets: every item once
+
+<Analogy title="A CCA attendance list">
+
+However many times a student taps their card, the attendance list shows their name once. A set behaves the same way: adding an item that is already there changes nothing.
+
+</Analogy>
+
+A <Term def="An unordered collection with no duplicates, written {1, 2, 3}. Checking whether an item is in a set is very fast.">set</Term> holds each item at most once and has **no order**, so there is no `s[0]` (`TypeError: 'set' object is not subscriptable`). It uses the same hashing trick as a dict, so `item in s` is just as fast. Write a set with curly braces, `{1, 2, 3}`, but write an *empty* set as `set()`, because `{}` is already taken by the empty dict.
+
+```python
+labels = ['cat', 'dog', 'cat', 'bird', 'dog']
+classes = set(labels)    # duplicates vanish
+print(len(classes))      # 3
+print('cat' in classes)  # True
+```
+
+Sets also have operators that work exactly like the Venn diagrams from maths:
+
+| Operator | Keeps the items that are… |
+|---|---|
+| `A \| B` (union) | in A or B (or both) |
+| `A & B` (intersection) | in both A and B |
+| `A - B` (difference) | in A but not in B |
+| `A ^ B` (symmetric difference) | in exactly one of A and B |
+
+Each operator also has a method with the same name, such as `A.union(B)` and `A.intersection(B)`.
+
+<SetVenn />
+
+<Steps title="Set operations by hand: A = {1, 2, 3, 4}, B = {3, 4, 5}">
+  <Step title="Find the overlap first">
+    3 and 4 are in both, so `A & B` is `{3, 4}`.
+  </Step>
+  <Step title="Union">
+    Everything from either set, each once: `A | B` is `{1, 2, 3, 4, 5}`. Notice that 3 and 4 are not counted twice.
+  </Step>
+  <Step title="The two differences">
+    `A - B` removes B's items from A, giving `{1, 2}`. `B - A` is `{5}`. Unlike `|` and `&`, the order matters.
+  </Step>
+  <Step title="Symmetric difference">
+    `A ^ B` is everything except the overlap: `{1, 2, 5}`. Check: it is `(A | B) - (A & B)`.
+  </Step>
+</Steps>
+
+A real use: before training, check that no example appears in both your training set and your test set. If `set(train_ids) & set(test_ids)` is not empty, the model is tested on data it has already seen, a mistake called <Term def="When information from the test data leaks into training, so the test score looks better than the model really is.">data leakage</Term>.
+
+<QuickCheck
+  q="What is `len(set([3, 1, 3, 2, 1]))`?"
+  options={['3', '5', '2', '6']}
+  answer={0}
+  explain="`set()` keeps one copy of each value, giving {1, 2, 3}, which has 3 items. 5 is the length of the original list, with the duplicates still in it."
+/>
+
+## Mutable or immutable?
+
+<Analogy title="A whiteboard and a printed certificate">
+
+You can wipe part of a whiteboard and write something new: it is the same board with new contents. To change a certificate you must print a whole new one. Python's types come in the same two kinds.
+
+</Analogy>
+
+A type is <Term def="Able to be changed in place after it is created: list, dict and set.">mutable</Term> if you can change an object of that type after creating it, and <Term def="Unable to be changed after it is created: int, float, str, tuple. Any 'change' really builds a new object.">immutable</Term> if you can't. Make a prediction for each card, then let Python show you.
+
+<MutabilitySorter />
+
+| Type | Mutable? | Ordered? | Repeats allowed? |
+|---|---|---|---|
+| **list** | yes | yes | yes |
+| **dict** | yes | yes¹ | values yes, keys no |
+| **set** | yes | no | no |
+| **tuple** | no | yes | yes |
+| **str** | no | yes | yes |
+| **int**, **float** | no | – | – |
+
+¹ A dict remembers the order in which its keys were added.
+
+Why does this matter?
+
+1. **Only immutable values can be dictionary keys or set items.** A key's slot is calculated from its value. If the key could change, its hash would change too, and Python would look in the wrong slot. Python calls values that can be used as keys <Term def="Having a hash value that never changes, so the value can be a dict key or a set item. Immutable built-in types are hashable; list, dict and set are not.">hashable</Term>. So `{[1, 2]: 'a'}` raises `TypeError: unhashable type: 'list'`, while `{(1, 2): 'a'}` works. Tuples make great keys for grid positions: `grid[(row, col)]`.
+2. **A mutable object can be changed by any code that has access to it,** including a function you pass it to. You will explore this in the lesson on names and references.
+
+<KeyIdea>
+
+list, dict and set are **mutable**: they can change in place. int, float, str and tuple are **immutable**: any "change" builds a new object. Only immutable values can be dict keys or set items.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={77} />
+
+<ExamTip>
+
+Memorise the brackets: `[]` is an empty list, `()` an empty tuple, `{}` an empty **dict**, and `set()` an empty set. `{1, 2}` with items is a set, and `type({})` prints `<class 'dict'>`. In "which is mutable?" questions, the tempting wrong answer is tuple, because it looks like a list.
+
+</ExamTip>
+
+## Choosing the right container
+
+Ask what you need to do with the data:
+
+- **Keep items in order and change them?** Use a list, e.g. the loss after every <Term def="One full pass of training through the whole training set.">epoch</Term>.
+- **Look values up by a name or ID?** Use a dict, e.g. `scores['Aisha']` or a word-count table.
+- **Store a fixed record that must not change?** Use a tuple, e.g. an image size `(28, 28)`.
+- **Remove duplicates or test membership quickly?** Use a set, e.g. the distinct labels in a dataset.
+
+<QuickCheck
+  q="A program must check, millions of times, whether a word is in a 50,000-word vocabulary. Which container should hold the vocabulary?"
+  options={['A set, because `in` jumps straight to a hashed slot', 'A list, because `in` checks the words in alphabetical order', 'A tuple, because it can never be changed by accident', 'A string of all the words joined with spaces']}
+  answer={0}
+  explain="Sets (and dict keys) use hashing, so `word in vocab` takes about the same time for 50,000 words as for 5. `in` on a list or tuple compares the words one by one, up to 50,000 comparisons each time, and being immutable does not make a tuple faster to search."
+/>
+
+<Takeaways>
+
+- A **dict** maps unique keys to values. `{}` or `dict()` makes an empty one, `d[k] = v` adds or updates, and `d.get(k, default)` avoids a `KeyError`.
+- Hashing sends each key straight to its slot, so dict and set lookups stay fast however big they get.
+- A **tuple** is an ordered sequence that can't change. Shapes such as `(32, 3, 224, 224)` are tuples, and `(5,)` needs its comma.
+- A **set** keeps each item once and supports `|`, `&`, `-` and `^`. The empty set is `set()`.
+- list, dict and set are mutable. int, float, str and tuple are immutable, and only immutable values can be dict keys.
+
+</Takeaways>

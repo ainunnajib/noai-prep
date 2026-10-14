@@ -1,0 +1,430 @@
+/* Local styles for the DataFrame visuals in this lesson. Colours come from theme tokens only. */
+
+/* ---------- a DataFrame drawn as a table ---------- */
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* margin auto (not flex centring) so a table wider than the box still scrolls from its left edge */
+.scroll > table {
+  margin: 0 auto;
+}
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 0.34rem 0.6rem;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.25s ease,
+    color 0.18s ease;
+}
+.compact th,
+.compact td {
+  padding: 0.3rem 0.42rem;
+  font-size: 0.75rem;
+}
+.table thead th {
+  font-weight: 700;
+  background: var(--surface-2);
+  border-bottom: 1.5px solid var(--ink-3);
+  vertical-align: bottom;
+}
+.table tbody th {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.table tfoot td,
+.table tfoot th {
+  border-bottom: none;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--viz-5);
+  font-weight: 600;
+}
+.corner {
+  color: var(--ink-3) !important;
+  font-weight: 400 !important;
+  font-size: 0.68rem;
+  text-align: left !important;
+}
+.pos {
+  color: var(--ink-3) !important;
+  font-weight: 400 !important;
+  font-size: 0.7rem;
+  font-style: italic;
+}
+.colpos {
+  display: block;
+  color: var(--ink-3);
+  font-weight: 400;
+  font-size: 0.66rem;
+  font-style: italic;
+  margin-top: 1px;
+}
+.nan {
+  color: var(--ink-3);
+  font-style: italic;
+}
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  background: var(--surface-3);
+}
+.cellBtn {
+  all: unset;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: inherit;
+  border-radius: 3px;
+}
+.cellBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.faded {
+  opacity: 0.28;
+}
+.strike td,
+.strike th {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-3);
+}
+
+/* ---------- chips (part pickers, presets) ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  width: 100%;
+}
+.chip {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+.chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+.chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.codeChip {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.28rem 0.55rem;
+}
+
+/* ---------- explanation panel with code + output ---------- */
+.panel {
+  width: 100%;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  padding: 0.75rem 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink);
+  min-width: 0;
+}
+.panelTitle {
+  font-weight: 800;
+  font-size: 0.95rem;
+  margin: 0 0 0.25rem;
+  color: var(--ink);
+}
+.panel p {
+  margin: 0 0 0.4rem;
+}
+.io {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  min-width: 0;
+}
+.code,
+.out {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-x: auto;
+  border-radius: 6px;
+  padding: 0.42rem 0.6rem;
+  min-width: 0;
+}
+.code {
+  background: var(--surface);
+  border: 1.5px solid var(--accent-line);
+  color: var(--accent);
+  font-weight: 700;
+}
+.out {
+  background: var(--surface);
+  border: 1px dashed var(--rule);
+  color: var(--ink);
+}
+.ioLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: -0.15rem;
+}
+
+/* ---------- inspector output with clickable hotspots ---------- */
+.console {
+  width: 100%;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  white-space: pre;
+  overflow-x: auto;
+  border-radius: var(--radius-m);
+  padding: 0.7rem 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+.consoleNarrow {
+  font-size: 0.68rem;
+  padding: 0.6rem 0.55rem;
+}
+.prompt {
+  color: var(--accent);
+  font-weight: 700;
+}
+.hot {
+  all: unset;
+  cursor: pointer;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--highlight) 38%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--highlight) 80%, transparent);
+  color: var(--ink);
+}
+.hot:hover {
+  background: color-mix(in srgb, var(--highlight) 60%, transparent);
+}
+.hot:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.hotOn {
+  background: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent) !important;
+  color: var(--accent-ink) !important;
+}
+.note {
+  width: 100%;
+  border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.note strong {
+  color: var(--ink);
+}
+.hint {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  text-align: center;
+  width: 100%;
+}
+
+/* ---------- expression box (loc / iloc) ---------- */
+.exprRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.exprLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.expr {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--accent-line);
+  background: var(--surface);
+  color: var(--ink);
+}
+.expr:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.setup {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: var(--radius-s);
+  padding: 0.35rem 0.6rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.result {
+  width: 100%;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.resultLine {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  transform: translateY(0.12rem);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85em;
+}
+.err {
+  color: var(--bad);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- filter builder ---------- */
+.conds {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+}
+.cond {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.6rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  border-left-width: 6px;
+  background: var(--surface);
+}
+.cond select,
+.cond input {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  min-width: 0;
+}
+.cond input {
+  width: 6.8rem;
+}
+.condCount {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.iconBtn {
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.iconBtn:hover {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+.dot {
+  display: inline-block;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  margin-right: 0.18rem;
+  vertical-align: middle;
+}
+.maskT {
+  color: var(--ok) !important;
+  font-weight: 800;
+}
+.maskF {
+  color: var(--bad) !important;
+  font-weight: 800;
+}
+.big {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+/* very narrow phones (about 360 px wide) */
+.tiny th,
+.tiny td {
+  font-size: 0.68rem;
+  padding: 0.28rem 0.26rem;
+}
+.tiny tfoot td,
+.tiny tfoot th {
+  font-size: 0.6rem;
+}

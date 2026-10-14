@@ -1,3 +1,188 @@
-{/* stub: lesson 'Reading loss curves' is being written */}
+import LossCurveClinic from './visuals/reading-loss-curves/LossCurveClinic'
+import LRCurveFamily from './visuals/reading-loss-curves/LRCurveFamily'
+import NoiseVsInstability from './visuals/reading-loss-curves/NoiseVsInstability'
 
-This lesson is being written.
+A model cannot tell you what is wrong with it, but its loss curve usually can. Experienced engineers glance at two lines on a chart and say "learning rate too high" or "it's overfitting" in seconds. NOAI tests exactly this skill: Prelim questions describe a curve in words ("the training loss oscillates wildly", "validation loss rises while training loss keeps falling") and ask for the cause or the fix. By the end of this lesson you will read those curves the way a doctor reads a chart.
+
+<Analogy title="The temperature chart at the foot of the bed">
+
+In a hospital ward, a nurse records each patient's temperature every few hours and plots it. The doctor does not need to examine the patient from scratch on every round: a steady line says "recovering", a spike says "infection", a slow climb says "something is brewing". Different illnesses leave different shapes. Loss curves are a model's temperature chart, and each common training problem leaves its own shape.
+
+</Analogy>
+
+## What a loss curve shows
+
+During training, the model makes predictions and a <Term def="A single number that measures how wrong the model's predictions are. Lower is better. Examples: mean squared error for numbers, cross-entropy for classes.">loss function</Term> scores how wrong they are. Training repeats small update <Term def="One update of the weights, using one mini-batch of examples. Also called an iteration.">steps</Term>, and one <Term def="One full pass through the whole training set. With 1,000 examples and batches of 100, one epoch is 10 steps.">epoch</Term> is a full pass through the training data. A loss curve plots the loss (up the side) against steps or epochs (along the bottom).
+
+You almost always plot **two** curves:
+
+- **Training loss**: the average loss on the examples the model is learning from.
+- **Validation loss**: the average loss on a <Term def="Examples held back from training and used only to check the model. The model never learns from them, so they show how it does on new data.">validation set</Term>, examples the model never trains on.
+
+In symbols, for $n$ examples with true answers $y_i$ and predictions $\hat y_i$,
+
+$$
+L = \frac{1}{n}\sum_{i=1}^{n} \ell(\hat y_i, y_i)
+$$
+
+Here $\ell(\hat y_i, y_i)$ is the loss on one example $i$ (for example its squared error), $\sum$ adds them up over all $n$ examples, and dividing by $n$ gives the average. Computed over the training set this is $L_\text{train}$; over the validation set it is $L_\text{val}$. The difference
+
+$$
+\text{gap} = L_\text{val} - L_\text{train}
+$$
+
+is the <Term def="How much worse the model does on new data than on its training data. A large or growing gap means the model is memorising rather than learning general patterns.">generalisation gap</Term>. Training loss tells you whether the model is *learning*; the gap tells you whether what it learns *carries over to new data*.
+
+<KeyIdea>
+
+Read every loss chart for three things: the **level** (how low does the loss get?), the **trend** (is it still falling, flat, jumping, or rising?) and the **gap** (how far apart are training and validation?).
+
+</KeyIdea>
+
+## The loss curve clinic
+
+Here are six training runs. Each has one classic problem, or none at all. Diagnose each one from its curves, then try treatments and see what each one does to the curve.
+
+<LossCurveClinic />
+
+Here is what you just saw, as a table you can revise from:
+
+| What the curves do | Diagnosis | First things to try |
+|---|---|---|
+| Both drop quickly, flatten, and stay close together | Healthy | Nothing; stop when validation loss stops improving |
+| Training keeps falling; validation falls, then turns **up** (the gap widens) | <Term def="The model fits its training data too closely, including noise and quirks, so it does worse on new data. Low training loss, higher and rising validation loss.">Overfitting</Term> | <Term def="Stopping training at the epoch where validation loss was lowest, and keeping that version of the model.">Early stopping</Term>, <Term def="Any technique that discourages memorising, such as dropout, weight decay or data augmentation. It usually raises training loss a little and lowers validation loss.">regularisation</Term>, more data or augmentation |
+| Both flatten early at a **high** level, close together | <Term def="The model is too simple (or too constrained) to capture the pattern, so it does badly even on its training data. High training loss, validation close to it.">Underfitting</Term> | Bigger model, better features, less regularisation |
+| Both jump up and down and never settle | Learning rate too high (or batch too small) | Lower the learning rate (÷3 to ÷10) |
+| Slow, almost straight decline, still falling at the end | Learning rate too low | Raise the learning rate (×3 to ×10) |
+| Normal for a while, then shoots to a huge value and becomes NaN | Numerical blow-up | Lower the learning rate, <Term def="Shrinking the gradient whenever its size (norm) exceeds a threshold, so that no single update can be enormous.">gradient clipping</Term>, look for log of 0 or division by 0 |
+
+NaN means "not a number": the result of an impossible calculation such as $\infty - \infty$ or $0 \times \infty$. Once one weight becomes NaN, every later calculation that touches it is NaN too, so a NaN loss never recovers on its own. The lesson on numerical issues later in this module shows where NaNs come from.
+
+<Mistake title="Two tempting wrong fixes">
+
+- **Training longer to cure overfitting.** More epochs give the model more time to memorise, so the validation curve climbs higher. The cure is to stop earlier or make memorising harder.
+- **Adding regularisation to cure underfitting.** Regularisation makes a model *simpler*. If the model is already too simple, it makes things worse. A flat, high training loss needs more capacity, not less.
+
+</Mistake>
+
+One more trap: a validation loss slightly **below** the training loss is not automatically a bug. Dropout and data augmentation are switched on while training and off while validating, so the model works harder on training data. And training loss is usually averaged over the whole epoch, including the early steps when the model was worse.
+
+<QuickCheck
+  q="After 40 epochs, training loss is 0.05 and still falling, while validation loss fell to 0.60 at epoch 12 and has risen to 1.10. What is the best first fix?"
+  options={['Train for another 40 epochs so the validation loss can catch up', 'Use a model with more layers', 'Keep the model from epoch 12 and add regularisation such as dropout', 'Raise the learning rate so training finishes sooner']}
+  answer={2}
+  explain="Training loss falling while validation loss rises is overfitting, and the best validation loss was at epoch 12. Early stopping keeps that version; dropout or weight decay make memorising harder. Training longer or adding layers gives the model more room to memorise, so the gap grows."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={261} />
+
+## Learning-rate fingerprints
+
+The <Term def="The size of each step the optimiser takes against the gradient, written η (eta). Too small: very slow training. Too big: overshooting, bouncing or blowing up.">learning rate</Term> is the setting most likely to be wrong, and it leaves the clearest fingerprints. Every training step updates each weight $w$ by
+
+$$
+w \leftarrow w - \eta \, \frac{\partial L}{\partial w}
+$$
+
+Here $\frac{\partial L}{\partial w}$ is the gradient (how much the loss rises when $w$ rises a little), $\eta$ ("eta") is the learning rate, and the arrow means "replace $w$ with". In words: take a step downhill, of size $\eta$ times the slope.
+
+<Analogy title="Driving into a parking space">
+
+Barely touching the accelerator, you creep forward and it takes forever. Flooring it, you shoot past the space, reverse too hard, and shoot past it again. Just right, you glide in quickly and stop. Learning rates behave the same way.
+
+</Analogy>
+
+Let's see why, on the simplest possible loss.
+
+<Steps title="Gradient descent on $L(w) = w^2$, starting at $w = 1$">
+  <Step title="The update rule">
+    The slope of $w^2$ is $2w$, so one step gives $w \leftarrow w - \eta \cdot 2w = (1 - 2\eta)\,w$. Each step **multiplies** $w$ by the same number $m = 1 - 2\eta$, and the loss $w^2$ gets multiplied by $m^2$.
+  </Step>
+  <Step title="Too small: $\eta = 0.05$">
+    $m = 0.9$, so $w$ goes $1 \to 0.9 \to 0.81 \to 0.729$ and the loss goes $1 \to 0.81 \to 0.66 \to 0.53$. It falls, but slowly: a gentle, nearly straight slope.
+  </Step>
+  <Step title="Just right: $\eta = 0.5$">
+    $m = 0$, so $w$ jumps to $0$, the bottom, in one step. Loss $1 \to 0$.
+  </Step>
+  <Step title="Big: $\eta = 0.9$">
+    $m = -0.8$, so $w$ goes $1 \to -0.8 \to 0.64 \to -0.512$: it overshoots to the other side each time but still closes in. Loss $1 \to 0.64 \to 0.41 \to 0.26$.
+  </Step>
+  <Step title="Too big: $\eta = 1.1$">
+    $m = -1.2$, so $w$ goes $1 \to -1.2 \to 1.44 \to -1.728$, further away every step. The loss is multiplied by $1.44$ each step: $1 \to 1.44 \to 2.07 \to 2.99$. That is exponential growth; after a few hundred steps the number no longer fits in a computer and becomes infinity, then NaN.
+  </Step>
+</Steps>
+
+Gradient descent on this bowl is stable only while the multiplier stays between $-1$ and $1$, that is $|1 - 2\eta| < 1$, which means $0 < \eta < 1$. A steeper bowl has a smaller safe range: the steeper the slope, the bigger each step, so the more easily it overshoots.
+
+Real loss landscapes are not perfect bowls: they are steep in some directions, flat in others, and every mini-batch gives a slightly different landscape. So in a real network an overshooting step often lands somewhere *higher*, and the loss bounces up and down instead of neatly zigzagging inwards. Now explore a real model:
+
+<LRCurveFamily />
+
+<KeyIdea>
+
+**Too low:** slow, almost straight, still falling. **Good:** fast drop, then flat. **Too high:** jumps up and down, settles high or not at all. **Far too high:** shoots up to infinity, then NaN. The best learning rate is usually just below the one where the curve starts to jump.
+
+</KeyIdea>
+
+<Tip title="Try learning rates on a log scale">
+
+Learning rates that matter differ by factors, not by small amounts: 0.001 and 0.002 behave alike, 0.001 and 0.1 do not. So people try values like 0.0001, 0.0003, 0.001, 0.003, 0.01 (each about three times the last) and pick the best. When a run misbehaves, changing the learning rate is usually the first experiment.
+
+</Tip>
+
+<PastPaperQuestion paper="prelim2026" n={269} />
+
+## Noisy or unstable?
+
+Most training scripts log the loss of each mini-batch as they go. A <Term def="A small random group of training examples used for one update step. The batch size is how many examples it holds.">mini-batch</Term> of 4 examples is a tiny sample, so its loss jumps around even when everything is fine, just as a class average from four students says little about the whole cohort. Tools like TensorBoard therefore draw a smoothed line, using an <Term def="A running average that gives recent values more weight than old ones. Each new smoothed value is mostly the previous smoothed value plus a little of the new raw value.">exponential moving average</Term>:
+
+$$
+s_t = \beta\, s_{t-1} + (1 - \beta)\, \ell_t
+$$
+
+Here $\ell_t$ is the raw loss at step $t$, $s_t$ is the smoothed value, and $\beta$ (between 0 and 1) sets how much the past counts. With $\beta = 0.9$, each new point is 90% the old smoothed value and 10% the new raw value. For example, if $s_{t-1} = 0.30$ and a noisy batch gives $\ell_t = 1.00$, then $s_t = 0.9 \times 0.30 + 0.1 \times 1.00 = 0.37$: one bad batch barely moves the smoothed line.
+
+<NoiseVsInstability />
+
+Two lessons from this figure:
+
+1. **Jagged is not the same as broken.** Judge the smoothed trend, not the individual wiggles.
+2. **The safe learning rate depends on the batch size.** Smaller batches give noisier gradients, and a big step in a noisy direction can throw the weights off. That is why "the loss oscillates" can mean "learning rate too high" *or* "batch too small for this learning rate". The first fix is still to lower the learning rate.
+
+There is one more shape worth knowing. With a constant learning rate, the loss often drops fast and then bounces around a floor, because the steps are too big to settle into the bottom of the valley. A <Term def="A rule that changes the learning rate during training, usually lowering it as training goes on (for example: divide it by 10 at epochs 100 and 150, or follow a cosine curve).">learning-rate schedule</Term> that lowers the learning rate later in training (for example, divide it by 10 at fixed epochs) lets it settle lower.
+
+<QuickCheck
+  q="Your per-batch training loss with batch size 8 looks jagged, but the smoothed curve falls steadily and then levels off. What should you do?"
+  options={['Lower the learning rate immediately', 'Nothing: small batches make the raw loss noisy, and the trend is healthy', 'Add dropout to reduce the noise', 'Switch to a bigger model']}
+  answer={1}
+  explain="Each point is the loss on only 8 examples, so it jumps around even when training is fine. The smoothed curve, which shows the trend, falls and then settles: healthy. Lowering the learning rate is the fix when the smoothed curve itself jumps or rises."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={286} />
+
+## Diagnosing in the exam
+
+<ExamTip>
+
+With about 36 seconds per Prelim question, match the key phrase to its cause:
+
+- "oscillates wildly", "unstable", "jumps around" → **learning rate too high** (or batch too small) → lower it
+- "decreases very slowly", "barely changes" → **learning rate too low** → raise it (unless the loss is *exactly* flat from step 0, which smells of a bug; see the next lesson)
+- "training loss decreases, validation loss increases", "large train–validation gap" → **overfitting** → early stopping, regularisation, more data or augmentation
+- "both training and validation error are high" → **underfitting** → more capacity, better features, less regularisation
+- "suddenly becomes NaN / infinity" → **numerical instability or exploding gradients** → lower the learning rate, clip gradients, check for log 0 and division by 0
+- "plateaus and oscillates around a value" with a constant learning rate → **add a decay schedule**
+
+Watch for options that treat the wrong disease: "train longer" for overfitting and "add regularisation" for underfitting are the classic traps.
+
+</ExamTip>
+
+<Takeaways>
+
+- Read the **level**, the **trend** and the **gap** between training and validation loss.
+- Widening gap with training still falling: overfitting. Both high and flat: underfitting.
+- Learning-rate fingerprints: too low creeps; good drops then flattens; too high bounces; far too high blows up to NaN.
+- A jagged raw curve from small batches is normal; judge the smoothed trend. Smaller batches need smaller learning rates.
+- Change one thing at a time and watch the curve respond: the curve is your test result.
+
+</Takeaways>

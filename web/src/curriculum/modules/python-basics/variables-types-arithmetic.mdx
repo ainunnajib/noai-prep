@@ -1,3 +1,280 @@
-{/* stub: lesson 'Variables, types and arithmetic' is being written */}
+import VariableBoxes from './visuals/variables-types-arithmetic/VariableBoxes'
+import TypeSorter from './visuals/variables-types-arithmetic/TypeSorter'
+import TypeMixer from './visuals/variables-types-arithmetic/TypeMixer'
+import KuehSplitter from './visuals/variables-types-arithmetic/KuehSplitter'
+import ExpressionTree from './visuals/variables-types-arithmetic/ExpressionTree'
 
-This lesson is being written.
+A program that cannot remember anything is not much use. To keep a score, add up marks or train a model, Python needs to **store** values, know what **kind** of value each one is, and **calculate** with them. Those are this lesson's three ideas: variables, types and arithmetic. Every line of AI code you will ever read uses all three.
+
+## Variables: names for values
+
+```python
+score = 42
+print(score + 8)
+```
+
+```text
+50
+```
+
+The line `score = 42` is an <Term def="A line that gives a name to a value, written name = value. The name goes on the left of the = sign.">assignment</Term>. It creates a <Term def="A name that refers to a value, so you can use the value later by writing the name.">variable</Term>: the name `score` now refers to the value `42`, and anywhere you write `score` afterwards, Python uses 42.
+
+Read `=` as "now refers to", **not** as "equals". It is an instruction with two steps:
+
+1. Work out the right-hand side.
+2. Make the name on the left refer to that result. If the name already referred to something, it moves.
+
+That is why `x = x + 1` makes sense in Python even though it is nonsense as a maths equation: "work out `x + 1` using the current `x`, then make `x` refer to the answer".
+
+<Analogy title="Choping a seat with a tissue packet">
+
+At a hawker centre you "chope" a seat by leaving a tissue packet on it. The packet (the name) is not the seat (the value); it just marks which seat is yours. You can pick the packet up and put it on another seat, and two friends can put their packets on the same seat. Python's names work exactly like that.
+
+</Analogy>
+
+<VariableBoxes />
+
+<KeyIdea>
+
+`=` means *assign*, not *is equal to*: work out the right-hand side, then point the name on the left at the result. Moving one name never moves any other name.
+
+</KeyIdea>
+
+A few rules for names:
+
+- Use letters, digits and underscores, but don't start with a digit: `score2` is fine, `2score` is a `SyntaxError`.
+- Names are case-sensitive: `Score` and `score` are two different variables.
+- No spaces. Python programmers join words with underscores: `exam_score`.
+- Don't reuse built-in names such as `print`, `type` or `str` for your own variables. After `str = "hi"`, the line `str(5)` fails with `TypeError: 'str' object is not callable`.
+
+### Worked example: a trace table
+
+To work out what a program does with its variables, keep a **trace table**: one column per variable, one row per line, updated as you go.
+
+```python
+a = 3
+b = a * 2
+a = a + b
+b = b - 1
+```
+
+<Steps title="Trace it line by line">
+  <Step title="Line 1: a = 3">
+    `a` is 3. `b` does not exist yet.
+  </Step>
+  <Step title="Line 2: b = a * 2">
+    Right side first: $3 \times 2 = 6$. Now `a` is 3 and `b` is 6.
+  </Step>
+  <Step title="Line 3: a = a + b">
+    Right side first, using the current values: $3 + 6 = 9$. Now `a` is 9; `b` is still 6.
+  </Step>
+  <Step title="Line 4: b = b - 1">
+    $6 - 1 = 5$. Final values: `a` is 9 and `b` is 5.
+  </Step>
+</Steps>
+
+| After line | `a` | `b` |
+|---|---|---|
+| 1 | 3 | (none) |
+| 2 | 3 | 6 |
+| 3 | 9 | 6 |
+| 4 | 9 | 5 |
+
+<QuickCheck
+  q="After these four lines run, what are `n` and `m`?"
+  code={'n = 10\nm = n\nn = n - 3\nm = m * 2'}
+  options={['n is 7 and m is 20', 'n is 7 and m is 14', 'n is 10 and m is 20', 'n is 14 and m is 14']}
+  answer={0}
+  explain="`m = n` points `m` at the same 10. Then `n = n - 3` makes a new value 7 and moves only `n`. So `m` is still 10 when `m = m * 2` runs, giving 20. The tempting 14 assumes `m` follows `n` around, but moving one name never moves another."
+/>
+
+<Mistake title="Writing the assignment backwards">
+
+The name always goes on the **left**. `5 = x` is a `SyntaxError` ("cannot assign to literal"). And a single `=` never *checks* whether two things are equal: that is `==`, which you will meet in the lesson on decisions.
+
+</Mistake>
+
+## Types: what kind of value is it?
+
+Every value in Python has a <Term def="The kind of value something is, such as a whole number, a decimal number, text or True/False. The type decides what you can do with the value.">type</Term>. You will use four basic types all the time:
+
+| Type | What it holds | Examples |
+|---|---|---|
+| `int` (integer) | whole numbers, positive or negative | `42`, `-7`, `0` |
+| `float` (floating-point number) | numbers with a decimal point | `3.0`, `-0.5`, `2.5e3` |
+| `str` (string) | text, written inside quotes | `'hi'`, `"42"`, `''` |
+| `bool` (Boolean) | truth values | `True`, `False` |
+
+The built-in function `type()` tells you the type of any value. ("Class" is Python's word for a type.)
+
+```python
+print(type(42))
+print(type(3.0))
+print(type("42"))
+print(type(True))
+```
+
+```text
+<class 'int'>
+<class 'float'>
+<class 'str'>
+<class 'bool'>
+```
+
+Two details catch people out. First, **quotes make a string**, whatever is inside them: `"42"` is text, not a number. Second, `2.5e3` is <Term def="A short way to write very big or very small numbers: 2.5e3 means 2.5 × 10³ = 2500, and 1e-3 means 1 × 10⁻³ = 0.001.">scientific notation</Term> for $2.5 \times 10^3 = 2500.0$, and it is always a float. You will see it constantly in AI code: a learning rate of `1e-3` means $0.001$.
+
+<TypeSorter />
+
+### Why types matter
+
+What an operator does depends on the types it is given:
+
+- `3 + 3` adds numbers: `6`.
+- `'3' + '3'` joins two strings end to end, called <Term def="Joining strings end to end with +, so 'ab' + 'cd' gives 'abcd'.">concatenation</Term>: `'33'`.
+- `'3' * 3` repeats a string: `'333'`.
+- `'3' + 3` is a `TypeError`: should `+` add or join? Python refuses to guess.
+
+To fix a type mismatch, **convert** the value with a function named after the type you want:
+
+| Conversion | Result |
+|---|---|
+| `int('42')` | `42`: it reads whole-number text |
+| `int(3.99)` | `3`: it chops off the decimal part; it does **not** round |
+| `float('2.5')` | `2.5`: it reads decimal text |
+| `float(3)` | `3.0` |
+| `str(42)` | `'42'`: number to text |
+| `int('3.5')` | `ValueError`: `int()` only reads whole-number text |
+| `bool(0)`, `bool('')` | `False`: zero and empty text are `False`; almost everything else is `True` |
+
+<TypeMixer />
+
+<Mistake title="Text that looks like a number is still text">
+
+Values that come from outside your program, such as numbers in a file or something a user types in, usually arrive as strings. `'3' + 3` fails, and `'3' * 3` silently gives `'333'` instead of 9. When a number behaves strangely, check its type with `type()` and convert it with `int()` or `float()`.
+
+</Mistake>
+
+`type()` works on every value, including the lists you will meet at the end of this module. Square brackets make a list, so `type([1, 2, 3])` shows `<class 'list'>`.
+
+<PastPaperQuestion paper="prelim2026" n={76} />
+
+## Arithmetic: Python as a calculator
+
+Python has seven arithmetic operators. Here they all are with the same two numbers:
+
+| Operator | Name | Example | Result |
+|---|---|---|---|
+| `+` | add | `7 + 2` | `9` |
+| `-` | subtract | `7 - 2` | `5` |
+| `*` | multiply | `7 * 2` | `14` |
+| `/` | divide | `7 / 2` | `3.5` |
+| `//` | floor division | `7 // 2` | `3` |
+| `%` | remainder (modulo) | `7 % 2` | `1` |
+| `**` | power | `7 ** 2` | `49` |
+
+Three rules about the result's type:
+
+- `/` **always** gives a float, even when the answer is whole: `6 / 3` is `2.0`.
+- If either number is a float, the result is a float: `3 + 3.0` is `6.0`.
+- Powers use `**`. The `^` key does something else entirely in Python (`2 ^ 3` is `1`), so never use it for powers.
+
+### `//` and `%`: sharing kueh
+
+<Analogy title="Sharing kueh">
+
+You have 7 kueh and 2 friends. Deal them out one each, round after round, until there are not enough left for another full round. Each friend gets 3: that is `7 // 2`. One is left over in the box: that is `7 % 2`.
+
+</Analogy>
+
+<KuehSplitter />
+
+For whole numbers $a$ and $b$ (with $b \neq 0$), the two operators are tied together by one equation:
+
+$$
+a = (a \,/\!/\, b) \times b + (a \,\%\, b)
+$$
+
+- $a \,/\!/\, b$, read "a floor-divided by b", is how many **whole** times $b$ fits into $a$: the division rounded **down**.
+- $a \,\%\, b$, read "a mod b", is the **remainder**: what is left over. When $b$ is positive it is always between $0$ and $b - 1$.
+- In words: full rounds times friends, plus the leftovers, gives back all the kueh. For 7 and 2: $3 \times 2 + 1 = 7$.
+
+These two operators are more useful than they look. `n % 2` is 0 for even numbers and 1 for odd ones; `n % 10` is the last digit of `n`; and `//` with `%` together split a quantity into units.
+
+<Steps title="Convert 135 minutes into hours and minutes">
+  <Step title="Whole hours: 135 // 60">
+    60 fits into 135 twice (120), and a third time would be 180, too many. So `135 // 60` is `2` hours.
+  </Step>
+  <Step title="Leftover minutes: 135 % 60">
+    $135 - 2 \times 60 = 135 - 120 = 15$, so `135 % 60` is `15` minutes.
+  </Step>
+  <Step title="Check with the equation">
+    $2 \times 60 + 15 = 135$. ✓ So 135 minutes is 2 h 15 min.
+  </Step>
+</Steps>
+
+### Order of operations
+
+When an expression has several operators, Python follows strict <Term def="The rules that decide which operator in an expression is worked out first, like BODMAS in school maths.">precedence</Term> rules, much like BODMAS in school maths. From first to last:
+
+1. **Brackets** `( )`
+2. **Power** `**`, which works **right to left**: `2 ** 3 ** 2` is `2 ** 9`, which is `512`.
+3. A **minus sign in front** of a number, as in `-x`. Because `**` comes first, `-2 ** 2` is $-(2^2) = -4$.
+4. `*`, `/`, `//` and `%`, from left to right.
+5. `+` and `-`, from left to right: `10 - 4 - 3` is `(10 - 4) - 3`, which is `3`.
+
+<ExpressionTree />
+
+<Steps title="Evaluate 2 + 3 * 4 ** 2 by hand">
+  <Step title="Power first">
+    `4 ** 2` is $4^2 = 16$. The expression becomes `2 + 3 * 16`.
+  </Step>
+  <Step title="Then multiply">
+    `3 * 16` is $48$. The expression becomes `2 + 48`.
+  </Step>
+  <Step title="Add last">
+    `2 + 48` is `50`. With brackets, `(2 + 3) * 4 ** 2` is $5 \times 16 = 80$ instead.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="What does `print(7 + 8 // 3 * 2)` show?"
+  options={['11', '10', '8', '12.333333333333332']}
+  answer={0}
+  explain="`//` and `*` are on the same level, so go left to right: `8 // 3` is 2, then `2 * 2` is 4. Addition comes last: 7 + 4 = 11. Doing the addition first gives 15 // 3 * 2 = 10, and using `/` instead of `//` gives a float."
+/>
+
+### Floats are approximate
+
+```python
+print(0.1 + 0.2)
+print(round(0.1 + 0.2, 2))
+```
+
+```text
+0.30000000000000004
+0.3
+```
+
+This is not a bug in Python. Computers store floats in binary, and 0.1 cannot be written exactly in binary, just as $\tfrac{1}{3}$ cannot be written exactly in decimal ($0.333\ldots$). So most floats are stored as the nearest value the computer can hold, and tiny errors appear in the 16th or 17th digit. The practical rule: never expect two floats to be *exactly* equal; round them, or check that they are very close. Neural networks run on approximate numbers all the time (PyTorch uses 32-bit floats by default), and training copes with these tiny errors.
+
+<PyRunner code={`print(7 / 2, 7 // 2, 7 % 2, 7 ** 2)
+print(-7 // 2, -7 % 2)
+print(2 ** 3 ** 2, -2 ** 2)
+print(0.1 + 0.2)
+print(type(6 / 3), int("42") + 1)`} />
+
+<ExamTip>
+
+NOAI Prelim questions here are quick, calculator-free evaluations: "What is `17 // 5`?", "What is `17 % 5`?", "What does `type(4 / 2)` return?". Work in precedence order and write each step down. Classic traps: `/` always gives a float (`4 / 2` is `2.0`, not `2`); `int(3.9)` is `3`, not `4`; `2 ** 3 ** 2` is 512, not 64; and `//` rounds **down**, so `-7 // 2` is `-4` (not $-3$) and `-7 % 2` is `1`, which keeps $a = (a /\!/ b) \times b + a \,\%\, b$ true: $-4 \times 2 + 1 = -7$.
+
+</ExamTip>
+
+<Takeaways>
+
+- `name = value` makes the name refer to the value, after working out the right-hand side. Reassigning one name never moves another.
+- Four basic types: `int`, `float`, `str` and `bool`. Quotes make a string; a decimal point (or an `e`) makes a float; `type()` tells you which.
+- Mixing types: `int` with `float` gives a `float`; `str + int` is a `TypeError`. Convert with `int()`, `float()` and `str()`.
+- `/` always gives a float, `//` divides and rounds down, and `%` gives the remainder; the rule $a = (a /\!/ b) \times b + a \,\%\, b$ ties `//` and `%` together.
+- Precedence: brackets, then `**` (right to left), then a leading minus, then `* / // %`, then `+ -`. Floats are approximate: `0.1 + 0.2` is `0.30000000000000004`.
+
+</Takeaways>

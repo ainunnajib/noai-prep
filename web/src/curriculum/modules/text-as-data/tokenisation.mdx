@@ -1,3 +1,280 @@
-{/* stub: lesson 'Tokenisation, vocabularies and padding' is being written */}
+import TokeniserCompare from './visuals/tokenisation/TokeniserCompare'
+import BPEMergeStepper from './visuals/tokenisation/BPEMergeStepper'
+import PaddingMaskGrid from './visuals/tokenisation/PaddingMaskGrid'
+import EndMarkerTruncation from './visuals/tokenisation/EndMarkerTruncation'
 
-This lesson is being written.
+Every language model, from a spam filter to ChatGPT, starts the same way: it chops the text into pieces and replaces each piece with a number. That first step, **tokenisation**, decides which words the model can read at all, how long its inputs are, and even why a chatbot can struggle to count the letters in "strawberry". This lesson shows the three ways to cut text, the clever algorithm behind modern tokenisers, and the bookkeeping (special tokens, padding, masks) that every NOAI question on text quietly assumes.
+
+In [Encoding categories](#/learn/data-and-features/encoding-categories) you split sentences into words, gave every word an id and used `[UNK]` and `[PAD]`. Here we look at that pipeline properly.
+
+<Analogy title="Packing a sentence into boxes">
+
+You are shipping a sentence in boxes. You could use **one box per word**: few boxes, but you need a box shape for every possible word, and an odd item like "shiok" has no box at all. You could use **one box per letter**: 26 box shapes cover everything, but now you need a mountain of boxes. Or you could use a set of **standard sizes** chosen for the things you ship most often, and pack rare items in several smaller boxes. Modern tokenisers do exactly this.
+
+</Analogy>
+
+## Three ways to cut text
+
+A <Term def="One piece of text that the model reads as a single unit, such as a word, part of a word or a single character. Each token is mapped to an integer id.">token</Term> is one piece the model reads as a unit. The <Term def="The fixed list of all tokens a tokeniser knows, each with its own integer id. It is built once from training text.">vocabulary</Term> is the fixed list of every token the tokeniser knows, built once from training text. A word the vocabulary does not contain is <Term def="Out of vocabulary: a word that never appeared in the text the vocabulary was built from, so it has no id of its own.">out of vocabulary (OOV)</Term>.
+
+- **Word-level**: split on spaces and punctuation. Sequences are short and each token means something, but the vocabulary is huge (run, runs, running, ran are four entries) and every new word, typo, name or Singlish word becomes `[UNK]`. The model cannot tell "shiok" from "durian" if both are `[UNK]`.
+- **Character-level**: one token per character. The vocabulary is tiny (about 100 symbols) and nothing is ever unknown, but sequences become about five times longer and a single letter carries almost no meaning, so the model must learn spelling from scratch.
+- **Subword**: keep common words whole and split rare words into frequent pieces, such as "unbelievably" → `un` + `believ` + `ably`. Algorithms such as **BPE** and **WordPiece** learn the pieces from data.
+
+<TokeniserCompare />
+
+| | word-level | character-level | subword (BPE, WordPiece) |
+|---|---|---|---|
+| vocabulary size | very large (100k+) | tiny (~100) | chosen, typically 30k–100k |
+| sequence length | shortest | longest | in between |
+| unknown words | many `[UNK]` | none | almost none |
+| meaning per token | high | very low | medium |
+
+<KeyIdea>
+
+Subword tokenisation gives an **open vocabulary** (any word can be spelled from known pieces) with **manageable sequence lengths**. That trade-off is why BERT, GPT and almost every modern model use it.
+
+</KeyIdea>
+
+Real sizes: BERT's WordPiece vocabulary has 30,522 tokens, and GPT-2's BPE vocabulary has 50,257. A useful rule of thumb for English with GPT-style tokenisers is that one token is about three-quarters of a word.
+
+<PastPaperQuestion paper="prelim2026" n={216} />
+
+## How BPE learns its merges
+
+<Term def="Byte-pair encoding: a subword tokeniser that starts from single characters and repeatedly merges the most frequent adjacent pair of symbols in the training text into a new token.">Byte-pair encoding (BPE)</Term> is surprisingly simple. Think of how you invent shorthand while taking notes: the letter combinations you write most often get their own symbol first.
+
+<Steps title="The BPE training algorithm">
+  <Step title="Start from characters">
+    Split every word of the training corpus into single characters. The starting vocabulary is the set of all characters.
+  </Step>
+  <Step title="Count adjacent pairs">
+    For every word, look at each pair of neighbouring symbols, and add the word's count to that pair's total.
+  </Step>
+  <Step title="Merge the winner">
+    The most frequent pair becomes **one new token**. Add it to the vocabulary, write down the merge rule, and replace the pair everywhere in the corpus.
+  </Step>
+  <Step title="Repeat">
+    Recount and merge again until the vocabulary reaches the size you chose. Vocabulary size $=$ number of starting characters $+$ number of merges.
+  </Step>
+</Steps>
+
+To tokenise a **new** word, split it into characters and apply the saved merge rules **in the order they were learned**. Training counts, encoding just replays the rules.
+
+<Steps title="Worked example: hug ×10, pug ×5, pun ×12, bun ×4, hugs ×5">
+  <Step title="Count the pairs">
+
+- $(u, g)$ is in hug, pug and hugs: $10 + 5 + 5 = 20$
+- $(p, u)$ is in pug and pun: $5 + 12 = 17$
+- $(u, n)$ is in pun and bun: $12 + 4 = 16$
+- $(h, u)$ is in hug and hugs: $10 + 5 = 15$
+- $(g, s) = 5$ and $(b, u) = 4$
+
+</Step>
+  <Step title="Merge 1: u + g → ug">
+    20 is the largest count. The corpus becomes h·ug, p·ug, p·u·n, b·u·n, h·ug·s.
+  </Step>
+  <Step title="Merge 2: u + n → un">
+    Recount: $(u, n) = 16$ now beats $(h, ug) = 15$ and $(p, u) = 12$ (the $p, u$ in pug was used up by merge 1).
+  </Step>
+  <Step title="Merge 3: h + ug → hug">
+    $(h, ug) = 10 + 5 = 15$ is the top pair. The vocabulary is now b, g, h, n, p, s, u, ug, un, hug: 7 letters + 3 merges $=$ 10 tokens.
+  </Step>
+  <Step title="Tokenise new words">
+    bugs → b · ug · s. hugs → hug · s. mug → m · ug, and since "m" was never in the training text it becomes `[UNK]` · ug.
+  </Step>
+</Steps>
+
+<BPEMergeStepper />
+
+The whole algorithm fits in a few lines of plain Python. Run it, then change the corpus or the number of merges.
+
+<PyRunner code={`from collections import Counter
+
+corpus = {"hug": 10, "pug": 5, "pun": 12, "bun": 4, "hugs": 5}
+# start: every word split into characters
+splits = {w: list(w) for w in corpus}
+merges = []
+
+def count_pairs():
+    pairs = Counter()
+    for w, freq in corpus.items():
+        s = splits[w]
+        for a, b in zip(s, s[1:]):   # adjacent pairs
+            pairs[(a, b)] += freq
+    return pairs
+
+def merge(symbols, pair):
+    out, i = [], 0
+    while i < len(symbols):
+        if i < len(symbols) - 1 and (symbols[i], symbols[i + 1]) == pair:
+            out.append(symbols[i] + symbols[i + 1]); i += 2
+        else:
+            out.append(symbols[i]); i += 1
+    return out
+
+for step in range(3):
+    pairs = count_pairs()
+    best = max(pairs, key=pairs.get)   # most frequent
+    merges.append(best)
+    for w in splits:
+        splits[w] = merge(splits[w], best)
+    print(f"merge {step + 1}: {best} x{pairs[best]} ->", splits)
+
+def tokenise(word):
+    symbols = list(word)
+    for pair in merges:   # replay rules in learned order
+        symbols = merge(symbols, pair)
+    return symbols
+
+print(tokenise("bugs"), tokenise("hugs"), tokenise("mug"))`} />
+
+<QuickCheck
+  q="A corpus has the words lah ×6, lor ×3, leh ×4 and la ×2. Which pair does BPE merge first?"
+  options={['l + a', 'a + h', 'l + e', 'e + h']}
+  answer={0}
+  explain="Count each adjacent pair, weighted by word counts: (l, a) appears in lah and la, so 6 + 2 = 8. (a, h) = 6, (l, e) = 4, (e, h) = 4, (l, o) = 3 and (o, r) = 3. The winner is l + a with 8. The trap is a + h: it comes from the most frequent word, but BPE counts pairs across all words."
+/>
+
+Two relatives you will meet in exam options:
+
+- **WordPiece** (BERT) builds its vocabulary in a similar bottom-up way but picks merges by a likelihood score instead of the raw count, and marks a piece that continues a word with `##`, e.g. "tokenisation" → `token` `##isation`.
+- **Byte-level BPE** (GPT-2 onwards) starts from the 256 possible bytes instead of characters. Every possible text, including emoji and Chinese characters, is made of bytes, so nothing is ever `[UNK]`. GPT-2's 50,257 tokens are 256 bytes, 50,000 merges and one special token.
+
+<Mistake title="Thinking BPE understands meaning">
+
+BPE knows nothing about grammar or meaning. It is a **greedy frequency count**: pieces like `ing` or `un` appear because they are common, not because anyone told it about prefixes and suffixes. That is also why a model can struggle to count the r's in "strawberry": it sees a couple of subword tokens, not ten letters.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={224} />
+
+## Special tokens
+
+Tokenisers reserve a few ids for **special tokens** that are not words but signals to the model:
+
+| token | meaning | used by |
+|---|---|---|
+| `[PAD]` | filler to make sequences equal length | all |
+| `[UNK]` | any token not in the vocabulary | word-level, WordPiece |
+| `[CLS]` | added at the **start**; its final vector summarises the whole sequence and feeds a classifier | BERT |
+| `[SEP]` | **separates** two segments and marks the end | BERT |
+| `[MASK]` | hides a word that BERT must predict during pre-training | BERT |
+| `<BOS>`, `<EOS>` | **beginning** and **end** of sequence; generation stops when the model outputs `<EOS>` | generative models |
+
+A BERT input for a pair of sentences looks like `[CLS] the laksa was shiok [SEP] i want more [SEP]`. GPT-2 uses a single special token, `<|endoftext|>`, as its end (and start) marker.
+
+<PastPaperQuestion paper="noai2025" n={19} />
+
+## Padding, truncation and the attention mask
+
+Models train on **batches**: several sequences processed together as one rectangular table (a tensor). Sentences have different lengths, so:
+
+- <Term def="Adding filler tokens ([PAD]) to a sequence so that it reaches the required length.">Padding</Term> fills short sequences with `[PAD]` up to a common length: either a fixed `max_length` or the longest sequence in the batch.
+- <Term def="Cutting a sequence that is longer than max_length down to max_length tokens.">Truncation</Term> cuts sequences longer than `max_length`.
+- The <Term def="A 0/1 array with the same shape as the token ids: 1 marks a real token, 0 marks padding that the model must ignore.">attention mask</Term> has a 1 for every real token and a 0 for every pad, so the model ignores the padding.
+
+<Analogy title="Reserved seats on the bus">
+
+A bus must leave with every seat filled, so empty seats get a "reserved" card. The conductor is told not to collect fares from those seats. The cards are the `[PAD]` tokens, and the conductor's list is the attention mask.
+
+</Analogy>
+
+<PaddingMaskGrid />
+
+For a batch of $B$ sequences padded to length $L$, `input_ids` and `attention_mask` both have shape $(B, L)$. If sequence $i$ has $n_i$ real tokens, the number of pads is
+
+$$
+\text{pads} = B \times L - \sum_{i=1}^{B} n_i ,
+$$
+
+that is, the size of the rectangle minus the real tokens. The attention mask's row $i$ adds up to $n_i$. Padding is usually added on the **right**; decoder-only models (GPT-style) are often padded on the **left** when generating, so that every sequence's last real token sits in the final column, right where the next word is produced.
+
+<QuickCheck
+  q="A batch has 4 sentences with 7, 3, 5 and 2 tokens. They are padded to the longest sentence. How many [PAD] tokens are added?"
+  options={['11', '17', '28', '7']}
+  answer={0}
+  explain="The longest has 7 tokens, so the batch is $4 \times 7 = 28$ cells. The real tokens add up to $7 + 3 + 5 + 2 = 17$, so there are $28 - 17 = 11$ pads. 17 is the real-token count (the sum of the attention mask), not the pad count."
+/>
+
+## End markers and labels: two classic bugs
+
+Generative models also wrap every training sequence as `<BOS> … <EOS>`. The end marker is how the model learns to **stop**. If a sentence is too long, the order of operations matters.
+
+<EndMarkerTruncation />
+
+<Mistake title="Truncating after adding the end marker">
+
+`([BOS] + words + [EOS])[:max_len]` cuts off `<EOS>` whenever the sentence is too long, and the model is trained on sentences that never end. Cut the **content** to `max_len − 2` first, then add `<BOS>` and `<EOS>`, so the markers always survive. Remember too that special tokens count towards `max_length`: with `max_length = 10` and two markers, only 8 content tokens fit.
+
+</Mistake>
+
+When training, the **labels** (the tokens the model should predict) are a copy of the ids with every padding position replaced by **−100**. PyTorch's `cross_entropy` skips any position whose label is −100 (its default `ignore_index`), so padding never adds to the loss. The **input** keeps the pad id (here 0): −100 is not a valid row of the embedding table, so it would crash the lookup.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+PAD, UNK, BOS, EOS = 0, 1, 2, 3
+vocab = {"the": 4, "bus": 5, "came": 6, "late": 7, "so": 8,
+         "i": 9, "ran": 10, "ok": 11, "lah": 12}
+
+def encode(text, max_len):
+    ids = [vocab.get(w, UNK) for w in text.lower().split()]
+    ids = ids[: max_len - 2]      # 1. cut the content first
+    ids = [BOS] + ids + [EOS]     # 2. then add the markers
+    mask = [1] * len(ids)
+    n_pad = max_len - len(ids)
+    return ids + [PAD] * n_pad, mask + [0] * n_pad
+
+batch = ["the bus came late so i ran", "ok lah", "the bus came"]
+pairs = [encode(t, max_len=8) for t in batch]
+input_ids = np.array([p[0] for p in pairs])
+attention_mask = np.array([p[1] for p in pairs])
+# labels: copy of the ids, -100 wherever there is padding
+labels = np.where(attention_mask == 1, input_ids, -100)
+
+print(input_ids)
+print(attention_mask)
+print(labels)
+print("shape:", input_ids.shape, "| real tokens:", attention_mask.sum())`} />
+
+The first sentence has 7 words, so with two markers it needs 9 slots: the content is cut to 6 words and `<EOS>` (id 3) still ends the row. In PyTorch you can check that −100 labels really are ignored:
+
+```python
+import torch
+import torch.nn.functional as F
+
+torch.manual_seed(0)
+logits = torch.randn(5, 4)     # 5 positions, 4-token vocabulary
+# the last 2 positions are padding, labelled -100
+labels = torch.tensor([2, 1, 3, -100, -100])
+
+# ignore_index=-100 is the default
+print(F.cross_entropy(logits, labels))
+# only the 3 real positions: the same loss
+print(F.cross_entropy(logits[:3], labels[:3]))
+# padding labelled with the pad id 0 instead
+wrong = torch.tensor([2, 1, 3, 0, 0])
+print(F.cross_entropy(logits, wrong))   # padding pollutes the loss
+```
+
+```text
+tensor(2.1849)
+tensor(2.1849)
+tensor(1.8775)
+```
+
+<ExamTip>
+
+NOAI questions on text usually test one of five facts: subword tokenisation **handles unknown words with a moderate vocabulary**; BPE **merges the most frequent adjacent pair**; `[CLS]` is a **summary for classification** while `[SEP]` **separates/ends** segments; the attention mask is **1 for real tokens, 0 for padding**; and −100 is a **label** value for the loss, not an input id. In Final code questions, count the special tokens when you work out how much content fits in `max_length`, and check whether truncation happens before or after `<EOS>` is added.
+
+</ExamTip>
+
+<Takeaways>
+
+- Word-level tokens are meaningful but hit unknown words; characters never do but make sequences long; **subwords** balance the two.
+- **BPE** starts from characters and repeatedly merges the most frequent adjacent pair; new words are encoded by replaying the merges in order.
+- `[CLS]` summarises (BERT classification), `[SEP]` separates, `[PAD]` fills, `[UNK]` replaces unknowns, `<BOS>`/`<EOS>` mark start and end.
+- Batches are rectangles: pad short sequences, truncate long ones, and use the **attention mask** (1 real, 0 pad) so padding is ignored.
+- Truncate the content **before** adding `<EOS>`, and label padding positions **−100** so the loss skips them.
+
+</Takeaways>

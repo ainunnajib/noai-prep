@@ -1,0 +1,247 @@
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.9rem;
+}
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.75rem;
+}
+.panel {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-l);
+  padding: 0.7rem 0.8rem 0.8rem;
+  background: var(--surface-2);
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  min-width: 0;
+}
+.panelTitle {
+  margin: 0;
+  font-weight: 750;
+  font-size: var(--step-0);
+  color: var(--ink);
+}
+.panelText {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.kw {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.kwBtn {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.kwBtn[aria-pressed='true'] {
+  border-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 14%, var(--surface));
+  color: var(--ink);
+}
+.kwBtn:focus-visible,
+.addBtn:focus-visible,
+.addInput:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.addRow {
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.addInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: var(--step--1);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+.addBtn {
+  font: inherit;
+  font-size: var(--step--1);
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.meter {
+  display: grid;
+  gap: 0.25rem;
+}
+.meterText {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink);
+}
+.meterText span:last-child {
+  font-family: var(--font-mono);
+}
+.meterTrack {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.meterFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.meterHalf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--viz-muted);
+  opacity: 0.8;
+}
+.btnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.status {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+  min-height: 2.4em;
+}
+.status code {
+  font-size: 0.8rem;
+}
+
+.clues {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.6rem 1rem;
+}
+.clueTitle {
+  margin: 0 0 0.3rem;
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.empty {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-style: italic;
+  margin: 0;
+}
+.yourWords {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.yourWords code {
+  font-size: 0.82rem;
+}
+
+.table {
+  max-height: 330px;
+  overflow-y: auto;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.25rem 0.4rem;
+  align-items: center;
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.row:last-child {
+  border-bottom: none;
+}
+.head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+  font-weight: 700;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+}
+.reading {
+  background: color-mix(in srgb, var(--accent) 13%, var(--surface));
+}
+.msg {
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.truth {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  vertical-align: 1px;
+}
+.truthSpam {
+  background: color-mix(in srgb, var(--viz-neg) 18%, var(--surface));
+  color: var(--ink);
+}
+.truthOk {
+  background: color-mix(in srgb, var(--viz-pos) 18%, var(--surface));
+  color: var(--ink);
+}
+.verdict {
+  min-width: 4.3rem;
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.12rem 0.3rem;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+}
+.right {
+  color: var(--ink-2);
+  border-color: color-mix(in srgb, var(--viz-pos) 55%, transparent);
+}
+.wrong {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-neg) 16%, var(--surface));
+  border-color: var(--viz-neg);
+}
+.colHead {
+  min-width: 4.3rem;
+  text-align: center;
+}

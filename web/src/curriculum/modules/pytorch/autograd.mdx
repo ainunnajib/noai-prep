@@ -1,3 +1,270 @@
-{/* stub: lesson 'Autograd: automatic gradients' is being written */}
+import AutogradTape from './visuals/autograd/AutogradTape'
+import GradAccumulationCounter from './visuals/autograd/GradAccumulationCounter'
+import GraphCutToggle from './visuals/autograd/GraphCutToggle'
 
-This lesson is being written.
+In the backpropagation module you pushed gradients backwards through a computational graph by hand: multiply the local derivatives, one node at a time. A real network has millions of weights, and nobody does that by hand. PyTorch's **autograd** does it for you: you write only the forward pass, call `loss.backward()`, and the gradient of the loss with respect to every weight appears in that weight's `.grad`. This lesson shows what autograd records, why its gradients pile up unless you clear them, and how to switch the recording off when you do not need it.
+
+<Analogy title="CCTV for a parcel">
+
+A courier hub films every step a parcel takes: picked up here, weighed there, put on this van. If the parcel arrives damaged, you can replay the footage backwards to find out which step did it, and how much. Autograd is that camera for numbers. While the forward pass runs, it records every operation on the tensors you care about; `backward()` replays the recording in reverse. And just as a mall switches its cameras off after closing time to save storage, you switch autograd off when you are only making predictions.
+
+</Analogy>
+
+## requires_grad: asking PyTorch to keep a record
+
+Autograd only watches tensors you mark with `requires_grad=True`. These are usually the things the model learns, its weights and biases. Data such as inputs and targets stay unmarked.
+
+```python
+import torch
+
+w = torch.tensor(2.0, requires_grad=True)   # a weight: we want its gradient
+b = torch.tensor(1.0, requires_grad=True)   # a bias: we want its gradient
+x = torch.tensor(3.0)                       # data: no gradient needed
+y = torch.tensor(5.0)
+
+L = (w * x + b - y) ** 2
+print(L)
+print(L.grad_fn.name(), w.is_leaf, w.grad)
+
+L.backward()          # run the tape backwards
+print(w.grad, b.grad, x.grad)
+```
+
+```text
+tensor(4., grad_fn=<PowBackward0>)
+PowBackward0 True None
+tensor(12.) tensor(4.) None
+```
+
+Three new words appear here:
+
+- A <Term def="A tensor you created directly (not the result of an operation), such as a weight. Only leaves that require grad get their .grad filled in by backward().">leaf</Term> is a tensor you made yourself, like `w`, rather than the result of an operation. `w.is_leaf` is `True`.
+- `grad_fn` is the recorded operation that produced a tensor. `L.grad_fn` is `PowBackward0`, the "square" node; it knows how to send a gradient backwards through a square. Tensors you make yourself have `grad_fn=None`.
+- `.grad` is where `backward()` puts $\frac{\partial L}{\partial \text{leaf}}$. Before `backward()` it is `None`. Afterwards `w.grad` is 12 and `b.grad` is 4, and `x.grad` stays `None` because `x` never asked for a gradient.
+
+An operation is recorded only if **at least one** of its inputs requires grad; its result then requires grad too, so the record spreads forwards through everything that depends on a weight.
+
+## backward(): the tape played in reverse
+
+Here is the same calculation one line at a time. Watch the graph grow during the forward pass, then watch `backward()` walk it in reverse:
+
+<AutogradTape />
+
+`backward()` is the chain rule from the backpropagation module, applied automatically. With $e = wx + b - y$ and $L = e^2$:
+
+$$
+\frac{\partial L}{\partial w} = \underbrace{2e}_{\text{square}} \times \underbrace{1}_{\text{subtract}} \times \underbrace{1}_{\text{add}} \times \underbrace{x}_{\text{multiply}}
+\qquad\qquad
+\frac{\partial L}{\partial b} = 2e \times 1 \times 1
+$$
+
+Each factor is the local derivative of one recorded node; $e$ and $x$ are the values the forward pass saved for exactly this purpose.
+
+<Steps title="Check autograd by hand: w = 2, x = 3, b = 1, y = 5">
+  <Step title="Forward">
+    $e = 2 \times 3 + 1 - 5 = 2$ and $L = 2^2 = 4$. This matches `tensor(4., grad_fn=<PowBackward0>)`.
+  </Step>
+  <Step title="Gradient for w">
+    $\frac{\partial L}{\partial w} = 2e \times x = 2 \times 2 \times 3 = 12$, so `w.grad` is `tensor(12.)`.
+  </Step>
+  <Step title="Gradient for b">
+    $\frac{\partial L}{\partial b} = 2e \times 1 = 4$, so `b.grad` is `tensor(4.)`.
+  </Step>
+  <Step title="What the numbers mean">
+    Nudging $w$ up by 0.01 raises the loss by about $12 \times 0.01 = 0.12$. Gradient descent will therefore move $w$ **down**, and $w$ more strongly than $b$.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the optimiser's job (`optimizer.step()`).
+
+</KeyIdea>
+
+<Mistake title="backward() needs a single number">
+
+`backward()` starts from $\frac{\partial L}{\partial L} = 1$, which only makes sense when $L$ is one number. Calling it on a tensor with several elements, such as per-example losses, fails with `RuntimeError: grad can be implicitly created only for scalar outputs`. Reduce first: `loss = losses.mean()`.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={109} />
+
+<QuickCheck
+  q="`w = torch.tensor(1.0, requires_grad=True)`, then `L = (3 * w) ** 2` and `L.backward()`. What is `w.grad`?"
+  options={['tensor(18.)', 'tensor(9.)', 'tensor(6.)', 'None']}
+  answer={0}
+  explain="$L = (3w)^2 = 9w^2$, so $\frac{dL}{dw} = 18w = 18$ at $w = 1$. Equivalently, the square gives $2 \times 3w = 6$ and the multiply by 3 gives $6 \times 3 = 18$. 9 is the value of $L$ itself, and 6 forgets the inner factor of 3."
+/>
+
+## Gradients accumulate
+
+Here is the behaviour that surprises everyone once. Call `backward()` a second time and PyTorch does **not** replace `.grad`; it **adds** the new gradient to it:
+
+```python
+import torch
+
+w = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(1.0, requires_grad=True)
+x, y = torch.tensor(3.0), torch.tensor(5.0)
+
+for i in range(3):
+    L = (w * x + b - y) ** 2     # a fresh forward pass each time
+    L.backward()
+    print(i, w.grad, b.grad)
+
+w.grad.zero_()                   # reset by hand
+b.grad = None                    # or throw the gradient away
+print(w.grad, b.grad)
+```
+
+```text
+0 tensor(12.) tensor(4.)
+1 tensor(24.) tensor(8.)
+2 tensor(36.) tensor(12.)
+tensor(0.) None
+```
+
+Accumulation is deliberate. It makes some things easy: a weight used in two places of a network gets the sum of both contributions, and you can add up the gradients of several small batches before taking one step (*gradient accumulation*, in the next lesson). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`.
+
+<GradAccumulationCounter />
+
+<Mistake title="Forgetting zero_grad">
+
+Without zeroing, step 10 updates the weights with the sum of the gradients from steps 1 to 10, most of them computed for weights that no longer exist. No error is raised; the steps just get bigger and point in stale directions. In the experiment below, the loss bounces around instead of falling.
+
+</Mistake>
+
+There is one case where a repeated `backward()` *does* raise an error: calling it twice on the **same** loss, without a new forward pass. The first `backward()` frees the values the graph saved, so the second one fails with `RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)…`. Passing `retain_graph=True` to the first call keeps them, but you will rarely need that.
+
+<PastPaperQuestion paper="prelim2026" n={110} />
+
+### Gradient descent with autograd
+
+Put the pieces together and you have the core of every NOAI Final "implement training from scratch in PyTorch" task. The data were made with $y = 2x + 1$, so the model should learn $w \approx 2$ and $b \approx 1$:
+
+```python
+import torch
+
+X = torch.tensor([1., 2., 3., 4.])
+Y = torch.tensor([3., 5., 7., 9.])          # made with y = 2x + 1
+w = torch.tensor(0.0, requires_grad=True)
+b = torch.tensor(0.0, requires_grad=True)
+lr = 0.05
+
+for step in range(201):
+    loss = ((w * X + b - Y) ** 2).mean()    # forward: mean squared error
+    loss.backward()                         # fills w.grad and b.grad
+    with torch.no_grad():                   # the update must not be recorded
+        w -= lr * w.grad
+        b -= lr * b.grad
+    w.grad.zero_()                          # reset before the next step
+    b.grad.zero_()
+    if step % 50 == 0:
+        print(f"step {step:3d}  loss {loss.item():.4f}  w {w.item():.3f}  b {b.item():.3f}")
+```
+
+<Tabs>
+  <Tab label="With zeroing">
+
+```text
+step   0  loss 41.0000  w 1.750  b 0.600
+step  50  loss 0.0030  w 2.045  b 0.867
+step 100  loss 0.0007  w 2.021  b 0.938
+step 150  loss 0.0001  w 2.010  b 0.971
+step 200  loss 0.0000  w 2.005  b 0.986
+```
+
+  </Tab>
+  <Tab label="Without the two zero_() lines">
+
+```text
+step   0  loss 41.0000  w 1.750  b 0.600
+step  50  loss 25.0888  w 1.677  b 0.570
+step 100  loss 9.5169  w 3.240  b 1.105
+step 150  loss 0.7035  w 0.348  b 0.132
+step 200  loss 2.2811  w 4.249  b 1.478
+```
+
+  </Tab>
+</Tabs>
+
+Check the first step by hand: with $w = b = 0$ every prediction is 0, the errors are $-3, -5, -7, -9$, and the loss is $\frac{9 + 25 + 49 + 81}{4} = 41$. The gradient for $w$ is the mean of $2 \times \text{error} \times x$, which is $\frac{2(-3 - 10 - 21 - 36)}{4} = -35$, so $w$ becomes $0 - 0.05 \times (-35) = 1.75$, exactly as printed.
+
+Notice `with torch.no_grad():` around the update. The update is bookkeeping, not part of the model's calculation, so it must not be recorded; without it, PyTorch stops with `RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.`
+
+## Switching tracking off
+
+Recording costs memory: every recorded node keeps the inputs it needs for the backward pass, and those *saved tensors* stay alive until `backward()` frees them or the graph is thrown away. Three tools turn tracking off:
+
+| Tool | What you get | Typical use |
+|---|---|---|
+| `torch.no_grad()` | inside a `with` block nothing is recorded; results have `requires_grad=False` | evaluation, inference, manual weight updates |
+| `t.detach()` | a new tensor with the same numbers (sharing memory), cut off from the graph | turning a result into NumPy, feeding it on as fixed data |
+| `t.item()` | a plain Python number from a one-element tensor | logging and printing the loss |
+
+```python
+import torch
+
+w = torch.tensor(2.0, requires_grad=True)
+x = torch.tensor([1.0, 2.0, 3.0])
+
+with torch.no_grad():
+    pred = w * x                 # inference: nothing recorded
+print(pred.requires_grad, pred.grad_fn)
+
+out = w * x                      # recorded
+d = out.detach()                 # same numbers, cut off from the graph
+print(out)
+print(d, d.requires_grad)
+print(d.numpy())                 # NumPy needs a tensor without a graph
+
+loss = (out ** 2).mean()
+print(loss.item(), type(loss.item()))
+```
+
+```text
+False None
+tensor([2., 4., 6.], grad_fn=<MulBackward0>)
+tensor([2., 4., 6.]) False
+[2. 4. 6.]
+18.66666603088379 <class 'float'>
+```
+
+Calling `out.numpy()` directly fails with `RuntimeError: Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead.`, and `.item()` on a tensor with more than one number fails too. Now see what happens to memory in a real loop:
+
+<GraphCutToggle />
+
+<KeyIdea>
+
+Track only what you will differentiate. Use `torch.no_grad()` for evaluation, `.detach()` to keep a tensor's numbers without its history, and `.item()` to log a loss. Storing `loss` itself in a list keeps its whole graph alive.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={134} />
+
+<QuickCheck
+  q="A validation loop runs `total += loss_fn(model(x), y)` for every batch, without `torch.no_grad()`, and GPU memory grows with every batch until it crashes. What is the best fix?"
+  options={[
+    'Wrap the loop in `torch.no_grad()` and add `loss.item()` to the total',
+    'Call `optimizer.zero_grad()` at the start of every validation batch',
+    'Call `loss.backward()` after each batch so the graph is freed',
+    'Call `model.eval()` before the loop and change nothing else',
+  ]}
+  answer={0}
+  explain="`total` is a tensor that stays linked to every batch's graph, and each graph keeps its saved activations. `no_grad()` stops recording and `.item()` turns the loss into a plain number, so nothing is kept. `zero_grad()` only clears `.grad` and has nothing to do with the graph; `backward()` would compute gradients from validation data (pointless, and harmful if a step followed); `model.eval()` changes dropout and BatchNorm but does not stop recording."
+/>
+
+<ExamTip>
+
+NOAI likes one-line definitions in this area, so know the pairs apart. `requires_grad=True`: record this tensor's operations. `backward()`: compute gradients into `.grad` (it does **not** update weights). `zero_grad()`: clear `.grad`, because gradients **accumulate**. `no_grad()`: stop recording (it does not reset gradients or freeze layers permanently). `detach()`: a tensor cut from the graph. `item()`: a Python number.
+
+</ExamTip>
+
+<Takeaways>
+
+- Tensors with `requires_grad=True` (the leaves you want to learn) have every operation on them recorded as a graph of `grad_fn` nodes.
+- `loss.backward()` runs the chain rule backwards through that graph and stores $\partial\,\text{loss}/\partial\,\text{leaf}$ in each leaf's `.grad`. The loss must be a single number, and no weight changes until the optimiser steps.
+- `.grad` accumulates: each `backward()` adds to it. Clear it every step with `optimizer.zero_grad()` (or `w.grad.zero_()`), or training quietly goes wrong.
+- `torch.no_grad()` turns recording off (evaluation, inference, manual updates), `.detach()` cuts a tensor from the graph, `.item()` gives a Python number for logging.
+
+</Takeaways>

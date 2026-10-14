@@ -1,3 +1,272 @@
-{/* stub: lesson 'Confusion matrix, precision, recall and F1' is being written */}
+import EmailSorter from './visuals/confusion-matrix-and-metrics/EmailSorter'
+import ConfusionThreshold from './visuals/confusion-matrix-and-metrics/ConfusionThreshold'
+import HarmonicVsArithmetic from './visuals/confusion-matrix-and-metrics/HarmonicVsArithmetic'
+import ErrorCostScenarios from './visuals/confusion-matrix-and-metrics/ErrorCostScenarios'
 
-This lesson is being written.
+export const metricsCode = `import numpy as np
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+
+# emails A to J: 1 = spam, 0 = not spam
+y_true = np.array([1, 1, 0, 0, 1, 1, 0, 0, 0, 0])
+scores = np.array([0.95, 0.80, 0.70, 0.60, 0.55, 0.30, 0.20, 0.15, 0.10, 0.05])
+
+y_pred = (scores >= 0.5).astype(int)        # 1 = predicted spam
+
+# from scratch: count the four outcomes with boolean masks
+tp = np.sum((y_pred == 1) & (y_true == 1))
+fp = np.sum((y_pred == 1) & (y_true == 0))
+fn = np.sum((y_pred == 0) & (y_true == 1))
+tn = np.sum((y_pred == 0) & (y_true == 0))
+print("TP, FP, FN, TN:", tp, fp, fn, tn)
+print("precision:", tp / (tp + fp))
+print("recall:   ", tp / (tp + fn))
+print("F1:       ", 2 * tp / (2 * tp + fp + fn))
+
+# the same with scikit-learn (note the argument order: true labels first)
+print(confusion_matrix(y_true, y_pred))
+print(precision_score(y_true, y_pred), recall_score(y_true, y_pred), f1_score(y_true, y_pred))`
+
+A model that is "95% accurate" sounds excellent. But if it is a cancer test, were the 5% it got wrong healthy people sent for an extra scan, or sick people sent home? Those are very different mistakes. To judge a classifier honestly you must count **which kinds** of mistakes it makes. This lesson builds the counting tool, the confusion matrix, and the four numbers that NOAI papers ask about again and again: accuracy, precision, recall and F1.
+
+<Analogy title="The metal detector at Changi Airport">
+
+The walk-through scanner has a sensitivity knob. Turn it right up and it beeps at every knife, but also at every belt buckle, coin and hairclip, and the queue grinds to a halt. Turn it right down and the queue flows, but a knife might slip through. No setting is perfect: you are choosing **which mistake you would rather make**. A classifier's threshold is exactly this knob.
+
+</Analogy>
+
+## From scores to yes or no
+
+Most classifiers do not answer "yes" or "no" directly. Logistic regression, for example, outputs a **score** between 0 and 1: its estimate of the probability that the answer is "yes". To get a decision, compare the score with a <Term def="The cut-off score. If an example's score is at least the threshold, the model predicts the positive class; otherwise the negative class. 0.5 is common but not compulsory.">threshold</Term> $t$: predict "yes" when the score is at least $t$.
+
+The class we are looking for (spam, sick, fraud) is called the <Term def="The class labelled 1: the thing the model is trying to detect, such as spam, disease or fraud. 'Positive' does not mean 'good'.">positive class</Term> (label 1). The other class is the **negative class** (label 0). "Positive" just means "detected", not "good": a positive cancer test is bad news.
+
+Comparing each prediction with the truth gives four possible outcomes:
+
+- <Term def="The model said positive and the example really is positive. A correct detection.">True positive</Term> (**TP**): said spam, and it *is* spam. A correct catch.
+- <Term def="The model said positive but the example is actually negative. A false alarm. Statisticians call it a Type I error.">False positive</Term> (**FP**): said spam, but it is a real email. A **false alarm**.
+- <Term def="The model said negative but the example is actually positive. A miss. Statisticians call it a Type II error.">False negative</Term> (**FN**): said "not spam", but it *is* spam. A **miss**.
+- <Term def="The model said negative and the example really is negative. A correct rejection.">True negative</Term> (**TN**): said "not spam", and it is a real email.
+
+The naming trick: the **second word is what the model said** (positive or negative); the **first word says whether that was right** (true or false). So a false negative is a "negative" prediction that was false. Statistics uses older names for the same two mistakes: a false positive is a **Type I error** and a false negative a **Type II error**.
+
+A <Term def="A table that counts a classifier's predictions by actual class (rows) and predicted class (columns). For two classes it holds TN, FP, FN and TP.">confusion matrix</Term> puts the four counts in a 2 × 2 table. We use scikit-learn's layout: **rows are the actual class, columns are the predicted class, class 0 first**.
+
+|  | predicted 0 (negative) | predicted 1 (positive) |
+|---|---|---|
+| **actual 0 (negative)** | TN | FP |
+| **actual 1 (positive)** | FN | TP |
+
+The diagonal (top-left to bottom-right) holds the correct predictions; everything off the diagonal is a mistake.
+
+### Filling one in by hand
+
+A spam filter gives ten emails a score. Four of them really are spam: **A** (score 0.95), **B** (0.80), **E** (0.55) and **F** (0.30). The other six are real emails: **C** (0.70), **D** (0.60), **G** (0.20), **H** (0.15), **I** (0.10) and **J** (0.05). Work out the matrix at threshold 0.5 by hand first, then check with the figure.
+
+<Steps title="Confusion matrix at threshold 0.5">
+  <Step title="Apply the threshold">
+    Scores of at least 0.5 are predicted spam: A, B, C, D and E. The other five (F to J) are predicted "not spam".
+  </Step>
+  <Step title="Sort the five 'spam' predictions">
+    A, B and E really are spam: **TP = 3**. C and D are real emails: **FP = 2** (two false alarms).
+  </Step>
+  <Step title="Sort the five 'not spam' predictions">
+    F really is spam, so it slipped through: **FN = 1**. G, H, I and J are real emails: **TN = 4**.
+  </Step>
+  <Step title="Fill the table and check the total">
+    Row "actual 0": TN = 4, FP = 2. Row "actual 1": FN = 1, TP = 3. Check: $4 + 2 + 1 + 3 = 10$ emails. The row totals are the true class sizes (6 real emails, 4 spam).
+  </Step>
+</Steps>
+
+<EmailSorter />
+
+## Four numbers from four counts
+
+Every common metric is a fraction built from these four counts.
+
+**Accuracy**: the fraction of all predictions that were right.
+
+$$
+\text{accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+$$
+
+For the emails: $\frac{3 + 4}{10} = 0.7$.
+
+<Term def="Of all the examples the model predicted positive, the fraction that really are positive: TP / (TP + FP).">Precision</Term>: when the model says "positive", how often is it right?
+
+$$
+\text{precision} = \frac{TP}{TP + FP}
+$$
+
+The bottom line counts **everything the model flagged** (the "predicted 1" column). For the emails: $\frac{3}{3 + 2} = 0.6$. Only 60% of the emails sent to the spam folder were spam.
+
+<Term def="Of all the examples that really are positive, the fraction the model caught: TP / (TP + FN). Also called sensitivity or the true positive rate (TPR).">Recall</Term>: of all the real positives, how many did the model catch?
+
+$$
+\text{recall} = \frac{TP}{TP + FN}
+$$
+
+The bottom line counts **everything that really is positive** (the "actual 1" row). For the emails: $\frac{3}{3 + 1} = 0.75$. The filter caught 3 of the 4 spams. Recall has two other names you will meet in exams: **sensitivity** (in medicine) and the **true positive rate (TPR)**.
+
+There is a matching number for the negative class, <Term def="Of all the examples that really are negative, the fraction the model correctly called negative: TN / (TN + FP). The recall of the negative class.">specificity</Term> $= \frac{TN}{TN + FP}$: the fraction of real emails left alone, here $\frac{4}{6} \approx 0.67$.
+
+<KeyIdea>
+
+Precision and recall both have **TP on top**. Precision divides by everything the model *flagged* ($TP + FP$), so it is hurt by **false alarms**. Recall divides by everything that is *really positive* ($TP + FN$), so it is hurt by **misses**.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A fraud model flags 50 transactions, and 40 of them really are fraud. Altogether there were 80 frauds. What are its precision and recall?"
+  options={['precision 0.8, recall 0.5', 'precision 0.5, recall 0.8', 'precision 0.8, recall 0.8', 'precision 0.4, recall 0.5']}
+  answer={0}
+  explain="Precision = TP / (everything flagged) = 40/50 = 0.8. Recall = TP / (all real frauds) = 40/80 = 0.5. Swapping the two denominators gives the tempting wrong answer 'precision 0.5, recall 0.8'."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={55} />
+
+<PastPaperQuestion paper="prelim2026" n={56} />
+
+## Moving the threshold
+
+The threshold decides the whole confusion matrix. Drag it below and watch the four counts trade places.
+
+<ConfusionThreshold />
+
+As the threshold goes **up**, the model becomes pickier. It flags fewer examples, so there are fewer false alarms and the ones it does flag are more trustworthy: **precision tends to rise**. But it also lets more real positives through: **recall falls**. Lowering the threshold does the opposite. This is the <Term def="The tension between precision and recall: a higher threshold usually raises precision but lowers recall, and a lower threshold does the reverse.">precision-recall trade-off</Term>, and the only way to improve both at once is a better model (in the visual, more class separation).
+
+Here is the spam example from the email figure at three thresholds:
+
+| threshold | TP, FP, FN, TN | precision | recall | accuracy |
+|---|---|---|---|---|
+| 0.25 | 4, 2, 0, 4 | 0.67 | 1.00 | 0.80 |
+| 0.50 | 3, 2, 1, 4 | 0.60 | 0.75 | 0.70 |
+| 0.75 | 2, 0, 2, 6 | 1.00 | 0.50 | 0.80 |
+
+Recall can only stay the same or fall as the threshold rises, because the set of flagged emails only shrinks. Precision usually rises, but it can wobble: from 0.25 to 0.5 the filter dropped email F, a real spam, while still flagging both false alarms, so precision dipped from 0.67 to 0.60.
+
+<Mistake title="High accuracy, useless model">
+
+Accuracy counts every correct answer equally, including the easy true negatives. In the visual, set sick people to 5 of 100 and push the threshold to 1.00: the model now says "healthy" to everyone, catches nobody (recall 0), and still scores **95% accuracy**. Whenever one class is rare, accuracy flatters. The next lesson is all about this trap.
+
+</Mistake>
+
+## F1: one number that needs both
+
+Precision and recall pull in opposite directions, so it is handy to combine them into one score. The obvious idea, the ordinary average $\frac{P + R}{2}$, is too forgiving: a model with precision 1.0 and recall 0.1 (it flags one spam out of ten and is right) would get 0.55, which sounds respectable for a model that misses 90% of the spam.
+
+<Analogy title="A two-runner relay">
+
+Two runners each run 1 km. Runner A runs at 10 km/h and takes 6 minutes; runner B runs at 2 km/h and takes 30 minutes. The team covers 2 km in 36 minutes, an average speed of about 3.3 km/h, not $\frac{10 + 2}{2} = 6$ km/h. The slow runner spends the most time on the track, so the slow leg dominates. This "average speed over equal legs" is the **harmonic mean**, and it is how F1 combines precision and recall.
+
+</Analogy>
+
+The <Term def="The harmonic mean of two positive numbers a and b is 2 / (1/a + 1/b) = 2ab / (a + b). It is pulled towards the smaller number.">harmonic mean</Term> of two numbers averages their *reciprocals* and then flips back: $\frac{2}{1/a + 1/b}$. Multiplying top and bottom by $ab$ tidies it up, so the **F1 score** is
+
+$$
+F_1 = \frac{2}{\frac{1}{P} + \frac{1}{R}} = \frac{2PR}{P + R}
+$$
+
+where $P$ is precision and $R$ is recall. For $P = 1.0$ and $R = 0.1$: $F_1 = \frac{2 \times 1.0 \times 0.1}{1.0 + 0.1} = \frac{0.2}{1.1} \approx 0.18$. That number tells the truth about the weak recall.
+
+<HarmonicVsArithmetic />
+
+Facts worth remembering about F1:
+
+- It always lies between the smaller of $P$ and $R$ and their ordinary average. When $P = R$, F1 equals both.
+- If either $P$ or $R$ is 0, then F1 is 0. You cannot buy a good F1 with one strong metric.
+- It contains no $TN$ at all. F1 only cares about the positive class, which is why it is popular when positives are rare.
+
+**A shortcut for exams.** Substitute the definitions of $P$ and $R$ into $\frac{1}{F_1} = \frac{1}{2}\left(\frac{1}{P} + \frac{1}{R}\right)$:
+
+$$
+\frac{1}{F_1} = \frac{1}{2}\left(\frac{TP + FP}{TP} + \frac{TP + FN}{TP}\right) = \frac{2TP + FP + FN}{2TP}
+$$
+
+and flip both sides over:
+
+$$
+F_1 = \frac{2TP}{2TP + FP + FN}
+$$
+
+For the emails at threshold 0.5: $F_1 = \frac{2 \times 3}{6 + 2 + 1} = \frac{6}{9} \approx 0.67$, with no fractions inside fractions. (Check: $\frac{2 \times 0.6 \times 0.75}{0.6 + 0.75} = \frac{0.9}{1.35} \approx 0.67$.)
+
+<PastPaperQuestion paper="prelim2026" n={57} />
+
+<QuickCheck
+  q="A model has precision 0.5 and recall 1.0. What is its F1 score?"
+  options={['0.67', '0.75', '0.50', '1.00']}
+  answer={0}
+  explain="$F_1 = \frac{2 \times 0.5 \times 1.0}{0.5 + 1.0} = \frac{1}{1.5} \approx 0.67$. The ordinary average, 0.75, is the trap: the harmonic mean is pulled towards the weaker value, 0.5."
+/>
+
+## Which mistake costs more?
+
+Precision or recall? The answer comes from the application, not from the maths. Ask: **which mistake hurts more, a false alarm (FP) or a miss (FN)?**
+
+<Analogy title="Lifeguard versus judge">
+
+A lifeguard should jump in whenever a swimmer *might* be in trouble: a few unnecessary rescues are fine, a missed drowning is not. That is high **recall**. A court should only convict when it is sure: letting some guilty people go is bad, but jailing an innocent person is worse. That is high **precision**.
+
+</Analogy>
+
+| application | positive means | the worse mistake | favour |
+|---|---|---|---|
+| cancer screening | has cancer | FN: a sick patient is sent home | recall |
+| spam filter | spam | FP: a real email is hidden | precision |
+| face unlock | it is the owner | FP: a stranger gets in | precision |
+| card fraud alerts | fraud | FN: money is stolen (but too many FPs annoy customers) | recall, while watching precision |
+
+If you can put a price on each mistake, you can do better than a rule of thumb: choose the threshold that makes the **total cost** smallest,
+
+$$
+\text{total cost} = c_{FP} \times FP + c_{FN} \times FN
+$$
+
+where $c_{FP}$ is the cost of one false positive and $c_{FN}$ the cost of one false negative.
+
+<ErrorCostScenarios />
+
+<KeyIdea>
+
+There is no single "best" metric. If misses are expensive (screening, safety, fraud), lower the threshold and prioritise **recall**. If false alarms are expensive (spam, face unlock, convictions), raise it and prioritise **precision**. F1 weighs the two equally, so it is a sensible default only when the two mistakes cost about the same.
+
+</KeyIdea>
+
+<Note title="For the curious: F-beta">
+
+If recall matters $\beta$ times as much as precision, use $F_\beta = \frac{(1 + \beta^2)PR}{\beta^2 P + R}$. With $\beta = 1$ it is F1; $F_2$ leans towards recall and $F_{0.5}$ towards precision.
+
+</Note>
+
+## In code
+
+The four counts are just boolean masks combined with `&` (and). Run this, then try changing the threshold to 0.25 and 0.75 and compare with the table above.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={metricsCode} />
+
+<Mistake title="Read the labels on every confusion matrix">
+
+scikit-learn's `confusion_matrix(y_true, y_pred)` puts the **actual** class in rows and the **predicted** class in columns, with class 0 first, so it prints `[[TN, FP], [FN, TP]]`. Many textbooks and websites put the positive class first, or swap rows and columns. Also, passing the arguments the wrong way round, `confusion_matrix(y_pred, y_true)`, transposes the matrix: FP and FN swap places, and so do precision and recall. Always check which axis is which before reading off TP.
+
+</Mistake>
+
+<ExamTip>
+
+With about 36 seconds per Prelim question:
+
+- Write the 2 × 2 table first. Precision uses the **predicted-positive** column, recall the **actual-positive** row.
+- Use $F_1 = \frac{2TP}{2TP + FP + FN}$ to avoid fractions inside fractions.
+- Scenario keywords: "must not miss", "screening", "safety" point to **recall**; "false alarms are costly", "annoying users", "innocent" point to **precision**; "balance both" points to **F1**.
+- A distractor $\frac{TN}{TN + FP}$ is specificity, and $\frac{TP + TN}{\text{total}}$ is accuracy. Know all four formulas cold.
+
+</ExamTip>
+
+<Takeaways>
+
+- A threshold turns scores into yes/no; each prediction is then a TP, FP, FN or TN, counted in the **confusion matrix** (scikit-learn: rows actual, columns predicted, `[[TN, FP], [FN, TP]]`).
+- **Precision** $= \frac{TP}{TP + FP}$ (how trustworthy a "yes" is); **recall** $= \frac{TP}{TP + FN}$ (how many real positives were caught); **accuracy** $= \frac{TP + TN}{\text{all}}$.
+- Raising the threshold usually raises precision and always lowers (or keeps) recall.
+- **F1** $= \frac{2PR}{P + R} = \frac{2TP}{2TP + FP + FN}$ is the harmonic mean: high only when both are high.
+- Choose the metric (and threshold) by the cost of each mistake: screening favours recall, spam filtering favours precision.
+
+</Takeaways>

@@ -1,3 +1,312 @@
-{/* stub: lesson 'Logistic regression' is being written */}
+import SigmoidSquash from './visuals/logistic-regression/SigmoidSquash'
+import LogisticBoundary2D from './visuals/logistic-regression/LogisticBoundary2D'
+import LogLossCurve from './visuals/logistic-regression/LogLossCurve'
 
-This lesson is being written.
+export const lrCode = `import numpy as np
+
+hours  = np.array([0.5, 1, 1.5, 2, 2.5, 2.5, 3.5, 3.5, 4, 4.5, 5, 5.5])
+passed = np.array([0,   0, 0,   0, 0,   1,   0,   1,   1, 1,   1, 1  ])
+
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def log_loss(p, y):
+    return -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+w, b = 0.0, 0.0
+lr = 0.5
+for step in range(3001):
+    p = sigmoid(w * hours + b)        # P(pass) for every student at once
+    if step % 1000 == 0:
+        loss = log_loss(p, passed)
+        print(f"step {step}: loss {loss:.4f}, w {w:.3f}, b {b:.3f}")
+    grad_w = np.mean((p - passed) * hours)
+    grad_b = np.mean(p - passed)
+    w -= lr * grad_w
+    b -= lr * grad_b
+
+print("50-50 point:", round(-b / w, 2), "hours")
+print("P(pass) after 4 hours:", round(sigmoid(w * 4 + b), 3))`
+
+Will this student pass? Is this email spam? Is this X-ray showing pneumonia? Questions with a yes/no answer are <Term def="Predicting which category (class) an example belongs to, such as spam or not spam, rather than predicting a number.">classification</Term> problems, and the simplest model for them is **logistic regression**. Despite its name, it is a *classifier*: it outputs the **probability** that the answer is "yes". Its two ingredients, the sigmoid and the log loss, reappear in every neural network you will meet, so this lesson is worth getting rock solid.
+
+<Analogy title="A dimmer switch">
+
+A normal light switch is either off or on. A dimmer switch turns a knob position into a brightness *between* off and full. Logistic regression is a dimmer for evidence: it first adds up the evidence into one score (the knob position, any number at all), then smoothly turns that score into "how likely is yes", a number between 0 and 1. Weak evidence gives a dim 50-50; overwhelming evidence pushes it close to fully on or fully off, but never quite there.
+
+</Analogy>
+
+## The problem: predicting a yes/no label
+
+Twelve students recorded how many hours they studied and whether they passed a test:
+
+| hours *x* | 0.5 | 1 | 1.5 | 2 | 2.5 | 2.5 | 3.5 | 3.5 | 4 | 4.5 | 5 | 5.5 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| passed *y* | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 1 | 1 | 1 |
+
+The <Term def="The true answer for an example. In binary classification it is 1 for the 'yes' class and 0 for the 'no' class.">label</Term> $y$ is 1 for "passed" (the **positive class**) and 0 for "failed" (the **negative class**). Two classes means this is **binary classification**.
+
+Why not fit a straight line through these 0s and 1s, as in linear regression? The least-squares line here is $\hat{y} = 0.25x - 0.25$, and a line keeps going: it predicts $1.75$ for 8 hours of study and $-0.25$ for none at all. Neither is a sensible answer to "how likely is a pass?". A probability must stay between 0 and 1. So logistic regression keeps the straight-line part but bends its output into that range.
+
+## Step 1: a score. Step 2: squash it.
+
+First, compute a **score** exactly like linear regression:
+
+$$
+z = w\,x + b
+$$
+
+$w$ (the **weight**) says how much each extra hour adds to the score, and $b$ (the **bias**) shifts the score up or down. The score $z$ can be any number, negative or positive. In ML the raw score before squashing is often called a <Term def="The raw, unsquashed score a classifier computes before turning it into a probability. For logistic regression, z = wx + b.">logit</Term>.
+
+Second, squash the score with the <Term def="The S-shaped function σ(z) = 1/(1 + e^(−z)). It turns any number into a value strictly between 0 and 1.">sigmoid</Term> function $\sigma$ (the Greek letter sigma):
+
+$$
+p = \sigma(z) = \frac{1}{1 + e^{-z}}
+$$
+
+Read it piece by piece:
+
+- $e \approx 2.718$ is Euler's number, and $e^{-z}$ is always positive.
+- If $z$ is large and positive, $e^{-z}$ is tiny, so $p \approx \frac{1}{1 + 0} = 1$.
+- If $z$ is large and negative, $e^{-z}$ is huge, so $p \approx \frac{1}{\text{huge}} \approx 0$.
+- If $z = 0$, then $e^{0} = 1$ and $p = \frac{1}{1 + 1} = 0.5$.
+
+The output $p$ is the model's probability that $y = 1$, written $P(y = 1 \mid x)$ ("the probability of a pass, given $x$ hours"). The probability of the other class is simply $1 - p$.
+
+<SigmoidSquash />
+
+These anchor values are worth memorising for the no-calculator Prelim:
+
+| *z* | −4 | −3 | −2 | −1 | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|---|---|---|---|
+| σ(*z*) | 0.018 | 0.047 | 0.12 | 0.27 | **0.5** | 0.73 | 0.88 | 0.95 | 0.98 |
+
+Notice the symmetry: $\sigma(-z) = 1 - \sigma(z)$. So $\sigma(-2) = 1 - 0.88 = 0.12$, and you only need to remember the positive half.
+
+<KeyIdea>
+
+Logistic regression computes a straight-line score $z = wx + b$ and squashes it with the sigmoid, $p = \sigma(z) = \frac{1}{1 + e^{-z}}$, into a probability between 0 and 1. $\sigma(0) = 0.5$, big positive scores give nearly 1 and big negative scores nearly 0. The weight sets **how sharp** the switch from "fail" to "pass" is; the 50-50 point sits where $z = 0$.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A spam filter computes the score $z = -1.5$ for an email. Which is the closest to the predicted probability that the email is spam?"
+  options={['0.18', '0.82', '0.5', '0']}
+  answer={0}
+  explain="A negative score means a probability below 0.5. $\sigma(-1.5)$ lies between $\sigma(-1) \approx 0.27$ and $\sigma(-2) \approx 0.12$; it is about 0.18. 0.82 is $\sigma(+1.5)$, the probability that it is *not* spam. The sigmoid never outputs exactly 0."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={139} />
+
+## Making predictions
+
+Training on the twelve students (you will see how below) gives $w \approx 2.03$ and $b \approx -6.09$. Round them to $w = 2$, $b = -6$ to predict by hand.
+
+<Steps title="Will they pass? (w = 2, b = −6)">
+  <Step title="A student who studied 4 hours">
+    Score: $z = 2 \times 4 - 6 = 2$. Probability: $\sigma(2) \approx 0.88$. Predict **pass**, with 88% confidence.
+  </Step>
+  <Step title="A student who studied 3 hours">
+    $z = 2 \times 3 - 6 = 0$, so $p = \sigma(0) = 0.5$. The model cannot decide: 3 hours is the 50-50 point.
+  </Step>
+  <Step title="A student who studied 1 hour">
+    $z = 2 \times 1 - 6 = -4$, so $p = \sigma(-4) \approx 0.018$. Predict **fail**: only a 1.8% chance of passing.
+  </Step>
+  <Step title="Turn probabilities into a decision">
+    The usual rule is: predict class 1 when $p \ge 0.5$. Since $\sigma(z) \ge 0.5$ exactly when $z \ge 0$, this is the same as "predict class 1 when the score is positive". You never need to compute the sigmoid just to decide!
+  </Step>
+</Steps>
+
+The cut-off 0.5 is called the <Term def="The probability above which a classifier predicts the positive class. 0.5 is the default, but it can be moved.">threshold</Term>. It is a choice, not a law: a cancer screening test might flag anyone with $p \ge 0.1$, because missing a sick patient is far worse than a false alarm. The module on evaluating models explores this trade-off.
+
+<Note title="Reading the score as log-odds">
+
+Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. This is why statisticians call it *logistic* regression: it is linear regression on the log-odds.
+
+</Note>
+
+## Two features: a straight decision boundary
+
+Real problems have many features. With two features $x_1$ and $x_2$, each with its own weight, the score is
+
+$$
+z = w_1 x_1 + w_2 x_2 + b = \mathbf{w}^\top \mathbf{x} + b
+$$
+
+where $\mathbf{w} = (w_1, w_2)$ is the **weight vector** and $\mathbf{w}^\top \mathbf{x}$ is the dot product of the weights with the features (from the vectors module: multiply matching entries and add). With 100 features it is the same formula, just a longer dot product.
+
+The <Term def="The set of points where a classifier is exactly undecided (p = 0.5). On one side it predicts class 1, on the other class 0.">decision boundary</Term> is where the model is exactly undecided: $p = 0.5$, which means $z = 0$:
+
+$$
+w_1 x_1 + w_2 x_2 + b = 0
+$$
+
+That is the equation of a **straight line**. On the side where $z > 0$ the model predicts class 1; on the other side, class 0. Two more geometric facts:
+
+- The weight vector $\mathbf{w}$ is **perpendicular** to the boundary and points towards the class-1 side, because moving along $\mathbf{w}$ raises the score fastest.
+- The **length** of $\mathbf{w}$ sets how quickly the probability changes as you move away from the line. A long $\mathbf{w}$ means a sharp, confident switch; a short one means a gentle, unsure one.
+
+<LogisticBoundary2D />
+
+<KeyIdea>
+
+Logistic regression is a **linear classifier**: its decision boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is a straight line (a flat plane, or "hyperplane", with more features), with a smooth confidence map on either side. The direction of $\mathbf{w}$ turns the line, $b$ slides it, and the length of $\mathbf{w}$ sets how confident the model is away from it.
+
+</KeyIdea>
+
+<Steps title="Which side? (w = (2, −1), b = 4)">
+  <Step title="The boundary">
+    $2x_1 - x_2 + 4 = 0$, which rearranges to $x_2 = 2x_1 + 4$: a straight line with gradient 2 crossing the $x_2$-axis at 4.
+  </Step>
+  <Step title="The point (1, 3)">
+    $z = 2(1) - 3 + 4 = 3 > 0$, so class 1, with $p = \sigma(3) \approx 0.95$.
+  </Step>
+  <Step title="The point (−3, 1)">
+    $z = 2(-3) - 1 + 4 = -3 < 0$, so class 0. Its probability of class 1 is $\sigma(-3) \approx 0.05$.
+  </Step>
+</Steps>
+
+<Mistake title="A straight line cannot draw a circle">
+
+Because the boundary is always straight, plain logistic regression fails when the classes are arranged in rings or in a checkerboard (the XOR pattern). The fix is to add new features such as $x_1^2$, $x_2^2$ or $x_1 x_2$: the boundary is still a flat plane in the bigger feature space, but it looks curved when drawn in the original $(x_1, x_2)$ space. Neural networks and the kernel trick (in the SVM lesson) automate this idea.
+
+</Mistake>
+
+## Scoring probabilities: the log loss
+
+To train the model we need a loss: one number that says how bad its probabilities are. For a single example with true label $y$ and predicted probability $p$:
+
+- if $y = 1$, the cost is $-\ln p$ (small when $p$ is near 1);
+- if $y = 0$, the cost is $-\ln(1 - p)$ (small when $p$ is near 0).
+
+In both cases it is "minus the log of the probability the model gave to what *actually* happened". One formula covers both, because one of the two terms is always multiplied by 0:
+
+$$
+L = -\big[\, y \ln p + (1 - y) \ln(1 - p) \,\big]
+$$
+
+This is the <Term def="The standard loss for binary classification: L = −[y ln p + (1 − y) ln(1 − p)], averaged over the examples. Also called log loss.">binary cross-entropy</Term> (BCE), also called **log loss**. For a whole dataset, average it over the $m$ examples. (The next lesson explains where the name comes from.)
+
+<LogLossCurve />
+
+<Steps title="Log loss for three students, by hand">
+  <Step title="Student A passed (y = 1); the model said p = 0.9">
+    Cost $= -\ln 0.9 \approx 0.105$. Confident and right: almost free.
+  </Step>
+  <Step title="Student B failed (y = 0); the model said p = 0.2">
+    The model gave the true outcome (fail) probability $1 - 0.2 = 0.8$. Cost $= -\ln 0.8 \approx 0.223$.
+  </Step>
+  <Step title="Student C passed (y = 1); the model said p = 0.1">
+    Cost $= -\ln 0.1 = \ln 10 \approx 2.303$. Confident and wrong: very expensive.
+  </Step>
+  <Step title="Average">
+    $(0.105 + 0.223 + 2.303) / 3 \approx 0.877$. One confident mistake costs more than 20 times a confident correct answer, and it dominates the total.
+  </Step>
+</Steps>
+
+<Mistake title="Use the probability of what happened">
+
+For a $y = 0$ example the cost is $-\ln(1 - p)$, not $-\ln p$. Student B's cost is $-\ln 0.8$, not $-\ln 0.2 \approx 1.61$. A quick sanity check: a good prediction must have a small loss.
+
+</Mistake>
+
+<QuickCheck
+  q="An example has true label $y = 0$ and the model predicts $p = 0.5$. What is its binary cross-entropy loss?"
+  options={['$\\ln 2 \\approx 0.693$', '$0.25$', '$0$', '$0.5$']}
+  answer={0}
+  explain="With $y = 0$ the loss is $-\ln(1 - p) = -\ln 0.5 = \ln 2 \approx 0.693$. A 50-50 guess always costs $\ln 2$, whatever the label. 0.25 is the squared error $(0 - 0.5)^2$, a different loss."
+/>
+
+## Why not mean squared error?
+
+Squared error $(y - p)^2$ also gets smaller as $p$ approaches $y$, so why not use it? The visual above shows the reason: look at how hard each loss **pushes** when the model is wrong.
+
+Training adjusts $w$ and $b$ by following the gradient, and every gradient passes through the score $z$. For log loss with a sigmoid, the slope with respect to the score is beautifully simple:
+
+$$
+\frac{\partial L}{\partial z} = p - y
+$$
+
+<Reveal label="Show the derivation">
+
+From the calculus module, $\frac{dp}{dz} = \sigma'(z) = p(1 - p)$. Differentiate the loss with respect to $p$: $\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1 - y}{1 - p}$. The chain rule multiplies the two:
+
+$$
+\frac{\partial L}{\partial z} = \left(-\frac{y}{p} + \frac{1-y}{1-p}\right) p(1-p) = -y(1-p) + (1-y)p = p - y.
+$$
+
+The $p(1 - p)$ from the sigmoid cancels perfectly against the fractions from the log.
+
+</Reveal>
+
+So the push is just "prediction minus truth": student C ($y = 1$, $p = 0.1$) gets a strong push of $-0.9$. With squared error, the sigmoid's slope $p(1-p)$ does **not** cancel:
+
+$$
+\frac{\partial}{\partial z}(p - y)^2 = 2(p - y)\,p(1 - p)
+$$
+
+For student C that is $2(-0.9)(0.1)(0.9) = -0.162$, more than five times weaker. If the model were even more wrong, $p = 0.01$, log loss pushes with $-0.99$ but squared error with only about $-0.02$. A model that is confidently wrong barely learns: the gradient **vanishes** exactly when it is needed most. Squared error with a sigmoid is also not convex in $w$ and $b$, so it can have flat plateaus, while log loss for logistic regression is convex, a single bowl.
+
+<PastPaperQuestion paper="prelim2026" n={262} />
+
+## Training: gradient descent
+
+There is no formula that solves for the best $w$ and $b$ in one step (unlike the least-squares line). Instead, gradient descent walks downhill on the mean log loss. Averaging $\frac{\partial L}{\partial z} = p_i - y_i$ over the $m$ examples, and using $\frac{\partial z}{\partial w} = x_i$ and $\frac{\partial z}{\partial b} = 1$:
+
+$$
+\begin{aligned}
+\frac{\partial L}{\partial w} &= \frac{1}{m}\sum_{i=1}^{m} (p_i - y_i)\,x_i \\
+\frac{\partial L}{\partial b} &= \frac{1}{m}\sum_{i=1}^{m} (p_i - y_i)
+\end{aligned}
+$$
+
+Each step updates $w \leftarrow w - \eta\,\frac{\partial L}{\partial w}$ and $b \leftarrow b - \eta\,\frac{\partial L}{\partial b}$, where $\eta$ is the learning rate. This has *exactly* the same shape as linear regression's gradient ("error times input"), except that the prediction is now $p = \sigma(wx + b)$. With many features in a matrix $X$ (one row per example), the weight gradient is $\frac{1}{m} X^\top (\mathbf{p} - \mathbf{y})$. Run it:
+
+<PyRunner packages={['numpy']} code={lrCode} rows={24} />
+
+The loss starts at $0.6931 = \ln 2$ (with $w = b = 0$, every prediction is a 50-50 guess) and settles at about $0.3045$ with $w \approx 2.03$ and $b \approx -6.09$: the 50-50 point is 3 hours.
+
+In scikit-learn the same model is `LogisticRegression`. One trap: by default it adds L2 regularisation with strength set by `C` (the *inverse* of the regularisation strength, default `C=1.0`), which shrinks the weights. A huge `C` switches the penalty almost off and reproduces our fit:
+
+```python
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+
+X = np.array([0.5, 1, 1.5, 2, 2.5, 2.5, 3.5, 3.5, 4, 4.5, 5, 5.5]).reshape(-1, 1)
+y = np.array([0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1])
+
+model = LogisticRegression(C=1e6).fit(X, y)
+print("w =", model.coef_[0, 0].round(3), " b =", model.intercept_[0].round(3))
+print("P(fail), P(pass) at 4 h:", model.predict_proba([[4]]).round(3))
+print("predictions for 2, 3.2, 4 h:", model.predict([[2], [3.2], [4]]))
+```
+
+```text
+w = 2.029  b = -6.088
+P(fail), P(pass) at 4 h: [[0.116 0.884]]
+predictions for 2, 3.2, 4 h: [0 1 1]
+```
+
+With the default `C=1.0` you would get $w \approx 1.19$ and $b \approx -3.57$ instead: the same 50-50 point near 3 hours, but a flatter, less confident curve.
+
+<ExamTip>
+
+How NOAI asks about logistic regression:
+
+- **Name trap**: it is used for (binary) **classification**, not for predicting a continuous value.
+- **Sigmoid facts**: $\sigma(0) = 0.5$; the output range is the open interval $(0, 1)$; $\sigma(-z) = 1 - \sigma(z)$; and $\sigma'(z) = \sigma(z)(1 - \sigma(z))$, at most $0.25$.
+- **Decision rule**: $p \ge 0.5 \iff z \ge 0$, so the boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is linear. "Can logistic regression separate a ring?" Not without extra features.
+- **Loss**: binary cross-entropy $-[y\ln p + (1-y)\ln(1-p)]$. Anchor costs: $-\ln 0.5 \approx 0.693$, $-\ln 0.9 \approx 0.105$, $-\ln 0.1 \approx 2.303$.
+- **Why not MSE**: with a sigmoid, its gradient carries an extra $p(1-p)$ factor that vanishes for confident mistakes, and the loss is not convex. Cross-entropy's gradient is simply $p - y$.
+
+</ExamTip>
+
+<Takeaways>
+
+- Logistic regression is a **classifier**: score $z = \mathbf{w}^\top\mathbf{x} + b$, then probability $p = \sigma(z) = \frac{1}{1 + e^{-z}}$, which lies strictly between 0 and 1, with $\sigma(0) = 0.5$.
+- Predict class 1 when $p \ge 0.5$, i.e. when $z \ge 0$. The decision boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is a straight line (hyperplane); $\mathbf{w}$ is perpendicular to it, and its length sets the confidence.
+- Train with **binary cross-entropy** $L = -[y\ln p + (1-y)\ln(1-p)]$: about 0.105 for $p = 0.9$ on a positive, about 4.6 for $p = 0.01$. Confident mistakes are punished hard.
+- Its gradient with respect to the score is just $p - y$, so learning is strongest when the model is most wrong. Squared error with a sigmoid loses that push.
+- In scikit-learn, `LogisticRegression` is L2-regularised by default; `C` is the *inverse* regularisation strength.
+
+</Takeaways>

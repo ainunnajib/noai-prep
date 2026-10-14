@@ -1,3 +1,236 @@
-{/* stub: lesson 'Generalisation, overfitting and bias-variance' is being written */}
+import SplitPipeline from './visuals/generalisation-and-overfitting/SplitPipeline'
+import PolynomialOverfit from './visuals/generalisation-and-overfitting/PolynomialOverfit'
+import BiasVarianceDartboard from './visuals/generalisation-and-overfitting/BiasVarianceDartboard'
+import LearningCurveClinic from './visuals/generalisation-and-overfitting/LearningCurveClinic'
 
-This lesson is being written.
+A model can score 100% on the data it was trained on and still be useless. What matters is how well it does on examples it has **never seen**. This lesson shows how to measure that honestly, the two opposite ways a model can fail (underfitting and overfitting), and how to tell which one you have: favourite topics in NOAI papers.
+
+<Analogy title="Ten-year series, school prelims and the real O-level">
+
+You practise on ten-year-series papers: that is your **training**. Before the exam, your school runs a prelim. You use the prelim result to decide what to change, such as which topics to revise or how to pace yourself: that is **validation**. Then you sit the real O-level once, and that grade is final: that is the **test**. A classmate who memorised the answers to the ten-year series scores 100% on those papers, then struggles at the O-level, where every question is new. Memorising is not learning.
+
+</Analogy>
+
+## Generalisation: the real goal
+
+A model **generalises** well when it makes good predictions on new data from the same source as its training data. To check, we keep some labelled data hidden from training and measure the error on it:
+
+- <Term def="The model's average error on the same examples it was trained on.">Training error</Term> is measured on the examples used by `fit`. It is always optimistic, because the model has already seen the answers.
+- **Validation error** and **test error** are measured on held-out examples the model never trained on. They estimate how it will do in real use.
+
+## Three sets, three jobs
+
+Before training, we split the labelled data into three parts, typically 60/20/20, 70/15/15 or 80/10/10:
+
+| Set | Job | Used how often? |
+|---|---|---|
+| **Training** | `fit`: learn the parameters (weights, split points) | every time you train |
+| **Validation** | choose hyperparameters and compare models (degree, depth, $k$, when to stop training) | many times while you experiment |
+| **Test** | give one final, honest score for the model you chose | **once**, at the very end |
+
+Why not just two sets? Because choosing is a form of fitting. Suppose you try 20 hyperparameter settings and keep the one with the best test score. Part of why that setting won is luck: its random mistakes happened to fall on examples the test set does not contain. So its test score is too high, and the test set has quietly become a validation set. Watch it happen:
+
+<SplitPipeline />
+
+With the default numbers (200 test examples, 20 settings tried), peeking makes the reported score about 3.7 percentage points too high, purely through luck. A score from a test set you only touched once has no such bias.
+
+<KeyIdea>
+
+**Validation is for choosing; test is for reporting.** The test set is a sealed envelope: open it once, at the end. If you tune on it, its score stops being honest.
+
+</KeyIdea>
+
+<Note>
+
+When data is scarce, a single validation set is small and noisy. **k-fold cross-validation** fixes this by taking turns: every part of the training data serves as the validation set once. The model-evaluation module covers it in detail.
+
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={292} />
+
+## Underfitting and overfitting
+
+How flexible should a model be? Picture a curve of polynomial models:
+
+$$
+\hat{y} = w_0 + w_1 x + w_2 x^2 + \dots + w_d x^d
+$$
+
+Here $x$ is the single input feature, $\hat{y}$ is the prediction, and $w_0, \dots, w_d$ are the $d + 1$ weights that `fit` learns. The **degree** $d$ is a hyperparameter. Degree 1 is a straight line. A higher degree gives more weights, so the curve can bend more often: the model becomes more <Term def="How complicated a pattern a model is able to represent. More parameters or deeper trees usually mean more flexibility (also called capacity or complexity).">flexible</Term>.
+
+- <Term def="When a model is too simple to capture the real pattern, so it does badly even on its training data.">Underfitting</Term>: the model is too simple for the pattern. It does badly even on its own training data, so the **training error is high and the validation error is high too**.
+- <Term def="When a model fits the training data too closely, including its random noise, so it does very well on training data but badly on new data.">Overfitting</Term>: the model is so flexible that it bends to fit the random **noise** in the training points as well as the pattern. The **training error is very low, but the validation error is much higher**. The difference between them is called the **generalisation gap**.
+
+<Analogy title="Tailoring a school uniform">
+
+A one-size-fits-all uniform is too loose: it fits nobody well (underfitting). A uniform tailored to every crease of how one student stood on one particular morning fits that morning perfectly and nobody else, not even the same student the next day (overfitting). A good tailor follows the body's real shape and ignores the accidental creases.
+
+</Analogy>
+
+Slide the degree from 1 to 15 below and watch both errors.
+
+<PolynomialOverfit />
+
+Three things to notice:
+
+1. **Training error only ever goes down** as the degree rises. A more flexible model can always fit its own training points at least as well. So a low training error on its own proves nothing.
+2. **Validation error is U-shaped.** It falls while extra flexibility captures more of the real pattern, then rises once the extra flexibility mostly fits noise. The best model sits at the bottom of the U, and you find it with the validation set.
+3. **More data pushes overfitting further out.** With 80 training points, even a degree-15 curve has too many points to pass through, so it cannot chase the noise as easily.
+
+| Training error | Validation error | Diagnosis |
+|---|---|---|
+| high | high (similar) | **underfitting**: model too simple |
+| low | much higher (big gap) | **overfitting**: model too flexible for the data |
+| low | low (small gap) | good fit |
+
+<QuickCheck
+  q="A model has training MSE 0.02 and validation MSE 0.85. Which description fits best?"
+  options={['Overfitting: it has memorised the training data, noise included', 'Underfitting: the model is too simple for the pattern', 'A good fit, because the training error is so low', 'Nothing can be concluded without the test set']}
+  answer={0}
+  explain="A tiny training error with a much larger validation error (a big gap) is the signature of overfitting. Underfitting would show a high training error too. A low training error alone is not evidence of a good model, and you do not need the test set to diagnose this: that is the validation set's job."
+/>
+
+<PastPaperQuestion paper="noai2025" n={4} />
+
+## Bias and variance
+
+There is a deeper way to describe the two failures. Imagine you could collect a fresh training set many times and retrain the same kind of model on each one.
+
+- <Term def="Error that comes from the model's assumptions being wrong, for example fitting a straight line to a curved pattern. The model is off in the same direction every time you retrain it.">Bias</Term> is how far the **average** of all those models is from the truth. A straight line fitted to a curved pattern misses the peaks every time, in the same way. That is a systematic error.
+- <Term def="Error that comes from the model being too sensitive to the particular training set: retrain it on a different sample and its predictions change a lot.">Variance</Term> is how much the models **disagree with each other**. A very flexible model chases whatever noise each training set happens to have, so every retrain gives a different curve.
+
+<Analogy title="Throwing darts">
+
+A player with **high bias** throws a tight group, but in the wrong place: every dart lands top-left of the bullseye. A player with **high variance** is centred on average, but the darts are scattered all over the board. You want a tight group on the bullseye: low bias and low variance.
+
+</Analogy>
+
+<BiasVarianceDartboard />
+
+For squared error, the expected error of a model on a new example splits exactly into three parts:
+
+$$
+\text{expected error} = \text{bias}^2 + \text{variance} + \sigma^2
+$$
+
+- **bias²** is the squared distance between the average prediction (over many retrains) and the true value.
+- **variance** is the average squared distance between each retrain's prediction and that average prediction.
+- $\sigma^2$ (sigma squared) is the variance of the **noise** in the labels. No model can remove it, because it is random. It is the "noise floor" in the charts.
+
+As flexibility grows, bias² falls and variance rises, so their total is U-shaped: the same U as the validation error. That is the **bias-variance trade-off**: simple models have high bias and low variance; flexible models have low bias and high variance.
+
+<Steps title="Bias and variance by hand">
+  <Step title="Set up">
+    At one input the true value is 10, and the label noise has $\sigma^2 = 1$. Model A is retrained on four different training sets and predicts $12, 13, 11, 12$. Model B, a more flexible model, predicts $7, 13, 9, 11$.
+  </Step>
+  <Step title="Model A: bias">
+    Average prediction: $(12 + 13 + 11 + 12)/4 = 48/4 = 12$. Bias $= 12 - 10 = 2$, so bias² $= 4$.
+  </Step>
+  <Step title="Model A: variance">
+    Distances from the average 12: $0, 1, -1, 0$. Squares: $0, 1, 1, 0$. Variance $= 2/4 = 0.5$. Expected error $= 4 + 0.5 + 1 = 5.5$.
+  </Step>
+  <Step title="Model B">
+    Average: $(7 + 13 + 9 + 11)/4 = 40/4 = 10$, so bias $= 0$. Distances from 10: $-3, 3, -1, 1$; squares $9, 9, 1, 1$; variance $= 20/4 = 5$. Expected error $= 0 + 5 + 1 = 6$.
+  </Step>
+  <Step title="Conclusion">
+    Model B is right on average but too jumpy, so its total error is higher. Zero bias is not the goal; the smallest **total** is. (Check A directly: the squared misses from 10 are $4, 9, 1, 4$, which average to $18/4 = 4.5 = 4 + 0.5$.)
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+**Bias** = consistently wrong (too simple, underfitting). **Variance** = differently wrong every time (too flexible, overfitting). Expected error = bias² + variance + noise, and the best model balances the first two.
+
+</KeyIdea>
+
+## Learning curves: which problem do you have?
+
+A <Term def="A chart of training error and validation error against the number of training examples.">learning curve</Term> plots the training error and the validation error against the **size of the training set**. Two patterns hold for almost every model:
+
+- **Training error rises** as the training set grows: it is easy to fit 5 points perfectly, harder to fit 500.
+- **Validation error falls**: more examples teach more of the real pattern.
+
+Where the two curves end up tells you what to do next:
+
+- **High bias**: both curves level off **close together and high**, well above the noise floor. More data will not help, because the model cannot represent the pattern. Use a more flexible model, add better features, or reduce regularisation.
+- **High variance**: a **large gap**, with the training error low (often below the noise floor, a sign it memorised noise) and the validation error still falling. More data helps. So do <Term def="Adding a penalty for complexity to the loss, such as loss = MSE + λ × (size of the weights). A bigger λ forces a simpler, smoother model.">regularisation</Term>, a simpler model and stopping training early.
+
+<LearningCurveClinic />
+
+| Remedy | Helps high bias? | Helps high variance? |
+|---|---|---|
+| More training data | no | **yes** |
+| Bigger, more flexible model / more features | **yes** | no (makes it worse) |
+| More regularisation, simpler model, early stopping | no (makes it worse) | **yes** |
+| Less regularisation | **yes** | no |
+
+<PastPaperQuestion paper="prelim2026" n={266} />
+
+## The whole workflow in code
+
+This program splits 60 noisy points 60/20/20 with `train_test_split` (called twice), uses the validation set to choose the polynomial degree, and touches the test set exactly once. `make_pipeline(PolynomialFeatures(deg), LinearRegression())` builds the degree-`deg` model from the formula above. Run it, then try other seeds or more points.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import mean_squared_error
+
+rng = np.random.default_rng(0)
+x = rng.uniform(0, 1, 60)
+y = np.sin(2.5 * np.pi * x) + rng.normal(0, 0.3, 60)   # hidden curve + noise
+X = x.reshape(-1, 1)
+
+# 60% train, 20% validation, 20% test
+X_train, X_rest, y_train, y_rest = train_test_split(
+    X, y, test_size=0.4, random_state=0)
+X_val, X_test, y_val, y_test = train_test_split(
+    X_rest, y_rest, test_size=0.5, random_state=0)
+print("sizes:", len(X_train), len(X_val), len(X_test))
+
+best_deg, best_val = None, float("inf")
+for deg in [1, 3, 5, 9, 15]:
+    model = make_pipeline(PolynomialFeatures(deg), LinearRegression())
+    model.fit(X_train, y_train)
+    tr = mean_squared_error(y_train, model.predict(X_train))
+    va = mean_squared_error(y_val, model.predict(X_val))
+    print(f"degree {deg:2d}: train MSE {tr:.3f}   validation MSE {va:.3f}")
+    if va < best_val:
+        best_deg, best_val = deg, va
+
+final = make_pipeline(PolynomialFeatures(best_deg), LinearRegression()).fit(X_train, y_train)
+print("chosen degree:", best_deg)
+print(f"test MSE (reported once): {mean_squared_error(y_test, final.predict(X_test)):.3f}")`} />
+
+With seed 0 you should see the training error fall at every degree (0.400 down to 0.047), while the validation error is lowest at degree 5 (0.173) and climbs again for degrees 9 and 15. Degree 5 is chosen, and its single test score is 0.076.
+
+<Mistake title="Classic traps">
+
+- **Tuning on the test set.** Any decision made using test scores (the degree, the features, which model, when to stop) makes the test score optimistic. Use the validation set or cross-validation instead.
+- **Trusting a low training error.** Training error always falls as flexibility grows. Only held-out error shows generalisation.
+- **"More data always helps."** Only for high variance. A straight line stays a straight line however many points you give it.
+- **Leaking test data in preprocessing.** Fitting a scaler (or choosing features) on the full dataset before splitting lets test information into training. Split first, then fit everything on the training set only.
+
+</Mistake>
+
+<ExamTip>
+
+How NOAI asks about this lesson:
+
+- **Read the numbers.** "Training 99%, validation 71%" means overfitting (high variance). "Training 68%, validation 67%" on a hard task means underfitting (high bias). Similar validation and test scores are reassuring, not a sign of leakage.
+- **Name the remedy.** High variance: more data, regularisation (L1/L2, dropout), early stopping, a simpler model, data augmentation. High bias: a bigger model, more or better features, less regularisation, train longer.
+- **Roles of the sets.** Validation chooses hyperparameters; the test set is used once. A protocol that picks "the best of 50 test scores" is optimistically biased.
+- **The trade-off.** Simple models: high bias, low variance. Complex models: low bias, high variance. Later you will meet two ensembles: bagging mainly reduces variance; boosting mainly reduces bias.
+
+</ExamTip>
+
+<Takeaways>
+
+- Training error is optimistic; generalisation is measured on held-out data.
+- **Training** fits parameters, **validation** chooses hyperparameters and models, **test** gives one final honest score. Tuning on the test set inflates it.
+- Underfitting: training and validation errors both high. Overfitting: low training error, much higher validation error. Validation error is U-shaped in model complexity.
+- Expected error = bias² + variance + noise. Simple models have high bias; flexible models have high variance.
+- Learning curves: a persistent high plateau means high bias (change the model); a large gap means high variance (more data or regularisation).
+
+</Takeaways>
