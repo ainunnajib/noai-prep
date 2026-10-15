@@ -857,8 +857,13 @@ mark {
   height: auto;
   display: block;
   overflow: visible;
-  touch-action: none;
+  /* let a swipe over a plot scroll the page; handles keep their drag via Plot's touchstart listener */
+  touch-action: pan-y pinch-zoom;
   font-family: var(--font-body);
+}
+/* plots that react to pointer moves on their whole surface keep every gesture */
+.plot.plot-interactive {
+  touch-action: none;
 }
 .plot-grid line {
   stroke: var(--viz-grid);

@@ -1,5 +1,5 @@
 import { scaleLinear, type ScaleLinear } from 'd3-scale'
-import { createContext, useCallback, useContext, useId, useMemo, useRef, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, type ReactNode } from 'react'
 import { useContainerWidth } from './useContainerWidth'
 
 /*
@@ -100,13 +100,26 @@ export function Plot({
     [xs, ys],
   )
 
+  // Plots allow vertical page scrolling on touch screens (touch-action: pan-y). Chromium ignores touch-action on
+  // SVG shapes, so a touch that starts on a draggable handle cancels its touchstart to keep the drag.
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const hold = (e: TouchEvent) => {
+      const t = e.target
+      if (t instanceof Element && t.closest('.plot-drag') && e.cancelable) e.preventDefault()
+    }
+    svg.addEventListener('touchstart', hold, { passive: false })
+    return () => svg.removeEventListener('touchstart', hold)
+  }, [])
+
   const ctx: PlotCtx = { xs, ys, width, height, margin: m, clipId, toData }
   return (
     <Ctx.Provider value={ctx}>
       <div ref={wrapRef} className="plot-wrap" style={{ maxWidth: cap }}>
         <svg
           ref={svgRef}
-          className="plot"
+          className={onPointerDown || onPointerMove ? 'plot plot-interactive' : 'plot'}
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={ariaLabel}

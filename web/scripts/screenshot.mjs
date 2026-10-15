@@ -32,7 +32,11 @@ for (const r of routes) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await page.goto(base + r, { waitUntil: 'networkidle', timeout: 60000 })
-      await page.waitForTimeout(800)
+      // wait until lazy lessons and embedded past-paper questions have rendered
+      await page
+        .waitForFunction(() => !document.querySelector('.loading-block, .pastq-loading'), null, { timeout: 15000 })
+        .catch(() => console.log(`  ${r}: still loading after 15 s`))
+      await page.waitForTimeout(500)
       const name = `${opt.out}/${r.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'home'}_${opt.width}_${opt.theme}.png`
       await page.screenshot({ path: name, fullPage: opt.full })
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)

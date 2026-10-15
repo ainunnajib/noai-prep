@@ -1,8 +1,15 @@
 # NOAI Prep
 
+Tools to help students prepare for Singapore's National Olympiad in Artificial Intelligence (NOAI).
+
+- **Website** (`web/`): a free step-by-step course from zero to NOAI 2027, with 178 lessons, interactive visual explainers, checkpoint quizzes, solved past papers, practice by topic and timed mock exams. See [web/README.md](web/README.md) to run it, and [docs/](docs/README.md) for the research and curriculum design behind it.
+- **iOS app** (the rest of this repository): a practice-question app, described below.
+
+## iOS app
+
 A modern iOS app to help students prepare for the National Olympiad of Artificial Intelligence (NOAI).
 
-## Features
+### Features
 
 - **1660+ Practice Questions** covering Mathematics, Computing, AI/ML, and Problem Solving
 - **Two Quiz Modes**: Practice (20 questions, untimed) and Timed (45 questions, 2.5 hours)
@@ -11,21 +18,21 @@ A modern iOS app to help students prepare for the National Olympiad of Artificia
 - **Progress Tracking**: Track your quiz history, scores, and streaks
 - **Modern UI**: Beautiful glassmorphism design with smooth animations
 
-## Topics Covered
+### Topics Covered
 
-### Mathematics
+#### Mathematics
 - Linear Algebra
 - Calculus
 - Probability & Statistics
 - Optimization
 
-### Computing
+#### Computing
 - Python Programming
 - NumPy & Pandas
 - PyTorch
 - Data Preprocessing
 
-### AI/ML/DL
+#### AI/ML/DL
 - Classical ML (Supervised & Unsupervised)
 - Neural Networks
 - Deep Learning & CNNs
@@ -33,18 +40,18 @@ A modern iOS app to help students prepare for the National Olympiad of Artificia
 - Computer Vision
 - Reinforcement Learning
 
-### Problem Solving
+#### Problem Solving
 - Algorithm Design
 - System Design
 - Debugging
 - Optimization
 
-## Requirements
+### Requirements
 
 - iOS 17.0+
 - Xcode 15.0+
 
-## Installation
+### Installation
 
 1. Clone the repository
    ```bash
@@ -55,16 +62,16 @@ A modern iOS app to help students prepare for the National Olympiad of Artificia
 
 3. Build and run on simulator or device
 
-## Tech Stack
+### Tech Stack
 
 - **SwiftUI** - Modern declarative UI framework
 - **SwiftData** - Persistent storage for quiz results
 - **XcodeGen** - Project generation from YAML
 
-## License
+### License
 
 MIT License
 
-## Author
+### Author
 
 Built with care for NOAI participants.

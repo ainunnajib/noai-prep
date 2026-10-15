@@ -20,7 +20,7 @@ async function check(page: Page, route: string, errors: string[]) {
   expect(errors, `${route} console errors`).toEqual([])
 }
 
-const STATIC = ['/', '/learn', '/exam', '/practice', '/mock', '/papers', '/papers/prelim2026', '/papers/final2026', '/papers/noai2025', '/about']
+const STATIC = ['/', '/learn', '/exam', '/practice', '/mock', '/papers', '/papers/prelim2026', '/papers/final2026', '/papers/noai2025', '/plan', '/about']
 
 test('static pages render cleanly', async ({ page }) => {
   const errors = watch(page)
