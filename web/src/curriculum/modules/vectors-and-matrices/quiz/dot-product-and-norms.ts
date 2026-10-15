@@ -17,7 +17,7 @@ const questions: QuizQuestion[] = [
     options: ['`14 10.0`', '`2 10.0`', '`14 100.0`', '`10.0 14`'],
     answer: 0,
     explanation:
-      'The first value is the L1 norm: $|-6| + |8| = 6 + 8 = 14$. The second is the L2 norm: $\\sqrt{36 + 64} = \\sqrt{100} = 10$, printed as the float `10.0`. `2` forgets the absolute value ($-6 + 8$), and `100.0` forgets the square root.',
+      'The first value is the L1 norm: $\\lvert -6 \\rvert + \\lvert 8 \\rvert = 6 + 8 = 14$. The second is the L2 norm: $\\sqrt{36 + 64} = \\sqrt{100} = 10$, printed as the float `10.0`. `2` forgets the absolute value ($-6 + 8$), and `100.0` forgets the square root.',
     difficulty: 'beginner',
   },
   {
