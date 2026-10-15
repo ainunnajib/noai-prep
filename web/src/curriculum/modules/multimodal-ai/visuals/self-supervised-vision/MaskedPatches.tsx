@@ -74,7 +74,7 @@ export default function MaskedPatches() {
       title="Hide most of the patches, then rebuild them"
       caption={
         <>
-          Slide the mask ratio and press <b>New mask</b>. At 10–30% almost every hidden patch has a visible patch right beside it, so copying
+          The hatched grey squares on the left are the hidden patches. Slide the mask ratio and press <b>New mask</b>. At 10–30% almost every hidden patch has a visible patch right beside it, so copying
           nearby pixels fills the gap: no understanding needed. At 75% a third or more of the hidden patches have no visible patch beside them, and
           only about a quarter of the cat is left: to redraw the rest, the model has to know what cats look like. The middle panel is illustrative:
           hidden patches are drawn from a blurred copy of the truth, blurrier the further they are from a visible patch, which is roughly what real
@@ -102,6 +102,11 @@ export default function MaskedPatches() {
               </clipPath>
             ),
           )}
+          {/* hidden patches: mid-grey with diagonal hatching, so they never blend into the sky */}
+          <pattern id={`${sceneId}-hatch`} width={2.4} height={2.4} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width={2.4} height={2.4} style={{ fill: 'color-mix(in srgb, var(--ink) 45%, var(--surface))' }} />
+            <line x1={0} y1={0} x2={0} y2={2.4} style={{ stroke: 'var(--surface)', strokeWidth: 0.7, opacity: 0.45 }} />
+          </pattern>
           <clipPath id={`${sceneId}-vis`}>{hidden.map((h, i) => (!h ? <rect key={i} x={(i % N) * S} y={Math.floor(i / N) * S} width={S} height={S} /> : null))}</clipPath>
         </defs>
       </svg>
@@ -113,7 +118,7 @@ export default function MaskedPatches() {
             <br />({nVisible} visible patches)
           </div>
           <svg viewBox="0 0 100 100" className={css.mae} role="img" aria-label={`The picture with ${nHidden} of 196 patches hidden`}>
-            <rect width={100} height={100} style={{ fill: 'var(--surface-3)' }} />
+            <rect width={100} height={100} style={{ fill: `url(#${sceneId}-hatch)` }} />
             <g clipPath={`url(#${sceneId}-vis)`}>
               <use href={`#${sceneId}`} />
             </g>

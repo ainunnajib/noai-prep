@@ -161,11 +161,19 @@ export default function ContrastivePairs() {
       title="Pull the pairs together, push the rest apart"
       caption={
         <>
-          A tiny encoder (4 inputs → 2 numbers, then scaled to length 1) trained with SimCLR's real loss on 6 images. Each view's input is 2 numbers
-          about the object plus 2 random augmentation numbers (brightness and zoom), redrawn at every step. Press <b>Play</b>: at first the two views
-          of an image land far apart and jump about; soon each pair locks together and the six images spread round the circle, because the encoder
-          has learned to ignore brightness and zoom (watch <i>weight on augmentations</i> fall). Click a point or a picture to follow another image.
-          Slide τ: a low temperature makes the partner probabilities sharper and the pulls and pushes stronger.
+          Six images, each seen as two random views (2 numbers about the object plus 2 random augmentation numbers, brightness and zoom, redrawn at every
+          step). <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Play</b>: at first the two views of an image land far apart and jump about; soon each pair locks together.
+            </li>
+            <li>
+              Watch <i>weight on augmentations</i> fall as training goes on.
+            </li>
+            <li>Click a point or a picture to follow another image, and slide τ: a low temperature makes the pulls and pushes stronger.</li>
+          </ol>
+          <b>Notice:</b> the six images spread round the circle because the encoder has learned to ignore brightness and zoom.
+          <span className="fine">A tiny encoder (4 inputs → 2 numbers, then scaled to length 1) trained with SimCLR's real loss.</span>
         </>
       }
     >

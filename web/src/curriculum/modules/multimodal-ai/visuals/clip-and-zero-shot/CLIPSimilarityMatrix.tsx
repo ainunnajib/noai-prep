@@ -95,12 +95,20 @@ export default function CLIPSimilarityMatrix() {
       title="CLIP's training game on one batch of six pairs"
       caption={
         <>
-          Rows are images, columns are captions, and each cell is the cosine similarity of their embeddings. The six true pairs sit on the outlined diagonal. Press{' '}
-          <b>Replay</b> to train from random weights: the loss rewards each row (and each column) for putting its biggest number on the diagonal, so the diagonal
-          brightens and the rest dims. Now drag the temperature <M>{'\\tau'}</M>: with a small <M>{'\\tau'}</M> the loss is happy once the diagonal merely wins, while a
-          large <M>{'\\tau'}</M> keeps pushing the numbers apart but the loss can never get near 0. Finally tap two captions to swap them, as if the data had mismatched
-          them: the model learned the real pairs, so the bright cells are now off the diagonal and the loss shoots up. This is a real (tiny) model trained in your
-          browser: each encoder is one linear layer on made-up features.
+          Rows are images, columns are captions; each cell is the cosine similarity of their embeddings, and the six true pairs sit on the outlined
+          diagonal. <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Replay</b> to train from random weights: the diagonal brightens and the rest dims.
+            </li>
+            <li>
+              Drag the temperature <M>{'\\tau'}</M>: a small <M>{'\\tau'}</M> is satisfied once the diagonal merely wins; a large one keeps pushing the numbers apart, but
+              the loss never gets near 0.
+            </li>
+            <li>Tap two captions to swap them, as if the data had mismatched them: the bright cells leave the diagonal and the loss shoots up.</li>
+          </ol>
+          <b>Notice:</b> the loss rewards every row and every column for putting its biggest number on the diagonal.
+          <span className="fine">This is a real (tiny) model trained in your browser: each encoder is one linear layer on made-up features.</span>
         </>
       }
     >
@@ -157,8 +165,9 @@ export default function CLIPSimilarityMatrix() {
                     className={`${s.cell} ${i === j ? s.cellDiag : ''}`}
                     title={`${p.caption} × “${PAIRS[c].caption}”: cosine ${S[i][j].toFixed(2)}, probability ${Pr[i][j].toFixed(2)}`}
                     style={{
-                      background: `color-mix(in srgb, var(--viz-1) ${Math.round(5 + t * 80)}%, var(--surface))`,
-                      color: t > 0.52 ? 'var(--surface)' : 'var(--ink)',
+                      // capped at a 52% mix so the theme's ink stays readable (≥ 4.5:1) on every shade, light or dark
+                      background: `color-mix(in srgb, var(--viz-1) ${Math.round(5 + t * 47)}%, var(--surface))`,
+                      color: 'var(--ink)',
                       fontWeight: i === j ? 750 : 500,
                     }}
                   >
@@ -177,7 +186,7 @@ export default function CLIPSimilarityMatrix() {
           true pair (the "label")
         </span>
         <span>
-          <span className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-1) 85%, var(--surface))' }} />
+          <span className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-1) 52%, var(--surface))' }} />
           {mode === 'cos' ? 'high similarity' : 'high probability'}
         </span>
         <span>

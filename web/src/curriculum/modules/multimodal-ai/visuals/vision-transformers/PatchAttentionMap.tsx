@@ -177,10 +177,18 @@ export default function PatchAttentionMap() {
       title="Who can a patch talk to?"
       caption={
         <>
-          Click any patch (the cat's ear, the sun, the grass) and switch between early, middle and late layers. Bright areas are where the chosen
-          patch looks. The ViT can look anywhere from layer 1: the early map averages two heads, one looking at neighbours and one at the same
-          colour anywhere (pick a grass patch and the far-away leaves light up faintly). Later layers gather the whole object. The CNN neuron starts with a 3 × 3 pixel keyhole that widens only layer by layer. The ViT weights are illustrative (hand-set scores
-          through a real softmax, mimicking patterns seen in trained ViTs); the CNN windows are the exact receptive fields of VGG-16.
+          Bright areas are where the chosen patch looks. <b>Try:</b>
+          <ol className="try">
+            <li>Click any patch (the cat's ear, the sun, the grass) in the early layer.</li>
+            <li>Pick a grass patch: the far-away leaves light up faintly, because one early head looks at the same colour anywhere.</li>
+            <li>Switch to the middle and late layers, and compare the CNN neuron's window beside it.</li>
+          </ol>
+          <b>Notice:</b> the ViT can look anywhere from layer 1 and later gathers the whole object; the CNN starts with a 3 × 3 pixel keyhole that widens only layer
+          by layer.
+          <span className="fine">
+            The ViT weights are illustrative (hand-set scores through a real softmax, mimicking patterns seen in trained ViTs; the early map averages a
+            neighbour head and a same-colour head). The CNN windows are the exact receptive fields of VGG-16.
+          </span>
         </>
       }
     >

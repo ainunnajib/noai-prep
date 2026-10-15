@@ -67,6 +67,7 @@ export default function SelfVsCrossAttention() {
   const rows = WORDS.map((_, t) => row(t, mode))
   const r = rows[sel]
   const imgShare = r.slice(0, NI).reduce((a, b) => a + b, 0)
+  const top3 = FLAT.map((_, k) => k).sort((a, b) => r[b] - r[a]).slice(0, 3)
   // colour intensity from the absolute weight (square root so small weights stay visible)
   const shade = (w: number) => Math.min(1, Math.sqrt(w / 0.6))
   const gate = Math.tanh(alpha)
@@ -101,11 +102,20 @@ export default function SelfVsCrossAttention() {
       title="Self-attention or cross-attention: where do K and V come from?"
       caption={
         <>
-          Tap a word of the question to make it the query, and watch where it looks in the picture. In <b>concatenate</b> mode (LLaVA-style) the image tokens sit in the
-          same sequence as the words, so ordinary self-attention lets a word look at patches <i>and</i> at earlier words: its weights are shared between the two. In{' '}
-          <b>cross-attention</b> mode (Flamingo-style) the queries come from the words but the keys and values come only from the picture, so all of the weight goes to
-          patches. The attention maths is identical; only the source of K and V changes. In cross-attention mode, try the gate: at 0 the picture adds nothing and
-          the frozen LLM behaves exactly as before. The weights are illustrative (hand-set scores through a real softmax).
+          Tap a word of the question to make it the query, and watch where it looks in the picture. <b>Try:</b>
+          <ol className="try">
+            <li>
+              In <b>concatenate</b> mode (LLaVA-style) the image tokens sit in the same sequence as the words, so the word's weight is shared between patches and
+              earlier words.
+            </li>
+            <li>
+              Switch to <b>cross-attention</b> (Flamingo-style): queries come from the words, keys and values only from the picture, so all the weight goes to
+              patches.
+            </li>
+            <li>Slide the gate: at 0 the picture adds nothing and the frozen LLM behaves exactly as before.</li>
+          </ol>
+          <b>Notice:</b> the attention maths is identical; only the source of K and V changes.
+          <span className="fine">The weights are illustrative (hand-set scores through a real softmax).</span>
         </>
       }
     >
@@ -138,19 +148,22 @@ export default function SelfVsCrossAttention() {
             {FLAT.map((_, k) => {
               const i = Math.floor(k / 4)
               const j = k % 4
-              const w = r[k]
+              return <rect key={k} x={j * 25} y={i * 25} width={25} height={25} style={{ fill: 'var(--viz-4)', opacity: 0.05 + 0.65 * shade(r[k]) }} />
+            })}
+            {/* % labels only on the three strongest patches, tucked into a corner so the picture stays readable */}
+            {top3.map((k) => {
+              const i = Math.floor(k / 4)
+              const j = k % 4
               return (
-                <g key={k}>
-                  <rect x={j * 25} y={i * 25} width={25} height={25} style={{ fill: 'var(--viz-4)', opacity: 0.05 + 0.65 * shade(w) }} />
-                  <text
-                    x={j * 25 + 12.5}
-                    y={i * 25 + 15}
-                    textAnchor="middle"
-                    style={{ fill: 'var(--ink)', fontSize: 6.2, fontWeight: 800, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 1.6, strokeLinejoin: 'round' }}
-                  >
-                    {Math.round(w * 100)}%
-                  </text>
-                </g>
+                <text
+                  key={`t${k}`}
+                  x={j * 25 + 23.5}
+                  y={i * 25 + 6.5}
+                  textAnchor="end"
+                  style={{ fill: 'var(--ink)', fontSize: 5, fontWeight: 800, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 1.4, strokeLinejoin: 'round' }}
+                >
+                  {Math.round(r[k] * 100)}%
+                </text>
               )
             })}
             <PatchGrid n={4} color="var(--viz-ink)" width={0.5} />
@@ -233,6 +246,14 @@ export default function SelfVsCrossAttention() {
           <Readout
             items={[[<M key="t">{'\\tanh(\\alpha)'}</M>, gate.toFixed(2)]]}
           />
+          {/* what reaches the next layer for the chosen word: its own vector plus the gated picture information */}
+          <div className={s.gateMeter} aria-label={`For “${WORDS[sel]}”, the picture adds ${Math.round(gate * 100)}% of its cross-attention result`} role="img">
+            <span className={s.gateLabel}>what “{WORDS[sel]}” passes on</span>
+            <span className={s.gateBar}>
+              <span style={{ flex: '0 0 60%', background: 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))' }}>the word itself</span>
+              <span style={{ flex: `0 0 ${40 * gate}%`, background: 'color-mix(in srgb, var(--viz-3) 45%, var(--surface))' }}>{gate > 0.85 ? 'from the picture' : gate > 0.3 ? 'picture' : ''}</span>
+            </span>
+          </div>
           <p className={s.split} style={{ width: '100%', textAlign: 'left' }}>
             Flamingo adds the result as <M>{'\\mathbf{x} \\leftarrow \\mathbf{x} + \\tanh(\\alpha)\\,\\mathrm{CrossAttn}(\\mathbf{x}, \\text{image})'}</M>.{' '}
             {gate < 0.005

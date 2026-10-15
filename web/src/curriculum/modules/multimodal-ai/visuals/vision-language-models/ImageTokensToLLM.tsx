@@ -171,10 +171,17 @@ export default function ImageTokensToLLM() {
       {fmt(Math.round((imgTotal * 0.75) / 10) * 10)}-word essay.{' '}
       {over ? <span className={s.warn}>That is more than the 4,096-token context window, so it does not fit.</span> : `Together with the question that is ${fmt(total)} of the 4,096-token window.`}
     </>,
-    <>
-      The LLM reads the whole sequence with its ordinary self-attention, so every text token can look at every image token. It then writes the answer one token at a time:{' '}
-      <i>{ANSWER}</i>
-    </>,
+    over ? (
+      <>
+        <span className={s.warn}>The sequence does not fit, so the LLM cannot read it.</span> A real system has to drop some pictures, shrink them, or squeeze each
+        picture into fewer tokens with a small resampler (Flamingo, later in this lesson, uses just 64 tokens per picture).
+      </>
+    ) : (
+      <>
+        The LLM reads the whole sequence with its ordinary self-attention, so every text token can look at every image token. It then writes the answer one token at a
+        time: <i>{ANSWER}</i>
+      </>
+    ),
   ]
 
   return (
@@ -239,9 +246,17 @@ export default function ImageTokensToLLM() {
             <text x={20} y={yLLM + 35} style={{ fill: 'var(--ink-2)', fontSize: fs - 1 }}>
               {narrow ? 'self-attention over all tokens' : 'reads all the tokens with ordinary self-attention'}
             </text>
-            <rect x={W - 8 - (narrow ? 118 : 150)} y={yLLM + 9} width={narrow ? 110 : 140} height={28} rx={14} style={{ fill: 'color-mix(in srgb, var(--viz-3) 22%, var(--surface))', stroke: 'var(--viz-3)' }} />
+            {/* the answer, or a refusal when the sequence is longer than the context window */}
+            <rect
+              x={W - 8 - (narrow ? 118 : 150)}
+              y={yLLM + 9}
+              width={narrow ? 110 : 140}
+              height={28}
+              rx={14}
+              style={{ fill: `color-mix(in srgb, ${over ? 'var(--viz-neg)' : 'var(--viz-3)'} 22%, var(--surface))`, stroke: over ? 'var(--viz-neg)' : 'var(--viz-3)' }}
+            />
             <text x={W - 8 - (narrow ? 63 : 80)} y={yLLM + 27} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: fs, fontWeight: 700 }}>
-              {ANSWER}
+              {over ? '✗ context full' : ANSWER}
             </text>
           </g>
         </svg>

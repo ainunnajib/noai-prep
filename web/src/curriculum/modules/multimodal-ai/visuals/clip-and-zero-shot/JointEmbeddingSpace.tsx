@@ -120,16 +120,24 @@ export default function JointEmbeddingSpace() {
   // label placement: highlighted captions first, then (on roomy maps) the rest if they fit
   type Box = { x0: number; y0: number; x1: number; y1: number }
   const boxes: Box[] = layout.img.map((p) => ({ x0: p.x - tsz / 2 - 2, y0: p.y - tsz / 2 - 2, x1: p.x + tsz / 2 + 2, y1: p.y + tsz / 2 + 2 }))
-  if (qPos) boxes.push({ x0: qx - 10, y0: qy - 22, x1: qx + 70, y1: qy + 10 })
+  // the search star only matters while searching by text; in picture mode it is hidden so it cannot crowd the caption labels
+  const showStar = !!qPos && sel.kind === 'query'
+  if (showStar) boxes.push(qx < W / 2 ? { x0: qx - 10, y0: qy - 22, x1: qx + 70, y1: qy + 10 } : { x0: qx - 70, y0: qy - 22, x1: qx + 10, y1: qy + 10 })
   const hit = (b: Box) => boxes.some((o) => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0)
   const order = [...capRank.slice(0, 3).map((r) => r.j), ...CAPTIONS.map((_, j) => j).filter((j) => !hiCaps.has(j))]
   const labels: { j: number; x: number; y: number; anchor: 'start' | 'end'; text: string; hi: boolean }[] = []
   const compact = W < 520 // phones: numbered badges on the map instead of text labels
+  const badged = new Set<number>() // top-3 captions shown as a numbered badge (always on phones; on wide maps when no free spot is left)
   for (const j of order) {
     const hi = hiCaps.has(j)
-    if (compact) continue
+    if (compact) {
+      if (hi) badged.add(j)
+      continue
+    }
     const p = layout.cap[j]
-    const text = CAPTIONS[j].length > 30 ? CAPTIONS[j].slice(0, 29) + '…' : CAPTIONS[j]
+    const rank = capRank.findIndex((r) => r.j === j) + 1
+    const base = CAPTIONS[j].length > 30 ? CAPTIONS[j].slice(0, 29) + '…' : CAPTIONS[j]
+    const text = hi ? `${rank}. ${base}` : base
     const w = text.length * (hi ? 6.4 : 5.8)
     const sides: ('start' | 'end')[] = p.x < W / 2 ? ['start', 'end'] : ['end', 'start']
     // try right/left of the marker, then just above/below it; highlighted labels are placed even if crowded
@@ -139,8 +147,8 @@ export default function JointEmbeddingSpace() {
     const boxOf = (sp: { anchor: 'start' | 'end'; x: number; y: number }) =>
       sp.anchor === 'start' ? { x0: sp.x, y0: sp.y - 13, x1: sp.x + w, y1: sp.y + 1 } : { x0: sp.x - w, y0: sp.y - 13, x1: sp.x, y1: sp.y + 1 }
     const inside = (b: Box) => b.x0 >= 2 && b.x1 <= W - 2 && b.y0 >= 2 && b.y1 <= H - 2
-    let pick = spots.find((sp) => inside(boxOf(sp)) && !hit(boxOf(sp)))
-    if (!pick && hi) pick = spots.find((sp) => inside(boxOf(sp))) ?? spots[0]
+    const pick = spots.find((sp) => inside(boxOf(sp)) && !hit(boxOf(sp)))
+    if (!pick && hi) badged.add(j) // never print over another label: fall back to a numbered badge keyed to the list below
     if (pick) {
       boxes.push(boxOf(pick))
       labels.push({ j, x: pick.x, y: pick.y, anchor: pick.anchor, text, hi })
@@ -153,10 +161,20 @@ export default function JointEmbeddingSpace() {
       title="One space for pictures and words"
       caption={
         <>
-          Pictures and captions are both arrows in the same embedding space, so searching in <i>either</i> direction is the same job: compute cosine similarities and
-          sort. Type your own search text (or tap a suggestion) to find the closest pictures; tap a picture to find its closest captions. Mixed ideas land between
-          the groups, e.g. <i>a bird flying over the sea</i>. The map is a flattened sketch of a 40-dimensional toy space (points are nudged so they do not overlap), so
-          trust the numbers in the list, which are true cosine similarities. Our toy text encoder knows about 170 words (grey ones are ignored filler; struck-through ones are unknown to it).
+          Pictures and captions are arrows in the same embedding space, so searching in <i>either</i> direction is the same job: compute cosine similarities
+          and sort. <b>Try:</b>
+          <ol className="try">
+            <li>Type your own search text (or tap a suggestion) to find the closest pictures.</li>
+            <li>Tap a picture to find its closest captions.</li>
+            <li>
+              Mix two ideas, e.g. <i>a bird flying over the sea</i>: it lands between the groups.
+            </li>
+          </ol>
+          <b>Notice:</b> trust the numbers in the list, which are true cosine similarities; the map is only a flattened sketch.
+          <span className="fine">
+            The map flattens a 40-dimensional toy space and nudges points so they do not overlap. The toy text encoder knows about 170 words (grey ones are
+            ignored filler; struck-through ones are unknown to it).
+          </span>
         </>
       }
     >
@@ -296,8 +314,11 @@ export default function JointEmbeddingSpace() {
                 {l.text}
               </text>
             ))}
-            {compact &&
-              capRank.slice(0, 3).map((r, k) => {
+            {capRank
+              .slice(0, 3)
+              .filter((r) => badged.has(r.j))
+              .map((r) => {
+                const k = capRank.indexOf(r)
                 const p = layout.cap[r.j]
                 const bx = p.x + (p.x < W / 2 ? 11 : -11)
                 return (
@@ -310,8 +331,8 @@ export default function JointEmbeddingSpace() {
                 )
               })}
             {/* the search text */}
-            {qPos && (
-              <g style={{ opacity: sel.kind === 'query' ? 1 : 0.55 }}>
+            {showStar && (
+              <g>
                 <path
                   d={`M${qx},${qy - 9} L${qx + 2.6},${qy - 2.8} L${qx + 8.6},${qy - 2.8} L${qx + 3.8},${qy + 1.4} L${qx + 5.6},${qy + 8} L${qx},${qy + 4} L${qx - 5.6},${qy + 8} L${qx - 3.8},${qy + 1.4} L${qx - 8.6},${qy - 2.8} L${qx - 2.6},${qy - 2.8} Z`}
                   style={{ fill: 'var(--viz-4)', stroke: 'var(--surface)', strokeWidth: 1.5 }}

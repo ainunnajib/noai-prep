@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "vision-language-models",
       title: "Vision-language models",
       summary: "How models like Flamingo, LLaVA and GPT-4V let an LLM see: vision encoders, projections, and cross-attention versus token concatenation.",
-      minutes: 25,
+      minutes: 30,
       objectives: ["You can describe how image features are fed into an LLM", "You can contrast cross-attention fusion (Flamingo) with token concatenation (LLaVA-style)", "You can explain self-attention versus cross-attention", "You can name tasks VLMs perform (captioning, VQA, OCR)"],
       load: () => import('./vision-language-models.mdx'),
     },
