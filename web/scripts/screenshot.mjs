@@ -34,7 +34,12 @@ for (const r of routes) {
       await page.goto(base + r, { waitUntil: 'networkidle', timeout: 60000 })
       // wait until lazy lessons and embedded past-paper questions have rendered
       const loaded = await page
-        .waitForFunction(() => !document.querySelector('.loading-block, .pastq-loading'), null, { timeout: 30000 })
+        .waitForFunction(
+          // no loading placeholders left, and real content in <main> (guards against checking before the lazy lesson has even started loading)
+          () => !document.querySelector('.loading-block, .pastq-loading') && (document.querySelector('main')?.textContent?.trim().length ?? 0) > 200,
+          null,
+          { timeout: 30000 },
+        )
         .then(() => true)
         .catch(() => false)
       if (!loaded) {
