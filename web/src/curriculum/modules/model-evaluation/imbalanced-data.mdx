@@ -125,10 +125,10 @@ So there are three places to intervene: change the **loss** (make each rare exam
 Give each example's loss a weight $w$ that depends on its class, and minimise
 
 $$
-L = \frac{1}{N}\sum_{i=1}^{N} w_{y_i}\, \ell_i
+L = \frac{1}{n}\sum_{i=1}^{n} w_{y_i}\, \ell_i
 $$
 
-Here $N$ is the number of training examples, $\ell_i$ is the ordinary loss of example $i$ (for example its cross-entropy), and $w_{y_i}$ is the weight of its class $y_i$. A common choice is $w_0 = 1$ for the majority class and $w_1 = \frac{n_0}{n_1}$ for the minority class, where $n_0$ and $n_1$ are the class sizes. With 9,800 genuine and 200 fraud payments, $w_1 = \frac{9{,}800}{200} = 49$: every missed fraud now costs 49 times as much, so the 200 frauds weigh as much in total as the 9,800 genuine payments. In scikit-learn, `class_weight={0: 1, 1: 49}` sets exactly these weights, and `class_weight="balanced"` sets $w_c = \frac{n}{2 n_c}$ (here about 0.51 and 25), the same 49 : 1 ratio. In PyTorch it is the `pos_weight` or `weight` argument of the loss (code below).
+Here $n$ is the number of training examples, $\ell_i$ is the ordinary loss of example $i$ (for example its cross-entropy), and $w_{y_i}$ is the weight of its class $y_i$. (This $w$ is a *class* weight that multiplies an example's loss, not one of the model's weights.) A common choice is $w_0 = 1$ for the majority class and $w_1 = \frac{n_0}{n_1}$ for the minority class, where $n_0$ and $n_1$ are the class sizes. With 9,800 genuine and 200 fraud payments, $w_1 = \frac{9{,}800}{200} = 49$: every missed fraud now costs 49 times as much, so the 200 frauds weigh as much in total as the 9,800 genuine payments. In scikit-learn, `class_weight={0: 1, 1: 49}` sets exactly these weights, and `class_weight="balanced"` sets $w_c = \frac{n}{2 n_c}$ (here about 0.51 and 25), the same 49 : 1 ratio. In PyTorch it is the `pos_weight` or `weight` argument of the loss (code below).
 
 ### Resampling: change the data
 
@@ -217,7 +217,9 @@ Flag every payment with $p > t^*$. When misses are expensive ($c_{FN}$ large), $
 In the visual, the threshold 0.1 catches 165 of the 200 frauds and costs \$5,060 per 10,000 payments, while the default 0.5 catches only 116 and costs \$7,810, even though its **accuracy is higher** (0.989 against 0.977). Accuracy rewards the wrong thing again.
 
 <Note title="For the curious: other cost set-ups">
+
 The formula charges $c_{FP}$ only when a flagged payment turns out to be genuine. If instead a check costs $c$ on **every** flagged payment, fraud or not, flagging always costs $c$, so you flag when $c < p\,c_{FN}$: the threshold is $c / c_{FN}$ (here $10/90 \approx 0.11$).
+
 </Note>
 
 <KeyIdea>

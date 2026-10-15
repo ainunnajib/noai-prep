@@ -105,7 +105,9 @@ $$
 - $1 - \varepsilon$ is its weighted accuracy, so $\frac{1 - \varepsilon}{\varepsilon}$ is **how many times more weight it gets right than wrong**;
 - $\ln$ is the natural logarithm (log base $e \approx 2.718$); the $\frac12$ in front is explained in "For the curious" further down.
 
-Read it from the middle outwards. A learner with $\varepsilon = 0.5$ is a coin flip: $\frac{0.5}{0.5} = 1$ and $\ln 1 = 0$, so it gets **no say at all**. A better learner has a ratio above 1, so a **positive** $\alpha$, and the ratio explodes as $\varepsilon \to 0$. A learner worse than a coin flip has a ratio below 1 and a **negative** $\alpha$: its votes would be counted backwards.
+Careful with the letters: this $\alpha$ is AdaBoost's own symbol for a learner's say, not a learning rate (nor the smoothing constant of naive Bayes), and the weights $w_i$ belong to training *examples*, not to features as in a linear model.
+
+Now read the formula from the middle outwards. A learner with $\varepsilon = 0.5$ is a coin flip: $\frac{0.5}{0.5} = 1$ and $\ln 1 = 0$, so it gets **no say at all**. A better learner has a ratio above 1, so a **positive** $\alpha$, and the ratio explodes as $\varepsilon \to 0$. A learner worse than a coin flip has a ratio below 1 and a **negative** $\alpha$: its votes would be counted backwards.
 
 <AlphaCurve />
 
@@ -209,7 +211,7 @@ Before normalising, round $t$ leaves a total weight of $Z_t = (1 - \varepsilon_t
 
 </Note>
 
-There is a price. A <Term def="An example whose label in the training data is wrong, for instance a cheap flat recorded as expensive. Also called label noise.">mislabelled example</Term> can never be classified "correctly" by a sensible boundary, so every round that the team gets it wrong, its weight is multiplied up again, and later learners bend the boundary just to fit it. Switch on **Add a mislabelled point** in the stepper to watch this happen: its weight climbs to about 9 times its starting value, and by round 17 the vote has carved a box just for it. That is overfitting: AdaBoost is sensitive to label noise and outliers. The usual cures are to stop after fewer rounds (choose the number of rounds on validation data), to use simple weak learners, or to use a gentler loss, which is where gradient boosting comes in next.
+There is a price. A <Term def="An example whose label in the training data is wrong, for instance a cheap flat recorded as expensive. Also called label noise.">mislabelled example</Term> can never be classified "correctly" by a sensible boundary, so every round that a stump gets it wrong, its weight is multiplied up again, and later learners bend the boundary just to fit it. Switch on **Add a mislabelled point** in the stepper to watch this happen: its weight climbs to about 9 times its starting value, and by round 17 the vote has carved a box just for it. That is overfitting: AdaBoost is sensitive to label noise and outliers. The usual cures are to stop after fewer rounds (choose the number of rounds on validation data), to use simple weak learners, or to use a gentler loss, which is where gradient boosting comes in next.
 
 Under the hood, the weight of example $i$ after $t$ rounds is proportional to $e^{-y_i F(x_i)}$, where $F(x) = \sum \alpha_t h_t(x)$ is the vote's score. This is the <Term def="The loss e^(−y·F(x)) for a label y = ±1 and a score F(x). It is small when the score has the right sign and a large size, and grows exponentially when the sign is wrong. AdaBoost minimises it.">exponential loss</Term>: AdaBoost turns out to be a method for making $\sum_i e^{-y_i F(x_i)}$ small, one learner at a time. Hold on to this thought: the next lesson generalises it to **any** loss.
 

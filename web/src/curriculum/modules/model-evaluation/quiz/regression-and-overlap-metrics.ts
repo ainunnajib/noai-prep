@@ -27,10 +27,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'model-evaluation.regression-and-overlap-metrics.3',
     prompt: 'A true box has corners $(0, 0, 4, 4)$ and a predicted box has corners $(2, 2, 6, 6)$, written as $(x_1, y_1, x_2, y_2)$. What is their IoU?',
-    options: ['$\\frac{1}{7} \\approx 0.14$', '$\\frac{1}{4} = 0.25$', '$\\frac{1}{8} = 0.125$', '$\\frac{1}{2} = 0.5$'],
+    options: ['$\\frac{1}{7}$', '$\\frac{1}{4}$', '$\\frac{1}{8}$', '$\\frac{1}{2}$'],
     answer: 0,
     explanation:
-      'Overlap: width $\\min(4, 6) - \\max(0, 2) = 2$ and height $2$, so the overlap is $4$. Each box has area $16$, so the union is $16 + 16 - 4 = 28$ and IoU $= \\frac{4}{28} = \\frac{1}{7}$. $\\frac{1}{4}$ divides by one box only, and $\\frac{1}{8}$ forgets to subtract the overlap from the union.',
+      'Overlap: width $\\min(4, 6) - \\max(0, 2) = 2$ and height $2$, so the overlap is $4$. Each box has area $16$, so the union is $16 + 16 - 4 = 28$ and IoU $= \\frac{4}{28} = \\frac{1}{7} \\approx 0.14$. $\\frac{1}{4}$ divides by one box only, $\\frac{1}{8}$ forgets to subtract the overlap from the union, and $\\frac{1}{2}$ is the overlap width divided by one box\'s width.',
     difficulty: 'beginner',
   },
   {

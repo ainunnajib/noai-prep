@@ -65,17 +65,17 @@ y = rng.permutation([0, 1] * 30)    # random labels: nothing to learn
 # leaky: choose 10 columns using ALL rows, then cross-validate
 X_sel = SelectKBest(f_classif, k=10).fit_transform(X, y)
 leaky = cross_val_score(LogisticRegression(), X_sel, y, cv=5)
-print(f"select, then CV:       {leaky.mean():.2f}")
+print(f"select, then CV:           {leaky.mean():.2f}")
 
-# honest: the selector is refitted inside every fold
+# selection inside a Pipeline, k tuned by grid search: best_score_ is the best of 3 CV scores
 pipe = make_pipeline(SelectKBest(f_classif, k=10), LogisticRegression())
-honest = cross_val_score(pipe, X, y, cv=5)
-print(f"selection inside CV:   {honest.mean():.2f}")
+grid = {"selectkbest__k": [5, 10, 20]}
+search = GridSearchCV(pipe, grid, cv=5).fit(X, y)
+print(f"best_score_ of the search: {search.best_score_:.2f}")
 
-# nested CV: GridSearchCV tunes k inside each outer training set
-inner = GridSearchCV(pipe, {"selectkbest__k": [5, 10, 20]}, cv=3)
-nested = cross_val_score(inner, X, y, cv=5)
-print(f"nested CV (tuned k):   {nested.mean():.2f}")`
+# nested CV: a search with 3 inner folds runs inside each outer training set
+nested = cross_val_score(GridSearchCV(pipe, grid, cv=3), X, y, cv=5)
+print(f"nested CV (tuned k):       {nested.mean():.2f}")`
 
 A single train/validation split gives you one score, and that score depends on luck: which rows happened to land in the validation set. Once you start tuning, every glance at a score is a chance to fool yourself. This lesson is about numbers you can trust: **cross-validation**, **grid and random search**, and the two classic leaks that make a model look better than it is.
 
@@ -85,7 +85,7 @@ A class of 30 wants to rate its own revision notes. If only one group of 6 ever 
 
 ## Why one split is not enough
 
-Recall the three piles from the data module: the **training set** fits the model's parameters, the <Term def="Data held back from training and used to compare models or hyperparameter settings. Because you make choices based on it, its score becomes slightly optimistic.">validation set</Term> compares settings, and the **test set** is used **once**, at the end. The settings you compare are <Term def="A setting you choose before training, such as k in k-nearest neighbours or the maximum depth of a tree. The model does not learn it from the data; you pick it by trying values and comparing scores.">hyperparameters</Term>, such as the depth of a tree or the $k$ in $k$-nearest neighbours: you choose them, the model does not learn them.
+Recall the three piles from [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): the **training set** fits the model's parameters, the <Term def="Data held back from training and used to compare models or hyperparameter settings. Because you make choices based on it, its score becomes slightly optimistic.">validation set</Term> compares settings, and the **test set** is used **once**, at the end. The settings you compare are <Term def="A setting you choose before training, such as k in k-nearest neighbours or the maximum depth of a tree. The model does not learn it from the data; you pick it by trying values and comparing scores.">hyperparameters</Term>, such as the depth of a tree or the $k$ in $k$-nearest neighbours: you choose them, the model does not learn them.
 
 With little data, the validation score is noisy. Hold out 8 of 40 students and each is worth $\frac{1}{8} = 12.5$ percentage points: one tricky student landing in the validation set costs 12.5 points, although the model is just as good.
 
@@ -200,31 +200,13 @@ Search learning rates and regularisation strengths on a **log scale**, e.g. $0.0
 
 ## Every fitted step goes inside the folds
 
-Cross-validation is only honest if the validation fold plays no part in training, including **every step that learns from data**, not just the model. The classic trap: pick "the 10 most useful columns" using all the rows, *then* cross-validate. The validation rows' labels have already helped to choose the columns: that is <Term def="When information from the validation or test data (or from the future) gets into training, so the reported score is better than the model's real performance.">data leakage</Term>.
+Cross-validation is only honest if each round's validation fold plays no part in training, and that includes **every step that learns from data**, not just the model: a scaler's mean and SD, an <Term def="A preprocessing step that fills in missing values, for example with the mean of each column. The fill values are learned from data, so they must come from the training folds only.">imputer</Term>'s fill values for missing entries, feature selection, and oversampling such as SMOTE. You met this rule in [Splitting and leakage](#/learn/data-and-features/splitting-and-leakage), together with the <Term def="A scikit-learn object that chains preprocessing steps and a model. Cross-validating the whole pipeline refits every step on each round's training folds only.">Pipeline</Term> that enforces it: put the steps and the model in one object and pass the whole pipeline to `cross_val_score(pipe, X, y, cv=5)`, so every step is refitted on each round's training folds only.
 
-<Analogy title="Revising after seeing the paper">
-Choosing which topics to revise *after* seeing the exam paper, then saying your mock score shows how well you will do in the real exam. The mock score was real, but it no longer predicts anything.
-</Analogy>
-
-The data below are pure noise, random numbers with random labels, so no model can genuinely beat a coin flip (0.5).
+The classic trap is to pick "the 10 most useful columns" using all the rows, *then* cross-validate. The validation rows' labels have already helped to choose the columns: that is <Term def="When information from the validation or test data (or from the future) gets into training, so the reported score is better than the model's real performance.">data leakage</Term>. The data below are pure noise, random numbers with random labels, so no model can genuinely beat a coin flip (0.5).
 
 <CVLeakageCompare />
 
-Why does A climb? With 1,000 random columns and only 40 rows, a few columns match the labels well **by pure chance** on all 40 rows, validation rows included. A keeps exactly those columns, so their luck carries over to the validation folds. B chooses columns on each round's 32 training rows, and that luck does not carry over to the 8 unseen rows. More columns means more chances for luck.
-
-The rule covers every fitted step: a scaler's mean and SD, an <Term def="A preprocessing step that fills in missing values, for example with the mean of each column. The fill values are learned from data, so they must come from the training folds only.">imputer</Term>'s fill values for missing entries, feature selection, and oversampling such as SMOTE. The safe way is a <Term def="A scikit-learn object that chains preprocessing steps and a model. Cross-validating the whole pipeline refits every step on each round's training folds only.">Pipeline</Term>: put the steps and the model in one object and cross-validate the whole thing, so every step is refitted inside each round.
-
-```python
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
-
-# X, y: your data
-pipe = make_pipeline(StandardScaler(), SelectKBest(f_classif, k=10), LogisticRegression())
-print(cross_val_score(pipe, X, y, cv=5).mean())   # scaler and selector refitted in every fold
-```
+Why does A climb? With hundreds of random columns and only 40 rows, a few columns match the labels well **by pure chance** on all 40 rows, validation rows included. A keeps exactly those columns, so their luck carries over to the validation folds. B chooses columns on each round's 32 training rows, and that luck does not carry over to the 8 unseen rows. More columns means more chances for luck.
 
 Resamplers such as SMOTE need `imblearn.pipeline.Pipeline` from the imbalanced-learn library, which resamples the training folds only; scikit-learn's own Pipeline cannot hold them.
 
@@ -232,14 +214,10 @@ Resamplers such as SMOTE need `imblearn.pipeline.Pipeline` from the imbalanced-l
 
 ## Peeking at the test set
 
-Tuning has a subtler leak. Each time you check a score and change something because of it, that data influences your choices; do it with the **test** set and it quietly becomes a validation set. The 2026 Prelim compared two protocols:
+Tuning has a subtler leak, which you met in [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): each time you check a score and change something because of it, that data influences your choices; do it with the **test** set and it quietly becomes a validation set. Here is how big the effect is. The 2026 Prelim compared two protocols:
 
 - **Protocol A**: 70% train, 30% test. Train, check the test accuracy, adjust, retrain… 50 times; report the best test accuracy.
 - **Protocol B**: 60% train, 20% validation, 20% test. Tune on the validation set; evaluate on the test set once.
-
-<Analogy title="The same practice paper, fifty times">
-Retaking the same practice paper 50 times: your score on that paper climbs, partly because you remember its questions. Your result in the real exam does not.
-</Analogy>
 
 <ProtocolCompare />
 
@@ -253,7 +231,7 @@ Tune on a validation set or with cross-validation. Touch the test set **once**, 
 
 `GridSearchCV`'s `best_score_` is the best of many CV scores, so it is a little optimistic too. When there is too little data to set aside a test set, <Term def="Cross-validation inside cross-validation: an outer k-fold loop estimates performance, and inside each outer training set an inner CV loop does the tuning. The outer folds never influence any choice.">nested cross-validation</Term> gives an honest estimate of the whole recipe, tuning included. An **outer** k-fold loop holds out one fold at a time. On the remaining folds, an ordinary grid or random search with its own **inner** CV picks the setting, which is then scored once on the held-out outer fold. No outer fold influenced any choice, so the mean ± SD of the outer scores is honest. With 5 outer folds, 9 settings and 3 inner folds that is $5 \times 9 \times 3 = 135$ fits, plus 5 refits.
 
-In scikit-learn, nesting is one line: pass a `GridSearchCV` object to `cross_val_score`. The code below runs leaky selection, selection inside a Pipeline, and nested CV on pure noise. Only the first looks impressive, and it is the wrong one. (With only 60 rows, the honest scores bounce around 0.5.)
+In scikit-learn, nesting is one line: pass a `GridSearchCV` object to `cross_val_score`. The code below compares three numbers on pure noise: leaky selection, the `best_score_` of a grid search over $k$ (with selection inside a Pipeline), and nested CV of that same search. The leaky score looks impressive and is plain wrong. `best_score_` is the best of three noisy CV scores, so it tends to sit above the nested score, which is the honest one. (With only 60 rows, the honest scores bounce around 0.5: try other seeds.)
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={leakCode} />
 

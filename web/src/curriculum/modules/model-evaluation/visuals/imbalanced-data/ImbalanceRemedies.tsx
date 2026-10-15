@@ -176,7 +176,7 @@ export default function ImbalanceRemedies() {
 
   return (
     <Figure
-      title="Four remedies for a rare class (plus a shortcut)"
+      title="Four remedies for a rare class (plus a baseline and a shortcut)"
       caption={
         <>
           Click through the tabs. Every remedy pushes the boundary into the genuine cloud: more frauds caught, more false alarms. The table scores each model on

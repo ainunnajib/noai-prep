@@ -90,7 +90,7 @@ $$
 
 A pure node has one $p_k = 1$, so $G = 1 - 1 = 0$. A 50-50 node has $G = 1 - (0.5^2 + 0.5^2) = 0.5$, the largest possible with two classes.
 
-The **entropy** of a node is
+You met **entropy** in [Likelihood and entropy](#/learn/classification/likelihood-and-entropy) as the average surprise of a distribution, in bits. Here the outcomes are the classes in a node, so the entropy of a node is
 
 $$
 H = -\sum_{k=1}^{K} p_k \log_2 p_k
@@ -98,13 +98,9 @@ $$
 
 - $\log_2 p_k$ is negative for $0 < p_k < 1$, so the minus sign in front makes $H$ positive;
 - each class contributes $p_k \times (-\log_2 p_k)$, and a class with $p_k = 0$ contributes 0;
-- entropy is measured in <Term def="The unit of information: the uncertainty of one fair yes/no question, like a coin toss. Entropy with log base 2 is measured in bits.">bits</Term>: roughly, the smallest possible average number of yes/no questions needed to pin down the class (exactly so when the fractions are $\tfrac12, \tfrac14, \tfrac18, \dots$).
+- roughly, $H$ is the smallest possible average number of yes/no questions needed to pin down the class (exactly so when the fractions are $\tfrac12, \tfrac14, \tfrac18, \dots$).
 
-A pure node has $H = -(1 \times \log_2 1) = 0$. A 50-50 node has the largest entropy possible with two classes:
-
-$$
-H = -(0.5 \log_2 0.5 + 0.5 \log_2 0.5) = -(0.5 \times (-1) + 0.5 \times (-1)) = 1 \text{ bit}
-$$
+A pure node has $H = -(1 \times \log_2 1) = 0$. A 50-50 node is a fair coin, $H = 1$ bit, the largest entropy possible with two classes.
 
 <ImpurityCurves />
 

@@ -6,10 +6,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A screening model for a rare disease is tested on a large set of patients, 0.5% of whom have the disease. The team reports an accuracy of 99.4%. What is the most sensible conclusion?',
     options: [
-      'Accuracy says little here: calling everyone healthy scores 99.5%, so check recall and precision on the disease class',
-      'The model is excellent, because it gives the right answer for more than 99 out of every 100 patients it sees',
-      'The model must have a high recall, because its mistakes add up to at most 0.6% of all the patients tested',
-      'The model is useless, because its accuracy is lower than the 99.5% accuracy of always answering "healthy"',
+      'Accuracy says little: always answering "healthy" scores 99.5%, so check recall and precision instead',
+      'The model is excellent: it gives the right answer for more than 99 out of every 100 patients it sees',
+      'The model must have high recall, because its mistakes add up to at most 0.6% of all the patients tested',
+      'The model is useless, because it scores below the 99.5% accuracy of always answering "healthy"',
     ],
     answer: 0,
     explanation:
@@ -21,10 +21,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A training set has 4,750 negative and 250 positive examples. Which statement comparing class weights with random oversampling is correct?',
     options: [
-      'Weight 19 on each positive has the same effect on the loss as including each positive 19 times, but copies slow training down',
-      'Including each positive 19 times adds new information about the positive class, so it generalises better than class weights',
-      'Each positive needs weight 20 to balance the classes, because there are 5,000 examples and 250 of them are positive',
-      'Class weights must also be applied when scoring the test set, whereas an oversampled model can be tested as it is',
+      'Weight 19 has the same effect on the loss as making each positive appear 19 times, but copies slow training',
+      'Making each positive appear 19 times adds new information about the positives, so it beats class weights',
+      'Each positive needs weight 20 to balance the classes, because 5,000 examples divided by 250 positives is 20',
+      'Class weights must also be applied when scoring the test set, but an oversampled model is tested as it is',
     ],
     answer: 0,
     explanation:

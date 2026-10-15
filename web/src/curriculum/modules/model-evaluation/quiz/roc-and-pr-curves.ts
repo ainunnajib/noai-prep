@@ -14,14 +14,14 @@ const questions: QuizQuestion[] = [
     id: 'model-evaluation.roc-and-pr-curves.2',
     prompt: 'A classifier has an ROC-AUC of 0.85. Which statement is correct?',
     options: [
-      'A random positive gets a higher score than a random negative 85% of the time',
+      'In 85% of all (positive, negative) pairs, the positive gets the higher score',
       'The classifier labels 85% of all examples correctly at its default threshold',
       'At a threshold of 0.5, the classifier finds 85% of the positives',
       '85% of the examples the classifier flags as positive really are positive',
     ],
     answer: 0,
     explanation:
-      'AUC measures ranking: it is the probability that a random positive outscores a random negative, and it does not depend on any threshold. The other options describe accuracy, recall at one threshold and precision, each of which depends on the threshold you choose.',
+      'AUC measures ranking: it is the probability that a random positive outscores a random negative, which is the same as the fraction of (positive, negative) pairs ranked correctly, and it does not depend on any threshold. The other options describe accuracy, recall at one threshold and precision, each of which depends on the threshold you choose.',
     difficulty: 'intermediate',
   },
   {
@@ -53,14 +53,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A fraud model has an ROC-AUC of 0.97 on data where 0.1% of transactions are fraud, yet the investigators say most of its alerts are false alarms. Which evaluation would best expose this problem?',
     options: [
-      'The precision-recall curve (or its average precision)',
-      'The ROC-AUC recomputed on a larger test set',
-      'The accuracy at the default threshold of 0.5',
-      'The specificity at the default threshold of 0.5',
+      'The precision-recall curve and its average precision',
+      'The ROC curve and its AUC, recomputed on a larger test set',
+      'The accuracy of the model at the default threshold of 0.5',
+      'The specificity of the model at the default threshold of 0.5',
     ],
     answer: 0,
     explanation:
-      'With 0.1% fraud there are about 999 genuine transactions per fraud, so even a small false positive rate produces many false alarms per real fraud. Accuracy and specificity are dominated by the huge negative class, and ROC-AUC ignores the class ratio altogether: FPR divides by the huge number of genuine transactions, so thousands of false alarms still look like a tiny FPR. Precision divides by the alerts themselves, so the PR curve shows directly how many alerts are real.',
+      'With 0.1% fraud there are about 999 genuine transactions per fraud, so even a small false positive rate produces many false alarms per real fraud. Accuracy and specificity are dominated by the huge negative class, and ROC-AUC ignores the class ratio altogether: FPR divides by the huge number of genuine transactions, so thousands of false alarms still look like a tiny FPR, and a larger test set only measures that same flattering number more precisely. Precision divides by the alerts themselves, so the PR curve shows directly how many alerts are real.',
     difficulty: 'intermediate',
   },
 ]

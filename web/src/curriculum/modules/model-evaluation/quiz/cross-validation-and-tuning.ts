@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team retrains after each of 40 hyperparameter tweaks, checks the test accuracy every time, and reports the best one: 93%. Deployed on new data from the same source, the model scores 89%. What is the most likely explanation?',
     options: [
-      'The best of 40 test scores includes luck, so 93% was biased upwards',
+      'The best of all 40 test scores is partly luck, so 93% was biased upwards',
       'The model is underfitting because 40 tweaks were not enough tuning',
       'The test set was too large, which made each individual test score unstable',
       'The deployment data must come from a different distribution than the test set',

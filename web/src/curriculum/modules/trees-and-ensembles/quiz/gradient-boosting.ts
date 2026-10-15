@@ -33,10 +33,10 @@ const questions: QuizQuestion[] = [
     id: 'trees-and-ensembles.gradient-boosting.4',
     prompt: 'You lower the learning rate of a gradient-boosting model from 0.1 to 0.01 and keep everything else the same. What typically happens?',
     options: [
-      'You need many more trees to reach a similar training loss, and the final model often generalises as well or slightly better.',
-      'You need many fewer trees, because each tree now fits the residuals more precisely, so training finishes sooner.',
-      'Nothing changes after enough trees, because the learning rate only affects the very first tree that is added.',
-      'The model can no longer overfit, so early stopping and a validation set are no longer needed.',
+      'You must add many more trees to reach a similar training loss, and the model often generalises as well or better.',
+      'You need far fewer trees, because each smaller step fits the residuals more precisely, so training finishes sooner.',
+      'Nothing changes once enough trees are added, because the learning rate scales just the first tree in the model.',
+      'The model can no longer overfit however many trees you add, so early stopping and a validation set become unnecessary.',
     ],
     answer: 0,
     explanation:

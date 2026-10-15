@@ -24,7 +24,7 @@ const questions: QuizQuestion[] = [
     prompt: 'A model outputs probabilities, and you raise its decision threshold from 0.5 to 0.8 without retraining. What usually happens?',
     options: [
       'Recall falls or stays the same, and precision usually rises',
-      'Recall rises, and precision usually falls',
+      'Recall rises or stays the same, and precision usually falls',
       'Precision and recall both rise, because the model is more confident',
       'Nothing changes, because the model\'s probabilities are the same',
     ],

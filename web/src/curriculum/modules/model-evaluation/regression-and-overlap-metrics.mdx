@@ -59,13 +59,15 @@ Precision, recall and F1 count right and wrong labels. But many models do not ou
 
 ## How far off? MAE, MSE and RMSE
 
-When a model predicts a number, each prediction has an error. The <Term def="The error of one prediction: true value minus predicted value, y − ŷ. Positive means the prediction was too low.">residual</Term> is
+You met MSE and its square root, RMSE, in [Least squares](#/learn/linear-regression/least-squares) and MAE in [Regularisation](#/learn/linear-regression/regularisation), where they scored a line during training. Here they become evaluation metrics: numbers you report about a finished model.
+
+When a model predicts a number, each prediction has an error. As in least squares, the <Term def="The error of one prediction: true value minus predicted value, y − ŷ. Positive means the prediction was too low.">residual</Term> is
 
 $$
-e_i = y_i - \hat{y}_i
+r_i = y_i - \hat{y}_i
 $$
 
-where $y_i$ is the true value for example $i$ and $\hat{y}_i$ ("y hat") is the model's prediction. A ride that took 23 minutes but was predicted at 20 has residual $+3$. To summarise $n$ residuals in one number we cannot just average them, because $+3$ and $-3$ would cancel to a "perfect" 0.
+where $y_i$ is the true value for example $i$ and $\hat{y}_i$ ("y hat") is the model's prediction. ([Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent) wrote the error the other way round, $e_i = \hat{y}_i - y_i$; for MAE, MSE and RMSE the sign makes no difference.) A ride that took 23 minutes but was predicted at 20 has residual $+3$. To summarise $n$ residuals in one number we cannot just average them, because $+3$ and $-3$ would cancel to a "perfect" 0.
 
 <Analogy title="Two Grab drivers">
 Two drivers quote arrival times for the same four trips. Driver A is always 3 minutes off. Driver B is spot on twice, 1 minute off once, and 11 minutes late once. Both are 3 minutes off on average, but B's one big miss is the one that makes you late for an exam. A good error measure should be able to tell them apart.

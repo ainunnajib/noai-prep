@@ -6,10 +6,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A training set has 10,000 rows. For one tree, a random forest draws a bootstrap sample. Which description of that sample is correct?',
     options: [
-      '10,000 rows drawn with replacement, about 6,300 of them distinct',
-      '6,300 rows drawn without replacement, all of them distinct',
-      '10,000 rows in a new random order, all of them distinct',
-      '3,700 rows drawn with replacement, about 2,300 of them distinct',
+      '10,000 rows drawn with replacement; about 6,300 are distinct',
+      '6,300 rows drawn without replacement; all 6,300 are distinct',
+      '10,000 rows in a shuffled order; all 10,000 are distinct',
+      '3,700 rows drawn with replacement; about 2,300 are distinct',
     ],
     answer: 0,
     explanation:
@@ -47,7 +47,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Validation accuracy stays close to 86% while training takes about 10 times longer',
       'Validation accuracy falls well below 86%, because 3,000 trees overfit the training data',
-      'Validation accuracy rises to about 99%, because more trees always close the gap',
+      'Validation accuracy rises to about 99%, because more trees keep closing the gap',
       'Training accuracy drops towards 86%, because the extra trees average away what was learned',
     ],
     answer: 0,
@@ -60,14 +60,29 @@ const questions: QuizQuestion[] = [
     prompt:
       'In a random forest predicting customer churn, `feature_importances_` (impurity based) ranks a `customer_id` column, a unique number for every row, third out of 10 features. Permutation importance on the test set gives it about 0. What is the best explanation?',
     options: [
-      'Impurity importance comes from training splits and favours features with many distinct values, which deep trees use to fit noise',
+      'Impurity importance is measured only on training splits and favours many-valued features, which deep trees use to fit noise',
       'The ID is genuinely predictive, and permutation importance misses it because shuffling an ID column does not change its values',
-      'Permutation importance only works for features that were standardised, so an unscaled ID column always scores 0',
+      'Permutation importance needs standardised features, so an unscaled ID column scores 0 whatever its real effect on churn',
       'The forest used the ID in many splits, which proves the ID causes churn even though the test score does not show it',
     ],
     answer: 0,
     explanation:
-      'A unique ID offers a different threshold between almost every pair of rows, so deep trees can always find an ID split that happens to separate a few noisy training rows, and each such split earns impurity credit. On held-out data the ID carries no signal, so shuffling it costs nothing. Shuffling does change which row gets which ID, so permutation importance is a fair test, and trees never need scaling.',
+      'A unique ID offers a different threshold between almost every pair of rows, so deep trees can always find an ID split that happens to separate a few noisy training rows, and each such split earns impurity credit. On held-out data the ID carries no signal, so shuffling it costs nothing. Shuffling does change which row gets which ID, so permutation importance is a fair test, and neither trees nor permutation importance need scaled features.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'trees-and-ensembles.bagging-and-random-forests.6',
+    prompt:
+      'A `RandomForestClassifier` is trained on data with 16 features, using scikit-learn\'s default `max_features` for classification ($\\sqrt{p}$). How does each tree choose the question at a split?',
+    options: [
+      'At every split it draws a fresh random set of 4 features and picks the best split among those 4',
+      'Each tree draws one random set of 4 features before it starts and uses those 4 for all of its splits',
+      'Each split considers all 16 features, but the threshold for the chosen feature is picked at random',
+      'The 4 most important features are found once, up front, and each split chooses among those 4',
+    ],
+    answer: 0,
+    explanation:
+      '$\\sqrt{16} = 4$, and the random subset is drawn afresh at **every split**, so different nodes of the same tree see different features; among those 4 the tree still picks the best feature and threshold by impurity, as usual. One subset per tree is the classic trap. Picking thresholds at random is not what a random forest does, and fixing the same top 4 features for every split would make the trees alike, the opposite of the goal: less alike trees have less correlated errors, which lowers the floor $\\rho\\sigma^2$.',
     difficulty: 'intermediate',
   },
 ]
