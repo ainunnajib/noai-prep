@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "distributions-and-clt",
       title: "Distributions, the normal curve and the CLT",
       summary: "Random variables, expectation and variance, the normal distribution and z-scores, and why averages of many samples look normal.",
-      minutes: 25,
+      minutes: 30,
       objectives: ["You can compute an expected value and explain it as a long-run average", "You can use z-scores and the 68-95-99.7 rule to estimate what share of a normal distribution lies in a range", "You can tell the standard deviation from the variance in N(μ, σ²) and in NumPy's normal sampler", "You can use the Central Limit Theorem to give the centre, spread and shape of sample means"],
       load: () => import('./distributions-and-clt.mdx'),
     },

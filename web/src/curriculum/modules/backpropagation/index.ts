@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "network-from-scratch",
       title: "A neural network from scratch in NumPy",
       summary: "Implementing the forward pass, loss, backward pass and update for a small classifier, and verifying gradients numerically.",
-      minutes: 30,
+      minutes: 25,
       objectives: ["You can write the forward pass, loss, backward pass and update for a one-hidden-layer network in NumPy", "You can use P − Y and the shape rules to write and check each gradient line", "You can check backprop gradients with central differences and tell a bug from a bad step size"],
       load: () => import('./network-from-scratch.mdx'),
     },

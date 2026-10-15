@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "k-nearest-neighbours",
       title: "k-nearest neighbours",
       summary: "Classifying by a vote of the most similar training examples: choosing k, choosing a distance metric, and why the features must be scaled.",
-      minutes: 25,
+      minutes: 20,
       objectives: ["You can classify a point by a k-NN vote and explain why a very small k overfits and a very large k underfits", "You can compute Euclidean, Manhattan and cosine distance and explain why they can disagree", "You can explain why k-NN needs scaled features and is slow at prediction time"],
       load: () => import('./k-nearest-neighbours.mdx'),
     },

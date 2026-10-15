@@ -31,7 +31,7 @@ const mod: ModuleDef = {
       slug: "strings",
       title: "Working with text: strings",
       summary: "Index, slice and transform text, and format output with f-strings.",
-      minutes: 25,
+      minutes: 20,
       objectives: ["You can index and slice strings, including negative indices and the excluded stop", "You can predict the result of chained string methods such as strip, lower and replace", "You can explain why a string method never changes the original string", "You can format numbers in f-strings, for example to 2 decimal places"],
       load: () => import('./strings.mdx'),
     },

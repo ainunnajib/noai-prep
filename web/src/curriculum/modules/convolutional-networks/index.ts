@@ -23,7 +23,7 @@ const mod: ModuleDef = {
       slug: "convolution",
       title: "The convolution operation",
       summary: "Sliding a small filter over an image and multiplying and adding at each position, classic edge, blur and sharpen filters, and how weight sharing makes convolution translation equivariant.",
-      minutes: 25,
+      minutes: 30,
       objectives: ["You can compute one output of a convolution by hand and with a NumPy loop", "You can predict what edge, blur and sharpen filters output, including on a flat region", "You can explain that a CNN learns its kernel weights by gradient descent", "You can explain weight sharing and why it makes a convolution translation equivariant"],
       load: () => import('./convolution.mdx'),
     },

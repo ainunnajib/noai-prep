@@ -23,7 +23,7 @@ const mod: ModuleDef = {
       slug: "encoder-decoder-models",
       title: "Encoder-decoder models",
       summary: "Sequence-to-sequence Transformers for translation, summarisation, captioning and speech recognition: cross-attention linking the two halves, which attention layers are causal, how they are trained and generate, and which model family fits which task.",
-      minutes: 25,
+      minutes: 20,
       objectives: ["You can describe the encoder-decoder architecture and work out the shapes in cross-attention", "You can explain why only the decoder's self-attention needs a causal mask", "You can explain why the encoder runs once while the decoder runs once per output token", "You can match tasks to encoder-only, decoder-only or encoder-decoder models such as BERT, GPT, T5 and Whisper"],
       load: () => import('./encoder-decoder-models.mdx'),
     },
