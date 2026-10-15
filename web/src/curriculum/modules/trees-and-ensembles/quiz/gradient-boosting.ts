@@ -24,7 +24,7 @@ const questions: QuizQuestion[] = [
     id: 'trees-and-ensembles.gradient-boosting.7',
     prompt: 'A table of HDB resale flats has some missing values in its numeric columns and a text column `town` with 26 categories. Which statement about the gradient-boosting libraries is true?',
     options: [
-      'XGBoost learns a default direction for missing values at each split, so rows with NaNs can be used as they are',
+      'XGBoost learns a default direction for missing values at each split, so rows with NaNs can be used as they are, without imputation',
       'XGBoost needs every NaN replaced by the column mean first, because a split cannot compare a NaN with a threshold',
       'CatBoost needs the town column one-hot encoded first, because its trees can only split on numeric columns',
       'LightGBM is fast because it trains all of its trees in parallel and averages them, as a random forest does',

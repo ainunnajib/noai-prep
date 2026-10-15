@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
     prompt: 'This PyTorch code trains a 10-class digit classifier, but it learns poorly. What is the bug?',
     code: 'logits = model(x)                       # shape (batch, 10)\nprobs = torch.softmax(logits, dim=1)\nloss = nn.CrossEntropyLoss()(probs, y)  # y: class indices, shape (batch,)\nloss.backward()',
     options: [
-      '`CrossEntropyLoss` must get raw logits because it applies log-softmax itself; pass `logits`, not `probs`',
+      '`CrossEntropyLoss` must get raw logits because it applies log-softmax itself; pass `logits` to it, not `probs`',
       '`y` must be one-hot encoded with shape `(batch, 10)`, because `CrossEntropyLoss` cannot read class indices',
       'The softmax should use `dim=0`, because the probabilities should add up to 1 over the batch dimension',
       '`CrossEntropyLoss` handles just two classes, so a 10-class model needs `BCEWithLogitsLoss` here instead',

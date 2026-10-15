@@ -28,7 +28,7 @@ const questions: QuizQuestion[] = [
       'The test must have been evaluated on too few people for its 99% sensitivity to be reliable',
       'A sensitivity of 99% is too low for screening, so the test misses most of the real cases',
       'A test whose sensitivity and false-positive rate add up to 100% always gives mostly false alarms',
-      'Healthy people vastly outnumber sick ones: every real case comes with about 100 false alarms',
+      'Healthy people vastly outnumber sick ones: each real case flagged comes with about 100 false alarms',
     ],
     answer: 3,
     explanation:

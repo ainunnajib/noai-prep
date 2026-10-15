@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A screening model for a rare disease is tested on a large set of patients, 0.5% of whom have the disease. The team reports an accuracy of 99.4%. What is the most sensible conclusion?',
     options: [
-      'Accuracy says little: always answering "healthy" scores 99.5%, so check recall and precision instead',
+      'Accuracy says little: always answering "healthy" scores 99.5%, so check the recall and precision instead',
       'The model is excellent: it gives the right answer for more than 99 out of every 100 patients it sees',
       'The model must have high recall, because its mistakes add up to at most 0.6% of all the patients tested',
       'The model is useless, because it scores below the 99.5% accuracy of always answering "healthy"',

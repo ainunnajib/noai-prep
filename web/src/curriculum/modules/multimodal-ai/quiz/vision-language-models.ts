@@ -42,14 +42,14 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.vision-language-models.4',
     prompt: 'Flamingo adds each cross-attention output as $\\mathbf{x} \\leftarrow \\mathbf{x} + \\tanh(\\alpha)\\,\\mathrm{CrossAttn}(\\mathbf{x}, \\text{image})$ with $\\alpha$ initialised to 0. Why start the gate at 0?',
     options: [
-      'At the start, the model gives exactly the same outputs as the original frozen LLM',
+      'At the start, the model gives exactly the same outputs as the original frozen LLM, so nothing is damaged',
       'It blocks gradients from reaching the new layers until the LLM has been fine-tuned',
       'It makes the model ignore images unless a user switches the gate on at inference',
       'It halves the memory that the new cross-attention layers use in the first epoch',
     ],
     answer: 0,
     explanation:
-      'Since $\\tanh(0) = 0$, the cross-attention adds nothing at first, so the output equals the original LLM\'s and the new random layers cannot damage its language skills; as training increases $\\alpha$, image information is blended in gradually. Gradients still flow to $\\alpha$ and the new layers (the LLM itself stays frozen), the gate is learned rather than switched by users, and its value does not change memory use.',
+      'Since $\\tanh(0) = 0$, the cross-attention adds nothing at first, so the output equals the original LLM\'s and the new random layers cannot damage its language skills; as training increases $\\alpha$, image information is blended in gradually. Gradients reach $\\alpha$ from the first step, and the new layers as soon as $\\alpha$ moves off 0 (the LLM itself stays frozen and is never fine-tuned), the gate is learned rather than switched by users, and its value does not change memory use.',
     difficulty: 'intermediate',
   },
   {

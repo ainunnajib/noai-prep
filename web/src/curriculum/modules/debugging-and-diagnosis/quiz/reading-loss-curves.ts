@@ -58,7 +58,7 @@ const questions: QuizQuestion[] = [
     id: 'debugging-and-diagnosis.reading-loss-curves.5',
     prompt: 'A model trains normally for 30 epochs. At epoch 31 the loss jumps to about $10^{12}$, and from epoch 32 onwards it is `nan`. Which pair of changes is most appropriate?',
     options: [
-      'Lower the learning rate and clip the gradients',
+      'Lower the learning rate and add gradient clipping',
       'Add dropout and stop training earlier',
       'Use a bigger model and train for more epochs',
       'Raise the learning rate and remove weight decay',

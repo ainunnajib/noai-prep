@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A model with a sigmoid output is trained with squared error $(y - p)^2$. One example has $y = 1$, but the model predicts $p = 0.01$. Why does the model learn very little from this badly wrong example?',
     options: [
-      'Its slope with respect to the score is $2(p - y)\\,p(1 - p)$, and the factor $p(1-p) \\approx 0.01$ makes that slope tiny',
+      'Its slope with respect to the score is $2(p - y)\\,p(1 - p)$, and the factor $p(1-p) \\approx 0.01$ makes that slope (and the update) tiny',
       'Squared error becomes negative when $p < y$, so gradient descent moves the weights in the wrong direction for this example',
       'Squared error is at most 1, so the loss of this example ($\\approx 0.98$) is too small for gradient descent to notice',
       'Squared error ignores examples whose prediction is below the 0.5 threshold, so training skips this example',

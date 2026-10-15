@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your RAG pipeline always returns 2 documents. For "What is quantum computing?" every cosine score is 0, but it still prints two unrelated documents and builds an answer from them. What is the best fix?',
     options: [
-      'Keep only documents that score above 0, and answer "I don\'t know" if none are left',
+      'Keep only documents that score above 0, and answer "I don\'t know" if none are left after filtering',
       'Increase k to 5 so that the right document is more likely to be among those returned',
       'Replace cosine similarity with the raw dot product so that the scores are no longer exactly 0',
       'Remove the IDF weighting so that common words such as "is" can match the query',

@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
     prompt: 'This loop is meant to minimise $(w - 3)^2$ by gradient descent. What does it print (approximately)?',
     code: 'w, lr = 0.0, 0.1\nfor step in range(50):\n    grad = 2 * (w - 3)      # derivative of (w - 3)**2\n    w = w + lr * grad\nprint(w)',
     options: [
-      'A large negative number: w moves further from 3 each step',
+      'A large negative number: w moves further away from 3 with each step',
       'About 3.0: gradient descent has converged to the minimum',
       'About 0.0: the learning rate is too small for w to move',
       'A value that keeps alternating between roughly 2.9 and 3.1',
@@ -37,7 +37,7 @@ const questions: QuizQuestion[] = [
     prompt: 'The goal is to standardise each of the 10 features (columns). What happens when this runs?',
     code: 'x = torch.randn(32, 10)    # 32 examples, 10 features\nmean = x.mean(dim=0)\nstd = x.std(dim=1)\nx_norm = (x - mean) / std',
     options: [
-      'A shape error: `std` has shape (32,), which cannot broadcast with (32, 10)',
+      'A shape error: `std` has shape (32,), which cannot broadcast against `x`\'s shape (32, 10)',
       'It runs correctly, because broadcasting matches `std` to the rows of `x`',
       'It runs, but `mean` should use `dim=1` so that it matches `std`',
       'It runs, but each example is divided by its own std instead of each feature',

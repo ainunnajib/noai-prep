@@ -28,7 +28,7 @@ const questions: QuizQuestion[] = [
     id: 'start-here.how-to-study.3',
     prompt: 'Ming has time for four short review sessions on one topic before the Prelim, six weeks away. Which plan follows this lesson\'s advice best?',
     options: [
-      'Test herself on days 1, 4, 11 and 30 after first learning it, letting the gaps grow each time',
+      'Test herself on days 1, 4, 11 and 30 after first learning it, so the gap between reviews grows each time',
       'Re-read her notes four times on the evening she first learns it, while it is still fresh',
       'Re-read her notes once a day on the four days just before the Prelim, so it is fresh on the day',
       'Test herself four times in a row on the day before the Prelim, so nothing is forgotten overnight',

@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A robot vacuum cleaner gets +1 for each patch of floor it cleans and −10 if its battery runs out away from its charging dock. In reinforcement learning terms, which of these is the **state**?',
     options: [
-      'Its position, battery level and which patches are already clean',
+      'Its position, battery level and which patches of floor are already clean',
       'The +1 it receives for each patch of floor that it manages to clean',
       'Moving forward, turning left or right, or heading back to the dock',
       'The rule it has learned for choosing a move in each situation',

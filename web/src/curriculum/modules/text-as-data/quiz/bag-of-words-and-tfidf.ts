@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'An HDB help site ranks its 10,000 FAQ pages by cosine similarity between **raw word-count** vectors. A search for "what is the resale levy" keeps returning long pages that are full of "what", "is" and "the". Which change most directly fixes this?',
     options: [
-      'Multiply counts by IDF so that words found on almost every page get weights near 0',
+      'Multiply counts by IDF so that words found on almost every page get weights near 0 and stop counting',
       'Rank by Euclidean distance between the raw count vectors instead of cosine similarity',
       'Count bigrams as well, so that pairs of neighbouring words get their own columns',
       'Keep rare words and typos in the vocabulary so that every page has more columns',
@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Which statement about bag-of-words and TF-IDF vectors is **true**?',
     options: [
-      'A word that occurs in every document gets weight 0 with $\\mathrm{idf} = \\log(N/\\mathrm{df})$',
+      'A word that occurs in every document gets weight 0 with $\\mathrm{idf} = \\log(N/\\mathrm{df})$, since $\\log 1 = 0$',
       'The vectors keep word order, so "dog bites man" and "man bites dog" get different vectors',
       'The word with the highest count in a document always gets that document\'s highest TF-IDF weight',
       'Changing the log base from 2 to 10 changes which documents rank highest by cosine similarity',

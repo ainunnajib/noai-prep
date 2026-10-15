@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'backpropagation.computational-graphs.1',
     prompt: 'In a computational graph used for automatic differentiation, what do the edges (arrows) represent?',
     options: [
-      'Values flowing from one operation into the next',
+      'Values flowing from one operation into the operation that uses them',
       'Learnable weights between layers of neurons',
       'The order in which training examples are processed',
       'Derivatives that the model learns during training',

@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A Python script must read an LLM\'s grade for each essay, but the replies vary: "Grade: B", "I\'d give this a B+ because…", "B". Which change to the prompt fixes this best?',
     options: [
-      'Ask for JSON with a single key "grade", and show one example reply',
+      'Ask for JSON with a single key "grade", and show one example reply in that format',
       'Add the role "You are a strict and very experienced English teacher"',
       'Raise the sampling temperature so that the model sounds more decisive',
       'Add "Let\'s think step by step" so the model explains each grade',

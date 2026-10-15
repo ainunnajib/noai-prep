@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team splits its data into a training set and a second set S. They train with 30 different learning rates, keep the one with the lowest error on S, and publish that error on S as their final result. What is the main problem?',
     options: [
-      'Choosing the rate on S makes its error optimistic; an untouched test set is needed',
+      'Choosing the rate on S makes its error optimistic; an untouched test set is needed for the final result',
       'Nothing is wrong, because `fit()` never saw the examples in S during training',
       'They should have chosen the learning rate using the error on the training set instead',
       'Thirty learning rates are too few, so the chosen value is probably far from the best',

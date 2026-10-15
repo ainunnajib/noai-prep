@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt: 'What is wrong with this preprocessing code?',
     code: 'from sklearn.impute import SimpleImputer\nfrom sklearn.model_selection import train_test_split\n\nimp = SimpleImputer(strategy="mean")\nX_all = imp.fit_transform(X_all)\nX_train, X_test, y_train, y_test = train_test_split(X_all, y)',
     options: [
-      'The imputer learns its means from all rows, so the test rows leak into training',
+      'The imputer learns its means from all rows before the split, so the test rows leak into training',
       'Mean imputation is wrong here; `SimpleImputer` only works with the median',
       '`fit_transform` fails on NaN values, so the imputer must come after the split',
       'Imputation should happen after training the model, so the test set stays untouched',

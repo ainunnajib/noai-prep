@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'final-lab-pytorch.practice-set.1',
     prompt: 'Based on the 2025 and 2026 Finals, which description best fits the programming tasks you should prepare for?',
     options: [
-      'Classical ML algorithms written from scratch in NumPy, plus PyTorch components with debugging parts',
+      'Classical ML algorithms written from scratch in NumPy, plus PyTorch model and metric code with debugging parts',
       'Training a large network on a GPU for hours until it reaches a target accuracy on a hidden leaderboard',
       'Calling scikit-learn models on a provided dataset, then tuning their hyperparameters by grid search',
       'Short essays on the history, ethics and social impact of AI, marked by hand against a rubric',
@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     id: 'final-lab-pytorch.practice-set.4',
     prompt: 'A conv2d written with four Python loops and the im2col version give exactly the same output, but im2col is tens to hundreds of times faster in NumPy. Why?',
     options: [
-      'The same multiply-adds run inside one compiled matrix product, not one Python step at a time',
+      'The same multiply-adds run inside one compiled, optimised matrix product, not one Python step at a time',
       'im2col does far fewer multiplications, because each overlapping window is copied only once',
       'NumPy sends the matrix product to the GPU automatically, while the Python loops stay on the CPU',
       'im2col skips the windows at the edges of the image, so there are fewer multiply-adds to do',

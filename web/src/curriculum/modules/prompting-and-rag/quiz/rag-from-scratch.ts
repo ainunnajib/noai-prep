@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'In a NumPy-only RAG task (no language model allowed), you must produce a `response` string from the retrieved documents. Which approach keeps the answer **grounded** in the documents?',
     options: [
-      'Join only the retrieved sentences into a template, and say "I don\'t know" when no document scores above 0',
+      'Join only the retrieved sentences into a template, and say "I don\'t know" when no retrieved document scores above 0',
       'Hard-code the expected sentence, and return it whenever the retrieved documents contain the right keywords',
       'Always return the top 2 documents, even when they score 0, so that the response is never empty',
       'Write a fluent paragraph that adds well-known facts about the topic to the retrieved sentences',

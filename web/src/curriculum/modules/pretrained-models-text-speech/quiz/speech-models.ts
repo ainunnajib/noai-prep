@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.speech-models.1',
     prompt: 'During pretraining, what does HuBERT predict for each masked stretch of audio?',
     options: [
-      'The k-means cluster number ("hidden unit") of each masked frame',
+      'The k-means cluster number ("hidden unit") of each masked frame of audio',
       'The letters of the transcript spoken during the masked frames',
       'The raw waveform samples that were hidden, one by one',
       'Whether the masked frames come from the same speaker as the rest',
@@ -19,7 +19,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.speech-models.2',
     prompt: 'Which description matches how Whisper turns speech into text?',
     options: [
-      'Log-mel spectrogram → Transformer encoder → decoder writing text tokens one by one, with cross-attention to the audio',
+      'Log-mel spectrogram → Transformer encoder → decoder writing text tokens one by one, with cross-attention to the encoded audio',
       'Raw waveform → k-means clustering of frames → decoder that maps each cluster number straight to a letter',
       'Log-mel spectrogram → decoder-only language model that predicts the next spectrogram frame, then reads it aloud as text',
       'Raw waveform → encoder → a single [CLS] vector → softmax over a fixed list of possible whole sentences',

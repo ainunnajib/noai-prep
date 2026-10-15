@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.compute-and-memory-tradeoffs.1',
     prompt: 'What does **activation (gradient) checkpointing** trade?',
     options: [
-      'Less activation memory, paid for with about one extra forward pass of compute',
+      'Less activation memory, paid for with about one extra forward pass that recomputes the dropped activations',
       'Less compute per step, paid for with extra memory to keep each layer\'s activations',
       'Less weight memory, paid for by storing the weights as 16-bit numbers instead of 32',
       'Safety against crashes, paid for with the time spent saving the model to disk',

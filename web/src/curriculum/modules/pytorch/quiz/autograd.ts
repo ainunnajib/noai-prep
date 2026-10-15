@@ -26,7 +26,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student’s validation loop appends `loss` (the tensor returned by the loss function) to a list after every batch and never uses `torch.no_grad()`. GPU memory climbs with every batch until a CUDA out-of-memory error. What is the main cause?',
     options: [
-      'Each stored loss keeps its batch’s computational graph, with its saved activations, alive',
+      'Each stored loss tensor keeps its batch’s computational graph, with its saved activations, alive',
       'Without `optimizer.zero_grad()`, the `.grad` of every weight grows with each validation batch',
       'The list of Python floats becomes too large, because each float takes several megabytes',
       'Validation data is copied to the GPU twice, once for the model and once for the loss',

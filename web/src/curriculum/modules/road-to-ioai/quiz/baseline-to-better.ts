@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'In one run you switch to a pretrained backbone, add augmentation and change the learning-rate schedule. Validation accuracy rises by 6 points. What is the best next step?',
     options: [
-      'Run an ablation: remove each change in turn, over a few seeds, to see what each one contributes',
+      'Run an ablation: remove each change in turn, over a few seeds, to see what each one actually contributes',
       'Keep the three changes for good, since a 6-point rise shows that each of them helped',
       'Add two or three more changes in the next run, since changing many things at once is working',
       'Re-run the same configuration once with a new seed and keep everything if it scores higher again',
@@ -56,7 +56,7 @@ const questions: QuizQuestion[] = [
     prompt:
       "A 2025 Singapore camp task gave labelled English tweets and unlabelled Spanish tweets, and asked for predictions on Spanish tweets. Only `xlm-roberta-base` was allowed, with no translation tools or LLMs. Which plan fits the rules and the data best?",
     options: [
-      'Fine-tune XLM-R on the English tweets, then add its most confident Spanish predictions as pseudo-labels and retrain',
+      'Fine-tune XLM-R on the English tweets, then add its most confident Spanish predictions as pseudo-labels and retrain on both',
       'Translate the Spanish tweets into English with a translation model, then classify them with the English-trained model',
       'Label a sample of the Spanish tweets by asking a chat LLM, then fine-tune XLM-R on those machine labels',
       'Train a new small network from scratch on the Spanish tweets alone, since they match the test language',

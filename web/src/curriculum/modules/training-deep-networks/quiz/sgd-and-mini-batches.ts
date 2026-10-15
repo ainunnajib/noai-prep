@@ -38,7 +38,7 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.sgd-and-mini-batches.4',
     prompt: 'Mini-batch gradients are noisy, yet mini-batch gradient descent still reaches a good minimum. What is the main reason?',
     options: [
-      'Over all possible batches the gradient estimate averages to the true one, so errors cancel over many steps',
+      'Over all possible batches the gradient estimate averages to the true one (it is unbiased), so errors cancel over many steps',
       'Shuffling the data before each epoch makes each mini-batch gradient exactly equal to the full-batch gradient',
       'The learning rate is small enough to filter the noise out of each mini-batch gradient before the update',
       'The optimiser stores the previous gradients and uses their exact average in place of the current one',

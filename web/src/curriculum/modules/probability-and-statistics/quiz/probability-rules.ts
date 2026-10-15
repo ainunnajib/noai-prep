@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     prompt: 'Events $A$ and $B$ have $P(A) = 0.3$ and $P(B) = 0.5$, and they are mutually exclusive. Which statement is correct?',
     options: [
       '$A$ and $B$ are independent, because $P(A \\cap B) = P(A)P(B) = 0.15$',
-      '$A$ and $B$ are dependent: $P(A \\cap B)$ must be 0, but $P(A)P(B) = 0.15$',
+      '$A$ and $B$ are dependent: $P(A \\cap B)$ must be 0, but $P(A)P(B) = 0.3 \\times 0.5 = 0.15$',
       '$A$ and $B$ are independent, because neither event can influence the other',
       '$P(A \\cup B) = 0.65$, because the overlap $0.15$ must be subtracted once',
     ],

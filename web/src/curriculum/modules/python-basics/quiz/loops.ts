@@ -36,7 +36,7 @@ const questions: QuizQuestion[] = [
     prompt: 'This program never finishes. Why?',
     code: 'balance = 3\nwhile balance < 20:\n    print("Top up!")\nbalance = balance + 5',
     options: [
-      'The last line is outside the loop, so it never runs and `balance` stays at 3',
+      'The last line is outside the loop, so it is never reached and `balance` stays at 3 forever',
       'A `while` loop always needs a `break` statement inside it, and this one has none',
       'The condition must be written `balance =< 20` for the loop to be able to stop',
       'Calling `print` inside a loop stops Python from checking the condition again',

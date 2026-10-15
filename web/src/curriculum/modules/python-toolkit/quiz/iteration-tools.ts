@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
     id: 'python-toolkit.iteration-tools.4',
     prompt: 'What is the difference between `[x * x for x in range(5)]` and `(x * x for x in range(5))`?',
     options: [
-      'The first builds a list of all five squares at once; the second is a generator that makes them on demand',
+      'The first builds a list of all five squares at once; the second is a generator that makes them one at a time, on demand',
       'The first builds a list of all five squares at once; the second builds a tuple holding the same five squares',
       'The first can be looped over only once; the second can be looped over again as many times as you like',
       'Both build the same list of five squares; round brackets are just an older way of writing a comprehension',
@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student writes `pairs = zip(X_train, y_train)` once, then trains with `for epoch in range(3): for x, y in pairs: ...`. Epoch 1 trains normally, but epochs 2 and 3 do nothing and no error appears. What is wrong?',
     options: [
-      '`zip` returns a one-pass iterator, so `pairs` is already used up when epochs 2 and 3 try to loop over it',
+      '`zip` returns a one-pass iterator, so `pairs` is already used up (empty) when epochs 2 and 3 try to loop over it',
       '`zip` stops at the shorter of `X_train` and `y_train`, so the later epochs run out of training examples to use',
       'The inner loop variables `x` and `y` overwrite the data, so after epoch 1 both lists have become empty',
       '`range(3)` gives 1, 2, 3, so the loop is skipping epoch 0 and the student is miscounting the epochs',

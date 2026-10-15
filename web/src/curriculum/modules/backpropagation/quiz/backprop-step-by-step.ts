@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'backpropagation.backprop-step-by-step.1',
     prompt: 'Why does backpropagation visit the nodes of a computational graph in the reverse of the forward order?',
     options: [
-      'Each node needs the finished gradients of all the nodes that use its output, which come later',
+      'Each node needs the finished gradients of all the nodes that use its output, which come later in the forward pass',
       'Gradients are smaller near the output, so starting there reduces rounding errors in the arithmetic',
       'The forward pass deletes the intermediate values, so they must be recomputed from the output end',
       'Reversing the order lets the weights be updated during the same sweep that computes the loss',
@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'For one training example, a ReLU hidden neuron has weighted sum $z = -2$. What gradient do the weights feeding **into** this neuron receive from this example?',
     options: [
-      'Zero, because ReLU\'s slope at $z = -2$ is $0$, blocking the gradient',
+      'Zero, because ReLU\'s slope at $z = -2$ is $0$, which blocks the gradient',
       'The same gradient as the other hidden neurons, because ReLU is linear',
       'A negative gradient, because the neuron\'s weighted sum is negative',
       'An undefined gradient, because ReLU has no derivative when $z \\le 0$',

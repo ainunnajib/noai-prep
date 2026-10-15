@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A 5-line program has a `print` on every line. Lines 1 to 4 are correct, but line 5 is `print("Bye)`, with the closing quote missing. What happens when you run it?',
     options: [
-      'Nothing at all is printed: Python reports a `SyntaxError` for line 5',
+      'Nothing at all is printed: Python reports a `SyntaxError` for line 5 before running any line',
       'Lines 1 to 4 print their output, then a `SyntaxError` for line 5 appears',
       'Lines 1 to 4 print their output, and line 5 is skipped without any message',
       'Python adds the missing quote by itself and then prints all five lines',

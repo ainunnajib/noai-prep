@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt: 'No point is assigned to cluster 1. What does this print?',
     code: 'points = np.array([[2, 4], [2, 8], [10, 0]])\nlabels = np.array([0, 0, 0])\nprint(points[labels == 1].mean(axis=0))',
     options: [
-      '`[nan nan]`, with a "Mean of empty slice" warning',
+      '`[nan nan]`, with a "Mean of empty slice" warning but no error',
       '`[0. 0.]`, because an empty sum counts as zero',
       '`ZeroDivisionError`, which stops the program',
       '`IndexError`, because there is no row for cluster 1',

@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Researchers inspect a trained Transformer. In one layer, head 3 almost always attends to the previous token, while head 7 links each verb to its subject. What best explains why the heads behave differently?',
     options: [
-      'Each head has its own learned query, key and value projections, so training can shape every head into its own pattern',
+      'Each head has its own learned query, key and value projections, so training can shape every head into its own attention pattern',
       'Each head is given a different subset of the tokens, so head 3 sees the early words and head 7 sees the later words',
       'The programmer gives each head a fixed rule, such as "attend to the previous token", before training of the model begins',
       'Each head uses a different softmax temperature, so the heads differ in sharpness while sharing the same projections',

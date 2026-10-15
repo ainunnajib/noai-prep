@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     id: 'classification.naive-bayes.3',
     prompt: 'What exactly is "naive" about Naive Bayes?',
     options: [
-      'Features are independent of each other given the class: $P(x_1, x_2 \\mid c) = P(x_1 \\mid c)\\,P(x_2 \\mid c)$',
+      'Features are independent of each other once the class is known: $P(x_1, x_2 \\mid c) = P(x_1 \\mid c)\\,P(x_2 \\mid c)$',
       'Classes are assumed equally likely before any features are seen, so the prior $P(c)$ is left out of the score',
       'Features are independent of the class itself, so $P(x_1 \\mid c) = P(x_1)$ whichever class $c$ you look at',
       'Features are mutually exclusive, so at most one word from the vocabulary can appear in any single message',

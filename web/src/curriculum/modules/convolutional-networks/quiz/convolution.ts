@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     id: 'convolutional-networks.convolution.4',
     prompt: 'In a trained CNN, where do the values of the convolution kernels come from?',
     options: [
-      'They are learned from data by gradient descent, starting from random values',
+      'They are learned from data by gradient descent, starting from small random values',
       'They are fixed edge, blur and sharpen filters chosen by the network designer',
       'They are copied from patches of the training images before training starts',
       'They are computed from the mean and standard deviation of each image',

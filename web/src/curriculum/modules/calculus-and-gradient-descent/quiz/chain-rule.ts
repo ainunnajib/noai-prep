@@ -49,7 +49,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A 20-layer network with sigmoid activations is training. The last layers\' weights change steadily, but the first layers\' weights hardly change at all. Which explanation fits best?',
     options: [
-      'Backpropagation multiplies about 20 local slopes, each at most 0.25 for the sigmoid, so the gradient reaching the first layers is tiny',
+      'Backpropagation multiplies about 20 local slopes, each at most 0.25 for the sigmoid, so the gradient reaching the first layers is vanishingly small',
       'Backpropagation adds about 20 local slopes, each at most 0.25 for the sigmoid, so the first layers receive an update that is far too large',
       'The sigmoid has no derivative at 0, so backpropagation stops as soon as any neuron outputs exactly 0.5',
       'The first layers see the raw input, which has larger values, so their gradients are automatically rescaled to zero',

@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     options: [
       'There is a bug: an untrained model\'s cross-entropy loss should start very close to 0',
       'There is a bug: the loss should start at $\\tfrac{1}{100} = 0.01$, the probability given to each class',
-      'This is expected: guessing $\\tfrac{1}{100}$ for every class costs $\\ln 100 = 2 \\ln 10 \\approx 4.6$',
+      'This is expected: guessing $\\tfrac{1}{100}$ for every class costs $-\\ln \\tfrac{1}{100} = \\ln 100 = 2 \\ln 10 \\approx 4.6$',
       'This is expected: cross-entropy always starts at $\\ln 2 \\approx 0.693$ times the number of layers',
     ],
     answer: 2,

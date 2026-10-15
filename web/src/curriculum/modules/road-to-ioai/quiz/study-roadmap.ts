@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'The IOAI syllabus labels "Object detection (YOLO, SSD, DETR)" as **Practice**. What does that ask of you?',
     options: [
-      'Know when to use a detector and be able to run or fine-tune one with a library and read its outputs',
+      'Know when to use a detector and be able to run or fine-tune one with a library and interpret its outputs',
       'Be able to derive and implement a detector such as YOLO from scratch, including its full loss function',
       'Nothing for the hands-on tasks, because Practice topics are tested as short definition questions',
       'Memorise the published accuracy and speed of each detector, since tasks ask you to compare them',

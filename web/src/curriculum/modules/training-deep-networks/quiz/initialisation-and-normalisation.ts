@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.initialisation-and-normalisation.5',
     prompt: 'Why do Transformers normally use LayerNorm rather than BatchNorm?',
     options: [
-      'It normalises each token over its own features, so it behaves the same for every batch size, even 1',
+      'It normalises each token over its own features, so it behaves the same for every batch size, even a batch of 1',
       'It normalises each feature over the whole batch, which gives more accurate statistics for long sequences',
       'It has no learnable parameters at all, so it adds nothing to the size of a very large model',
       'It keeps running averages of the mean and variance for evaluation, which BatchNorm cannot do',

@@ -35,7 +35,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A t-SNE map shows three clusters. A and B look the same size, and C is drawn three times farther from A than B is. Which conclusion is justified?',
     options: [
-      'Points drawn right next to each other were neighbours in the original data',
+      'Points drawn right next to each other were close neighbours in the original data',
       'A and B have about the same spread in the original high-dimensional data',
       'C is about three times more different from A than B is in the original data',
       'The original data contains exactly three natural groups of similar size',

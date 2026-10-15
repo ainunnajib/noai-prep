@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.designing-ml-solutions.4',
     prompt: 'Which of these describes knowledge distillation?',
     options: [
-      'Training a small student network to match the softened output probabilities of a large teacher, as well as the true labels',
+      'Training a small student network to match the softened output probabilities of a large teacher network, as well as the true labels',
       'Setting the trained network\'s weights that are closest to zero to exactly zero, then fine-tuning the weights that remain',
       'Storing each trained weight as an 8-bit integer plus one shared scale per layer, instead of storing it as a 32-bit float',
       'Training the large network on a smaller, cleaner subset of the training data so that it converges in far fewer update steps',

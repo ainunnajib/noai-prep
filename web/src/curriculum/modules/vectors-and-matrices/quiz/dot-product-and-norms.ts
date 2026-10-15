@@ -48,7 +48,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A search engine stores each document as a vector of word counts. Document Q is document P copied out 10 times, so every count in Q is 10 times the count in P. Which statement is correct?',
     options: [
-      'Their cosine similarity is 1, even though the Euclidean distance between them is large',
+      'Their cosine similarity is exactly 1, even though the Euclidean distance between them is large',
       "Their cosine similarity is 0.1, because Q's vector is 10 times as long as P's",
       'Their Euclidean distance is 0, because the two documents contain exactly the same words',
       'Their dot product is 1, because the two vectors point in exactly the same direction',

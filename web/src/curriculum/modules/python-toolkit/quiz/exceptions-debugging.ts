@@ -27,7 +27,7 @@ const questions: QuizQuestion[] = [
       'It is a `SyntaxError`, because Python requires an exception type after `except`',
       'It only catches errors raised inside functions, not errors raised in the `try` block itself',
       'It stops the `finally` block from running, so clean-up code is silently skipped',
-      'It catches every exception, even a `NameError` from a typo, so real bugs are hidden',
+      'It catches every exception, even a `NameError` from a simple typo, so real bugs are silently hidden',
     ],
     answer: 3,
     explanation:

@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-algebra-deeper.svd-and-special-matrices.4',
     prompt: 'Gram–Schmidt turns the columns of a square matrix $A$ with independent columns into $A = QR$. Which statement is true?',
     options: [
-      '$Q$ has perpendicular unit columns and $R$ is upper triangular',
+      '$Q$ has perpendicular unit columns ($Q^TQ = I$) and $R$ is upper triangular',
       '$Q$ is upper triangular and $R$ has perpendicular unit columns',
       '$Q$ and $R$ are both diagonal, holding the lengths of the columns',
       '$Q$ is the transpose of $A$ and $R$ is the identity matrix',

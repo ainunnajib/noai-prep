@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A dataset has two features, "temperature from sensor 1" and "temperature from sensor 2", which almost always agree to within 0.01 °C. When you fit linear regression with the normal equation $w = (X^TX)^{-1}X^Ty$, the two weights come out huge and of opposite sign, and they swing wildly if a single data point is changed. What is the best explanation?',
     options: [
-      'The two columns are nearly dependent, so $X^TX$ has a huge condition number',
+      'The two columns are nearly dependent, so $X^TX$ is ill-conditioned with a huge condition number',
       'The two columns are exactly dependent, so $X^TX$ has rank 0 and no solution',
       'The learning rate is too high, so the updates to the weights keep overshooting',
       'The features have very different scales, so one weight has to grow to compensate',

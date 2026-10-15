@@ -35,7 +35,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student deletes the division by $\\sqrt{d_k}$ from a model with $d_k = 256$, whose query and key entries have mean 0 and variance 1. The code still runs. What goes wrong?',
     options: [
-      'The scores have a standard deviation of about 16, so softmax becomes almost one-hot and its gradients nearly vanish',
+      'The scores have a standard deviation of about 16, so softmax becomes almost one-hot, its gradients nearly vanish and learning stalls',
       'The scores have a standard deviation of about 256, so the exponentials in softmax overflow and the weights become `nan`',
       'The attention weights no longer add up to 1 in each row, so the output is no longer an average of the values',
       'The weight matrix changes shape from $(T, T)$ to $(T, d_k)$, so the multiplication by $V$ fails with a shape error',

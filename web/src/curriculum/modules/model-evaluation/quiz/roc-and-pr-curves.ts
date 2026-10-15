@@ -38,7 +38,7 @@ const questions: QuizQuestion[] = [
     id: 'model-evaluation.roc-and-pr-curves.4',
     prompt: 'On an ROC plot, what does the straight diagonal line from $(0, 0)$ to $(1, 1)$ represent?',
     options: [
-      'A classifier that guesses at random: TPR equals FPR, and the AUC is 0.5',
+      'A classifier that guesses at random: TPR equals FPR at every threshold, and the AUC is 0.5',
       'A perfect classifier, which finds every positive without any false alarms',
       'A classifier that always predicts the positive class, whatever the input',
       'The best threshold for the model, where precision equals recall',

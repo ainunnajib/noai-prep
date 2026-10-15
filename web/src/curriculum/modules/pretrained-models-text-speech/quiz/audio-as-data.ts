@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.audio-as-data.5',
     prompt: 'Why do speech models such as Whisper take a log-mel spectrogram rather than a plain spectrogram with a linear frequency axis?',
     options: [
-      'Mel spacing gives more rows to low frequencies, where hearing is finest, and the log brings quiet and loud sounds to a similar scale',
+      'Mel spacing gives more rows to low frequencies, where hearing is finest, and the log (decibels) brings quiet and loud sounds to a similar scale',
       'Mel spacing raises the Nyquist limit so that frequencies above half the sampling rate can be kept, and the log removes background noise',
       'Mel spacing gives more rows to high frequencies, where most speech information sits, and the log makes the frames equal in length',
       'Mel spacing replaces the Fourier transform so no windows are needed, and the log converts the image back into a waveform',

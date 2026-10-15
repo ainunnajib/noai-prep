@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.perceptron.1',
     prompt: 'A perceptron and a logistic regression model both start by computing $z = \\mathbf{w}\\cdot\\mathbf{x} + b$. What is the key difference between them?',
     options: [
-      'The perceptron snaps $z$ to 0 or 1 with a step function; logistic regression turns $z$ into a probability with a sigmoid',
+      'The perceptron snaps $z$ to 0 or 1 with a step function; logistic regression turns $z$ into a probability between 0 and 1 with a sigmoid',
       'The perceptron draws a straight decision boundary, while logistic regression draws a curved one because the sigmoid is curved',
       'The perceptron adds a bias to shift its boundary, while logistic regression uses only the weights and has no bias',
       'The perceptron can learn XOR with one neuron because its step is non-linear, while logistic regression cannot',

@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-regression.multiple-and-polynomial.3',
     prompt: 'Why is the model $\\hat{y} = w_0 + w_1x + w_2x^2 + w_3x^3$ still called *linear* regression?',
     options: [
-      'Each weight only multiplies a fixed feature such as $x^2$, so the model is linear in the weights',
+      'Each weight only multiplies a fixed, precomputed feature such as $x^2$, so the model is linear in the weights',
       'For small $x$ the terms $x^2$ and $x^3$ are tiny, so the fitted curve is close to a straight line',
       'It is trained with the same mean squared error loss that is used for fitting straight lines',
       'It has a single input $x$, and any model with just one input variable counts as linear',

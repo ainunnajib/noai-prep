@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A classifier with dropout layers trained normally. At test time you feed it the same image twice and get two different predicted probabilities. What is the most likely cause?',
     options: [
-      '`model.eval()` was never called, so dropout is still zeroing a random set of units on each pass',
+      '`model.eval()` was never called, so dropout is still zeroing a random set of units on each forward pass',
       '`optimizer.zero_grad()` was never called in training, so old gradients leaked into the forward pass',
       'Softmax was applied before `CrossEntropyLoss` in training, so the probabilities are squashed twice',
       'The input was built with `torch.tensor` from integers, so it is rounded a little differently each run',

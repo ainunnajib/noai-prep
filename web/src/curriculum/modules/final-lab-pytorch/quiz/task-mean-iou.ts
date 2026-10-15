@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
       'A student\'s `calculate_miou` returns `nan` on the grader\'s test, where both masks are all zeros and `num_classes=2`. Which change fixes it?',
     code: 'for cls in range(num_classes):\n    p = (pred_flat == cls)\n    t = (true_flat == cls)\n    inter = (p & t).sum()\n    union = (p | t).sum()\n    ious.append(inter / union)\nreturn torch.stack(ious).mean().item()',
     options: [
-      'Check `if union == 0: continue` before the division',
+      'Check `if union == 0: continue` before the division, to skip absent classes',
       'Replace `&` and `|` with `and` and `or`',
       'Call `.float()` on `inter` and `union` before dividing',
       'Divide by `union + 1` so the denominator is never 0',

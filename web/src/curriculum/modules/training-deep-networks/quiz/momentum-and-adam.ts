@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Gradient descent on a long, narrow valley zig-zags from wall to wall while creeping along the floor. You add momentum with $\\beta = 0.9$. Why does the path improve?',
     options: [
-      'Components that flip sign each step cancel in the running average, while steady components add up',
+      'Components that flip sign each step cancel in the running average, while steady components along the valley add up',
       'Momentum divides each step by the size of recent gradients, so steep directions get smaller steps',
       'Momentum uses second derivatives to measure the curvature, so it can step straight to the valley floor',
       'Momentum adds random noise to each gradient, which knocks the parameters away from the valley walls',
@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.momentum-and-adam.3',
     prompt: 'Training with Adagrad goes well at first, but after many epochs the loss stops improving even though the model is far from good. Switching to RMSProp fixes it. What is the most likely reason?',
     options: [
-      "Adagrad's sum of past squared gradients only grows, so its steps shrink towards zero; RMSProp's moving average forgets old gradients",
+      'Adagrad\'s sum of past squared gradients only grows, so its steps shrink towards zero; RMSProp\'s moving average gradually forgets old gradients',
       'Adagrad has no learning-rate setting, so it cannot take large steps late in training; RMSProp adds a learning rate to fix this',
       'Adagrad includes momentum, which overshoots the minimum again and again; RMSProp removes the momentum term to stop the overshooting',
       "Adagrad's moving average of squared gradients forgets too quickly; RMSProp sums every past squared gradient so that nothing is forgotten",

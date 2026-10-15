@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt: 'In the call `s1.passed()`, where `passed` is defined as `def passed(self): ...` inside `class Student`, what is `self`?',
     options: [
       'The class `Student` that `passed` was defined in',
-      'The object `s1` that the method was called on',
+      'The object `s1` that the method was called on (no copy is made)',
       'A fresh copy of `s1` made just for this call',
       'The value returned earlier by `__init__`',
     ],
@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Calls `forward` once so that the network is ready to make its predictions',
       'Copies pretrained weights from the parent class into the new network',
-      'Runs `nn.Module`\'s own set-up, so it can register the layers you assign',
+      'Runs `nn.Module`\'s own set-up code, so it can register the layers you assign after it',
       'Declares `Net` as a subclass, which Python needs before any methods',
     ],
     answer: 2,

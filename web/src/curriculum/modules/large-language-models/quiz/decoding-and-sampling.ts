@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A school builds two tools on the same LLM: (1) answering questions about exam dates using the student handbook, and (2) brainstorming names for a new CCA. Which decoding settings fit best?',
     options: [
-      '(1) greedy or a temperature near 0; (2) a temperature around 1 with top-p around 0.95',
+      '(1) greedy or a temperature near 0; (2) a temperature around 1 with top-p around 0.95 for variety',
       '(1) temperature 1.5 so answers sound natural; (2) greedy so the names are consistent',
       'Temperature 0 for both, because a low temperature also stops the model inventing facts',
       'Wide beam search for both, because a wider beam always gives more creative output',

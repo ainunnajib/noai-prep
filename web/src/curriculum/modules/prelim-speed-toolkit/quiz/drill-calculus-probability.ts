@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'prelim-speed-toolkit.drill-calculus-probability.1',
     prompt: 'Why do deep networks with sigmoid activations in every hidden layer tend to suffer from vanishing gradients?',
     options: [
-      'The sigmoid’s slope $\\sigma(1 - \\sigma)$ never exceeds 0.25, and backpropagation multiplies one such factor per layer',
+      'The sigmoid’s slope $\\sigma(1 - \\sigma)$ never exceeds 0.25, and backpropagation multiplies one such factor per layer, so the product shrinks',
       'The sigmoid’s outputs lie between 0 and 1, so the loss can never be larger than 1 and there is little error to pass back',
       'The sigmoid has no derivative at exactly 0, so the gradient is undefined whenever an input lands on that one point',
       'The sigmoid needs an exponential, which is slow to compute, so the gradient takes too long to reach the early layers',

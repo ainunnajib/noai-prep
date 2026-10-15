@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     prompt: 'What happens when this code runs?',
     code: 'import numpy as np\nA = np.array([[1., 2.], [2., 4.]])\nprint(np.linalg.inv(A))',
     options: [
-      'It raises a `LinAlgError`, because $\\det A = 0$ so $A$ has no inverse',
+      'It raises a `LinAlgError` (singular matrix), because $\\det A = 0$ so $A$ has no inverse',
       'It prints `[[ 4. -2.] [-2.  1.]]`, which is the inverse of $A$',
       'It prints `[[1.   0.5 ] [0.5  0.25]]`, which is one over each entry',
       'It prints a matrix of `inf` values, because it divides by $\\det A = 0$',

@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A model looks at a photo and must say which of 5 hawker dishes appear in it. One photo can contain several dishes. Which head and PyTorch loss should you use?',
     options: [
-      '5 logits with `nn.BCEWithLogitsLoss` and 0/1 targets of length 5',
+      '5 logits with `nn.BCEWithLogitsLoss` and 0/1 targets of length 5, one per dish',
       '5 logits with `nn.CrossEntropyLoss` and one class index per photo',
       '5 logits, a softmax layer in the model, then `nn.CrossEntropyLoss`',
       '1 logit with `nn.BCEWithLogitsLoss` and a target from 0 to 4',

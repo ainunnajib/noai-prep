@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     id: 'convolutional-networks.cnn-architectures-and-resnets.2',
     prompt:
       "A CNN's last conv block outputs maps of shape $(512, 7, 7)$ and there are 10 classes. Ignoring biases, how many weights does the final linear layer need after `Flatten`, and how many after global average pooling?",
-    options: ['250,880 after Flatten; 5,120 after pooling', '250,880 after Flatten; 35,840 after pooling', '25,088 after Flatten; 512 after pooling', '5,120 after Flatten; 250,880 after pooling'],
+    options: ['250,880 after Flatten; only 5,120 after pooling', '250,880 after Flatten; 35,840 after pooling', '25,088 after Flatten; 512 after pooling', '5,120 after Flatten; 250,880 after pooling'],
     answer: 0,
     explanation:
       'Flatten gives $512 \\times 7 \\times 7 = 25{,}088$ features, so the layer needs $25{,}088 \\times 10 = 250{,}880$ weights. Global average pooling averages each $7 \\times 7$ map to one number, leaving 512 features and $512 \\times 10 = 5{,}120$ weights. 35,840 $= 512 \\times 7 \\times 10$ averages only one direction; 25,088 and 512 forget the 10 output classes.',

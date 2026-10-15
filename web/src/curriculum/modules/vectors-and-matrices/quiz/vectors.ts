@@ -34,7 +34,7 @@ const questions: QuizQuestion[] = [
     id: 'vectors-and-matrices.vectors.4',
     prompt: 'A non-zero vector $\\mathbf{v}$ is multiplied by the scalar $-0.5$. Compared with $\\mathbf{v}$, the new arrow:',
     options: [
-      'points the opposite way and is half as long',
+      'points the opposite way and is only half as long',
       'points the same way and is half as long',
       'points the opposite way and is twice as long',
       'is turned through 90° and is half as long',

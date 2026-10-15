@@ -60,7 +60,7 @@ const questions: QuizQuestion[] = [
     prompt:
       "A polyclinic wants a chatbot that answers patients' questions about its own opening hours, fees and procedures. These change every few weeks, and each answer should point to the page it came from. Which approach fits best?",
     options: [
-      "RAG over the clinic's own documents, re-indexing only the pages that change",
+      'RAG over the clinic\'s own documents, re-indexing only the pages that change',
       "Fine-tuning the LLM on the clinic's documents again each time they change",
       'Few-shot prompting with three example questions and answers about the clinic',
       "Training a new language model from scratch on the clinic's website",

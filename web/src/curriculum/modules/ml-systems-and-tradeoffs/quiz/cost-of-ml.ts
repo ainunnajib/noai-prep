@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Two models are trained on the same $n = 1{,}000{,}000$ examples with $d = 100$ features: brute-force k-NN with $k = 5$, and logistic regression. Which statement about their costs is correct?',
     options: [
-      'k-NN barely trains but needs about $n \\cdot d = 10^8$ operations per prediction; logistic regression costs more to train but needs only about $d = 100$ per prediction.',
+      'k-NN barely trains but needs about $n \\cdot d = 10^8$ operations per prediction; logistic regression costs more to train but then needs only about $d = 100$ per prediction.',
       'k-NN needs only about $k \\cdot d = 500$ operations per prediction because just the 5 nearest neighbours vote, so it predicts about as fast as logistic regression.',
       'Both need about $n \\cdot d = 10^8$ operations per prediction, because both models have to compare the new point with the whole training set to make a prediction.',
       'k-NN spends about $n \\cdot d$ operations building its model and then $d$ per prediction, while logistic regression needs $d$ to train and about $n \\cdot d$ per prediction.',

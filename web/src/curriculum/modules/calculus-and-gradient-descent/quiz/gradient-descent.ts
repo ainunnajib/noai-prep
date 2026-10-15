@@ -26,7 +26,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Two runs train the same model with different learning rates. Run A logs the loss $5.00, 4.99, 4.98, 4.97, \\dots$ and Run B logs $5.0, 7.9, 12.6, 20.1, \\dots$. Which diagnosis fits best?',
     options: [
-      "A's learning rate is too small and B's is too large",
+      'A\'s learning rate is too small and B\'s is too large, so B diverges',
       "A's learning rate is too large and B's is too small",
       'A has nearly converged and B needs more epochs to settle',
       'Both learning rates are too large, but B more so than A',
@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear model uses two features: income in dollars (around 50,000) and age in years. Gradient descent zig-zags and only works with a tiny learning rate. Why does standardising both features help?',
     options: [
-      'It makes the loss bowl rounder, so one learning rate suits every direction',
+      'It makes the loss bowl rounder (similar curvature), so one learning rate suits every direction',
       'It shifts the minimum to the origin, so the starting point is already close to it',
       'It turns the non-convex loss into a convex one with a single global minimum',
       'It lets gradient descent skip computing the gradient for the smaller feature',

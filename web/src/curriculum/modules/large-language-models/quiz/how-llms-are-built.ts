@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.how-llms-are-built.1',
     prompt: 'The "P" in GPT stands for *pre-trained*, and this pretraining stage is described as **self-supervised**. Why?',
     options: [
-      'Each position\'s label is the next token, taken from the text itself, so nobody has to label the data',
+      'Each position\'s label is the next token, taken from the raw text itself, so nobody has to label the data',
       'The model checks its own answers against a reward model, so no human feedback is needed at this stage',
       'People label a small sample of the text, and the model then labels the remaining text by itself',
       'The model is trained without any loss function, simply by reading the text many times over',
@@ -34,7 +34,7 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.how-llms-are-built.3',
     prompt: 'In RLHF, what is the reward model trained on, and how is it then used?',
     options: [
-      "People's comparisons of pairs of answers; it then scores the LLM's answers during reinforcement learning",
+      'People\'s comparisons of pairs of answers; it then scores the LLM\'s new answers during reinforcement learning',
       "People's hand-written ideal answers; it then writes the replies that the LLM learns to copy word for word",
       'The next tokens of web text; it then tells the LLM which single token to write at each position',
       'Sentences labelled toxic or safe; it then deletes unsafe tokens from the LLM vocabulary for good',
@@ -79,7 +79,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A lab trains a reasoning model on maths problems. The model writes out its working, and it gets reward 1 if its final answer matches the known answer and 0 otherwise. How does this reward differ from classic RLHF?',
     options: [
-      'Only a program checking the final answer decides the reward; no reward model of human preferences is needed',
+      'Only a program checking the final answer decides the reward; no reward model of human preferences is needed at all',
       'People still compare pairs of the model\'s answers, exactly as in RLHF, but only on maths questions',
       'It is the next-token loss on the working, so this stage is really another round of pretraining on maths text',
       'It is copied from ideal worked solutions that people wrote, so this stage is really supervised fine-tuning',

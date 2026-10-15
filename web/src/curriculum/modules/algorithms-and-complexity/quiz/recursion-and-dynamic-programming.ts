@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     id: 'algorithms-and-complexity.recursion-and-dynamic-programming.3',
     prompt: 'Why does adding a memo (a dict of answers already computed) make recursive `fib(n)` run in $O(n)$ time instead of exponential time?',
     options: [
-      'Each `fib(k)` is worked out only once; every later request is a dict lookup, so about $n$ subproblems are solved.',
+      'Each `fib(k)` is worked out only once; every later request is an $O(1)$ dict lookup, so about $n$ subproblems are solved.',
       'The dict keeps the calls in sorted order, so Python can find each answer by binary search instead of recursion.',
       'The memo replaces the base cases, so the recursion stops earlier and never reaches `fib(1)` or `fib(0)`.',
       'Python runs the two recursive calls `fib(n - 1)` and `fib(n - 2)` at the same time, halving the work at each level.',

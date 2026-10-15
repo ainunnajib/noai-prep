@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'numpy.broadcasting.1',
     prompt: 'What does **broadcasting** do in NumPy?',
     options: [
-      'Lets an element-wise operation combine compatible shapes by virtually stretching their size-1 dimensions',
+      'Lets an element-wise operation combine compatible shapes by virtually stretching their size-1 dimensions, without copying data',
       'Sends a copy of the array to each CPU core so that one element-wise operation runs on several cores at once',
       'Repeats the smaller array until both arrays hold the same number of elements, whatever their shapes are',
       'Converts Python lists into NumPy arrays automatically so that vectorised operations can be applied to them',

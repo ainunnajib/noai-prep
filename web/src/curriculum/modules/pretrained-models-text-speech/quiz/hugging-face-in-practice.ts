@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.hugging-face-in-practice.1',
     prompt: 'A BERT tokeniser is called on two sentences with `padding=True`. In the returned `attention_mask`, what does a 0 mean?',
     options: [
-      'That position is padding added to make rows the same length, so attention should ignore it',
+      'That position is padding added to make all rows the same length, so attention should ignore it',
       'That position holds the `[CLS]` token, whose vector is reserved for the classification head',
       'That token was chosen for masking, so the model has to predict it during fine-tuning',
       'That token is unknown to the vocabulary and was replaced by `[UNK]` before the lookup',
@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'An IOAI-style task runs on an offline computer with a GPU and asks you to classify 20,000 product reviews into 5 classes, given 3,000 labelled reviews. Which plan fits best?',
     options: [
-      'Load a cached pretrained encoder such as DistilBERT, add a 5-class head, and fine-tune it on the 3,000 labelled reviews',
+      'Load a cached pretrained encoder such as DistilBERT, add a new 5-class head, and fine-tune it on the 3,000 labelled reviews',
       'Send each review to an API-based large language model and parse its answers, since API models need no labelled data',
       'Train a Transformer encoder from random weights on the 3,000 reviews, because pretrained models are not allowed offline',
       'Run a pretrained text-generation pipeline on every review and pick the class whose name appears most often in its output',

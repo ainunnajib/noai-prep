@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     id: 'final-lab-pytorch.task-unet-center-crop.4',
     prompt: 'Which statement about the alternatives to centre cropping (Q2.1b) is correct?',
     options: [
-      'Same padding lets the skip maps line up with no crop at all, but the border pixels are then computed partly from zeros',
+      'Same padding lets the skip maps line up with no crop at all, but the border pixels are then computed partly from zero padding',
       'Interpolating the decoder map up to the skip map\'s size recovers the exact values that the unpadded convolutions removed',
       'Cropping keeps the output the same size as the input, because the skip map is cut and the decoder map is not',
       'Padding the decoder map with `F.pad` adds no artificial values, because the next convolution skips over zeros',

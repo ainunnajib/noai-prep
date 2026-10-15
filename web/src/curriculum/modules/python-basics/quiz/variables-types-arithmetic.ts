@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
     id: 'python-basics.variables-types-arithmetic.4',
     prompt: "Why does `'5' + 5` raise a `TypeError`, while `'5' * 5` runs without error?",
     options: [
-      "`+` could mean adding or joining, so Python won't guess; `*` by an int can only mean repeating",
+      '`+` could mean adding or joining, so Python won\'t guess; `*` by an int can only mean repeating the text',
       "Python turns `'5'` into the number 5 for `*`, giving 25, but it does not do this for `+`",
       "`+` only works on numbers, while `*` works on any two values, even two strings like `'5' * '5'`",
       "Both lines raise a `TypeError`, because strings can never be used with arithmetic operators",

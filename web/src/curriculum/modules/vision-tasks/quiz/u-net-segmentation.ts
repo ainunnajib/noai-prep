@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student trains an encoder-decoder network **without** skip connections for road segmentation. Objects end up in roughly the right places, but the masks have blobby edges and thin roads are missing. What is the most likely reason?',
     options: [
-      'The decoder sees only the small bottleneck map, so detail lost in pooling cannot return',
+      'The decoder sees only the small bottleneck map, so fine detail lost in pooling can never return',
       'The transposed convolutions have too few output channels to draw thin roads and sharp edges',
       'Pixel-wise cross-entropy cannot be used when the output has the same size as the input',
       'Max pooling blurs the edges, so the pools should be swapped for average pooling layers',
@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'vision-tasks.u-net-segmentation.3',
     prompt: 'Why does U-Net join each skip map to the decoder by **concatenating** along the channel axis rather than adding the two maps?',
     options: [
-      'Concatenation lets the next convolution learn separate weights for the skip and upsampled channels',
+      'Concatenation lets the next convolution learn separate weights for the skip channels and the upsampled channels',
       'Concatenation keeps the channel count unchanged, so the decoder convolutions need fewer parameters',
       'Concatenation works even when the two maps have different heights and widths, but addition does not',
       'Concatenation lets gradients flow back to the encoder, whereas addition would block them',

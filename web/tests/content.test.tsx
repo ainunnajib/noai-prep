@@ -125,6 +125,26 @@ describe('course structure', () => {
       const dup = ids.filter((id, i) => ids.indexOf(id) !== i)
       expect(dup).toEqual([])
     })
+
+    it('checkpoint option lengths give no clue to the answer', async () => {
+      // When one option is uniquely the longest, it should be the answer about as often as chance (1 in 4): padding the
+      // answers makes "pick the longest" work, and padding the distractors makes "rule out the longest" work.
+      let longest = 0
+      let right = 0
+      for (const m of modules) {
+        const quiz = await loadModuleQuiz(m.slug)
+        for (const q of Object.values(quiz).flat()) {
+          const len = q.options.map((o) => o.length)
+          const max = Math.max(...len)
+          if (len.filter((l) => l === max).length !== 1) continue
+          longest++
+          if (len[q.answer] === max) right++
+        }
+      }
+      const where = `the uniquely longest option is the answer in ${right} of ${longest} checkpoint questions`
+      expect(right / longest, where).toBeGreaterThan(0.15)
+      expect(right / longest, where).toBeLessThan(0.4)
+    })
   }
 })
 

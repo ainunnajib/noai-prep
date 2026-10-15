@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A 10-class image classifier trains for 5 epochs. The loss stays at about 2.30 and the accuracy at 10%. What is the best **first** step?',
     options: [
-      'Check a few inputs against their labels, then try to overfit one small batch',
+      'Check a few inputs against their labels, then try to overfit one small batch of data',
       'Run an overnight grid search over learning rates, batch sizes and dropout rates',
       'Collect twice as much training data and train for 20 more epochs',
       'Replace the model with a deeper network that has more parameters',

@@ -38,7 +38,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-algebra-deeper.eigenvectors-eigenvalues.4',
     prompt: 'A 3×3 matrix $W$ has eigenvalues $2$, $0.5$ and $0$. Which statement must be true?',
     options: [
-      '$W$ has no inverse: a zero eigenvalue always makes $\\det W = 0$',
+      '$W$ has no inverse: a zero eigenvalue always makes $\\det W = 0$ and squashes one direction flat',
       '$W$ is invertible, because two of its three eigenvalues are non-zero',
       '$\\det W = 2.5$, because the determinant is the sum of the eigenvalues',
       '$W$ must contain a row of zeros, because one eigenvalue is zero',

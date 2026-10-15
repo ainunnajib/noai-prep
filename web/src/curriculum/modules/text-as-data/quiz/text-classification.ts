@@ -36,7 +36,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A hospital has 50,000 labelled patient-feedback messages to sort into 6 topics and has a GPU. Which approach is most likely to give the highest accuracy?',
     options: [
-      'Fine-tune a pretrained encoder such as BERT, with a linear classification head on its [CLS] vector',
+      'Fine-tune a pretrained encoder such as BERT, with a linear classification head on top of its [CLS] vector',
       'TF-IDF with logistic regression, because a linear model cannot overfit and so beats deep models',
       'Train a large Transformer from random initial weights on just the 50,000 hospital messages',
       'Average randomly initialised word embeddings that are frozen, then train a logistic regression on top',

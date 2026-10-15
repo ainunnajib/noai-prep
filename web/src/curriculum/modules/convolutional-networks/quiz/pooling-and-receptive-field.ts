@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A classifier ends with `nn.Flatten()` followed by `nn.Linear(512 * 7 * 7, 10)` and was trained on 224×224 photos. A teammate feeds it 320×320 photos and gets `RuntimeError: mat1 and mat2 shapes cannot be multiplied`. Which change lets one network accept both sizes?',
     options: [
-      'Put `nn.AdaptiveAvgPool2d(1)` before `Flatten` and make the last layer `nn.Linear(512, 10)`',
+      'Put `nn.AdaptiveAvgPool2d(1)` before `Flatten` and make the last layer `nn.Linear(512, 10)` to match',
       'Put one more `nn.MaxPool2d(2)` before `Flatten` and keep `nn.Linear(512 * 7 * 7, 10)`',
       'Normalise the 320×320 photos with the training set\'s per-channel mean and standard deviation',
       'Swap `nn.Flatten()` for `x.view(x.size(0), -1)` and keep `nn.Linear(512 * 7 * 7, 10)`',

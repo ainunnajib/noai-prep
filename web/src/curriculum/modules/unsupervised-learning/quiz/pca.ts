@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'unsupervised-learning.pca.1',
     prompt: 'In PCA, the first principal component (PC1) is…',
     options: [
-      'the eigenvector of the covariance matrix with the largest eigenvalue',
+      'the eigenvector of the covariance matrix with the largest eigenvalue (the most variance)',
       'the eigenvector of the covariance matrix with the smallest eigenvalue',
       'the original feature column that has the largest variance',
       'the direction that best separates the classes in the labels',

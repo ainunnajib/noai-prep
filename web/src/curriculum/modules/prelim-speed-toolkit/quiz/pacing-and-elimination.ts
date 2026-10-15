@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
     id: 'prelim-speed-toolkit.pacing-and-elimination.5',
     prompt: 'How did the last 30 questions of the 2026 Prelim differ from the first 60?',
     options: [
-      'They were mostly scenario, comparison and "why" questions, with roughly six times as much text to read',
+      'They were mostly scenario, comparison and "why" questions, with roughly six times as much text to read per question',
       'They were mostly multi-step calculations that would have needed a calculator to finish in the time allowed',
       'They were worth two marks each, so the setters made them harder and placed them last',
       'They were short recall questions about the same topics, mixed in random order across domains',

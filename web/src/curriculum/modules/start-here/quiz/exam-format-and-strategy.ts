@@ -24,7 +24,7 @@ const questions: QuizQuestion[] = [
     id: 'start-here.exam-format-and-strategy.3',
     prompt: 'Why should you give an answer to every Prelim question, even ones you have no idea about?',
     options: [
-      'A blank always scores 0, while a blind guess among four options earns a quarter of a mark on average',
+      'A blank always scores 0, while even a blind guess among four options earns a quarter of a mark on average',
       'Blank answers are marked as wrong and cost a quarter of a mark each, so leaving blanks lowers your score',
       'A fully answered paper is treated as complete by the marking system, which then adds a bonus mark',
       'Guessing pays only once you can cross out two options; with fewer crossed out, a blank is safer',

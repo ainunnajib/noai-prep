@@ -19,7 +19,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-algebra-deeper.linear-transformations.2',
     prompt: 'A matrix leaves $\\hat\\imath = (1, 0)$ where it is and sends $\\hat\\jmath = (0, 1)$ to $(0, -1)$. What does it do to a picture drawn on the plane?',
     options: [
-      'Reflects it in the x-axis, so it ends up upside down',
+      'Reflects it in the x-axis, so it ends up upside down (a mirror image)',
       'Reflects it in the y-axis, so its left and right swap',
       'Rotates it by 180°, so it is upside down and back to front',
       'Projects it flat onto the x-axis, so its height becomes 0',

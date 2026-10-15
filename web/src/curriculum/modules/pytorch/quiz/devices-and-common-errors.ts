@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     prompt: 'On a GPU machine, this loop raises `Expected all tensors to be on the same device`. Why?',
     code: "device = 'cuda' if torch.cuda.is_available() else 'cpu'\nmodel = model.to(device)\nfor inputs, targets in loader:\n    inputs.to(device)\n    targets.to(device)\n    outputs = model(inputs)\n    loss = criterion(outputs, targets)",
     options: [
-      '`tensor.to()` returns a moved copy that is never stored, so `inputs` and `targets` stay on the CPU',
+      '`tensor.to()` is not in place: it returns a moved copy that is never stored, so `inputs` and `targets` stay on the CPU',
       '`model.to(device)` must be called inside the loop on every batch',
       'The `DataLoader` puts batches on the GPU, so the extra `.to(device)` calls move them back to the CPU',
       '`torch.cuda.is_available()` returns a string, so `device` is set incorrectly',
@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.devices-and-common-errors.5',
     prompt: 'You freeze a pretrained backbone and build `optimizer = Adam([p for p in model.parameters() if p.requires_grad])`. After 5 epochs you unfreeze the last backbone block with `requires_grad_(True)` and keep training. That block\'s weights never change. Why?',
     options: [
-      'The optimiser only updates the tensors it was built with, and the block was not among them',
+      'The optimiser only updates the tensors it was built with, and the block was not among them at that time',
       'Gradients cannot flow through a block once it has been frozen, even after it is unfrozen',
       'Unfreezing only takes effect after the next call to `model.train()`, which re-reads `requires_grad`',
       'Adam skips parameters whose gradients are much smaller than those of the new head',

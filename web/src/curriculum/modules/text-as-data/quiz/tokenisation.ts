@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A chatbot uses a **word-level** tokeniser built from news articles. On Singlish chat messages ("so shiok sia", "dun liddat") it produces many `[UNK]` tokens. Which change fixes this best while keeping input sequences reasonably short?',
     options: [
-      'Switch to a subword (BPE) tokeniser trained on text that includes chat messages',
+      'Switch to a subword (BPE) tokeniser trained on text that includes informal chat messages',
       'Switch to a character-level tokeniser, so that no word in a chat message is unknown',
       'Raise `max_length`, so that long chat messages are no longer cut off part-way',
       'Delete `[UNK]` from the vocabulary, so that unknown words are skipped, not encoded',

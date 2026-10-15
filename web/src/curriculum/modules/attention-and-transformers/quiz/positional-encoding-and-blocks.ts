@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team runs a Transformer with sinusoidal positional encoding on documents of 8,192 tokens instead of 4,096, changing nothing else. What happens to the memory for the self-attention score tables and to the number of model weights?',
     options: [
-      'The score tables need about 4 times the memory, and the number of weights stays the same',
+      'The score tables need about 4 times the memory, and the number of weights stays exactly the same',
       'The score tables need about 2 times the memory, and the number of weights doubles',
       'The score tables need about 4 times the memory, and the number of weights also quadruples',
       'The score tables need about 2 times the memory, and the number of weights stays the same',

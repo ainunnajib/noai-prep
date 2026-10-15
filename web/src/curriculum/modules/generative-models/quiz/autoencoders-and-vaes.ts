@@ -46,7 +46,7 @@ print(z)`,
     prompt:
       'A factory trains an autoencoder on 10,000 photos of good circuit boards only. On new boards the reconstruction error is usually about 0.01, but one board scores 0.20. What is the most sensible conclusion?',
     options: [
-      'The board looks unlike the good boards, the only kind seen in training, so it should be flagged for inspection',
+      'The board looks unlike the good boards, the only kind seen in training, so it should be flagged for a closer inspection',
       'The autoencoder is underfitting this board, so it should be retrained on it until its error is as small as usual',
       'The board is fine: a high error means the autoencoder found it unusually easy to squeeze into its code',
       'Nothing can be concluded, since autoencoders need labelled faulty boards before they can spot faults',
@@ -60,7 +60,7 @@ print(z)`,
     id: 'generative-models.autoencoders-and-vaes.5',
     prompt: 'Why can a VAE generate new images from random codes $z \\sim \\mathcal N(0, I)$ when a plain autoencoder usually cannot?',
     options: [
-      'Its KL term pulls every code towards $\\mathcal N(0, I)$, filling that region with codes the decoder knows',
+      'Its KL term pulls every code towards $\\mathcal N(0, I)$, filling that region with codes the decoder knows how to decode',
       'Its decoder is trained with digit labels, so it knows which digit each random code is supposed to turn into',
       'A plain autoencoder has no decoder of its own; it can only encode images into codes and never back',
       'Its bottleneck is always much larger, so a random code is likely to match one training code exactly',

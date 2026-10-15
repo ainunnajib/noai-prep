@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'past-paper-walkthroughs.prelim-ml-genai.1',
     prompt: 'Which statement correctly contrasts bagging and boosting?',
     options: [
-      'Bagging trains models independently on bootstrap samples and mainly cuts variance; boosting trains them in sequence and mainly cuts bias',
+      'Bagging trains models independently on bootstrap samples and mainly cuts variance; boosting trains them in sequence on earlier errors and mainly cuts bias',
       'Bagging trains models in sequence on the previous errors and mainly cuts bias; boosting trains them independently and mainly cuts variance',
       'Both train their models independently on bootstrap samples; bagging then averages them, while boosting takes a majority vote',
       'Both train their models in sequence on the previous errors; bagging uses deep trees, while boosting uses shallow stumps',

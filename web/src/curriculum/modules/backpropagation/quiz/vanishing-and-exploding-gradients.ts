@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     id: 'backpropagation.vanishing-and-exploding-gradients.2',
     prompt: 'He initialisation draws a ReLU layer\'s weights with variance $2/n_{in}$, twice the $1/n_{in}$ that suits tanh. Why the factor of 2?',
     options: [
-      'ReLU passes only about half its inputs, which halves the signal\'s squared size; doubling the variance cancels that',
+      'ReLU passes only about half its inputs, which halves the signal\'s squared size; doubling the variance cancels that out',
       'ReLU\'s derivative is 2 for positive inputs, so the weights must double to match it and keep the backward factor at 1',
       'Larger weights make the gradients grow slightly at each layer, and that small growth speeds up deep ReLU training',
       'A ReLU layer keeps separate weights for positive and negative inputs, so the variance is split across the two sets',

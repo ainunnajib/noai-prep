@@ -14,7 +14,7 @@ const questions: QuizQuestion[] = [
     id: 'numpy.why-numpy.6',
     prompt: 'Which statement best describes **vectorisation** in NumPy?',
     options: [
-      'Writing one whole-array operation, such as `y = 2 * x + 1`, instead of a Python loop',
+      'Writing one whole-array operation, such as `y = 2 * x + 1`, instead of a Python loop over the elements',
       'Converting single numbers (scalars) into vectors so that NumPy can store them in arrays',
       'Moving an array onto the GPU so that a graphics card handles every element in parallel',
       'Changing an array to a smaller dtype, such as `float32`, so each element takes fewer bytes',
@@ -68,7 +68,7 @@ const questions: QuizQuestion[] = [
     prompt: 'After these three lines run, what happens to the list object `[1, 2, 3]`?',
     code: 'a = [1, 2, 3]\nb = a\ndel a',
     options: [
-      'It stays in memory, because `del a` removes only the name and `b` still refers to it',
+      'It stays in memory, because `del a` removes only the name and `b` still refers to the same list',
       'It is freed immediately, because `del a` deletes the list object',
       'It stays in memory until the cyclic garbage collector runs, because `b` is a copy',
       'Python raises an error, because a list cannot be deleted while another name refers to it',

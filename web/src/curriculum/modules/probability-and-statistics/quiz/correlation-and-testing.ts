@@ -17,7 +17,7 @@ const questions: QuizQuestion[] = [
       'A survey of 500 students finds that those who sleep more tend to get higher exam scores, with correlation $r = 0.6$. Which conclusion does this data alone support?',
     options: [
       'Getting more sleep will raise any student\'s exam score, by an amount that $r$ lets us predict',
-      'Sleep and scores rise together, but this data cannot show that more sleep causes higher scores',
+      'Sleep and scores rise together, but a survey like this cannot show that more sleep causes higher scores',
       'Higher scores must cause students to sleep more, because the correlation between them is positive',
       'Exactly 60% of the differences in exam scores are caused by differences in sleep',
     ],

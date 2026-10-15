@@ -24,7 +24,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A hospital dataset has 5 chest X-rays from each of 200 patients. You run plain 5-fold cross-validation on the 1,000 X-rays, so most patients have X-rays in both the training and the validation folds. What does this do to the cross-validation score?',
     options: [
-      'Too optimistic: the model can recognise patients it has already seen',
+      'Too optimistic: the model can recognise patients it has already seen in training',
       'Too pessimistic: each model is trained on just 800 of the 1,000 X-rays',
       'Unbiased, because each X-ray is in the validation fold exactly once',
       'Unbiased, as long as the folds are also stratified by diagnosis',
@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You use 5-fold cross-validation to score a random forest with fixed settings. The fold scores range from 0.81 to 0.88, and you decide to use this recipe. Which model should you deploy?',
     options: [
-      'A fresh forest with the same settings, trained on all the training data',
+      'A fresh forest with the same settings, trained once on all the training data',
       'The forest from the round that scored 0.88, because it generalised best',
       'The forest from the round whose score was closest to the mean of all five',
       'The forest from the last round, because it was trained most recently',

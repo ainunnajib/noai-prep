@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'An image classifier for 10 classes was trained on pixel values divided by 255 and scored 94% on the validation set. In the phone app, accuracy is about 10%, and nearly every photo gets the same label. Validation and app photos look alike. What is the most likely cause?',
     options: [
-      'The app feeds raw 0–255 pixels: a train/serve preprocessing mismatch',
+      'The app feeds raw 0–255 pixels: a mismatch between training and app preprocessing',
       'Concept drift: what the classes look like changed after deployment',
       'Overfitting: the model memorised the validation photos during training',
       'Too few epochs: the model needed more training to generalise',
@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You have daily sales data from January 2022 to December 2024 and will forecast sales in 2025. Customer habits change over time. Which validation scheme gives the most honest estimate of 2025 performance?',
     options: [
-      'Train on 2022–2023 and validate on 2024, then retrain on all three years',
+      'Train on 2022–2023 and validate on 2024, then retrain on all three years for 2025',
       'Shuffle all the days, then use a random 80/20 train/validation split',
       'Use 5-fold cross-validation with shuffling over all three years of days',
       'Train on 2023–2024 and validate on 2022, the oldest and most different year',

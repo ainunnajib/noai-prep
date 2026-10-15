@@ -14,7 +14,7 @@ const questions: QuizQuestion[] = [
     id: 'maths-foundations.sigma-notation-and-subscripts.2',
     prompt: 'In a dataset written with the notation of the 2025 NOAI Final, what does $x_2^{(3)}$ refer to?',
     options: [
-      'Feature 2 of training example 3',
+      'Feature 2 of training example 3 (row 3, column 2)',
       'Feature 3 of training example 2',
       'Feature 2 raised to the power 3',
       'The predicted output for example 3',

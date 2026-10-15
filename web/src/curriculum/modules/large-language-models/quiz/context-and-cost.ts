@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.context-and-cost.3',
     prompt: 'Why is it valid to reuse the cached keys and values of earlier tokens when a GPT-style model generates the next token?',
     options: [
-      'The causal mask stops earlier tokens attending to later ones, so their keys and values never change',
+      'The causal mask stops earlier tokens attending to later ones, so their keys and values never change as text is added',
       'Keys and values are fixed numbers learned in pretraining, so they are the same for every input text',
       'Each new token attends only to the token just before it, so older keys and values are never needed',
       'The cache stores the final output tokens, and tokens that have been written cannot change afterwards',

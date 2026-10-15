@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt: 'Which description of the derivative $f\'(a)$ is correct?',
     options: [
       'The slope of the straight line joining the two ends of the graph of $f$',
-      'The slope of the tangent line to the graph of $f$ at $x = a$',
+      'The slope of the tangent line to the graph of $f$ at the point where $x = a$',
       'The height of the graph of $f$ at $x = a$',
       'The value of $f(a + h) - f(a)$ when $h = 1$',
     ],

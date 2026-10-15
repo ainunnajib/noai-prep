@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-regression.regularisation.3',
     prompt: '`LogisticRegression(C=100)` reaches 99% training accuracy but only 70% validation accuracy. Which change is most likely to help?',
     options: [
-      'Decrease C to about 0.1, which strengthens the regularisation',
+      'Decrease C to about 0.1, which strengthens the regularisation and reduces overfitting',
       'Increase C to about 10,000, which strengthens the regularisation',
       'Keep C = 100 but also apply the penalty to the intercept',
       'Increase C until the training accuracy reaches 100%',

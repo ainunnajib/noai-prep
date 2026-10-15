@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.curse-of-dimensionality.1',
     prompt: 'Which statement best describes the **curse of dimensionality**?',
     options: [
-      'Adding features makes data sparse and distances less useful, so far more data is needed',
+      'Adding features makes data sparse and distances less useful, so far more data is needed to cover the space',
       "Adding more features slows training down, but it always improves the model's accuracy",
       'Arrays with more than two dimensions cannot be passed to scikit-learn models for training',
       'Adding features makes each model too simple, so it underfits even its own training data',

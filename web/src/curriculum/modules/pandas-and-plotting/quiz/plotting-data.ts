@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A teacher has two numbers for each of 40 students: hours of sleep the night before a test, and the test score. She wants to see whether students who sleep more tend to score higher. Which plot should she draw?',
     options: [
-      'A scatter plot of score against hours of sleep, one dot per student',
+      'A scatter plot of score against hours of sleep, with one dot per student',
       'A histogram of the 40 test scores, using ten equal bins from 0 to 100',
       'A bar chart of the average test score of each class in the cohort',
       'A line plot of the 40 scores in the order of the class register',
@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     id: 'pandas-and-plotting.plotting-data.3',
     prompt: 'In matplotlib, what is an **Axes**?',
     options: [
-      'One plot inside a figure, with its own x-axis, y-axis, title and data',
+      'One plot inside a figure, with its own x-axis, y-axis, title and plotted data',
       'The two lines along the bottom and left edges that carry the tick marks',
       'The whole canvas or window that is shown on screen or saved to a file',
       'The list of tick labels that matplotlib writes along the x-axis',

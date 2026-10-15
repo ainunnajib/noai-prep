@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A dataset has a `postal_code` column with about 20,000 distinct values, most of which appear only once or twice. What is the best way to use it in a logistic regression?',
     options: [
-      'Group the rare codes into one “other” category, then one-hot encode the rest',
+      'Group the rare codes into one “other” category, then one-hot encode the remaining codes',
       'Feed the postal code in as a number, since it is already made up of digits',
       'Standardise the postal code to mean 0 and standard deviation 1, then train',
       'One-hot encode all 20,000 codes, since one-hot encoding never invents an order',

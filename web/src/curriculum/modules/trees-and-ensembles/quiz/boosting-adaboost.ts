@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
     id: 'trees-and-ensembles.boosting-adaboost.4',
     prompt: 'Why does AdaBoost need each weak learner to have a weighted error below 0.5?',
     options: [
-      'At $\\varepsilon = 0.5$ its say $\\alpha$ is 0, so it adds nothing to the vote, and above 0.5 the say turns negative and reverses every vote it casts.',
+      'At $\\varepsilon = 0.5$ its say $\\alpha$ is 0, so it adds nothing to the vote, and above 0.5 the say turns negative and reverses every single vote it casts.',
       'At $\\varepsilon = 0.5$ the weights can no longer be normalised to sum to 1, so the re-weighting step divides by zero and training crashes.',
       'A learner with $\\varepsilon$ above 0.5 has overfitted the weighted data, so its say $\\alpha$ grows very large and it drowns out the earlier learners.',
       'Above 0.5 the misclassified examples would lose weight while the correct ones gain it, which halves the size of each later learner\'s $\\alpha$.',
@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'About 5% of the labels in a training set are known to be wrong. An AdaBoost model with stumps reaches 91% validation accuracy after 50 rounds. After 1,000 rounds its training accuracy is 100%, but validation accuracy has dropped to 84%. What is the most likely cause?',
     options: [
-      'The mislabelled examples kept gaining weight, so later stumps bent the boundary to fit them; pick the number of rounds on validation data.',
+      'The mislabelled examples kept gaining weight, so later stumps bent the boundary to fit them; pick the number of rounds on held-out validation data.',
       'Boosting reduces bias rather than variance, so it cannot overfit; the drop comes from a validation set drawn from a different distribution.',
       'The stumps are too weak to fit the data; replacing them with fully grown trees would bring validation accuracy back above 91%.',
       'After round 50 the stumps had weighted errors above 0.5, so the later $\\alpha$ values were negative and reversed the earlier votes.',

@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A k-NN model predicts whether an HDB flat sells within a month from two raw features: asking price in dollars (about 300,000 to 1,500,000) and floor level (1 to 40). What is the main problem, and the usual fix?',
     options: [
-      'Price gaps are thousands of times larger, so the distance depends almost only on price; standardise both features',
+      'Price gaps are thousands of times larger, so the distance depends almost only on price; standardise both features first',
       'Floor level has fewer distinct values, so it dominates the distance; drop floor level and keep just the price',
       'k-NN can only compare categories, not numbers; convert both features into a few price bands and floor bands first',
       'There is no problem: k-NN learns a weight for each feature during training, so it rescales the features automatically',

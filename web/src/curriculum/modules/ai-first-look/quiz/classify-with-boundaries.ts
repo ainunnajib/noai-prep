@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.classify-with-boundaries.1',
     prompt: 'Which of these is a **classification** task?',
     options: [
-      'Predicting whether a durian is ripe or unripe from its smell and weight',
+      'Predicting whether a durian is ripe or unripe from its smell and its weight',
       'Predicting the resale price of an HDB flat from its floor area',
       'Predicting how many minutes late the next bus will arrive',
       "Predicting a student's exam mark out of 100 from their hours of revision",
@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Two models are trained on the same data. Model P: training accuracy 99%, test accuracy 70%. Model Q: training accuracy 88%, test accuracy 86%. Which statement is correct?',
     options: [
-      'P is overfitting; Q generalises better and is the one to use',
+      'P is overfitting; Q generalises better to new data and is the one to use',
       'P is the one to use, because its 99% is the highest score shown',
       'Q is underfitting, because its training accuracy is lower than P’s',
       'P is underfitting, because its test accuracy is the lowest number',

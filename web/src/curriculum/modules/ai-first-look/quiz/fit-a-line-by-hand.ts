@@ -37,7 +37,7 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.fit-a-line-by-hand.4',
     prompt: 'Why does the mean squared error square each residual before averaging?',
     options: [
-      'So that positive and negative misses can never cancel, and big misses count more',
+      'So that positive and negative misses can never cancel out, and big misses count for more',
       'So that the loss comes out in thousands of dollars, the same units as the flat prices',
       'So that the best possible line ends up with a loss of exactly zero, a perfect fit',
       'So that the single largest miss decides the loss, and the small misses drop out',

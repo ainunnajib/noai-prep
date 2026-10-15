@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Points of class A lie at $|x| < 1$ and points of class B at $|x| > 2$ on a number line. Logistic regression on $x$ alone fails, but after adding the column $x^2$ it separates them perfectly. Why?',
     options: [
-      'The model is still linear, but one straight cut on $x^2$ is the same as two cuts on $x$',
+      'The model is still linear, but one straight cut on $x^2$ is the same as two cuts on the original $x$',
       'Squaring removes the negative values, which logistic regression cannot handle as inputs',
       'Adding any second feature makes a linear model non-linear, so $2x$ would have worked too',
       'Squaring makes the values larger, so gradient descent takes bigger steps and converges',

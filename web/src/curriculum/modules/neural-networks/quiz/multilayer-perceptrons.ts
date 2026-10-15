@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.multilayer-perceptrons.4',
     prompt: 'Which statement about the universal approximation theorem is correct?',
     options: [
-      'With a non-polynomial activation such as ReLU and enough neurons, one hidden layer can approximate any continuous function on a closed, bounded region.',
+      'With a non-polynomial activation such as ReLU and enough neurons, one hidden layer can approximate any continuous function on a closed, bounded region of its inputs.',
       'With enough training epochs, gradient descent is guaranteed to find the weights that let one wide hidden layer fit any continuous function exactly.',
       'Without any activation function, one hidden layer with enough neurons can approximate any continuous function on a closed, bounded region of its inputs.',
       'To approximate an arbitrary continuous function, a network needs at least as many hidden layers as it has input features, however wide each layer is.',
@@ -48,7 +48,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A network with **one hidden layer of 2 ReLU neurons** is trained on a two-spiral dataset. After 2,000 epochs the loss has stopped falling, and both training and test accuracy are stuck at about 60%. What is the most sensible next step?',
     options: [
-      'Add more neurons and hidden layers, because two straight folds can never trace out a spiral',
+      'Add more neurons and hidden layers, because two straight folds can never trace out a spiral: it is underfitting',
       'Train for another 20,000 epochs, because a loss that has levelled off always starts falling again',
       'Remove the ReLU activations, so that the gradients can flow back through the network more easily',
       'Collect more training data, because the network has memorised the spirals and is overfitting',

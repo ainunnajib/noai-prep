@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'prelim-speed-toolkit.mock-prelim-and-review.1',
     prompt: 'You want your next mock to match the real Prelim as closely as possible. Which set-up does that?',
     options: [
-      '150 questions in 90 minutes, pen and scrap paper only, no calculator',
+      '150 questions in 90 minutes, pen and scrap paper only for rough work, no calculator',
       '150 questions in 90 minutes, with a basic calculator for the arithmetic',
       '150 questions with no time limit, closed book, to measure pure knowledge',
       '150 questions in 90 minutes, with one page of your own formula notes',

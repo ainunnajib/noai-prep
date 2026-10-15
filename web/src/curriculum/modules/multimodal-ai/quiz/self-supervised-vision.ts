@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.self-supervised-vision.1',
     prompt: 'What makes self-supervised learning different from supervised learning?',
     options: [
-      'A program always makes the labels from the data itself, e.g. by hiding part of it',
+      'A program always makes the labels from the data itself, for example by hiding part of it',
       'People label a small part of the data, and the model labels the rest for itself',
       'The model learns by receiving rewards from an environment for the actions it takes',
       'The model groups the data into clusters and is never given any training objective',

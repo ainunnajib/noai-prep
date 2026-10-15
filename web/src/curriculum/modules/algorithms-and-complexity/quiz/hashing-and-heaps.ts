@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'algorithms-and-complexity.hashing-and-heaps.1',
     prompt: 'Why is `x in s` usually much faster when `s` is a Python `set` than when `s` is a `list` of the same items?',
     options: [
-      'The set hashes `x` to find the one bucket where `x` could be, so on average it checks only a few items.',
+      'The set hashes `x` to find the one bucket where `x` could be, so on average it compares `x` with only a few items.',
       'The set keeps its items in sorted order, so Python can run a binary search on it.',
       'The set checks the items from the front like a list does, but it is written in C, so each check is faster.',
       'The set has removed duplicate items, so there are fewer items for Python to check one by one.',

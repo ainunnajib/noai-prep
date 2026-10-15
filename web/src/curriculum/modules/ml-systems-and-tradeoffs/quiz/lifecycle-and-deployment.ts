@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.lifecycle-and-deployment.2',
     prompt: 'Which of these predictions needs **real-time** inference rather than a scheduled batch job?',
     options: [
-      'Approving or blocking a contactless card payment while it is being tapped',
+      'Approving or blocking a contactless card payment while the card is being tapped at the reader',
       'Forecasting next week\'s passenger numbers at each MRT station from past weeks',
       'Choosing which customers to phone in tomorrow morning\'s retention campaign',
       'Building each user\'s "recommended for you" list for tomorrow\'s morning email',

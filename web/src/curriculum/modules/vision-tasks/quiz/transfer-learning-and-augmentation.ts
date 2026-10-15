@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     id: 'vision-tasks.transfer-learning-and-augmentation.2',
     prompt: 'Why is fine-tuning a pretrained backbone usually done with a small learning rate?',
     options: [
-      'Big updates would overwrite the pretrained features the network already has',
+      'Big updates would overwrite the useful pretrained features the network already has',
       'A small learning rate is what lets gradients reach the frozen backbone layers',
       'A small learning rate makes each training epoch finish faster on a GPU',
       "The optimiser skips the new head's weights unless the learning rate is small",

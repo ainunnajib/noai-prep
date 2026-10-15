@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A delivery app needs the route with the fewest hops between two places on a map where every road counts as one hop. Which method is guaranteed to find such a route?',
     options: [
-      'BFS with a queue, because it reaches places in order of their distance from the start',
+      'BFS with a queue, because it explores level by level, reaching the nearest places first',
       'DFS with a stack, because it goes deep first and so reaches faraway places sooner',
       'Any search that visits each place once, because a complete search returns the same route',
       'Binary search on the sorted list of place names, because it halves the search each step',
@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     id: 'algorithms-and-complexity.graph-search.3',
     prompt: 'Which statement about BFS and DFS on a graph with $V$ nodes and $E$ edges, stored as an adjacency list, is correct?',
     options: [
-      'Both visit every reachable node in $O(V + E)$ time; only the frontier differs: a queue versus a stack.',
+      'Both visit every reachable node in $O(V + E)$ time; only the frontier differs: a queue for BFS versus a stack for DFS.',
       'BFS takes $O(V^2)$ time while DFS takes $O(V + E)$, so DFS is always the faster choice on large graphs.',
       'DFS always finds the shortest path, because it follows each path all the way to the end before trying another.',
       'BFS needs the edges sorted by length before it starts, which adds an $O(E \\log E)$ sorting step to its cost.',
@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Two routes join Home to the Stadium. Route P uses 2 roads of 30 minutes each; route Q uses 3 roads of 10 minutes each. Which route does BFS return?',
     options: [
-      'P, the route with fewer roads, although Q takes less time (30 minutes against 60)',
+      'P, the route with fewer roads, although Q takes less time overall (30 minutes against 60)',
       'Q, because BFS adds up the minutes on each route and returns the smallest total',
       'P, and P is also the faster route, because fewer roads means less travel time',
       'Q, because its queue keeps routes sorted by total time, with the quickest at the front',

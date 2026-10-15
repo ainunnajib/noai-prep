@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'text-as-data.rnns-and-lstms.1',
     prompt: 'An RNN updates its hidden state with $h_t = \\tanh(W_x x_t + W_h h_{t-1} + b)$. Which statement is true?',
     options: [
-      'The same $W_x$, $W_h$ and $b$ are reused at every step, for sequences of any length',
+      'The same $W_x$, $W_h$ and $b$ are reused at every time step, for sequences of any length',
       'Each step has its own $W_h$, so a 50-word sentence needs 50 times as many parameters',
       '$h_{t-1}$ is the previous word\'s embedding, so the model remembers only one word back',
       'The $\\tanh$ lets the hidden state grow without limit, so long sentences fit in full',

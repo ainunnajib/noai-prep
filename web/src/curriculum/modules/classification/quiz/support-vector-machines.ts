@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear soft-margin SVM is trained on two overlapping classes. You raise $C$ from 0.01 to 100. What do you expect?',
     options: [
-      'A narrower street with fewer points inside it: the SVM fits the training data harder and may overfit',
+      'A narrower street with fewer points inside it: the SVM fits the training data harder and so may overfit noisy points',
       'A wider street with more points inside it, because a larger $C$ adds more regularisation to the weights',
       'No change, because $C$ matters just for curved RBF or polynomial kernels, not for a linear SVM',
       'More support vectors, because a larger $C$ pulls more training points onto the edges of the street',

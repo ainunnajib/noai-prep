@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'past-paper-walkthroughs.prelim-problem-solving.1',
     prompt: 'You meet a 120-word scenario question in the Prelim. Using stem-first reading, what do you read first?',
     options: [
-      'The question line, usually the last sentence of the stem',
+      'The question line, which is usually the last sentence of the stem',
       'The first sentence of the stem, then each number in order',
       'The four options in full, starting with the longest one',
       'The numbers in the stem, before reading any of the text',

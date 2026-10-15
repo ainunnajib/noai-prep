@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A padding query has **every** key in its row masked. What does softmax give for that row if the masked scores are filled with `-1e9`, compared with `float("-inf")`?',
     options: [
-      '`-1e9` gives a uniform row; `-inf` gives a row of `nan`',
+      '`-1e9` gives a uniform row (harmless); `-inf` gives a row of `nan`',
       '`-1e9` gives a row of `nan`; `-inf` gives a uniform row',
       'Both give a row of zeros, because the whole row is hidden',
       '`-1e9` gives zeros; `-inf` gives a uniform row',
@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student writes `Q = self.W_q(query).view(batch_size, self.num_heads, -1, self.d_k)` in `MultiHeadAttention.forward` and does no transpose. The notebook test cell prints a tick, but the hidden value tests fail. Why?',
     options: [
-      '`view` cuts memory in order, so the heads receive scrambled slices of the tokens',
+      '`view` cuts memory in token order, so the heads receive scrambled slices of the tokens',
       '`view` needs `.contiguous()` first, so the projection is silently copied wrongly',
       'The `-1` makes PyTorch guess the sequence length, which it gets wrong for $h > 1$',
       'Each head should see the full token vector, so `self.d_k` should be `self.d_model`',
