@@ -172,7 +172,9 @@ export default function PositionalEncodingHeatmap() {
 
 
       <p className={s.note} style={{ borderColor: variant === 'correct' ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>
-        {NOTE[variant]}
+        {variant === 'correct' && d < 12
+          ? `With d_model = ${d} there are only ${d / 2} waves, and the fast ones wrap round every 2π ≈ 6.3 positions, so some distant positions look more alike than neighbours (see the stripes). From d_model = 12 up, each position's closest match is its neighbour; real models use 64 or more.`
+          : NOTE[variant]}
       </p>
 
       <Controls>

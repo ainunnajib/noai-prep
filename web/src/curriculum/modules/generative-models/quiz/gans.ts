@@ -20,14 +20,14 @@ const questions: QuizQuestion[] = [
     prompt: 'Why does this discriminator update call `fake.detach()`?',
     code: 'fake = G(torch.randn(B, z_dim))\nloss_D = bce(D(real), ones) + bce(D(fake.detach()), zeros)\nopt_D.zero_grad()\nloss_D.backward()\nopt_D.step()',
     options: [
-      'So that `loss_D.backward()` computes gradients for the discriminator only and does not push the generator during D\'s turn',
+      'So that `loss_D.backward()` stops at the fakes and computes gradients for the discriminator only, without backpropagating into G',
       'So that the fake images are converted from tensors into NumPy arrays, which carry no gradients, before the discriminator scores them',
       'So that the fakes are removed from the batch and the discriminator trains on real images only',
       'So that the discriminator\'s weights stay frozen during this update, leaving the generator\'s optimiser to do all the learning',
     ],
     answer: 0,
     explanation:
-      '`.detach()` cuts the fakes off from the computation graph that produced them, so backpropagating `loss_D` stops at the fakes and never reaches $G$. Without it, the generator would receive gradients that make its fakes *easier* to catch. It does not freeze $D$: freezing $D$ is what happens in the generator\'s turn, where only `opt_G.step()` is called.',
+      '`.detach()` cuts the fakes off from the computation graph that produced them, so backpropagating `loss_D` stops at the fakes and never reaches $G$. That saves work and keeps $G$\'s graph intact for the generator\'s own backward pass. Without it, the generator\'s turn can crash with "backward through the graph a second time", or, in loops that do not zero $G$\'s gradients first, collect stray gradients that push $G$ the wrong way. It does not freeze $D$: freezing $D$ is what happens in the generator\'s turn, where only `opt_G.step()` is called.',
     difficulty: 'intermediate',
   },
   {

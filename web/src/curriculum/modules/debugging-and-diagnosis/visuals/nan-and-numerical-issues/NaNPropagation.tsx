@@ -7,7 +7,7 @@ import s from './nan.module.css'
   and then sees the next batch. One operation produces the first bad value:
     log 0     in the loss:   −log p with p = e^(−200), which rounds to 0 in float32  → inf
     0 ÷ 0     in layer 1:    (h − mean) / std with std = 0                             → nan
-    overflow  in layer 2:    e^120 > float32 max (≈ e^88.7)                            → inf
+    overflow  in layer 2:    softmax computes e^120 > float32 max (≈ e^88.7)           → inf
   The learner watches the bad value spread: forward to the loss, backward to every gradient,
   then through optimiser.step() into every weight. Toggling the fix keeps everything finite.
   The "finite?" table is what a per-layer check (or a forward hook) would print, in forward order.
@@ -18,7 +18,7 @@ type St = 'idle' | 'ok' | 'inf' | 'nan'
 
 const GROUPS = ['input', 'layer 1', 'layer 2', 'logits', 'loss'] as const
 const SRC_GROUP: Record<Src, number> = { log0: 4, div0: 1, overflow: 2 }
-const SRC_TAG: Record<Src, string> = { log0: '−log p', div0: '÷ std', overflow: 'exp' }
+const SRC_TAG: Record<Src, string> = { log0: '−log p', div0: '÷ std', overflow: 'exp in softmax' }
 
 /** States of every node after one forward pass. */
 function forward(src: Src, fix: boolean, weightsNan: boolean): St[][] {
@@ -51,7 +51,8 @@ function narration(src: Src, fix: boolean, step: number): ReactNode {
       ),
       overflow: (
         <>
-          Layer 2 applies exp to its inputs, and one input is 120. Subtracting the max first gives <M>{'e^{120 - 120} = e^0 = 1'}</M>. No overflow.
+          Layer 2 applies softmax to its inputs (exp, then divide by the sum), and one input is 120. Subtracting the max first gives{' '}
+          <M>{'e^{120 - 120} = e^0 = 1'}</M>. No overflow, and the output is unchanged: the common factor <M>{'e^{-120}'}</M> cancels between top and bottom.
         </>
       ),
     }
@@ -78,7 +79,7 @@ function narration(src: Src, fix: boolean, step: number): ReactNode {
       )
     return (
       <>
-        Layer 2 applies exp to its inputs, and one input is 120. The largest float32 is about <M>{'e^{88.7}'}</M>, so <M>{'e^{120}'}</M>{' '}
+        Layer 2 applies softmax to its inputs (exp, then divide by the sum), and one input is 120. The largest float32 is about <M>{'e^{88.7}'}</M>, so <M>{'e^{120}'}</M>{' '}
         overflows to <b>inf</b>.
       </>
     )

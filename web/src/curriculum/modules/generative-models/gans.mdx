@@ -38,7 +38,7 @@ Training alternates between the two players, one mini-batch at a time. In the **
 
 <GANLoopStepper />
 
-Two details from the code matter a lot. First, `fake.detach()` cuts the fakes off from the generator while the discriminator learns, so `loss_D.backward()` cannot change $G$. Second, in the generator's turn the fakes are graded against the label **1**, "real". The generator is rewarded for making the discriminator believe a lie.
+Two details from the code matter a lot. First, `fake.detach()` cuts the fakes off from the generator while the discriminator learns, so `loss_D.backward()` stops at the fakes and computes no gradients for $G$ (and leaves $G$'s part of the graph intact for its own turn). Second, in the generator's turn the fakes are graded against the label **1**, "real". The generator is rewarded for making the discriminator believe a lie.
 
 ## The game in symbols
 
@@ -205,9 +205,9 @@ torch.Size([16, 3, 32, 32]) torch.Size([16, 1])
 
 Each `ConvTranspose2d(k=4, s=2, p=1)` doubles the size, because its output is $(n - 1)s - 2p + k = (n - 1) \cdot 2 - 2 + 4 = 2n$. The final `Tanh` keeps pixel values in $[-1, 1]$, so real images are scaled to the same range before training.
 
-<Mistake title="Three bugs that silently break a GAN">
+<Mistake title="Three classic GAN bugs">
 
-- **Forgetting `.detach()`** in the discriminator's loss. Then `loss_D.backward()` also sends gradients into $G$, pushing it to make fakes *easier* to catch, the opposite of what it should learn.
+- **Forgetting `.detach()`** in the discriminator's loss. Then `loss_D.backward()` runs on through $G$ as well. In the loop above that crashes: it frees $G$'s part of the graph, so `loss_G.backward()` raises `RuntimeError: Trying to backward through the graph a second time`. In loops that zero $G$'s gradients only once at the start of each iteration, the stray gradients from `loss_D` would instead be added to $G$'s update and push it to make fakes *easier* to catch.
 - **Labelling the fakes 0 in the generator's turn.** That trains $G$ to help the discriminator. The generator's target is 1.
 - **A sigmoid twice.** `nn.BCELoss` expects probabilities (sigmoid already applied). If $D$ outputs raw logits, use `nn.BCEWithLogitsLoss` instead, which applies the sigmoid itself and is more numerically stable.
 

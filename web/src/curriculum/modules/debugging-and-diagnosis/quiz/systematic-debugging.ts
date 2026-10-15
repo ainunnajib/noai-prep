@@ -57,7 +57,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 2,
     explanation:
-      '`CrossEntropyLoss` applies its own softmax, so it expects raw scores. Fed probabilities between 0 and 1, the best it can give the correct class is $\\frac{e}{e + 9}$, a loss of $\\ln(1 + 9/e) \\approx 1.46$. Remove the `nn.Softmax` layer. Shuffled labels would keep the loss near $\\ln 10 \\approx 2.30$, and a small batch is the easiest thing to memorise.',
+      '`CrossEntropyLoss` applies its own softmax, so it expects raw scores. Fed probabilities between 0 and 1, the best it can give the correct class is $\\frac{e}{e + 9}$, a loss of $\\ln(1 + 9/e) \\approx 1.46$. Remove the `nn.Softmax` layer. Labels re-shuffled at every step would keep the loss wandering near $\\ln 10 \\approx 2.30$, and labels shuffled once would simply be memorised towards 0; neither gives a steady floor at 1.46.',
     difficulty: 'advanced',
   },
 ]

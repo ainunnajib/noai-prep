@@ -145,6 +145,17 @@ In a VLM's cross-attention, **Q comes from the text, K and V from the image**. I
 
 <PastPaperQuestion paper="prelim2026" n={254} />
 
+## Encoder-decoder models: the classic captioner
+
+Before LLMs were given eyes, vision-language models were built like the translation Transformers from the [encoder-decoder lesson](#/learn/pretrained-models-text-speech/encoder-decoder-models). An **image encoder** (a CNN or a ViT) turns the picture into a sequence of patch features. A **text decoder** then writes the caption one token at a time; every decoder block has causal self-attention over the words written so far, **cross-attention to the image features** (queries from the text, keys and values from the image), and an MLP. It is trained with teacher forcing and a cross-entropy loss on every caption token. Image captioners that pair a ViT encoder with a GPT-2 decoder, TrOCR (reading text from photos) and models such as BLIP and PaLI follow this pattern. Flamingo, next, is the same idea bolted onto a frozen decoder-only LLM; LLaVA swaps the cross-attention for plain concatenation.
+
+<QuickCheck
+  q="In an encoder-decoder captioning model, where do the keys and values of the decoder's cross-attention come from?"
+  options={['The image encoder\'s output features', 'The caption words written so far', 'A fixed table of positional encodings', 'The final softmax over the vocabulary']}
+  answer={0}
+  explain="The decoder asks the questions (queries from the caption so far) and looks them up in the picture (keys and values from the image encoder's features). The words written so far feed the decoder's own causal self-attention, not its cross-attention."
+/>
+
 ## Flamingo: a frozen LLM that learns from a few examples
 
 DeepMind's **Flamingo** (2022) took the cross-attention route, and kept its big pretrained parts completely frozen: a contrastively trained image encoder (CLIP-style) and the 70-billion-parameter Chinchilla language model. Only two kinds of new parts were trained:

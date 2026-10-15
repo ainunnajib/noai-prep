@@ -6,7 +6,8 @@ import s from './agents.module.css'
   Eight logged RAG answers. The learner classifies each one into a 2x2 grid:
   retrieval right/wrong (did the retrieved context contain what was needed?) x answer right/wrong
   (it matches the reference answer and adds no claims found in neither the reference nor the context).
-  Grounding is judged by the columns: case 4 is a right answer that the context does not support.
+  The columns show only whether retrieval worked. Faithfulness (is every claim supported by the retrieved
+  context?) is a separate check on the answer: cases 4 and 8 both fail it, one in each column.
   Each quadrant suggests what to fix.
   Ground truth: R+A+ {1,5}, R+A- {2,6,8}, R-A+ {4}, R-A- {3,7} -> retrieval hit rate 5/8,
   answer accuracy 3/8, accuracy when retrieval was right 2/5.
@@ -102,7 +103,7 @@ const CASES: Case[] = [
     ref: 'Yes.',
     retrieval: true,
     correct: false,
-    why: 'Retrieval was right, but the answer adds opening hours that are in neither the context nor the reference. Invented details count as wrong.',
+    why: 'Retrieval was right and the core answer (“yes”) matches the reference, but it adds opening hours that are in neither the context nor the reference. That makes it unfaithful, and invented details count as wrong.',
   },
 ]
 
@@ -201,7 +202,9 @@ export default function RAGEvalMatrix() {
       caption={
         <>
           <b>Retrieval right</b>: the context holds what the reference answer needs. <b>Answer right</b>: it matches the reference and adds no claims that are in neither the
-          reference nor the context. Whether it was grounded is what the columns show. Notice that one overall accuracy hides two problems with two different fixes.
+          reference nor the context. The columns show only whether retrieval worked; <b>faithfulness</b> (is every claim supported by the retrieved context?) is a
+          separate check on the answer, and cases 4 and 8 both fail it, one in each column. Notice that one overall accuracy hides two problems with two different
+          fixes.
         </>
       }
     >

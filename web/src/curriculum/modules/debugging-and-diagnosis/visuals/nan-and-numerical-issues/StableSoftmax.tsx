@@ -114,8 +114,9 @@ export default function StableSoftmax() {
       title="Softmax by hand, three ways"
       caption={
         <>
-          Every number is rounded to {fmt}, as on a GPU. Start with <b>naive</b> and drag <M>z_1</M> past {limit.toFixed(1)}: one
-          exponent becomes inf and all three probabilities become nan. Switch to <b>subtract max</b>: same answer as before, but now the
+          Every number is rounded to {fmt}, as on a GPU. Start with <b>naive</b> and drag <M>z_1</M> past {limit.toFixed(1)}: its
+          exponent becomes inf, so the sum is inf: <M>p_1</M> = inf ÷ inf = nan, and the others are finite ÷ inf = 0. (With the <b>huge</b> preset every
+          exponent overflows, so all three are nan.) Switch to <b>subtract max</b>: same answer as before, but now the
           largest exponent is always <M>{'e^0 = 1'}</M>. Then press <b>far apart</b>: the probabilities survive, yet the loss is inf
           because <M>{'p_3'}</M> rounds to 0. Only <b>log-sum-exp</b> gets the true loss. Try float16 too: there, <M>{'e^{12}'}</M> already
           overflows.

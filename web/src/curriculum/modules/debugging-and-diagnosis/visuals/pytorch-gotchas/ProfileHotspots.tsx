@@ -93,13 +93,15 @@ export default function ProfileHotspots() {
                 <b>
                   {total(SLOW)} ms → {total(FAST)} ms, about {(total(SLOW) / total(FAST)).toFixed(1)}× faster
                 </b>{' '}
-                without touching the model. The remaining time is now spread over the real work: forward, backward and the update.
+                per epoch, without touching the model. The conversion (about {SLOW.data} ms) now happens once before training instead of in every epoch, so a
+                20-epoch run drops from about {((20 * total(SLOW)) / 1000).toFixed(0)} s to about {((SLOW.data + 20 * total(FAST)) / 1000).toFixed(1)} s. The
+                remaining time is spread over the real work: forward, backward and the update.
               </>
             ) : (
               <>
                 {guess === 'data' ? <b>Good instinct. </b> : guess ? <b>Most people guess the model. </b> : null}
-                About {Math.round((100 * SLOW.data) / total(SLOW))}% of the epoch goes on <code>torch.tensor(...)</code>, copying Python lists into tensors again on every
-                step. The model itself is a small fraction. Without a profiler you would have optimised the wrong thing.
+                About {Math.round((100 * SLOW.data) / total(SLOW))}% of the epoch goes on <code>torch.tensor(...)</code>, copying Python lists into tensors again in every
+                epoch. The model itself is a small fraction. Without a profiler you would have optimised the wrong thing.
               </>
             )}
           </Note>

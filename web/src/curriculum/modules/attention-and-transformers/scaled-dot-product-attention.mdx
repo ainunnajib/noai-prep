@@ -260,7 +260,11 @@ Building a mask in one convention and reading it in the other is the classic att
 
 </Mistake>
 
-**−∞ or −1e9?** If every position in a row is blocked (for example, a query that is itself padding, in an encoder with a padding mask), all its scores are $-\infty$ and softmax computes $0 / 0$, which is `nan` (not a number). One `nan` then spreads through every later calculation. Many implementations, including the 2026 Final's notebook, use a huge negative number such as $-10^9$ instead: blocked weights still come out as exactly 0, and a fully blocked row becomes harmlessly uniform. And never mask with 0: $e^0 = 1$, so a "blocked" position still gets weight.
+The 2026 Final tested exactly this. Its three mask builders below all return the same tensor (`True` = may attend), so whichever one you use, the attention code must then block the `False` entries, for example with `masked_fill(mask == 0, ...)`.
+
+<PastPaperQuestion paper="final2026" n={17} />
+
+**−∞ or −1e9?** If every position in a row is blocked (for example, a sentence that is entirely [PAD]; a left-padded sentence under a causal mask plus a padding mask, where the first [PAD] query may look only at itself and itself is blocked; or a mask that also blocks [PAD] query rows), all its scores are $-\infty$ and softmax computes $0 / 0$, which is `nan` (not a number). One `nan` then spreads through every later calculation. Many implementations, including the 2026 Final's notebook, use a huge negative number such as $-10^9$ instead: blocked weights still come out as exactly 0, and a fully blocked row becomes harmlessly uniform. And never mask with 0: $e^0 = 1$, so a "blocked" position still gets weight.
 
 ```python
 import torch
@@ -293,7 +297,7 @@ In the first row, the score 5 would have taken almost all the weight; masked wit
 
 ## All of it in PyTorch
 
-This is the function Task 3.1 of the 2026 Final asked for, run on the worked example:
+This is the function Task 3.1 of the 2026 Final asked for (same signature, including the optional dropout on the weights), run on the worked example:
 
 ```python
 import math
@@ -301,12 +305,14 @@ import torch
 import torch.nn.functional as F
 torch.set_printoptions(precision=3)
 
-def scaled_dot_product_attention(query, key, value, mask=None):
+def scaled_dot_product_attention(query, key, value, mask=None, dropout=None):
     d_k = query.size(-1)
     scores = query @ key.transpose(-2, -1) / math.sqrt(d_k)    # (..., T, T)
     if mask is not None:
-        scores = scores.masked_fill(mask == 0, float('-inf'))   # 0 = blocked
+        scores = scores.masked_fill(mask == 0, -1e9)            # 0 = blocked
     weights = F.softmax(scores, dim=-1)                         # each row sums to 1
+    if dropout is not None:
+        weights = dropout(weights)                              # e.g. nn.Dropout(0.1)
     return weights @ value, weights                             # (..., T, d_v)
 
 # the worked example: T = 3 tokens, d_k = 4, d_v = 2
@@ -393,7 +399,7 @@ print("causal output:\\n", out)`} />
 <ExamTip title="How NOAI asks about this">
 
 - **Prelim (fast recall):** the purpose of a causal mask (asked in both 2025 and 2026: *stop tokens attending to the future*); why divide by $\sqrt{d_k}$ (*stop softmax saturating as dot products grow with dimension*); the weight matrix is $T \times T$, so attention costs $O(T^2)$.
-- **Final (code):** the function above, in this order: scores with `transpose(-2, -1)` and `math.sqrt(d_k)`; `masked_fill` **before** softmax; softmax with `dim=-1`; multiply by `value`; return both output and weights.
+- **Final (code):** the function above, in this order: scores with `transpose(-2, -1)` and `math.sqrt(d_k)`; `masked_fill` **before** softmax (the Final's solution fills with `-1e9`); softmax with `dim=-1`; optional dropout on the weights; multiply by `value`; return both output and weights.
 - The 2026 Final's causal-mask bonus wanted `torch.tril(torch.ones(L, L))` reshaped to $(1, 1, L, L)$ with two `unsqueeze(0)` calls, kept as a float tensor of 1s and 0s, since its test compared it with a float `tril`.
 - No calculator: if all scores in a row are equal, the weights are uniform and the output is the plain average of the values; under a causal mask the first token's output is always its own value.
 

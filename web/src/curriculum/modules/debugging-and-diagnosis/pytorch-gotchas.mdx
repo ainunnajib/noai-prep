@@ -335,7 +335,7 @@ In a Final code-reading question, scan for these lines before reading anything e
 - `.item()`, `.numpy()`, `.detach()` or `torch.tensor(...)` inside a loss.
 - `.cuda()` inside `forward`, or `torch.zeros`/`torch.randn` without `device=`.
 - In-place updates such as `+=` or methods ending in `_` on activations.
-- An optimiser created **before** a layer was replaced, or one that includes frozen parameters.
+- An optimiser created **before** a layer was replaced: it still holds the old tensors. (Passing frozen parameters to an optimiser is harmless: they get no gradient and are skipped.)
 
 Tools in one line each: `assert` for shapes, `set_detect_anomaly` for NaN, `torch.profiler`/`cProfile` for speed, `torch.cuda.memory_allocated()` for leaks.
 

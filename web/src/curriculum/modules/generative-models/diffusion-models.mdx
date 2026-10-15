@@ -244,6 +244,10 @@ It is called *classifier-free* because an older method, classifier guidance, nee
 
 <GuidanceScale />
 
+In an exam, what CFG is **for** is steering samples towards the prompt (better prompt-following, at some cost in variety). Not needing a separate classifier is *how* it does that, not its purpose, so prefer the steering option.
+
+<PastPaperQuestion paper="prelim2026" n={243} />
+
 <KeyIdea>
 
 **Stable Diffusion** = a VAE that moves between pixels and a small latent space, a **U-Net** that denoises latents step by step, and a **text encoder** whose embeddings reach the U-Net through **cross-attention**. **Classifier-free guidance**, $\hat\varepsilon = \varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$, makes images follow the prompt more closely as $w$ grows, at the cost of variety and two U-Net passes per step.

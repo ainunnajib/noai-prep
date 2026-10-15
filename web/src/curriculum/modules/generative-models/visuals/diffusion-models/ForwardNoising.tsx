@@ -72,7 +72,8 @@ export default function ForwardNoising() {
       caption={
         <>
           Slide <M>t</M> from 0 to 1000. The noisy image is always the same recipe: a shrinking amount of the original plus a growing amount of one fixed noise
-          image <M>{'\\varepsilon'}</M>. The curve shows how much of the original survives, <M>{'\\bar\\alpha_t'}</M>. With the <b>linear</b> schedule the picture is
+          image <M>{'\\varepsilon'}</M>. The curve shows <M>{'\\bar\\alpha_t'}</M>, the share of the variance that still comes from the image; the image itself is multiplied by{' '}
+          <M>{'\\sqrt{\\bar\\alpha_t}'}</M> and the noise by <M>{'\\sqrt{1 - \\bar\\alpha_t}'}</M>. With the <b>linear</b> schedule the picture is
           practically gone by <M>{'t \\approx 600'}</M>, so the last few hundred steps are spent on near-pure noise; the <b>cosine</b> schedule destroys it more
           evenly. Nothing here is learned: noising is a fixed formula.
         </>
@@ -109,16 +110,16 @@ export default function ForwardNoising() {
           </div>
         </div>
       </div>
-      <Plot x={[0, T]} y={[0, 1.05]} width={620} height={200} minHeight={170} ariaLabel="The schedule: fraction of the original signal left at each step">
+      <Plot x={[0, T]} y={[0, 1.05]} width={620} height={200} minHeight={170} ariaLabel="The schedule: alpha-bar, the image's share of the variance, at each step">
         <Grid xTicks={5} yTicks={4} />
         <FnPath f={(x) => ABAR[other][Math.round(x)]} color="var(--viz-muted)" width={1.8} dash="5 4" samples={200} />
         <FnPath f={(x) => ABAR[sched][Math.round(x)]} color="var(--viz-1)" width={2.8} samples={300} />
         <VLine x={t} color="var(--viz-2)" dash="4 3" width={1.5} />
         <Dots points={[{ x: t, y: abar, color: 'var(--viz-2)', r: 6 }]} />
         <Label x={t} y={abar} dx={t > 700 ? -10 : 10} dy={-10} anchor={t > 700 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
-          {`ᾱ = ${abar < 0.001 ? abar.toExponential(1) : abar.toFixed(3)}`}
+          {`ᾱ = ${abar < 0.001 ? abar.toExponential(1) : abar.toFixed(3)}, √ᾱ = ${Math.sqrt(abar).toFixed(2)}`}
         </Label>
-        <Axes xLabel="step t" yLabel="signal left, ᾱ" xTicks={5} yTicks={4} tickFormat={(v) => String(Math.round(v * 100) / 100)} />
+        <Axes xLabel="step t" yLabel="ᾱ (image's share of variance)" xTicks={5} yTicks={4} tickFormat={(v) => String(Math.round(v * 100) / 100)} />
       </Plot>
       <Controls>
         <Slider label={<>step <M>t</M></>} value={t} min={0} max={T} step={1} onChange={(v) => (setPlaying(false), setT(v))} />

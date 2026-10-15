@@ -57,6 +57,9 @@ Every out-of-memory fix trades memory for something else: **mixed precision** fo
   <Step title="Batch 32 with no accumulation">
     Also about $5.2$ GB, but each update now averages only 32 images: a different training recipe that needs a retuned learning rate.
   </Step>
+  <Step title="Verdict">
+    By these numbers the cheapest fixes are mixed precision (it fits and is faster on Tensor Cores) or accumulation alone (it fits at the same effective batch). Add checkpointing only if memory is still short.
+  </Step>
 </Steps>
 
 <PastPaperQuestion paper="prelim2026" n={285} />
@@ -200,7 +203,15 @@ largest difference: 0.0
 
 <ExamTip>
 
-"Best throughput–memory trade-off" questions want the fix that **keeps the training recipe** (same effective batch, same learning rate) at the smallest, most predictable speed cost. In the 2026 Prelim, a question with exactly the ResNet-50, batch 128, 16 GB set-up keyed "gradient accumulation (4 × 32) with gradient checkpointing"; mixed precision is also a strong answer on Tensor Core GPUs. "Reduce the batch to 32 with no other change" changes the recipe, and `empty_cache()` frees nothing the model needs.
+"Best throughput–memory trade-off" questions want the fix that **keeps the training recipe** (same effective batch, same learning rate) at the smallest, most predictable speed cost. In the 2026 Prelim, a question with exactly the ResNet-50, batch 128, 16 GB set-up keyed "gradient accumulation (4 × 32) with gradient checkpointing". The reasoning behind that key: it is the option guaranteed to fit at the same effective batch on any GPU, with no numerical risk, while mixed precision only halves the activations and its speed-up needs Tensor Cores. So if the options are exactly these, pick accumulation with checkpointing, even though mixed precision is a strong real-world choice. "Reduce the batch to 32 with no other change" changes the recipe, and `empty_cache()` frees nothing the model needs.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={274} />
+
+<ExamTip title="Read the constraint words">
+
+Words like "same convergence", "any GPU" or "no accuracy risk" point to recipe-preserving fixes (accumulation, checkpointing); "fastest" or "Tensor Core GPU" points to mixed precision.
 
 </ExamTip>
 

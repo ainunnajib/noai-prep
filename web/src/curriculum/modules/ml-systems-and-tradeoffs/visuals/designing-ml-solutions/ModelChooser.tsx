@@ -119,7 +119,8 @@ function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: bo
   const device = target !== 'cloud'
   const r: Rec = {
     best: device ? 'cnn' : 'transformer',
-    accept: ['transformer', 'cnn'],
+    // a microcontroller has kilobytes of memory: only a tiny CNN fits
+    accept: target === 'micro' ? ['cnn'] : ['transformer', 'cnn'],
     start: device
       ? 'A small CNN on log-mel spectrograms or MFCCs, quantised to int8 (keyword-spotting style)'
       : 'A pretrained audio model: an audio Transformer or CNN on log-mel spectrograms (such as AST), or a speech model on the raw waveform (wav2vec 2.0, HuBERT)',
@@ -175,6 +176,8 @@ export default function ModelChooser() {
       case 'transformer':
         if (data === 'table') return 'Transformers are built for sequences such as text; on tables they rarely beat boosted trees.'
         if (data === 'image') return 'For images, fine-tune a pretrained vision model: a CNN or a Vision Transformer (the "CNN or ViT" pick).'
+        if (data === 'audio' && target === 'micro')
+          return 'A pretrained audio Transformer is far too big for a microcontroller (tens of megabytes against kilobytes); keyword spotters use a tiny int8 CNN.'
         return 'Even a small Transformer needs tens of megabytes of memory, and a microcontroller has kilobytes.'
     }
   }
