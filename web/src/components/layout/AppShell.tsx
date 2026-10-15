@@ -85,6 +85,19 @@ export function AppShell() {
   const navType = useNavigationType()
   const positions = useRef(new Map<string, number>())
   const first = useRef(true)
+  const menuBtn = useRef<HTMLButtonElement>(null)
+
+  // Escape closes the phone menu and puts focus back on its button
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      menuBtn.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
 
   // remember how far down each history entry was scrolled, so Back returns to the same place
   useEffect(() => {
@@ -136,7 +149,7 @@ export function AppShell() {
               NOAI<span>prep</span>
             </span>
           </Link>
-          <button type="button" className="menu-btn" aria-expanded={open} aria-controls="site-nav" aria-label="Menu" onClick={() => setOpen((v) => !v)}>
+          <button type="button" className="menu-btn" ref={menuBtn} aria-expanded={open} aria-controls="site-nav" aria-label="Menu" onClick={() => setOpen((v) => !v)}>
             <svg viewBox="0 0 24 24">{open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}</svg>
           </button>
           <nav id="site-nav" className={`site-nav${open ? ' is-open' : ''}`} aria-label="Main">

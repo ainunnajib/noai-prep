@@ -11,6 +11,8 @@ import { ft } from '../derivatives-as-slopes/plotHelpers'
 
 const RATIOS = [0.5, 1, 1.5, 2, 3]
 const COLS = ['var(--viz-1)', 'var(--viz-5)', 'var(--viz-2)']
+/** the same hues, darkened where needed for text on light surfaces */
+const INK = ['var(--viz-1)', 'var(--viz-5)', 'var(--viz-2-ink)']
 const NAMES = ['x', 'u', 'y']
 
 /** smallest tooth count for gear x so that all three gears have whole numbers of teeth (at least 8 each) */
@@ -150,7 +152,7 @@ export default function ChainGears() {
               <text x={g.cx} y={cy} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--viz-ink)', fontWeight: 800, fontSize: 14, pointerEvents: 'none' }}>
                 {NAMES[i]}
               </text>
-              <text x={g.cx} y={H - 4} textAnchor="middle" className="tabular" style={{ fill: COLS[i], fontWeight: 800, fontSize: 12.5 }}>
+              <text x={g.cx} y={H - 4} textAnchor="middle" className="tabular" style={{ fill: INK[i], fontWeight: 800, fontSize: 12.5 }}>
                 {turns[i].toFixed(2)}
               </text>
             </g>

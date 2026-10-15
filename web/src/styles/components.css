@@ -421,7 +421,8 @@
   position: absolute;
   left: 50%;
   bottom: calc(100% + 8px);
-  transform: translateX(-50%);
+  /* --tip-dx is set by Term.tsx to keep the definition inside the screen */
+  transform: translateX(calc(-50% + var(--tip-dx, 0px)));
   width: max-content;
   max-width: min(300px, 80vw);
   padding: 0.55rem 0.75rem;
@@ -918,9 +919,19 @@ mark {
 .plot-drag:active {
   cursor: grabbing;
 }
-.plot-drag:focus-visible circle:nth-child(2) {
-  stroke: var(--accent);
-  stroke-width: 4;
+/* keyboard focus: ring the handle's transparent hit area (every handle draws it first). !important beats the inline
+   stroke styles the handles set, and the gap keeps the ring visible whatever colour the handle is */
+.plot-drag:focus-visible > :first-child {
+  stroke: var(--accent) !important;
+  stroke-width: 2.5px !important;
+}
+/* --viz-muted is a pale line colour: words drawn in it (figure notes, legends) use a darker grey that passes AA */
+svg text[style*='fill: var(--viz-muted)'] {
+  fill: var(--ink-3) !important;
+}
+[style^='color: var(--viz-muted)']:not(svg *),
+[style*=' color: var(--viz-muted)']:not(svg *) {
+  color: var(--ink-3) !important;
 }
 .nnet-node-label {
   fill: var(--viz-ink);

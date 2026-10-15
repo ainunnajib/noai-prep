@@ -53,7 +53,7 @@ const KW: G[] = [
 const BIAS = 1
 const CH = [
   { name: 'Red', colour: 'var(--viz-neg)' },
-  { name: 'Green', colour: 'var(--viz-pos)' },
+  { name: 'Green', colour: 'var(--viz-pos)', ink: 'var(--viz-pos-ink)' },
   { name: 'Blue', colour: 'var(--viz-1)' },
 ]
 const O = 3
@@ -146,7 +146,7 @@ export default function MultiChannelConv() {
             const done = st > ch
             return (
               <div key={chn.name} className={s.col} style={{ padding: 4, borderRadius: 8, outline: active ? `2px solid ${chn.colour}` : 'none', outlineOffset: 1 }}>
-                <span className={s.cap} style={{ color: chn.colour }}>
+                <span className={s.cap} style={{ color: chn.ink ?? chn.colour }}>
                   {chn.name} input
                 </span>
                 {grid(X[ch], { hl: (a, b) => a >= r0 && a < r0 + 3 && b >= c0 && b < c0 + 3, colour: chn.colour, label: `${chn.name} channel, 5 by 5`, strong: active })}

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import s from './sdpa.module.css'
 
 /* A small labelled matrix for the attention visuals: optional token labels on rows and columns,
@@ -93,19 +93,12 @@ export function Mat({
               if (editable && onEdit) {
                 return (
                   <span key={j} className={c} style={{ ...style, background: undefined, padding: 0 }}>
-                    <input
-                      className={s.cellInput}
-                      type="number"
-                      inputMode="numeric"
+                    <NumCell
+                      value={typeof v === 'number' ? v : 0}
                       min={min}
                       max={max}
-                      step={1}
-                      value={typeof v === 'number' ? v : 0}
-                      aria-label={`row ${i + 1}, column ${j + 1}`}
-                      onChange={(e) => {
-                        const x = Math.round(Number(e.target.value))
-                        if (Number.isFinite(x)) onEdit(i, j, Math.max(min, Math.min(max, x)))
-                      }}
+                      label={`row ${i + 1}, column ${j + 1}`}
+                      onCommit={(x) => onEdit(i, j, x)}
                     />
                   </span>
                 )
@@ -133,6 +126,31 @@ export function Mat({
       </div>
       {shape != null && <div className={s.matShape}>{shape}</div>}
     </div>
+  )
+}
+
+/** One editable whole-number cell. It keeps its own text while typing, so '' and '−' (on the way to
+    '−2') are allowed; only text that reads as a number reaches the matrix, and blur tidies the box. */
+function NumCell({ value, min, max, label, onCommit }: { value: number; min: number; max: number; label: string; onCommit: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const clamp = (x: number) => Math.max(min, Math.min(max, Math.round(x)))
+  return (
+    <input
+      className={s.cellInput}
+      type="number"
+      min={min}
+      max={max}
+      step={1}
+      value={draft ?? value}
+      aria-label={label}
+      onChange={(e) => {
+        const t = e.target.value
+        setDraft(t)
+        const x = Number(t)
+        if (t.trim() !== '' && Number.isFinite(x)) onCommit(clamp(x))
+      }}
+      onBlur={() => setDraft(null)}
+    />
   )
 }
 

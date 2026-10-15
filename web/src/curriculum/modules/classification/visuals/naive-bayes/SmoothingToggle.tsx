@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Figure, Controls, Toggle, Bars } from '../../../../../kit'
-import { VOCAB, CLASSES, CLS_C, PRIOR, COUNTS, TOTAL, type Word, likelihood, scores, frac, small } from './nbData'
+import { VOCAB, CLASSES, CLS_C, CLS_INK, PRIOR, COUNTS, TOTAL, type Word, likelihood, scores, frac, small } from './nbData'
 
 /*
   The same word-count tables with and without Laplace (add-one) smoothing:
@@ -75,8 +75,8 @@ export default function SmoothingToggle() {
           <thead>
             <tr>
               <th style={{ ...head, textAlign: 'left' }}>word</th>
-              <th style={{ ...head, color: CLS_C.spam }}>spam</th>
-              <th style={{ ...head, color: CLS_C.normal }}>normal</th>
+              <th style={{ ...head, color: CLS_INK.spam }}>spam</th>
+              <th style={{ ...head, color: CLS_INK.normal }}>normal</th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +111,7 @@ export default function SmoothingToggle() {
       <div style={{ display: 'grid', gap: 6, width: '100%', maxWidth: 520, margin: '0 auto' }} aria-live="polite">
         {CLASSES.map((c) => (
           <div key={c} className="tabular" style={{ fontSize: '0.9rem', color: 'var(--ink-2)', textAlign: 'center' }}>
-            <b style={{ color: CLS_C[c] }}>{c}</b>: {PRIOR[c]}
+            <b style={{ color: CLS_INK[c] }}>{c}</b>: {PRIOR[c]}
             {ordered.map((w) => {
               const l = likelihood(c, w, alpha)
               return (

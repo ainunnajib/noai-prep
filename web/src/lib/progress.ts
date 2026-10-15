@@ -71,6 +71,7 @@ export const progress = {
   },
   reset() {
     removeKey(KEY)
+    removeKey('mock-current') // a finished or half-done mock attempt (MockExam's own key) is mock-exam history too
     commit({ ...empty, lessons: {}, checkpoints: {}, answers: {}, exams: [] })
   },
 }

@@ -86,10 +86,10 @@ export default function AdagradVsRMSProp() {
               { x: t, y: clampLog(series.rms[i]), r: 5.5, color: 'var(--viz-3)' },
             ]}
           />
-          <Label x={T} y={clampLog(series.rms[T - 1])} dy={-8} anchor="end" color="var(--viz-3)" weight={700}>
+          <Label x={T} y={clampLog(series.rms[T - 1])} dy={-8} anchor="end" color="var(--viz-3-ink)" weight={700}>
             RMSProp
           </Label>
-          <Label x={T} y={clampLog(series.ada[T - 1])} dy={-8} anchor="end" color="var(--viz-2)" weight={700}>
+          <Label x={T} y={clampLog(series.ada[T - 1])} dy={-8} anchor="end" color="var(--viz-2-ink)" weight={700}>
             Adagrad
           </Label>
           <Label x={T} y={clampLog(series.sgd[T - 1])} dy={series.sgd[T - 1] === series.rms[T - 1] || Math.abs(clampLog(series.sgd[T - 1]) - clampLog(series.rms[T - 1])) < 0.25 ? 16 : -8} anchor="end" color="var(--ink-3)" weight={700}>

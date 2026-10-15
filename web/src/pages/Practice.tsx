@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { DOMAIN_SUBTOPICS, SUBTOPIC_LABEL, loadAllQuestions, type BankQuestion, type ExamDomain } from '../data/bank'
 import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
 import { pct } from '../lib/format'
 import { progress, useProgress } from '../lib/progress'
 import { shuffled } from '../lib/random'
+import { revealQuestion } from '../lib/revealQuestion'
 
 type Focus = 'all' | 'new' | 'wrong'
 type Source = 'all' | 'bank' | 'course' | 'paper'
@@ -80,16 +81,31 @@ export default function Practice() {
     progress.recordAnswer(q.id, i === q.answer)
     setSession((s) => ({ answered: s.answered + 1, correct: s.correct + (i === q.answer ? 1 : 0) }))
   }
+  const cardRef = useRef<HTMLElement>(null)
+  const moved = useRef(false)
   const next = () => {
     setSelected(null)
+    moved.current = true
     if (pos + 1 < queue.length) setPos(pos + 1)
-    else setRound((r) => r + 1)
+    else {
+      setPos(0)
+      setRound((r) => r + 1)
+    }
   }
+  // on a phone the new question would otherwise open scrolled past its prompt
+  useEffect(() => {
+    if (!moved.current) return
+    moved.current = false
+    revealQuestion(cardRef.current)
+  }, [pos, round])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!q || (e.target as HTMLElement)?.closest('input, select, textarea')) return
-      if (e.key === 'Enter' && selected != null) next()
+      const t = e.target as HTMLElement | null
+      if (!q || e.key !== 'Enter' || selected == null || t?.closest('input, select, textarea')) return
+      // buttons and links handle Enter themselves (Skip would otherwise advance twice); the chosen, locked option is the exception
+      if (t?.closest('button, a, [role=button], summary') && !t.closest('.qopt.is-locked')) return
+      next()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -178,6 +194,7 @@ export default function Practice() {
               <QuestionCard
                 shuffle={q.source !== 'paper'}
                 key={`${q.id}-${round}`}
+                cardRef={cardRef}
                 q={q}
                 number={pos + 1}
                 selected={selected}

@@ -18,6 +18,8 @@ const pct = (v: number) => {
   return `${x >= 10 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(2)}%`
 }
 const COLORS = ['var(--viz-4)', 'var(--viz-5)', 'var(--viz-3)']
+/** the same hues, darkened where needed for text on light surfaces */
+const INK = ['var(--viz-4)', 'var(--viz-5)', 'var(--viz-3-ink)']
 const CURVE_NAMES = ['1 positive test', '2 in a row', '3 in a row']
 
 function Swatch({ color, dashed }: { color: string; dashed?: boolean }) {
@@ -62,7 +64,7 @@ export default function BaseRateCurve() {
             ))}
           <VLine x={lp} color="var(--viz-axis)" dash="3 4" width={1.2} />
           <DraggablePoint x={lp} y={py} color={COLORS[k - 1]} constrain={(x) => [Math.round(x * 20) / 20, post(Math.pow(10, Math.round(x * 20) / 20), sens, fpr, k)]} onChange={(x) => setLp(x)} />
-          <Label x={lp} y={py} dx={labelLeft ? -14 : 14} dy={labelBelow ? 22 : -10} anchor={labelLeft ? 'end' : 'start'} color={COLORS[k - 1]} weight={700}>
+          <Label x={lp} y={py} dx={labelLeft ? -14 : 14} dy={labelBelow ? 22 : -10} anchor={labelLeft ? 'end' : 'start'} color={INK[k - 1]} weight={700}>
             {pct(py)}
           </Label>
         </Plot>

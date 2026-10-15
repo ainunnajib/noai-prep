@@ -322,7 +322,7 @@ export function MemoryDiagram({ frames, objects, minHeight = 0, ariaLabel }: { f
                 </text>
                 <rect x={slotX} y={ry - 11} width={slotW} height={22} rx={4} style={{ fill: 'var(--surface)', stroke: 'var(--viz-axis)', strokeWidth: 1 }} />
                 {n.value != null ? (
-                  <text x={slotX + slotW / 2} y={ry} dy="0.35em" textAnchor="middle" style={{ fontFamily: MONO, fontSize: 13, fill: n.hl ? 'var(--viz-2)' : 'var(--ink)', fontWeight: n.hl ? 700 : 400 }}>
+                  <text x={slotX + slotW / 2} y={ry} dy="0.35em" textAnchor="middle" style={{ fontFamily: MONO, fontSize: 13, fill: n.hl ? 'var(--viz-2-ink)' : 'var(--ink)', fontWeight: n.hl ? 700 : 400 }}>
                     {n.value}
                   </text>
                 ) : (
@@ -361,7 +361,7 @@ export function MemoryDiagram({ frames, objects, minHeight = 0, ariaLabel }: { f
           const empty = o.cells.length === 0
           return (
             <g key={o.id} style={{ opacity: o.garbage ? 0.45 : 1, transition: 'opacity 0.3s' }}>
-              <text x={x} y={y + 11} style={{ fontSize: 11.5, fill: o.hl ? 'var(--viz-2)' : 'var(--ink-3)', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
+              <text x={x} y={y + 11} style={{ fontSize: 11.5, fill: o.hl ? 'var(--viz-2-ink)' : 'var(--ink-3)', fontWeight: 700, fontFamily: 'var(--font-body)' }}>
                 {o.type}
                 {o.tag ? <tspan style={{ fontWeight: 400 }}>{`  ${o.tag}`}</tspan> : null}
               </text>
@@ -584,7 +584,7 @@ export function Lamp({ on, label, sub }: { on: boolean; label: ReactNode; sub?: 
         }}
       />
       <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
-      <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: on ? 'var(--viz-pos)' : 'var(--ink-3)' }}>{on ? 'True' : 'False'}</span>
+      <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: on ? 'var(--viz-pos-ink)' : 'var(--ink-3)' }}>{on ? 'True' : 'False'}</span>
       {sub && <span style={{ fontSize: 12, color: 'var(--ink-3)', textAlign: 'center' }}>{sub}</span>}
     </div>
   )

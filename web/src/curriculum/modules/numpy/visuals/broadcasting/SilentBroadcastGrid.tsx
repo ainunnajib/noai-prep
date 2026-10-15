@@ -64,9 +64,9 @@ export default function SilentBroadcastGrid() {
       <div role="table" aria-label="pred minus y, position by position" style={{ display: 'grid', gridTemplateColumns: `auto repeat(${n}, ${size}px)`, gap, alignItems: 'center' }}>
         <div style={{ ...head, color: 'var(--viz-1)', paddingRight: 6, textAlign: 'right' }}>pred</div>
         {p.map((v, j) => cell(v, 'a', false, `p${j}`))}
-        <div style={{ ...head, color: 'var(--viz-2)', paddingRight: 6, textAlign: 'right' }}>y</div>
+        <div style={{ ...head, color: 'var(--viz-2-ink)', paddingRight: 6, textAlign: 'right' }}>y</div>
         {y.map((v, j) => cell(v, 'b', false, `y${j}`))}
-        <div style={{ ...head, color: 'var(--viz-3)', paddingRight: 6, textAlign: 'right' }}>pred − y</div>
+        <div style={{ ...head, color: 'var(--viz-3-ink)', paddingRight: 6, textAlign: 'right' }}>pred − y</div>
         {right.map((v, j) => cell(v, 'c', true, `e${j}`))}
       </div>
     )
@@ -74,8 +74,8 @@ export default function SilentBroadcastGrid() {
     picture = (
       <div role="table" aria-label="pred minus y as two columns" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 88px)', gap, justifyItems: 'center', alignItems: 'end' }}>
         <div style={{ ...head, color: 'var(--viz-1)', fontFamily: 'var(--font-mono)' }}>pred</div>
-        <div style={{ ...head, color: 'var(--viz-2)', fontFamily: 'var(--font-mono)' }}>y[:, None]</div>
-        <div style={{ ...head, color: 'var(--viz-3)', fontFamily: 'var(--font-mono)', whiteSpace: 'normal', textAlign: 'center' }}>pred − y[:, None]</div>
+        <div style={{ ...head, color: 'var(--viz-2-ink)', fontFamily: 'var(--font-mono)' }}>y[:, None]</div>
+        <div style={{ ...head, color: 'var(--viz-3-ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'normal', textAlign: 'center' }}>pred − y[:, None]</div>
         {p.map((pv, i) => (
           <div key={`r${i}`} style={{ display: 'contents' }}>
             {cell(pv, 'a')}
@@ -121,9 +121,9 @@ export default function SilentBroadcastGrid() {
         <div style={{ maxWidth: '100%', overflowX: 'auto', padding: 2 }}>{picture}</div>
         <Readout
           items={[
-            ['result shape', <span key="s" style={{ color: mode === 'column' ? 'var(--viz-neg)' : 'var(--viz-pos)' }}>{outShape}</span>],
+            ['result shape', <span key="s" style={{ color: mode === 'column' ? 'var(--viz-neg)' : 'var(--viz-pos-ink)' }}>{outShape}</span>],
             ['numbers averaged', String(entries)],
-            ['loss', <span key="l" style={{ color: mode === 'column' ? 'var(--viz-neg)' : 'var(--viz-pos)' }}>{fmtLoss(loss)}</span>],
+            ['loss', <span key="l" style={{ color: mode === 'column' ? 'var(--viz-neg)' : 'var(--viz-pos-ink)' }}>{fmtLoss(loss)}</span>],
             ['true MSE', fmtLoss(correctLoss)],
           ]}
         />

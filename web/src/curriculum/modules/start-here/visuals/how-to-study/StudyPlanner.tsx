@@ -15,6 +15,8 @@ const dayOfIso = (iso: string) => Math.round((Date.UTC(+iso.slice(0, 4), +iso.sl
 const fmt = (d: number) => new Date(BASE + d * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
 
 const PRELIM_D = dayOfIso(PRELIM.date)
+/** a finish date: with the year once it is past the Prelim, so '16 Feb 2028' cannot be misread as a date before the exam */
+const fmtEnd = (d: number) => new Date(BASE + d * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(d > PRELIM_D ? { year: 'numeric' as const } : {}), timeZone: 'UTC' })
 const FINAL_D = dayOfIso(FINAL.date)
 const NTU_D = dayOfIso(TIMELINE.find((t) => t.title === 'NTU Selection Test')?.iso ?? '2027-05-08')
 const MOCKS_D = PRELIM_D - 14 // finish lessons by here; the last fortnight is for mocks
@@ -104,8 +106,8 @@ export default function StudyPlanner() {
       : status === 'tight'
         ? `Tight: you finish around ${fmt(Math.round(finishD))}, eating into the two weeks you need for mocks. Aim for at least ${up1(needH)} hours a week.`
         : needH > 25
-          ? `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}, and no realistic weekly load can fix that. ${canStartEarlier ? 'Start earlier, or cover' : 'Cover'} the parts you know least first and skim the rest.`
-          : `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}. ${canStartEarlier ? 'Start earlier, or aim' : 'Aim'} for at least ${up1(needH)} hours a week${canStartEarlier ? '' : ', or skim the parts you already know'}.`
+          ? `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmtEnd(Math.round(finishD))}, and no realistic weekly load can fix that. ${canStartEarlier ? 'Start earlier, or cover' : 'Cover'} the parts you know least first and skim the rest.`
+          : `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmtEnd(Math.round(finishD))}. ${canStartEarlier ? 'Start earlier, or aim' : 'Aim'} for at least ${up1(needH)} hours a week${canStartEarlier ? '' : ', or skim the parts you already know'}.`
   const msgColour = status === 'ok' ? 'var(--ok)' : status === 'tight' ? 'var(--warn)' : 'var(--bad)'
   const msgSoft = status === 'ok' ? 'var(--ok-soft)' : status === 'tight' ? 'var(--warn-soft)' : 'var(--bad-soft)'
 
@@ -122,7 +124,7 @@ export default function StudyPlanner() {
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
-        <svg className="plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Study plan: ${Math.round(totalH)} hours at ${hpw} hours a week from ${fmt(startD)}, finishing ${fmt(Math.round(finishD))}. ${msg}`}>
+        <svg className="plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Study plan: ${Math.round(totalH)} hours at ${hpw} hours a week from ${fmt(startD)}, finishing ${fmtEnd(Math.round(finishD))}. ${msg}`}>
           {/* mock fortnight and exam lines */}
           <rect x={X(MOCKS_D)} y={top - 4} width={X(PRELIM_D) - X(MOCKS_D)} height={PARTS.length * rowH + 8} style={{ fill: 'color-mix(in srgb, var(--viz-2) 20%, transparent)' }} />
           {months.map((m) => (

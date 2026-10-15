@@ -22,6 +22,8 @@ const B1 = 0.9
 const B2 = 0.999
 const EPS = 1e-8
 const COLORS = ['var(--viz-1)', 'var(--viz-3)', 'var(--viz-4)']
+/** the same hues, darkened where needed for text on light surfaces */
+const INK = ['var(--viz-1)', 'var(--viz-3-ink)', 'var(--viz-4)']
 
 function gauss(r: () => number) {
   const u = Math.max(r(), 1e-12)
@@ -98,7 +100,7 @@ function LogBars({ rows, t }: { rows: Row[][]; t: number }) {
           const row = r[t - 1]
           return (
             <g key={i}>
-              <text x={0} y={y + barH} dy="0.35em" style={{ fill: COLORS[i], fontSize: 13, fontWeight: 700 }}>
+              <text x={0} y={y + barH} dy="0.35em" style={{ fill: INK[i], fontSize: 13, fontWeight: 700 }}>
                 param {i + 1}
               </text>
               <rect x={left} y={y} width={Math.max(0, X(row.movedSgd) - left)} height={barH} rx={3} style={{ fill: 'color-mix(in srgb, var(--viz-muted) 70%, var(--surface))' }} />
@@ -152,7 +154,7 @@ export default function AdamStepBars() {
       <div style={{ width: '100%', display: 'grid', gap: '0.5rem' }}>
         {pats.map((p, i) => (
           <div key={i} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem 0.75rem' }}>
-            <span style={{ color: COLORS[i], fontWeight: 700, fontSize: 'var(--step--1)', minWidth: '4.5rem' }}>param {i + 1}</span>
+            <span style={{ color: INK[i], fontWeight: 700, fontSize: 'var(--step--1)', minWidth: '4.5rem' }}>param {i + 1}</span>
             <div role="group" aria-label={`Gradient pattern for parameter ${i + 1}`}>
               <Segmented options={PATTERNS} value={p} onChange={(v) => setPat(i, v)} />
             </div>
@@ -176,7 +178,7 @@ export default function AdamStepBars() {
               const row = r[t - 1]
               return (
                 <tr key={i} style={{ borderTop: '1px solid var(--rule)' }}>
-                  <td style={{ color: COLORS[i], fontWeight: 700, padding: '0.25rem 0' }}>{i + 1}</td>
+                  <td style={{ color: INK[i], fontWeight: 700, padding: '0.25rem 0' }}>{i + 1}</td>
                   <td style={cell}>{fmt(row.g)}</td>
                   <td style={cell}>{fmt(row.mh)}</td>
                   <td style={cell}>{fmt(row.sv)}</td>

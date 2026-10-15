@@ -7,6 +7,7 @@ import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
 import { formatDuration, pct } from '../lib/format'
 import { progress, useProgress } from '../lib/progress'
 import { mulberry32, shuffled } from '../lib/random'
+import { revealQuestion } from '../lib/revealQuestion'
 import { readJSON, removeKey, writeJSON } from '../lib/storage'
 
 interface Format {
@@ -67,6 +68,26 @@ export default function MockExam() {
   const [reviewFilter, setReviewFilter] = useState<'wrong' | 'all' | 'flagged'>('wrong')
   const [reviewLimit, setReviewLimit] = useState(REVIEW_PAGE)
   const prog = useProgress()
+  const cardRef = useRef<HTMLElement>(null)
+  const moved = useRef(false)
+  const confirmRef = useRef<HTMLDivElement>(null)
+  const submitBtn = useRef<HTMLButtonElement>(null)
+
+  // Next, Previous and the navigator: bring the new question back into view below the timer bar, and focus it
+  useEffect(() => {
+    if (!moved.current) return
+    moved.current = false
+    revealQuestion(cardRef.current, '.mock-bar')
+  }, [attempt?.current])
+
+  // the submit confirmation takes focus when it opens
+  useEffect(() => {
+    if (confirming) confirmRef.current?.focus()
+  }, [confirming])
+  const closeConfirm = () => {
+    setConfirming(false)
+    submitBtn.current?.focus()
+  }
 
   useEffect(() => {
     document.title = 'Mock exam · NOAI Prep'
@@ -152,6 +173,15 @@ export default function MockExam() {
   // ---------------- setup ----------------
   if (!attempt) {
     const past = prog.exams.slice(-5).reverse()
+    // a radio group: one tab stop, arrow keys move the choice
+    const onFormatKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+      if (!step) return
+      e.preventDefault()
+      const i = (FORMATS.findIndex((f) => f.id === formatId) + step + FORMATS.length) % FORMATS.length
+      setFormatId(FORMATS[i].id)
+      ;(e.currentTarget.children[i] as HTMLElement | undefined)?.focus()
+    }
     return (
       <div className="page">
         <div className="page-head">
@@ -162,9 +192,9 @@ export default function MockExam() {
             everything.
           </p>
         </div>
-        <div className="mock-setup" role="radiogroup" aria-label="Exam length">
+        <div className="mock-setup" role="radiogroup" aria-label="Exam length" onKeyDown={onFormatKey}>
           {FORMATS.map((f) => (
-            <button key={f.id} type="button" role="radio" aria-checked={formatId === f.id} className={`mock-option${formatId === f.id ? ' is-active' : ''}`} onClick={() => setFormatId(f.id)}>
+            <button key={f.id} type="button" role="radio" aria-checked={formatId === f.id} tabIndex={formatId === f.id ? 0 : -1} className={`mock-option${formatId === f.id ? ' is-active' : ''}`} onClick={() => setFormatId(f.id)}>
               <strong>{f.title}</strong>
               <span className="tabular">
                 {f.questions} questions · {f.minutes} min
@@ -371,7 +401,10 @@ export default function MockExam() {
   const elapsed = attempt.durationSec - remaining
   const expected = Math.min(questions.length, Math.floor(elapsed / (attempt.durationSec / questions.length)))
   const flagged = q ? attempt.flags.includes(q.id) : false
-  const go = (i: number) => setAttempt({ ...attempt, current: Math.max(0, Math.min(questions.length - 1, i)) })
+  const go = (i: number) => {
+    moved.current = true
+    setAttempt({ ...attempt, current: Math.max(0, Math.min(questions.length - 1, i)) })
+  }
 
   return (
     <div className="page">
@@ -385,14 +418,24 @@ export default function MockExam() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button type="button" className="btn btn-small" onClick={() => setConfirming(true)}>
+          <button type="button" className="btn btn-small" ref={submitBtn} onClick={() => setConfirming(true)}>
             Submit
           </button>
         </div>
       </div>
 
       {confirming && (
-        <div className="confirm-box" role="alertdialog" aria-label="Confirm submit" style={{ marginBottom: '1rem' }}>
+        <div
+          className="confirm-box"
+          role="alertdialog"
+          aria-label="Confirm submit"
+          style={{ marginBottom: '1rem' }}
+          ref={confirmRef}
+          tabIndex={-1}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') closeConfirm()
+          }}
+        >
           <strong>
             Submit now? You have answered {answered} of {questions.length}.
           </strong>
@@ -401,7 +444,7 @@ export default function MockExam() {
             <button type="button" className="btn btn-primary btn-small" onClick={submit}>
               Yes, submit and see results
             </button>
-            <button type="button" className="btn btn-small" onClick={() => setConfirming(false)}>
+            <button type="button" className="btn btn-small" onClick={closeConfirm}>
               Keep going
             </button>
             <button type="button" className="btn btn-ghost btn-small" onClick={discard} style={{ marginLeft: 'auto' }}>
@@ -417,6 +460,7 @@ export default function MockExam() {
             <QuestionCard
               shuffle={q.source !== 'paper'}
               key={q.id}
+              cardRef={cardRef}
               q={q}
               number={cur + 1}
               seed={attempt.seed}

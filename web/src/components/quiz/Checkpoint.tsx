@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { QuizQuestion } from '../../curriculum/types'
-import { progress } from '../../lib/progress'
+import { progress, useProgress } from '../../lib/progress'
 import { QuestionCard } from './QuestionCard'
 
 /**
  * End-of-lesson checkpoint: answer each question for instant feedback. When every question is answered the score is
- * remembered, the lesson is marked complete, and a result panel offers the next lesson.
+ * remembered, the lesson is marked complete if the score reaches the pass mark (60%), and a result panel offers the next lesson.
  */
 export function Checkpoint({
   questions,
@@ -22,10 +22,12 @@ export function Checkpoint({
 }) {
   const [sel, setSel] = useState<Record<string, number>>({})
   const [round, setRound] = useState(0)
+  const prog = useProgress()
   if (!questions.length) return null
   const answered = questions.filter((q) => sel[q.id] != null).length
   const correct = questions.filter((q) => sel[q.id] === q.answer).length
   const done = answered === questions.length
+  const passMark = Math.ceil(questions.length * 0.6)
 
   const choose = (q: QuizQuestion, i: number) => {
     if (sel[q.id] != null) return
@@ -34,9 +36,10 @@ export function Checkpoint({
     progress.recordAnswer(q.id, i === q.answer)
     const nAnswered = questions.filter((x) => next[x.id] != null).length
     if (nAnswered === questions.length && progressKey) {
-      const score = questions.filter((x) => next[x.id] === x.answer).length / questions.length
-      progress.recordCheckpoint(progressKey, score)
-      progress.markLesson(progressKey, true)
+      const nCorrect = questions.filter((x) => next[x.id] === x.answer).length
+      progress.recordCheckpoint(progressKey, nCorrect / questions.length)
+      // only a pass ticks the lesson off; a low score leaves it open for another go
+      if (nCorrect >= passMark) progress.markLesson(progressKey, true)
     }
   }
 
@@ -68,12 +71,13 @@ export function Checkpoint({
               <strong className="tabular">
                 You scored {correct} / {questions.length}.
               </strong>{' '}
-              {progressKey ? 'Lesson marked complete. ' : ''}
+              {progressKey && correct >= passMark ? 'Lesson marked complete. ' : ''}
               {correct === questions.length
                 ? 'Every one right: well done.'
-                : correct >= Math.ceil(questions.length * 0.6)
+                : correct >= passMark
                   ? 'Read the explanations for the ones you missed, then move on.'
                   : 'Reread the parts of the lesson these questions came from, then try again.'}
+              {progressKey && correct < passMark && !prog.lessons[progressKey] ? ` Get ${passMark} or more right and the lesson is ticked off for you.` : ''}
             </p>
             <div className="checkpoint-actions">
               {next && (

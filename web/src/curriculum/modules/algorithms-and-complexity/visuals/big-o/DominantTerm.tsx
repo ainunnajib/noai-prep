@@ -73,11 +73,15 @@ export default function DominantTerm() {
           <Axes xTicks={4} hideYTicks tickFormat={(v) => (Number.isInteger(v) && v >= 0 ? comma(Math.pow(10, v)) : '')} xLabel="n (log scale)" />
           <Axes yTicks={4} hideXTicks tickFormat={(v) => `${v}%`} />
           <VLine x={x} color="var(--viz-ink)" dash="5 4" />
+          {/* the dot's label: just below it (not above) near the top, and on its left near the right edge, so it stays inside the plot */}
+          <Label x={x} y={P0(n)} dx={x > X_MAX - 1.2 ? -14 : 14} dy={P0(n) > 85 ? 17 : -9} anchor={x > X_MAX - 1.2 ? 'end' : 'start'} color="var(--viz-2)">
+            {`n = ${comma(n)}`}
+          </Label>
           <DraggablePoint
             x={x}
             y={P0(n)}
             color="var(--viz-2)"
-            label={`n = ${comma(n)}`}
+            ariaLabel={`n = ${comma(n)}`}
             onChange={(nx) => setX(Math.min(X_MAX, Math.max(0, Math.round(nx * 50) / 50)))}
             constrain={(nx) => [nx, P0(Math.max(1, Math.round(Math.pow(10, nx))))]}
           />

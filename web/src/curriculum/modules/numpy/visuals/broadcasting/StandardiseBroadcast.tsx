@@ -25,6 +25,8 @@ const SD = Array.from({ length: D }, (_, j) => Math.sqrt(X.reduce((s, r) => s + 
 const CEN = X.map((r) => r.map((v, j) => v - MU[j]))
 const Z = CEN.map((r) => r.map((v, j) => v / SD[j]))
 const COLS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
+/** the same hues, darkened where needed for text on light surfaces */
+const INK = ['var(--viz-1)', 'var(--viz-2-ink)', 'var(--viz-3-ink)']
 
 const STEPS: { text: ReactNode; code: string }[] = [
   { text: 'X has shape (5, 3): 5 students and 3 features on very different scales. On the shared axis below, height swamps everything.', code: 'X.shape\n# (5, 3)' },
@@ -45,7 +47,7 @@ function Table({ data, fmt, tone, ghostRows, size, header, label }: { data: numb
       {header && (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${D}, ${size}px)`, gap: 3, padding: '0 10px' }}>
           {FEATURES.map((f, j) => (
-            <div key={f} style={{ fontSize: '0.68rem', fontWeight: 700, color: COLS[j], textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            <div key={f} style={{ fontSize: '0.68rem', fontWeight: 700, color: INK[j], textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>
               {f}
             </div>
           ))}
@@ -150,7 +152,7 @@ export default function StandardiseBroadcast() {
           <Axes xTicks={narrow ? 5 : 8} hideYTicks />
           <VLine x={0} color="var(--viz-axis)" dash="3 3" />
           {FEATURES.map((f, j) => (
-            <Label key={f} x={xr[0]} y={2 - j} dx={-8} dy={4} anchor="end" color={COLS[j]} weight={700} size={12}>
+            <Label key={f} x={xr[0]} y={2 - j} dx={-8} dy={4} anchor="end" color={INK[j]} weight={700} size={12}>
               {f}
             </Label>
           ))}

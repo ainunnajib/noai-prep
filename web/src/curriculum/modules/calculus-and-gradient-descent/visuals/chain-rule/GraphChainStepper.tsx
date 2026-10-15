@@ -173,7 +173,16 @@ export default function GraphChainStepper() {
       body: (
         <>
           <M>{`\\frac{\\partial L}{\\partial w} = \\underbrace{2(a-y)}_{${ft(ga)}} \\cdot \\underbrace{\\sigma'(z)}_{${ft(sp)}} \\cdot \\underbrace{x}_{${ft(x)}} = ${ft(gw)}`}</M>
-          . {Math.abs(gw) < 1e-9 ? 'It is 0: changing w would not change the loss here.' : gw < 0 ? 'It is negative, so increasing w would lower the loss.' : 'It is positive, so decreasing w would lower the loss.'}
+          .{' '}
+          {Math.abs(gw) < 1e-9
+            ? 'It is 0: changing w would not change the loss here.'
+            : Number(ft(gw)) === 0
+              ? sp < 0.01
+                ? 'It is almost 0: the sigmoid is saturated (σ′(z) is tiny), so changing w barely changes the loss.'
+                : 'It is almost 0, so changing w barely changes the loss here.'
+              : gw < 0
+                ? 'It is negative, so increasing w would lower the loss.'
+                : 'It is positive, so decreasing w would lower the loss.'}
         </>
       ),
     },
@@ -234,7 +243,7 @@ export default function GraphChainStepper() {
                     dy="0.35em"
                     textAnchor={side}
                     className="plot-label"
-                    style={{ fill: 'var(--viz-2)', fontSize: narrow ? 11.5 : 12.5, fontWeight: 700 }}
+                    style={{ fill: 'var(--viz-2-ink)', fontSize: narrow ? 11.5 : 12.5, fontWeight: 700 }}
                   >
                     {loc}
                   </text>

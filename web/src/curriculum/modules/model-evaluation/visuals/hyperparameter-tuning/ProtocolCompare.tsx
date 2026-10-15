@@ -220,10 +220,11 @@ export default function ProtocolCompare() {
               { x: t, y: repB, r: 5.5, color: colB },
             ]}
           />
-          <Label x={Math.max(t, 14)} y={repA} dx={-4} dy={-10} anchor="end" color={txt(colA)}>
+          {/* early on, write the labels to the right of the dots so they never spill over the y-axis */}
+          <Label x={t} y={repA} dx={t < T_MAX / 2 ? 8 : -4} dy={-10} anchor={t < T_MAX / 2 ? 'start' : 'end'} color={txt(colA)}>
             {`A reports ${pct(repA)}`}
           </Label>
-          <Label x={Math.max(t, 14)} y={repB} dx={-4} dy={repB > repA - 0.012 ? 20 : -10} anchor="end" color={txt(colB)}>
+          <Label x={t} y={repB} dx={t < T_MAX / 2 ? 8 : -4} dy={repB > repA - 0.012 ? 20 : -10} anchor={t < T_MAX / 2 ? 'start' : 'end'} color={txt(colB)}>
             {`B reports ${pct(repB)}`}
           </Label>
         </Plot>

@@ -42,10 +42,12 @@ export default function EMASmoother() {
   }, [g, beta])
 
   const memory = beta < 1 ? 1 / (1 - beta) : Infinity
-  // steps after the jump until the average first falls below the halfway level (0.5)
+  // steps after the jump until the average has gone halfway from its own value at the jump to the new
+  // level −1 (not to a fixed 0.5: without bias correction a slow average never even reaches +2 first)
   const lag = (() => {
     const src = corrected ? hat : ema.slice(1)
-    for (let i = JUMP; i < src.length; i++) if (src[i][1] < 0.5) return src[i][0] - JUMP
+    const halfway = (src[JUMP - 1][1] + signal(JUMP + 1)) / 2
+    for (let i = JUMP; i < src.length; i++) if (src[i][1] < halfway) return src[i][0] - JUMP
     return null
   })()
   const K = 30
@@ -96,7 +98,7 @@ export default function EMASmoother() {
         items={[
           ['weight on the newest value, 1 − β', (1 - beta).toFixed(2)],
           ['remembers roughly the last 1/(1 − β)', Number.isFinite(memory) ? `${memory.toFixed(memory < 10 ? 1 : 0)} values` : '∞'],
-          ['steps to react to the jump', lag == null ? 'more than 50' : String(lag)],
+          ['steps after the jump to get halfway to −1', lag == null ? 'more than 50' : String(lag)],
         ]}
       />
     </Figure>

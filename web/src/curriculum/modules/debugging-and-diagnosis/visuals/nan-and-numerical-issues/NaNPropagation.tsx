@@ -7,7 +7,8 @@ import s from './nan.module.css'
   and then sees the next batch. One operation produces the first bad value:
     log 0     in the loss:   −log p with p = e^(−200), which rounds to 0 in float32  → inf
     0 ÷ 0     in layer 1:    (h − mean) / std with std = 0                             → nan
-    overflow  in layer 2:    softmax computes e^120 > float32 max (≈ e^88.7)           → inf
+    overflow  in layer 2:    softmax computes e^120 > float32 max (≈ e^88.7) → inf,
+                             so that output is inf ÷ inf = nan (the others are x ÷ inf = 0)
   The learner watches the bad value spread: forward to the loss, backward to every gradient,
   then through optimiser.step() into every weight. Toggling the fix keeps everything finite.
   The "finite?" table is what a per-layer check (or a forward hook) would print, in forward order.
@@ -27,7 +28,7 @@ function forward(src: Src, fix: boolean, weightsNan: boolean): St[][] {
   if (fix) return [ok3, ok3, ok3, ok3, ['ok']]
   if (src === 'log0') return [ok3, ok3, ok3, ok3, ['inf']]
   if (src === 'div0') return [ok3, ['nan', 'nan', 'nan'], ['nan', 'nan', 'nan'], ['nan', 'nan', 'nan'], ['nan']]
-  return [ok3, ok3, ['ok', 'inf', 'ok'], ['inf', 'inf', 'inf'], ['nan']]
+  return [ok3, ok3, ['ok', 'nan', 'ok'], ['nan', 'nan', 'nan'], ['nan']]
 }
 
 const STEP_NAMES = ['Batch arrives', 'Forward: first bad value', 'Forward: the loss', 'Backward: gradients', 'Update: weights', 'Next batch']
@@ -80,7 +81,7 @@ function narration(src: Src, fix: boolean, step: number): ReactNode {
     return (
       <>
         Layer 2 applies softmax to its inputs (exp, then divide by the sum), and one input is 120. The largest float32 is about <M>{'e^{88.7}'}</M>, so <M>{'e^{120}'}</M>{' '}
-        overflows to <b>inf</b>.
+        overflows to inf, and so does the sum. That output becomes inf ÷ inf = <b>nan</b>; the other two are finite ÷ inf = 0.
       </>
     )
   }
@@ -95,8 +96,7 @@ function narration(src: Src, fix: boolean, step: number): ReactNode {
     if (src === 'div0') return <>Anything computed from a nan is nan: layer 2, all the logits and the loss are now nan.</>
     return (
       <>
-        Each logit adds up weight × input, so it inherits the inf (as +inf or −inf). The loss's softmax then computes inf ÷ inf ={' '}
-        <b>nan</b>.
+        Each logit adds up weight × input, and one of its inputs is nan, so every logit is <b>nan</b>, and so is the loss.
       </>
     )
   }

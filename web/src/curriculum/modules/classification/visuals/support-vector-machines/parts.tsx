@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import { usePlot, Path } from '../../../../../kit'
 import type { Line } from './svm'
 
@@ -76,7 +76,6 @@ export function DragMark({
 }) {
   const { xs, ys, toData } = usePlot()
   const dragging = useRef(false)
-  const [focused, setFocused] = useState(false)
   const [dx0, dx1] = xs.domain()
   const [dy0, dy1] = ys.domain()
   const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
@@ -112,21 +111,9 @@ export function DragMark({
         dragging.current = false
         ;(e.currentTarget as Element).releasePointerCapture(e.pointerId)
       }}
-      onFocus={(e) => {
-        // ring only for keyboard focus, not after a mouse or touch drag
-        let kb = true
-        try {
-          kb = e.currentTarget.matches(':focus-visible')
-        } catch {
-          kb = true
-        }
-        setFocused(kb)
-      }}
-      onBlur={() => setFocused(false)}
       style={{ cursor: 'grab' }}
     >
       <circle cx={xs(x)} cy={ys(y)} r={r + 9} style={{ fill: 'transparent' }} />
-      {focused && <circle cx={xs(x)} cy={ys(y)} r={r + 6} style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 2.5, strokeDasharray: '3 3' }} />}
       <Mark x={x} y={y} label={label} r={r} />
       {children}
     </g>

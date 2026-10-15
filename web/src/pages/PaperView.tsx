@@ -139,6 +139,7 @@ export default function PaperView() {
               shuffle={false}
               selected={sel[q.n] ?? null}
               revealed={mode === 'study' || sel[q.n] != null}
+              studyMode={mode === 'study'}
               onSelect={(i) => {
                 setSel((s) => ({ ...s, [q.n]: i }))
                 progress.recordAnswer(`${meta.id}.${q.n}`, i === q.answer)

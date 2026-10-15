@@ -1,10 +1,10 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { usePlot } from '../../../../../kit'
 
 /**
  * A draggable point like the kit's DraggablePoint, but with a separate screen-reader label,
  * an optional short visible tag, and a choice of shape. Keyboard: arrow keys move it.
- * Square handles draw their own focus ring (the global focus style only targets round ones).
+ * Keyboard focus shows the shared .plot-drag ring (components.css).
  */
 export function DragDot({
   x,
@@ -37,7 +37,6 @@ export function DragDot({
 }) {
   const { xs, ys, toData } = usePlot()
   const dragging = useRef(false)
-  const [ring, setRing] = useState(false)
   const [dx0, dx1] = xs.domain()
   const [dy0, dy1] = ys.domain()
   const clamp = (v: number, a: number, b: number) => Math.max(Math.min(a, b), Math.min(Math.max(a, b), v))
@@ -72,16 +71,6 @@ export function DragDot({
       aria-label={ariaLabel}
       aria-valuetext={lockX ? `${y.toFixed(1)}` : `x ${x.toFixed(1)}, y ${y.toFixed(1)}`}
       onKeyDown={onKey}
-      onFocus={(e) => {
-        let visible = true
-        try {
-          visible = (e.currentTarget as Element).matches(':focus-visible')
-        } catch {
-          // older engines: show the ring for any focus
-        }
-        setRing(square && visible)
-      }}
-      onBlur={() => setRing(false)}
       onPointerDown={(e) => {
         e.stopPropagation()
         dragging.current = true
@@ -105,7 +94,6 @@ export function DragDot({
       ) : (
         <circle cx={cx} cy={cy} r={r} style={{ fill: color, stroke: 'var(--surface)', strokeWidth: 2.5 }} />
       )}
-      {ring && <rect x={cx - r - 4} y={cy - r - 4} width={2 * r + 8} height={2 * r + 8} rx={5} style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 3 }} />}
       {tag && (
         <text
           className="plot-label"

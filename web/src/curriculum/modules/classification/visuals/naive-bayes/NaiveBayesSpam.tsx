@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Figure, Bars, Plot, Grid, Axes, Path, Dots, Label, HLine, useNarrow } from '../../../../../kit'
-import { VOCAB, CLASSES, CLS_C, PRIOR, type Word, type Cls, likelihood, scores, frac, small } from './nbData'
+import { VOCAB, CLASSES, CLS_C, CLS_INK, PRIOR, type Word, type Cls, likelihood, scores, frac, small } from './nbData'
 
 /*
   Naive Bayes with no smoothing (α = 0). Each class's score starts at its prior and is multiplied by
@@ -84,8 +84,8 @@ export default function NaiveBayesSpam() {
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1.1fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '8px 12px', alignItems: 'center' }}>
           <span style={th}>factor</span>
-          <span style={{ ...th, color: CLS_C.spam }}>spam</span>
-          <span style={{ ...th, color: CLS_C.normal }}>normal</span>
+          <span style={{ ...th, color: CLS_INK.spam }}>spam</span>
+          <span style={{ ...th, color: CLS_INK.normal }}>normal</span>
           <span style={rowLabel}>prior</span>
           {CLASSES.map((c) => (
             <Cell key={c} num={c === 'spam' ? 4 : 6} den={10} p={PRIOR[c]} c={CLS_C[c]} isZero={false} />
@@ -104,7 +104,7 @@ export default function NaiveBayesSpam() {
             <span
               key={c}
               className="tabular"
-              style={{ fontWeight: 700, borderTop: '1.5px solid var(--rule)', paddingTop: 6, color: raw[c] === 0 ? 'var(--viz-neg)' : CLS_C[c], fontSize: '0.95rem' }}
+              style={{ fontWeight: 700, borderTop: '1.5px solid var(--rule)', paddingTop: 6, color: raw[c] === 0 ? 'var(--viz-neg)' : CLS_INK[c], fontSize: '0.95rem' }}
             >
               {small(raw[c])}
             </span>

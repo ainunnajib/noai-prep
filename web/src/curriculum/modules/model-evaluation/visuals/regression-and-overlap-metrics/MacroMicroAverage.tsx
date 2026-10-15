@@ -77,13 +77,21 @@ export default function MacroMicroAverage() {
   const setPct = (c: number, v: number) => setSt((o) => ({ ...o, pct: o.pct.map((x, i) => (i === c ? v : x)) }))
   const gap = r.micro - r.macro
   const equalSizes = st.n.every((v) => v === st.n[0])
+  // the preset the sliders currently match, if any (so only that button is drawn as selected)
+  const active = Object.keys(PRESETS).find((k) => PRESETS[k].n.every((v, i) => v === st.n[i]) && PRESETS[k].pct.every((v, i) => v === st.pct[i]))
+  const minF1 = Math.min(...r.per.map((x) => x.f1))
+  const weakest = r.per.findIndex((x) => x.f1 === minF1)
+  const biggest = st.n.indexOf(Math.max(...st.n))
+  const biggestBest = r.per[biggest].f1 >= Math.max(...r.per.map((x) => x.f1))
   const verdict =
     Math.abs(gap) < 0.02
       ? 'The two averages agree here.'
       : equalSizes
         ? 'All three classes are the same size, so micro (accuracy, here just the average of the three recalls) can no longer hide a weak class.'
         : gap > 0
-          ? `Micro is ${gap.toFixed(2)} higher: the big classes are hiding a weak one.`
+          ? minF1 < 0.7
+            ? `Micro is ${gap.toFixed(2)} higher: the big classes are hiding a weak one (${NAMES[weakest]}, F1 ${minF1.toFixed(2)}).`
+            : `Micro is ${gap.toFixed(2)} higher, but every class has an F1 of at least ${minF1.toFixed(2)}, so no weak class is being hidden${biggestBest ? `: the biggest class (${NAMES[biggest]}) just scores best` : ''}.`
           : `Macro is ${(-gap).toFixed(2)} higher: a small class is doing better than the big ones.`
 
   return (
@@ -98,11 +106,15 @@ export default function MacroMicroAverage() {
     >
       <div className={s.wrap}>
         <Controls>
-          <Button primary onClick={() => setSt(PRESETS.rare)}>
+          <Button primary={active === 'rare'} onClick={() => setSt(PRESETS.rare)}>
             Rare class ignored
           </Button>
-          <Button onClick={() => setSt(PRESETS.balanced)}>Same model, balanced classes</Button>
-          <Button onClick={() => setSt(PRESETS.good)}>Rare class done well</Button>
+          <Button primary={active === 'balanced'} onClick={() => setSt(PRESETS.balanced)}>
+            Same model, balanced classes
+          </Button>
+          <Button primary={active === 'good'} onClick={() => setSt(PRESETS.good)}>
+            Rare class done well
+          </Button>
         </Controls>
 
         {/* the result first, so every slider below moves bars that are already on screen (also on phones) */}

@@ -104,7 +104,7 @@ export default function PriorPosteriorBars() {
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%', opacity: showLik ? (phase === 'multiply' ? 0.45 : 1) : 0, transition: 'opacity 0.4s' }}>
-                <span className="tabular" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--viz-2)' }}>
+                <span className="tabular" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--viz-2-ink)' }}>
                   {f3(L[c][i])}
                 </span>
                 <div style={bar(showLik ? L[c][i] * H : 0, 'var(--viz-2)')} />

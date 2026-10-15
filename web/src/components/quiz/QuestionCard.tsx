@@ -17,16 +17,25 @@ export interface QuestionCardProps {
   number?: number
   meta?: React.ReactNode
   headerExtra?: React.ReactNode
+  /** answers are shown by default (a paper's study mode): an unanswered card is not "skipped" */
+  studyMode?: boolean
+  /** given by pages that swap one question for the next: the card can then take focus (see revealQuestion) */
+  cardRef?: React.Ref<HTMLElement>
 }
 
 const LETTERS = 'ABCDEFGH'
 
-export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, seed = 0, number, meta, headerExtra }: QuestionCardProps) {
+export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, seed = 0, number, meta, headerExtra, studyMode, cardRef }: QuestionCardProps) {
   const order = useMemo(() => (shuffle ? optionOrder(q.options.length, q.id, seed) : q.options.map((_, i) => i)), [q, shuffle, seed])
   const correct = selected === q.answer
 
   return (
-    <article className={`qcard${revealed ? (correct ? ' is-correct' : selected == null ? ' is-skipped' : ' is-wrong') : ''}`}>
+    <article
+      ref={cardRef}
+      tabIndex={cardRef ? -1 : undefined}
+      aria-label={cardRef && number != null ? `Question ${number}` : undefined}
+      className={`qcard${revealed ? (correct ? ' is-correct' : selected != null ? ' is-wrong' : studyMode ? '' : ' is-skipped') : ''}`}
+    >
       <header className="qcard-head">
         {number != null && <span className="qcard-num tabular">Q{number}</span>}
         {meta && <span className="qcard-meta">{meta}</span>}
@@ -73,12 +82,12 @@ export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, 
       <div aria-live="polite">
         {revealed && (
           <div className="qcard-explain">
-            <div className="qcard-verdict">{selected == null ? 'Not answered' : correct ? 'Correct' : 'Not quite'}</div>
+            <div className="qcard-verdict">{selected == null ? (studyMode ? 'Answer and explanation' : 'Not answered') : correct ? 'Correct' : 'Not quite'}</div>
             <RichText text={q.explanation} />
             {q.caveat && (
-              <p className="qcard-caveat">
+              <div className="qcard-caveat">
                 <strong>Note:</strong> <RichText text={q.caveat} inline />
-              </p>
+              </div>
             )}
           </div>
         )}

@@ -156,7 +156,7 @@ export default function SqrtDScaling() {
             </div>
             <div className={s.meterHead}>
               <span className={s.mono}>{slope.toFixed(3)}</span>
-              <span style={{ color: healthColour, fontWeight: 800 }}>{health}</span>
+              <span style={{ color: healthy ? 'var(--viz-pos-ink)' : slope > 0.03 ? 'var(--viz-2-ink)' : 'var(--viz-neg)', fontWeight: 800 }}>{health}</span>
             </div>
           </div>
         </div>

@@ -6,7 +6,8 @@ import s from './pss.module.css'
   The output-size formula, made countable. Left: an n×n input (blue) with p rings of zero
   padding (hatched, always, on every side), the k×k kernel window (orange) and, above the grid, the
   column positions the window starts at, s apart. Right: the output grid, one cell per window
-  position. Cells the window never reaches (because the last jump would overshoot) get a red
+  position. Cells the window never reaches (because the last jump would overshoot, or, when k < s,
+  because they fall between two windows) get a red
   outline, tint and ×, drawn on top so a padding cell stays hatched. Challenge mode hides the
   answer until you pick one.
 */
@@ -79,9 +80,13 @@ export default function ConvShapeCalculator() {
   const ocs = Math.max(14, Math.min(34, side ? Math.floor((W * 0.36) / Math.max(1, o)) : Math.floor((W - 8) / Math.max(1, o))))
   const top = 30 // room for the stride ruler
   const gridW = P * cs
-  const reach = valid ? (o - 1) * c.s + c.k : 0 // cells [0, reach) are covered in each direction
-  const skipped = valid ? P - reach : 0 // columns (and rows) at the far edge never covered
-  const skippedImage = valid ? Math.max(0, c.p + c.n - reach) : 0 // ... of which real image pixels
+  // covered[i]: some window spans column (and row) i, i.e. j·s ≤ i < j·s + k for some window j.
+  // Cells are missed past the last window and, when k < s, in the gaps between windows.
+  const covered = Array.from({ length: P }, (_, i) => valid && Array.from({ length: o }, (_, j) => j * c.s).some((st) => st <= i && i < st + c.k))
+  const missed = covered.flatMap((cv, i) => (cv ? [] : [i]))
+  const skipped = missed.length // columns (and rows) never covered
+  const skippedImage = missed.filter((i) => i >= c.p && i < c.p + c.n).length // ... of which real image pixels
+  const gapSkipped = valid ? missed.filter((i) => i < (o - 1) * c.s + c.k).length : 0 // ... of which between windows
 
   const set = (key: keyof Cfg) => (v: number) => setCfg((old) => ({ ...old, [key]: v }))
   const frac = (P - c.k) / c.s
@@ -121,7 +126,7 @@ export default function ConvShapeCalculator() {
                   const r = Math.floor(idx / P)
                   const q = idx % P
                   const pad = r < c.p || q < c.p || r >= c.p + c.n || q >= c.p + c.n
-                  const unreached = revealed && valid && (r >= reach || q >= reach)
+                  const unreached = revealed && valid && (!covered[r] || !covered[q])
                   const x0 = q * cs + 1
                   const y0 = r * cs + 1
                   const m = cs * 0.22 // half-size of the ×
@@ -194,7 +199,7 @@ export default function ConvShapeCalculator() {
               {valid && revealed && skipped > 0
                 ? `; × = ${skipped} column${skipped > 1 ? 's' : ''} and row${skipped > 1 ? 's' : ''} never reached (${
                     skippedImage === 0 ? 'only padding zeros here' : skippedImage === skipped ? 'real image pixels' : `${skippedImage} of them real image pixels`
-                  })`
+                  }${gapSkipped > 0 ? `; ${gapSkipped === skipped ? 'all' : gapSkipped} of them sit between windows, because the kernel is narrower than the stride` : ''})`
                 : ''}
             </span>
           </div>

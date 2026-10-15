@@ -113,7 +113,7 @@ Every number in the table below is computed in `float32`, the way PyTorch does i
 
 ### Log-sum-exp: never take the log of a tiny probability
 
-The visual's "far apart" preset shows a second trap. With logits $(1000, 0, -1000)$, the stable softmax gives $p_3 = e^{-2000}/1$, which underflows to exactly 0. If the true class is the third one, the <Term def="The standard loss for classification: minus the log of the probability the model gave the true class, $-\log p_y$. 0 when the model is certain and right; huge when it is confident and wrong.">cross-entropy loss</Term> $-\log p_3 = -\log 0$ is `inf`, even though the true answer is a perfectly finite 2000.
+The visual's "far apart" preset shows a second trap. With logits $(1000, 0, -1000)$, the stable softmax gives $p_3 = e^{-2000}/1$, which underflows to exactly 0. If the true class is the third one, the <Term def="The standard loss for classification: −log p, where p is the probability the model gave the true class. 0 when the model is certain and right; huge when it is confident and wrong.">cross-entropy loss</Term> $-\log p_3 = -\log 0$ is `inf`, even though the true answer is a perfectly finite 2000.
 
 The fix is to never form $p_3$ at all. Take the log of the stable softmax formula algebraically:
 
@@ -121,7 +121,7 @@ $$
 \log p_i = (z_i - m) - \log \sum_{j} e^{z_j - m}
 $$
 
-The first part is just a subtraction. The second part is the log of a sum that is at least 1, so it is a modest, finite number. This is the <Term def="Computing $\log \sum_j e^{z_j}$ safely as $m + \log \sum_j e^{z_j - m}$, where m is the largest $z_j$. Used inside log-softmax and cross-entropy.">log-sum-exp trick</Term>. For our example: $\log p_3 = (-1000 - 1000) - \log(1 + e^{-1000} + e^{-2000}) \approx -2000 - \log 1 = -2000$, so the loss is 2000.
+The first part is just a subtraction. The second part is the log of a sum that is at least 1, so it is a modest, finite number. This is the <Term def="Computing log(e^z₁ + e^z₂ + …) safely: subtract the largest logit m from every logit, take the log of the sum of exponentials, then add m back. Used inside log-softmax and cross-entropy.">log-sum-exp trick</Term>. For our example: $\log p_3 = (-1000 - 1000) - \log(1 + e^{-1000} + e^{-2000}) \approx -2000 - \log 1 = -2000$, so the loss is 2000.
 
 You rarely write this yourself: PyTorch's `F.log_softmax`, `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss` all take **logits** and use it inside.
 

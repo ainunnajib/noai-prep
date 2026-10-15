@@ -157,23 +157,23 @@ export default function BroadcastStretcher() {
           <div style={rowLab}>
             B <span style={{ ...mono, fontWeight: 500 }}>{shapeText(sb)}</span>
           </div>
-          {nd === 0 ? <div style={th}>·</div> : res.dims.map((d, k) => <div key={`b${k}`} style={{ ...th, color: d.padB ? 'var(--ink-3)' : 'var(--viz-2)' }}>{d.padB ? `(${d.b})` : d.b}</div>)}
+          {nd === 0 ? <div style={th}>·</div> : res.dims.map((d, k) => <div key={`b${k}`} style={{ ...th, color: d.padB ? 'var(--ink-3)' : 'var(--viz-2-ink)' }}>{d.padB ? `(${d.b})` : d.b}</div>)}
           <div style={{ ...rowLab, borderTop: '1.5px solid var(--rule)', paddingTop: 4 }}>check</div>
           {nd === 0 ? (
-            <div style={{ ...th, borderTop: '1.5px solid var(--rule)', color: 'var(--viz-pos)', fontSize: '0.8rem' }}>✓</div>
+            <div style={{ ...th, borderTop: '1.5px solid var(--rule)', color: 'var(--viz-pos-ink)', fontSize: '0.8rem' }}>✓</div>
           ) : (
             res.dims.map((d, k) => (
-              <div key={`c${k}`} style={{ borderTop: '1.5px solid var(--rule)', paddingTop: 4, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: d.ok ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>
+              <div key={`c${k}`} style={{ borderTop: '1.5px solid var(--rule)', paddingTop: 4, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: d.ok ? 'var(--viz-pos-ink)' : 'var(--viz-neg)' }}>
                 {d.ok ? '✓' : '✗'} {d.why}
               </div>
             ))
           )}
           <div style={rowLab}>result</div>
           {nd === 0 ? (
-            <div style={{ ...th, color: 'var(--viz-3)' }}>()</div>
+            <div style={{ ...th, color: 'var(--viz-3-ink)' }}>()</div>
           ) : (
             res.dims.map((d, k) => (
-              <div key={`r${k}`} style={{ ...th, color: d.ok ? 'var(--viz-3)' : 'var(--viz-neg)' }}>
+              <div key={`r${k}`} style={{ ...th, color: d.ok ? 'var(--viz-3-ink)' : 'var(--viz-neg)' }}>
                 {d.ok ? d.out : '?'}
               </div>
             ))
@@ -193,7 +193,7 @@ export default function BroadcastStretcher() {
               +
             </span>
             <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
-              {panelLabel(`B ${shapeText(sb)} stretched`, 'var(--viz-2)')}
+              {panelLabel(`B ${shapeText(sb)} stretched`, 'var(--viz-2-ink)')}
               <Brackets>
                 <Stretched data={B} out={out2} size={size} gap={gap} phase={phase} colour="b" />
               </Brackets>
@@ -202,7 +202,7 @@ export default function BroadcastStretcher() {
               =
             </span>
             <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
-              {panelLabel(`A + B ${shapeText(res.out)}`, 'var(--viz-3)')}
+              {panelLabel(`A + B ${shapeText(res.out)}`, 'var(--viz-3-ink)')}
               <Brackets>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${out2[1]}, ${size}px)`, gap }}>
                   {sum.flatMap((row, i) =>

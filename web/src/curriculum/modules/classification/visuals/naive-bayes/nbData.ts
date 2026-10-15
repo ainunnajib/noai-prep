@@ -34,6 +34,8 @@ export const PRIOR: Record<Cls, number> = { spam: 0.4, normal: 0.6 }
 export const TOTAL: Record<Cls, number> = { spam: 10, normal: 10 }
 
 export const CLS_C: Record<Cls, string> = { spam: 'var(--viz-4)', normal: 'var(--viz-3)' }
+/** the class colours for text: --viz-3 is too light for text on white, so it uses its darker twin */
+export const CLS_INK: Record<Cls, string> = { spam: 'var(--viz-4)', normal: 'var(--viz-3-ink)' }
 
 /** numerator and denominator of P(word | class) with add-α smoothing */
 export function likelihood(c: Cls, w: Word, alpha: number): { num: number; den: number; p: number } {
