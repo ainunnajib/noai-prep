@@ -180,4 +180,4 @@ node scripts/screenshot.mjs --out /tmp/shots/<module-slug> --width 1280 /learn/<
 node scripts/screenshot.mjs --out /tmp/shots/<module-slug> --width 390 --theme dark /learn/<module-slug>/<lesson-slug>
 ```
 
-It prints horizontal overflow and console errors, and exits non-zero if anything is wrong. Open the PNGs and look at them: are the visuals legible, correctly drawn, and readable in dark mode and on a phone?
+It waits for the lesson, its past-paper questions and its checkpoint to finish loading before each capture, prints horizontal overflow and console errors, and exits non-zero if anything is wrong (a page still loading after 60 s prints `STILL-LOADING` and gets no screenshot). Open the PNGs and look at them: are the visuals legible, correctly drawn, and readable in dark mode and on a phone?
