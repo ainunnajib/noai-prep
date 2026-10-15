@@ -4,7 +4,7 @@ import GradCheckMeter from './visuals/network-from-scratch/GradCheckMeter'
 import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
 import { TRAIN_CODE, TRAIN_OUTPUT, GRADCHECK_CODE, GRADCHECK_OUTPUT } from './visuals/network-from-scratch/snippets'
 
-In PyTorch, one line, `loss.backward()`, computes every gradient for you. In this lesson you write that line yourself: a complete neural-network classifier in about 40 lines of NumPy, trained by gradient descent, with a test that proves its gradients are right. This is exactly the skill the NOAI Final rewards. Its programming tasks ask you to implement algorithms straight from their formulas (in 2025, gradient-descent linear regression in pure NumPy; in 2026, gradient boosting from scratch in NumPy and attention in PyTorch), and once you have built backprop by hand, nothing in PyTorch is magic any more.
+In PyTorch, one line, `loss.backward()`, computes every gradient for you. In this lesson you write that line yourself: a complete neural-network classifier in about 40 lines of NumPy, trained by gradient descent, with a test that proves its gradients are right. This is exactly the skill the NOAI Final rewards. Its programming tasks ask you to implement algorithms straight from their formulas (in 2025, gradient-descent linear regression in pure NumPy; in 2026, gradient boosting in NumPy, then a U-Net repair and attention in PyTorch), and once you have built backprop by hand, nothing in PyTorch is magic any more.
 
 <Analogy title="A CCA training session">
 
@@ -33,6 +33,8 @@ $\mathrm{ReLU}(z) = \max(0, z)$ is applied to every entry, and softmax turns eac
 | $W_2$, $b_2$ | $(H, K)$, $(K,)$ | output layer's weights and biases |
 | $Z_2$, $P$ | $(N, K)$ | <Term def="The raw scores a network outputs before softmax turns them into probabilities.">logits</Term> and probabilities (each row of $P$ sums to 1) |
 | $Y$ | $(N, K)$ | the true labels, <Term def="A label written as a row of zeros with a single 1 in the column of the true class, e.g. class 2 of 3 is [0, 0, 1].">one-hot</Term> |
+
+Notice that $W_1$ is stored as $(D, H)$, inputs × outputs. That is the transpose of the $n_\text{out} \times n_\text{in}$ matrix in [the multilayer-perceptrons lesson](#/learn/neural-networks/multilayer-perceptrons), and it lets a batch go through as plain `X @ W1` with no `.T`. PyTorch's `nn.Linear` stores it the other way round, $(H, D)$, and computes `X @ W.T`: same numbers, different storage.
 
 Adding $b_1$, shape $(H,)$, to $XW_1$, shape $(N, H)$, uses NumPy <Term def="NumPy's rule for combining arrays of different shapes: an array of shape (H,) is stretched to (N, H) by repeating it for every row.">broadcasting</Term>: the same bias row is added to every example.
 
@@ -241,7 +243,7 @@ gradcheck: True
 
 <Mistake title="Gradient checks that lie">
 
-Three classic slips. **Forgetting to put the weight back** after nudging it, so every later check uses a corrupted network. **Checking in float32**, where even a perfect backward pass fails. And **checking with dropout or other randomness switched on**, so $L(w+\varepsilon)$ and $L(w-\varepsilon)$ come from different random networks. Check small, in float64, with randomness off.
+Three classic slips. **Forgetting to put the weight back** after nudging it, so every later check uses a corrupted network. **Checking in float32**, where even a perfect backward pass fails. And **checking with dropout (a layer that switches off random neurons during training, met in [the training loop](#/learn/pytorch/training-loop)) or other randomness switched on**, so $L(w+\varepsilon)$ and $L(w-\varepsilon)$ come from different random networks. Check small, in float64, with randomness off.
 
 </Mistake>
 

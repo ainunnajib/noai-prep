@@ -77,7 +77,7 @@ Each factor is the local derivative of one recorded node; $e$ and $x$ are the va
 
 <KeyIdea>
 
-`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the job of the <Term def="The object that updates the weights. For plain gradient descent it does w -= lr * w.grad for every weight. You will use one in the training-loop lesson.">optimiser</Term>, with `optimizer.step()` (PyTorch spells it the American way, `optimizer`, in code).
+`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the job of the <Term def="The object that updates the weights. For plain gradient descent it does w -= lr * w.grad for every weight. You will use one in the training-loop lesson.">optimiser</Term>, with `optimizer.step()`. (PyTorch's own examples name this variable `optimizer`, the American spelling, and this module does the same. It is just a variable name, so the `optimiser` you will see in other modules works identically.)
 
 </KeyIdea>
 
@@ -140,7 +140,7 @@ There is one case where a repeated `backward()` usually *does* raise an error: c
 
 ### Gradient descent with autograd
 
-Put the pieces together and you have the core of a typical NOAI Final "implement training from scratch in PyTorch" task. The data were made with $y = 2x + 1$, so the model should learn $w \approx 2$ and $b \approx 1$:
+Put the pieces together and you have the core of every from-scratch gradient-descent task: Question 1 of the 2025 Final asked for this same loop, for linear regression, in NumPy, where you write the gradient formula yourself instead of calling `backward()` ([rebuilt in the Final lab](#/learn/final-lab-numpy/task-linear-regression-gd)). Our data were made with $y = 2x + 1$, so the model should learn $w \approx 2$ and $b \approx 1$:
 
 ```python
 import torch
@@ -249,7 +249,7 @@ Track only what you will differentiate. Use `torch.no_grad()` for evaluation, `.
     'Call `model.eval()` before the loop and change nothing else',
   ]}
   answer={0}
-  explain="`total` is a tensor that stays linked to every batch's graph, and each graph keeps its saved activations. `no_grad()` stops recording and `.item()` turns the loss into a plain number, so nothing is kept. `zero_grad()` only clears `.grad` and has nothing to do with the graph; `backward()` would compute gradients from validation data (pointless, and harmful if a step followed); `model.eval()` changes dropout and BatchNorm but does not stop recording."
+  explain="`total` is a tensor that stays linked to every batch's graph, and each graph keeps its saved activations. `no_grad()` stops recording and `.item()` turns the loss into a plain number, so nothing is kept. `zero_grad()` only clears `.grad` and has nothing to do with the graph; `backward()` would compute gradients from validation data (pointless, and harmful if a step followed); `model.eval()` switches layers such as dropout and BatchNorm (both met in the training module) to their evaluation behaviour, but it does not stop recording."
 />
 
 <ExamTip>

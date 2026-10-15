@@ -3,7 +3,7 @@ import FLOPCounter from './visuals/cost-of-ml/FLOPCounter'
 import AttentionScaling from './visuals/cost-of-ml/AttentionScaling'
 import ComplexityComparator from './visuals/cost-of-ml/ComplexityComparator'
 
-Before you train or deploy a model, you can predict how much work it will do using nothing more than multiplication. That one number tells you whether a model can answer within 50 milliseconds on a phone, why chatbots struggle with very long documents, and why some optimisers are never used for neural networks. NOAI asks about it directly ("what is the complexity of self-attention?"), and in IOAI tasks with a GPU time limit, a quick count tells you which ideas you can afford to try.
+The last lesson measured memory and time on a real GPU; this one predicts the work before you run anything. Before you train or deploy a model, you can predict how much work it will do using nothing more than multiplication. That one number tells you whether a model can answer within 50 milliseconds on a phone, why chatbots struggle with very long documents, and why some optimisers are never used for neural networks. NOAI asks about it directly ("what is the complexity of self-attention?"), and in IOAI tasks with a GPU time limit, a quick count tells you which ideas you can afford to try.
 
 ## Count the work, not the seconds
 
@@ -17,7 +17,7 @@ Machine-learning costs work the same way. Almost every calculation inside a mode
 
 ## Matrix multiplication: m · n · p
 
-An $(m \times n)$ matrix $A$ times an $(n \times p)$ matrix $B$ gives an $(m \times p)$ matrix $C$. Each entry of $C$ is one row of $A$ times one column of $B$: multiply $n$ pairs of numbers and add them up, which is $n$ multiply-adds. There are $m \cdot p$ entries, so
+You first met this count in [matrix multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication); here it becomes the unit for costing everything else. An $(m \times n)$ matrix $A$ times an $(n \times p)$ matrix $B$ gives an $(m \times p)$ matrix $C$. Each entry of $C$ is one row of $A$ times one column of $B$: multiply $n$ pairs of numbers and add them up, which is $n$ multiply-adds. There are $m \cdot p$ entries, so
 
 $$
 \text{multiply-adds} = \underbrace{m \cdot p}_{\text{cells}} \times \underbrace{n}_{\text{per cell}} = m \cdot n \cdot p
@@ -158,7 +158,7 @@ Parameters measure **memory**; multiply-adds measure **compute**. A dense layer 
   explain="The filters do not depend on the image size, so the parameters stay the same. The output has twice the height and twice the width, so $2 \times 2 = 4$ times as many positions, and each position costs the same work: 4 times the multiply-adds."
 />
 
-Mobile networks such as MobileNet cut the cost of convolutions with a <Term def="A convolution split into two cheap steps: a k×k filter applied to each input channel separately (depthwise), then a 1×1 convolution that mixes the channels (pointwise).">depthwise separable convolution</Term>. Per output position, a standard $3 \times 3$ conv from 64 to 128 channels costs $9 \cdot 64 \cdot 128 = 73{,}728$ multiply-adds. The separable version first filters each of the 64 channels on its own ($9 \cdot 64 = 576$), then mixes channels with a $1 \times 1$ conv ($64 \cdot 128 = 8{,}192$): $8{,}768$ in total, about 8.4 times less work, and the weights shrink by the same factor.
+Recall from [padding, stride and channels](#/learn/convolutional-networks/padding-stride-shapes) that mobile networks such as MobileNet cut the cost of convolutions with a <Term def="A convolution split into two cheap steps: a k×k filter applied to each input channel separately (depthwise), then a 1×1 convolution that mixes the channels (pointwise).">depthwise separable convolution</Term>. Per output position, a standard $3 \times 3$ conv from 64 to 128 channels costs $9 \cdot 64 \cdot 128 = 73{,}728$ multiply-adds. The separable version first filters each of the 64 channels on its own ($9 \cdot 64 = 576$), then mixes channels with a $1 \times 1$ conv ($64 \cdot 128 = 8{,}192$): $8{,}768$ in total, about 8.4 times less work, and the weights shrink by the same factor.
 
 <PastPaperQuestion paper="noai2025" n={14} />
 
@@ -218,17 +218,15 @@ Two conventions exist: some sources count multiply-adds, others count FLOPs, whi
 
 ## Attention: the T² problem
 
-The two parts of attention grow differently. The projections, $4Td^2$, grow in proportion to $T$. The scores and weighted sum, $2T^2 d$, grow with $T^2$. They are equal when $4Td^2 = 2T^2 d$, that is when $T = 2d$. For longer sequences the $T^2$ part takes over, and doubling the context roughly quadruples the cost. Memory suffers too: the $T \times T$ score matrix (one per head) has to be kept for the backward pass.
+[The Transformer block lesson](#/learn/attention-and-transformers/positional-encoding-and-blocks) showed that attention is $O(T^2)$; now we count it exactly. The two parts of attention grow differently. The projections, $4Td^2$, grow in proportion to $T$. The scores and weighted sum, $2T^2 d$, grow with $T^2$. They are equal when $4Td^2 = 2T^2 d$, that is when $T = 2d$. For longer sequences the $T^2$ part takes over, and doubling the context roughly quadruples the cost. Memory suffers too: the $T \times T$ score matrix (one per head) has to be kept for the backward pass.
 
 <AttentionScaling />
 
 For GPT-2 small, $d = 768$, so the crossover is at $T = 1{,}536$ tokens. At $T = 1{,}024$, one attention layer's projections cost about 2.4 billion multiply-adds and its scores and weighted sum about 1.6 billion (GPT-2 small has 12 such layers). Make the context 8 times longer, $T = 8{,}192$ (hypothetically: GPT-2 itself stops at 1,024 tokens): the projections grow 8 times, to about 19 billion, but the $T^2$ part grows $8^2 = 64$ times, to about 103 billion.
 
-<PastPaperQuestion paper="prelim2026" n={219} />
-
 <ExamTip>
 
-The standard answer is "$O(n^2)$ in the sequence length $n$", more precisely $O(T^2 d)$. Use the scale factor: a context $k$ times longer needs $k^2$ times the attention work. And remember that attention's **parameter count does not depend on $T$**, a favourite distractor.
+Asked for the complexity of self-attention, the standard answer is "$O(n^2)$ in the sequence length $n$", more precisely $O(T^2 d)$. Use the scale factor: a context $k$ times longer needs $k^2$ times the attention work. And remember that attention's **parameter count does not depend on $T$**, a favourite distractor.
 
 </ExamTip>
 
@@ -240,7 +238,7 @@ One student never studies, so for every question they flip through the whole tex
 
 </Analogy>
 
-Training happens once (or once a week). <Term def="Using a trained model to make predictions on new inputs. Also called prediction or serving.">Inference</Term> happens for every request, perhaps millions of times a day, often within a strict time limit. Deployment therefore usually cares most about the **cost of one prediction** and the **memory** the model needs. Different models split their cost very differently. Here $n$ is the number of training examples, $d$ the number of features, and an <Term def="One full pass through the whole training set during training.">epoch</Term> one pass over the training data:
+Training happens once (or once a week). <Term def="Using a trained model to make predictions on new inputs. Also called prediction. (Serving is how those predictions are delivered to users.)">Inference</Term> happens for every request, perhaps millions of times a day, often within a strict time limit. Deployment therefore usually cares most about the **cost of one prediction** and the **memory** the model needs. Different models split their cost very differently. Here $n$ is the number of training examples, $d$ the number of features, and an <Term def="One full pass through the whole training set during training.">epoch</Term> one pass over the training data:
 
 | Model | Training | One prediction | Kept in memory |
 |---|---|---|---|
@@ -266,15 +264,13 @@ It is tempting to say a k-NN prediction costs $O(kd)$ because only $k$ neighbour
 
 </Mistake>
 
-Matrix-product counting also explains when to avoid a closed-form solution. Linear regression can be solved in one shot with the <Term def="The closed-form least-squares solution w = (XᵀX)⁻¹ Xᵀy for linear regression.">normal equation</Term> $w = (X^\top X)^{-1} X^\top y$. Forming $X^\top X$ is a $(d \times n)(n \times d)$ product, $n d^2$ multiply-adds, and solving the resulting $d \times d$ system takes about $d^3$ more. That is instant for $d = 100$, but for $d = 100{,}000$ the $d^3 = 10^{15}$ term is hopeless, and cheap gradient-descent steps win.
+Matrix-product counting also explains when to avoid a closed-form solution. Linear regression can be solved in one shot with the <Term def="The closed-form least-squares solution w = (XᵀX)⁻¹ Xᵀy for linear regression.">normal equation</Term> $w = (X^\top X)^{-1} X^\top y$. Forming $X^\top X$ is a $(d \times n)(n \times d)$ product, $n d^2$ multiply-adds, and solving the resulting $d \times d$ system takes about $d^3$ more (see [multiple regression](#/learn/linear-regression/multiple-and-polynomial)). That is instant for $d = 100$, but for $d = 100{,}000$ the $d^3 = 10^{15}$ term is hopeless, and cheap gradient-descent steps win.
 
-The same $d^3$ wall stops <Term def="An optimiser that uses second derivatives (the Hessian) to take a smarter step: w ← w − H⁻¹ ∇L. Few steps, but each one is very expensive for large models.">Newton's method</Term>. Its update $w \leftarrow w - H^{-1}\nabla L$ uses the <Term def="The p × p table of second derivatives of the loss: one row and one column for every parameter of the model.">Hessian</Term> $H$, which for a model with $p$ parameters is a $p \times p$ matrix: $p^2$ numbers to store and about $p^3$ operations to solve with. For $p = 10{,}000$ that is $10^8$ entries (400 MB in 32-bit floats) and about $10^{12}$ operations **every step**, while a gradient-descent update touches each of the $10^4$ parameters just once.
-
-<PastPaperQuestion paper="prelim2026" n={74} />
+The same $d^3$ wall stops <Term def="An optimiser that uses second derivatives (the Hessian) to take a smarter step: w ← w − H⁻¹ ∇L. Few steps, but each one is very expensive for large models.">Newton's method</Term>. Its update $w \leftarrow w - H^{-1}\nabla L$ uses the <Term def="The P × P table of second derivatives of the loss: one row and one column for every parameter of the model.">Hessian</Term> $H$ (from [curvature and convexity](#/learn/calculus-and-gradient-descent/curvature-convexity)), which for a model with $P$ parameters is a $P \times P$ matrix: $P^2$ numbers to store and about $P^3$ operations to solve with. For $P = 10{,}000$ that is $10^8$ entries (400 MB in 32-bit floats) and about $10^{12}$ operations **every step**, while a gradient-descent update touches each of the $10^4$ parameters just once.
 
 <Note title="Going further: the cost of training a large language model">
 
-The same counting gives a famous rule of thumb. A forward pass costs about one multiply-add per parameter per token, and the backward pass about twice that, so training costs about $3$ multiply-adds, or $6$ FLOPs, per parameter per token: $\text{FLOPs} \approx 6ND$ for $N$ parameters and $D$ training tokens. For GPT-3 ($N = 175$ billion, $D = 300$ billion) that is about $3 \times 10^{23}$ FLOPs.
+A forward pass costs about one multiply-add per parameter per token, and the backward pass about twice that, so training costs about $3$ multiply-adds, or $6$ FLOPs, per parameter per token: $\text{FLOPs} \approx 6ND$ for $N$ parameters (our $P$) and $D$ training tokens (not the tree depth $D$ above). This is the $C \approx 6ND$ from [how LLMs are built](#/learn/large-language-models/how-llms-are-built), now derived from counting. For GPT-3 ($N = 175$ billion, $D = 300$ billion) that is about $3 \times 10^{23}$ FLOPs.
 
 </Note>
 
@@ -284,6 +280,6 @@ The same counting gives a famous rule of thumb. A forward pass costs about one m
 - Dense layer: $B \cdot d_{\text{in}} \cdot d_{\text{out}}$. Conv layer: $H_{\text{out}} W_{\text{out}} k^2 C_{\text{in}} C_{\text{out}}$. Self-attention: $4Td^2 + 2T^2 d$, so $O(T^2 d)$ for long sequences.
 - Parameters are not compute: conv layers re-use their weights at every position, and attention's weights do not depend on $T$.
 - k-NN is free to train but costs $O(nd)$ per prediction; a linear model predicts in $O(d)$ and a tree in $O(\text{depth})$. Deployment cares most about prediction cost and memory.
-- Newton's method needs a $p \times p$ Hessian: $O(p^2)$ memory and $O(p^3)$ time per step, which is why deep learning uses gradient methods.
+- Newton's method needs a $P \times P$ Hessian: $O(P^2)$ memory and $O(P^3)$ time per step, which is why deep learning uses gradient methods.
 
 </Takeaways>

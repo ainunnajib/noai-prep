@@ -4,7 +4,7 @@ import EpochCounter from './visuals/sgd-and-mini-batches/EpochCounter'
 import SharpFlatMinima from './visuals/sgd-and-mini-batches/SharpFlatMinima'
 import MinimaEscape from './visuals/sgd-and-mini-batches/MinimaEscape'
 
-In [the gradient descent lesson](#/learn/calculus-and-gradient-descent/gradient-descent), every step looked at **every** training example before the model moved. That is fine for the four Grab rides we fitted there. It is hopeless for ImageNet's 1.28 million photos, where a single step would need 1.28 million forward and backward passes. Deep learning uses a cheaper trick: estimate the gradient from a small random handful of examples, take a step, grab a fresh handful, and repeat. This lesson shows why such rough estimates still work, teaches the vocabulary that NOAI tests constantly (batch, iteration, epoch), and ends with a surprise: the noise in those estimates can actually help a model do well on new data.
+In [the gradient descent lesson](#/learn/calculus-and-gradient-descent/gradient-descent), every step looked at **every** training example before the model moved. That is fine for the four Grab rides we fitted there. It is hopeless for ImageNet's 1.28 million photos, where a single step would need 1.28 million forward and backward passes. Deep learning uses a cheaper trick: estimate the gradient from a small random handful of examples, take a step, grab a fresh handful, and repeat. You have already been doing this: in [the training loop](#/learn/pytorch/training-loop) a DataLoader handed your model batches of 32, and you counted $\lceil N/B \rceil$ iterations per epoch. This lesson explains *why* such small, noisy batches work so well, recaps the vocabulary that NOAI tests constantly (batch, iteration, epoch), and ends with a surprise: the noise in those estimates can actually help a model do well on new data.
 
 ## The gradient is an average
 
@@ -59,7 +59,7 @@ Watch the naming trap: in **batch** gradient descent, "batch" means the *whole* 
 Is a noisy estimate any good? Two facts make it work:
 
 1. **It is right on average.** If you averaged $\mathbf{g}_{\mathcal{B}}$ over every possible random mini-batch, you would get exactly $\nabla L$. Statisticians call such an estimate <Term def="An estimate whose average over all possible random samples equals the true value: it is not systematically too high or too low.">unbiased</Term>. Each step may point a bit off, but there is no systematic error, so the errors cancel out over many steps.
-2. **Its error shrinks like $1/\sqrt{B}$.** Averaging $B$ independent noisy numbers makes the typical error $\sqrt{B}$ times smaller. Multiplying the batch size by 4 halves the noise, but costs 4 times as much. Bigger batches give diminishing returns.
+2. **Its error shrinks like $1/\sqrt{B}$.** Averaging $B$ independent noisy numbers makes the typical error $\sqrt{B}$ times smaller: it is the standard error $\sigma/\sqrt{n}$ from [distributions and the CLT](#/learn/probability-and-statistics/distributions-and-clt). Multiplying the batch size by 4 halves the noise, but costs 4 times as much. Bigger batches give diminishing returns.
 
 <GradientCloud />
 
@@ -100,7 +100,7 @@ In textbooks and in NOAI multiple-choice questions, stochastic gradient descent 
 
 <PastPaperQuestion paper="prelim2026" n={68} />
 
-## Epochs, iterations and batch size
+## Epochs, iterations and batch size: a recap
 
 Three words describe every training run:
 
@@ -122,22 +122,22 @@ The brackets $\lceil\ \rceil$ mean <Term def="Round up to the next whole number:
 
 <EpochCounter />
 
-<Steps title="N = 1,000 examples, batch size 32, 10 epochs">
+<Steps title="N = 50,000 examples, batch size 128, 5 epochs">
   <Step title="Divide">
-    $1000 \div 32 = 31.25$. Mental shortcut: $32 \times 30 = 960$, and $1000 - 960 = 40$ is one more batch of 32 with 8 to spare.
+    $50000 \div 128 = 390.625$. Mental shortcut: $128 \times 400 = 51{,}200$ is too many; $128 \times 390 = 49{,}920$, which leaves $50000 - 49920 = 80$ examples.
   </Step>
   <Step title="Round up">
-    31 full batches use $31 \times 32 = 992$ examples. The remaining $1000 - 992 = 8$ form a 32nd, smaller batch. So one epoch has $\lceil 31.25 \rceil = 32$ iterations.
+    390 full batches use $49{,}920$ examples, and the 80 left over form a 391st, smaller batch. So one epoch has $\lceil 390.625 \rceil = 391$ iterations.
   </Step>
   <Step title="Multiply by the epochs">
-    $32 \times 10 = 320$ iterations, which means 320 weight updates. The model has seen $1000 \times 10 = 10{,}000$ examples in total.
+    $391 \times 5 = 1{,}955$ iterations, which means 1,955 weight updates. The model has seen $50{,}000 \times 5 = 250{,}000$ examples in total.
   </Step>
   <Step title="With drop_last">
-    $\lfloor 31.25 \rfloor = 31$ iterations per epoch, so $310$ updates, and 8 examples sit out each epoch (different ones each time, because the data are reshuffled).
+    $\lfloor 390.625 \rfloor = 390$ iterations per epoch, so $1{,}950$ updates, and 80 examples sit out each epoch (different ones each time, because the data are reshuffled).
   </Step>
 </Steps>
 
-Why reshuffle every epoch? If the data were stored in order (all the cats, then all the dogs), unshuffled batches would contain only one class and every gradient would pull in a biased direction. Shuffling makes every mini-batch a fair random sample, which is exactly what the "right on average" argument needs.
+Reshuffling every epoch (as in the training-loop lesson) keeps each mini-batch a fair random sample, which is exactly what the "right on average" argument needs.
 
 <PastPaperQuestion paper="prelim2026" n={167} />
 

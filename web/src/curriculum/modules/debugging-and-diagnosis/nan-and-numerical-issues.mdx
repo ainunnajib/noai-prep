@@ -14,14 +14,14 @@ Type $10^{99} \times 10^{99}$ into your school calculator and it gives up: the a
 
 </Analogy>
 
-Neural networks store numbers as <Term def="A way of storing real numbers in a fixed number of bits, like scientific notation: a few significant digits times a power of 2. Fast, but with a largest value, a smallest value and limited precision.">floating-point numbers</Term>. PyTorch's default, `float32`, uses 32 bits per number; <Term def="Training that does most calculations in 16-bit numbers (float16 or bfloat16) to save memory and time, while keeping a 32-bit copy of the weights for the updates.">mixed-precision</Term> training uses 16-bit `float16`. Each has a range:
+Neural networks store numbers as <Term def="A way of storing real numbers in a fixed number of bits, like scientific notation: a few significant digits times a power of 2. Fast, but with a largest value, a smallest value and limited precision.">floating-point numbers</Term>. PyTorch's default, `float32` (often written FP32), uses 32 bits per number; <Term def="Training that does most calculations in 16-bit numbers (float16 or bfloat16) to save memory and time, while keeping a 32-bit copy of the weights for the updates.">mixed-precision</Term> training uses 16-bit `float16` (FP16). Each has a range:
 
 | Format | Largest number | Smallest positive number | $e^x$ overflows when |
 |---|---|---|---|
 | `float32` | about $3.4 \times 10^{38}$ | about $1.4 \times 10^{-45}$ | $x > 88.7$ |
 | `float16` | $65\,504$ | about $6 \times 10^{-8}$ | $x > 11.1$ |
 
-A result that is too big becomes `inf` (infinity): this is <Term def="When a result is too large for the number format, so it is stored as infinity (inf).">overflow</Term>. A positive result that is too small becomes exactly 0: this is <Term def="When a result is too close to zero for the number format, so it is rounded to exactly 0.">underflow</Term>. The last column comes from logarithms: $e^x$ passes $3.4 \times 10^{38}$ when $x > \ln(3.4 \times 10^{38}) \approx 88.7$.
+A result that is too big becomes `inf` (infinity): this is <Term def="When a result is too large for the number format, so it is stored as infinity (inf).">overflow</Term>. A positive result that is too small becomes exactly 0: this is <Term def="When a result is too close to zero for the number format, so it is rounded to exactly 0.">underflow</Term>. The last column comes from logarithms: $e^x$ passes $3.4 \times 10^{38}$ when $x > \ln(3.4 \times 10^{38}) \approx 88.7$. (The formats are covered in more detail in [mixed precision](#/learn/training-deep-networks/stability-and-scale).)
 
 A third special value, `nan` ("not a number"), is the computer's Math ERROR: the result of an operation with no sensible answer. These rules are fixed in every language and library:
 
@@ -33,6 +33,8 @@ A third special value, `nan` ("not a number"), is the computer's Math ERROR: the
 | $0/0$, $\infty - \infty$, $0 \times \infty$ | `nan` | no sensible answer |
 | $\sqrt{-1}$, $\log(-1)$ | `nan` | no real answer |
 | `nan` + 5, `nan` × 0, `max(nan, 3)` in PyTorch | `nan` | anything touching `nan` is `nan` |
+
+(In this lesson, as in PyTorch's `torch.log`, $\log$ means the natural log $\ln$.)
 
 <KeyIdea>
 
@@ -56,6 +58,8 @@ p_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
 $$
 
 Here $e \approx 2.718$, so $e^{z_i}$ is a positive number that grows quickly with $z_i$. The bottom adds up $e^{z_j}$ over all $K$ classes. Dividing by that total makes the $p_i$ add up to 1.
+
+You met the cure in [softmax and multiclass](#/learn/classification/softmax-and-multiclass), where softmax ignores a constant added to every logit, and in the log-sum-exp box of [outputs and losses](#/learn/neural-networks/outputs-and-losses). Here we look at why it is needed and what goes wrong without it.
 
 Now try logits $(1000, 999, 998)$. Trained models usually give logits in the tens, but unnormalised inputs, huge weights or unscaled attention scores easily push them into the hundreds or thousands. And $e^{1000}$ is far past $e^{88.7}$, so all three exponentials overflow to `inf`, and every probability is $\infty / \infty =$ `nan`.
 
@@ -146,7 +150,7 @@ Almost every `nan` in practice comes from one of a handful of places:
 | Division by 0 | dividing by a standard deviation, norm or count that can be 0 (a constant feature, an empty mask) | divide by `std + eps` |
 | $\sqrt{x}$ at or below 0 | distances and norms (the slope of $\sqrt{x}$ at 0 is infinite) | `torch.sqrt(x + eps)` |
 | Weights blowing up | learning rate too high, exploding gradients | lower the learning rate, clip gradients, normalisation |
-| float16's small range | mixed-precision training | loss scaling (below), or <Term def="A 16-bit number format with the same range as float32 (up to about 3.4 × 10³⁸) but fewer significant digits, so it rarely overflows or underflows.">bfloat16</Term> |
+| float16's small range | mixed-precision training | loss scaling (below), or <Term def="A 16-bit number format with the same range as float32 (up to about 3.4 × 10³⁸) but fewer significant digits, so it rarely overflows or underflows.">bfloat16</Term> (BF16) |
 | Bad data | missing values (`NaN`) in the inputs or labels | check with `torch.isnan(x).any()` before training |
 
 The <Term def="A tiny positive constant (often written eps or ε, e.g. 1e-8 or 1e-5) added to keep an operation away from a forbidden value such as log 0 or division by 0.">epsilon</Term> trick deserves one worked example.
@@ -208,7 +212,7 @@ Any arithmetic with `nan` gives `nan`. So one bad value spreads in three waves: 
 
 Three tools catch it:
 
-1. **Checks** such as `assert torch.isfinite(loss)` every step, or `torch.isfinite(out).all()` after each layer, stop training at the first bad step. Save that batch: is something in its data odd?
+1. **Checks** such as `assert torch.isfinite(loss)` every step, or `torch.isfinite(out).all()` after each layer (`torch.isfinite` is True for every value that is neither `inf` nor `nan`), stop training at the first bad step. Save that batch: is something in its data odd?
 2. **Anomaly detection**, which you met in the [PyTorch gotchas lesson](#/learn/debugging-and-diagnosis/pytorch-gotchas): `torch.autograd.set_detect_anomaly(True)` stops at the first backward operation that returns `nan` and names your forward line. Switch it on only while debugging.
 3. **Logging** the loss, the gradient norms (next section) and the largest absolute activation per layer shows which value grew out of control in the steps before the crash.
 
@@ -235,7 +239,7 @@ The loss is large (the model is confidently wrong about the third example), but 
 
 ## Per-layer gradient norms: finding the failing layer
 
-A `nan` is the dramatic failure. A quieter one is a network that runs without errors but never learns, because some layers receive almost no gradient. To see which layers, measure each layer's <Term def="The length of a gradient: the square root of the sum of the squares of all its entries. It measures how strongly the loss is pushing that layer's weights to change.">gradient norm</Term>. If a layer has $n$ weights with gradients $g_1, \dots, g_n$ (each one is $\partial L / \partial w$ for one weight $w$), its gradient norm is
+You measured per-layer gradient norms in [vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients); here they become a debugging tool. A `nan` is the dramatic failure. A quieter one is a network that runs without errors but never learns, because some layers receive almost no gradient. To see which layers, measure each layer's <Term def="The length of a gradient: the square root of the sum of the squares of all its entries. It measures how strongly the loss is pushing that layer's weights to change.">gradient norm</Term>. If a layer has $n$ weights with gradients $g_1, \dots, g_n$ (each one is $\partial L / \partial w$ for one weight $w$), its gradient norm is
 
 $$
 \lVert g \rVert = \sqrt{g_1^2 + g_2^2 + \dots + g_n^2}
@@ -249,7 +253,7 @@ A plumber checking an HDB block reads the water-pressure gauge on every floor. I
 
 </Analogy>
 
-Backpropagation multiplies one factor per layer on the way back (see [vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients)), so if those factors are below 1 the gradient shrinks geometrically, layer after layer. Logging the norms takes three lines after `loss.backward()`. Here is a 10-layer sigmoid network:
+Backpropagation multiplies one factor per layer on the way back, so if those factors are below 1 the gradient shrinks geometrically, layer after layer. Logging the norms takes three lines after `loss.backward()`. Here is a 10-layer sigmoid network:
 
 <CodeBlock language="python" code={GRAD_NORMS_CODE} />
 
@@ -267,22 +271,14 @@ Read it from the bottom (the output layer) up: each layer gets several times (ab
 | Exactly 0 in one layer | <Term def="A ReLU unit whose input is negative for every example, so it always outputs 0 and passes back a gradient of 0. Once dead, it never recovers.">Dead ReLUs</Term>, or zero gradient arriving from above | Leaky ReLU (a small slope for negative inputs), better initialisation, a lower learning rate |
 | `p.grad` is `None` | A frozen layer, or a broken graph (`.detach()`, `.item()`) | Check `requires_grad`; keep the loss in PyTorch operations |
 
-<Term def="Rescaling the whole gradient whenever its norm is above a threshold c, so the update keeps its direction but never exceeds length c.">Gradient clipping</Term> deserves a closer look. Try exploding + clip at 1 in the visual above: clipping keeps training alive but does not cure it. Clipping by norm with threshold $c$ does this:
-
-$$
-\text{if } \lVert g \rVert > c: \quad g \leftarrow g \cdot \frac{c}{\lVert g \rVert}
-$$
-
-In words: if the gradient is longer than $c$, shrink it to length exactly $c$, keeping its direction. For example, $g = (3, 4)$ has norm $\sqrt{9 + 16} = 5$; with $c = 1$ it becomes $(3, 4) \times \tfrac{1}{5} = (0.6, 0.8)$, which has length 1. In PyTorch, `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` goes between `loss.backward()` and `optimizer.step()`. Clipping can only shrink gradients, so it does nothing for vanishing ones.
+Try exploding + clip at 1 in the visual above: <Term def="Rescaling the whole gradient whenever its norm is above a threshold c, so the update keeps its direction but never exceeds length c.">gradient clipping</Term> keeps training alive but does not cure it. Recall [clipping by norm](#/learn/training-deep-networks/stability-and-scale): if the global norm $\lVert g \rVert$ of *all* the gradients together exceeds $c$, every gradient is scaled by $c/\lVert g \rVert$. That is one norm for the whole network, not one per layer: `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)`, placed between `loss.backward()` and `optimizer.step()`, measures the gradients of all the parameters together. Clipping can only shrink gradients, so it does nothing for vanishing ones.
 
 <QuickCheck
-  q="A gradient is $g = (6, 8)$ and you clip by norm with $c = 5$. What is the clipped gradient?"
-  options={['$(3, 4)$', '$(5, 5)$', '$(0.6, 0.8)$', '$(6, 8)$, unchanged']}
+  q="A gradient is $g = (9, 12)$ and you clip by norm with $c = 3$. What is the clipped gradient?"
+  options={['$(1.8, 2.4)$', '$(3, 3)$', '$(0.6, 0.8)$', '$(9, 12)$, unchanged']}
   answer={0}
-  explain="$\lVert g \rVert = \sqrt{36 + 64} = 10 > 5$, so multiply by $5/10 = 0.5$: $(3, 4)$, length 5, same direction. Clipping each entry to 5 separately would give $(5, 5)$, which changes the direction; that is clipping by value, not by norm."
+  explain="$\lVert g \rVert = \sqrt{81 + 144} = 15 > 3$, so multiply by $3/15 = 0.2$: $(1.8, 2.4)$, length 3, same direction. Clipping each entry to 3 separately would give $(3, 3)$, which changes the direction; that is clipping by value, not by norm. $(0.6, 0.8)$ divides by the norm but forgets to multiply by $c$, so its length is 1, not 3."
 />
-
-<PastPaperQuestion paper="final2026" n={7} />
 
 <ExamTip>
 

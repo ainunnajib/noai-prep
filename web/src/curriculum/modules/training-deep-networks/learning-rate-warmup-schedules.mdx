@@ -2,7 +2,7 @@ import LRRangeTest from './visuals/learning-rate-warmup-schedules/LRRangeTest'
 import ScheduleDesigner from './visuals/learning-rate-warmup-schedules/ScheduleDesigner'
 import ScheduleLossCoupling from './visuals/learning-rate-warmup-schedules/ScheduleLossCoupling'
 
-Of all the settings you choose before training, the **learning rate** matters most. Too small and training crawls; too big and every step overshoots, the loss bounces or explodes to `NaN`. Worse, the best learning rate **changes during training**. This lesson shows how to find a good value in a couple of minutes, how to change it on a plan (a schedule), and why Transformers begin with a **warm-up**.
+Of all the settings you choose before training, the **learning rate** matters most. Too small and training crawls; too big and every step overshoots, the loss bounces or explodes to `nan` ("not a number"). Worse, the best learning rate **changes during training**. This lesson shows how to find a good value in a couple of minutes, how to change it on a plan (a schedule), and why Transformers begin with a **warm-up**.
 
 ## One learning rate is not enough
 
@@ -76,7 +76,7 @@ $$
 \eta_t = \eta_{\min} + \tfrac12\,(\eta_{\max} - \eta_{\min})\left(1 + \cos\frac{\pi t}{T}\right)
 $$
 
-Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta_{\max}$. At $t = T$, $\cos \pi = -1$, so the bracket is 0 and $\eta_T = \eta_{\min}$. Halfway, $\cos\frac{\pi}{2} = 0$, so $\eta = \eta_{\min} + \frac12(\eta_{\max} - \eta_{\min})$: **exactly midway** between the two.
+The angle $\frac{\pi t}{T}$ is in [radians](#/learn/data-and-features/feature-engineering), where $\pi$ is half a turn (180°): it runs from 0 to $\pi$ as $t$ runs from 0 to $T$, so $\cos$ goes from 1 down to −1. Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta_{\max}$. At $t = T$, $\cos \pi = -1$, so the bracket is 0 and $\eta_T = \eta_{\min}$. Halfway, $\cos\frac{\pi}{2} = 0$, so $\eta = \eta_{\min} + \frac12(\eta_{\max} - \eta_{\min})$: **exactly midway** between the two.
 
 **Linear warm-up** ramps the rate up in a straight line from 0 over the first $W$ steps, $\eta_t = \eta_{\max} \cdot \frac{t}{W}$, and then hands over to a decay schedule. **Warm-up + cosine** is the standard recipe for Transformers: the cosine then runs over the remaining $T - W$ steps, using $t - W$ in place of $t$.
 
@@ -123,7 +123,7 @@ The Final paper asked exactly this, with a small twist: the decay ends at $\eta_
 
 ## Why warm up?
 
-At the very start of training the weights are random, so the gradients are large and point in erratic directions. With **Adam** there is a second problem. Adam scales each weight's step to about $\eta$ using $\hat v$, its estimate of that weight's typical gradient size. After only a handful of steps, that estimate rests on a few erratic numbers. On step 1, for instance, every weight moves by exactly $\eta$, even one whose gradient is pure noise; once the averages have settled, such a weight's noisy gradients cancel out in $\hat m$ and its steps shrink to about a fifth of $\eta$. (Bias correction, from [the momentum and Adam lesson](#/learn/training-deep-networks/momentum-and-adam), fixes the pull towards 0, not this noise.) So at the start, thousands of weights lurch by a full $\eta$ in unreliable directions all at once, and a full-size learning rate can throw a Transformer into a bad region from which it never recovers: the loss spikes or becomes `NaN`.
+At the very start of training the weights are random, so the gradients are large and point in erratic directions. With **Adam** there is a second problem. Adam scales each weight's step to about $\eta$ using $\hat v$, its estimate of that weight's typical gradient size. After only a handful of steps, that estimate rests on a few erratic numbers. On step 1, for instance, every weight moves by exactly $\eta$, even one whose gradient is pure noise; once the averages have settled, such a weight's noisy gradients cancel out in $\hat m$ and its steps shrink to about a fifth of $\eta$. (Bias correction, from [the momentum and Adam lesson](#/learn/training-deep-networks/momentum-and-adam), fixes the pull towards 0, not this noise.) So at the start, thousands of weights lurch by a full $\eta$ in unreliable directions all at once, and a full-size learning rate can throw a Transformer into a bad region from which it never recovers: the loss spikes or becomes `nan`.
 
 <Term def="Starting training with a small learning rate and increasing it (usually linearly) to the target value over the first few hundred or thousand steps.">Warm-up</Term> keeps the steps small while Adam's statistics settle and the network moves out of the steep, chaotic starting region. Once things are calm, the full learning rate is safe and makes fast progress.
 
@@ -141,7 +141,7 @@ Every schedule leaves a fingerprint on the loss curve. Learn to read them:
 
 | What you see in the loss curve | Likely cause | What to do |
 |---|---|---|
-| explodes or turns `NaN` in the first few hundred steps | learning rate too high at the start | add warm-up, or lower the peak rate |
+| explodes or turns `nan` in the first few hundred steps | learning rate too high at the start | add warm-up, or lower the peak rate |
 | a sudden cliff-like drop at a fixed epoch | a step-decay cut at that epoch | nothing: that is the schedule working |
 | keeps bouncing at the same level, never settles | constant learning rate too high to settle | add decay (step or cosine) |
 | smooth decline that flattens gently at the end | cosine decay | nothing |
@@ -155,7 +155,7 @@ Every schedule leaves a fingerprint on the loss curve. Learn to read them:
 
 ## Two more schedules: 1cycle and ReduceLROnPlateau
 
-**1cycle** rises from a low rate (typically $\eta_{\max}/25$) to the peak over the first 30% or so of training, then anneals to **far below** where it started. Choose 1cycle in the designer above to see it. The high-rate middle explores widely and helps the model escape sharp, narrow minima; the long low tail lets it settle. It is popular for training CNNs quickly with SGD.
+**1cycle** rises from a low rate (typically $\eta_{\max}/25$) to the peak over the first 30% or so of training, then anneals to **far below** where it started. Choose 1cycle in the designer above to see it. The high-rate middle explores widely and helps the model escape sharp, narrow minima; the long low tail lets it settle. It is popular for training CNNs (convolutional networks for images, coming in the next module) quickly with SGD.
 
 <PastPaperQuestion paper="prelim2026" n={282} />
 

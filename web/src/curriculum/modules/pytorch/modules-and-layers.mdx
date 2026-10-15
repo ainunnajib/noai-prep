@@ -131,7 +131,7 @@ $$
 - $b$ is `layer.bias`, shape $(\text{out},)$: one number per output neuron, added to every row by broadcasting.
 - $y$ is the output, shape $(N, \text{out})$.
 
-So the layer holds $\text{out} \times \text{in} + \text{out}$ parameters. Notice the order flip: you *construct* it as `(in, out)` but the weight is *stored* as `(out, in)`.
+So the layer holds $\text{out} \times \text{in} + \text{out}$ parameters. Notice the order flip: you *construct* it as `(in, out)` but the weight is *stored* as `(out, in)`. (The NumPy network in [A neural network from scratch in NumPy](#/learn/backpropagation/network-from-scratch) stored `W1` the other way round, as `(D, H)`, so it could compute `X @ W1`; `nn.Linear` keeps the `(out, in)` matrix of the multilayer-perceptrons lesson and computes `x @ W.T`.)
 
 <Steps title="nn.Linear(3, 2) by hand, with x = [1, 2, 3]">
   <Step title="Shapes">
@@ -345,7 +345,7 @@ Not every tensor a model keeps should be trained. A module can hold a tensor in 
 - saved: **yes**
 - moved: **yes**
 - requires grad: **no**
-- use: running statistics, masks, positional encodings
+- use: running statistics, masks, positional encodings (fixed patterns that tell a Transformer each token's position, module 27)
 
 </div>
 <div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
@@ -447,7 +447,7 @@ Ask two questions about every tensor a module keeps. Should the optimiser change
 
 <Mistake title="A plain tensor attribute stays behind on the CPU">
 
-Attention code often builds a causal mask once: `self.mask = torch.tril(torch.ones(T, T))`. As a plain attribute it is not moved by `model.to('cuda')`, so the first forward pass on the GPU stops with `Expected all tensors to be on the same device`. Writing `self.register_buffer('mask', torch.tril(torch.ones(T, T)))` fixes it, and the mask is saved with the model as well.
+Attention code (module 27) often builds a *causal mask* once, a grid with 1s on and below the diagonal and 0s above it that stops each word looking at the words after it: `self.mask = torch.tril(torch.ones(T, T))` (`tril` keeps the lower triangle). As a plain attribute it is not moved by `model.to('cuda')`, so the first forward pass on the GPU stops with `Expected all tensors to be on the same device`. Writing `self.register_buffer('mask', torch.tril(torch.ones(T, T)))` fixes it, and the mask is saved with the model as well.
 
 </Mistake>
 

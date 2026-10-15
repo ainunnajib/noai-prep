@@ -191,11 +191,12 @@ Before the GPU can train on a batch, the CPU must read the images from disk, dec
 
 ```python
 # num_workers=4: 4 CPU processes prepare batches in the background
-# pin_memory=True: page-locked memory, for faster copies to the GPU
+# pin_memory=True: keeps batches in memory the GPU can copy from directly,
+# so copies are faster
 loader = DataLoader(dataset, batch_size=32, shuffle=True,
                     num_workers=4, pin_memory=True)
 for x, y in loader:
-    x = x.to(device, non_blocking=True)
+    x = x.to(device, non_blocking=True)  # start the copy without waiting for it
     y = y.to(device, non_blocking=True)
     ...
 ```
@@ -245,6 +246,8 @@ class SlowImages(Dataset):
         time.sleep(0.005)
         return torch.randn(3, 32, 32), i % 10
 
+# needed so the worker processes can start safely
+# (required on Windows and macOS)
 if __name__ == "__main__":
     for workers in [0, 2, 4]:
         loader = DataLoader(SlowImages(), batch_size=32,
@@ -287,20 +290,20 @@ Four teachers mark a pile of 400 exam scripts: each takes 100. Before changing t
 With several GPUs, the most common approach is <Term def="Training with several GPUs where each holds a full copy of the model, processes a different slice of each batch, and the gradients are averaged before every update. In PyTorch: DistributedDataParallel (DDP).">data parallelism</Term> (PyTorch's `DistributedDataParallel`, or DDP):
 
 1. Every GPU holds a **full copy** of the model.
-2. Each batch is split: with $N$ GPUs and $b$ examples per GPU, the batch has $B = N \times b$ examples.
-3. Each GPU runs forward and backward on its own slice and gets its own gradient $g_1, \dots, g_N$.
-4. An <Term def="A communication step in which every GPU sends its gradients and every GPU receives the same combined result (here, the average).">all-reduce</Term> replaces every GPU's gradient by the average $\bar g = \frac{1}{N}(g_1 + \dots + g_N)$, which equals the gradient of the whole batch when the slices are the same size.
+2. Each batch is split: with $G$ GPUs and $b$ examples per GPU, the batch has $B = G \times b$ examples.
+3. Each GPU runs forward and backward on its own slice and gets its own gradient $g_1, \dots, g_G$.
+4. An <Term def="A communication step in which every GPU sends its gradients and every GPU receives the same combined result (here, the average).">all-reduce</Term> replaces every GPU's gradient by the average $\bar g = \frac{1}{G}(g_1 + \dots + g_G)$, which equals the gradient of the whole batch when the slices are the same size.
 5. Every GPU applies the same update $w \leftarrow w - \eta\,\bar g$, so the copies stay identical.
 
 This is not the same as **model parallelism**, which splits the *model* itself across GPUs because it is too big for one.
 
-The catch is the batch size. With 8 GPUs the <Term def="The number of examples whose gradients are averaged into one update: GPUs × examples per GPU × accumulation steps.">effective batch</Term> is 8 times bigger, so each <Term def="One full pass through the whole training set.">epoch</Term> has 8 times fewer updates. If each update stays the same size, the model moves 8 times less per epoch. The common remedy is the **linear scaling rule**: when the batch grows by a factor $k$, multiply the learning rate $\eta$ by $k$,
+The catch is the batch size. With 8 GPUs the <Term def="The number of examples whose gradients are averaged into one update: GPUs × examples per GPU × accumulation steps.">effective batch</Term> is 8 times bigger, so each <Term def="One full pass through the whole training set.">epoch</Term> has 8 times fewer updates. If each update stays the same size, the model moves 8 times less per epoch. The common remedy is the [linear scaling rule](#/learn/training-deep-networks/stability-and-scale) from the stability lesson: when the batch grows by a factor $k$, multiply the learning rate $\eta$ by $k$,
 
 $$
 \eta_\text{new} = \eta_\text{base} \times \frac{B_\text{new}}{B_\text{base}},
 $$
 
-combined with a <Term def="Starting training with a small learning rate and raising it gradually over the first few hundred steps or epochs, so the early, unstable phase does not blow up.">warm-up</Term>: start from a small learning rate and ramp it up over the first few epochs, because a big learning rate on a freshly initialised model can blow up. The rule holds only up to a point: for very large batches the scaled rate becomes unstable, or accuracy drops, even with warm-up. The linear rule is the standard recipe for SGD with momentum; with Adam, a smaller increase (such as square-root scaling) is common.
+combined with a <Term def="Starting training with a small learning rate and raising it gradually over the first few hundred steps or epochs, so the early, unstable phase does not blow up.">warm-up</Term> (from [the schedules lesson](#/learn/training-deep-networks/learning-rate-warmup-schedules)): start from a small learning rate and ramp it up over the first few epochs, because a big learning rate on a freshly initialised model can blow up. The rule holds only up to a point: for very large batches the scaled rate becomes unstable, or accuracy drops, even with warm-up. The linear rule is the standard recipe for SGD with momentum; with Adam, a smaller increase (such as square-root scaling) is common.
 
 <DataParallelDiagram />
 
@@ -326,7 +329,7 @@ combined with a <Term def="Starting training with a small learning rate and rais
   explain="Effective batch $= 4 \times 16 \times 2 = 128$, which is $128/32 = 4$ times the original batch, so the learning rate becomes $0.01 \times 4 = 0.04$. Forgetting the accumulation gives $4 \times 16 = 64$ and 0.02; multiplying by GPUs × accumulation steps ($4 \times 2 = 8$) without noticing that each GPU's batch halved gives 0.08."
 />
 
-In code, DDP is a wrapper plus a sampler that gives each GPU a different slice of the data (the script is launched once per GPU, for example with `torchrun --nproc_per_node=8 train.py`):
+In code, DDP is a wrapper plus a sampler that gives each GPU a different slice of the data (the script is launched once per GPU, for example with `torchrun --nproc_per_node=8 train.py`). Here `rank` is this process's GPU number (0 to 7); `nccl` is NVIDIA's library for sending gradients between GPUs; `dist` is `torch.distributed` and `DDP` is `DistributedDataParallel`.
 
 ```python
 # once per process, at the start
@@ -357,5 +360,5 @@ Without scaling the learning rate, an 8× bigger effective batch makes 8× fewer
 - Out-of-memory fixes and their prices: mixed precision (halves activations, faster on Tensor Cores; needs loss scaling with FP16), gradient accumulation (same update, slightly slower, BatchNorm sees micro-batches), checkpointing (about one extra forward pass, exact results), smaller batch (changes the optimisation), freezing (may cost accuracy).
 - Checkpointing every $s$ of $n$ layers: peak $n/s + (s-1)$ activations, best near $s = \sqrt{n}$.
 - A step takes as long as its slowest stage: raise `num_workers`, use `pin_memory`, and avoid per-step `.item()`/`.cpu()` calls when the GPU is waiting for data.
-- Data-parallel training: full model copy per GPU, gradients averaged by all-reduce, effective batch $= N \times b \,(\times\,$accumulation steps$)$; scale the learning rate linearly with the batch and warm it up, up to a limit.
+- Data-parallel training: full model copy per GPU, gradients averaged by all-reduce, effective batch $= G \times b \times k$ (with $k$ accumulation steps); scale the learning rate linearly with the batch and warm it up, up to a limit.
 </Takeaways>

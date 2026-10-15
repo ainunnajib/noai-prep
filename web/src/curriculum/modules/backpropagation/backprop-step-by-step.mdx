@@ -105,7 +105,7 @@ Branches are everywhere in real networks:
 
 - an input feeds every neuron in the first layer;
 - a hidden neuron feeds every neuron in the next layer;
-- in a CNN, the same filter weights are reused at every position of the image, so a shared weight's gradient is the sum over all positions;
+- in a <Term def="Convolutional neural network: an image model that slides one small grid of weights (a filter) across the picture, reusing the same weights at every position. You build them in the convolutional-networks module.">CNN</Term> (convolutional neural network), the same filter weights are reused at every position of the image, so a shared weight's gradient is the sum over all positions;
 - a residual connection $y = x + F(x)$ sends $x$ along two paths (more on this in the next lesson).
 
 <Mistake title="Overwriting instead of adding">
@@ -125,6 +125,8 @@ A layer of a neural network is just many multiply and add nodes followed by an a
 $$
 \frac{\partial L}{\partial w_{jk}} = h_j \times \delta_k, \qquad \text{where } \delta_k = \frac{\partial L}{\partial z_k}.
 $$
+
+Note the index order: here $w_{jk}$ runs *from* neuron $j$ *to* neuron $k$. In [the multilayer-perceptrons lesson](#/learn/neural-networks/multilayer-perceptrons), $W$ had one row per receiving neuron, so this same weight sits at row $k$, column $j$ of that $W$.
 
 The number $\delta_k$ is the gradient at neuron $k$'s weighted sum, called that neuron's <Term def="δ = ∂L/∂z, the gradient of the loss with respect to a neuron's weighted sum z (before the activation). Weight gradients are built from it. Some books call it the error signal.">delta</Term>. Careful: a delta is not the error $e = \hat y - y$ from the last lesson. For squared error at an output with no activation, $\delta = 2e$. The bias $b_k$ is simply added into $z_k$, so add distributes and $\frac{\partial L}{\partial b_k} = \delta_k$.
 
@@ -146,7 +148,7 @@ Three things to notice in the visual:
 
 <Reveal label="Preview: the same rules as matrices (optional)">
 
-In matrix form, for one example with input row vector $a$ going into a layer $z = aW + b$, the same rules read
+In matrix form we now switch to the row-vector convention NumPy code uses: one example is a row $a$, and a layer computes $z = aW + b$ with $W$ of shape (inputs, outputs), the transpose of the $W$ in $\mathbf{h} = f(W\mathbf{x} + \mathbf{b})$. The rules then read
 
 $$
 \frac{\partial L}{\partial W} = a^{\top}\delta, \qquad \frac{\partial L}{\partial b} = \delta, \qquad \frac{\partial L}{\partial a} = \delta\, W^{\top}.

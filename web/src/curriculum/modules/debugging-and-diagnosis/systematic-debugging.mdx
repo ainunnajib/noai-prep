@@ -42,49 +42,13 @@ Rule out bugs before tuning. Check the data, the shapes, the initial loss and a 
 
 </KeyIdea>
 
+When a question asks for a debugging *order*, the routine wins: cheap checks of the data and the loss come before any learning-rate experiment, even for a symptom such as an oscillating loss.
+
+<PastPaperQuestion paper="prelim2026" n={271} />
+
 ## The initial-loss check
 
-Before training, the weights are small random numbers, so a classifier has no idea which class is right. Its best honest answer is to spread its belief evenly: probability $\frac{1}{K}$ on each of the $K$ classes. The <Term def="The standard loss for classification: minus the log of the probability the model gave to the correct class, averaged over the examples. A confident right answer costs almost 0; a confident wrong answer costs a lot.">cross-entropy loss</Term> on one example is
-
-$$
-\ell = -\ln p_y
-$$
-
-where $p_y$ is the probability the model gives to the correct class $y$, and $\ln$ is the natural logarithm. In words: the loss is small when the correct class gets a high probability and large when it gets a low one.
-
-<Steps title="The expected first loss for 10 classes">
-  <Step title="Right-class probability">
-    An unsure model gives each of the 10 classes probability $\frac{1}{10}$, so $p_y = 0.1$ whatever the label is.
-  </Step>
-  <Step title="Plug into the loss">
-    $\ell = -\ln \frac{1}{10} = \ln 10$, because $-\ln \frac{1}{a} = \ln a$.
-  </Step>
-  <Step title="Put a number on it">
-    $\ln 10 \approx 2.30$. Every example gives the same value, so the average loss over the batch is also about $2.30$.
-  </Step>
-</Steps>
-
-So the rule is: **initial loss $\approx \ln K$**. The values worth memorising, since there is no calculator in the Prelim:
-
-| Classes $K$ | 2 | 4 | 10 | 100 | 1000 |
-|---|---|---|---|---|---|
-| $\ln K$ | 0.69 | 1.39 | 2.30 | 4.61 | 6.91 |
-
-You only need two of them: $\ln 2 \approx 0.69$ and $\ln 10 \approx 2.30$. The rest follow from $\ln(ab) = \ln a + \ln b$: for example $\ln 4 = 2 \ln 2 \approx 1.39$ and $\ln 100 = 2 \ln 10 \approx 4.61$.
-
-```python
-import math, torch, torch.nn as nn, torch.nn.functional as F
-torch.manual_seed(0)
-model = nn.Sequential(nn.Linear(784, 128), nn.ReLU(), nn.Linear(128, 10))
-x = torch.randn(64, 784)          # stand-in for 64 flattened images
-y = torch.randint(0, 10, (64,))   # labels for 10 classes
-loss = F.cross_entropy(model(x), y)
-print(f"initial loss {loss.item():.3f}   ln 10 = {math.log(10):.3f}")
-```
-
-```text
-initial loss 2.315   ln 10 = 2.303
-```
+You met this check in [the starting loss](#/learn/neural-networks/outputs-and-losses): an untrained $K$-class classifier gives every class about $1/K$, so its first cross-entropy is $-\ln\frac{1}{K} = \ln K$ (0.69 for 2 classes, 2.30 for 10; rebuild the rest from $\ln 2$ and $\ln 10$).
 
 What a wrong first loss tells you:
 
@@ -115,7 +79,7 @@ Each bug leaves its own fingerprint on the one-batch curve:
 | What the curve does | Likely cause |
 |---|---|
 | Perfectly flat, the same number every step | Nothing is updated: the optimiser holds the wrong (old) parameters, the learning rate is 0, or `step()` only ever sees cleared gradients (the loop runs `zero_grad()`, then `step()`, then `backward()`) |
-| Wanders around $\ln K$ | The labels are re-paired with the inputs at every step (for example `y = y[torch.randperm(n)]` inside the loop, or `x` and `y` drawn from two separately shuffled loaders) |
+| Wanders around $\ln K$ | The labels are re-paired with the inputs at every step (for example `y = y[torch.randperm(n)]`, which shuffles the labels into a random new order, inside the loop, or `x` and `y` drawn from two separately shuffled loaders) |
 | Falls, then levels off well above 0 | The loss is wrong, for example softmax applied before `CrossEntropyLoss` |
 | Falls, then keeps lurching back up | Gradients piling up: a missing `optimizer.zero_grad()` |
 | Barely moves | Learning rate far too low |
@@ -170,7 +134,7 @@ Once the bugs are gone, every experiment should change **one thing**. If you low
 
 ## Reading shape errors
 
-The most common crash in PyTorch is a shape mismatch, and its message tells you almost exactly what to fix once you can read it. An `nn.Linear(in_features, out_features)` layer multiplies the input $x$, with shape $N \times \text{features}$ ($N$ examples, one per row), by a weight matrix of shape $\text{in\_features} \times \text{out\_features}$. As in every matrix product ($m \times n$ times $n \times p$ gives $m \times p$), the two **inner** numbers must be equal: the features the data has and the features the layer expects. When they are not, PyTorch reports both matrices:
+The most common crash in PyTorch is a shape mismatch, and its message tells you almost exactly what to fix once you can read it (you met this message in [devices and common errors](#/learn/pytorch/devices-and-common-errors)). An `nn.Linear(in_features, out_features)` layer multiplies the input $x$, with shape $N \times \text{features}$ ($N$ examples, one per row), by a weight matrix of shape $\text{in\_features} \times \text{out\_features}$. As in every matrix product ($m \times n$ times $n \times p$ gives $m \times p$), the two **inner** numbers must be equal: the features the data has and the features the layer expects. When they are not, PyTorch reports both matrices:
 
 ```python
 import torch, torch.nn as nn
@@ -194,7 +158,7 @@ RuntimeError: mat1 and mat2 shapes cannot be multiplied (32x512 and 256x10)
   </Step>
 </Steps>
 
-Two causes cover most of these errors: an `in_features` that does not match the layer before, and a **missing flatten**. A batch of images has shape $(N, C, H, W)$, and a Linear layer needs one row per image. For a CNN you must work out how many numbers each image has when it reaches the classifier, using the output-size formula for each convolution and pooling layer,
+Two causes cover most of these errors: an `in_features` that does not match the layer before, and a **missing flatten**. A batch of images has shape $(N, C, H, W)$, and a Linear layer needs one row per image. For a CNN you must work out how many numbers each image has when it reaches the classifier, using the output-size formula from [padding, stride and shapes](#/learn/convolutional-networks/padding-stride-shapes) for each convolution and pooling layer,
 
 $$
 \text{out} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
@@ -206,17 +170,15 @@ where $n$ is the input height (or width), $p$ the padding, $k$ the kernel size, 
 
 <Mistake title="The view(-1, ...) trap">
 
-Flattening with `x.view(-1, 6272)` asks PyTorch to work out the first dimension itself. If each image really has 1568 numbers, it packs 4 images into every row and your batch of 32 silently becomes 8. The crash then appears later, at the loss, as `Expected input batch_size (8) to match target batch_size (32)`. Flatten with `x.flatten(1)`, `nn.Flatten()` or `x.view(x.size(0), -1)`, which always keep the batch size.
+Flattening with `x.view(-1, 6272)` asks PyTorch to work out the first dimension itself. If each image really has 1568 numbers, it packs 4 images into every row and your batch of 32 silently becomes 8. The crash then appears later, at the loss, as `Expected input batch_size (8) to match target batch_size (32)`. Flatten with `x.flatten(1)`, `nn.Flatten()` or `x.view(x.size(0), -1)`, which always keep the batch size, as in [tensors](#/learn/pytorch/tensors).
 
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={1} />
 
 ## Silent bugs: broadcasting and wrong dimensions
 
 Worse than a crash is a bug that raises no error at all. Two families cause most of them.
 
-**Broadcasting.** When two tensors of different shapes meet in an element-wise operation (`+`, `-`, `*`), PyTorch and NumPy try to <Term def="Automatically stretching a tensor along dimensions of size 1 (or missing dimensions) so that two tensors of different shapes can be combined element by element.">broadcast</Term> them to a common shape. Compare the shapes from the right; each pair of sizes must be equal, or one of them must be 1 (a missing dimension counts as 1); a size-1 dimension is stretched to match.
+**Broadcasting.** Recall the rules from [broadcasting](#/learn/numpy/broadcasting): when two tensors of different shapes meet in an element-wise operation (`+`, `-`, `*`), PyTorch and NumPy try to <Term def="Automatically stretching a tensor along dimensions of size 1 (or missing dimensions) so that two tensors of different shapes can be combined element by element.">broadcast</Term> them to a common shape. Compare the shapes from the right; each pair of sizes must be equal, or one of them must be 1 (a missing dimension counts as 1); a size-1 dimension is stretched to match.
 
 <Steps title="Why (4, 1) minus (4,) gives (4, 4)">
   <Step title="Align on the right">
@@ -264,8 +226,6 @@ Errors cannot catch these bugs, so you need **sanity checks**: quick tests of so
   answer={0}
   explain="`x.mean(dim=0)` averages over the 32 examples and leaves one mean per feature, shape (10,). Lined up on the right, (32, 10) and (10,) become (32, 10) and (1, 10), so the means are stretched down all 32 rows: each feature has its own mean subtracted. Broadcasting is often exactly what you want; it only bites when the shapes are not the ones you think."
 />
-
-<PastPaperQuestion paper="prelim2026" n={93} />
 
 <ExamTip>
 

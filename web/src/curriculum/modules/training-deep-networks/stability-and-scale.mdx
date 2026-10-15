@@ -123,6 +123,8 @@ Clipping only ever makes gradients **shorter**, so it fixes exploding gradients,
 
 ## Mixed precision: doing the maths in 16 bits
 
+[The devices lesson](#/learn/pytorch/devices-and-common-errors) showed the `autocast` + `GradScaler` loop as a fix for out-of-memory errors. Here is why it works and what can go wrong.
+
 A computer stores a real number as a <Term def="A way of storing real numbers as sign × significant digits × 2 to some power, so that both tiny and huge numbers fit in a fixed number of bits.">floating-point number</Term>: a sign, some significant digits (the **mantissa**), and a power of 2 (the **exponent**), like scientific notation in binary. More exponent bits give a wider **range** (how tiny and how huge); more mantissa bits give more **precision** (how many significant digits).
 
 | Format | Range (smallest above 0 to largest) | Digits |
@@ -176,7 +178,7 @@ Here $L$ is the loss and $w$ any weight. On a logarithmic ruler, multiplying by 
   </Step>
 </Steps>
 
-You do not have to choose $S$ yourself. PyTorch's <Term def="PyTorch's automatic loss scaler for mixed precision: it multiplies the loss by a scale S, unscales the gradients before the update, skips any step whose gradients contain inf or NaN and adjusts S as training goes.">GradScaler</Term> uses **dynamic loss scaling**: it starts at $S = 2^{16} = 65\,536$; whenever any gradient comes out as `inf` or `NaN`, it **skips that step** (the weights are not touched) and **halves** $S$; after 2000 steps in a row without trouble, it **doubles** $S$ to try a bigger one. The scale settles just below the overflow point.
+You do not have to choose $S$ yourself. PyTorch's <Term def="PyTorch's automatic loss scaler for mixed precision: it multiplies the loss by a scale S, unscales the gradients before the update, skips any step whose gradients contain inf or nan and adjusts S as training goes.">GradScaler</Term> uses **dynamic loss scaling**: it starts at $S = 2^{16} = 65\,536$; whenever any gradient comes out as `inf` or `nan`, it **skips that step** (the weights are not touched) and **halves** $S$; after 2000 steps in a row without trouble, it **doubles** $S$ to try a bigger one. The scale settles just below the overflow point.
 
 <Reveal label="See GradScaler at work (code and output)">
 
@@ -200,7 +202,7 @@ for step in range(10):
     scaler.unscale_(optimiser)        # divide the gradients by S (FP32)
     norm = nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     S = scaler.get_scale()
-    scaler.step(optimiser)            # skipped if any gradient is inf/NaN
+    scaler.step(optimiser)            # skipped if any gradient is inf/nan
     scaler.update()                   # inf: halve S; 3 clean steps: double S
     print(step, int(S), f"{norm.item():.3f}", f"{loss.item():.4f}")
 ```
@@ -227,7 +229,7 @@ Older code (and the 2026 Final) writes `torch.cuda.amp.GradScaler()` and `torch.
 Two more pieces make mixed precision work:
 
 - **Master weights stay in FP32.** <Term def="PyTorch's context manager for mixed precision: inside it, operations such as matrix multiplications run in FP16 or BF16, while precision-sensitive ones such as softmax and losses stay in FP32.">`torch.autocast`</Term> runs the matrix multiplications in 16 bits, but the parameters themselves, and sensitive operations such as softmax and loss functions, stay in FP32. That avoids the rounding problem: $1 + 0.0001$ is fine in FP32.
-- **BF16 needs no scaling.** BF16 has the same 8 exponent bits as FP32, so its range is just as wide: tiny gradients do not underflow. It pays with precision (fewer mantissa bits), which training tolerates well. On GPUs that support it (and on TPUs), BF16 is now the usual choice, with no GradScaler at all.
+- **BF16 needs no scaling.** BF16 has the same 8 exponent bits as FP32, so its range is just as wide: tiny gradients do not underflow. It pays with precision (fewer mantissa bits), which training tolerates well. On GPUs that support it (and on TPUs, Google's own AI accelerator chips), BF16 is now the usual choice, with no GradScaler at all.
 
 <KeyIdea>
 
@@ -370,6 +372,8 @@ Sixteen micro-batches of 16 gave four updates, each one as if from a batch of 64
 Order questions are common: forward (inside autocast) → `scaler.scale(loss).backward()` → every $k$ micro-batches: `unscale_` → clip → `scaler.step` → `scaler.update` → `zero_grad`. And match each tool to its problem: clipping for exploding gradients, loss scaling for FP16 underflow, accumulation for out-of-memory with big batches, linear scaling with warm-up (then LARS/LAMB) for very large batches.
 
 </ExamTip>
+
+That completes the deep-learning toolkit. Next, [images as tensors](#/learn/convolutional-networks/images-as-tensors) starts the vision part, where every one of these training tricks is applied to convolutional networks.
 
 <Takeaways>
 

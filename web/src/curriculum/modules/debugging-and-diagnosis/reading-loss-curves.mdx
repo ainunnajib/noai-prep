@@ -2,6 +2,8 @@ import LossCurveClinic from './visuals/reading-loss-curves/LossCurveClinic'
 import LRCurveFamily from './visuals/reading-loss-curves/LRCurveFamily'
 import NoiseVsInstability from './visuals/reading-loss-curves/NoiseVsInstability'
 
+You can now build and train everything from linear regression to Transformers. This part is about what to do when training goes wrong, and how to design systems that work in the real world. It starts with the first thing to look at: the loss curve.
+
 A model cannot tell you what is wrong with it, but its loss curve usually can. Experienced engineers glance at two lines on a chart and say "learning rate too high" or "it's overfitting" in seconds. NOAI tests exactly this skill: Prelim questions describe a curve in words ("the training loss oscillates wildly", "validation loss rises while training loss keeps falling") and ask for the cause or the fix. By the end of this lesson you will read those curves the way a doctor reads a chart.
 
 <Analogy title="The temperature chart at the foot of the bed">
@@ -56,6 +58,8 @@ Here is what you just saw, as a table you can revise from:
 | Slow, almost straight decline, still falling at the end | Learning rate too low | Raise the learning rate (×3 to ×10) |
 | Normal for a while, then shoots to a huge value and becomes NaN | Numerical blow-up | Lower the learning rate, <Term def="Shrinking the gradient whenever its size (norm) exceeds a threshold, so that no single update can be enormous.">gradient clipping</Term>, look for log of 0 or division by 0 |
 
+(Overfitting, underfitting and early stopping were introduced in [generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting) and [regularising deep networks](#/learn/training-deep-networks/regularising-deep-networks).)
+
 NaN means "not a number": the result of an impossible calculation such as $\infty - \infty$ or $0 \times \infty$. Once one weight becomes NaN, every later calculation that touches it is NaN too, so a NaN loss never recovers on its own. The lesson on numerical issues later in this module shows where NaNs come from.
 
 <Mistake title="Two tempting wrong fixes">
@@ -92,7 +96,7 @@ Barely touching the accelerator, you creep forward and it takes forever. Floorin
 
 </Analogy>
 
-Let's see why, on the simplest possible loss.
+You did this calculation in [gradient descent](#/learn/calculus-and-gradient-descent/gradient-descent); here is the short version, on the simplest possible loss.
 
 <Steps title="Gradient descent on $L(w) = w^2$">
   <Step title="The update rule">
@@ -112,9 +116,9 @@ Let's see why, on the simplest possible loss.
   </Step>
 </Steps>
 
-Gradient descent on this bowl is stable only while the multiplier stays between $-1$ and $1$, that is $|1 - 2\eta| < 1$, which means $0 < \eta < 1$. A steeper bowl has a smaller safe range: the steeper the slope, the bigger each step, so the more easily it overshoots.
+Gradient descent on this bowl is stable only while the multiplier stays between $-1$ and $1$, that is $|1 - 2\eta| < 1$, which means $0 < \eta < 1$. A more sharply curved bowl has a smaller safe range: for a bowl with curvature $c$ the limit is $\eta < 2/c$, as you saw in [gradient descent](#/learn/calculus-and-gradient-descent/gradient-descent). What matters is how sharply the bowl bends, not how steep its slope is.
 
-Real loss landscapes are not perfect bowls: they are steep in some directions, flat in others, and every mini-batch gives a slightly different landscape. So in a real network an overshooting step often lands somewhere *higher*, and the loss bounces up and down instead of neatly zigzagging inwards. Now explore a real model:
+Real loss landscapes are not perfect bowls: they curve sharply in some directions and are almost flat in others, and every mini-batch gives a slightly different landscape. So in a real network an overshooting step often lands somewhere *higher*, and the loss bounces up and down instead of neatly zigzagging inwards. Now explore a real model:
 
 <LRCurveFamily />
 
@@ -130,17 +134,15 @@ Only big factors matter: 0.001 and 0.0012 behave alike, and even a factor of 2 c
 
 </Tip>
 
-<PastPaperQuestion paper="prelim2026" n={269} />
-
 ## Noisy or unstable?
 
-Most training scripts log the loss of each mini-batch as they go. A <Term def="A small random group of training examples used for one update step. The batch size is how many examples it holds.">mini-batch</Term> of 4 examples is a tiny sample, so its loss jumps around even when everything is fine, just as a class average from four students says little about the whole cohort. Tools like TensorBoard therefore draw a smoothed line, using an <Term def="A running average that gives recent values more weight than old ones. Each new smoothed value is mostly the previous smoothed value plus a little of the new raw value.">exponential moving average</Term>:
+Most training scripts log the loss of each mini-batch as they go. A <Term def="A small random group of training examples used for one update step. The batch size is how many examples it holds.">mini-batch</Term> of 4 examples is a tiny sample, so its loss jumps around even when everything is fine, just as a class average from four students says little about the whole cohort. Logging dashboards such as TensorBoard (a tool that plots training logs in the browser) therefore draw a smoothed line, using an <Term def="A running average that gives recent values more weight than old ones. Each new smoothed value is mostly the previous smoothed value plus a little of the new raw value.">exponential moving average</Term>:
 
 $$
 s_t = \beta\, s_{t-1} + (1 - \beta)\, \ell_t
 $$
 
-Here $\ell_t$ is the raw loss at step $t$, $s_t$ is the smoothed value, and $\beta$ (between 0 and 1) sets how much the past counts. With $\beta = 0.9$, each new point is 90% the old smoothed value and 10% the new raw value. For example, if $s_{t-1} = 0.30$ and a noisy batch gives $\ell_t = 1.00$, then $s_t = 0.9 \times 0.30 + 0.1 \times 1.00 = 0.37$: one bad batch barely moves the smoothed line.
+Here $\ell_t$ is the raw loss at step $t$, $s_t$ is the smoothed value, and $\beta$ (between 0 and 1) sets how much the past counts. With $\beta = 0.9$, each new point is 90% the old smoothed value and 10% the new raw value. For example, if $s_{t-1} = 0.30$ and a noisy batch gives $\ell_t = 1.00$, then $s_t = 0.9 \times 0.30 + 0.1 \times 1.00 = 0.37$: one bad batch barely moves the smoothed line. This is the same exponential moving average that powers [momentum and Adam](#/learn/training-deep-networks/momentum-and-adam).
 
 <NoiseVsInstability />
 
@@ -149,7 +151,7 @@ Two lessons from this figure:
 1. **Jagged is not the same as broken.** Judge the smoothed trend, not the individual wiggles.
 2. **The safe learning rate depends on the batch size.** Smaller batches give noisier gradients, and a big step in a noisy direction can throw the weights off. That is why "the loss oscillates" can mean "learning rate too high" *or* "batch too small for this learning rate". The first fix is still to lower the learning rate.
 
-There is one more shape worth knowing. With a constant learning rate, the loss often drops fast and then bounces around a floor, because the steps are too big to settle into the bottom of the valley. A <Term def="A rule that changes the learning rate during training, usually lowering it as training goes on (for example: divide it by 10 at epochs 100 and 150, or follow a cosine curve).">learning-rate schedule</Term> that lowers the learning rate later in training (for example, divide it by 10 at fixed epochs) lets it settle lower.
+There is one more shape worth knowing. With a constant learning rate, the loss often drops fast and then bounces around a floor, because the steps are too big to settle into the bottom of the valley. A <Term def="A rule that changes the learning rate during training, usually lowering it as training goes on (for example: divide it by 10 at epochs 100 and 150, or follow a cosine curve).">learning-rate schedule</Term> that lowers the learning rate later in training (for example, divide it by 10 at fixed epochs) lets it settle lower (more in [learning-rate schedules](#/learn/training-deep-networks/learning-rate-warmup-schedules)).
 
 <QuickCheck
   q="Your per-batch training loss with batch size 8 looks jagged, but the smoothed curve falls steadily and then levels off. What should you do?"
@@ -157,8 +159,6 @@ There is one more shape worth knowing. With a constant learning rate, the loss o
   answer={1}
   explain="Each point is the loss on only 8 examples, so it jumps around even when training is fine. The smoothed curve, which shows the trend, falls and then settles: healthy. Lowering the learning rate is the fix when the smoothed curve itself jumps or rises, and neither dropout nor a bigger model makes an average over 8 examples less noisy."
 />
-
-<PastPaperQuestion paper="prelim2026" n={286} />
 
 ## Diagnosing in the exam
 

@@ -3,7 +3,7 @@ import DataLoaderShuffle from './visuals/training-loop/DataLoaderShuffle'
 import TrainEvalToggle from './visuals/training-loop/TrainEvalToggle'
 import GradAccumulation from './visuals/training-loop/GradAccumulation'
 
-Every PyTorch model, from a two-weight toy to a large language model, learns inside the same five-line loop, and the **order** of those lines decides whether it learns, learns badly, or crashes. The NOAI Final's programming tasks run in Jupyter with no internet, so you need this loop in your head, and the MCQs ask what goes wrong when a line is missing or out of place.
+Every PyTorch model, from a two-weight toy to a large language model, learns inside the same five-line loop, and the **order** of those lines decides whether it learns, learns badly, or crashes. You already wrote this loop by hand in NumPy in [a neural network from scratch](#/learn/backpropagation/network-from-scratch): forward, loss, backward, update. PyTorch adds one more line, `zero_grad()`, because its gradients accumulate, as you saw in the autograd lesson. The NOAI Final's programming tasks run in Jupyter with no internet, so you need this loop in your head, and the MCQs ask what goes wrong when a line is missing or out of place.
 
 <Analogy title="A practice-paper routine">
 
@@ -26,7 +26,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.1)    # the optimiser
 
 - The **model** turns inputs into predictions. Here it has a single weight $w$.
 - The **criterion** is the <Term def="A function that scores how wrong the predictions are, as one number. Training tries to make it small. Examples: mean squared error for numbers, cross-entropy for classes.">loss function</Term>: it compares predictions with the true answers and returns one number, the loss.
-- The **optimiser** holds a list of the model's weights (that is what `model.parameters()` hands it) and knows how to nudge them. `SGD` is plain gradient descent; `lr` is the <Term def="The size of each step the optimiser takes against the gradient. Too small: slow learning. Too big: the loss jumps around or blows up.">learning rate</Term>. PyTorch's code uses the American spelling `optimizer`, so we do too inside code.
+- The **optimiser** holds a list of the model's weights (that is what `model.parameters()` hands it) and knows how to nudge them. `SGD` is plain gradient descent; `lr` is the <Term def="The size of each step the optimiser takes against the gradient. Too small: slow learning. Too big: the loss jumps around or blows up.">learning rate</Term>. PyTorch's documentation names this variable `optimizer` (American spelling), so we do too in this module's code; any name works, and other modules write `optimiser`.
 
 ## The five lines of every training step
 

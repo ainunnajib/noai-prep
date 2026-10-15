@@ -5,6 +5,8 @@ import NormAxes from './visuals/initialisation-and-normalisation/NormAxes'
 
 Before the first training step, someone has to pick a starting value for every one of a network's weights. Pick badly and a deep network cannot learn at all: its signals fade to nothing or blow up long before they reach the output. This lesson shows how to pick well (**initialisation**), and then how **normalisation layers** (BatchNorm and LayerNorm) keep the signals at a healthy size throughout training. Both ideas appear regularly in NOAI questions, and every modern network uses them.
 
+In [vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients) you saw *why* the starting scale matters (one factor per layer) and met He, Xavier and BatchNorm as fixes. This lesson gives the formulas and the details.
+
 ## Why not start every weight at zero?
 
 Zero looks like a neutral, safe start. It is a trap. Picture one hidden layer whose neurons all start with **the same** weights. Every neuron receives the same inputs, so it computes the same output. Backpropagation then gives every neuron the same gradient, so every neuron receives the same update. After the update they are still identical, and the same is true after the next one, and the one after that. The layer has many neurons but behaves like **one**.
@@ -32,7 +34,7 @@ $$
 - $x_1, \dots, x_n$ are the inputs, $w_1, \dots, w_n$ the weights, and $z$ the neuron's output before the activation.
 - $n$ is the number of inputs, called the <Term def="The number of inputs feeding into one neuron of a layer: for nn.Linear(512, 256) it is 512. Fan-out is the number of outputs, 256.">fan-in</Term>.
 
-If the weights and inputs are independent with mean 0, the variances add up, one term per input:
+If the weights and inputs are independent with mean 0, each term $w_i x_i$ has variance $\operatorname{Var}(w)\operatorname{Var}(x)$, and [the variances of independent terms add](#/learn/probability-and-statistics/distributions-and-clt), one term per input:
 
 $$
 \operatorname{Var}(z) = n \cdot \operatorname{Var}(w) \cdot \operatorname{Var}(x)
@@ -91,13 +93,13 @@ Good initialisation keeps the signal the same size at every layer before trainin
 Two more initialisation ideas come up in harder questions.
 
 - **Orthogonal initialisation.** An <Term def="A square matrix whose columns are perpendicular unit vectors, so that multiplying by it rotates or reflects a vector without changing its length.">orthogonal matrix</Term> rotates a vector without stretching it, so $\lVert W\mathbf{v} \rVert = \lVert \mathbf{v} \rVert$ exactly. Starting with a random orthogonal weight matrix means the linear part of each layer can neither blow the signal up nor shrink it, which helps very deep networks and recurrent networks, where the same matrix is applied at every time step. PyTorch: `nn.init.orthogonal_(W)`.
-- **The output layer's bias.** With small weights, the output layer's bias decides the first predictions. Starting it at 0 makes all $K$ classes equally likely, so the first cross-entropy loss should be about $\ln K$ ($\ln 10 \approx 2.3$ for 10 classes): a handy sanity check. For imbalanced data, set each class's bias to the log of its frequency so the model starts by predicting the base rates. A bias set far too **low** for some classes can stop them ever being predicted.
+- **The output layer's bias.** With small weights, the output layer's bias decides the first predictions. Starting it at 0 makes all $K$ classes equally likely, so the first loss should be about $\ln K$ (the check from [outputs and losses](#/learn/neural-networks/outputs-and-losses)). For imbalanced data, set each class's bias to the log of its frequency so the model starts by predicting the base rates. A bias set far too **low** for some classes can stop them ever being predicted.
 
 <QuickCheck
-  q="A 4-class classifier starts with small random weights and every output bias at 0. Roughly what should the cross-entropy loss be on the very first batch?"
-  options={['1.39', '0.25', '4', '0.69']}
+  q="A 3-class model's training data is 50% class A, 25% B and 25% C. Its weights start small. Which starting output biases make the untrained model predict these base rates?"
+  options={['$(\\ln 0.5,\\ \\ln 0.25,\\ \\ln 0.25)$', '$(0.5,\\ 0.25,\\ 0.25)$', '$(0,\\ 0,\\ 0)$', '$(\\ln 2,\\ \\ln 4,\\ \\ln 4)$']}
   answer={0}
-  explain="Zero biases and tiny weights make every class equally likely, $p = 1/4$, so the loss is $-\ln(1/4) = \ln 4 = 2 \ln 2 \approx 2 \times 0.69 = 1.39$. 0.25 is the probability, not the loss, and 0.69 is $\ln 2$, the value for 2 classes. A first loss far above $\ln K$ points to a badly initialised output layer."
+  explain="With tiny weights the logits are just the biases, and softmax turns them into $e^{z_k}$ divided by the total. Here $e^{\ln 0.5} = 0.5$ and $e^{\ln 0.25} = 0.25$ already add to 1, so the model predicts exactly 50%, 25%, 25% (adding the same number to all three biases changes nothing). Using the rates themselves as biases gives only about 39%, 30%, 30%; all zeros gives a third each; and $(\ln 2, \ln 4, \ln 4)$ turns the rates upside down: 20%, 40%, 40%."
 />
 
 In PyTorch, layers already come with a sensible random initialisation, but you can choose your own:
@@ -182,12 +184,12 @@ There is a problem at test time. If you predict one photo at a time, there is no
 - **Training** (`model.train()`): normalise with the current batch's $\mu_B$ and $\sigma_B^2$, and also update two <Term def="Running averages of each feature's mean and variance, updated during training and used instead of batch statistics at evaluation time.">running statistics</Term>, exponential moving averages of the batch means and variances.
 - **Evaluation** (`model.eval()`): normalise with the stored running mean and running variance instead, so each example is treated on its own.
 
-PyTorch updates them with `running_mean = 0.9 × running_mean + 0.1 × batch mean`, and likewise for the variance. Careful: PyTorch calls the 0.1 the `momentum`, the **opposite** convention from the optimisers' $\beta$.
+PyTorch updates them with `running_mean = 0.9 × running_mean + 0.1 × batch mean`, and likewise for the variance. Careful: PyTorch calls the 0.1 the `momentum`, the **opposite** of the averaging factor $\beta$ in [momentum and Adam](#/learn/training-deep-networks/momentum-and-adam), where 0.9 is the weight on the old value. (That $\beta$ has nothing to do with BatchNorm's shift $\beta$ above.)
 
 <Note title="Building BatchNorm yourself (Final tasks)">
 
 - The running variance uses the **unbiased** batch variance, which divides by $m - 1$ instead of $m$, so it comes out slightly larger.
-- The running statistics are saved with the model but are not trained by the optimiser. PyTorch calls such tensors **buffers**: stored numbers that are not parameters, unlike $\gamma$ and $\beta$. Register them with `self.register_buffer("running_mean", torch.zeros(d))`, and update them in place inside `with torch.no_grad():`.
+- The running statistics are saved with the model but are not trained by the optimiser. PyTorch calls such tensors **buffers**: stored numbers that are not parameters, unlike $\gamma$ and $\beta$ (you built exactly this, `MyNorm`, in [nn.Module, layers and saving models](#/learn/pytorch/modules-and-layers)). Register them with `self.register_buffer("running_mean", torch.zeros(d))`, and update them in place inside `with torch.no_grad():`.
 
 </Note>
 
@@ -230,7 +232,7 @@ If you evaluate in training mode, BatchNorm normalises with the test batch's own
 
 </Mistake>
 
-BatchNorm usually sits right after a linear or convolutional layer, before the activation. In CNNs, `nn.BatchNorm2d` treats each **channel** as one feature and averages over the batch and over every pixel position. Besides stabilising training, it lets you use larger learning rates, makes the network less sensitive to initialisation, and adds a little helpful noise, because each example's normalisation depends on its batch-mates.
+BatchNorm usually sits right after a linear or convolutional layer, before the activation. In CNNs (the image networks of [the next module](#/learn/convolutional-networks/images-as-tensors)), `nn.BatchNorm2d` treats each **channel** as one feature and averages over the batch and over every pixel position. Besides stabilising training, it lets you use larger learning rates, makes the network less sensitive to initialisation, and adds a little helpful noise, because each example's normalisation depends on its batch-mates.
 
 One known clash: **dropout placed just before BatchNorm.** During training, dropout randomly zeroes activations, which changes their variance, and BatchNorm's running variance learns that noisy variance. At evaluation dropout is switched off, so the variance BatchNorm sees no longer matches the one it stored. A common fix is to use dropout only after the last BatchNorm layer.
 

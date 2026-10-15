@@ -4,7 +4,7 @@ import DriftMonitor from './visuals/lifecycle-and-deployment/DriftMonitor'
 import VersionTimeline from './visuals/lifecycle-and-deployment/VersionTimeline'
 import { SEED_DEMO } from './visuals/lifecycle-and-deployment/snippets'
 
-A model that scores 95% in a notebook helps nobody until it makes real decisions, and the day it starts doing so, the world it learned from begins to change. Most of the work in real machine learning happens around the training cell: getting data in, getting predictions out, noticing when they go stale, and being able to say exactly which model did what. NOAI's Problem Solving domain asks about all of it.
+The last module was about making one training run work; this one is about everything around it. A model that scores 95% in a notebook helps nobody until it makes real decisions, and the day it starts doing so, the world it learned from begins to change. Most of the work in real machine learning happens around the training cell: getting data in, getting predictions out, noticing when they go stale, and being able to say exactly which model did what. NOAI's Problem Solving domain asks about all of it.
 
 ## Training is one stop on a loop
 
@@ -83,7 +83,7 @@ Two questions decide the design. **Does the input exist before the prediction is
 
 ### Packaging a model for serving
 
-A PyTorch model in a training notebook is Python code plus weights. For serving it is usually **exported** to a self-contained format that a fast server (possibly with no Python at all) can run, and sometimes **quantised**: weights stored as 8-bit integers (int8) instead of 32-bit floats, about 4 times smaller and often faster, for a small loss of accuracy. Two classic export routes are <Term def="PyTorch's format for saving a model as a self-contained program that can run without the original Python code. Created with torch.jit.trace or torch.jit.script.">TorchScript</Term> and <Term def="Open Neural Network Exchange: a standard file format for neural networks, so a model trained in one framework can be served by another runtime.">ONNX</Term>. TorchScript offers two ways to export, and the difference is a favourite trap:
+A PyTorch model in a training notebook is Python code plus weights. For serving it is usually **exported** to a self-contained format that a fast server (possibly with no Python at all) can run, and sometimes **quantised**: weights stored as 8-bit integers (int8) instead of 32-bit floats, about 4 times smaller and often faster, for a small loss of accuracy (the last lesson of this module, [designing an ML solution](#/learn/ml-systems-and-tradeoffs/designing-ml-solutions), shows how it works). Two classic export routes are <Term def="PyTorch's format for saving a model as a self-contained program that can run without the original Python code. Created with torch.jit.trace or torch.jit.script.">TorchScript</Term> and <Term def="Open Neural Network Exchange: a standard file format for neural networks, so a model trained in one framework can be served by another runtime.">ONNX</Term>. TorchScript offers two ways to export, and the difference is a favourite trap:
 
 - `torch.jit.trace(model, example)` runs the model **once** on the example and records the operations that happened. Any `if` that depends on the data is frozen into whichever branch the example took.
 - `torch.jit.script(model)` **compiles the code itself**, including its `if` statements and loops, so every branch survives.
@@ -141,10 +141,10 @@ The true outcome (the <Term def="The correct answer for an example, e.g. whether
 3. **System health**: latency, error responses, throughput.
 4. **Outcomes**: accuracy or error rate, once labels arrive.
 
-Changes come in two kinds. Write $x$ for the inputs and $y$ for the true outcome.
+You met the two kinds of change in [data bugs and distribution shift](#/learn/debugging-and-diagnosis/data-bugs-and-shift) as covariate shift and concept drift. Monitoring tools usually call covariate shift **data drift**; it is the same thing. This section is about catching them on a live system. As before, $x$ is the input and $y$ the true outcome.
 
-- <Term def="A change in the distribution of the inputs P(x): the people or things the model sees are different from those in the training data. Also called covariate shift.">Data drift</Term>: the inputs change, $P(x)$ moves. For example, after a downturn, applicants have lower incomes and more of them are gig workers. Here $P(x)$, read "the probability of $x$", describes how common each kind of input is.
-- <Term def="A change in the relationship between inputs and outcome P(y | x): the same input now leads to a different outcome, so the patterns the model learned are out of date.">Concept drift</Term>: the relationship changes, $P(y \mid x)$ moves. Here $P(y \mid x)$, read "the probability of $y$ given $x$", is the chance of each outcome for one particular kind of input. For example, people with the *same* income now default more often because living costs rose. The inputs can look exactly as before.
+- <Term def="A change in the distribution of the inputs P(x): the people or things the model sees are different from those in the training data. Also called covariate shift.">Data drift</Term> (covariate shift): $P(x)$ moves. For example, after a downturn, applicants have lower incomes and more of them are gig workers.
+- <Term def="A change in the relationship between inputs and outcome P(y | x): the same input now leads to a different outcome, so the patterns the model learned are out of date.">Concept drift</Term>: $P(y \mid x)$ moves. For example, people with the *same* income now default more often because living costs rose. The inputs can look exactly as before.
 
 <DriftMonitor />
 

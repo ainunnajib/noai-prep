@@ -47,7 +47,7 @@ const mod: ModuleDef = {
       slug: "data-bugs-and-shift",
       title: "Data bugs, leakage and distribution shift",
       summary: "Label and preprocessing bugs, chance-level accuracy, train/test mismatch, covariate and concept drift, and validating on the right data.",
-      minutes: 35,
+      minutes: 30,
       objectives: ["You can recognise chance-level accuracy (1/K) and explain why it points to a pipeline bug", "You can spot label-mapping and preprocessing mismatches between training, validation and deployment", "You can tell covariate shift from concept drift", "You can design a time-based validation split for data that changes over time"],
       load: () => import('./data-bugs-and-shift.mdx'),
     },

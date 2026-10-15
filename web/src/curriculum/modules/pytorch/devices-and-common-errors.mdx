@@ -165,7 +165,7 @@ When the GPU runs out of memory, PyTorch stops with `torch.OutOfMemoryError: CUD
 
 - **Weights**: one number per parameter. In FP32 (32-bit floats) each number takes 4 bytes.
 - **Gradients**: one `.grad` number per trainable parameter, another 4 bytes each.
-- **Optimiser state**: plain SGD stores nothing extra; SGD with momentum stores one running average per weight; **Adam stores two** (8 bytes per weight).
+- **Optimiser state**: plain SGD stores nothing extra. SGD with momentum (which steps along a running average of recent gradients) stores one extra number per weight, and **Adam stores two** (8 bytes per weight). Both are explained in [momentum and Adam](#/learn/training-deep-networks/momentum-and-adam).
 - **Activations**: the outputs of every layer, which autograd keeps from the forward pass because `backward()` needs them. They grow with the **batch size**, and with the input size (longer texts, bigger images).
 
 <Analogy title="Packing a 16 GB suitcase">
@@ -319,6 +319,8 @@ In the code as printed, the optimiser is created *after* `model.fc` is replaced,
   answer={0}
   explain="Passing all parameters is allowed. Frozen ones never get a `.grad` (it stays `None`), and optimisers skip parameters whose `.grad` is `None`. Passing only the trainable parameters is tidier and makes the intent explicit; Adam would not store state for the frozen ones anyway, because it only creates state for parameters that receive a gradient. The real danger is the opposite case: a trainable parameter that the optimiser does not hold."
 />
+
+Your PyTorch toolkit is now complete. [The next module](#/learn/training-deep-networks/sgd-and-mini-batches) explains the choices inside the loop: batch size, optimisers such as Adam, initialisation, regularisation and learning-rate schedules.
 
 <Takeaways>
 

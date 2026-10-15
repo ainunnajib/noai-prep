@@ -143,7 +143,7 @@ export default function FloatRangeRuler() {
       setLog(`overflow, so this step is skipped and S is halved from ${sup2(k)} to ${sup2(k - 1)}.`)
       setK((v) => Math.max(0, v - 1))
     } else {
-      setLog(`no inf or NaN, so the step is taken. After 2000 such steps in a row, S doubles to ${sup2(k + 1)}.`)
+      setLog(`no inf or nan, so the step is taken. After 2000 such steps in a row, S doubles to ${sup2(k + 1)}.`)
       setK((v) => Math.min(32, v + 1))
     }
   }

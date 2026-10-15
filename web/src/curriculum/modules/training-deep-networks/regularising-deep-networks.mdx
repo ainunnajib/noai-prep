@@ -103,15 +103,15 @@ On average, nothing changes. That is exactly what the running average in the vis
 
 ### At test time, dropout is off
 
-When you evaluate or deploy the model you want the full team and a **repeatable** answer, so dropout does nothing at all: every neuron is used and nothing is rescaled. In PyTorch you switch modes with `model.train()` and `model.eval()`:
+When you evaluate or deploy the model you want the full team and a **repeatable** answer, so dropout does nothing at all: every neuron is used and nothing is rescaled. In PyTorch you switch modes with `model.train()` and `model.eval()` (the same switch you met in [the training loop](#/learn/pytorch/training-loop), now with $p = 0.2$: survivors are scaled by $1/0.8 = 1.25$):
 
 ```python
 import torch
 import torch.nn as nn
 
-torch.manual_seed(0)
-drop = nn.Dropout(p=0.5)
-x = torch.ones(8)
+torch.manual_seed(4)
+drop = nn.Dropout(p=0.2)
+x = torch.ones(10)
 
 drop.train()            # training mode (the default)
 print(drop(x))
@@ -122,12 +122,14 @@ print(drop(x))
 ```
 
 ```text
-tensor([0., 0., 2., 0., 0., 0., 2., 2.])
-tensor([0., 2., 2., 2., 2., 0., 2., 2.])
-tensor([1., 1., 1., 1., 1., 1., 1., 1.])
+tensor([1.2500, 1.2500, 1.2500, 0.0000, 0.0000, 1.2500, 1.2500, 1.2500, 1.2500,
+        1.2500])
+tensor([1.2500, 0.0000, 1.2500, 1.2500, 1.2500, 1.2500, 1.2500, 1.2500, 1.2500,
+        1.2500])
+tensor([1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
 ```
 
-Each training call drops a different random half and doubles the rest ($\frac{1}{1-0.5} = 2$). In evaluation mode the input passes through unchanged.
+Each training call drops a different random set (two of the ten, then one: 20% only on average) and scales the survivors to $\frac{1}{1-0.2} = 1.25$. In evaluation mode the input passes through unchanged.
 
 <Mistake title="Three classic dropout mix-ups">
 
@@ -166,7 +168,7 @@ $$
 
 Read the second line: first shrink the weight by the factor $1 - \eta\lambda$, a number slightly **less than 1**, then take the usual gradient step. With $\eta = 0.1$ and $\lambda = 0.01$ that factor is $0.999$: every weight loses 0.1% of its size at every step unless the data keeps pushing it back.
 
-For plain gradient descent this is exactly the same as **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. You met the same penalty as ridge regression in [L1 and L2 regularisation](#/learn/linear-regression/regularisation).
+For plain gradient descent this is exactly **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. Watch the factor: [the ridge lesson](#/learn/linear-regression/regularisation) wrote the penalty as $\lambda\sum w^2$ with no $\frac12$, whose slope is $2\lambda w$, so a ridge $\lambda$ of 0.01 matches a weight decay of 0.02. Deep-learning code and papers use the $\frac{\lambda}{2}$ form so that the weight decay equals $\lambda$.
 
 <Steps title="One step with weight decay: w = 5, g = 3, η = 0.1, λ = 0.2">
   <Step title="Shrink factor">

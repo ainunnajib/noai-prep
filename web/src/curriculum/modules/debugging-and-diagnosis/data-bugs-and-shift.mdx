@@ -1,7 +1,7 @@
 import ChanceLevelMeter from './visuals/data-bugs-and-shift/ChanceLevelMeter'
 import DistributionShift from './visuals/data-bugs-and-shift/DistributionShift'
 import TimeSplitLab from './visuals/data-bugs-and-shift/TimeSplitLab'
-import { ENCODER_CODE, LEAK_CODE, TIME_SPLIT_CODE } from './visuals/data-bugs-and-shift/snippets'
+import { ENCODER_CODE, DUPLICATE_LEAK_CODE } from './visuals/data-bugs-and-shift/snippets'
 
 The most dangerous bugs in machine learning do not crash. The code runs, the training loss falls beautifully, and the model is useless, or it scores 98% in testing and then fails in the real world. Almost always, the culprit is the **data**: labels that do not line up, a validation set processed differently from the training set, information leaking from the answers into the inputs, or a world that changed after the model was trained. This lesson teaches you to spot each one from the numbers, which is exactly how NOAI asks about them.
 
@@ -39,7 +39,7 @@ Each bug left a different fingerprint in the <Term def="A table that counts, for
 |---|---|---|
 | None | close to training accuracy | strong diagonal |
 | Labels shuffled out of step with inputs | $\approx 1/K$ | evenly smeared, no structure |
-| Different preprocessing (not scaled, wrong resize, BGR instead of RGB, pixels 0–255 instead of 0–1) | often $\approx 1/K$ | one column (everything predicted as one class) or a mess |
+| Different preprocessing (not scaled, wrong resize, BGR instead of RGB (the same three colour channels stored in reverse order, as OpenCV does), pixels 0–255 instead of 0–1) | often $\approx 1/K$ | one column (everything predicted as one class) or a mess |
 | Different class-to-index mapping | $\approx 1/K$ on average | a sharp but *reshuffled* diagonal |
 
 <KeyIdea>
@@ -84,26 +84,24 @@ Training notebooks divide pixels by 255; the phone app forgets. Training images 
 
 ## Leakage: results that are too good to be true
 
-The opposite failure is a score that is *too* high. <Term def="When information that would not be available at prediction time, often from the validation or test data or from the answer itself, sneaks into training or model selection, so the measured score is better than the model will really be.">Data leakage</Term> means the model, or a choice you made about it, has peeked at information it will not have when it is used for real. The usual suspects:
+The opposite failure is a score that is *too* high. You met <Term def="When information that would not be available at prediction time, often from the validation or test data or from the answer itself, sneaks into training or model selection, so the measured score is better than the model will really be.">data leakage</Term> in [splitting and leakage](#/learn/data-and-features/splitting-and-leakage); here we use it as a diagnosis, because its symptom is exactly that: a score that is too good to be true. When you see one, check the four usual suspects:
 
-| Leak | Example | Fix |
-|---|---|---|
-| Preprocessing fitted on all the data | scaling, imputing or selecting features before splitting | split first; fit on the training part only (an sklearn `Pipeline` does this inside cross-validation) |
-| The same thing in train and test | duplicate rows; several X-rays of the same patient on both sides | remove duplicates; split by patient, user or group (`GroupKFold`) |
-| A feature that contains the answer | "days in hospital" when predicting admission; "account closed" when predicting churn | ask: would I know this value at prediction time? If not, drop it |
-| The future in the training set | a random split of time-ordered data | split by time (next section) |
+1. **Fitted on all the rows?** Split first, then fit scalers, imputers and feature selection on the training part only (an sklearn `Pipeline` does this inside cross-validation).
+2. **The same thing on both sides?** Remove duplicate rows, and split by patient, user or group (`GroupKFold`).
+3. **A feature that contains the answer?** Ask: would I know this value at prediction time? If not, drop it. ("Days in hospital" is unknown at the moment you predict admission.)
+4. **The future in training?** Split by time (next section).
 
-The warning signs are a score that is suspiciously high for a hard problem, a large drop as soon as truly new data arrive, or a single feature that seems to explain everything. Here is the first leak in action, on data that is **pure noise**, where an honest model cannot beat 50%:
+Other warning signs are a large drop as soon as truly new data arrive, or a single feature that seems to explain everything. Here is the second suspect in action. A faulty merge has copied every row three times, and the data are **pure noise**, so an honest model cannot beat 50%:
 
-<PyRunner packages={['numpy', 'scikit-learn']} code={LEAK_CODE} />
+<PyRunner packages={['numpy', 'scikit-learn']} code={DUPLICATE_LEAK_CODE} />
 
-The leaky version reports about 79% on random noise. Choosing the 10 features most related to `y` *across all 100 rows* also chose them using the rows that later act as validation folds, so the validation answers leaked into the feature choice. Done properly, inside each fold, the score falls to about 55%, close to the 50% of a coin toss. (The lesson on [splitting and leakage](#/learn/data-and-features/splitting-and-leakage) has more examples.)
+The leaky split reports 96% on random noise. A 1-nearest-neighbour model labels each test row with the label of the closest training row, and for most test rows that is an exact copy of the row itself, so the model simply looks up the answer. Remove the duplicates before splitting and the score falls to 50%, a coin toss. So before you trust a high score, count the unique rows (`len(np.unique(X, axis=0))`, or `df.duplicated().sum()` in pandas).
 
 <QuickCheck
   q="Before splitting, you fill missing values with each column's mean computed over the whole dataset, then split 80/20. What is wrong?"
   options={['Test rows helped compute the means, but such statistics must come from training rows only', 'Nothing: the mean is a summary statistic, so it cannot carry any information', 'Means should be replaced by medians, which are always the right choice for missing values', 'Filling in missing values always lowers accuracy, so those rows should be dropped instead']}
   answer={0}
-  explain="Any statistic learned from data (a mean, a scaler's standard deviation, a vocabulary, a feature selection) is part of the model, so it must be learned from the training rows only. Computing it over all rows lets the test set influence training. The leak is small for a mean, but huge for feature selection, as the code above shows."
+  explain="Any statistic learned from data (a mean, a scaler's standard deviation, a vocabulary, a feature selection) is part of the model, so it must be learned from the training rows only. Computing it over all rows lets the test set influence training. The leak is small for a mean, but it can be huge, for example when feature selection is allowed to see the test rows."
 />
 
 ## Distribution shift: when the world moves
@@ -161,13 +159,7 @@ When data arrive over time and the world drifts, a random split tells you a comf
 
 <TimeSplitLab />
 
-For cross-validation on time-ordered data, scikit-learn's `TimeSeriesSplit` makes several folds, each training on the past and validating on the period right after it:
-
-<PyRunner packages={['numpy', 'scikit-learn']} code={TIME_SPLIT_CODE} />
-
-Every fold validates on months that come after all of its training months, unlike ordinary k-fold, which shuffles the past and future together.
-
-<PastPaperQuestion paper="prelim2026" n={275} />
+For cross-validation on time-ordered data, scikit-learn's `TimeSeriesSplit` (from [splitting and leakage](#/learn/data-and-features/splitting-and-leakage)) builds the folds for you: every fold trains on the past and validates on the period right after it, unlike ordinary k-fold, which mixes the past and future together.
 
 <ExamTip>
 
@@ -190,3 +182,5 @@ Prelim questions on data problems are mostly pattern-matching from a short scena
 - For time-ordered data, **train on the past and validate on the period after it**, never with a random split.
 
 </Takeaways>
+
+Monitoring and retraining are part of a bigger loop. The next module, [ML systems and trade-offs](#/learn/ml-systems-and-tradeoffs/lifecycle-and-deployment), follows a model from the training notebook to deployment and beyond.

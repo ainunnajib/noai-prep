@@ -142,7 +142,7 @@ w &\leftarrow w - \eta\, \frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon}
 $$
 
 - Line 1, the **first moment** $m_t$: a moving average of the gradients. This is momentum.
-- Line 2, the **second moment** $v_t$: a moving average of the squared gradients. This is RMSProp's $s_t$.
+- Line 2, the **second moment** $v_t$: a moving average of the squared gradients. This is RMSProp's $s_t$. (Careful: Adam's $v_t$ is this squared-gradient average, not momentum's velocity $\mathbf{v}_t$; Adam's momentum part is $m_t$.)
 - Line 3, **bias correction**: both averages start at 0, so divide by $1 - \beta^t$, exactly as in the moving-average example above.
 - Line 4, the **update**: step along the averaged gradient, scaled by the typical gradient size.
 
@@ -196,7 +196,7 @@ There is no single winner for every problem: how well each optimiser does depend
 
 ## Which optimiser should I use?
 
-- **SGD with momentum**: rolls along an average of past gradients. Typical settings: `lr=0.1`, `momentum=0.9`, plus a learning-rate schedule. Popular for CNNs on images, where it often generalises best.
+- **SGD with momentum**: rolls along an average of past gradients. Typical settings: `lr=0.1`, `momentum=0.9`, plus a learning-rate schedule. Popular for CNNs (convolutional neural networks, the image models of [the next module](#/learn/convolutional-networks/images-as-tensors)) on images, where it often generalises best.
 - **RMSProp**: divides each step by that parameter's root-mean-square gradient. Typical: `lr=1e-3`. Common in older RNN and reinforcement-learning work.
 - **Adagrad**: divides by the root of the *sum* of all squared gradients. Suits sparse features, but its steps shrink and can stall.
 - **Adam**: momentum + RMSProp + bias correction. Typical: `lr=1e-3`, `betas=(0.9, 0.999)`. A reliable default for almost anything.

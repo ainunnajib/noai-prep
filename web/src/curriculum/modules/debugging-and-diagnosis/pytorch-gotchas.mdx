@@ -4,7 +4,7 @@ import OptimizerParamsView from './visuals/pytorch-gotchas/OptimizerParamsView'
 import ShapeAssertions from './visuals/pytorch-gotchas/ShapeAssertions'
 import ProfileHotspots from './visuals/pytorch-gotchas/ProfileHotspots'
 
-PyTorch happily runs training code that is wrong. Forget one line and your gradients pile up; call the wrong method and your validation scores wobble; convert one number at the wrong moment and your model never learns, without a single error message. The good news: a small set of patterns causes most of these bugs, and examiners love them. The NOAI Final shows you a snippet and asks what is wrong with it. This lesson trains your eye for those patterns, then gives you the tools (asserts, anomaly detection, profilers) that find the rest.
+PyTorch happily runs training code that is wrong. Forget one line and your gradients pile up; call the wrong method and your validation scores wobble; convert one number at the wrong moment and your model never learns, without a single error message. The good news: a small set of patterns causes most of these bugs, and examiners love them. Each of these patterns was introduced in the [PyTorch module](#/learn/pytorch/training-loop); this lesson collects them as a checklist for spotting bugs. The NOAI Final shows you a snippet and asks what is wrong with it. This lesson trains your eye for those patterns, then gives you the tools (asserts, anomaly detection, profilers) that find the rest.
 
 <Analogy title="Three classroom habits">
 
@@ -26,7 +26,7 @@ optimizer.step()                 # 5. update the weights
 
 ### Gradients add up until you clear them
 
-`loss.backward()` does not *replace* each parameter's `.grad`; it **adds** the new gradient to whatever is already there. That is deliberate: it lets you add up gradients over several small batches when a big batch does not fit in memory (gradient accumulation). But it means that if nobody calls `zero_grad()`, every step uses the sum of all the gradients so far.
+`loss.backward()` does not *replace* each parameter's `.grad`; it **adds** the new gradient to whatever is already there (see [autograd](#/learn/pytorch/autograd)). That is deliberate: it lets you add up gradients over several small batches when a big batch does not fit in memory (gradient accumulation). But it means that if nobody calls `zero_grad()`, every step uses the sum of all the gradients so far.
 
 ```python
 import torch
@@ -47,7 +47,7 @@ The true gradient is 3 every time, but after $k$ backward passes without clearin
 
 ### Train mode and eval mode
 
-Two kinds of layer behave differently while training and while testing. <Term def="A layer that, during training, sets each value to 0 with probability p and scales the survivors by 1/(1 − p). At test time it does nothing.">Dropout</Term> randomly switches off units during training; <Term def="A layer that normalises each feature using the mean and variance of the current batch during training, and keeps running averages of them to use at test time.">BatchNorm</Term> uses the statistics of the current batch during training and stored running averages at test time. `model.train()` and `model.eval()` flip every such layer in the model between the two behaviours.
+Two kinds of layer behave differently while training and while testing. <Term def="A layer that, during training, sets each value to 0 with probability p and scales the survivors by 1/(1 − p). At test time it does nothing.">Dropout</Term> randomly switches off units during training; <Term def="A layer that normalises each feature using the mean and variance of the current batch during training, and keeps running averages of them to use at test time.">BatchNorm</Term> uses the statistics of the current batch during training and stored running averages at test time. `model.train()` and `model.eval()` flip every such layer in the model between the two behaviours (see [train and eval mode](#/learn/pytorch/training-loop)).
 
 ```python
 import torch, torch.nn as nn
@@ -71,7 +71,7 @@ In train mode each value is zeroed independently with probability 0.5 (about hal
 
 ### No gradients needed? Say so
 
-During training, every forward pass records a <Term def="The record PyTorch keeps of every operation in the forward pass, together with the intermediate values needed to compute gradients later. Calling backward() walks it in reverse.">computation graph</Term> so that `backward()` can work later. At inference there is no backward pass, so that record is wasted memory. `torch.no_grad()` switches recording off:
+During training, every forward pass records a <Term def="The record PyTorch keeps of every operation in the forward pass, together with the intermediate values needed to compute gradients later. Calling backward() walks it in reverse.">computation graph</Term> so that `backward()` can work later. At inference (using the trained model to make predictions) there is no backward pass, so that record is wasted memory. `torch.no_grad()` switches recording off:
 
 ```python
 import torch, torch.nn as nn
@@ -156,11 +156,9 @@ The graph has its own rule. To compute gradients, autograd **saves** some tensor
 
 </Mistake>
 
-<PastPaperQuestion paper="prelim2026" n={134} />
-
 ## Optimiser and freezing bugs
 
-When you create an optimiser, you hand it a list of parameter tensors: `SGD(model.parameters(), lr=0.01)`. It keeps **that list**. If you later replace a layer, for example swapping the classifier head for a new task, the new layer's weights are brand-new tensors that the optimiser has never heard of.
+You met this trap in [freezing layers](#/learn/pytorch/devices-and-common-errors); here is how it looks in a code-reading question. When you create an optimiser, you hand it a list of parameter tensors: `SGD(model.parameters(), lr=0.01)`. It keeps **that list**. If you later replace a layer, for example swapping the classifier head for a new task, the new layer's weights are brand-new tensors that the optimiser has never heard of.
 
 <Term def="Setting requires_grad = False on parameters so they receive no gradients and are not updated. Used to keep pretrained layers fixed during transfer learning.">Freezing</Term> works the other way round: a parameter with `requires_grad = False` gets no gradient, so the optimiser skips it even if it holds it. A parameter therefore changes in a step only if **both** are true: the optimiser holds it, and it received a gradient.
 
@@ -203,7 +201,7 @@ The new head *has* a gradient, yet its weights did not move: the optimiser's 4 t
 
 <Note title="Freezing is not the same as a learning rate of 0">
 
-With a learning rate of 0 the weights do not change, but PyTorch still computes and stores every gradient, which costs memory and time, and a learning-rate schedule (such as warm-up) can raise the rate later and start changing them. Freezing with `requires_grad = False` skips the gradient work altogether. And neither of them stops a BatchNorm layer from updating its running averages in train mode: put frozen BatchNorm layers in eval mode too.
+With a learning rate of 0 the weights do not change, but PyTorch still computes and stores every gradient, which costs memory and time, and a learning-rate schedule (such as warm-up) can raise the rate later and start changing them. Freezing with `requires_grad = False` skips the gradient work altogether. Neither stops BatchNorm updating its running averages in train mode, so put frozen BatchNorm layers in eval mode too.
 
 </Note>
 
@@ -213,7 +211,7 @@ When reading the code does not reveal the bug, make the program tell you.
 
 **`print()`** shows a value while the program runs: print `x.shape`, `x.dtype`, `x.device`, `loss.item()` and a few predictions. It is crude, and it is the first thing professionals reach for.
 
-**`assert`** is a print that checks itself. `assert x.shape == (B, T, C), x.shape` does nothing when the shape is right and stops the program **at that line** with the actual shape when it is wrong. Without it, a wrong shape often travels on and crashes several lines later with a confusing message, or never crashes at all.
+**`assert`** is a print that checks itself. `assert x.shape == (B, T, C), x.shape` does nothing when the shape is right and stops the program **at that line** with the actual shape when it is wrong. Without it, a wrong shape often travels on and crashes several lines later with a confusing message, or never crashes at all. Here a batch of B sentences, each T tokens long, has C features per token: the $(B, T, d_\text{model})$ shape from [multi-head attention](#/learn/attention-and-transformers/multi-head-attention), with C standing for $d_\text{model}$.
 
 <ShapeAssertions />
 
@@ -322,6 +320,8 @@ for step, (x, y) in enumerate(train_loader):
     if step % 200 == 0:
         print(step, torch.cuda.memory_allocated() / 1e6, "MB")
 ```
+
+<PastPaperQuestion paper="prelim2026" n={135} />
 
 <ExamTip>
 

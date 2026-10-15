@@ -54,11 +54,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'ml-systems-and-tradeoffs.cost-of-ml.5',
     prompt:
-      "A model's parameter count $p$ grows 10 times. For one step of Newton's method, roughly how do the memory for the Hessian and the time to solve with it change?",
+      "A model's parameter count $P$ grows 10 times. For one step of Newton's method, roughly how do the memory for the Hessian and the time to solve with it change?",
     options: ['Memory ×100, time ×1,000', 'Memory ×10, time ×100', 'Memory ×100, time ×100', 'Memory ×1,000, time ×1,000'],
     answer: 0,
     explanation:
-      "The Hessian is a $p \\times p$ matrix, so its memory grows as $p^2$: $10^2 = 100$ times. Solving with it (like inverting it) costs about $p^3$: $10^3 = 1{,}000$ times. The cubic cost is for the time only; storing $p^2$ numbers grows 100 times, not 1,000. A gradient step only grows about 10 times, since the gradient has $p$ numbers, which is why deep learning uses gradient methods rather than Newton's method.",
+      "The Hessian is a $P \\times P$ matrix, so its memory grows as $P^2$: $10^2 = 100$ times. Solving with it (like inverting it) costs about $P^3$: $10^3 = 1{,}000$ times. The cubic cost is for the time only; storing $P^2$ numbers grows 100 times, not 1,000. A gradient step only grows about 10 times, since the gradient has $P$ numbers, which is why deep learning uses gradient methods rather than Newton's method.",
     difficulty: 'intermediate',
   },
 ]

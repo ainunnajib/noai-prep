@@ -118,7 +118,7 @@ export default function SpikeClipping() {
   let msg: string
   if (!on || res.clipped === 0) {
     tone = 'bad'
-    msg = `Nothing is clipped${on ? ` (max_norm ${fmtC(c)} is above every gradient)` : ''}. Each bad batch throws the weights far from the minimum: the loss leaps from about 0.01 to ${worstBase.toFixed(0)} and needs dozens of steps to recover. In a real network one such step can wreck hours of training or turn the loss into NaN.`
+    msg = `Nothing is clipped${on ? ` (max_norm ${fmtC(c)} is above every gradient)` : ''}. Each bad batch throws the weights far from the minimum: the loss leaps from about 0.01 to ${worstBase.toFixed(0)} and needs dozens of steps to recover. In a real network one such step can wreck hours of training or turn the loss into nan.`
   } else if (c < MEDIAN * 1.5) {
     tone = 'warn'
     msg = `max_norm ${fmtC(c)} is at or below the typical gradient size (about ${MEDIAN.toFixed(1)}), so ${pctClipped.toFixed(0)}% of all steps are clipped. Clipping now acts like a much smaller learning rate: the loss first drops below 0.1 only at step ${mine2 ?? 'never'} (versus ${base2} without clipping).`

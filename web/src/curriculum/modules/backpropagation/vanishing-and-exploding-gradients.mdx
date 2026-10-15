@@ -22,7 +22,7 @@ z_k = w_k \, a_{k-1}, \qquad a_k = \varphi(z_k)
 $$
 
 - $a_{k-1}$ is the output of the layer before, and $w_k$ is layer $k$'s weight.
-- $z_k$ is the <Term def="The weighted input of a neuron, before the activation function is applied.">pre-activation</Term>, and $\varphi$ is the activation function (sigmoid, tanh, ReLU). $\varphi'(z_k)$ is its slope at $z_k$.
+- $z_k$ is the <Term def="The weighted input of a neuron, before the activation function is applied.">pre-activation</Term>, and $\varphi$ (phi) is the activation function (sigmoid, tanh, ReLU): the same $f$ as in earlier lessons, renamed so that $f$ is free for the per-layer factor below. $\varphi'(z_k)$ is its slope at $z_k$.
 
 Backpropagation walks back one edge at a time, multiplying by each local derivative. Stepping back through layer $k$ means multiplying by $\frac{\partial a_k}{\partial a_{k-1}} = w_k \, \varphi'(z_k)$. So the gradient that reaches the first layer is
 
@@ -104,7 +104,7 @@ Initialisation and normalisation get a full lesson in the module on training dee
 
 <Reveal label="Going further: BatchNorm's limits, and recurrent networks">
 
-BatchNorm alone does not force the factor to exactly 1. Try ReLU + BatchNorm (residual off) at depth 30 in the chart: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets combine it with residual connections (setting 7).
+BatchNorm alone does not force the factor to exactly 1. Try ReLU + BatchNorm (residual off) at depth 30 in the chart: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets (residual networks, introduced in the next section) combine it with residual connections (setting 7).
 
 A recurrent network (RNN) applies the *same* weights at every time step, so a 100-word sentence behaves like a 100-layer network, and the same factor gets multiplied a hundred times. RNNs suffer from both problems. LSTMs add a gated memory path that works much like the residual highway below, and gradient clipping is standard when training them.
 
@@ -149,7 +149,7 @@ The first term is the gradient from above, **passed back unchanged**, however sm
 
 <ResidualHighway />
 
-This is the idea behind **ResNet** (2015), which trained networks with 152 layers at a time when a plain 34-layer network trained *worse* than a plain 18-layer one. Every Transformer block uses residual connections too. Notice in the gradient-size chart above (setting 6) and in the highway with a large $s$ that residual connections alone can let the gradient *grow*, because every block adds its own contribution; that is why ResNets also put BatchNorm inside every block.
+This is the idea behind **ResNet** (2015), which trained networks with 152 layers at a time when a plain 34-layer network trained *worse* than a plain 18-layer one. Every Transformer block uses residual connections too. Notice in the gradient-size chart above (setting 6) and in the highway with a large $s$ that residual connections alone can let the gradient *grow*, because every block adds its own contribution; that is why ResNets also put BatchNorm inside every block. (Gradient flow is only part of the story: [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets) shows that those plain deep networks were hard to *optimise* even with BatchNorm, and why a block that can easily learn "do nothing" fixes that.)
 
 <QuickCheck
   q="A residual block computes $y = x + F(x)$. In the backward pass the gradient arriving at $y$ is 4, and $F'(x) = 0.25$. What gradient reaches $x$?"
