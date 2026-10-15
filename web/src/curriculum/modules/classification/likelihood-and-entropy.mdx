@@ -44,9 +44,13 @@ $$
 
 This is the <Term def="The probability of the observed data, viewed as a function of the parameter: L(θ) = P(data | θ). The data stay fixed; the parameter varies.">likelihood</Term> of $p$. Try a few values:
 
-| guess $p$ | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 |
-|---|---|---|---|---|---|
-| $L(p) = p^7(1-p)^3$ | 0.00098 | 0.00179 | **0.00222** | 0.00168 | 0.00048 |
+| guess $p$ | $L(p) = p^7(1-p)^3$ |
+|---|---|
+| 0.5 | 0.00098 |
+| 0.6 | 0.00179 |
+| **0.7** | **0.00222** |
+| 0.8 | 0.00168 |
+| 0.9 | 0.00048 |
 
 $p = 0.7$ explains the flips best: about 2.3 times better than a fair coin. Choosing the parameter with the largest likelihood is called <Term def="Choosing the parameter values that make the observed data most probable (that maximise the likelihood).">maximum likelihood estimation</Term> (MLE), and the winner is written $\hat{p}$ ("p-hat"). For a coin it is always the obvious answer, $\hat{p} = \frac{\text{heads}}{\text{flips}}$.
 
@@ -99,7 +103,24 @@ That is exactly the binary cross-entropy from the last lesson. **Minimising the 
 
 ### MAP: adding a prior belief
 
-After just 3 flips that all land heads, the MLE is $\hat{p} = 3/3 = 1$: "this coin can never land tails". That is absurd, and it is overfitting in miniature. **Maximum a posteriori** (MAP) estimation uses Bayes' theorem instead: maximise likelihood × <Term def="Your belief about a parameter before seeing the data, written as a probability distribution.">prior</Term>. A prior proportional to $p^2(1-p)^2$ (a mild belief that coins are roughly fair) acts exactly like 2 extra imaginary heads and 2 extra tails, giving $\hat{p}_{\text{MAP}} = \frac{3 + 2}{3 + 4} \approx 0.71$. Switch on the prior in the visual above. The prior pulls the estimate towards 0.5 when data are scarce and fades away as data pile up. That is what **regularisation** does: in fact, L2 regularisation of a model's weights is MAP with a bell-shaped prior centred on zero.
+After just 3 flips that all land heads, the MLE is $\hat{p} = 3/3 = 1$: "this coin can never land tails". That is absurd, and it is overfitting in miniature. **Maximum a posteriori** (MAP) estimation fixes it by mixing in what you believed before flipping.
+
+<Steps title="MAP for 3 heads in 3 flips">
+  <Step title="The problem">
+    The likelihood $L(p) = p^3$ keeps rising all the way to $p = 1$, so MLE answers "always heads".
+  </Step>
+  <Step title="Say what you believed beforehand">
+    Before flipping, you think most coins are roughly fair. Write that belief as a <Term def="Your belief about a parameter before seeing the data, written as a probability distribution.">prior</Term> that is high near 0.5 and low near 0 and 1, for example one proportional to $p^2(1-p)^2$.
+  </Step>
+  <Step title="Multiply likelihood by prior">
+    $p^3(1-p)^0 \times p^2(1-p)^2 = p^5(1-p)^2$. That is exactly the likelihood of 5 heads and 2 tails, so the prior acts like 2 imaginary heads and 2 imaginary tails. The peak is at $\hat{p}_{\text{MAP}} = \frac{5}{7} \approx 0.71$.
+  </Step>
+  <Step title="Let the data win">
+    With 300 heads in 400 flips, the 4 imaginary flips hardly matter: MAP gives $\frac{302}{404} \approx 0.748$, almost the MLE of 0.75. The prior matters only when data are scarce.
+  </Step>
+</Steps>
+
+Likelihood × prior is, up to a constant, the <Term def="Your updated belief about a parameter after seeing the data. By Bayes' theorem it is proportional to likelihood × prior.">posterior</Term>, hence the name. Switch on the prior in the visual above to watch the pull towards 0.5. Pulling an estimate towards a safe default when data are scarce is what **regularisation** does; you will meet it again as L2 regularisation of a model's weights, which is MAP with a bell-shaped prior centred on zero.
 
 <PastPaperQuestion paper="prelim2026" n={64} />
 

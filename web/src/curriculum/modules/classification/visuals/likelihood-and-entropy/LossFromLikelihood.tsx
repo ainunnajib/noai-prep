@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Segmented, Slider, Button, Plot, Grid, Axes, FnPath, Path, Label, Bars, MBlock, M, usePlot } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Slider, Button, Plot, Grid, Axes, FnPath, Path, Label, Bars, MBlock, M, usePlot, useNarrow } from '../../../../../kit'
 import { Handle } from '../logistic-regression/Handle'
 import { fix } from './info'
 
@@ -17,7 +17,8 @@ const LN_SQRT_2PI = 0.5 * Math.log(2 * Math.PI) // 0.919
 
 const gauss = (x: number, mu: number) => Math.exp(-0.5 * (x - mu) ** 2) / Math.sqrt(2 * Math.PI)
 
-const STEPS: Record<Tab, { title: string; tex: string; note: ReactNode }[]> = {
+// texNarrow: the same line broken for phones, so the punchlines (MSE, the full BCE) are never clipped
+const STEPS: Record<Tab, { title: string; tex: string; texNarrow?: string; note: ReactNode }[]> = {
   gauss: [
     {
       title: 'Assume a noise model',
@@ -32,11 +33,13 @@ const STEPS: Record<Tab, { title: string; tex: string; note: ReactNode }[]> = {
     {
       title: 'Take minus the log',
       tex: '-\\ln L = \\sum_{i=1}^{m} \\frac{(y_i - \\hat{y}_i)^2}{2\\sigma^2} + m\\ln\\!\\big(\\sqrt{2\\pi}\\,\\sigma\\big)',
+      texNarrow: '\\begin{aligned} -\\ln L &= \\sum_{i=1}^{m} \\frac{(y_i - \\hat{y}_i)^2}{2\\sigma^2} \\\\ &\\quad + m\\ln\\!\\big(\\sqrt{2\\pi}\\,\\sigma\\big) \\end{aligned}',
       note: <>The log turns the product into a sum, and <M>{'\\ln(e^{u}) = u'}</M> removes the exponential.</>,
     },
     {
       title: 'Drop what does not depend on the model',
       tex: '\\begin{gathered} \\text{minimise } -\\ln L \\\\ \\iff \\text{minimise } \\frac{1}{m}\\sum_{i=1}^{m} (y_i - \\hat{y}_i)^2 = \\text{MSE} \\end{gathered}',
+      texNarrow: '\\begin{gathered} \\text{minimise } -\\ln L \\\\ \\iff \\text{minimise } \\frac{1}{m}\\sum_{i=1}^{m} (y_i - \\hat{y}_i)^2 \\\\ = \\text{MSE} \\end{gathered}',
       note: <><M>{'\\sigma'}</M> is fixed, so the constant term and the factor <M>{'1/(2\\sigma^2)'}</M> do not change which model wins.</>,
     },
   ],
@@ -44,6 +47,7 @@ const STEPS: Record<Tab, { title: string; tex: string; note: ReactNode }[]> = {
     {
       title: 'Assume a coin-flip model',
       tex: 'P(y \\mid p) = p^{\\,y}\\,(1 - p)^{\\,1 - y}\\qquad (y \\in \\{0, 1\\})',
+      texNarrow: '\\begin{gathered} P(y \\mid p) = p^{\\,y}\\,(1 - p)^{\\,1 - y} \\\\ (y \\in \\{0, 1\\}) \\end{gathered}',
       note: <>Check: <M>{'y = 1'}</M> gives <M>p</M>, and <M>{'y = 0'}</M> gives <M>{'1 - p'}</M>. This is the Bernoulli distribution.</>,
     },
     {
@@ -54,6 +58,7 @@ const STEPS: Record<Tab, { title: string; tex: string; note: ReactNode }[]> = {
     {
       title: 'Take minus the log',
       tex: '-\\ln L = -\\sum_{i=1}^{m} \\big[\\, y_i \\ln p_i + (1 - y_i) \\ln (1 - p_i) \\,\\big]',
+      texNarrow: '\\begin{aligned} -\\ln L = & -\\sum_{i=1}^{m} \\big[\\, y_i \\ln p_i \\\\ & \\quad + (1 - y_i) \\ln (1 - p_i) \\,\\big] \\end{aligned}',
       note: <>Powers become multipliers: <M>{'\\ln(p^{y}) = y \\ln p'}</M>.</>,
     },
     {
@@ -75,6 +80,7 @@ export default function LossFromLikelihood() {
   const [p, setP] = useState(0.8)
   const [label, setLabel] = useState<1 | 0>(1)
   const [shown, setShown] = useState(1)
+  const [stepsRef, narrow] = useNarrow<HTMLDivElement>(480)
 
   const steps = STEPS[tab]
   const like = gauss(Y_OBS, yhat)
@@ -187,13 +193,13 @@ export default function LossFromLikelihood() {
           </Controls>
         </>
       )}
-      <div style={{ width: '100%', border: '1px solid var(--rule)', borderRadius: 'var(--radius-m)', padding: '0.6rem 0.75rem', display: 'grid', gap: '0.4rem', background: 'var(--surface-2)' }}>
+      <div ref={stepsRef} style={{ width: '100%', border: '1px solid var(--rule)', borderRadius: 'var(--radius-m)', padding: '0.6rem 0.75rem', display: 'grid', gap: '0.4rem', background: 'var(--surface-2)' }}>
         {steps.slice(0, shown).map((s, i) => (
           <div key={`${tab}-${i}`} style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: '0.9rem', color: i === shown - 1 ? 'var(--ink)' : 'var(--ink-2)' }}>
               {i + 1}. {s.title}
             </div>
-            <MBlock>{s.tex}</MBlock>
+            <MBlock>{narrow && s.texNarrow ? s.texNarrow : s.tex}</MBlock>
             <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)' }}>{s.note}</div>
           </div>
         ))}

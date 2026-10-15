@@ -181,14 +181,14 @@
       ]
     },
     {
-      "slug": "knn-and-naive-bayes",
-      "title": "k-nearest neighbours and Naive Bayes",
-      "summary": "Two simple classifiers: vote of the nearest neighbours, and Bayes' theorem with a bold independence assumption.",
-      "minutes": 22,
+      "slug": "k-nearest-neighbours",
+      "title": "k-nearest neighbours",
+      "summary": "Classifying by a vote of the most similar training examples: choosing k, choosing a distance metric, and why the features must be scaled.",
+      "minutes": 25,
       "objectives": [
-        "You can classify a point with k-NN and explain how k and the distance metric change the boundary",
-        "You can compute a Naive Bayes score from priors and word likelihoods",
-        "You can explain why Laplace smoothing is needed"
+        "You can classify a point with k-NN and explain how k changes the boundary",
+        "You can compute Euclidean, Manhattan and cosine distance and explain why they can disagree",
+        "You can explain why k-NN needs scaled features and is slow at prediction time"
       ],
       "concepts": [
         {
@@ -214,7 +214,25 @@
             "interaction": "Toggle the metric; drag r; stretch one feature axis to mimic unscaled data.",
             "aha": "Neighbourhoods are defined by your metric and your scaling, not by the algorithm."
           }
-        },
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Small k → jagged boundary (high variance)",
+        "k-NN needs feature scaling"
+      ]
+    },
+    {
+      "slug": "naive-bayes",
+      "title": "Naive Bayes and Laplace smoothing",
+      "summary": "Bayes' theorem with a bold independence assumption: counting words to classify messages, and adding one to every count.",
+      "minutes": 25,
+      "objectives": [
+        "You can compute a Naive Bayes score from priors and word likelihoods",
+        "You can explain what is naive about Naive Bayes and why it still works",
+        "You can apply Laplace smoothing and explain why it is needed"
+      ],
+      "concepts": [
         {
           "name": "Bayes with independent features",
           "explain": "Naive Bayes scores each class as prior x product of P(feature | class), assuming features are independent given the class. It picks the class with the highest score. Training is just counting.",
@@ -242,8 +260,6 @@
       ],
       "code": "runnable",
       "checkpoint_focus": [
-        "Small k → jagged boundary (high variance)",
-        "k-NN needs feature scaling",
         "Naive Bayes independence assumption",
         "Zero counts and +1 smoothing"
       ]

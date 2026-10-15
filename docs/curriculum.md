@@ -240,8 +240,9 @@ Paper subtopics: classification, probability-statistics, calculus
 1. **Logistic regression** (`logistic-regression`) 20 min · runnable · 3 concepts. Squashing a linear score into a probability with the sigmoid, drawing a decision boundary, and the log loss.
 2. **Likelihood, entropy and cross-entropy** (`likelihood-and-entropy`) 20 min · runnable · 3 concepts. Why classifiers are trained with cross-entropy: maximum likelihood, and the information-theory view of surprise.
 3. **Softmax, cross-entropy and multi-class problems** (`softmax-and-multiclass`) 18 min · runnable · 2 concepts. Extending to many classes with softmax, the cross-entropy loss, and the difference between multi-class and multi-label.
-4. **k-nearest neighbours and Naive Bayes** (`knn-and-naive-bayes`) 22 min · runnable · 4 concepts. Two simple classifiers: vote of the nearest neighbours, and Bayes' theorem with a bold independence assumption.
-5. **Support vector machines and kernels** (`support-vector-machines`) 22 min · runnable · 3 concepts. The widest-street classifier, soft margins controlled by C, and the kernel trick for curved boundaries.
+4. **k-nearest neighbours** (`k-nearest-neighbours`) 25 min · runnable · 2 concepts. Classifying by a vote of the most similar training examples: choosing k, choosing a distance metric, and why the features must be scaled.
+5. **Naive Bayes and Laplace smoothing** (`naive-bayes`) 20 min · runnable · 2 concepts. Bayes' theorem with a bold independence assumption: counting words to classify messages, and adding one to every count.
+6. **Support vector machines and kernels** (`support-vector-machines`) 22 min · runnable · 3 concepts. The widest-street classifier, soft margins controlled by C, and the kernel trick for curved boundaries.
 
 
 ### M16. Evaluating models honestly (`model-evaluation`)
@@ -648,7 +649,7 @@ Each line lists the prerequisite lessons first and the Final-lab rebuild last.
 | 1B1 Linear regression | M14 linear-regression › least-squares; M14 linear-regression › regression-by-gradient-descent |
 | 1B2 Logistic regression | M15 classification › logistic-regression |
 | 1B3 L1 and L2 regularisation | M14 linear-regression › regularisation |
-| 1B4 k-NN | M15 classification › knn-and-naive-bayes |
+| 1B4 k-NN | M15 classification › k-nearest-neighbours |
 | 1B5 Decision trees | M17 trees-and-ensembles › decision-trees |
 | 1B6 Ensembles | M17 trees-and-ensembles › bagging-and-random-forests; M17 trees-and-ensembles › gradient-boosting |
 | 1B7 SVM | M15 classification › support-vector-machines |

@@ -40,9 +40,13 @@ A normal light switch is either off or on. A dimmer switch turns a knob position
 
 Twelve students recorded how many hours they studied and whether they passed a test:
 
-| hours *x* | 0.5 | 1 | 1.5 | 2 | 2.5 | 2.5 | 3.5 | 3.5 | 4 | 4.5 | 5 | 5.5 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| passed *y* | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 1 | 1 | 1 |
+| hours *x* | 0.5 | 1 | 1.5 | 2 | 2.5 | 2.5 |
+|---|---|---|---|---|---|---|
+| passed *y* | 0 | 0 | 0 | 0 | 0 | 1 |
+
+| hours *x* | 3.5 | 3.5 | 4 | 4.5 | 5 | 5.5 |
+|---|---|---|---|---|---|---|
+| passed *y* | 0 | 1 | 1 | 1 | 1 | 1 |
 
 The <Term def="The true answer for an example. In binary classification it is 1 for the 'yes' class and 0 for the 'no' class.">label</Term> $y$ is 1 for "passed" (the **positive class**) and 0 for "failed" (the **negative class**). Two classes means this is **binary classification**.
 
@@ -77,11 +81,11 @@ The output $p$ is the model's probability that $y = 1$, written $P(y = 1 \mid x)
 
 These anchor values are worth memorising for the no-calculator Prelim:
 
-| *z* | −4 | −3 | −2 | −1 | 0 | 1 | 2 | 3 | 4 |
-|---|---|---|---|---|---|---|---|---|---|
-| σ(*z*) | 0.018 | 0.047 | 0.12 | 0.27 | **0.5** | 0.73 | 0.88 | 0.95 | 0.98 |
+| *z* | 0 | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| σ(*z*) | **0.5** | 0.73 | 0.88 | 0.95 | 0.98 |
 
-Notice the symmetry: $\sigma(-z) = 1 - \sigma(z)$. So $\sigma(-2) = 1 - 0.88 = 0.12$, and you only need to remember the positive half.
+You only need the positive half, because of the symmetry $\sigma(-z) = 1 - \sigma(z)$. So $\sigma(-1) = 1 - 0.73 = 0.27$, $\sigma(-2) = 1 - 0.88 = 0.12$, $\sigma(-3) = 0.05$ and $\sigma(-4) = 0.02$.
 
 <KeyIdea>
 
@@ -212,9 +216,9 @@ For a $y = 0$ example the cost is $-\ln(1 - p)$, not $-\ln p$. Student B's cost 
 
 <QuickCheck
   q="An example has true label $y = 0$ and the model predicts $p = 0.5$. What is its binary cross-entropy loss?"
-  options={['$\\ln 2 \\approx 0.693$', '$0.25$', '$0$', '$0.5$']}
+  options={['$\\ln 2 \\approx 0.693$', '$(0 - 0.5)^2 = 0.25$', '$\\ln 0.5 \\approx -0.693$', '$\\ln 1 = 0$']}
   answer={0}
-  explain="With $y = 0$ the loss is $-\ln(1 - p) = -\ln 0.5 = \ln 2 \approx 0.693$. A 50-50 guess always costs $\ln 2$, whatever the label. 0.25 is the squared error $(0 - 0.5)^2$, a different loss."
+  explain="With $y = 0$ the loss is $-\ln(1 - p) = -\ln 0.5 = \ln 2 \approx 0.693$. A 50-50 guess always costs $\ln 2$, whatever the label. 0.25 is the squared error $(0 - 0.5)^2$, a different loss, and $-0.693$ forgets the minus sign: a loss is never negative."
 />
 
 ## Why not mean squared error?

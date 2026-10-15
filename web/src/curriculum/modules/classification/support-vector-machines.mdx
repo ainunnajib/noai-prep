@@ -49,7 +49,7 @@ $$
 
 - $\min_{w, b}$ means "find the $w$ and $b$ that make this smallest". Minimising $\frac12 \lVert w \rVert^2$ is the same as maximising the width $2/\lVert w \rVert$; the square and the $\frac12$ just make the calculus tidier.
 - The condition $y_i f(x_i) \ge 1$ packs two rules into one: a $+1$ point needs $f \ge 1$, and a $-1$ point needs $f \le -1$ (multiply by $y_i = -1$ and it becomes $-f \ge 1$). Every point must be on its own side **and** outside the street.
-- The support vectors are the points where $y_i f(x_i) = 1$ exactly. The solution can be written as $w = \sum_i \alpha_i y_i x_i$ with a weight $\alpha_i > 0$ only for support vectors, and $\alpha_i = 0$ for everyone else. That is why the other points can be deleted without changing anything.
+- The support vectors are the points where $y_i f(x_i) = 1$ exactly. A result from optimisation, which you can take on trust, says that the best $w$ is built **from the support vectors themselves**: each support vector gets a positive weight $\alpha_i$ (how hard it pushes on the street), and every other point gets weight 0. In symbols, $w = \sum_i \alpha_i y_i x_i$, with $y_i = \pm 1$ setting which way each one pushes. In the figure above, only the ringed points build $w$, which is why the other points can be deleted without changing anything. (These $\alpha_i$ have nothing to do with the smoothing $\alpha$ of the last lesson.)
 
 <Steps title="Reading an SVM: w = (3, 4), b = −11">
   <Step title="Street width">
@@ -108,14 +108,14 @@ At the best solution each slack is as small as allowed: $\xi_i = \max(0,\; 1 - y
 Try the extremes. At $C = 0.01$ the street is 5.31 wide and 20 of the 32 points have some slack. At $C = 10$ it has shrunk to 1.29 and no point is inside it. With the outlier switched on, $C = 100$ swings the boundary round towards that one blue point and the street narrows to 1.01, while at $C = 0.01$ the boundary hardly moves. Large $C$ chases individual points (low bias, high variance); small $C$ keeps the boundary simple (high bias, low variance).
 
 <Steps title="Slack for three points">
-  <Step title="A: y = +1, f = 2.5">
+  <Step title="Point P: y = +1, f = 2.5">
     $1 - y f = 1 - 2.5 < 0$, so $\xi = 0$: outside the street, no penalty.
   </Step>
-  <Step title="B: y = +1, f = 0.4">
+  <Step title="Point Q: y = +1, f = 0.4">
     $\xi = 1 - 0.4 = 0.6$: inside the street, but on the correct side.
   </Step>
-  <Step title="C: y = −1, f = 0.5">
-    $y f = -0.5$, so $\xi = 1 - (-0.5) = 1.5 > 1$: on the wrong side. With $C = 2$, these points add $2 \times (0 + 0.6 + 1.5) = 4.2$ to the objective.
+  <Step title="Point R: y = −1, f = 0.5">
+    $y f = -0.5$, so $\xi = 1 - (-0.5) = 1.5 > 1$: on the wrong side. With the penalty $C = 2$, the three points P, Q and R add $2 \times (0 + 0.6 + 1.5) = 4.2$ to the objective.
   </Step>
 </Steps>
 
@@ -139,7 +139,7 @@ Small coins and big coins are mixed on a table, and no straight ruler line can s
 
 <KernelLift />
 
-Here the new feature is $z = x^2 + y^2$, the squared distance from the centre. Points in the disc get small $z$, points on the ring get large $z$, so the flat plane $z = 2.5$ separates them. Written as a <Term def="A function φ that turns each input into a longer list of features, such as φ(x, y) = (x, y, x² + y²). A linear model on the new features can draw curved boundaries in the original space.">feature map</Term>, $\phi(x, y) = (x,\, y,\, x^2 + y^2)$. A boundary that is **straight in the new space** becomes **curved in the original space**: the plane $z = 2.5$ is the circle $x^2 + y^2 = 2.5$.
+Call a point's two coordinates $x_1$ and $x_2$ (the letter $y$ is already taken by the label). Here the new feature is the height $h = x_1^2 + x_2^2$, the squared distance from the centre. Points in the disc get a small $h$, points on the ring a large $h$, so the flat plane $h = 2.5$ separates them. Written as a <Term def="A function φ that turns each input into a longer list of features, such as φ(x₁, x₂) = (x₁, x₂, x₁² + x₂²). A linear model on the new features can draw curved boundaries in the original space.">feature map</Term>, $\phi(x_1, x_2) = (x_1,\, x_2,\, x_1^2 + x_2^2)$. A boundary that is **straight in the new space** becomes **curved in the original space**: the plane $h = 2.5$ is the circle $x_1^2 + x_2^2 = 2.5$.
 
 Adding features by hand works for this toy, but real data may need thousands or millions of them. The trick that makes SVMs practical comes from how their solution is written. Because $w = \sum_i \alpha_i y_i x_i$, the score of a new point is
 
@@ -260,6 +260,8 @@ gamma=100    train 1.00  test 0.74  support vectors 95
 
 The same story as the figure: training accuracy keeps rising with $\gamma$, test accuracy peaks and then falls, and the number of support vectors balloons.
 
+<Reveal label="Optional: train a linear SVM in PyTorch">
+
 A Final task could ask you to train a linear SVM yourself. In PyTorch that is just the soft-margin objective as a loss: $\frac12\lVert w \rVert^2 + C \sum_i \max(0,\, 1 - y_i f(x_i))$, minimised by gradient descent. (Centring the features first keeps $b$ small, which helps the optimiser.)
 
 ```python
@@ -308,6 +310,8 @@ margin width 2/||w|| = 2.663
 ```
 
 Gradient descent on the hinge loss lands on the same street as scikit-learn's exact solver. (Here $C = 1$ is already large enough to forbid every violation, because this data is separable with room to spare.)
+
+</Reveal>
 
 <ExamTip title="How NOAI asks about SVMs">
 

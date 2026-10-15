@@ -5,8 +5,9 @@ import { Mark, NEG_C, POS_C } from './parts'
 
 /*
   The kernel idea, drawn. Left: ring-shaped data in 2-D (no straight line separates it). Right: the same
-  points lifted to height z = t·(x² + y²), shown in a 3-D view you can turn. At full lift a flat plane
-  z = c separates the classes, and seen from above that flat plane is the circle x² + y² = c.
+  points lifted to height h = t·(x₁² + x₂²), shown in a 3-D view you can turn. At full lift a flat plane
+  h = c separates the classes, and seen from above that flat plane is the circle x₁² + x₂² = c.
+  (h, not z: z is the second input of a kernel K(x, z), and x₁, x₂ rather than x, y since y is the label.)
   c = 2.5 sits between the largest inner r² (1.20) and the smallest outer r² (3.84).
 */
 
@@ -73,7 +74,7 @@ function Lift3D({ t, az, setAz }: { t: number; az: number; setAz: (a: number) =>
     )
   }
 
-  // the bowl z = t(x² + y²): a few rings, lifted
+  // the bowl h = t(x₁² + x₂²): a few rings, lifted
   const ring = (r: number) => {
     const pts: string[] = []
     for (let k = 0; k <= 64; k++) {
@@ -125,13 +126,13 @@ function Lift3D({ t, az, setAz }: { t: number; az: number; setAz: (a: number) =>
         })}
         <line x1={ox} y1={oy} x2={zx} y2={zy} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.5 }} />
         <text x={zx + 6} y={zy + 4} className="plot-label" style={{ fill: 'var(--viz-ink)' }}>
-          z = x² + y²
+          h = x₁² + x₂²
         </text>
         {t > 0.02 && [1, 2, 2.8].map((r) => <path key={r} d={ring(r)} style={{ fill: 'none', stroke: 'var(--viz-muted)', strokeWidth: 1, strokeDasharray: '3 4' }} />)}
         {below.map(dot)}
         <path d={poly(sq(CUT))} style={{ fill: 'color-mix(in srgb, var(--viz-6) 28%, transparent)', stroke: 'var(--viz-6)', strokeWidth: 1.5 }} />
         <text x={planeLabel[0] + 2} y={planeLabel[1] + 16} className="plot-label" style={{ fill: 'var(--viz-6)', fontWeight: 700 }}>
-          flat plane z = {CUT}
+          flat plane h = {CUT}
         </text>
         {above.map(dot)}
       </svg>
@@ -163,17 +164,17 @@ export default function KernelLift() {
       caption={
         <>
           No straight line separates the inner orange disc from the outer blue ring. Press <b>Lift</b> (or drag the slider): each point rises to the
-          height <i>z</i> = <i>x</i>² + <i>y</i>², so points far from the centre rise much more. Once the lift is big enough, a <b>flat</b> plane slips
+          height <i>h</i> = <i>x</i>₁² + <i>x</i>₂², so points far from the centre rise much more. Once the lift is big enough, a <b>flat</b> plane slips
           between the two classes. Seen from above (left), that flat cut is a <b>circle</b>. Drag the 3-D view sideways to turn it.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 0.85fr) minmax(0, 1.15fr)', gap: 12, alignItems: 'center' }}>
         <div style={{ display: 'grid', gap: 2 }}>
-          <div style={head}>Original data (x, y)</div>
+          <div style={head}>Original data (x₁, x₂)</div>
           <Plot x={[-3, 3]} y={[-3, 3]} width={300} height={300} maxWidth={340} margin={{ left: 30, bottom: 30, right: 10, top: 10 }} ariaLabel="Ring-shaped data in two dimensions with the circular boundary that the flat cut makes">
             <Grid xTicks={6} yTicks={6} />
-            <Axes xLabel="x" yLabel="y" xTicks={6} yTicks={6} origin />
+            <Axes xLabel="x₁" yLabel="x₂" xTicks={6} yTicks={6} origin />
             {separated && (
               <Path
                 points={Array.from({ length: 97 }, (_, i) => [R_CUT * Math.cos((i / 96) * 2 * Math.PI), R_CUT * Math.sin((i / 96) * 2 * Math.PI)] as [number, number])}
@@ -187,7 +188,7 @@ export default function KernelLift() {
             ))}
             {separated && (
               <Label x={R_CUT * 0.72} y={-R_CUT * 0.72} dx={6} dy={14} color="var(--viz-6)" weight={700}>
-                x² + y² = {CUT}
+                x₁² + x₂² = {CUT}
               </Label>
             )}
           </Plot>

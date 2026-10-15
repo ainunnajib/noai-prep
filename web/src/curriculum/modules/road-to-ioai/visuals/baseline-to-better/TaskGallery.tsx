@@ -233,7 +233,7 @@ const TASKS: Task[] = [
     skills: ['embeddings as features', 'nearest centroids and k-NN', 'macro-F1'],
     practise: 'Classify sentence embeddings with nearest class centroids and compare with a trained logistic regression.',
     lessons: [
-      ['k-NN and naive Bayes', 'classification/knn-and-naive-bayes'],
+      ['k-nearest neighbours', 'classification/k-nearest-neighbours'],
       ['Word embeddings', 'text-as-data/word-embeddings'],
     ],
   },

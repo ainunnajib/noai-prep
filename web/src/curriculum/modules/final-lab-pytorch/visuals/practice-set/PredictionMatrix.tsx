@@ -45,7 +45,7 @@ const ROWS: Row[] = [
     pastTask: '2025 Task 2: K-means (distances, argmin)',
     why: 'Pairwise distances by broadcasting, argsort and a vote: the K-means skills in a new order.',
     practice: 'knn',
-    revise: { label: 'k-NN and naive Bayes', href: '#/learn/classification/knn-and-naive-bayes' },
+    revise: { label: 'k-nearest neighbours', href: '#/learn/classification/k-nearest-neighbours' },
   },
   {
     task: 'Softmax with cross-entropy (numerically stable)',

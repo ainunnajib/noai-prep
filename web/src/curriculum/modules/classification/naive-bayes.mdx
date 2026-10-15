@@ -1,0 +1,253 @@
+import NaiveBayesSpam from './visuals/naive-bayes/NaiveBayesSpam'
+import SmoothingToggle from './visuals/naive-bayes/SmoothingToggle'
+
+The last lesson's k-nearest neighbours classified a new example by comparing it with stored ones. **Naive Bayes** takes a different route: it counts how often each clue appears in each class, then multiplies those counts together. Training is one pass of counting, it was the classic spam filter, and NOAI papers ask what is "naive" about it and why we add 1 to every count.
+
+## Naive Bayes: count, multiply, compare
+
+<Analogy title="Whose message is this?">
+
+A preview pops up on your phone, cut off: "…free … lunch … now". Is it from your CCA group chat or a spam bot? You weigh each word ("lunch" sounds like your CCA, "free" sounds a little spammy) and you also remember that most of your messages come from real people. Naive Bayes does exactly this, with numbers.
+
+</Analogy>
+
+Naive Bayes is <Term def="P(A | B) = P(B | A) P(A) / P(B): it turns how likely the evidence is under each hypothesis into how likely each hypothesis is given the evidence.">Bayes' theorem</Term> turned into a classifier. For a class $c$ and features $x_1, \dots, x_m$ (here, the words of a message):
+
+$$
+P(c \mid x_1, \dots, x_m) = \frac{P(c)\; P(x_1, \dots, x_m \mid c)}{P(x_1, \dots, x_m)}
+$$
+
+- $P(c)$ is the **prior**: how common class $c$ is before you read the message.
+- $P(x_1, \dots, x_m \mid c)$ is the **likelihood**: how probable these features are in a message of class $c$.
+- $P(x_1, \dots, x_m)$, the evidence, is the same for every class, so to *choose* a class you can ignore it. Divide by it only at the end, if you want probabilities that add up to 1.
+
+The likelihood is the hard part. A vocabulary of 10,000 words allows $2^{10000}$ different sets of words, so no training set could ever count how often each exact combination appears in spam. Naive Bayes makes one bold simplification, called <Term def="Two features are conditionally independent given the class if, once you know the class, learning one of them tells you nothing more about the other.">conditional independence</Term>: once the class is known, it treats the features as independent of each other, so the likelihood becomes a product of one-feature probabilities:
+
+$$
+\begin{aligned}
+&P(x_1, \dots, x_m \mid c) \\
+&\quad = P(x_1 \mid c)\, P(x_2 \mid c) \cdots P(x_m \mid c) \\
+&\quad = \prod_{i=1}^{m} P(x_i \mid c)
+\end{aligned}
+$$
+
+The symbol $\prod$ means "multiply all of these", just as $\sum$ means "add all of these". The classifier picks
+
+$$
+\hat{c} = \underset{c}{\arg\max}\; P(c) \prod_{i=1}^{m} P(x_i \mid c)
+$$
+
+where $\arg\max_c$ means "the class $c$ that makes this score largest", and $\hat{c}$ (c-hat) is the predicted class.
+
+### Training is just counting
+
+Our running example has 10 short training messages, 4 spam and 6 normal, each cut down to the words of a 6-word vocabulary. Counting every word in each class gives:
+
+| word | count in spam | count in normal |
+|---|---|---|
+| free | 4 | 1 |
+| win | 2 | 1 |
+| prize | 2 | 0 |
+| now | 1 | 2 |
+| lunch | 1 | 3 |
+| homework | 0 | 3 |
+| **total** | **10** | **10** |
+
+<Reveal label="Show the 10 training messages">
+
+Spam: "win free prize now", "free prize", "win free lunch", "free". Normal: "homework now", "lunch now", "free lunch", "win", "lunch homework", "homework". Count the words in each group and you get the table above.
+
+</Reveal>
+
+Every probability the model needs is a fraction read off this table:
+
+$$
+\begin{aligned}
+P(c) &= \frac{\text{messages in class } c}{\text{all messages}} \\[4pt]
+P(w \mid c) &= \frac{\text{count of word } w \text{ in class } c}{\text{total words in class } c}
+\end{aligned}
+$$
+
+The first is the **prior**: $P(\text{spam}) = 4/10 = 0.4$ and $P(\text{normal}) = 6/10 = 0.6$. The second is the **word likelihood**: for example $P(\text{free} \mid \text{spam}) = 4/10$ but $P(\text{free} \mid \text{normal}) = 1/10$.
+
+Counting words like this is called *multinomial* Naive Bayes, the standard version for text.
+
+<NaiveBayesSpam />
+
+<Steps title="Classifying “free lunch now” by hand">
+  <Step title="Spam score">
+    $0.4 \times \frac{4}{10} \times \frac{1}{10} \times \frac{1}{10} = 0.4 \times 0.004 = 0.0016$
+  </Step>
+  <Step title="Normal score">
+    $0.6 \times \frac{1}{10} \times \frac{3}{10} \times \frac{2}{10} = 0.6 \times 0.006 = 0.0036$
+  </Step>
+  <Step title="Compare">
+    $0.0036 > 0.0016$, so predict **normal**. Exam shortcut: every word fraction has the same denominator 10, so just compare $0.4 \times 4 \times 1 \times 1 = 1.6$ with $0.6 \times 1 \times 3 \times 2 = 3.6$.
+  </Step>
+  <Step title="Normalise (only if you want a probability)">
+    $P(\text{normal} \mid \text{message}) = \frac{0.0036}{0.0036 + 0.0016} = \frac{36}{52} \approx 0.69$.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+Naive Bayes scores each class as **prior × product of $P(\text{feature} \mid \text{class})$** and picks the largest score. Training is just counting. The "naive" part is assuming the features are independent once the class is known.
+
+</KeyIdea>
+
+<QuickCheck
+  q="Using the same count table, which class does Naive Bayes choose for the message “win now”?"
+  options={['Normal: 0.012 against 0.008 for spam', 'A tie: both scores are 0.02', 'Spam: 0.08 against 0.012 for normal', 'Spam: 0.6 against 0.4 for normal']}
+  answer={0}
+  explain="Spam: $0.4 \times \frac{2}{10} \times \frac{1}{10} = 0.008$. Normal: $0.6 \times \frac{1}{10} \times \frac{2}{10} = 0.012$, so normal wins. Without the priors both products are $0.02$, a tie: the prior breaks it, because normal messages are more common."
+/>
+
+### Why does such a naive model work?
+
+The independence assumption is plainly false: "free" and "prize" love to turn up together. Yet Naive Bayes was the classic spam filter, and it still makes a strong, quick baseline for text. Three reasons:
+
+1. To classify, it only needs the **ranking** of the class scores to be right, not the exact probabilities. The double-counted evidence often pushes the scores further apart without swapping their order. (Its probabilities do tend to be over-confident.)
+2. It has very few parameters, one probability per word per class, so it learns from little data and barely overfits: high bias, low variance, the opposite end from 1-NN.
+3. Training is one pass of counting and prediction is a handful of multiplications, so it is fast even with 100,000 words.
+
+<PastPaperQuestion paper="prelim2026" n={158} />
+
+## The zero problem and Laplace smoothing
+
+In the figure above, adding the word "prize" sent the normal score straight to 0. "Prize" never appeared in the six normal training messages, so $P(\text{prize} \mid \text{normal}) = \frac{0}{10} = 0$, and a single factor of 0 makes the whole product 0, however normal the other words are. Worse, a message such as "free prize homework" contains a word never seen in spam ("homework") *and* one never seen in normal messages ("prize"), so both scores are 0 and the classifier cannot choose at all. Ten messages are far too few to conclude that a word is impossible in a class.
+
+<Analogy title="One free star for every dish">
+
+A food guide lists a stall only if every dish on its menu has at least one good review. A great stall that has just added a new dish, which nobody has reviewed yet, disappears from the guide. A fairer rule: pretend every dish starts with one good review, so a missing review can lower a stall's standing but never wipe it out.
+
+</Analogy>
+
+<Term def="Adding 1 to every count before turning counts into probabilities, so that nothing seen zero times gets probability 0. Also called add-one smoothing.">Laplace smoothing</Term> does exactly that:
+
+$$
+P(w \mid c) = \frac{\text{count}(w, c) + 1}{\text{total words in } c + |V|}
+$$
+
+- $+1$ gives every word one imaginary extra appearance in every class, so no count is 0.
+- $|V|$ is the **vocabulary size**, the number of different words (6 here). We added 1 to each of the $|V|$ counts, so the total grows by $|V|$, and putting that in the denominator keeps each class's probabilities adding up to exactly 1.
+
+In our table every class has 10 words and $|V| = 6$, so every smoothed denominator is $10 + 6 = 16$. For example $P(\text{free} \mid \text{spam})$ becomes $(4 + 1)/16 = 5/16$, and the troublesome $P(\text{homework} \mid \text{spam})$ becomes $(0 + 1)/16 = 1/16$: small, but no longer 0. The figure shows the whole table both ways.
+
+<SmoothingToggle />
+
+<Steps title="“free prize homework” with Laplace smoothing">
+  <Step title="Without smoothing">
+    Spam needs $P(\text{homework} \mid \text{spam}) = \frac{0}{10}$ and normal needs $P(\text{prize} \mid \text{normal}) = \frac{0}{10}$, so both scores are 0: no decision.
+  </Step>
+  <Step title="Smoothed spam score">
+    $0.4 \times \frac{5}{16} \times \frac{3}{16} \times \frac{1}{16}$
+  </Step>
+  <Step title="Smoothed normal score">
+    $0.6 \times \frac{2}{16} \times \frac{1}{16} \times \frac{4}{16}$
+  </Step>
+  <Step title="Compare">
+    Both have the factor $\frac{1}{16^3}$, so compare $0.4 \times 5 \times 3 \times 1 = 6$ with $0.6 \times 2 \times 1 \times 4 = 4.8$. Predict **spam**.
+  </Step>
+  <Step title="Normalise">
+    $P(\text{spam} \mid \text{message}) = \frac{6}{6 + 4.8} = \frac{6}{10.8} \approx 0.56$: a cautious verdict, two spammy words against one normal one.
+  </Step>
+</Steps>
+
+The general version adds a number $\alpha$ (alpha) instead of 1:
+
+$$
+P(w \mid c) = \frac{\text{count}(w, c) + \alpha}{\text{total words in } c + \alpha |V|}
+$$
+
+Laplace smoothing is $\alpha = 1$, which is also scikit-learn's default (`MultinomialNB(alpha=1.0)`); a smaller $\alpha$ such as 0.1 trusts the counts more.
+
+<QuickCheck
+  q="A class has 20 words in total in its training messages, the vocabulary has 5 words, and the word “tuition” never appeared in this class. With Laplace smoothing, what is $P(\text{tuition} \mid \text{class})$?"
+  options={['$1/25$', '$1/21$', '$0$', '$1/20$']}
+  answer={0}
+  explain="$\frac{0 + 1}{20 + 5} = \frac{1}{25} = 0.04$. The denominator grows by the vocabulary size $|V| = 5$, because each of the 5 words got one extra count. Adding only 1 to the denominator ($\frac{1}{21}$) would make the probabilities add up to more than 1."
+/>
+
+<Mistake title="Two smoothing slips">
+
+Adding 1 only to the zero counts is wrong: add 1 to **every** count, or the unseen words are unfairly favoured. And remember to add $|V|$, not 1, to the denominator.
+
+</Mistake>
+
+<Note title="Two details real implementations add">
+
+- **Logs instead of products.** Multiplying hundreds of small probabilities underflows: 300 words with likelihoods near $0.001$ give about $10^{-900}$, far below the smallest positive number a standard 64-bit float can hold (about $5 \times 10^{-324}$), so the product comes out as exactly 0.0. Implementations add logarithms instead: $\log P(c) + \sum_i \log P(x_i \mid c)$. Since $\log$ always increases, the class with the largest log score is still the winner.
+- **Numeric features.** For measurements such as height or temperature, *Gaussian* Naive Bayes replaces counting with a bell curve: $P(x_i \mid c)$ comes from a normal distribution with that class's mean and variance for feature $i$.
+
+</Note>
+
+## Naive Bayes in NumPy
+
+Here is Naive Bayes on the count table, adding logs instead of multiplying, then the same model in scikit-learn straight from the 10 messages. `CountVectorizer` turns each message into a row of word counts; scikit-learn lists the classes alphabetically, so its columns are normal, then spam.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+
+vocab = ["free", "win", "prize", "now", "lunch", "homework"]
+counts = np.array([[4, 2, 2, 1, 1, 0],          # spam:   word counts
+                   [1, 1, 0, 2, 3, 3]])         # normal: word counts
+priors = np.array([4, 6]) / 10                  # 4 spam and 6 normal messages
+
+def naive_bayes(message, alpha=1.0):
+    idx = [vocab.index(w) for w in message.split()]
+    probs = (counts + alpha) / (counts.sum(axis=1, keepdims=True) + alpha * len(vocab))
+    log_score = np.log(priors) + np.log(probs[:, idx]).sum(axis=1)   # add logs, don't multiply
+    score = np.exp(log_score)
+    return score, score / score.sum()
+
+for msg in ["free lunch now", "free prize homework"]:
+    score, post = naive_bayes(msg)
+    print(f"{msg!r}: scores {score.round(5)}, P(spam) = {post[0]:.3f}")
+
+# check with scikit-learn
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+texts = ["win free prize now", "free prize", "win free lunch", "free",
+         "homework now", "lunch now", "free lunch", "win", "lunch homework", "homework"]
+labels = ["spam"] * 4 + ["normal"] * 6
+vec = CountVectorizer()
+model = MultinomialNB(alpha=1.0).fit(vec.fit_transform(texts), labels)
+print(model.classes_, model.predict_proba(vec.transform(["free prize homework"])).round(3))`} />
+
+```text
+'free lunch now': scores [0.00195 0.00352], P(spam) = 0.357
+'free prize homework': scores [0.00146 0.00117], P(spam) = 0.556
+['normal' 'spam'] [[0.444 0.556]]
+```
+
+With smoothing, "free lunch now" is still normal (64%), and "free prize homework" gives the 0.556 we worked out by hand, matching scikit-learn exactly.
+
+<ExamTip title="How NOAI asks about Naive Bayes">
+
+- "Naive" = features **conditionally independent given the class**. It works anyway because it only needs the ranking of the classes right.
+- Score = prior × product of likelihoods. Do not forget the prior, and do not add the likelihoods.
+- Laplace: $P(w \mid c) = (\text{count} + 1) / (\text{total} + |V|)$. Without it, one unseen word zeroes a whole class.
+- No calculator? When the fractions share a denominator, compare the numerators only.
+
+</ExamTip>
+
+## k-NN and Naive Bayes side by side
+
+
+| | k-nearest neighbours | Naive Bayes |
+|---|---|---|
+| Idea | vote of the $k$ most similar training points | prior × product of per-feature likelihoods |
+| Training | store the data | count |
+| Prediction cost | distance to all $n$ points | one product per class |
+| Key assumption | nearby points share a label | features independent given the class |
+| Main knob | $k$ and the distance metric | smoothing $\alpha$ |
+| Watch out for | unscaled features, many features | zero counts, underflow |
+| Typical use | small, low-dimensional data | text, quick baselines |
+
+<Takeaways>
+
+- **Naive Bayes** picks the class with the largest $P(c) \prod_i P(x_i \mid c)$, assuming features are independent once the class is known. Training is counting.
+- The assumption is false for real text, but classifying only needs the scores in the right order, and with so few parameters Naive Bayes learns from little data (high bias, low variance).
+- **Laplace smoothing**, $(\text{count} + 1) / (\text{total} + |V|)$, stops one unseen word from vetoing a class; real implementations add log probabilities to avoid underflow.
+
+</Takeaways>

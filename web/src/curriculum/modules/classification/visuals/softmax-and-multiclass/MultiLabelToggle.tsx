@@ -239,7 +239,24 @@ export default function MultiLabelToggle() {
                 }}
               />
               <span style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', borderLeft: '2px dashed var(--viz-ink)', opacity: 0.6 }} />
-              <span style={{ position: 'absolute', right: 4, top: -1, fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--ink)' }}>
+              {/* a surface-coloured pill, so the number stays readable when the fill runs underneath it */}
+              <span
+                style={{
+                  position: 'absolute',
+                  right: 2,
+                  top: 1,
+                  bottom: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 4px',
+                  borderRadius: 4,
+                  background: 'var(--surface)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--ink)',
+                }}
+              >
                 {p[i].toFixed(2)}
               </span>
             </span>,
