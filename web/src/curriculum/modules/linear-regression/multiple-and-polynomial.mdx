@@ -67,17 +67,15 @@ Put each example in a row of $X$ (with a column of 1s for the bias). Then **all*
   explain="The inner sizes must match, so $w$ needs one entry per column of $X$: 4 (the column of 1s already gives $w_0 = b$ its place, so 3 is one short). The result keeps the outer size, one prediction per example: $(100 \times 4)(4 \times 1) = (100 \times 1)$."
 />
 
-<PastPaperQuestion paper="prelim2026" n={1} />
-
 ## The normal equation: jump straight to the bottom
 
-In earlier lessons you met the loss as a bowl and walked down it with gradient descent. For linear regression we can do better and **solve for the bottom directly**. The loss is the mean squared error
+In [Linear regression and least squares](#/learn/linear-regression/least-squares) you met the loss as a bowl, and then you walked down it with gradient descent. For linear regression we can do better and **solve for the bottom directly**. The loss is the mean squared error
 
 $$
 L(w) = \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2 = \frac{1}{n}\lVert y - Xw \rVert^2 ,
 $$
 
-where $\lVert \cdot \rVert^2$ means "square every entry and add them up". Its gradient, which you met in the gradient descent lesson, is
+where $\lVert \cdot \rVert^2$ means "square every entry and add them up". Its gradient, which you met in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent), is
 
 $$
 \nabla L = \frac{2}{n} X^T (Xw - y).
@@ -145,7 +143,7 @@ Three ways out:
 
 1. **Remove the redundant column.** Usually the best fix.
 2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When no column of $X$ can be built from the others (it has *full column rank*), $X^+ = (X^T X)^{-1}X^T$ and $w = X^+y$ is just the normal equation. When some can, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
-3. **Add a small penalty on the weights** (ridge regression, next lesson), which makes the matrix invertible again.
+3. **Add a small penalty on the weights** (ridge regression, coming next in [L1 and L2 regularisation](#/learn/linear-regression/regularisation)), which makes the matrix invertible again.
 
 <PastPaperQuestion paper="prelim2026" n={23} />
 
@@ -259,7 +257,7 @@ More powers always let the curve bend more, so the error on the training data ca
 
 These are the two failure modes from [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): high **bias** (too simple) and high **variance** (too flexible). Raising the degree lowers the bias but raises the variance: that is the **bias-variance trade-off**, and the best model sits in between. (This "bias" is a kind of error, not the bias term $b$.)
 
-You can pick the degree with the lowest validation error, or keep a flexible model and **punish large weights** so it cannot swing wildly. That second idea, regularisation, is the next lesson.
+You can pick the degree with the lowest validation error, or keep a flexible model and **punish large weights** so it cannot swing wildly. That second idea is the next lesson, [L1 and L2 regularisation](#/learn/linear-regression/regularisation).
 
 <PastPaperQuestion paper="prelim2026" n={147} />
 

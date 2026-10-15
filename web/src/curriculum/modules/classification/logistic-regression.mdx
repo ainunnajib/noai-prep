@@ -121,11 +121,11 @@ Training on the twelve students (you will see how below) gives $w \approx 2.03$ 
   </Step>
 </Steps>
 
-The cut-off 0.5 is called the <Term def="The probability above which a classifier predicts the positive class. 0.5 is the default, but it can be moved.">threshold</Term>. It is a choice, not a law: a cancer screening test might flag anyone with $p \ge 0.1$, because missing a sick patient is far worse than a false alarm. The module on evaluating models explores this trade-off.
+The cut-off 0.5 is called the <Term def="The probability above which a classifier predicts the positive class. 0.5 is the default, but it can be moved.">threshold</Term>. It is a choice, not a law: a cancer screening test might flag anyone with $p \ge 0.1$, because missing a sick patient is far worse than a false alarm. The module on evaluating models explores this trade-off, starting with [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics).
 
 <Note title="Reading the score as log-odds">
 
-Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. (It is still fitted by maximum likelihood, an idea the next lesson explains, not by least squares on the log-odds. The name *logistic* comes from the logistic function $\sigma$, which turns the log-odds back into a probability.)
+Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. (It is still fitted by maximum likelihood, not by least squares on the log-odds; the next lesson, [Likelihood, entropy and cross-entropy](#/learn/classification/likelihood-and-entropy), explains the idea. The name *logistic* comes from the logistic function $\sigma$, which turns the log-odds back into a probability.)
 
 </Note>
 
@@ -137,7 +137,7 @@ $$
 z = w_1 x_1 + w_2 x_2 + b = \mathbf{w}^T \mathbf{x} + b
 $$
 
-where $\mathbf{w} = (w_1, w_2)$ is the **weight vector** and $\mathbf{w}^T \mathbf{x}$ is the dot product of the weights with the features (from the vectors module: multiply matching entries and add). With 100 features it is the same formula, just a longer dot product.
+where $\mathbf{w} = (w_1, w_2)$ is the **weight vector** and $\mathbf{w}^T \mathbf{x}$ is the dot product of the weights with the features (from [Dot product, norms and cosine similarity](#/learn/vectors-and-matrices/dot-product-and-norms): multiply matching entries and add). With 100 features it is the same formula, just a longer dot product.
 
 The <Term def="The set of points where a classifier is exactly undecided (p = 0.5). On one side it predicts class 1, on the other class 0.">decision boundary</Term> is where the model is exactly undecided: $p = 0.5$, which means $z = 0$:
 
@@ -172,7 +172,7 @@ Logistic regression is a **linear classifier**: its decision boundary $\mathbf{w
 
 <Mistake title="A straight line cannot draw a circle">
 
-Because the boundary is always straight, plain logistic regression fails when the classes are arranged in rings or in a checkerboard (the XOR pattern). The fix is to add new features such as $x_1^2$, $x_2^2$ or $x_1 x_2$: the boundary is still a flat plane in the bigger feature space, but it looks curved when drawn in the original $(x_1, x_2)$ space. Neural networks and the kernel trick (in the SVM lesson) automate this idea.
+Because the boundary is always straight, plain logistic regression fails when the classes are arranged in rings or in a checkerboard (the XOR pattern). The fix is to add new features such as $x_1^2$, $x_2^2$ or $x_1 x_2$: the boundary is still a flat plane in the bigger feature space, but it looks curved when drawn in the original $(x_1, x_2)$ space. Neural networks and the kernel trick (in [Support vector machines and kernels](#/learn/classification/support-vector-machines)) automate this idea.
 
 </Mistake>
 
@@ -233,7 +233,7 @@ $$
 
 <Reveal label="Show the derivation">
 
-From the calculus module, $\frac{dp}{dz} = \sigma'(z) = p(1 - p)$. Differentiate the loss with respect to $p$: $\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1 - y}{1 - p}$. The chain rule multiplies the two:
+From [Derivative rules you must know cold](#/learn/calculus-and-gradient-descent/derivative-rules), $\frac{dp}{dz} = \sigma'(z) = p(1 - p)$. Differentiate the loss with respect to $p$: $\frac{\partial L}{\partial p} = -\frac{y}{p} + \frac{1 - y}{1 - p}$. The chain rule multiplies the two:
 
 $$
 \frac{\partial L}{\partial z} = \left(-\frac{y}{p} + \frac{1-y}{1-p}\right) p(1-p) = -y(1-p) + (1-y)p = p - y.
@@ -251,9 +251,7 @@ $$
 
 For student C that is $2(-0.9)(0.1)(0.9) = -0.162$, more than five times weaker. If the model were even more wrong, $p = 0.01$, log loss pushes with $-0.99$ but squared error with only about $-0.02$. A model that is confidently wrong barely learns: the gradient **vanishes** exactly when it is needed most. Squared error with a sigmoid is also not convex in $w$ and $b$, so it can have flat plateaus, while log loss for logistic regression is convex, a single bowl. (One catch: if a straight line separates the two classes perfectly, the bowl has no bottom. The loss keeps falling as $w$ grows, so the weights grow forever. That is one reason scikit-learn adds L2 regularisation by default, as you will see below.)
 
-The exam question below also lists *hinge loss*, a third classification loss that scores raw margins rather than probabilities; you will meet it with support vector machines at the end of this module.
-
-<PastPaperQuestion paper="prelim2026" n={262} />
+Exam questions sometimes offer a third classification loss, *hinge loss*, which scores raw margins rather than probabilities. You will meet it in [Support vector machines and kernels](#/learn/classification/support-vector-machines), the last lesson of this module.
 
 ## Training: gradient descent
 

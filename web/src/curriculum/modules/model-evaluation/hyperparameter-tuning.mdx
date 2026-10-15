@@ -97,7 +97,7 @@ Before you start a search, count what it will cost: every fit takes time.
 
 ## Every fitted step goes inside the folds
 
-Cross-validation is only honest if each round's validation fold plays no part in training, and that includes **every step that learns from data**: a scaler's mean and SD, an <Term def="A preprocessing step that fills in missing values, for example with the mean of each column. The fill values are learned from data, so they must come from the training folds only.">imputer</Term>'s fill values, feature selection, oversampling such as SMOTE. You met the fix in [Splitting and leakage](#/learn/data-and-features/splitting-and-leakage): put the steps and the model in one <Term def="A scikit-learn object that chains preprocessing steps and a model. Cross-validating the whole pipeline refits every step on each round's training folds only.">Pipeline</Term> and pass it to `cross_val_score(pipe, X, y, cv=5)`, so every step is refitted on each round's training folds only.
+Cross-validation is only honest if each round's validation fold plays no part in training, and that includes **every step that learns from data**: a scaler's mean and SD, an <Term def="A preprocessing step that fills in missing values, for example with the mean of each column. The fill values are learned from data, so they must come from the training folds only.">imputer</Term>'s fill values, feature selection, oversampling such as SMOTE. You met the fix in [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage): put the steps and the model in one <Term def="A scikit-learn object that chains preprocessing steps and a model. Cross-validating the whole pipeline refits every step on each round's training folds only.">Pipeline</Term> and pass it to `cross_val_score(pipe, X, y, cv=5)`, so every step is refitted on each round's training folds only.
 
 The classic trap is to pick "the 10 most useful columns" using all the rows, *then* cross-validate. The validation rows' labels have already helped to choose the columns: that is <Term def="When information from the validation or test data (or from the future) gets into training, so the reported score is better than the model's real performance.">data leakage</Term>. The data below are pure noise, random numbers with random labels, so no model can genuinely beat a coin flip (0.5).
 
@@ -122,7 +122,7 @@ Resamplers such as SMOTE need `imblearn.pipeline.Pipeline` from the imbalanced-l
 
 ## Peeking at the test set
 
-Tuning has a subtler leak, which you met in [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): each time you check a score and change something because of it, that data influences your choices; do it with the **test** set and it quietly becomes a validation set. The 2026 Prelim compared two protocols:
+Tuning has a subtler leak, which you met in [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting): each time you check a score and change something because of it, that data influences your choices; do it with the **test** set and it quietly becomes a validation set. The 2026 Prelim compared two protocols:
 
 - **Protocol A**: 70% train, 30% test. Train, check the test accuracy, adjust, retrain… 50 times; report the best test accuracy.
 - **Protocol B**: 60% train, 20% validation, 20% test. Tune on the validation set; evaluate on the test set once.

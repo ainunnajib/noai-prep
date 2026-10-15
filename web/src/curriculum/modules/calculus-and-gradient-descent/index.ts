@@ -47,7 +47,7 @@ const mod: ModuleDef = {
       slug: "gradient-descent",
       title: "Gradient descent on a loss landscape",
       summary: "The loss as a landscape over the parameters, the update rule w ← w − η∇L, how curvature limits the learning rate, and why long, narrow valleys make gradient descent zig-zag.",
-      minutes: 30,
+      minutes: 25,
       objectives: ["You can write the update w ← w − η∇L and apply it by hand or in a loop", "You can find the largest safe learning rate from the curvature and diagnose one that is too small or too large", "You can explain why long, narrow valleys cause zig-zagging and how standardising features helps"],
       load: () => import('./gradient-descent.mdx'),
     },

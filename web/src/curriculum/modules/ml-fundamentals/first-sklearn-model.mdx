@@ -37,8 +37,6 @@ Learning from examples that come with their labels is called <Term def="Learning
 - **Regression**: the label is a number on a scale, such as a price, a temperature or a test score.
 - **Classification**: the label is a category, such as pass or fail, spam or not spam, or the flat type (3-room, 4-room, 5-room).
 
-<PastPaperQuestion paper="prelim2026" n={136} />
-
 ## Parameters: what the model learns
 
 A **model** is a function that turns the features of a sample into a prediction. The simplest model for price uses one feature:
@@ -92,7 +90,7 @@ Some settings cannot be learned this way, because they decide *how* the learning
 | Examples | weights $w$, intercept $b$, a tree's split points | learning rate, epochs, $k$, `max_depth` |
 | In scikit-learn | read afterwards as `model.coef_`, `model.intercept_` | written in the brackets: `KNeighborsClassifier(n_neighbors=5)` |
 
-How do you choose a good hyperparameter, then? You try several values and compare how well each trained model does on data it has not seen. That is the subject of the next lesson.
+How do you choose a good hyperparameter, then? You try several values and compare how well each trained model does on data it has not seen. That is the subject of the next lesson, [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting).
 
 <RoleSorter />
 
@@ -123,7 +121,7 @@ y_pred = model.predict(X_new)       # 3. predict labels for new rows
 print(model.score(X_test, y_test))  # 4. score the predictions
 ```
 
-`X_test` and `y_test` are labelled flats you kept aside: `fit` never sees them, so they show how the model does on new data (the next lesson explains why this matters).
+`X_test` and `y_test` are labelled flats you kept aside: `fit` never sees them, so they show how the model does on new data ([Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting) explains why this matters).
 
 - `X_train` must be **two-dimensional**, like a table: a list of rows, one row per sample, one column per feature. Even with a single feature, each row is a list: `[[67], [73], [92]]`.
 - `y_train` is one-dimensional: one label per row, `[420, 450, 530]`.

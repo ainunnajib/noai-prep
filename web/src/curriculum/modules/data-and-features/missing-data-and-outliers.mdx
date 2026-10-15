@@ -13,7 +13,7 @@ Your form teacher asks: "How many hours do you revise per week?" Ten students le
 
 ## Why the blanks are there matters
 
-You met `NaN`, `dropna()` and `fillna()` in *Cleaning data*. This lesson asks what each way of handling a blank does to the data, and so to the model. Start with **why** the values are missing. Statisticians name three cases:
+You met `NaN`, `dropna()` and `fillna()` in [Cleaning data: missing values, types and duplicates](#/learn/pandas-and-plotting/cleaning-data). This lesson asks what each way of handling a blank does to the data, and so to the model. Start with **why** the values are missing. Statisticians name three cases:
 
 - <Term def="MCAR: whether a value is missing has nothing to do with any data, like a sensor that randomly drops a reading.">Missing completely at random</Term> (MCAR): pure chance, like a sensor that drops a reading.
 - <Term def="MAR: whether a value is missing depends on other columns you can see, but not on the missing value itself.">Missing at random</Term> (MAR): it depends on other columns you can see (older people skip an online form more often, and you know their age).
@@ -103,7 +103,7 @@ Imputation always injects an assumption. Use the **median** for skewed columns o
 
 ### Fit the imputer on the training data only
 
-The fill value is *learned* from data, just like a model's weights. Compute it from the **training set only**, then reuse that number on the validation and test sets; computing it on the whole dataset leaks test information into training (the lesson on splitting and leakage returns to this). And never fill in a missing **target** (the label you predict): a guessed label only teaches the model your guess, so drop those rows.
+The fill value is *learned* from data, just like a model's weights. Compute it from the **training set only**, then reuse that number on the validation and test sets; computing it on the whole dataset leaks test information into training ([Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage) returns to this). And never fill in a missing **target** (the label you predict): a guessed label only teaches the model your guess, so drop those rows.
 
 In scikit-learn, `SimpleImputer` does this properly: `fit` learns the fill values from the training data, `transform` applies them anywhere, and `add_indicator=True` appends missing-indicator columns.
 
@@ -124,7 +124,7 @@ The test blank is filled with 4.5, the median of the four training values 3, 4, 
 
 ## Choice 3: let the model cope
 
-Models that combine **all** the features in a distance or a weighted sum need a real number in every cell, so impute first. Tree models look at one feature at a time, and many tree libraries accept `NaN` directly. Boosted trees (teams of small decision trees, which you will build in the trees and ensembles module) try sending the missing values left and then right at every split and keep the better direction; the classic decision-tree algorithm, <Term def="Classification and regression trees: the classic algorithm for growing a single decision tree.">CART</Term>, uses <Term def="A backup rule at a tree split: if the main feature is missing for a row, the tree uses another feature that splits the data in a similar way.">surrogate splits</Term>.
+Models that combine **all** the features in a distance or a weighted sum need a real number in every cell, so impute first. Tree models look at one feature at a time, and many tree libraries accept `NaN` directly. Boosted trees (teams of small decision trees, which you will build in [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting)) try sending the missing values left and then right at every split and keep the better direction; the classic decision-tree algorithm, <Term def="Classification and regression trees: the classic algorithm for growing a single decision tree.">CART</Term>, uses <Term def="A backup rule at a tree split: if the main feature is missing for a row, the tree uses another feature that splits the data in a similar way.">surrogate splits</Term>.
 
 | Impute first | Can take `NaN` as it is |
 |---|---|
@@ -134,7 +134,7 @@ Models that combine **all** the features in a distance or a weighted sum need a 
 
 ## Gaps in sequences: use the neighbours in time
 
-In a <Term def="A sequence of measurements taken in time order, such as hourly temperatures or a heart rate recorded every second.">time series</Term>, the neighbours of a gap are far better guides than the overall average. You met the two standard fills in *Cleaning data*:
+In a <Term def="A sequence of measurements taken in time order, such as hourly temperatures or a heart rate recorded every second.">time series</Term>, the neighbours of a gap are far better guides than the overall average. You met the two standard fills in [Cleaning data: missing values, types and duplicates](#/learn/pandas-and-plotting/cleaning-data):
 
 - **Forward-fill** (`ffill`) repeats the last known reading until a new one arrives. It uses only the past.
 - **Linear interpolation** (`interpolate`) draws a straight line from the reading before the gap to the reading after it. For 30 °C at 1 pm and 33 °C at 4 pm, it fills 31 at 2 pm and 32 at 3 pm; forward-fill would give 30 and 30.

@@ -51,7 +51,7 @@ $$
 
 - $\min_{w, b}$ means "find the $w$ and $b$ that make this smallest". Minimising $\frac12 \lVert w \rVert^2$ is the same as maximising the width $2/\lVert w \rVert$; the square and the $\frac12$ just make the calculus tidier.
 - The condition $y_i f(x_i) \ge 1$ packs two rules into one: a $+1$ point needs $f \ge 1$, and a $-1$ point needs $f \le -1$ (multiply by $y_i = -1$ and it becomes $-f \ge 1$). Every point must be on its own side **and** outside the street.
-- The support vectors are the points where $y_i f(x_i) = 1$ exactly. A result from optimisation, which you can take on trust, says that the best $w$ is built **from the support vectors themselves**: each support vector gets a positive weight $\alpha_i$ (how hard it pushes on the street), and every other point gets weight 0. In symbols, $w = \sum_i \alpha_i y_i x_i$, with $y_i = \pm 1$ setting which way each one pushes. In the figure above, only the ringed points build $w$, which is why the other points can be deleted without changing anything. (These $\alpha_i$ have nothing to do with the smoothing $\alpha$ of the last lesson.)
+- The support vectors are the points where $y_i f(x_i) = 1$ exactly. A result from optimisation, which you can take on trust, says that the best $w$ is built **from the support vectors themselves**: each support vector gets a positive weight $\alpha_i$ (how hard it pushes on the street), and every other point gets weight 0. In symbols, $w = \sum_i \alpha_i y_i x_i$, with $y_i = \pm 1$ setting which way each one pushes. In the figure above, only the ringed points build $w$, which is why the other points can be deleted without changing anything. (These $\alpha_i$ have nothing to do with the smoothing $\alpha$ of the last lesson, [Naive Bayes and Laplace smoothing](#/learn/classification/naive-bayes).)
 
 <Steps title="Reading an SVM: w = (3, 4), b = −11">
   <Step title="Street width">
@@ -215,8 +215,6 @@ On this data, $\gamma = 0.01$ is too smooth (82.9% on the training data, 85.3% o
 - **Small to medium data.** Kernel SVM training time grows roughly like $n^2$ to $n^3$ for $n$ points, so millions of examples call for linear models or neural networks instead.
 - **One-class SVM.** Trained on normal data only, it draws a boundary around where normal data live and flags anything outside as an anomaly: useful when anomalies are too rare to collect.
 
-<PastPaperQuestion paper="prelim2026" n={159} />
-
 ## In code
 
 scikit-learn's `SVC` solves exactly the same optimisation problem as the figures, with an exact solver. First the street from the start of the lesson; then the RBF kernel on a fresh set of moons.
@@ -313,9 +311,11 @@ Gradient descent on the hinge loss lands on the same street as scikit-learn's ex
 - **Hard margin**: no violations, needs separable data, sensitive to outliers. **Soft margin**: slack $\xi_i$, price $C$. Large $C$ → narrow margin, overfitting risk; small $C$ → wide margin, more regularisation.
 - **Kernel trick**: implicitly maps the data to a higher-dimensional space by replacing dot products with $K(x, x')$. It does **not** reduce dimensionality or select features.
 - **RBF $\gamma$**: large → wiggly boundary, overfitting; small → smooth, underfitting.
-- SVMs are **supervised** (k-means and PCA, from the unsupervised learning module, are the unsupervised ones in those "which is unsupervised?" questions), need scaled features, and output scores rather than probabilities.
+- SVMs are **supervised** (the unsupervised answers in those "which is unsupervised?" questions are methods such as [k-means clustering](#/learn/unsupervised-learning/k-means) and PCA), need scaled features, and output scores rather than probabilities.
 
 </ExamTip>
+
+Next, [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics) asks how good these classifiers really are, by counting **which kinds** of mistakes each one makes, not just how many.
 
 <Takeaways>
 

@@ -45,7 +45,7 @@ Real landscapes are rarely one smooth bowl. A <Term def="A point that is lower t
 
 <LandscapeHiker />
 
-The ball stops wherever the ground is flat, blind to any deeper valley. So **where you start decides which valley you end in**, unless the landscape is a single bowl (a *convex* function: next lesson).
+The ball stops wherever the ground is flat, blind to any deeper valley. So **where you start decides which valley you end in**, unless the landscape is a single bowl (a *convex* function, the subject of [Curvature: second derivatives, convexity and the Hessian](#/learn/calculus-and-gradient-descent/curvature-convexity)).
 
 <QuickCheck
   id="calculus-and-gradient-descent.gradient-descent.qc1"
@@ -99,8 +99,6 @@ where $\leftarrow$ means "replace with". The gradient points in the direction of
 
 <GradientDescentBall />
 
-<PastPaperQuestion paper="prelim2026" n={33} />
-
 <QuickCheck
   id="calculus-and-gradient-descent.gradient-descent.qc2"
   q="For $L(w) = (w - 1)^2$, what is $w$ after one gradient descent step from $w = 4$ with $\eta = 0.25$?"
@@ -111,7 +109,7 @@ where $\leftarrow$ means "replace with". The gradient points in the direction of
 
 ## How big a step? The learning rate
 
-The presets above replay the learning-rate race from that first lesson: $\eta = 0.02$ crawls (only 4% closer to the bottom per step), $\eta = 0.3$ converges fast and smoothly, $\eta = 0.85$ *overshoots* to the other side but lands closer each time (a zig-zag), and at $\eta = 1.05$ every overshoot is bigger than the last, so the walk <Term def="Gets further and further from the minimum instead of settling: the loss grows, often until it becomes infinity or NaN.">diverges</Term>.
+The presets above replay the learning-rate race from [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn): $\eta = 0.02$ crawls (only 4% closer to the bottom per step), $\eta = 0.3$ converges fast and smoothly, $\eta = 0.85$ *overshoots* to the other side but lands closer each time (a zig-zag), and at $\eta = 1.05$ every overshoot is bigger than the last, so the walk <Term def="Gets further and further from the minimum instead of settling: the loss grows, often until it becomes infinity or NaN.">diverges</Term>.
 
 Why is the limit exactly 1 for $L(w) = w^2$? Put the slope $2w$ into the update rule:
 
@@ -179,8 +177,6 @@ z = \frac{x - \mu}{\sigma},
 $$
 
 with mean $\mu$ (mu) and standard deviation $\sigma$ (sigma). Every feature gets a similar spread, so the valley becomes a rounder bowl (when the features are not strongly correlated) and one learning rate suits every direction.
-
-<PastPaperQuestion paper="prelim2026" n={156} />
 
 ## Gradient descent in code
 

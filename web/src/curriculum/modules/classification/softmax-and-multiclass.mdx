@@ -27,7 +27,7 @@ print("stable softmax:", softmax(big).round(3))
 p10 = softmax(np.zeros(10))  # 10 classes, equal logits
 print("first loss, 10 classes:", round(-np.log(p10[0]), 3))`
 
-Is this handwritten digit a 0, 1, 2, … or 9? Which of 1000 objects is in this photo? Which of 50,000 tokens should a language model write next? Most real classifiers choose between **many** classes, and logistic regression's single probability is not enough: we need a whole probability distribution, one number per class, adding up to 1. The tool that makes one is **softmax**, and the loss that trains it is the cross-entropy from the last lesson. This lesson also untangles a favourite exam trap: *multi-class* versus *multi-label*.
+Is this handwritten digit a 0, 1, 2, … or 9? Which of 1000 objects is in this photo? Which of 50,000 tokens should a language model write next? Most real classifiers choose between **many** classes, and logistic regression's single probability is not enough: we need a whole probability distribution, one number per class, adding up to 1. The tool that makes one is **softmax**, and the loss that trains it is the cross-entropy from the last lesson, [Likelihood, entropy and cross-entropy](#/learn/classification/likelihood-and-entropy). This lesson also untangles a favourite exam trap: *multi-class* versus *multi-label*.
 
 <Analogy title="Splitting a prize pool">
 
@@ -90,17 +90,13 @@ So logistic regression is softmax regression with $K = 2$, using only the differ
   explain="$e^{\ln 2} = 2$, $e^{\ln 3} = 3$ and $e^{\ln 5} = 5$; the total is 10, so $p = (0.2, 0.3, 0.5)$. $(2, 3, 5)$ forgets to divide by the total, and $(0, 0, 1)$ is a hard argmax, which softmax only approaches when the gaps are huge."
 />
 
-<PastPaperQuestion paper="prelim2026" n={182} />
-
 ### Temperature
 
 Dividing the logits by a <Term def="A positive number T that the logits are divided by before softmax. T < 1 sharpens the distribution, T > 1 flattens it.">temperature</Term> $T$ before the softmax, $p_i = e^{z_i/T} / \sum_j e^{z_j/T}$, controls how confident the distribution is. For $\mathbf{z} = (2, 1, 0)$: $T = 0.5$ gives $(0.867, 0.117, 0.016)$, sharper; $T = 5$ gives $(0.402, 0.329, 0.269)$, flatter. As $T \to 0$ softmax becomes a hard argmax (one-hot); as $T \to \infty$ it becomes uniform. Language models use temperature when *sampling* the next token: low temperature gives safe, repetitive text, high temperature gives varied, riskier text.
 
-<PastPaperQuestion paper="prelim2026" n={229} />
-
 ## Cross-entropy for many classes
 
-For one example whose true class is $c$, the target is the one-hot vector $\mathbf{y}$ (a 1 in position $c$, 0 elsewhere), and the loss is the cross-entropy from the last lesson:
+For one example whose true class is $c$, the target is the one-hot vector $\mathbf{y}$ (a 1 in position $c$, 0 elsewhere), and the loss is the cross-entropy you met in [Likelihood, entropy and cross-entropy](#/learn/classification/likelihood-and-entropy):
 
 $$
 L = -\sum_{k=1}^{K} y_k \ln p_k = -\ln p_c
@@ -169,7 +165,7 @@ NumPy, with the max-subtraction trick that every library uses:
 
 <PyRunner packages={['numpy']} code={smCode} rows={24} />
 
-PyTorch (the Final's programming tasks use it; you meet it fully in the PyTorch module). Two details cause countless bugs: `nn.CrossEntropyLoss` expects **raw logits** (it applies log-softmax itself) and, usually, **class indices** as targets. (It also accepts one probability vector per example, the same shape as the logits, which is how soft targets are passed.)
+PyTorch (the Final's programming tasks use it; you learn it properly in the PyTorch module, which starts with [Tensors and shape surgery](#/learn/pytorch/tensors)). Two details cause countless bugs: `nn.CrossEntropyLoss` expects **raw logits** (it applies log-softmax itself) and, usually, **class indices** as targets. (It also accepts one probability vector per example, the same shape as the logits, which is how soft targets are passed.)
 
 ```python
 import torch

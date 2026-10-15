@@ -90,8 +90,6 @@ print("x and x**2 :", m_new.predict(X_new), "accuracy", round(m_new.score(X_new,
 
 Lifting data into more dimensions so that a straight boundary works is also the idea behind the **kernel trick** in <Term def="Support vector machines: classifiers that find the straight boundary with the widest possible gap between the classes. You will meet them in the classification module.">SVMs</Term>: a kernel behaves as if the extra features had been added, without ever computing them.
 
-<PastPaperQuestion paper="prelim2026" n={150} />
-
 ## Polynomial and interaction features
 
 The features in the visual come from two recipes. A <Term def="A power of one feature, such as x² or x³, or a product of several features, such as x₁x₂ or x₁²x₂. Adding them lets a linear model fit curves.">polynomial feature</Term> is a power of a feature, such as $x_1^2$. An <Term def="The product of two (or more) different features, such as x₁ × x₂. It lets the effect of one feature depend on the value of another.">interaction feature</Term> is a product of different features, such as $x_1 x_2$: it lets the effect of one feature depend on another. Ice-cream sales may rise with temperature much more on weekends than on weekdays, and a column `temperature × is_weekend` captures exactly that.
@@ -127,7 +125,7 @@ print(poly.get_feature_names_out())
 
 <Mistake title="“More features can only help”">
 
-Every extra column gives the model another way to fit noise in the training data, which is **overfitting**. Polynomial features also grow quickly: degree 2 on 100 features already gives 5,151 columns. And powers stretch scales: if income is about 5,000, then income² is about 25,000,000, so standardise the new columns before using a model that cares about scale (see the scaling lesson). Add features that you have a reason to expect will help, then check on validation data.
+Every extra column gives the model another way to fit noise in the training data, which is **overfitting**. Polynomial features also grow quickly: degree 2 on 100 features already gives 5,151 columns. And powers stretch scales: if income is about 5,000, then income² is about 25,000,000, so standardise the new columns before using a model that cares about scale (see [Scaling, normalisation and standardisation](#/learn/data-and-features/scaling-and-normalisation)). Add features that you have a reason to expect will help, then check on validation data.
 
 </Mistake>
 
@@ -276,17 +274,15 @@ Eight readings and a window of 4 give $8 - 4 + 1 = 5$ windows. In general, $n$ r
 
 <Mistake title="Windows that peek into the future">
 
-A **centred** window (`rolling(k, center=True)`) or a feature such as "average of the next 3 days" uses readings from after the moment you are predicting. It looks brilliant in testing and is impossible in real use. When you predict the future, every window must end at, or before, the current time. This is a form of **leakage**, the topic of the next lesson.
+A **centred** window (`rolling(k, center=True)`) or a feature such as "average of the next 3 days" uses readings from after the moment you are predicting. It looks brilliant in testing and is impossible in real use. When you predict the future, every window must end at, or before, the current time. This is a form of **leakage**, the topic of the next lesson, [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage).
 
 </Mistake>
 
 <Note title="Features a model learns for you: PCA and embeddings">
 
-Hand-made features need knowledge; two methods learn features from the data instead. <Term def="Principal component analysis: an unsupervised method that finds new axes along which the data varies most, and keeps the top few as new features. Each new feature is a weighted sum of the original ones.">PCA</Term> compresses many correlated columns into a few new ones, each a weighted sum of the originals chosen to keep as much of the spread (variance) as possible, without looking at the labels: on scikit-learn's 8×8 digit images, 10 PCA features keep 74% of the variance of the 64 pixels. An <Term def="A short list of real numbers (a dense vector) that a neural network learns to represent a word, image or sound, so that similar things get nearby vectors.">embedding</Term> is a dense vector that a neural network learns for a word, an image or a sound, and a simple classifier on embeddings often beats hand-made features. You will study PCA in the unsupervised learning module and embeddings with text and images.
+Hand-made features need knowledge; two methods learn features from the data instead. <Term def="Principal component analysis: an unsupervised method that finds new axes along which the data varies most, and keeps the top few as new features. Each new feature is a weighted sum of the original ones.">PCA</Term> compresses many correlated columns into a few new ones, each a weighted sum of the originals chosen to keep as much of the spread (variance) as possible, without looking at the labels: on scikit-learn's 8×8 digit images, 10 PCA features keep 74% of the variance of the 64 pixels. An <Term def="A short list of real numbers (a dense vector) that a neural network learns to represent a word, image or sound, so that similar things get nearby vectors.">embedding</Term> is a dense vector that a neural network learns for a word, an image or a sound, and a simple classifier on embeddings often beats hand-made features. You will study PCA in [Principal component analysis](#/learn/unsupervised-learning/pca), and embeddings when you work with text and images.
 
 </Note>
-
-<PastPaperQuestion paper="prelim2026" n={145} />
 
 <ExamTip>
 

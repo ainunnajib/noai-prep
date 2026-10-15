@@ -4,7 +4,7 @@ import L1L2Constraint from './visuals/regularisation/L1L2Constraint'
 import RegularisationPath from './visuals/regularisation/RegularisationPath'
 import RobustLossCompare from './visuals/regularisation/RobustLossCompare'
 
-At the end of the last lesson a degree-9 curve threaded all 10 training points and failed badly on new data, using weights in the hundreds. Throwing away flexibility (a lower degree) is one cure. **Regularisation** is a better one: keep the flexible model, but make big weights *cost* something, so the model only uses them when they really pay off. Questions on it appeared in both the 2026 Prelim and the 2026 Final. The lesson ends with a closely related question: how much should one big mistake cost?
+At the end of the last lesson, [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial), a degree-9 curve threaded all 10 training points and failed badly on new data, using weights in the hundreds. Throwing away flexibility (a lower degree) is one cure. **Regularisation** is a better one: keep the flexible model, but make big weights *cost* something, so the model only uses them when they really pay off. Questions on it appeared in both the 2026 Prelim and the 2026 Final. The lesson ends with a closely related question: how much should one big mistake cost?
 
 <Analogy title="Packing under an airline weight limit">
 
@@ -12,7 +12,7 @@ With a 20 kg limit you cannot bring everything at full size. An **L2** traveller
 
 </Analogy>
 
-Here is the problem from the last lesson, and the cure. Slide $\lambda$ (the strength of the penalty) to the right and watch the wild degree-9 curve calm down:
+Here is that degree-9 curve again, and the cure. Slide $\lambda$ (the strength of the penalty) to the right and watch the wild degree-9 curve calm down:
 
 <RegularisedPolyFit />
 
@@ -32,7 +32,7 @@ $$
 - $\sum_j w_j^2$ is the **sum of squared weights**, also written $\lVert w \rVert_2^2$ (the squared L2 norm). Using it gives <Term def="Linear regression trained with MSE plus λ times the sum of squared weights (an L2 penalty). Also called Tikhonov regularisation; in neural networks the same idea is weight decay.">ridge regression</Term>.
 - $\sum_j |w_j|$ is the **sum of absolute weights**, written $\lVert w \rVert_1$ (the L1 norm). Using it gives the <Term def="Linear regression trained with MSE plus λ times the sum of absolute weights (an L1 penalty). LASSO stands for Least Absolute Shrinkage and Selection Operator.">lasso</Term>.
 - $\lambda \geq 0$ (lambda) is the <Term def="How much the penalty counts compared with the data-fitting error. λ = 0 means no regularisation; a huge λ forces all weights towards 0.">regularisation strength</Term>, a <Term def="A setting you choose before training, such as λ, the learning rate or the polynomial degree, rather than a parameter the model learns from the data.">hyperparameter</Term> you choose. $\lambda = 0$ is plain least squares.
-- The sums run over the $d$ feature weights $w_1, \dots, w_d$ only, and $w_0$ is the bias (so here, unlike the last lesson, $d$ does not count the column of 1s). The **bias $w_0$ is not penalised**: it only shifts every prediction up or down and cannot make the curve wiggle, so shrinking it would just drag all predictions towards 0 for no benefit (imagine forcing every flat-price prediction towards zero dollars).
+- The sums run over the $d$ feature weights $w_1, \dots, w_d$ only, and $w_0$ is the bias (so here, unlike in [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial), $d$ does not count the column of 1s). The **bias $w_0$ is not penalised**: it only shifts every prediction up or down and cannot make the curve wiggle, so shrinking it would just drag all predictions towards 0 for no benefit (imagine forcing every flat-price prediction towards zero dollars).
 
 Now a weight is only worth making big if it lowers the MSE by more than it adds to the penalty. The wild degree-9 curve needed weights like 400 and −678, whose squares cost a fortune, so it is no longer the cheapest option.
 
@@ -158,7 +158,7 @@ Three practical rules:
 
 1. **Standardise the features first.** The penalty treats all weights alike, but the size of a weight depends on the feature's units: the same length in metres needs a weight 1000 times bigger than in millimetres, so the metres version would be punished far more for exactly the same effect. Standardising puts every feature on the same scale, so the penalty is fair.
 2. **Do not penalise the bias.** scikit-learn's `Ridge`, `Lasso` and `LogisticRegression` (with its default `lbfgs` solver) leave the intercept unpenalised; in your own code, leave $w_0$ out of the penalty and out of its gradient.
-3. **Know which way the knob turns.** scikit-learn's `Ridge(alpha=…)` and `Lasso(alpha=…)` use `alpha` like $\lambda$: bigger means stronger. But `LogisticRegression(C=…)` and `SVC(C=…)` (a support vector machine classifier, met in a later module) use <Hl>C, the inverse of the regularisation strength</Hl>, playing the role of $1/\lambda$: a **smaller C means stronger regularisation**.
+3. **Know which way the knob turns.** scikit-learn's `Ridge(alpha=…)` and `Lasso(alpha=…)` use `alpha` like $\lambda$: bigger means stronger. But `LogisticRegression(C=…)` and `SVC(C=…)` (a support vector machine classifier, met in [Support vector machines and kernels](#/learn/classification/support-vector-machines)) use <Hl>C, the inverse of the regularisation strength</Hl>, playing the role of $1/\lambda$: a **smaller C means stronger regularisation**.
 
 <Mistake title="C is not λ">
 
@@ -184,7 +184,7 @@ grad = X.T @ (y_hat - y) / m    # data part, every weight
 grad[1:] += lam / m * w[1:]     # penalty part, skip the bias w[0]
 ```
 
-The constant in front of $\lambda$ ($\lambda$, $2\lambda$, $\lambda/m$, …) only rescales $\lambda$: it changes which value of $\lambda$ you need, not the idea. Logistic regression (next module) uses exactly the same penalty, and its gradient has the same shape, with sigmoid predictions in $\hat{y}.$
+The constant in front of $\lambda$ ($\lambda$, $2\lambda$, $\lambda/m$, …) only rescales $\lambda$: it changes which value of $\lambda$ you need, not the idea. [Logistic regression](#/learn/classification/logistic-regression) (next module) uses exactly the same penalty, and its gradient has the same shape, with sigmoid predictions in $\hat{y}.$
 
 </Note>
 
@@ -194,7 +194,7 @@ This 2026 Final question is about logistic regression, but only that shape matte
 
 <Reveal label="Going further: ridge fixes the singular matrix, and L2 is weight decay">
 
-**Ridge fixes the singular matrix.** Writing the ridge loss with the total (not mean) squared error, $\lVert y - Xw \rVert^2 + \lambda \lVert w \rVert^2$, and setting its gradient to zero gives $w = (X^T X + \lambda I)^{-1} X^T y$, where $I$ is the identity matrix (1s on the diagonal; use 0 in the bias position to leave it unpenalised). Adding $\lambda > 0$ to the diagonal makes the matrix invertible even when columns are duplicated, the problem from the last lesson.
+**Ridge fixes the singular matrix.** Writing the ridge loss with the total (not mean) squared error, $\lVert y - Xw \rVert^2 + \lambda \lVert w \rVert^2$, and setting its gradient to zero gives $w = (X^T X + \lambda I)^{-1} X^T y$, where $I$ is the identity matrix (1s on the diagonal; use 0 in the bias position to leave it unpenalised). Adding $\lambda > 0$ to the diagonal makes the matrix invertible even when columns are duplicated, the problem met in [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial).
 
 **L2 is "weight decay".** The gradient of $\lambda \sum w_j^2$ is $2\lambda w$, so a gradient descent step becomes $w \leftarrow w - \eta(\nabla \text{MSE} + 2\lambda w) = (1 - 2\eta\lambda)\,w - \eta\, \nabla\text{MSE}$. Every step first shrinks ("decays") each weight by a factor slightly below 1. In PyTorch, `torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-4)` does this for you: it adds `weight_decay * w` to each gradient, which is the same as a penalty of $\tfrac{1}{2} \cdot 10^{-4} \lVert w \rVert^2$.
 
@@ -289,6 +289,8 @@ Regularisation questions in the Prelim are quick recall. Know these cold:
 - $\nabla_w\, \lambda\lVert w \rVert^2 = 2\lambda w$.
 
 </ExamTip>
+
+Next, [Logistic regression](#/learn/classification/logistic-regression) moves from predicting numbers to predicting yes/no labels: it squashes the same weighted sum into a probability, and scikit-learn adds this lesson's L2 penalty to it by default, with its strength set by `C`.
 
 <Takeaways>
 

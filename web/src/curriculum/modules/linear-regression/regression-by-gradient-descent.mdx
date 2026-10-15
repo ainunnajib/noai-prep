@@ -57,7 +57,7 @@ y = np.array([2, 4, 6])
 print(linear_regression_gradient_descent(
     X, y, 0.01, 1000))`
 
-In the last lesson a formula gave the best line in one shot. That formula only exists for linear regression; neural networks have nothing like it, and are trained by walking downhill instead. Linear regression is the perfect place to learn that walk, because you can check every number by hand. It is also a real exam task: **Question 1 of the 2025 NOAI Final** asked for exactly this, from scratch in NumPy, with the answer rounded to 4 decimal places. This lesson builds it piece by piece and shows the three traps that cost marks.
+In the last lesson, [Linear regression and least squares](#/learn/linear-regression/least-squares), a formula gave the best line in one shot. That formula only exists for linear regression; neural networks have nothing like it, and are trained by walking downhill instead. Linear regression is the perfect place to learn that walk, because you can check every number by hand. It is also a real exam task: **Question 1 of the 2025 NOAI Final** asked for exactly this, from scratch in NumPy, with the answer rounded to 4 decimal places. This lesson builds it piece by piece and shows the three traps that cost marks.
 
 <Analogy title="Practising free throws">
 
@@ -67,7 +67,7 @@ Each attempt, you see how you missed (short and to the left) and adjust a little
 
 ## The recipe and the missing piece
 
-From the calculus module, gradient descent repeats one update for every parameter:
+As in [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent), gradient descent repeats one update for every parameter:
 
 $$
 w \leftarrow w - \eta\,\frac{\partial L}{\partial w}, \qquad b \leftarrow b - \eta\,\frac{\partial L}{\partial b}
@@ -83,7 +83,7 @@ $$
 e_i = \hat{y}_i - y_i \quad \text{(prediction minus truth)}.
 $$
 
-This is the residual from the last lesson with the sign flipped ($e_i = -r_i$). Code almost always uses $e$, because then the gradient has no minus sign. The loss is $L = \frac{1}{n}\sum_i e_i^2$, the MSE, unchanged, since squaring removes the sign.
+This is the residual from [Linear regression and least squares](#/learn/linear-regression/least-squares) with the sign flipped ($e_i = -r_i$). Code almost always uses $e$, because then the gradient has no minus sign. The loss is $L = \frac{1}{n}\sum_i e_i^2$, the MSE, unchanged, since squaring removes the sign.
 
 Now nudge $w$ and follow the effect through one ride:
 
@@ -104,8 +104,6 @@ Many books write the same thing with residuals: $\partial L/\partial w = -\tfrac
 Each parameter's gradient is the **average of (error × that parameter's input)**, times 2. For $w$ the input is $x$; for $b$ it is always 1. Rides with big errors *and* big $x$ push the slope hardest.
 
 </KeyIdea>
-
-<PastPaperQuestion paper="prelim2026" n={35} />
 
 Read the gradient's sign as an instruction. If the errors are positive (the line is too high), especially where $x$ is large, then $\sum e_i x_i > 0$, so $\partial L/\partial w > 0$ and the update *lowers* $w$: the line gets flatter. Replay the computation column by column, then change $w$ and $b$ and watch the signs flip:
 
@@ -169,7 +167,7 @@ w = 1.5000, b = 1.5000
 
 </Reveal>
 
-Gradient descent lands on $w = 1.5$, $b = 1.5$, the same line the formula gave in the last lesson. With any number of features the loop is the same few lines:
+Gradient descent lands on $w = 1.5$, $b = 1.5$, the same line the formula gave in [Linear regression and least squares](#/learn/linear-regression/least-squares). With any number of features the loop is the same few lines:
 
 ```python
 def fit_linear_gd(X, y, lr=0.05, iterations=1000):
@@ -185,8 +183,6 @@ def fit_linear_gd(X, y, lr=0.05, iterations=1000):
 
 Called as `fit_linear_gd(x.reshape(-1, 1), y)` (the reshape turns `x` into a 2-D array of shape `(5, 1)`), it returns approximately `[1.5]` and `1.5`. Printing the raw values shows `[1.50000001] 1.4999999603075997`: after 1000 steps gradient descent is extremely close but not exact, so round before comparing.
 
-<PastPaperQuestion paper="prelim2026" n={98} />
-
 ## Watching the line learn
 
 Here is the whole loop running on the rides, from the flat line $\hat{y} = 0$:
@@ -197,8 +193,8 @@ The bottom chart, the <Term def="The list of loss values recorded after every it
 
 - **It should go down every iteration.** For full-batch gradient descent on the MSE with a sensible learning rate, the loss falls at every single step.
 - **Flattening out means converged.** A common stopping rule is a fixed number of iterations, or stopping once the loss improves by less than a small tolerance.
-- **Fast drop, then a slow crawl** is the long valley from the last lesson. The first few steps fix the slope; then the dot creeps along the valley floor, adjusting $w$ and $b$ together.
-- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see the [curvature lesson](#/learn/calculus-and-gradient-descent/curvature-convexity) in the calculus module), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
+- **Fast drop, then a slow crawl** is the long valley from [Linear regression and least squares](#/learn/linear-regression/least-squares). The first few steps fix the slope; then the dot creeps along the valley floor, adjusting $w$ and $b$ together.
+- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see [Curvature: second derivatives, convexity and the Hessian](#/learn/calculus-and-gradient-descent/curvature-convexity)), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
 
 <Mistake title="More iterations will not rescue a diverging run">
 

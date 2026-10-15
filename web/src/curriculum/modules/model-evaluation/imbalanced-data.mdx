@@ -97,7 +97,7 @@ It gets worse. A genuinely useful model can score **lower** accuracy than the us
 
 <KeyIdea>
 
-When classes are imbalanced, **accuracy is misleading**: it is dominated by the easy majority class. Judge the model on the rare class instead: its **recall**, **precision** and **F1**, or the precision-recall curve (next lesson).
+When classes are imbalanced, **accuracy is misleading**: it is dominated by the easy majority class. Judge the model on the rare class instead: its **recall**, **precision** and **F1**, or the precision-recall curve from the next lesson, [ROC and precision-recall curves](#/learn/model-evaluation/roc-and-pr-curves).
 
 </KeyIdea>
 
@@ -146,7 +146,7 @@ a point on the straight line from $x_i$ to $x_{nn}$: $\lambda = 0$ gives $x_i$ i
 
 ### Threshold moving: change the decision
 
-You can also leave training alone and **lower the threshold**, exactly as in the previous lesson. For a well-behaved model, weighting the positives by $w$ has roughly the same effect as lowering the threshold to $\frac{1}{1 + w}$. With $w = 49$ that is $\frac{1}{50} = 0.02$, the fraud rate itself. The code at the end of the lesson shows the two giving almost identical results. (The visual uses 5% fraud, 12 frauds against 228 genuine payments, so there the weight is $228 \div 12 = 19$ and the matching threshold $\frac{1}{20} = 0.05$.)
+You can also leave training alone and **lower the threshold**, exactly as in [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics). For a well-behaved model, weighting the positives by $w$ has roughly the same effect as lowering the threshold to $\frac{1}{1 + w}$. With $w = 49$ that is $\frac{1}{50} = 0.02$, the fraud rate itself. The code at the end of the lesson shows the two giving almost identical results. (The visual uses 5% fraud, 12 frauds against 228 genuine payments, so there the weight is $228 \div 12 = 19$ and the matching threshold $\frac{1}{20} = 0.05$.)
 
 | remedy | what changes | main risk |
 |---|---|---|
@@ -224,7 +224,7 @@ The formula charges $c_{FP}$ only when a flagged payment turns out to be genuine
 
 <KeyIdea>
 
-Match the metric to the cost of mistakes. When misses are expensive (fraud, disease), prioritise **recall**, but watch **precision** so the alarms do not swamp the people who must check them. Report a threshold-free summary such as **<Term def="The area under the precision-recall curve, also called average precision: one number that summarises how well the model finds the rare class across all thresholds. It is taught in the next lesson.">PR-AUC</Term>** (next lesson), *plus* the operating point you chose: its threshold, precision, recall and the F1 at that threshold. (F1 is not threshold-free: it comes from one confusion matrix, so it changes when the threshold moves.)
+Match the metric to the cost of mistakes. When misses are expensive (fraud, disease), prioritise **recall**, but watch **precision** so the alarms do not swamp the people who must check them. Report a threshold-free summary such as **<Term def="The area under the precision-recall curve, also called average precision: one number that summarises how well the model finds the rare class across all thresholds. It is taught in the next lesson.">PR-AUC</Term>** (taught in [ROC and precision-recall curves](#/learn/model-evaluation/roc-and-pr-curves)), *plus* the operating point you chose: its threshold, precision, recall and the F1 at that threshold. (F1 is not threshold-free: it comes from one confusion matrix, so it changes when the threshold moves.)
 
 </KeyIdea>
 
@@ -234,7 +234,7 @@ Match the metric to the cost of mistakes. When misses are expensive (fraud, dise
 | rare-disease screening (disease) | recall | a missed patient goes untreated; a false alarm costs a follow-up test |
 | confirming a diagnosis before surgery (disease) | precision | a false positive means an unnecessary operation |
 
-When a miss costs far more than a false alarm, and alarms can be reviewed, recall (with a floor on precision) is the main metric. F1 weighs precision and recall equally, so it is not automatically the safe answer, and ROC-AUC (next lesson) can look flattering when positives are rare.
+When a miss costs far more than a false alarm, and alarms can be reviewed, recall (with a floor on precision) is the main metric. F1 weighs precision and recall equally, so it is not automatically the safe answer, and, as [ROC and precision-recall curves](#/learn/model-evaluation/roc-and-pr-curves) will show, ROC-AUC can look flattering when positives are rare.
 
 <PastPaperQuestion paper="prelim2026" n={265} />
 

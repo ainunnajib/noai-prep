@@ -7,7 +7,7 @@ Your model scores 98% in your notebook, then 60% once it meets real data. Usuall
 
 ## The rule behind every split
 
-Recall the three parts from the ML fundamentals module. The <Term def="The rows the model learns its parameters (weights) from.">training set</Term> fits the model. The <Term def="Rows held back to compare models and choose hyperparameters. The model never learns its weights from them.">validation set</Term> is used to compare models and choose settings. The <Term def="Rows locked away until the very end and used once, for a final honest score.">test set</Term> is used once, at the end, for an honest final score. Typical sizes are 70/15/15 or 80/10/10.
+Recall the three parts from [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting). The <Term def="The rows the model learns its parameters (weights) from.">training set</Term> fits the model. The <Term def="Rows held back to compare models and choose hyperparameters. The model never learns its weights from them.">validation set</Term> is used to compare models and choose settings. The <Term def="Rows locked away until the very end and used once, for a final honest score.">test set</Term> is used once, at the end, for an honest final score. Typical sizes are 70/15/15 or 80/10/10.
 
 All three exist to answer one question: **how well will the model do on data it has never seen?** So every held-out row must be treated like future data. That gives one rule, and the whole lesson follows from it:
 
@@ -122,11 +122,11 @@ A classmate glimpses the answer key before the mock exam and scores 98%. The sco
 **2. Contamination: the held-out rows influence training.** Typical culprits:
 
 - fitting a scaler, an imputer, PCA or a feature selector on **all** rows before splitting;
-- **oversampling** (copying rare-class rows to balance the classes) before splitting, so copies of one row land on both sides; oversample only the training rows, after the split (more in the lesson on imbalanced classes, in the model evaluation module);
+- **oversampling** (copying rare-class rows to balance the classes) before splitting, so copies of one row land on both sides; oversample only the training rows, after the split (more in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data));
 - a random split of time-ordered data, or the same person or duplicate rows on both sides;
 - choosing models or settings by looking at the **test** set again and again.
 
-How much does each leak inflate the score? Explore below. The fraud data has 2,000 columns, most of them pure noise, which is common in real projects (and in the curse of dimensionality you met earlier).
+How much does each leak inflate the score? Explore below. The fraud data has 2,000 columns, most of them pure noise, which is common in real projects (and in [The curse of dimensionality](#/learn/ml-fundamentals/curse-of-dimensionality), which you met earlier).
 
 <LeakageLab />
 
@@ -174,7 +174,7 @@ X_train_s = scaler.transform(X_train)
 X_test_s = scaler.transform(X_test)
 ```
 
-The `fit_transform`-on-the-test-set bug from the scaling lesson is the same mistake in another form: whatever `fit` learns must come from the training rows alone.
+The `fit_transform`-on-the-test-set bug from [Scaling, normalisation and standardisation](#/learn/data-and-features/scaling-and-normalisation) is the same mistake in another form: whatever `fit` learns must come from the training rows alone.
 
 <Mistake title="Oversampling, then splitting">
 
@@ -242,11 +242,7 @@ print(f"honest: {honest:.2f}")`} />
 
 On our machine this prints `leaky : 0.77` and `honest: 0.49`. The leaky version "finds" a pattern in noise. Change the seed: the leaky score stays far above 0.5, while the honest one wobbles around it.
 
-<PastPaperQuestion paper="final2026" n={3} />
-
 The same logic applies to the test set itself. Every time you look at test scores and then change something, a little information about the test set leaks into your choices. Tune on validation data (or cross-validation), and touch the test set **once**.
-
-<PastPaperQuestion paper="prelim2026" n={292} />
 
 <ExamTip title="Spot-the-leak checklist">
 
@@ -261,6 +257,8 @@ When a NOAI scenario reports a surprisingly high score, or a big gap between val
 And for splits: rare classes → `stratify=y`; time series → train on the past, validate on the future.
 
 </ExamTip>
+
+Next, [Derivatives are slopes](#/learn/calculus-and-gradient-descent/derivatives-as-slopes) starts the calculus behind training: with the data clean, scaled and fairly split, the question becomes how gradient descent finds the best weights, and the answer begins with the slope of the loss.
 
 <Takeaways>
 

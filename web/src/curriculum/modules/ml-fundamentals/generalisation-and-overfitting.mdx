@@ -43,11 +43,9 @@ With the default numbers (200 test examples, 20 settings tried), peeking makes t
 
 <Note>
 
-When data is scarce, a single validation set is small and noisy. **k-fold cross-validation** fixes this by taking turns: every part of the training data serves as the validation set once. The model-evaluation module covers it in detail.
+When data is scarce, a single validation set is small and noisy. **k-fold cross-validation** fixes this by taking turns: every part of the training data serves as the validation set once. [Cross-validation](#/learn/model-evaluation/cross-validation), in the model-evaluation module, covers it in detail.
 
 </Note>
-
-<PastPaperQuestion paper="prelim2026" n={292} />
 
 ## Underfitting and overfitting
 
@@ -92,7 +90,7 @@ Three things to notice:
 
 There is a deeper way to describe the two failures. Imagine you could collect a fresh training set many times and retrain the same kind of model on each one.
 
-- <Term def="Error that comes from the model's assumptions being wrong, for example fitting a straight line to a curved pattern. The model is off in the same direction every time you retrain it.">Bias</Term> is how far the **average** of all those models is from the truth. A straight line fitted to a curved pattern misses the peaks every time, in the same way. That is a systematic error. (This *bias* is a kind of error. It has nothing to do with the bias $b$, the intercept, from the last lesson: same word, different idea.)
+- <Term def="Error that comes from the model's assumptions being wrong, for example fitting a straight line to a curved pattern. The model is off in the same direction every time you retrain it.">Bias</Term> is how far the **average** of all those models is from the truth. A straight line fitted to a curved pattern misses the peaks every time, in the same way. That is a systematic error. (This *bias* is a kind of error. It has nothing to do with the bias $b$, the intercept, from [Your first scikit-learn model](#/learn/ml-fundamentals/first-sklearn-model): same word, different idea.)
 - <Term def="Error that comes from the model being too sensitive to the particular training set: retrain it on a different sample and its predictions change a lot.">Variance</Term> is how much the models **disagree with each other**. A very flexible model chases whatever noise each training set happens to have, so every retrain gives a different curve.
 
 <Analogy title="Throwing darts">
@@ -186,7 +184,7 @@ High powers of $x$ are numerically delicate, so a different version of scikit-le
 How NOAI asks about this lesson:
 
 - **Read the numbers.** "Training 99%, validation 71%" means overfitting (high variance). "Training 68%, validation 67%" when a better model clearly does much better (in the 2026 question above, a regularised network reaches 83% on validation) means underfitting (high bias): both scores are poor and close together. Similar validation and test scores are reassuring, not a sign of leakage.
-- **Name the remedy.** High variance: more data, regularisation (L1 or L2: two ways of measuring the size of the weights, compared in [the regularisation lesson](#/learn/linear-regression/regularisation); or dropout, which randomly switches off neurons while a network trains), early stopping, a simpler model, data augmentation (making extra training examples, for example by flipping or cropping images). High bias: a bigger model, more or better features, less regularisation, train longer. You will meet dropout and augmentation properly in the deep-learning modules.
+- **Name the remedy.** High variance: more data, regularisation (L1 or L2: two ways of measuring the size of the weights, compared in [the regularisation lesson](#/learn/linear-regression/regularisation); or dropout, which randomly switches off neurons while a network trains), early stopping, a simpler model, data augmentation (making extra training examples, for example by flipping or cropping images). High bias: a bigger model, more or better features, less regularisation, train longer. You will meet dropout and augmentation properly in [Dropout, weight decay, early stopping and augmentation](#/learn/training-deep-networks/regularising-deep-networks).
 - **Roles of the sets.** Validation chooses hyperparameters; the test set is used once. A protocol that picks "the best of 50 test scores" is optimistically biased.
 - **The trade-off.** Simple models: high bias, low variance. Complex models: low bias, high variance. Later you will meet two ensembles: bagging mainly reduces variance; boosting mainly reduces bias.
 

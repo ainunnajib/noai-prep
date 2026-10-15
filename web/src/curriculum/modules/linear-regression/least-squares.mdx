@@ -26,7 +26,7 @@ print("MSE =", mse(w, b))
 # NumPy's built-in fit agrees
 print(np.polyfit(x, y, deg=1))`
 
-How much will a 6 km Grab ride cost? A model that answers with a **number** (a fare, a temperature, an HDB resale price) is doing <Term def="Predicting a number that can take any value on a scale (a continuous value), such as a price or a temperature, rather than choosing a category.">regression</Term>. The simplest regression model is a straight line. This lesson answers one question: out of all the lines you could draw through some data, which one is *best*? The answer, the **least-squares line**, is the line with the smallest mean squared error, the loss you have been using since [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn). This lesson makes that loss precise, and minimising it is exactly what gradient descent will do in the next lesson.
+How much will a 6 km Grab ride cost? A model that answers with a **number** (a fare, a temperature, an HDB resale price) is doing <Term def="Predicting a number that can take any value on a scale (a continuous value), such as a price or a temperature, rather than choosing a category.">regression</Term>. The simplest regression model is a straight line. This lesson answers one question: out of all the lines you could draw through some data, which one is *best*? The answer, the **least-squares line**, is the line with the smallest mean squared error, the loss you have been using since [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn). This lesson makes that loss precise, and minimising it is exactly what gradient descent will do in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent).
 
 <Analogy title="A plank over stepping stones">
 
@@ -36,7 +36,7 @@ Five stepping stones cross a stream, not quite in a line, and you have one strai
 
 ## The model: a straight line
 
-Here are five Grab rides (the four from the calculus module plus one more):
+Here are five Grab rides (the four from [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent) plus one more):
 
 | ride | 1 | 2 | 3 | 4 | 5 |
 |---|---|---|---|---|---|
@@ -96,7 +96,7 @@ Squaring has three benefits:
 
 1. **No cancelling.** A square is never negative, so a miss above the line and a miss below it both add to the score.
 2. **Big misses count much more.** A miss of 1 costs $1^2 = 1$, a miss of 2 costs 4, a miss of 3 costs 9. So the best line never ignores any point badly. The price is that one <Term def="A data point far away from the pattern of the others, for example a surge-priced ride.">outlier</Term> can drag the whole line: drag ride 5 up to a surge fare of 15 dollars in the residual-squares figure above and the best line jumps from $1.5x + 1.5$ to $2.7x - 0.9$, with a nonsense *negative* base fare.
-3. **It is smooth.** $r^2$ is a parabola in $r$, with a slope everywhere and one clear bottom. The total turns out to be a smooth bowl over $(w, b)$, which is exactly what calculus and gradient descent need. (Absolute values $|r|$ also avoid cancelling, but have a sharp corner at 0. That loss, the MAE, returns in the regularisation lesson.)
+3. **It is smooth.** $r^2$ is a parabola in $r$, with a slope everywhere and one clear bottom. The total turns out to be a smooth bowl over $(w, b)$, which is exactly what calculus and gradient descent need. (Absolute values $|r|$ also avoid cancelling, but have a sharp corner at 0. That loss, the MAE, returns in [L1 and L2 regularisation](#/learn/linear-regression/regularisation).)
 
 <QuickCheck
   q="A surge fare makes one residual grow from 1 to 4. That ride's square, its contribution to the total squared error, is now how many times what it was?"
@@ -146,8 +146,6 @@ Read it from the inside out:
 
 MSE is measured in *squared* units (dollars squared), which is hard to picture. Taking the square root gives the **root mean squared error**, $\text{RMSE} = \sqrt{\text{MSE}}$, back in dollars: $\sqrt{0.3} \approx 0.55$, so this line's predictions are typically about 55 cents off.
 
-<PastPaperQuestion paper="prelim2026" n={171} />
-
 <Mistake title="Square, then average (not the other way round)">
 
 Three slips that exam options love: averaging the residuals before squaring (for the friend's rule, $\left(\tfrac{0}{5}\right)^2 = 0$, the cancelling trap again); forgetting to divide by $n$ (that gives the SSE, 4, not the MSE, 0.8); and taking a square root you were not asked for (RMSE). Also, the residual is $y - \hat{y}$; some books use $\hat{y} - y$. The sign flips, but after squaring the MSE is identical.
@@ -184,7 +182,7 @@ The top of $w$ adds up "how far $x$ is from its mean times how far $y$ is from i
 
 <Reveal label="Where do these formulas come from?">
 
-The best line sits at the bottom of the MSE, where its slope in every direction is zero (partial derivatives, from the calculus module). Setting $\partial\,\text{MSE}/\partial b = -\tfrac{2}{n}\sum_i r_i = 0$ says the residuals of the best line add up to zero, which forces $\bar{y} = w\bar{x} + b$. Setting $\partial\,\text{MSE}/\partial w = -\tfrac{2}{n}\sum_i x_i r_i = 0$ and substituting gives the formula for $w$. So the least-squares line *does* have residuals summing to zero, but, as the trap above showed, so do infinitely many bad lines. Zero sum is necessary, not enough. With many features, the same idea becomes the *normal equation*, in the lesson on multiple regression.
+The best line sits at the bottom of the MSE, where its slope in every direction is zero (see [Partial derivatives and the gradient](#/learn/calculus-and-gradient-descent/partial-derivatives-gradients)). Setting $\partial\,\text{MSE}/\partial b = -\tfrac{2}{n}\sum_i r_i = 0$ says the residuals of the best line add up to zero, which forces $\bar{y} = w\bar{x} + b$. Setting $\partial\,\text{MSE}/\partial w = -\tfrac{2}{n}\sum_i x_i r_i = 0$ and substituting gives the formula for $w$. So the least-squares line *does* have residuals summing to zero, but, as the trap above showed, so do infinitely many bad lines. Zero sum is necessary, not enough. With many features, the same idea becomes the *normal equation*, in [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial).
 
 </Reveal>
 
@@ -205,7 +203,7 @@ $$
 
 (check: $w = 1.5$, $b = 1.5$ gives $24.75 + 13.5 + 2.25 - 63 - 18 + 40.8 = 0.3$). A quadratic like this, with the squared terms winning, is shaped like a bowl: it is <Term def="Bowl-shaped: the straight line joining any two points of the graph never goes below the graph. A convex loss has no separate dips, so any lowest point is the lowest point.">convex</Term>, with exactly one lowest point and no other dips to get stuck in (as long as the $x$ values are not all equal). That lowest point is the least-squares line.
 
-Notice also that the bowl is a long, tilted valley. Making the line steeper (bigger $w$) can be partly made up for by starting it lower (smaller $b$), so many $(w, b)$ pairs along the valley floor have similar MSE. Keep this shape in mind: in the next lesson gradient descent walks down this exact bowl, and its long valley explains why the walk slows down near the end.
+Notice also that the bowl is a long, tilted valley. Making the line steeper (bigger $w$) can be partly made up for by starting it lower (smaller $b$), so many $(w, b)$ pairs along the valley floor have similar MSE. Keep this shape in mind: the next lesson, [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent), walks gradient descent down this exact bowl, and its long valley explains why the walk slows down near the end.
 
 <KeyIdea>
 

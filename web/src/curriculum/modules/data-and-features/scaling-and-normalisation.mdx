@@ -61,8 +61,6 @@ $$
   </Step>
 </Steps>
 
-<PastPaperQuestion paper="prelim2026" n={54} />
-
 ### Min-max scaling
 
 <Term def="Rescaling a feature as (x − min) / (max − min), so the smallest value becomes 0 and the largest becomes 1. scikit-learn's MinMaxScaler.">Min-max scaling</Term> squeezes each feature into the range 0 to 1:
@@ -86,7 +84,7 @@ For temperatures 24, 26, 29 and 34 °C, the range is $34 - 24 = 10$, so 26 becom
 
 - **Standardisation** is the default for most models (linear and logistic regression, SVMs, k-NN, neural networks, PCA).
 - **Min-max** suits features with natural limits (pixels, percentages) and models that expect inputs in $[0, 1]$.
-- **Outliers** hurt min-max badly: one extreme value becomes 1 and squashes every other value towards 0. Standardisation is affected too, since the mean and standard deviation are pulled by extremes. A <Term def="Scaling with the median and the interquartile range, z = (x − median) / IQR, so a few extreme values barely change the scale. scikit-learn's RobustScaler.">robust scaler</Term> uses the median and the IQR from the previous lesson instead.
+- **Outliers** hurt min-max badly: one extreme value becomes 1 and squashes every other value towards 0. Standardisation is affected too, since the mean and standard deviation are pulled by extremes. A <Term def="Scaling with the median and the interquartile range, z = (x − median) / IQR, so a few extreme values barely change the scale. scikit-learn's RobustScaler.">robust scaler</Term> uses the median and the IQR (from [Missing data and outliers](#/learn/data-and-features/missing-data-and-outliers)) instead.
 
 <QuickCheck
   id="data-and-features.scaling.qc-outlier-squash"
@@ -104,7 +102,7 @@ People use "normalise" loosely. In an exam, "normalise to $[0, 1]$" means min-ma
 
 ## Scaling makes gradient descent behave
 
-Distances are not the only thing that units distort. Models trained by gradient descent (linear and logistic regression, neural networks) suffer too. Remember the learning rate $\eta$ from *Letting the computer find the line*: it is the size of each downhill step on the loss.
+Distances are not the only thing that units distort. Models trained by gradient descent (linear and logistic regression, neural networks) suffer too. Remember the learning rate $\eta$ from [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn): it is the size of each downhill step on the loss.
 
 <Analogy title="A ball in a long, narrow drain">
 
@@ -138,8 +136,6 @@ One more rule: compute $\mu$ and $\sigma$ over the **whole training set**, not s
 
 <PastPaperQuestion paper="prelim2026" n={294} />
 
-<PastPaperQuestion paper="prelim2026" n={296} />
-
 <Mistake title="“Scaling changes what the model can learn”">
 
 For a plain linear model (with no penalty on big weights), scaling does not change the best possible predictions: a weight on income in dollars is simply 1,000 times smaller than the weight on income in thousands. What scaling changes is how easily **gradient descent** finds those weights, and what **distance-based** models and models **with a penalty on big weights** consider "big". Watch out: scikit-learn's `LogisticRegression` has such a penalty switched on by default (`C=1.0`), so there scaling changes the fitted model and its predictions too.
@@ -152,7 +148,7 @@ For a plain linear model (with no penalty on big weights), scaling does not chan
 |---|---|---|
 | k-NN, k-means, SVMs | Yes | They compare points by distance |
 | Linear and logistic regression, neural networks (trained by gradient descent) | Yes | Unscaled features make a long, narrow valley |
-| Models with a penalty on big weights (Ridge and Lasso, coming in the linear regression module); PCA (later in the course) | Yes | The penalty, or PCA's search for the direction of biggest spread, depends on units |
+| Models with a penalty on big weights (Ridge and Lasso, coming in [L1 and L2 regularisation](#/learn/linear-regression/regularisation)); PCA (later in the course) | Yes | The penalty, or PCA's search for the direction of biggest spread, depends on units |
 | Decision trees, random forests, gradient boosting (e.g. XGBoost) | No | Each split looks at one feature at a time |
 
 Why are trees immune? A tree asks questions like "is income below \$5,000?". Standardising income turns that into "is the income z-score below 0.37?", which sends exactly the same people left and right. Scaling stretches the number line but never changes the **order** of the values, and the order is all a split depends on.
@@ -247,7 +243,7 @@ tensor([  20.0000, 3605.5513])`} />
 
 <Mistake title="Calling fit_transform on the test set">
 
-`scaler.fit_transform(X_test)` refits the scaler on the test data, so training and test values are measured on different rulers, and the test set's statistics leak into your evaluation. Use `scaler.transform(X_test)`. A scikit-learn `Pipeline` does this for you automatically (see the lesson on splitting and leakage).
+`scaler.fit_transform(X_test)` refits the scaler on the test data, so training and test values are measured on different rulers, and the test set's statistics leak into your evaluation. Use `scaler.transform(X_test)`. A scikit-learn `Pipeline` does this for you automatically (see [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage)).
 
 </Mistake>
 

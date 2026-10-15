@@ -64,7 +64,7 @@ The chain rule: rates multiply along a chain. $\frac{d}{dx} f(g(x)) = f'(g(x)) \
   </Step>
 </Steps>
 
-Read that last step as nudges, as in the first lesson. Nudge $x$ from 1 to 1.01: $u$ moves by $3 \times 0.01 = 0.03$, from 4 to 4.03. Then $y$ moves by about $8 \times 0.03 = 0.24$, from 16 to about 16.24. Overall, $0.01$ in became $0.24$ out: a rate of 24. (Exactly, $4.03^2 = 16.2409$.)
+Read that last step as nudges, as in [Derivatives are slopes](#/learn/calculus-and-gradient-descent/derivatives-as-slopes). Nudge $x$ from 1 to 1.01: $u$ moves by $3 \times 0.01 = 0.03$, from 4 to 4.03. Then $y$ moves by about $8 \times 0.03 = 0.24$, from 16 to about 16.24. Overall, $0.01$ in became $0.24$ out: a rate of 24. (Exactly, $4.03^2 = 16.2409$.)
 
 The same move handles everything you will meet. In each row, the first factor is the outer slope (measured at the inner part) and the second is the inner slope:
 
@@ -76,7 +76,7 @@ The same move handles everything you will meet. In each row, the first factor is
 | $(x^2 + 1)^3$ | $3(x^2 + 1)^2 \cdot 2x = 6x(x^2 + 1)^2$ |
 | $\sigma(wx + b)$, as $x$ changes | $\sigma'(wx + b) \cdot w$ |
 
-The first row proves the mirror rule for $e^{-x}$ from the previous lesson. The last row is a neuron: its slope is the sigmoid's slope at $wx + b$, times the weight.
+The first row proves the mirror rule for $e^{-x}$ from [Derivative rules you must know cold](#/learn/calculus-and-gradient-descent/derivative-rules). The last row is a neuron: its slope is the sigmoid's slope at $wx + b$, times the weight.
 
 <Mistake title="Evaluating the outer derivative at the wrong place">
 
@@ -105,7 +105,7 @@ $$
 - $x$ is the input and $y$ the correct answer (the target). The model's knobs are the weight $w$ and the bias $b$.
 - $z$ is the neuron's raw score, $a$ its output after the sigmoid, and $L$ the loss.
 
-$L$ depends on several things at once ($w$, $b$, $x$), so we write $\frac{\partial L}{\partial w}$ with a curly $\partial$. It is read "the <Term def="The slope of a function in one input's direction while all the other inputs are held fixed. Written with a curly ∂.">partial derivative</Term> of $L$ with respect to $w$": the slope in the $w$ direction while everything else stays fixed. (The next lesson covers partial derivatives properly.)
+$L$ depends on several things at once ($w$, $b$, $x$), so we write $\frac{\partial L}{\partial w}$ with a curly $\partial$. It is read "the <Term def="The slope of a function in one input's direction while all the other inputs are held fixed. Written with a curly ∂.">partial derivative</Term> of $L$ with respect to $w$": the slope in the $w$ direction while everything else stays fixed. (The next lesson, [Partial derivatives and the gradient](#/learn/calculus-and-gradient-descent/partial-derivatives-gradients), covers them properly.)
 
 Training needs $\frac{\partial L}{\partial w}$. The chain from $w$ to $L$ runs $w \to z \to a \to L$, so the chain rule multiplies three local rates:
 
@@ -183,7 +183,7 @@ print("dL/dw =", dL_dw, " dL/db =", dL_db)`} />
 
 ## Many small factors: vanishing gradients
 
-A deep network is a long chain, so the gradient for an early weight is a product with **one factor per layer**. Each sigmoid layer multiplies the gradient by $\sigma'(z)$ times that layer's weight, and from the previous lesson you know $\sigma'(z) \le 0.25$. With weights of moderate size (around 1), ten sigmoid layers shrink the gradient to at most about
+A deep network is a long chain, so the gradient for an early weight is a product with **one factor per layer**. Each sigmoid layer multiplies the gradient by $\sigma'(z)$ times that layer's weight, and from [Derivative rules you must know cold](#/learn/calculus-and-gradient-descent/derivative-rules) you know $\sigma'(z) \le 0.25$. With weights of moderate size (around 1), ten sigmoid layers shrink the gradient to at most about
 
 $$
 0.25^{10} = \frac{1}{4^{10}} = \frac{1}{2^{20}} \approx \frac{1}{1\,000\,000} = 10^{-6}.
@@ -199,7 +199,7 @@ Photocopy a page, then photocopy the copy, and keep going. Each copy loses only 
 
 <VanishingProduct />
 
-This is why modern networks are built the way they are. **ReLU** has slope exactly 1 for positive inputs, so active units pass gradients back without shrinking them. Careful **weight initialisation** keeps each layer's overall factor close to 1. **Residual connections** add a shortcut around each block, giving the gradient a path whose factor is 1. You will meet all three in later modules.
+This is why modern networks are built the way they are. **ReLU** has slope exactly 1 for positive inputs, so active units pass gradients back without shrinking them. Careful **weight initialisation** keeps each layer's overall factor close to 1. **Residual connections** add a shortcut around each block, giving the gradient a path whose factor is 1. You will meet all three properly in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients), in the backpropagation module.
 
 <QuickCheck
   id="calculus-and-gradient-descent.chain-rule.qc2"
@@ -208,8 +208,6 @@ This is why modern networks are built the way they are. **ReLU** has slope exact
   answer={3}
   explain="The chain rule multiplies one factor per layer: $0.25^6 = \frac{1}{4096} \approx 0.00024$. Adding the factors ($1.5$) or dividing by the number of layers ($0.04$) is not what the chain rule does, and $0.25$ would be the answer for a single layer."
 />
-
-<PastPaperQuestion paper="prelim2026" n={44} />
 
 <ExamTip>
 

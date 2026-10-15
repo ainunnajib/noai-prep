@@ -24,7 +24,7 @@ print("H(p, q)  =", cross_entropy(p, q))
 print("KL(p||q) =", cross_entropy(p, q) - entropy(p))
 print("KL(q||p) =", cross_entropy(q, p) - entropy(q))`
 
-In the last lesson we trained logistic regression with the log loss because it "punishes confident mistakes". That sounds like a matter of taste, but it is not: the same loss falls out of two big ideas. One comes from statistics (**maximum likelihood**: pick the model that makes the data most probable), the other from information theory (**entropy**: how surprised you are, on average). This lesson builds both from coin flips and weather forecasts and shows they are the same thing. Along the way you meet the KL divergence, which returns later in variational autoencoders, model distillation and the fine-tuning of language models.
+In the last lesson, [Logistic regression](#/learn/classification/logistic-regression), we trained a classifier with the log loss because it "punishes confident mistakes". That sounds like a matter of taste, but it is not: the same loss falls out of two big ideas. One comes from statistics (**maximum likelihood**: pick the model that makes the data most probable), the other from information theory (**entropy**: how surprised you are, on average). This lesson builds both from coin flips and weather forecasts and shows they are the same thing. Along the way you meet the KL divergence, which returns later in variational autoencoders, model distillation and the fine-tuning of language models.
 
 <Analogy title="Guessing a player's free-throw accuracy">
 
@@ -60,7 +60,7 @@ Two warnings about the word. The likelihood is **not** the probability that $p$ 
 
 ### Why maximise the log-likelihood?
 
-Even with 10 flips the likelihood is a tiny number. With 1000 flips it is about $10^{-266}$ even at its peak, which is already 0 in float32, PyTorch's default number format (the logarithms lesson showed this), and a few thousand flips underflow even in NumPy's 64-bit floats. Taking logs turns the product into a sum:
+Even with 10 flips the likelihood is a tiny number. With 1000 flips it is about $10^{-266}$ even at its peak, which is already 0 in float32, PyTorch's default number format (the [Logarithms](#/learn/maths-foundations/logarithms) lesson showed this), and a few thousand flips underflow even in NumPy's 64-bit floats. Taking logs turns the product into a sum:
 
 $$
 \ell(p) = \ln L(p) = 7 \ln p + 3 \ln(1 - p)
@@ -99,7 +99,7 @@ $$
 \end{aligned}
 $$
 
-That is exactly the binary cross-entropy from the last lesson. **Minimising the log loss is maximum likelihood.** The loss was never a matter of taste.
+That is exactly the binary cross-entropy you met in [Logistic regression](#/learn/classification/logistic-regression). **Minimising the log loss is maximum likelihood.** The loss was never a matter of taste.
 
 ### MAP: adding a prior belief
 
@@ -211,8 +211,6 @@ KL measures how far $q$ is from $p$, but it is **not** a distance in the everyda
     Swap the roles: $H(q) = 1.75$ and $H(q, p) = \tfrac14(1) + \tfrac18(2) + \tfrac12(3) + \tfrac18(3) = 2.375$, so $\mathrm{KL}(q\,\|\,p) = 0.625$ bits. Not the same: KL is not symmetric.
   </Step>
 </Steps>
-
-<PastPaperQuestion paper="prelim2026" n={65} />
 
 ### Cross-entropy as a classification loss
 
