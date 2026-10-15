@@ -12,11 +12,17 @@ const useIsoLayoutEffect = typeof navigator !== 'undefined' && !/jsdom/i.test(na
 export function useContainerWidth<T extends HTMLElement>(fallback: number) {
   const ref = useRef<T>(null)
   const [width, setWidth] = useState(fallback)
+  // true once the real width is known: visuals with CSS transitions can wait for it, so nothing animates in from the fallback layout
+  const [measured, setMeasured] = useState(false)
   useIsoLayoutEffect(() => {
     const el = ref.current
     if (!el) return
+    // Reading the width makes the browser style the fallback layout; switch transitions off inside this element until the
+    // measured layout has been applied, or elements would animate in from their fallback positions (see global.css).
+    el.setAttribute('data-measuring', '')
     const first = el.getBoundingClientRect().width
     if (first) setWidth(Math.round(first))
+    setMeasured(true)
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width
@@ -25,7 +31,13 @@ export function useContainerWidth<T extends HTMLElement>(fallback: number) {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  return [ref, width] as const
+  useIsoLayoutEffect(() => {
+    const el = ref.current
+    if (!measured || !el || !el.hasAttribute('data-measuring')) return
+    void el.offsetWidth // apply the measured layout while transitions are still off
+    el.removeAttribute('data-measuring')
+  }, [measured, width])
+  return [ref, width, measured] as const
 }
 
 /** True when the element is narrower than `threshold` px (phones). Use to switch layouts inside a visual. */

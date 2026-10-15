@@ -124,7 +124,8 @@ function run(algo: Algo, start: string, goal: string) {
   return { snaps, path, dist }
 }
 
-const LAYER = ['var(--viz-1)', 'var(--viz-5)', 'var(--viz-4)', 'var(--viz-2)', 'var(--viz-6)', 'var(--viz-3)']
+// distances 0, 1, 2, … get clearly different hues, so the rings of a BFS stand apart
+const LAYER = ['var(--viz-1)', 'var(--viz-3)', 'var(--viz-2)', 'var(--viz-4)', 'var(--viz-6)', 'var(--viz-5)']
 
 export default function GraphTraversal() {
   const [algo, setAlgo] = useState<Algo>('bfs')
@@ -174,7 +175,8 @@ export default function GraphTraversal() {
           A made-up neighbourhood: places joined by paths. Press Restart, then Next, and watch the frontier (the places waiting to be visited).
           BFS takes from the front of a <b>queue</b>, so it visits places in rings of distance (colours) and its path to the goal has the fewest
           hops. DFS takes from the top of a <b>stack</b>, so it dives down one route and only backs up when stuck; it finds <i>a</i> path, not
-          the shortest. Tap a place to move the goal (or the start).
+          the shortest. In DFS a place can be pushed more than once; when an old copy reaches the top it is already visited, so it is
+          skipped (struck through). Tap a place to move the goal (or the start).
         </>
       }
     >
@@ -233,7 +235,7 @@ export default function GraphTraversal() {
                   }}
                 />
                 {k >= 0 && (
-                  <text x={X(x)} y={Y(y)} dy="0.35em" textAnchor="middle" style={{ fontSize: 10, fontWeight: 800, fill: 'var(--surface)' }}>
+                  <text x={X(x)} y={Y(y)} dy="0.35em" textAnchor="middle" style={{ fontSize: 11, fontWeight: 800, fill: 'var(--viz-ink)', stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' }}>
                     {k + 1}
                   </text>
                 )}

@@ -214,13 +214,34 @@ If a recursive solution solves the same subproblem more than once, store each an
 
 <Term def="Solving a problem by answering its smaller subproblems, storing each answer, and building bigger answers from stored ones.">Dynamic programming</Term> (DP) works when a problem has two properties: **optimal substructure** (the best answer is built from the best answers to smaller subproblems) and **overlapping subproblems** (the same subproblems come up again and again). Memoisation is **top-down** DP: start from the big problem and cache on the way. The other style is **bottom-up** DP, also called tabulation: answer the smallest subproblems first and fill a table in an order where every entry only needs entries already filled. Both give the same complexity, but bottom-up never runs into Python's recursion limit (a memoised `fib(2000)` raises `RecursionError`). For Fibonacci the table is a single row: $F(0), F(1), F(2), \dots$, each the sum of the two to its left.
 
-<Analogy title="Cheapest MRT fares, station by station">
+<Analogy title="Counting ways up the stairs">
 
-To plan the cheapest trip from your station to every other station, you don't try every possible route. You first find the cheapest cost to the nearby stations, then use those answers to work out the stations one step further, and so on. Each new answer is built from answers you already wrote down.
+You climb a staircase 1 or 2 steps at a time. How many different ways are there to reach step 10? You don't list every route. Step 1 has 1 way and step 2 has 2 ways; after that, every step is reached either from the step below or from two below, so its count is the sum of those two counts. Write the counts up the staircase one by one and each new answer comes from answers already written down.
 
 </Analogy>
 
-Every DP solution answers the same five questions: **what is a subproblem**, **how is a subproblem built from smaller ones** (the recurrence), **what are the base cases**, **in what order do I fill the table**, and **where is the final answer**?
+The simplest DP table is Fibonacci's single row, filled from left to right:
+
+<Steps title="Fill F(0) to F(6) bottom-up">
+  <Step title="Base cases">
+    $F(0) = 0$ and $F(1) = 1$: written down, not computed.
+  </Step>
+  <Step title="F(2) and F(3)">
+    $F(2) = F(1) + F(0) = 1$, then $F(3) = F(2) + F(1) = 2$. Each entry needs only the two to its left, which are already filled.
+  </Step>
+  <Step title="F(4) to F(6)">
+    $F(4) = 3$, $F(5) = 5$, $F(6) = 8$. Six additions in total: $O(n)$, instead of the exponential recursion.
+  </Step>
+</Steps>
+
+```python
+f = [0, 1]
+for i in range(2, 7):
+    f.append(f[i - 1] + f[i - 2])
+print(f)   # [0, 1, 1, 2, 3, 5, 8]
+```
+
+Every DP solution answers the same five questions: **what is a subproblem**, **how is a subproblem built from smaller ones** (the <Term def="The rule that builds an answer from the answers to smaller subproblems, such as F(i) = F(i - 1) + F(i - 2).">recurrence</Term>), **what are the base cases**, **in what order do I fill the table**, and **where is the final answer**?
 
 ### Edit distance
 
@@ -264,9 +285,9 @@ The table has $(m + 1)(n + 1)$ cells and each takes $O(1)$ work, so edit distanc
 
 <PyRunner code={editCode} />
 
-<Note title="Backpropagation is dynamic programming">
+<Note title="Looking ahead: backpropagation is dynamic programming">
 
-When a neural network computes its gradients, it stores each layer's result on the forward pass and reuses it on the backward pass, instead of recomputing the same chain-rule products for every weight. That is exactly the DP idea, and it is why training costs only a small multiple of a forward pass.
+You will meet this properly in the backpropagation module; for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it stores each layer's result on the forward pass and reuses it on the backward pass, instead of recomputing the same chain-rule products for every weight. That is exactly the DP idea, and it is why training costs only a small multiple of a forward pass.
 
 </Note>
 
@@ -316,7 +337,7 @@ Both searches look at each node once and each edge once (twice, once from each e
 
 ### Graphs in AI
 
-Graphs are everywhere in AI. When PyTorch runs your model it builds a **computational graph**: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards.
+Graphs are everywhere in AI. (These ideas are taught properly in later modules; here just notice the graphs.) When PyTorch, the deep-learning library you will meet later, runs a model it builds a <Term def="A graph whose nodes are operations such as multiply and add, and whose edges show which result feeds into which. Deep-learning libraries build one to compute gradients.">computational graph</Term>: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards.
 
 <PastPaperQuestion paper="prelim2026" n={43} />
 

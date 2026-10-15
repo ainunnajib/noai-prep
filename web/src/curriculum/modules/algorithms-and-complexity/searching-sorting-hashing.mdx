@@ -263,6 +263,19 @@ The last lines show the one rule hashing imposes: a key's hash must never change
 
 </Mistake>
 
+<KeyIdea>
+
+A hash function turns a key into a bucket number, so a lookup jumps straight to the right place instead of scanning: $O(1)$ on average, as long as the table grows with the number of keys to keep the chains short.
+
+</KeyIdea>
+
+<QuickCheck
+  q="With the toy hash above (add the letter numbers, then take the remainder mod 8), which bucket does 'teh' go in?"
+  options={['Bucket 1', 'Bucket 3', 'Bucket 33', 'Bucket 4']}
+  answer={0}
+  explain="t = 20, e = 5, h = 8, so $h = 33$, and $33 \bmod 8 = 1$ because $33 = 4 \times 8 + 1$. 33 is the sum before the remainder, 4 is the quotient, and 3 is the bucket of 'kopi' and 'nasi'."
+/>
+
 ## Heaps: the best few, without sorting everything
 
 Often you only want the **top $k$**: the 10 best scores, the 5 most likely next words, the 3 nearest neighbours. Sorting all $n$ items costs $O(n \log n)$ and keeps everything. A heap does less work.
@@ -305,9 +318,34 @@ Top-$k$ selection is everywhere in AI. **Top-$k$ sampling** lets a language mode
 
 <PastPaperQuestion paper="prelim2026" n={230} />
 
+<KeyIdea>
+
+A min-heap of size $k$ keeps the $k$ largest values seen so far. Its root is the smallest of them, so a new value gets in only if it beats the root, and each update costs $O(\log k)$: $O(n \log k)$ for the whole stream.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A min-heap keeps the top 3 of a stream and holds [63, 77, 88]. The next value is 50. What happens?"
+  options={['Nothing: 50 is smaller than the root 63, so it cannot be in the top 3', '50 replaces the root 63, then sinks to its place', '50 replaces the largest value 88, then rises to its place', 'It is added, so the heap now holds the 4 values 50, 63, 77, 88']}
+  answer={0}
+  explain="The root is the smallest of the current top 3. A value below the root cannot be among the 3 largest, so it is skipped. Replacing 88 would throw away the best value, and growing the heap past $k$ items loses the $O(k)$ memory bound."
+/>
+
 <ExamTip>
 
-Memorise this table; NOAI questions often just ask for one entry. Search: linear $O(n)$, binary $O(\log n)$ (sorted data only). Sort: bubble and insertion $O(n^2)$, merge and Python's sort $O(n \log n)$, quicksort $O(n \log n)$ on average but $O(n^2)$ in the worst case. Hash table (dict, set) lookup and insert: $O(1)$ average, $O(n)$ worst. Heap: peek at the minimum $O(1)$, push and pop $O(\log n)$, top $k$ of $n$ items $O(n \log k)$.
+Memorise this table; NOAI questions often just ask for one entry.
+
+| Structure or algorithm | Operation | Average | Worst |
+|---|---|---|---|
+| list | linear search | $O(n)$ | $O(n)$ |
+| sorted list | binary search | $O(\log n)$ | $O(\log n)$ |
+| bubble or insertion sort | sort | $O(n^2)$ | $O(n^2)$ |
+| merge sort, Python's sort | sort | $O(n \log n)$ | $O(n \log n)$ |
+| quicksort | sort | $O(n \log n)$ | $O(n^2)$ |
+| dict, set (hash table) | lookup, insert | $O(1)$ | $O(n)$ |
+| heap | peek at the minimum | $O(1)$ | $O(1)$ |
+| heap | push, pop | $O(\log n)$ | $O(\log n)$ |
+| heap of size $k$ | top $k$ of $n$ items | $O(n \log k)$ | $O(n \log k)$ |
 
 </ExamTip>
 

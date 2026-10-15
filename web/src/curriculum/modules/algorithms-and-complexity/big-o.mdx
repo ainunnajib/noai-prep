@@ -245,14 +245,13 @@ A function that sums a list of $n$ numbers uses $O(1)$ extra space, even though 
 
 ## Big-O in AI
 
-Every big idea in this module shows up inside AI systems, and Big-O is how you reason about what is feasible:
+Every big idea in this module shows up inside AI systems, and Big-O is how you reason about what is feasible. You will meet these AI ideas properly in later modules; for now only the counting matters.
 
 - **Matrix multiplication.** Multiplying two $n \times n$ matrices fills $n^2$ output entries, and each entry is a sum of $n$ products, so it takes $n^2 \times n = n^3$ multiplications: $O(n^3)$.
-- **Self-attention.** A Transformer compares every token in a sequence with every other token, producing a table of $n \times n$ scores for a sequence of $n$ tokens. So time and memory grow as $O(n^2)$: a context twice as long costs four times as much attention work. This is why long contexts are expensive.
+- **Self-attention.** A <Term def="The neural-network design behind modern language models such as ChatGPT. Taught in the attention and Transformers module.">Transformer</Term> compares every <Term def="A word or a piece of a word: the unit a language model reads and writes.">token</Term> in a sequence with every other token (that comparison is called self-attention), producing a table of $n \times n$ scores for a sequence of $n$ tokens. So time and memory grow as $O(n^2)$: a context twice as long costs four times as much attention work. This is why long contexts are expensive.
+- **Newton's method versus gradient descent.** Both are ways to adjust a model step by step. For a model with $p$ <Term def="The adjustable numbers inside a model that training changes, such as the weights of a neural network.">parameters</Term>, Newton's method needs the <Term def="A p × p table of second derivatives: one row and one column for every parameter of the model.">Hessian</Term>, which has $p \times p$ entries, and then has to invert it (or solve equations with it), which costs about $p^3$ steps. For $p = 10{,}000$ that is $10^{12}$ steps for **every** update, and for a model with a billion parameters it is hopeless. Gradient descent only needs the $p$ numbers of the gradient.
 
 <PastPaperQuestion paper="prelim2026" n={219} />
-
-- **Newton's method versus gradient descent.** For a model with $p$ parameters, Newton's method needs the <Term def="A p × p table of second derivatives: one row and one column for every parameter of the model.">Hessian</Term>, which has $p \times p$ entries, and then has to invert it (or solve equations with it), which costs about $p^3$ steps. For $p = 10{,}000$ that is $10^{12}$ steps for **every** update, and for a model with a billion parameters it is hopeless. Gradient descent only needs the $p$ numbers of the gradient.
 
 <PastPaperQuestion paper="prelim2026" n={45} />
 

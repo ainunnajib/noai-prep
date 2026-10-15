@@ -84,7 +84,8 @@ export default function DPTableFill() {
   const onPath = (i: number, j: number) => showPath && sol.path.some(([x, y]) => x === i && y === j)
 
   const [ref, width] = useContainerWidth<HTMLDivElement>(560)
-  const cell = Math.max(26, Math.min(42, Math.floor((Math.min(width, 560) - 4) / (n + 2))))
+  // n + 2 columns with 2 px gaps between them must fit the width
+  const cell = Math.max(24, Math.min(42, Math.floor((Math.min(width, 560) - 4 - 2 * (n + 1)) / (n + 2))))
 
   const style = (i: number, j: number): CSSProperties => {
     const isCur = i === ci && j === cj
@@ -142,7 +143,7 @@ export default function DPTableFill() {
         <>
           Cell (row <i>i</i>, column <i>j</i>) holds the fewest edits that turn the first <i>i</i> letters of the source into the first <i>j</i>{' '}
           letters of the target. Press Restart, then Next: each new cell (orange) only looks at three cells already filled (blue). Type your own
-          words (up to 8 letters each) and see the green path of choices behind the answer.
+          words (up to 8 letters each) and see the green path of choices behind the answer. The ∅ row and column stand for the empty word.
         </>
       }
     >
@@ -158,50 +159,59 @@ export default function DPTableFill() {
           </label>
         </div>
 
-        <div className={d.gridWrap}>
-          <div className={d.grid} style={{ gridTemplateColumns: `repeat(${n + 2}, ${cell}px)` }} role="table" aria-label={`Edit distance table from ${A} to ${B}`}>
-            <span className={d.head} />
-            <span className={d.head}>∅</span>
-            {[...B].map((ch, j) => (
-              <span key={`h${j}`} className={d.head} style={{ color: j + 1 === cj ? 'var(--viz-2)' : undefined }}>
-                {ch}
-              </span>
-            ))}
-            {sol.D.map((row, i) => (
-              <span key={`r${i}`} style={{ display: 'contents' }}>
-                <span className={d.head} style={{ color: i === ci ? 'var(--viz-2)' : undefined }}>
-                  {i === 0 ? '∅' : A[i - 1]}
+        {!a || !b ? (
+          <p className={s.muted} role="status">
+            Type a word in both boxes to fill the table.
+          </p>
+        ) : (
+          <>
+          <div className={d.gridWrap}>
+            <div className={d.grid} style={{ gridTemplateColumns: `repeat(${n + 2}, ${cell}px)` }} role="table" aria-label={`Edit distance table from ${A} to ${B}`}>
+              <span className={d.head} />
+              <span className={d.head}>∅</span>
+              {[...B].map((ch, j) => (
+                <span key={`h${j}`} className={d.head} style={{ color: j + 1 === cj ? 'var(--viz-2)' : undefined }}>
+                  {ch}
                 </span>
-                {row.map((v, j) => (
-                  <span key={`c${i}-${j}`} className={d.cell} style={{ ...style(i, j), height: cell }} role="cell">
-                    {filled(i, j) && (
-                      <>
-                        {i > 0 && j > 0 && <span className={d.arrow}>{ARROW[sol.from[i][j]!]}</span>}
-                        {v}
-                      </>
-                    )}
+              ))}
+              {sol.D.map((row, i) => (
+                <span key={`r${i}`} style={{ display: 'contents' }}>
+                  <span className={d.head} style={{ color: i === ci ? 'var(--viz-2)' : undefined }}>
+                    {i === 0 ? '∅' : A[i - 1]}
                   </span>
-                ))}
-              </span>
-            ))}
+                  {row.map((v, j) => (
+                    <span key={`c${i}-${j}`} className={d.cell} style={{ ...style(i, j), height: cell }} role="cell">
+                      {filled(i, j) && (
+                        <>
+                          {i > 0 && j > 0 && <span className={d.arrow}>{ARROW[sol.from[i][j]!]}</span>}
+                          {v}
+                        </>
+                      )}
+                    </span>
+                  ))}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {explain}
+          {explain}
 
-        {showPath && (
-          <div className={d.align} aria-label="Alignment of the two words">
-            {sol.ops.map((o, k) => (
-              <span key={k} className={`${d.col} ${d[o.op]}`}>
-                <span>{o.top}</span>
-                <span>{o.bottom}</span>
-                <span className={d.opName}>{OP_LABEL[o.op]}</span>
-              </span>
-            ))}
-          </div>
+          {showPath && (
+            <div className={d.align} aria-label="Alignment of the two words">
+              {sol.ops.map((o, k) => (
+                <span key={k} className={`${d.col} ${d[o.op]}`}>
+                  <span>{o.top}</span>
+                  <span>{o.bottom}</span>
+                  <span className={d.opName}>{OP_LABEL[o.op]}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <PlayerControls player={player} label={(k) => (k === 0 ? 'First row and column filled' : k > total ? 'Traced back' : `Cell ${k} of ${total}`)} />
+          </>
         )}
 
-        <PlayerControls player={player} label={(k) => (k === 0 ? 'Edges filled' : k > total ? 'Traced back' : `Cell ${k} of ${total}`)} />
         <Controls>
           <span className={s.muted}>
             Try SUNDAY → SATURDAY, TEA → EAT, or two words of your own. Time and memory: one cell each, so <i>m</i> × <i>n</i>.

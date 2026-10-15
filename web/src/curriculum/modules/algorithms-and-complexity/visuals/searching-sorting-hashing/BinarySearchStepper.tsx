@@ -94,7 +94,8 @@ export default function BinarySearchStepper() {
         <>
           Each row is one comparison. Faded cells have been ruled out; the orange cell is the middle item being compared. Slide the target (try
           values that are missing, such as 50) and press Restart then Play to watch it step by step. Then switch on <b>Shuffle</b>: the same
-          code on unsorted data throws away the wrong half and misses numbers that are right there.
+          code on unsorted data throws away the wrong half and misses numbers that are right there: the dashed green outline marks where the target really
+          is, and a green fill means found.
         </>
       }
     >
@@ -140,6 +141,20 @@ export default function BinarySearchStepper() {
                     </g>
                   )
                 })}
+                {/* where the target really is: a dashed green ring at full strength, even when that cell has been ruled out */}
+                {a.map((_, j) =>
+                  shuffled && j === truePos && !(j === r.mid && r.cmp === '=') ? (
+                    <rect
+                      key={`true${j}`}
+                      x={1 + j * cw}
+                      y={y - 1}
+                      width={cw}
+                      height={ch + 2}
+                      rx={5}
+                      style={{ fill: 'none', stroke: 'var(--viz-3)', strokeWidth: 2, strokeDasharray: '4 3' }}
+                    />
+                  ) : null,
+                )}
               </g>
             )
           })}
