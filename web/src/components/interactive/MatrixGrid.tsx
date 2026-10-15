@@ -66,8 +66,11 @@ export function MatrixGrid({
             row.map((v, j) => {
               const hl = rows.includes(i) || cols.includes(j)
               const strong = isCell(i, j)
-              const style = { height: cellSize, background: bg(v) }
               const text = typeof v === 'number' ? format(v) : v
+              // shrink the digits only when a long value would not fit a narrow cell (mono digits are about 0.62em wide)
+              const len = String(text ?? '').length
+              const fit = (cellSize - 10) / (0.62 * Math.max(1, len))
+              const style = { height: cellSize, background: bg(v), ...(fit < 13.6 ? { fontSize: `${Math.max(9, fit).toFixed(1)}px` } : {}) }
               const cls = `matrix-cell tabular${hl ? ' is-hl' : ''}${strong ? ' is-strong' : ''}${onCellClick ? ' is-clickable' : ''}`
               return onCellClick ? (
                 <button key={`${i}-${j}`} type="button" role="cell" className={cls} style={style} onClick={() => onCellClick(i, j)}>

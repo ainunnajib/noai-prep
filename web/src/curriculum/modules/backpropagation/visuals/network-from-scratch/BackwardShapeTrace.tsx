@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
-import { Figure, Controls, Slider, Segmented, MatrixGrid, usePlayer, PlayerControls } from '../../../../../kit'
+import { Figure, Controls, Slider, Segmented, MatrixGrid, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
 import { makeProblem, forward, matmul, T, sumRows, numericalGrad, cloneParams, fmtShape, type Mat, type Vec, type Bug, type ParamName, type Params } from './net'
 import css from './trace.module.css'
 
@@ -185,6 +185,7 @@ export default function BackwardShapeTrace() {
   const [bug, setBug] = useState<Bug>('none')
   const player = usePlayer({ steps: 8, interval: 1600 })
   const step = player.step
+  const [gridsRef, gridsW] = useContainerWidth<HTMLDivElement>(560)
 
   const prob = useMemo(() => makeProblem(1000 + N * 100 + D * 10 + H + K * 1000, N, D, H, K), [N, D, H, K])
   const lines = useMemo(() => runLines(prob.X, prob.Y, prob.p, bug, N, D, H, K), [prob, bug, N, D, H, K])
@@ -267,7 +268,7 @@ export default function BackwardShapeTrace() {
             {cur.skipped ? (
               <div style={{ color: 'var(--ink-2)', fontSize: '0.875rem' }}>Not run: an earlier line crashed, so Python stopped there.</div>
             ) : (
-              <div className={css.grids} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+              <div ref={gridsRef} className={css.grids} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
                 {cur.operands.map((o, k) => (
                   <Fragment key={k}>
                     {o.op && <Op>{o.op}</Op>}
@@ -282,7 +283,8 @@ export default function BackwardShapeTrace() {
                       heat
                       diverging
                       format={fmtVal}
-                      cellSize={50}
+                      // shrink the cells so a 6-column result still fits a phone-width panel
+                      cellSize={Math.max(30, Math.min(50, Math.floor((gridsW - 40) / (shapeOf(cur.result)[1] ?? 1)) - 3))}
                       label={
                         <span style={{ color: curShapeOk ? 'var(--ok)' : 'var(--bad)' }}>
                           {cur.out} {fmtShape(shapeOf(cur.result))} {curShapeOk ? `= shape of ${cur.like} ✓` : `but ${cur.like} is ${fmtShape(cur.likeShape)} ✗`}
