@@ -101,7 +101,7 @@ export default function GridIndexer() {
                           <span key={c}>
                             <span
                               className="tok number"
-                              style={on && sel.c === c ? { background: 'var(--highlight)', color: 'var(--highlight-ink)', borderRadius: 3, padding: '0 2px' } : undefined}
+                              style={on && sel.c === c ? { background: 'var(--highlight)', color: 'var(--on-highlight)', borderRadius: 3, padding: '0 2px' } : undefined}
                             >
                               {v}
                             </span>

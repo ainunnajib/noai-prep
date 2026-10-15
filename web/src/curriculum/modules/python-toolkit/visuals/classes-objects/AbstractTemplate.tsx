@@ -62,7 +62,7 @@ function Row({ children, kind, hl, badge, minH = 62, fs = 12.5 }: { children: Re
             fontFamily: 'var(--font-body)',
             fontSize: 11.5,
             fontWeight: 700,
-            color: 'var(--ink)',
+            color: 'var(--on-highlight)',
             background: 'var(--highlight)',
             borderRadius: 999,
             padding: '0 0.45rem',
