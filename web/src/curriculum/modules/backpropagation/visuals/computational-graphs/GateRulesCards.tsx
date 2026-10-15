@@ -61,7 +61,11 @@ const GATES: GateInfo[] = [
 ]
 
 const u = (v: number) => fmt(v).replace('-', '−')
+/** orange text darkened towards the ink colour, so small labels keep enough contrast */
+const ORANGE_TEXT = 'color-mix(in srgb, var(--viz-2) 70%, var(--ink))'
 const pa = (v: number) => (v < 0 ? `(${fmt(v)})` : fmt(v))
+
+const gradLabel = (name: string, grad: number) => `∂L/∂${name} = ${u(grad)}`
 
 function GateCard({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: number }) {
   const [ref, measured] = useContainerWidth<HTMLDivElement>(300)
@@ -69,7 +73,7 @@ function GateCard({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: 
   const W = Math.max(260, Math.min(440, measured))
   const H = gate.two ? 128 : 84
   const midY = H / 2
-  const boxW = 92
+  const boxW = 106
   const boxH = 42
   const bx = 2 + boxW / 2
   const cx = Math.round(Math.max(boxW + 62, W * 0.56))
@@ -140,9 +144,9 @@ function GateCard({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: 
                 y={s.y + 13}
                 textAnchor="middle"
                 className="tabular"
-                style={{ fill: s.off ? 'var(--viz-muted)' : 'var(--viz-2)', fontSize: 12.5, fontWeight: 800 }}
+                style={{ fill: s.off ? 'var(--ink-2)' : ORANGE_TEXT, fontSize: gradLabel(s.name, s.grad).length > 12 ? 11.5 : 12.5, fontWeight: 800 }}
               >
-                {`∂L/∂${s.name} = ${u(s.grad)}`}
+                {gradLabel(s.name, s.grad)}
               </text>
             </g>
           )
@@ -164,7 +168,7 @@ function GateCard({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: 
         </text>
         {/* upstream gradient (backward) */}
         <line x1={outEnd} y1={midY + 7} x2={cx + r + 4} y2={midY + 7} markerEnd={`url(#${uid}o)`} style={{ stroke: 'var(--viz-2)', strokeWidth: 2.4 }} />
-        <text x={(cx + r + outEnd) / 2} y={midY + 26} textAnchor="middle" className="tabular plot-label" style={{ fill: 'var(--viz-2)', fontSize: 12.5, fontWeight: 800 }}>
+        <text x={(cx + r + outEnd) / 2} y={midY + 26} textAnchor="middle" className="tabular plot-label" style={{ fill: ORANGE_TEXT, fontSize: 12.5, fontWeight: 800 }}>
           {`g = ${u(g)}`}
         </text>
       </svg>
@@ -211,18 +215,28 @@ export default function GateRulesCards() {
               </div>
               <GateCard gate={gate} a={a} b={b} g={g} />
               <div className={css.eq}>
-                <div>
-                  <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times ${ta} = ${pa(g)} \\times ${pa(la)} = ${fmt(g * la)}`}</M>
-                </div>
+                {gate.id === 'sig' ? (
+                  <>
+                    {/* sigmoid: the local slope first, then upstream × local, on two short lines */}
+                    <div>
+                      <M>{`\\text{local} = \\sigma(1 - \\sigma) = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} = ${fmt(la)}`}</M>
+                    </div>
+                    <div>
+                      <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times \\text{local} = ${pa(g)} \\times ${pa(la)} = ${fmt(g * la)}`}</M>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times ${ta} = ${pa(g)} \\times ${pa(la)} = ${fmt(g * la)}`}</M>
+                  </div>
+                )}
                 {gate.two && (
                   <div>
                     <M>{`\\tfrac{\\partial L}{\\partial b} = g \\times ${tb} = ${pa(g)} \\times ${pa(lb)} = ${fmt(g * lb)}`}</M>
                   </div>
                 )}
-                {gate.id === 'sig' && (
-                  <div>
-                    <M>{`\\sigma(${fmt(a)}) = ${fmt(sig(a))},\\; \\text{local} = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} = ${fmt(la)}`}</M>
-                  </div>
+                {gate.id === 'max' && a === b && (
+                  <div className={css.note}>A tie: max has no single slope here. Frameworks send all of g to one input (here a).</div>
                 )}
               </div>
             </section>

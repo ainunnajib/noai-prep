@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type ReactNode } from 'react'
 import { Figure, Controls, Slider, Toggle, Button, CodeBlock, useNarrow, mulberry32 } from '../../../../../kit'
 import { CatScene, tint } from './drawings'
 import css from './tl.module.css'
@@ -133,9 +133,25 @@ function code(s: Settings) {
   if (s.jitterOn) lines.push(`    transforms.ColorJitter(brightness=${s.bright.toFixed(2)}, contrast=${s.contrast.toFixed(2)}),`)
   lines.push('    transforms.ToTensor(),')
   if (s.noiseOn && s.noise > 0) lines.push(`    transforms.Lambda(lambda x: x + ${s.noise.toFixed(2)} * torch.randn_like(x)),`)
+  lines.push("    transforms.Normalize(mean=[0.485, 0.456, 0.406],   # ImageNet's mean")
+  lines.push('                         std=[0.229, 0.224, 0.225]),   # and standard deviation')
   if (s.cutout) lines.push('    transforms.RandomErasing(p=1.0, scale=(0.06, 0.16), ratio=(1.0, 1.0)),')
   lines.push('])')
   return lines.join('\n')
+}
+
+/** One augmentation: its switch on top, its sliders underneath (greyed out, not removed, while it is off, so nothing jumps). */
+function AugGroup({ toggle, on, children }: { toggle: ReactNode; on: boolean; children?: ReactNode }) {
+  return (
+    <div className={`${css.augGroup}${on ? ` ${css.augOn}` : ''}`}>
+      {toggle}
+      {children && (
+        <fieldset disabled={!on} className={css.augSliders}>
+          {children}
+        </fieldset>
+      )}
+    </div>
+  )
 }
 
 export default function AugmentationPlayground() {
@@ -198,22 +214,22 @@ export default function AugmentationPlayground() {
         </div>
       </div>
 
-      <div className={css.augControls}>
-        <Toggle label="Horizontal flip (50% chance)" checked={s.flip} onChange={set('flip')} />
-        <Toggle label="Random crop" checked={s.cropOn} onChange={set('cropOn')} />
-        {s.cropOn && <Slider label="smallest crop (share of area)" value={s.minScale} min={0.2} max={1} step={0.05} onChange={set('minScale')} format={(v) => `${Math.round(v * 100)}%`} />}
-        <Toggle label="Random rotation" checked={s.rotOn} onChange={set('rotOn')} />
-        {s.rotOn && <Slider label="max rotation" value={s.maxRot} min={0} max={180} step={5} onChange={set('maxRot')} format={(v) => `±${v}°`} />}
-        <Toggle label="Colour jitter" checked={s.jitterOn} onChange={set('jitterOn')} />
-        {s.jitterOn && (
-          <>
-            <Slider label="brightness" value={s.bright} min={0} max={0.8} step={0.05} onChange={set('bright')} format={(v) => `×${(1 - v).toFixed(2)} to ×${(1 + v).toFixed(2)}`} />
-            <Slider label="contrast" value={s.contrast} min={0} max={0.8} step={0.05} onChange={set('contrast')} format={(v) => `×${(1 - v).toFixed(2)} to ×${(1 + v).toFixed(2)}`} />
-          </>
-        )}
-        <Toggle label="Gaussian noise" checked={s.noiseOn} onChange={set('noiseOn')} />
-        {s.noiseOn && <Slider label="noise σ" value={s.noise} min={0} max={0.3} step={0.01} onChange={set('noise')} format={(v) => v.toFixed(2)} />}
-        <Toggle label="Cutout (random erasing)" checked={s.cutout} onChange={set('cutout')} />
+      <div className={css.augControls} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))' }}>
+        <AugGroup on={s.cropOn} toggle={<Toggle label="Random crop" checked={s.cropOn} onChange={set('cropOn')} />}>
+          <Slider label="smallest crop (share of area)" value={s.minScale} min={0.2} max={1} step={0.05} onChange={set('minScale')} format={(v) => `${Math.round(v * 100)}%`} />
+        </AugGroup>
+        <AugGroup on={s.rotOn} toggle={<Toggle label="Random rotation" checked={s.rotOn} onChange={set('rotOn')} />}>
+          <Slider label="max rotation" value={s.maxRot} min={0} max={180} step={5} onChange={set('maxRot')} format={(v) => `±${v}°`} />
+        </AugGroup>
+        <AugGroup on={s.jitterOn} toggle={<Toggle label="Colour jitter" checked={s.jitterOn} onChange={set('jitterOn')} />}>
+          <Slider label="brightness" value={s.bright} min={0} max={0.8} step={0.05} onChange={set('bright')} format={(v) => `×${(1 - v).toFixed(2)} to ×${(1 + v).toFixed(2)}`} />
+          <Slider label="contrast" value={s.contrast} min={0} max={0.8} step={0.05} onChange={set('contrast')} format={(v) => `×${(1 - v).toFixed(2)} to ×${(1 + v).toFixed(2)}`} />
+        </AugGroup>
+        <AugGroup on={s.noiseOn} toggle={<Toggle label="Gaussian noise" checked={s.noiseOn} onChange={set('noiseOn')} />}>
+          <Slider label="noise σ" value={s.noise} min={0} max={0.3} step={0.01} onChange={set('noise')} format={(v) => v.toFixed(2)} />
+        </AugGroup>
+        <AugGroup on={s.flip} toggle={<Toggle label="Horizontal flip (50% chance)" checked={s.flip} onChange={set('flip')} />} />
+        <AugGroup on={s.cutout} toggle={<Toggle label="Cutout (random erasing)" checked={s.cutout} onChange={set('cutout')} />} />
       </div>
       <Controls>
         <Button primary onClick={() => setSeed((x) => x + 1)}>

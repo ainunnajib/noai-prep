@@ -8,7 +8,8 @@
 
   TEST: 36 new students (three batches of 12), drawn at random from the same rule that generated the pattern
   (pass with probability 1 / (1 + e^(−1.6 z)), z = (revision − 5) + 0.9 × (sleep − 6.5)), with numpy seed 2.
-  On thousands of such new students the best straight line scores about 89% and 1-nearest-neighbour about 81%;
+  On thousands of such new students the best straight line scores about 89% and 1-nearest-neighbour about 82%
+  (81.5% to 81.6% over 200,000 simulated students, rechecked in Python);
   this sample (33/36 vs 29/36) is typical.
 */
 
@@ -44,8 +45,9 @@ export const PLOT_H = 373
 
 export const PASS_C = 'var(--viz-2)'
 export const FAIL_C = 'var(--viz-1)'
-export const PASS_BG = 'color-mix(in srgb, var(--viz-2) 20%, var(--surface))'
-export const FAIL_BG = 'color-mix(in srgb, var(--viz-1) 17%, var(--surface))'
+/** Region tints: set per theme by RegionVars (regions.module.css), with the light-mode tint as a fallback. */
+export const PASS_BG = 'var(--afl-pass-bg, color-mix(in srgb, var(--viz-2) 20%, var(--surface)))'
+export const FAIL_BG = 'var(--afl-fail-bg, color-mix(in srgb, var(--viz-1) 17%, var(--surface)))'
 export const colourOf = (pass: boolean) => (pass ? PASS_C : FAIL_C)
 
 export const dist2 = (ax: number, ay: number, bx: number, by: number) => (ax - bx) ** 2 + (ay - by) ** 2
@@ -218,12 +220,16 @@ export function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-/** "1.00 × revision + 0.60 × sleep > 8.91" with proper minus signs */
+/**
+ * The rule in the lesson's form, "score = 1.00 × revision + 0.60 × sleep − 8.91", with proper minus signs.
+ * (pass when a·x + b·y > c is the same as score = a·x + b·y − c > 0, so the bias is −c.)
+ */
 export function ruleText(r: LineRule): string {
   const term = (v: number, name: string, first: boolean) => {
     const sgn = v < 0 ? '−' : '+'
     const mag = Math.abs(v).toFixed(2)
     return first ? `${v < 0 ? '−' : ''}${mag} × ${name}` : ` ${sgn} ${mag} × ${name}`
   }
-  return `${term(r.a, 'revision', true)}${term(r.b, 'sleep', false)} > ${r.c < 0 ? '−' : ''}${Math.abs(r.c).toFixed(2)}`
+  const bias = -r.c
+  return `score = ${term(r.a, 'revision', true)}${term(r.b, 'sleep', false)} ${bias < 0 ? '−' : '+'} ${Math.abs(bias).toFixed(2)}`
 }

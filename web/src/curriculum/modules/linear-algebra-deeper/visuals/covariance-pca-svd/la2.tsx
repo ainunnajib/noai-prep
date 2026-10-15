@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { usePlot, mulberry32 } from '../../../../../kit'
-import { type M2, type V2, eig2, unit, dirV, mul, rot, transpose, det } from '../eigenvectors-eigenvalues/eig2'
+import { type M2, type V2, eig2, unit, dirV, mul, rot, transpose, det, fix } from '../eigenvectors-eigenvalues/eig2'
+import c from './cps.module.css'
 
 /*
   Shared helpers for the "Covariance, PCA and SVD" visuals: deterministic Gaussian clouds,
@@ -273,4 +275,59 @@ export function RightAngle({ at, a, b, size = 9, color = 'var(--viz-ink)' }: { a
   const p2 = [P[0] + (ua[0] + ub[0]) * size, P[1] + (ua[1] + ub[1]) * size]
   const p3 = [P[0] + ub[0] * size, P[1] + ub[1] * size]
   return <path d={`M${p1[0]},${p1[1]}L${p2[0]},${p2[1]}L${p3[0]},${p3[1]}`} style={{ fill: 'none', stroke: color, strokeWidth: 1.5 }} />
+}
+
+/* ---------------- compact matrices for factorisations (A = U·Σ·Vᵀ, A = Q·R) ---------------- */
+
+/** A small bracketed matrix whose cells size to their text, with a name above and an optional note below. */
+export function MiniMat({
+  rows,
+  name,
+  note,
+  on,
+  format = (v: number) => fix(v, 2),
+}: {
+  rows: (number | string)[][]
+  name: string
+  note?: ReactNode
+  on?: boolean
+  format?: (v: number) => string
+}) {
+  return (
+    <div className={`${c.matCard} ${on ? c.matCardOn : ''}`}>
+      <div className={c.miniName}>{name}</div>
+      <div className={c.miniBody}>
+        <div className={c.miniGrid} role="table" aria-label={`matrix ${name}`} style={{ gridTemplateColumns: `repeat(${rows[0]?.length ?? 1}, auto)` }}>
+          {rows.flatMap((r, i) =>
+            r.map((v, j) => (
+              <span key={`${i}-${j}`} role="cell" className={c.miniCell}>
+                {typeof v === 'number' ? format(v) : v}
+              </span>
+            )),
+          )}
+        </div>
+      </div>
+      {note && <div className={c.stageNote}>{note}</div>}
+    </div>
+  )
+}
+
+/** "lhs = f₁ · f₂ · …": the line may only break after the "=", never between the factors. */
+export function FactorRow({ lhs, factors }: { lhs: ReactNode; factors: ReactNode[] }) {
+  return (
+    <div className={c.factorRow}>
+      <div className={c.factorSide}>
+        {lhs}
+        <span className={c.op}>=</span>
+      </div>
+      <div className={c.factorSide}>
+        {factors.map((f, i) => (
+          <span key={i} className={c.factorItem}>
+            {i > 0 && <span className={c.op}>·</span>}
+            {f}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Figure, Controls, Button, Plot, Grid, Axes, Path, Dots, M, usePlayer, PlayerControls, useAnimationFrame } from '../../../../../kit'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Figure, Controls, Button, Plot, Grid, Axes, Path, Dots, M, usePlayer, PlayerControls, useAnimationFrame, usePlot } from '../../../../../kit'
 import s from './iid.module.css'
 
 /*
@@ -61,6 +61,12 @@ function frac(n: number, den: number): string {
 }
 const neg = (v: number) => (v === 0 ? 0 : -v)
 
+/** Clip children to the plotting area, so a big transformed house never spills out of the figure. */
+function Clip({ children }: { children: ReactNode }) {
+  const { clipId } = usePlot()
+  return <g clipPath={`url(#${clipId})`}>{children}</g>
+}
+
 export default function InverseUndo() {
   const [A, setA] = useState<Mat2>(PRESETS[0].A)
   const [text, setText] = useState<string[]>(['1', '-1', '1', '1'])
@@ -115,12 +121,12 @@ export default function InverseUndo() {
 
   const invTex = singular
     ? `A^{-1} = \\dfrac{1}{0}\\begin{bmatrix} ${d} & ${neg(b)} \\\\ ${neg(c)} & ${a} \\end{bmatrix} \\;\\Rightarrow\\; \\text{undefined}`
-    : `A^{-1} = \\dfrac{1}{${det}}\\begin{bmatrix} ${d} & ${neg(b)} \\\\ ${neg(c)} & ${a} \\end{bmatrix}${Math.abs(det) === 1 ? ` = \\begin{bmatrix} ${frac(d, det)} & ${frac(neg(b), det)} \\\\ ${frac(neg(c), det)} & ${frac(a, det)} \\end{bmatrix}` : ''}`
+    : `A^{-1} = ${det < 0 ? '-' : ''}\\dfrac{1}{${Math.abs(det)}}\\begin{bmatrix} ${d} & ${neg(b)} \\\\ ${neg(c)} & ${a} \\end{bmatrix}${Math.abs(det) === 1 ? ` = \\begin{bmatrix} ${frac(d, det)} & ${frac(neg(b), det)} \\\\ ${frac(neg(c), det)} & ${frac(a, det)} \\end{bmatrix}` : ''}`
 
   const messages = [
     <>The house as it starts. Nothing has been applied yet, which is the same as applying the identity I.</>,
     <>
-      Apply A: every point p moves to Ap. {singular ? <>det A = 0, so the area becomes 0: the whole house is flattened onto a line.</> : <>Every area is multiplied by |det A| = {Math.abs(det)}.</>}
+      Apply A: every point p moves to Ap. {singular ? <>det A = 0, so the area becomes 0: the whole house is flattened onto a line.</> : <>Every area is multiplied by |det A| = {Math.abs(det)}{det < 0 ? ', and the house is mirrored (det A is negative)' : ''}.</>}
     </>,
     singular ? (
       <>
@@ -175,9 +181,11 @@ export default function InverseUndo() {
         <Axes origin xTicks={6} yTicks={6} />
         {/* ghost of the original house */}
         <Path points={HOUSE} closed color="var(--viz-muted)" width={1.5} dash="5 4" />
-        <Path points={house} closed fill="color-mix(in srgb, var(--viz-1) 22%, transparent)" color={failed ? 'var(--viz-neg)' : 'var(--viz-1)'} width={2.5} />
-        <Path points={door} closed fill="color-mix(in srgb, var(--viz-2) 55%, transparent)" color="var(--viz-2)" width={2} />
-        <Dots points={[{ x: win[0], y: win[1], color: 'var(--viz-6)', r: 5 }]} />
+        <Clip>
+          <Path points={house} closed fill="color-mix(in srgb, var(--viz-1) 22%, transparent)" color={failed ? 'var(--viz-neg)' : 'var(--viz-1)'} width={2.5} />
+          <Path points={door} closed fill="color-mix(in srgb, var(--viz-2) 55%, transparent)" color="var(--viz-2)" width={2} />
+          <Dots points={[{ x: win[0], y: win[1], color: 'var(--viz-6)', r: 5 }]} />
+        </Clip>
       </Plot>
 
       <div className={`${s.status} ${failed ? s.statusBad : ''}`} aria-live="polite">

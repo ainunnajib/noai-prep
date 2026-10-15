@@ -1,5 +1,33 @@
 /* Local styles for the vision-tasks-and-detection visuals. */
 
+/* Pale "stuff" tints for the label maps (sky, building, road). Light tints vanish on a dark surface, so dark mode mixes in more colour. */
+.vts {
+  --sem-sky: color-mix(in srgb, var(--viz-1) 45%, var(--surface));
+  --sem-building: color-mix(in srgb, var(--viz-muted) 60%, var(--surface));
+  --sem-road: color-mix(in srgb, var(--viz-6) 50%, var(--surface));
+  --pan-sky: color-mix(in srgb, var(--viz-1) 26%, var(--surface));
+  --pan-building: color-mix(in srgb, var(--viz-muted) 40%, var(--surface));
+  --pan-road: color-mix(in srgb, var(--viz-6) 30%, var(--surface));
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .vts {
+    --sem-sky: color-mix(in srgb, var(--viz-1) 62%, var(--surface));
+    --sem-building: color-mix(in srgb, var(--viz-muted) 90%, var(--surface));
+    --sem-road: color-mix(in srgb, var(--viz-6) 66%, var(--surface));
+    --pan-sky: color-mix(in srgb, var(--viz-1) 46%, var(--surface));
+    --pan-building: color-mix(in srgb, var(--viz-muted) 70%, var(--surface));
+    --pan-road: color-mix(in srgb, var(--viz-6) 48%, var(--surface));
+  }
+}
+:global(:root[data-theme='dark']) .vts {
+  --sem-sky: color-mix(in srgb, var(--viz-1) 62%, var(--surface));
+  --sem-building: color-mix(in srgb, var(--viz-muted) 90%, var(--surface));
+  --sem-road: color-mix(in srgb, var(--viz-6) 66%, var(--surface));
+  --pan-sky: color-mix(in srgb, var(--viz-1) 46%, var(--surface));
+  --pan-building: color-mix(in srgb, var(--viz-muted) 70%, var(--surface));
+  --pan-road: color-mix(in srgb, var(--viz-6) 48%, var(--surface));
+}
+
 .ladder {
   display: flex;
   flex-wrap: wrap;
@@ -174,7 +202,7 @@
 }
 .stage small {
   color: var(--ink-3);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 .stage:hover {
   border-color: var(--accent-line);

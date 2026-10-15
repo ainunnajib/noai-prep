@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react'
 import { usePlot } from '../../../../../kit'
 import { type Run, type Student, PASS_C, FAIL_C, PASS_BG, FAIL_BG } from './students'
+import rc from './regions.module.css'
+
+/** Wrap region shading in this so it gets the theme-aware tints (stronger in dark mode). */
+export function RegionVars({ children }: { children: ReactNode }) {
+  return <g className={rc.vars}>{children}</g>
+}
 
 /** Background colouring: one rectangle per run of same-class grid cells. */
 export function Regions({ runs, opacity = 1 }: { runs: Run[]; opacity?: number }) {
   const { xs, ys, clipId } = usePlot()
   return (
-    <g clipPath={`url(#${clipId})`} aria-hidden="true" style={{ opacity }}>
+    <g clipPath={`url(#${clipId})`} aria-hidden="true" className={rc.vars} style={{ opacity }}>
       {runs.map((r, i) => (
         <rect
           key={i}
@@ -42,15 +48,23 @@ export function StudentMarks({ data, r = 6, hollow = false, dim = false }: { dat
   )
 }
 
-/** A ring around points that the classifier gets wrong; it blinks unless the reader prefers reduced motion. */
+/**
+ * A ring around points that the classifier gets wrong. A new ring blinks three times to catch the eye, then
+ * stays solid (keyed by position, so rings that stay wrong do not restart). No blinking with reduced motion.
+ */
 export function WrongRings({ pts, still, r = 11 }: { pts: { x: number; y: number }[]; still: boolean; r?: number }) {
   const { xs, ys } = usePlot()
   return (
     <g aria-hidden="true">
-      {pts.map((p, i) => (
-        <circle key={i} cx={xs(p.x)} cy={ys(p.y)} r={r} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2.5 }}>
-          {!still && <animate attributeName="opacity" values="1;0.15;1" dur="1.1s" repeatCount="indefinite" />}
-        </circle>
+      {pts.map((p) => (
+        <circle
+          key={`${p.x},${p.y}`}
+          className={still ? undefined : rc.blink}
+          cx={xs(p.x)}
+          cy={ys(p.y)}
+          r={r}
+          style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2.5 }}
+        />
       ))}
     </g>
   )

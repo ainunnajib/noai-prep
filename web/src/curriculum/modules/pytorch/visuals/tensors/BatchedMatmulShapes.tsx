@@ -21,8 +21,17 @@ interface Preset {
 }
 
 const PRESETS: Preset[] = [
-  { label: 'attention scores', a: [2, 4, 5, 8], b: [2, 4, 5, 8], an: 'Q', bn: 'K', tb: true, story: 'Q and K are (B, h, T, d) = (2 sentences, 4 heads, 5 tokens, 8 numbers per token).' },
-  { label: 'attention output', a: [2, 4, 5, 5], b: [2, 4, 5, 8], an: 'weights', bn: 'V', tb: false, story: 'The (B, h, T, T) attention weights mix the rows of V, which is (B, h, T, d).' },
+  { label: '8 products at once', a: [8, 5, 3], b: [8, 3, 2], an: 'A', bn: 'B', tb: false, story: 'A holds 8 matrices of size 5 × 3 and B holds 8 matrices of size 3 × 2. A @ B multiplies them in pairs: 8 separate products in one call.' },
+  {
+    label: 'attention scores',
+    a: [2, 4, 5, 16],
+    b: [2, 4, 5, 16],
+    an: 'Q',
+    bn: 'K',
+    tb: true,
+    story: 'Q and K are two stacks of token vectors, (B, h, T, d) = (2 sentences, 4 heads, 5 tokens, 16 numbers per token). Every token in Q is compared with every token in K.',
+  },
+  { label: 'attention output', a: [2, 4, 5, 5], b: [2, 4, 5, 16], an: 'weights', bn: 'V', tb: false, story: 'The (B, h, T, T) weights (one row of 5 weights per token) mix the rows of V, which is (B, h, T, d).' },
   { label: 'one weight, many sequences', a: [6, 3, 4], b: [4, 2], an: 'X', bn: 'W', tb: false, story: 'X holds 6 sequences of 3 tokens with 4 features; the same W is used for every sequence.' },
   { label: 'Linear by hand', a: [4, 3], b: [2, 3], an: 'x', bn: 'W', tb: true, story: 'x is a batch of 4 inputs with 3 features; nn.Linear(3, 2) stores W as (out, in) = (2, 3), so it computes x @ W.T.' },
   { label: 'broadcast a 1', a: [2, 1, 3, 4], b: [5, 4, 6], an: 'A', bn: 'B', tb: false, story: 'A size-1 batch dim (or a missing one) is stretched to match the other tensor.' },
@@ -61,7 +70,7 @@ export default function BatchedMatmulShapes() {
     const n = base.length
     const j = t && i >= n - 2 ? (i === n - 1 ? n - 2 : n - 1) : i
     const next = base.slice()
-    next[j] = Math.max(1, Math.min(9, next[j] + delta))
+    next[j] = Math.max(1, Math.min(16, next[j] + delta))
     ;(which === 'a' ? setA : setB)(next)
   }
   const addDim = (which: 'a' | 'b', delta: number) => {
@@ -105,7 +114,7 @@ export default function BatchedMatmulShapes() {
           return (
             <div key={col} style={{ display: 'grid', justifyItems: 'center', gap: 1 }}>
               {which !== 'r' && (
-                <button type="button" className="btn btn-small" style={stepBtn} onClick={() => edit(which, i, 1)} aria-label={`increase size ${i} of ${which === 'a' ? p.an : p.bn}`}>
+                <button type="button" className={`btn btn-small ${css.stepBtn}`} style={stepBtn} onClick={() => edit(which, i, 1)} aria-label={`increase size ${i} of ${which === 'a' ? p.an : p.bn}`}>
                   ▲
                 </button>
               )}
@@ -114,7 +123,7 @@ export default function BatchedMatmulShapes() {
                 <span className={css.chipName}>{rl === 'batch' ? 'batch' : rl}</span>
               </span>
               {which !== 'r' && (
-                <button type="button" className="btn btn-small" style={stepBtn} onClick={() => edit(which, i, -1)} aria-label={`decrease size ${i} of ${which === 'a' ? p.an : p.bn}`}>
+                <button type="button" className={`btn btn-small ${css.stepBtn}`} style={stepBtn} onClick={() => edit(which, i, -1)} aria-label={`decrease size ${i} of ${which === 'a' ? p.an : p.bn}`}>
                   ▼
                 </button>
               )}
@@ -138,13 +147,15 @@ export default function BatchedMatmulShapes() {
         <>
           Only the <b>last two</b> dims take part in the matrix product: (rows <M c="m" />, inner <M c="k" />) @ (inner <M c="k" />, columns{' '}
           <M c="n" />) gives (<M c="m" />, <M c="n" />), and the two orange sizes must be equal. The purple batch dims are lined up from the right and
-          must be equal, 1, or missing. Click ▲▼ to change sizes, switch <code>.transpose(-2, -1)</code> on and off, and read the real PyTorch error when it
+          must be equal, 1, or missing. Start with 8 products at once, then pick attention scores. Click ▲▼ to change sizes, switch <code>.transpose(-2, -1)</code> on and off, and read the real PyTorch error when it
           breaks.
         </>
       }
     >
       <Controls>
-        <Segmented label="Scenario" value={pi} onChange={choose} options={PRESETS.map((x, i) => ({ value: i, label: x.label }))} />
+        <div className={css.segGridWide}>
+          <Segmented label="Scenario" value={pi} onChange={choose} options={PRESETS.map((x, i) => ({ value: i, label: x.label }))} />
+        </div>
       </Controls>
       <div className={css.note}>{p.story}</div>
 
@@ -221,7 +232,7 @@ export default function BatchedMatmulShapes() {
   )
 }
 
-const stepBtn = { padding: '0 0.45rem', minHeight: 0, lineHeight: 1.3, fontSize: '0.6rem' }
+const stepBtn = { padding: '0.15rem 0.55rem', minHeight: 0, minWidth: 34, lineHeight: 1.3, fontSize: '0.75rem' }
 
 function M({ c }: { c: 'm' | 'k' | 'n' }) {
   return <b style={{ color: COL[c], fontFamily: 'var(--font-mono)' }}>{c}</b>

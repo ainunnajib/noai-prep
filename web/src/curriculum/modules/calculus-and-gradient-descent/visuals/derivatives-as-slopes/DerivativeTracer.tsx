@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, VLine, DraggablePoint, useAnimationFrame, useNarrow } from '../../../../../kit'
-import { TangentSeg, fx, panelTitle } from './plotHelpers'
+import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, VLine, useAnimationFrame, useNarrow } from '../../../../../kit'
+import { Handle, TangentSeg, Verdict, fx, panelTitle } from './plotHelpers'
 
 /*
   f(x) on top with a tangent at a draggable point; f'(x) underneath on the same x-axis.
@@ -85,6 +85,7 @@ export default function DerivativeTracer() {
   const [showD, setShowD] = useState(true)
   const [visited, setVisited] = useState<boolean[]>(() => Array(BINS + 1).fill(false))
   const [sweeping, setSweeping] = useState(false)
+  const [used, setUsed] = useState(false) // hide the 'drag me' label once the point has moved
   const [ref, narrow] = useNarrow<HTMLDivElement>(520)
 
   const span = P.x[1] - P.x[0]
@@ -107,6 +108,7 @@ export default function DerivativeTracer() {
     const c = Math.max(P.x[0], Math.min(P.x[1], v))
     visit(x, c)
     setX(c)
+    setUsed(true)
   }
 
   const choose = (k: string) => {
@@ -191,14 +193,14 @@ export default function DerivativeTracer() {
               <VLine key={c.x} x={c.x} color="var(--viz-6)" />
             ))}
             {P.crit.map((c) => (
-              <Label key={`l${c.x}`} x={c.x} y={P.y[1]} dy={14} anchor="middle" color="var(--viz-6)" size={12} weight={700}>
+              <Label key={`l${c.x}`} x={c.x} y={P.y[1]} dy={14} anchor="middle" color="var(--ink-2)" size={12} weight={700}>
                 {c.kind}
               </Label>
             ))}
             <FnPath f={P.f} color="var(--viz-1)" width={3} />
             <TangentSeg x={x} y={fxv} slope={slope} len={narrow ? 52 : 70} color={tone} width={3} />
             <VLine x={x} color="var(--viz-muted)" dash="2 4" width={1.2} />
-            <DraggablePoint x={x} y={fxv} color="var(--viz-2)" label="drag me" constrain={(nx) => [nx, P.f(nx)]} onChange={(nx) => moveTo(nx)} />
+            <Handle x={x} y={fxv} color="var(--viz-2)" label={used ? undefined : 'drag me'} ariaLabel={`point on the curve: drag along ${v}`} constrain={(nx) => [nx, P.f(nx)]} onChange={(nx) => moveTo(nx)} />
           </Plot>
         </div>
         <div style={{ width: '100%' }}>
@@ -234,7 +236,7 @@ export default function DerivativeTracer() {
           [v, fx(x, 2)],
           [key === 'loss' ? 'L(w)' : 'f(x)', fx(fxv, 2)],
           [key === 'loss' ? 'slope L′(w)' : 'slope f′(x)', fx(slope, 2)],
-          ['so the curve is', <span key="v" style={{ color: tone }}>{verdict}</span>],
+          ['so the curve is', <Verdict key="v" tone={tone}>{verdict}</Verdict>],
         ]}
       />
     </Figure>

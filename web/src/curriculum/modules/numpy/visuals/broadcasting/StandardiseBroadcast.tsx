@@ -27,12 +27,12 @@ const Z = CEN.map((r) => r.map((v, j) => v / SD[j]))
 const COLS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
 
 const STEPS: { text: ReactNode; code: string }[] = [
-  { text: 'X has shape (5, 3): 5 students and 3 features on very different scales. On the shared axis below, height swamps everything.', code: 'X.shape  # (5, 3)' },
-  { text: 'Step 1: one mean per column. mu = X.mean(axis=0) has shape (3,).', code: 'mu = X.mean(axis=0)   # [165.  55.   4.]' },
-  { text: 'Step 2: (5, 3) − (3,). Lined up from the right, 3 matches 3, and the missing axis counts as 1, so mu is stretched down all 5 rows (dashed copies).', code: 'X - mu   # (5, 3) - (3,) -> (5, 3)' },
-  { text: 'Step 3: every column now averages 0. The features are centred, but their spreads still differ (±15 cm against ±3 hours).', code: 'Xc = X - mu' },
-  { text: 'Step 4: one standard deviation per column, sd = X.std(axis=0), shape (3,), stretched down the rows in exactly the same way.', code: 'sd = X.std(axis=0)    # [10.  4.  2.]' },
-  { text: 'Step 5: every column now has mean 0 and standard deviation 1. One broadcast line standardised all three features at once.', code: 'Z = (X - mu) / sd' },
+  { text: 'X has shape (5, 3): 5 students and 3 features on very different scales. On the shared axis below, height swamps everything.', code: 'X.shape\n# (5, 3)' },
+  { text: 'Step 1: one mean per column. mu = X.mean(axis=0) has shape (3,).', code: 'mu = X.mean(axis=0)\n# [165.  55.   4.]' },
+  { text: 'Step 2: (5, 3) − (3,). Lined up from the right, 3 matches 3, and the missing axis counts as 1, so mu is stretched down all 5 rows (dashed copies).', code: 'X - mu\n# (5, 3) - (3,) -> (5, 3)' },
+  { text: 'Step 3: every column now averages 0. The features are centred, but their spreads still differ (±15 cm against ±3 hours).', code: 'Xc = X - mu\n# column means: [0. 0. 0.]' },
+  { text: 'Step 4: one standard deviation per column, sd = X.std(axis=0), shape (3,), stretched down the rows in exactly the same way.', code: 'sd = X.std(axis=0)\n# [10.  4.  2.]' },
+  { text: 'Step 5: every column now has mean 0 and standard deviation 1. One broadcast line standardised all three features at once.', code: 'Z = (X - mu) / sd\n# means 0, standard deviations 1' },
 ]
 
 const fmt1 = (v: number) => (Math.abs(v) < 1e-9 ? '0.0' : v.toFixed(1))

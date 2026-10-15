@@ -45,6 +45,18 @@ function PowerTicks() {
 const YMIN = -10
 const YMAX = 10
 const clampY = (y: number) => Math.max(YMIN - 0.5, Math.min(YMAX + 0.5, y))
+const inRange = (y: number) => y >= YMIN - 1e-9 && y <= YMAX + 1e-9
+
+/** where a path ends on the chart: its last point, or the point where it leaves the chart */
+function endOf(pts: [number, number][]) {
+  const last = pts[pts.length - 1]
+  if (inRange(last[1])) return { x: last[0], y: last[1], off: false }
+  const i = pts.findIndex(([, y]) => !inRange(y))
+  const bound = pts[i][1] < YMIN ? YMIN : YMAX
+  const [x0, y0] = pts[i - 1]
+  const [x1, y1] = pts[i]
+  return { x: x0 + ((bound - y0) / (y1 - y0)) * (x1 - x0), y: bound, off: true }
+}
 
 export default function GradientThroughTime() {
   const [r, setR] = useState(0.6)
@@ -52,15 +64,26 @@ export default function GradientThroughTime() {
   const [K, setK] = useState(30)
   const [ref, narrow] = useNarrow<HTMLDivElement>(480)
   const ks = Array.from({ length: K + 1 }, (_, k) => k)
-  const rnn = ks.map((k) => [k, clampY(k * Math.log10(r))] as [number, number])
-  const lstm = ks.map((k) => [k, clampY(k * Math.log10(f))] as [number, number])
+  const rnnRaw = ks.map((k) => [k, k * Math.log10(r)] as [number, number])
+  const lstmRaw = ks.map((k) => [k, k * Math.log10(f)] as [number, number])
+  const rnn = rnnRaw.map(([x, y]) => [x, clampY(y)] as [number, number])
+  const lstm = lstmRaw.map(([x, y]) => [x, clampY(y)] as [number, number])
+  const every = Math.ceil(K / 15)
+  // dots only where the true value is on the chart (no dots piled up along the edge)
+  const shown = (pts: [number, number][]) => pts.filter(([, y], i) => (i % every === 0 || i === K) && inRange(y))
+  const rEnd = endOf(rnnRaw)
+  const lEnd = endOf(lstmRaw)
+  // direct labels: below a falling line, above a rising or flat one; split them if they would touch
+  const close = !rEnd.off && !lEnd.off && Math.abs(rEnd.y - lEnd.y) < 1.6
+  const rDy = close ? (rEnd.y <= lEnd.y ? 17 : -9) : r < 1 ? 17 : -9
+  const lDy = close ? (lEnd.y < rEnd.y ? 17 : -9) : f < 1 ? 17 : -9
 
   return (
     <Figure
       title="How much gradient survives the trip back in time?"
       caption={
         <>
-          Going back one step multiplies the gradient by one factor, so after <M>k</M> steps it is <M>{'r^k'}</M> for a plain RNN and <M>{'f^k'}</M> along an LSTM's cell state (log scale:
+          Going back one step multiplies the gradient by one factor, so after <M>k</M> steps it is <M>{'r^k'}</M> for a plain RNN (circles) and <M>{'f^k'}</M> along an LSTM's cell state (squares; log scale:
           each faint grid line is 10 times smaller than the one above). Slide the RNN factor below 1 and the signal from 30 words ago all but vanishes; push it above 1 and it explodes. The LSTM's forget gate can sit just below
           1, so the signal fades slowly instead.
         </>
@@ -71,16 +94,34 @@ export default function GradientThroughTime() {
         <Rect x0={0} x1={K} y0={YMIN} y1={-3} fill="color-mix(in srgb, var(--viz-1) 9%, transparent)" />
         <Rect x0={0} x1={K} y0={3} y1={YMAX} fill="color-mix(in srgb, var(--viz-neg) 9%, transparent)" />
         <Grid xTicks={5} yTicks={20} />
-        <Label x={K} y={-9.4} anchor="end" dx={-6} color="var(--ink-2)" size={12}>
+        <Label x={0} y={YMIN} anchor="start" dx={6} dy={-6} color="var(--ink-2)" size={12}>
           {narrow ? 'vanishing' : 'vanishing: almost no learning signal'}
         </Label>
-        <Label x={K} y={9.4} anchor="end" dx={-6} dy={8} color="var(--ink-2)" size={12}>
+        <Label x={0} y={YMAX} anchor="start" dx={6} dy={15} color="var(--ink-2)" size={12}>
           {narrow ? 'exploding' : 'exploding: huge, unstable updates'}
         </Label>
         <Path points={rnn} color="var(--viz-2)" width={2.5} />
         <Path points={lstm} color="var(--viz-3)" width={2.5} />
-        <Dots points={rnn.filter((_, i) => i % Math.ceil(K / 15) === 0 || i === K).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-2)' }))} />
-        <Dots points={lstm.filter((_, i) => i % Math.ceil(K / 15) === 0 || i === K).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-3)', shape: 'square' as const }))} />
+        <Dots points={shown(rnnRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-2)' }))} />
+        <Dots points={shown(lstmRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-3)', shape: 'square' as const }))} />
+        {rEnd.off ? (
+          <Label x={rEnd.x} y={rEnd.y} anchor={rEnd.x > K * 0.6 ? 'end' : 'start'} dx={rEnd.x > K * 0.6 ? -4 : 4} dy={rEnd.y < 0 ? -22 : 30} color="var(--viz-2)" size={12} weight={700}>
+            {`RNN rᵏ ${rEnd.y < 0 ? '▼' : '▲'} off the chart`}
+          </Label>
+        ) : (
+          <Label x={rEnd.x} y={rEnd.y} anchor="end" dx={-4} dy={rDy} color="var(--viz-2)" size={12} weight={700}>
+            RNN rᵏ
+          </Label>
+        )}
+        {lEnd.off ? (
+          <Label x={lEnd.x} y={lEnd.y} anchor={lEnd.x > K * 0.6 ? 'end' : 'start'} dx={lEnd.x > K * 0.6 ? -4 : 4} dy={-38} color="var(--viz-3)" size={12} weight={700}>
+            LSTM fᵏ ▼ off the chart
+          </Label>
+        ) : (
+          <Label x={lEnd.x} y={lEnd.y} anchor="end" dx={-4} dy={lDy} color="var(--viz-3)" size={12} weight={700}>
+            LSTM fᵏ
+          </Label>
+        )}
         <Axes xLabel="steps back in time →" yLabel="gradient size" xTicks={5} hideYTicks />
         <PowerTicks />
       </Plot>

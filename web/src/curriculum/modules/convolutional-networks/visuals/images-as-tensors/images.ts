@@ -82,8 +82,11 @@ export const SEVEN: number[][] = [
 ]
 
 /**
- * A synthetic chest X-ray, n×n greyscale (0-255). `density` in [0, 1] makes the lungs hazier
- * (whiter), the way fluid or denser tissue does. Bright = dense (bone, heart), dark = air.
+ * A synthetic chest X-ray, n×n greyscale (0-255). `density` in [0, 1] adds a whitish haze, the way
+ * fluid or denser tissue does: it lifts the whole picture and lowers its contrast (a fixed affine change
+ * v -> v(1 - 0.4d) + 100d), and makes the lungs slightly denser. Bright = dense (bone, heart), dark = air.
+ * Because the haze is mostly one affine change per image, per-image standardisation removes it almost
+ * completely, which is exactly the information loss the lesson describes.
  */
 export function makeXray(n: number, density: number, seed: number): number[][] {
   const rnd = mulberry32(seed)
@@ -101,15 +104,15 @@ export function makeXray(n: number, density: number, seed: number): number[][] {
       // lungs: two dark lobes
       const lungL = ((u + 0.42) / 0.3) ** 2 + ((v + 0.02) / 0.62) ** 2 < 1
       const lungR = ((u - 0.42) / 0.3) ** 2 + ((v + 0.02) / 0.62) ** 2 < 1
-      if (lungL || lungR) val = 52 + 120 * density
+      if (lungL || lungR) val = 52 + 18 * density
       // ribs: bright bands crossing the lungs
       if ((lungL || lungR) && Math.abs(Math.sin((v - 0.45 * u * u) * 10)) > 0.88) val += 42
       // spine and heart
       if (Math.abs(u) < 0.09 && body) val = 205
       if (((u + 0.12) / 0.26) ** 2 + ((v - 0.3) / 0.24) ** 2 < 1) val = 190
-      // overall exposure: a denser patient also scatters more, lifting the whole image slightly
-      val += 14 * density
       val += (rnd() - 0.5) * 18
+      // haze: lifts everything and lowers the contrast
+      val = val * (1 - 0.4 * density) + 100 * density
       row.push(Math.max(0, Math.min(255, Math.round(val))))
     }
     img.push(row)

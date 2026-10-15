@@ -44,6 +44,8 @@ export default function TFIDFTable() {
     const m = Math.max(...row)
     return m > 0 ? terms.filter((_, j) => Math.abs(row[j] - m) < 1e-9) : []
   })
+  // a "top word" is only shown when there is a clear winner (at most a 2-way tie)
+  const clear = top.map((tw) => tw.length > 0 && tw.length <= 2)
 
   const heat = (v: number) => (v > 0 ? `color-mix(in srgb, ${useIdf ? 'var(--viz-2)' : 'var(--viz-1)'} ${Math.round(12 + (v / maxW) * 58)}%, var(--surface))` : undefined)
   const cols = narrow ? `minmax(3.4rem, max-content) repeat(${N}, 2.35rem) 1.6rem 2.5rem` : `minmax(4.2rem, max-content) repeat(${N}, 2.9rem) 2.2rem 3rem`
@@ -56,7 +58,8 @@ export default function TFIDFTable() {
         <>
           Rows are vocabulary words (most common first), columns are documents. With <b>multiply by IDF</b> off you see plain counts; switch it on
           and every count is multiplied by its word&apos;s IDF. Words found in every document (<code>the</code>, <code>is</code>) get IDF 0 and
-          vanish, while rare words light up: the bottom row names each document&apos;s most distinctive word. Edit a document or add a fifth one. The
+          vanish, while rare words light up: the bottom row names each document&apos;s most distinctive word (with plain counts the words of a document
+          usually tie, so there is no clear winner). Edit a document or add a fifth one. The
           smoothed formula (scikit-learn&apos;s) never gives exactly 0, so common words keep the smallest weight instead of vanishing, but the pattern
           is the same: common words lowest, rare words highest.
         </>
@@ -113,7 +116,7 @@ export default function TFIDFTable() {
             <Fragment key={t}>
               <span className={s.term}>{t}</span>
               {W.map((row, i) => (
-                <span key={i} className={`${s.td} ${row[j] ? '' : s.tdMuted} ${top[i].includes(t) ? s.tdStrong : ''}`} style={{ background: heat(row[j]) }}>
+                <span key={i} className={`${s.td} ${row[j] ? '' : s.tdMuted} ${clear[i] && top[i].includes(t) ? s.tdStrong : ''}`} style={{ background: heat(row[j]) }}>
                   {fmt(row[j])}
                 </span>
               ))}
@@ -127,15 +130,16 @@ export default function TFIDFTable() {
             top word
           </span>
           {top.map((tw, i) => (
-            <span key={i} className={s.foot} style={{ fontSize: narrow ? '0.66rem' : undefined }}>
-              {tw.length
-                ? tw.slice(0, 2).map((w) => (
+            <span key={i} className={s.foot} style={{ fontSize: narrow ? '0.7rem' : undefined }}>
+              {clear[i]
+                ? tw.map((w) => (
                     <span key={w} style={{ display: 'block' }}>
                       {w}
                     </span>
                   ))
-                : '–'}
-              {tw.length > 2 && <span style={{ display: 'block', color: 'var(--ink-3)' }}>+{tw.length - 2}</span>}
+                : tw.length
+                  ? <span style={{ display: 'block', color: 'var(--ink-3)' }}>{tw.length}-way tie</span>
+                  : '–'}
             </span>
           ))}
           <span />

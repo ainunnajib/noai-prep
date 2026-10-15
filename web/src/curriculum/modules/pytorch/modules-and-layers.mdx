@@ -3,7 +3,7 @@ import LinearShapeMatcher from './visuals/modules-and-layers/LinearShapeMatcher'
 import StateDictViewer from './visuals/modules-and-layers/StateDictViewer'
 import ParamBufferInspector from './visuals/modules-and-layers/ParamBufferInspector'
 
-In the autograd lesson you trained two loose tensors, `w` and `b`, by hand. A real model has dozens of weight tensors arranged in layers, and you need a tidy way to build them, hand all of them to the optimiser, move them to a GPU and save them to a file. That is what `nn.Module` does. Every PyTorch model, from a two-layer network to GPT, is an `nn.Module`, and almost every NOAI Final task that says "implement this model in PyTorch" starts with the same ten-line pattern you will learn here.
+In the autograd lesson you trained two loose tensors, `w` and `b`, by hand. A real model has dozens of weight tensors in layers, and `nn.Module` is the tidy way to build them, hand them all to the optimiser, move them to a GPU and save them. Every PyTorch model, from a two-layer network to GPT, is an `nn.Module`, and almost every NOAI Final task that says "implement this model in PyTorch" starts with the ten-line pattern you will learn here.
 
 <Analogy title="Setting up a hawker stall">
 
@@ -17,7 +17,7 @@ Here is a complete model: 4 input features, a hidden layer of 8 neurons with ReL
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 
 class TinyNet(nn.Module):
     def __init__(self):
@@ -150,7 +150,7 @@ So the layer holds $\text{out} \times \text{in} + \text{out}$ parameters. Notice
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 
 layer = nn.Linear(3, 2)
 print(layer.weight.shape, layer.bias.shape)
@@ -205,7 +205,7 @@ When the data simply flows through layers one after another, `nn.Sequential` bui
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 
 model = nn.Sequential(
     nn.Linear(4, 8),
@@ -231,13 +231,42 @@ The layers are named by position, and position 1 (ReLU) has no parameters. It is
 
 <PastPaperQuestion paper="prelim2026" n={120} />
 
+### A custom loss is a module too
+
+Losses such as `nn.MSELoss()` are modules as well. To write your own, subclass `nn.Module` and compute the loss in `forward` from torch operations. Autograd then differentiates it for free, with no gradient code from you:
+
+```python
+import torch
+import torch.nn as nn
+
+class RMSELoss(nn.Module):
+    def forward(self, pred, target):                  # no layers, so no __init__ needed
+        return torch.sqrt(((pred - target) ** 2).mean())
+
+criterion = RMSELoss()
+pred = torch.tensor([2.0, 4.0], requires_grad=True)
+loss = criterion(pred, torch.tensor([3.0, 6.0]))
+loss.backward()                                       # autograd differentiates it for free
+print(loss)
+print(pred.grad)
+```
+
+```text
+tensor(1.5811, grad_fn=<SqrtBackward0>)
+tensor([-0.3162, -0.6325])
+```
+
+The errors are $-1$ and $-2$, so the loss is $\sqrt{(1 + 4)/2} = \sqrt{2.5} \approx 1.581$. A plain Python function built from torch operations works just as well (autograd records the operations either way); what breaks the gradient is leaving torch, for example with `.item()` or NumPy, in the middle of the calculation.
+
+<PastPaperQuestion paper="prelim2026" n={119} />
+
 ## Saving and loading: the state_dict
 
 Everything a model has learned is in its <Term def="An ordered dictionary that maps the name of each parameter and buffer (like 'fc1.weight') to its tensor. It holds everything a model has learned, but none of its code.">state_dict</Term>: a dictionary from names to tensors. Saving a model means saving that dictionary:
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 
 class TinyNet(nn.Module):
     def __init__(self):
@@ -280,7 +309,7 @@ It is like saving your game progress rather than copying the whole game installe
 
 </Mistake>
 
-Why not save the whole object with `torch.save(model, path)`? That pickles the Python object together with a reference to your class's file and name, so the file breaks when you rename or move your code, and unpickling a file can run arbitrary code. Since PyTorch 2.6, `torch.load` refuses such files by default (it raises `UnpicklingError: Weights only load failed`) unless you pass `weights_only=False` for a file you trust. A `state_dict` holds only tensors, so it loads safely everywhere.
+Why not save the whole object with `torch.save(model, path)`? That <Term def="Pickle is Python's way of saving any object to a file, including references to the code that defines it. Loading (unpickling) a file can run code hidden inside it, so only load pickles you trust.">pickles</Term> the Python object together with a reference to your class's file and name, so the file breaks when you rename or move your code, and loading a pickle can run any code hidden inside it. Since PyTorch 2.6, `torch.load` refuses such files by default (it raises `UnpicklingError: Weights only load failed`) unless you pass `weights_only=False` for a file you trust. A `state_dict` holds only tensors, so it loads safely everywhere.
 
 <Tip>
 
@@ -340,7 +369,7 @@ A <Term def="A tensor registered with self.register_buffer: it is part of the mo
 
 ```python
 import torch
-from torch import nn
+import torch.nn as nn
 
 class MyNorm(nn.Module):
     def __init__(self, n=3, momentum=0.1, eps=1e-5):
@@ -356,15 +385,17 @@ class MyNorm(nn.Module):
         self.momentum, self.eps = momentum, eps
 
     def forward(self, x):
-        if self.training:
+        if self.training:                # True after model.train(), False after model.eval()
             mean = x.mean(dim=0)
-            var = x.var(dim=0, unbiased=False)
+            var = x.var(dim=0, unbiased=False)   # divide by n, not n - 1
             with torch.no_grad():        # update the state in place, unrecorded
+                # a trailing _ means "change this tensor in place": old * 0.9 + 0.1 * batch
                 self.running_mean.mul_(1 - self.momentum).add_(self.momentum * mean)
                 self.running_var.mul_(1 - self.momentum).add_(self.momentum * var)
                 self.num_batches += 1
         else:
             mean, var = self.running_mean, self.running_var
+        # eps is a tiny number that stops a division by 0
         return self.gamma * (x - mean) / torch.sqrt(var + self.eps) + self.beta
 
 norm = MyNorm(3)
@@ -386,6 +417,8 @@ tensor([0.2000, 0.4000, 0.5000]) tensor([1.0000, 1.1000, 1.1000]) tensor(1)
 False
 ```
 
+<Reveal label="Check the running statistics by hand">
+
 <Steps title="Check the running statistics by hand">
   <Step title="Batch mean of each column">
     Column 1 is $1, 3, 1, 3$, mean $2$. Column 2 is $2, 6, 4, 4$, mean $4$. Column 3 is $3, 5, 7, 5$, mean $5$.
@@ -398,7 +431,19 @@ False
   </Step>
 </Steps>
 
-Two details in `forward` matter. The buffers are updated **in place** (`mul_`, `add_`) so they stay the same registered tensors, and inside `torch.no_grad()` so the update is not recorded. If you wrote `self.running_mean = 0.9 * self.running_mean + 0.1 * mean` instead, in a real network (where `x` comes from earlier layers) the new tensor would carry the autograd graph of every batch along with it, with `requires_grad=True`.
+</Reveal>
+
+MyNorm keeps things simple. The built-in `nn.BatchNorm1d` normalises with this same divide-by-$n$ variance, but the variance it stores in `running_var` is the unbiased one, multiplied by $\frac{n}{n-1}$ (on this batch it stores $[1.0333, 1.1667, 1.1667]$).
+
+Two details in `forward` matter. The buffers are updated **in place** (`mul_`, `add_`) so they stay the same registered tensors, and inside `torch.no_grad()` so the update is not recorded.
+
+<Reveal label="Why in place? What goes wrong with an ordinary assignment">
+
+Suppose you wrote `self.running_mean = 0.9 * self.running_mean + 0.1 * mean` instead. Two things go wrong. In a real network, where `x` comes from earlier layers, the new tensor carries autograd history (`requires_grad=True`), chaining every batch's graph onto the buffer. And it is a brand-new tensor rather than a write into the buffer's own memory, so when PyTorch runs the module as a temporary copy (as `nn.DataParallel` does to use several GPUs), the new value lands on the throwaway copy and is lost: the real buffers stay at 0 and 1, and `model.eval()` predictions are poor although training looked fine. Updating in place inside `torch.no_grad()` avoids both, which is exactly what PyTorch's own BatchNorm does.
+
+</Reveal>
+
+<PastPaperQuestion paper="final2026" n={8} />
 
 Now change how each tensor is registered and see what follows:
 
@@ -432,6 +477,10 @@ self.table = torch.ones(4, 4)`}
 The Prelim asks these as one-liners: `nn.Module` is the base class for all layers and models; the forward pass is the `forward()` method, run by calling `model(x)`; a fully connected layer is `nn.Linear(in, out)`; `model.parameters()` (or `named_parameters()`) gives the weights; `nn.Sequential` stacks layers in order; a model is saved with `torch.save(model.state_dict(), path)`. In the Final, the class skeleton is the first thing you write: put a shape comment after every line of `forward`.
 
 </ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={114} />
+
+<PastPaperQuestion paper="prelim2026" n={117} />
 
 <Takeaways>
 

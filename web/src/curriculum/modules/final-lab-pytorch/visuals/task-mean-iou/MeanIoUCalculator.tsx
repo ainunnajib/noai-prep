@@ -45,7 +45,23 @@ const PRESETS: Record<PresetId, { label: string; pred: Grid; truth: Grid; k: num
 
 const clone = (g: Grid) => g.map((r) => [...r])
 
-function LabelGrid({ g, k, cell, onPaint, label, diff }: { g: Grid; k: number; cell: number; onPaint: (i: number, j: number) => void; label: string; diff?: Grid }) {
+function LabelGrid({
+  g,
+  k,
+  cell,
+  onPaint,
+  label,
+  diff,
+  brush,
+}: {
+  g: Grid
+  k: number
+  cell: number
+  onPaint: (i: number, j: number) => void
+  label: string
+  diff?: Grid
+  brush: number
+}) {
   return (
     <div className={m.gridBox}>
       <span className={m.gridLabel}>{label}</span>
@@ -57,7 +73,7 @@ function LabelGrid({ g, k, cell, onPaint, label, diff }: { g: Grid; k: number; c
               type="button"
               className={`${m.cell} ${diff && diff[i][j] !== v ? m.cellDiff : ''}`}
               style={{ width: cell, height: cell, fontSize: cell > 36 ? 15 : 11, background: `color-mix(in srgb, ${CLASS_COLOURS[v % k]} 55%, var(--surface))` }}
-              aria-label={`${label} row ${i}, column ${j}: class ${v} (${CLASS_NAMES[v]})`}
+              aria-label={`${label}, row ${i} column ${j}: ${CLASS_NAMES[v]} (class ${v}). Click to paint ${CLASS_NAMES[brush]}.`}
               onClick={() => onPaint(i, j)}
             >
               {v}
@@ -129,8 +145,8 @@ export default function MeanIoUCalculator() {
       caption={
         <>
           Click cells to paint them with the chosen class (a thick outline marks pixels where prediction and target disagree). Pick a class to inspect its four
-          boolean masks: <code>&amp;</code> keeps pixels where both are True (the intersection), <code>|</code> keeps pixels where either is (the union). Paint one
-          Water pixel into the prediction and watch Water stop being skipped and score 0. Then load the notebook's 2 × 2 example and check you get 0.5833.
+          boolean masks: <code>&amp;</code> keeps pixels where both are True (the intersection), <code>|</code> keeps pixels where either is (the union). In the
+          satellite example, paint one Water pixel into the prediction and watch Water stop being skipped and score 0. Then load the notebook's 2 × 2 example and check you get 0.5833.
         </>
       }
     >
@@ -142,8 +158,8 @@ export default function MeanIoUCalculator() {
           onChange={load}
         />
         <div className={m.row} style={narrow ? { gap: '0.6rem 0.7rem' } : undefined}>
-          <LabelGrid g={pred} k={k} cell={cell} onPaint={paint('pred')} label="pred_mask" diff={truth} />
-          <LabelGrid g={truth} k={k} cell={cell} onPaint={paint('truth')} label="true_mask" diff={pred} />
+          <LabelGrid g={pred} k={k} cell={cell} onPaint={paint('pred')} label="pred_mask" diff={truth} brush={brush} />
+          <LabelGrid g={truth} k={k} cell={cell} onPaint={paint('truth')} label="true_mask" diff={pred} brush={brush} />
         </div>
         <Controls>
           <Chips
@@ -163,8 +179,8 @@ export default function MeanIoUCalculator() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', justifyContent: 'center', gap: '0.7rem 1.4rem', width: '100%' }}>
             <Mask on={P} cols={cols} cell={mcell} colour={col} label={`p = pred == ${inspect}`} count={s.p} />
             <Mask on={T} cols={cols} cell={mcell} colour={col} label={`t = true == ${inspect}`} count={s.t} />
-            <Mask on={P.map((v, i) => v && T[i])} cols={cols} cell={mcell} colour="var(--viz-5)" label="p & t" count={s.i} />
-            <Mask on={P.map((v, i) => v || T[i])} cols={cols} cell={mcell} colour="var(--viz-6)" label="p | t" count={s.u} />
+            <Mask on={P.map((v, i) => v && T[i])} cols={cols} cell={mcell} colour={col} label="p & t" count={s.i} />
+            <Mask on={P.map((v, i) => v || T[i])} cols={cols} cell={mcell} colour={`color-mix(in srgb, ${col} 45%, var(--surface))`} label="p | t" count={s.u} />
           </div>
           <CodePanel
             title={`for cls in range(${k}):   # now cls = ${inspect}`}

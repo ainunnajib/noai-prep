@@ -17,10 +17,10 @@ const LEX_SRC: Record<(typeof DIMS)[number], string> = {
   when: 'when date day time schedule start begin wednesday saturday january february march pm am week 2027 deadline until held:0.5 days:0.5 long:0.5',
   where: 'where venue place location room lab hall held:0.5 school:0.5 centre space',
   cost: 'cost price fee pay much dollar $ cents fine money cheap expensive covering',
-  exam: 'exam mock test prelim:0.5 score marks paper:0.5 quiz',
+  exam: 'exam mock test prelim:0.5 score marks paper:0.5 quiz pencil:0.5 eraser:0.5',
   format: 'format question multiple-choice mcq minutes prelim:0.5 many calculator:1 paper:0.5 long:0.5',
   rules: 'allow can:0.6 may must rule bring permit banned keep stay use:0.4 need anything:0.5',
-  device: 'calculator:0.6 phone laptop computer device pencil:0.5 eraser:0.5',
+  device: 'calculator:0.6 phone laptop computer device',
   camp: 'camp coding t-shirt meals',
   club: 'club member meet cca squad join training',
   borrow: 'borrow return loan lend late overdue library',
@@ -167,16 +167,22 @@ export function generate(q: string, preset: Preset | undefined, topk: Scored[]):
     const found = preset.facts.filter((f) => ids.includes(f.chunk)).length
     return { parts, needed: [found, preset.facts.length] }
   }
-  // Custom question: quote the retrieved sentence that matches the question best.
+  // Custom question: quote the retrieved sentence that matches the question best
+  // (cosine, plus a small bonus for each lexicon word it shares with the question).
   const qv = embed(q)
-  let best = { s: '', id: 0, score: 0 }
+  const qKeys = new Set(matchedKeys(q))
+  let best = { s: '', id: 0, score: 0, rank: 0 }
   for (const sc of topk)
     for (const s of sentences(sc.chunk.text)) {
       const v = dot(qv, embed(s))
-      if (v > best.score) best = { s, id: sc.chunk.id, score: v }
+      const rank = v + 0.05 * matchedKeys(s).filter((k) => qKeys.has(k)).length
+      if (rank > best.rank) best = { s, id: sc.chunk.id, score: v, rank }
     }
   if (best.score < 0.5) return { parts: [{ text: "I can't find the answer in the retrieved handbook text." }], note: 'no retrieved sentence matched well' }
-  return { parts: [{ text: `The handbook says: “${best.s}”`, cite: best.id }], note: 'this stand-in for an LLM quotes the best-matching sentence' }
+  return {
+    parts: [{ text: `The handbook says: “${best.s}”`, cite: best.id }],
+    note: 'stand-in: quotes the closest sentence, which may not answer the question (a generation failure a real LLM can also make)',
+  }
 }
 
 export const INSTRUCTIONS = [

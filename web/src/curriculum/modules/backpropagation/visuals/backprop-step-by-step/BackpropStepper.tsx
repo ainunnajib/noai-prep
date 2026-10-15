@@ -56,7 +56,8 @@ export default function BackpropStepper() {
     const sum = ps.reduce((a, b) => a + b, 0)
     grads[id] = sum
     if ((consumers[id] ?? 0) > 1) {
-      const txt = ps.map((p) => fmt(p)).join(' + ').replace(/-/g, '−')
+      // bracket every negative term after the first: "−12 + (−4)"
+      const txt = ps.map((p, i) => (i > 0 ? pa(p) : fmt(p))).join(' + ').replace(/-/g, '−')
       // short form (no "∂L/∂x =" prefix) so the running sum fits beside the branching edges
       gradText[id] = ps.length < consumers[id] ? `${txt} + …` : `${txt} = ${fmt(sum).replace('-', '−')}`
     }
@@ -115,7 +116,7 @@ export default function BackpropStepper() {
             <div key={c.to} style={{ marginTop: '0.2rem' }}>
               <M>{`\\frac{\\partial ${outT}}{\\partial ${inp.tex}} ${multi ? '\\mathrel{+}=' : '='} \\underbrace{${pa(c.upstream)}}_{\\text{upstream}} \\times \\underbrace{${pa(c.local)}}_{\\text{local: } ${localTex(nd, nodes, val, c.k)}} = ${fmt(c.value)}`}</M>
               {multi && (
-                <span style={{ color: 'var(--viz-2)', fontWeight: 700 }}>
+                <span style={{ color: 'color-mix(in srgb, var(--viz-2) 70%, var(--ink))', fontWeight: 700 }}>
                   {' '}
                   {(parts[c.to] ?? []).length < consumers[c.to]
                     ? `(${inp.name} is used twice: more is still to come)`
@@ -141,7 +142,7 @@ export default function BackpropStepper() {
       )
     } else {
       const sw = lv.w1 + lv.w2
-      const ps = (parts.x ?? []).map((p) => fmt(p))
+      const ps = (parts.x ?? []).map((p, i) => (i > 0 ? pa(p) : fmt(p)))
       body = (
         <>
           <M>x</M> fed two nodes, so its gradient is the <b>sum</b> of what came back along each path:{' '}

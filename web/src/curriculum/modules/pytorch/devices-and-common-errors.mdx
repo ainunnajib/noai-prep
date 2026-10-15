@@ -3,7 +3,7 @@ import ErrorDecoder from './visuals/devices-and-common-errors/ErrorDecoder'
 import GPUMemoryBudget from './visuals/devices-and-common-errors/GPUMemoryBudget'
 import FreezePanel from './visuals/devices-and-common-errors/FreezePanel'
 
-Deep learning is trained on GPUs because they are much faster at the one thing neural networks do all day: multiplying big matrices. But PyTorch never moves anything to the GPU for you, GPU memory is small and fixed, and pretrained models must be partly locked before you fine-tune them. Get any of these wrong and you meet the errors this lesson is about. IOAI's programming tasks run on a GPU (recent tasks quoted about 16 GB of GPU memory), and NOAI papers ask about exactly these errors and their fixes.
+Deep learning runs on GPUs because they are much faster at the one thing neural networks do all day: multiplying big matrices. But PyTorch never moves anything to the GPU for you, GPU memory is small and fixed, and pretrained models must be partly locked before you fine-tune them. Get any of these wrong and you meet the errors this lesson is about.
 
 ## CPU, GPU and devices
 
@@ -46,7 +46,11 @@ Using cpu
 cpu cpu cpu
 ```
 
-This was run on a laptop with no GPU, so `device` became `'cpu'` and the same code still works. On a GPU machine it prints `Using cuda` and `cuda:0 cuda:0 cuda:0`. That is why it is called **device-agnostic**: it never hard-codes `'cuda'`. Hard-coding fails on a machine without one:
+This was run on a laptop with no GPU, so `device` became `'cpu'` and the same code still works. On a GPU machine it prints `Using cuda` and `cuda:0 cuda:0 cuda:0`. That is why it is called **device-agnostic**: it never hard-codes `'cuda'`.
+
+Two more tools you will see. `x.device` tells you where a tensor lives, and `x.is_cuda` is `True` when it is on a GPU. `.cuda()` and `.cpu()` are shortcuts for `.to('cuda')` and `.to('cpu')`: they behave the same way (on a tensor they return a moved copy), but `.to(device)` keeps the code device-agnostic.
+
+Hard-coding `'cuda'` fails on a machine without a GPU. On a CPU-only install of PyTorch, for example:
 
 ```python
 torch.ones(2).to('cuda')
@@ -55,6 +59,8 @@ torch.ones(2).to('cuda')
 ```text
 AssertionError: Torch not compiled with CUDA enabled
 ```
+
+(A PyTorch built for GPUs, run on a machine without one, raises a `RuntimeError` about a missing NVIDIA driver or GPU instead.)
 
 In the training loop, the move goes inside the loop, because the DataLoader produces batches on the CPU:
 
@@ -96,6 +102,8 @@ torch.float64
 
 <PastPaperQuestion paper="prelim2026" n={108} />
 
+<PastPaperQuestion paper="prelim2026" n={129} />
+
 <QuickCheck
   q="A student writes `model.to(device)` and `inputs.to(device)` on separate lines (no `=`) before the training loop, on a GPU machine. What happens at `outputs = model(inputs)`?"
   options={[
@@ -134,9 +142,10 @@ A cheat sheet of the messages you will meet most:
 - **Shape.** `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)`: make the layer's `in_features` equal B, or flatten the input first. `expected input[...] to have 3 channels, but got 28 channels`: images must be $(N, C, H, W)$, so `x.permute(0, 3, 1, 2)`.
 - **dtype.** `must have the same dtype, but got Long and Float`: `x = x.float()`. `expected target dtype to be Long`: class labels must be integers, `y = y.long()`.
 - **Device.** `Expected all tensors to be on the same device`: `.to(device)` and reassign. `can't convert cuda:0 device type tensor to numpy`: `.cpu()` first.
+- **Conv and recurrent layers word it differently.** Convolutions say `Input type (…) and weight type (…) should be the same` (or `bias type`): two different number types, such as `double` and `float`, mean a dtype bug (`.float()`), while a `cuda` in only one of the two names, as in older versions' `Input type (torch.FloatTensor) and weight type (torch.cuda.FloatTensor)`, means a device bug (`img = img.to(device)`). LSTM and GRU layers say `Input and parameter tensors are not at the same device`.
 - **Autograd.** `Can't call numpy() on Tensor that requires grad`: `.detach()` first.
 
-The device message's wording depends on the operation and the PyTorch version (another common form is `...but found at least two devices, cuda:0 and cpu!`), but it always starts with *Expected all tensors to be on the same device*.
+The device message's wording depends on the operation and the PyTorch version (another common form is `...but found at least two devices, cuda:0 and cpu!`), but for most operations it contains *Expected all tensors to be on the same device*.
 
 Not every shape bug crashes. Comparing predictions of shape `(4, 1)` with targets of shape `(4,)` broadcasts them to a `(4, 4)` grid of differences, and the loss is quietly wrong. PyTorch only warns:
 
@@ -182,7 +191,7 @@ that is, $M \approx 16P + BA$ bytes, where $M$ is the memory needed.
     $16 \times 110\,\text{million} = 1760$ million bytes $= 1.76$ GB. Small.
   </Step>
   <Step title="Activations at batch 32">
-    For a model like this reading 512-token texts, the saved activations are roughly $0.7$ GB per example in FP32, so $32 \times 0.7 = 22.4$ GB.
+    For a model like this reading long texts (512 tokens, or word pieces, each), the saved activations are roughly $0.7$ GB per example in FP32, so $32 \times 0.7 = 22.4$ GB.
   </Step>
   <Step title="Total">
     $1.76 + 22.4 \approx 24.2$ GB, more than 16 GB: out of memory. The activations, not the weights, are the problem.
@@ -212,9 +221,11 @@ Two things that do *not* help: switching to a "bigger" optimiser (Adam needs mor
 
 <PastPaperQuestion paper="prelim2026" n={128} />
 
+<PastPaperQuestion paper="prelim2026" n={124} />
+
 <ExamTip>
 
-A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before activations.** So a 1-billion-parameter model needs about 16 GB just for weights, gradients and Adam, which leaves no room for activations on a 16 GB GPU even at batch size 1. That is why large models are fine-tuned with tricks such as freezing most of the network.
+IOAI's programming tasks run on a GPU (recent IOAI task statements quoted about 16 GB of GPU memory), and NOAI papers ask about exactly these errors and their fixes. A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before activations.** So a 1-billion-parameter model needs about 16 GB just for weights, gradients and Adam, which leaves no room for activations on a 16 GB GPU even at batch size 1. That is why large models are fine-tuned with tricks such as freezing most of the network.
 
 </ExamTip>
 
@@ -271,6 +282,8 @@ train_step()
 
 After unfreezing, layer 0 gets gradients (`grad? True`) but never changes, and no error is raised. The fix is to rebuild the optimiser, or to add the new parameters with `optimizer.add_param_group({'params': model[0].parameters()})`. The same trap appears when you replace `model.fc` with a new layer *after* creating the optimiser: the new head is not in it.
 
+<PastPaperQuestion paper="final2026" n={14} />
+
 <Mistake title="Frozen does not mean 'eval mode'">
 
 `requires_grad = False` stops the *weights* changing, but a frozen BatchNorm layer in train mode still updates its running averages on every batch. If the pretrained statistics should stay fixed too, also put those layers in eval mode (`model.backbone.eval()` after each `model.train()`).
@@ -288,7 +301,7 @@ After unfreezing, layer 0 gets gradients (`grad? True`) but never changes, and n
     'They are reset to random values, because they have no gradients',
   ]}
   answer={0}
-  explain="Passing all parameters is allowed. Frozen ones never get a `.grad` (it stays `None`), and optimisers skip parameters whose `.grad` is `None`. Passing only the trainable parameters is tidier and avoids storing Adam state for them, but both work. The real danger is the opposite case: a trainable parameter that the optimiser does not hold."
+  explain="Passing all parameters is allowed. Frozen ones never get a `.grad` (it stays `None`), and optimisers skip parameters whose `.grad` is `None`. Passing only the trainable parameters is tidier and makes the intent explicit; Adam would not store state for the frozen ones anyway, because it only creates state for parameters that receive a gradient. The real danger is the opposite case: a trainable parameter that the optimiser does not hold."
 />
 
 <Takeaways>

@@ -22,7 +22,7 @@ $$
 
 Read it as "the set of all points $a\,u + b\,v$, where $a$ and $b$ can be any real numbers". The curly brackets mean "the set of". In 2-D there are only three possibilities:
 
-- $u$ and $v$ point in **different directions**: the span is the whole plane.
+- $u$ and $v$ are **not parallel** (neither is a multiple of the other): the span is the whole plane.
 - $u$ and $v$ are **parallel** (one is a multiple of the other): the span is just a line through the origin.
 - both are the zero vector: the span is a single point, the origin.
 
@@ -48,7 +48,7 @@ $$
 A few facts follow straight away:
 
 - **Two vectors** are dependent exactly when one is a multiple of the other (they are parallel). $(1, 2)$ and $(2, 4)$ are dependent because $(2, 4) = 2 \cdot (1, 2)$.
-- **Too many vectors** are always dependent: the plane has only 2 directions, so any 3 vectors in 2-D are dependent. In $n$-D, any $n + 1$ vectors are dependent.
+- **Too many vectors** are always dependent: the plane has only 2 directions, so any 3 vectors in 2-D are dependent. In $n$-D, any $n + 1$ or more vectors are dependent.
 - **The zero vector** makes any set dependent, because $1 \cdot \mathbf{0} = \mathbf{0}$ is a combination with a non-zero amount.
 
 <KeyIdea>
@@ -70,9 +70,10 @@ Independent means **no wasted directions**: each vector adds a new dimension to 
 </Steps>
 
 <QuickCheck
+  id="linear-algebra-deeper.span-rank-independence.qc1"
   q="Which pair of vectors is linearly dependent?"
-  options={['$(2, -1)$ and $(-4, 2)$', '$(1, 2)$ and $(2, 1)$', '$(1, 1)$ and $(1, -1)$', '$(3, 0)$ and $(0, 0.5)$']}
-  answer={0}
+  options={['$(1, 2)$ and $(2, 1)$', '$(1, 1)$ and $(1, -1)$', '$(2, -1)$ and $(-4, 2)$', '$(3, 0)$ and $(0, 0.5)$']}
+  answer={2}
   explain="$(-4, 2) = -2 \cdot (2, -1)$, so one is a multiple of the other: they lie on the same line through the origin (pointing opposite ways still counts as parallel). In each other pair neither vector is a multiple of the other, so they span the whole plane; $(1, 2)$ and $(2, 1)$ contain the same numbers but point in different directions."
 />
 
@@ -118,11 +119,9 @@ Why can the rank never beat the smaller of $m$ and $n$?
 - **At most $n$:** there are only $n$ columns, so at most $n$ of them can be independent.
 - **At most $m$:** each column is a vector with $m$ numbers, living in $m$-dimensional space, and that space has room for at most $m$ independent directions (just as three arrows in a plane are always dependent).
 
-For a 3×5 matrix the five columns are arrows in 3-D, so at most 3 can be independent: the rank is at most 3. Try the **2×3** shape in the visual: however you set the three columns, the rank never passes 2.
+For a 3×5 matrix the five columns are arrows in 3-D, so at most 3 can be independent: the rank is at most 3. Try the **2×3** shape in the visual: however you set the three columns, the rank never passes 2. At the other end, the only matrix with rank 0 is the zero matrix: any non-zero entry makes a non-zero column, and a single non-zero vector already spans a line. Two real exam questions on the two ends:
 
 <PastPaperQuestion paper="prelim2026" n={19} />
-
-At the other end, the only matrix with rank 0 is the zero matrix: any non-zero entry makes a non-zero column, and a single non-zero vector already spans a line.
 
 <PastPaperQuestion paper="prelim2026" n={10} />
 
@@ -139,8 +138,16 @@ A square $n \times n$ matrix with rank $n$ is called <Term def="A matrix whose r
 
 Why does losing a dimension kill the inverse? If $A$ squashes the plane onto a line, many different inputs land on the same output (a whole line of them lands on $\mathbf{0}$). An inverse would have to send that one output back to many inputs at once, which is impossible: the information is gone, like rebuilding someone's height from their shadow.
 
-<Steps title="Find the rank of $A = \begin{bmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \\ 1 & 0 & 1 \end{bmatrix}$">
+The set of inputs that a matrix sends to $\mathbf{0}$ is called its <Term def="All the inputs x with Ax = 0. It always contains 0; for a singular matrix it is a whole line, plane or more.">null space</Term>. For an $m \times n$ matrix there is a neat bookkeeping rule, the **rank–nullity theorem**: rank $+$ (dimension of the null space) $= n$. Each of the $n$ input dimensions either survives or is squashed. A 2×2 matrix of rank 1 keeps one dimension and squashes one, the line that lands on $\mathbf{0}$.
+
+<Steps title="Find the rank of a 3×3 matrix">
   <Step title="Spot multiples first">
+    The matrix is
+
+    $$
+    A = \begin{bmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \\ 1 & 0 & 1 \end{bmatrix}.
+    $$
+
     Row 2 is $2 \times$ row 1, so row 2 adds nothing new. The rank is at most 2.
   </Step>
   <Step title="Check what is left">
@@ -155,6 +162,7 @@ Why does losing a dimension kill the inverse? If $A$ squashes the plane onto a l
 </Steps>
 
 <QuickCheck
+  id="linear-algebra-deeper.span-rank-independence.qc2"
   q="What is the rank of $\begin{bmatrix} 2 & 4 \\ 1 & 2 \\ 3 & 6 \end{bmatrix}$?"
   options={['1', '2', '3', '0']}
   answer={0}
@@ -171,13 +179,19 @@ Rank is **not** the number of rows, the number of columns or the number of non-z
 
 - **Duplicated features.** If a dataset has columns "height in cm" and "height in m", one column is 100 times the other, so the data matrix $X$ is not of full column rank. Linear regression's normal equation $w = (X^TX)^{-1}X^Ty$ then breaks, because $X^TX$ is singular: infinitely many weight vectors fit equally well (put the weight on either copy).
 - **Bottlenecks.** Doing one matrix after another can never create new dimensions: $\operatorname{rank}(AB) \le \min(\operatorname{rank} A, \operatorname{rank} B)$. If a 6×2 matrix follows a 2×6 matrix, everything passes through 2 numbers in the middle, so the 6×6 product has rank at most 2.
-- **Low-rank fine-tuning.** <Term def="Low-Rank Adaptation: a way to fine-tune a big model by learning a small update BA (B tall and thin, A short and wide) instead of changing the whole weight matrix.">LoRA</Term> fine-tunes a large model by learning an update $\Delta W = BA$ with $B$ of shape $d \times r$ and $A$ of shape $r \times d$. Its rank is at most $r$. With $d = 4096$ and $r = 8$, that is $2 \times 4096 \times 8 = 65{,}536$ numbers to learn instead of $4096^2 = 16{,}777{,}216$: 256 times fewer.
+- **Low-rank fine-tuning.** <Term def="Low-Rank Adaptation: a way to fine-tune a big model by learning a small update BA (B tall and thin, A short and wide) instead of changing the whole weight matrix.">LoRA</Term> fine-tunes a large model by learning a small update $\Delta W = BA$ whose rank is at most a small number $r$, so it needs far fewer numbers than the full weight matrix.
+
+<Reveal label="Going further: how much LoRA saves">
+
+$B$ has shape $d \times r$ and $A$ has shape $r \times d$, so $\Delta W = BA$ is $d \times d$ but has rank at most $r$ (everything passes through $r$ numbers in the middle). With $d = 4096$ and $r = 8$, that is $2 \times 4096 \times 8 = 65{,}536$ numbers to learn instead of $4096^2 = 16{,}777{,}216$: 256 times fewer.
+
+</Reveal>
 
 ## Nearly singular: the condition number
 
 Rank tells you whether a matrix squashes space. But a matrix can be **technically invertible and still almost squashed**, for example when two of its columns point in nearly the same direction. That is where numerical trouble begins.
 
-Think of solving $Ax = b$ for a 2×2 system. Each equation is a line, and the solution is where the two lines cross. If the lines cross at a healthy angle, a small wobble in $b$ shifts the crossing point a little. If they are nearly parallel, the same wobble slides the crossing point a long way.
+Think of solving $Ax = b$ for a 2×2 system. Each equation is a line, and the solution is where the two lines cross.
 
 <Analogy title="Two almost-parallel roads">
 
@@ -185,8 +199,14 @@ Two straight roads meet at a junction. If they cross at right angles, shifting o
 
 </Analogy>
 
-<Steps title="A tiny nudge, a huge change: solve $\begin{bmatrix} 1 & 1 \\ 1 & 1.01 \end{bmatrix} x = b$">
+<Steps title="A tiny nudge, a huge change">
   <Step title="Solve with $b = (2,\ 2.01)$">
+    Take
+
+    $$
+    \begin{bmatrix} 1 & 1 \\ 1 & 1.01 \end{bmatrix} x = b.
+    $$
+
     The equations are $x_1 + x_2 = 2$ and $x_1 + 1.01x_2 = 2.01$. Subtract the first from the second: $0.01x_2 = 0.01$, so $x_2 = 1$ and $x_1 = 1$. Solution $(1, 1)$.
   </Step>
   <Step title="Nudge $b$ to $(2,\ 2.02)$">
@@ -199,14 +219,14 @@ Two straight roads meet at a junction. If they cross at right angles, shifting o
 
 <ConditionNumberWobble />
 
-To measure this sensitivity we need two numbers from the transformation picture. Any 2×2 matrix turns the unit circle into an ellipse. The longest radius of that ellipse is the largest <Term def="The stretch factors of a matrix: the lengths of the longest and shortest radii of the ellipse that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and the shortest radius is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
+To measure this sensitivity we need two numbers from the transformation picture. Any invertible 2×2 matrix turns the unit circle into an oval (an ellipse); you will watch this happen in the next lesson's eigenvector hunt, and again in the SVD lesson. The oval's longest half-width (its longest radius) is the largest <Term def="The stretch factors of a matrix: the longest and shortest half-widths of the oval that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and its shortest half-width is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
 
 $$
 \kappa(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.
 $$
 
 - $\kappa$ (the Greek letter kappa) is always at least 1.
-- $\kappa = 1$ means the matrix stretches every direction equally: rotations, reflections and $kI$ are perfectly conditioned.
+- $\kappa = 1$ means the matrix stretches every direction equally: rotations, reflections and $kI$ with $k \neq 0$ are perfectly conditioned.
 - A singular matrix squashes some direction to nothing, so $\sigma_{\min} = 0$ and $\kappa = \infty$.
 - A **large** $\kappa$ (the matrix is <Term def="Having a large condition number: some directions are stretched far more than others, so solving Ax = b amplifies small errors a lot.">ill-conditioned</Term>) means a small relative error in $b$ can become up to $\kappa$ times bigger in $x$. A rule of thumb: if $\kappa \approx 10^k$, expect to lose about $k$ digits of accuracy.
 
@@ -226,16 +246,22 @@ $0.1I = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.1 \end{bmatrix}$ has the tiny determina
 
 </Mistake>
 
-In machine learning, ill-conditioning comes from **nearly duplicated features** (two sensors that almost always agree) and from **features on wildly different scales** (income in dollars next to age in years). Then $X^TX$ is nearly singular, and since $\kappa(X^TX) = \kappa(X)^2$, the trouble is squared: fitted weights swing wildly when one data point changes, and gradient descent zig-zags slowly down a long, narrow valley. Three standard fixes:
+In machine learning, ill-conditioning comes from **nearly duplicated features** (two sensors that almost always agree) and from **features on wildly different scales** (income in dollars next to age in years). Then $X^TX$ is nearly singular: fitted weights swing wildly when one data point changes, and gradient descent zig-zags slowly down a long, narrow valley. Three standard fixes:
 
 - **Standardise the features** (same scale for every column), which makes the valley rounder.
 - **Drop or merge** near-duplicate features.
-- **Regularise:** ridge regression's normal equation uses $X^TX + \lambda I$ in place of $X^TX$ (for a loss written as the sum of squared errors plus $\lambda \sum_j w_j^2$), which adds $\lambda$ to every stretch factor of $X^TX$ and so lifts the smallest one away from 0. For the matrix above used as $X$, $\kappa(X^TX) \approx 160{,}000$, but with $\lambda = 0.1$ it drops to about 41.
+- **Regularise**, for example with ridge regression, which adds a little to every stretch factor of $X^TX$ and so lifts the smallest one away from 0.
+
+<Reveal label="Going further: why the trouble is squared, and how ridge helps">
+
+The normal equation works with $X^TX$, and $\kappa(X^TX) = \kappa(X)^2$: whatever sensitivity $X$ has is squared. Ridge regression's normal equation uses $X^TX + \lambda I$ in place of $X^TX$ (for a loss written as the sum of squared errors plus $\lambda \sum_j w_j^2$), which adds $\lambda$ to every stretch factor of $X^TX$. For the matrix above used as $X$, $\kappa(X^TX) \approx 160{,}000$, but with $\lambda = 0.1$ it drops to about 41.
+
+</Reveal>
 
 <ExamTip>
 
 Fast rank questions, no calculator:
-- Cross out any row (or column) that is a **multiple**, a **sum** or a **difference** of the others you are keeping. When nothing more can be crossed out, the number left is the rank.
+- Cross out any row (or column) that is a **combination** of the others you are keeping: a multiple, a sum, a difference, or any mix such as $2 \cdot \text{row } 2 - \text{row } 1$. If none is obvious, use elimination: subtract multiples of one row from the others; the number of non-zero rows left is the rank. For example, $\begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \\ 7 & 8 & 9 \end{bmatrix}$ has rank 2, because row 3 $= 2 \cdot$ row 2 $-$ row 1.
 - **rank $\le \min(m, n)$**; only the zero matrix has rank 0; a column times a row, $uv^T$ with $u, v$ non-zero, has rank 1 (every column is a multiple of $u$).
 - Square matrix: full rank $\iff$ $\det \neq 0$ $\iff$ invertible.
 - The **condition number** is about *sensitivity* (how much the output can change when the input changes slightly), not about rank, determinant size or counting entries.
@@ -246,7 +272,7 @@ Fast rank questions, no calculator:
 
 `np.linalg.matrix_rank` counts independent columns, and `np.linalg.cond` returns $\sigma_{\max} / \sigma_{\min}$. Run the code and notice the determinant of `Q`: its third row is the sum of the first two, so the exact determinant is 0, but rounding inside the computer gives a tiny number of about $10^{-15}$ instead (in the browser it prints `3.330669073875456e-15`; the exact digits depend on the machine). That is why you should test rank with `matrix_rank`, which uses a sensible tolerance, and never with `det(A) == 0`.
 
-<PyRunner packages={['numpy']} code={`import numpy as np
+<PyRunner packages={['numpy']} rows={20} code={`import numpy as np
 
 A = np.array([[1, 2, 3],
               [2, 4, 6],
@@ -257,14 +283,14 @@ print("rank of A:", np.linalg.matrix_rank(A))
 Q = np.array([[1, 2, 3],
               [4, 5, 6],
               [5, 7, 9]])
-print("det of Q:", np.linalg.det(Q))  # not exactly 0!
+print("det of Q:", np.linalg.det(Q))  # not 0!
 print("rank of Q:", np.linalg.matrix_rank(Q))
 
 B = np.array([[1, 1],
               [1, 1.01]])
-print("condition number of B:", np.linalg.cond(B))
-print(np.linalg.solve(B, [2, 2.01]))   # [1. 1.]
-print(np.linalg.solve(B, [2, 2.02]))   # [0. 2.]`} />
+print("cond(B):", np.linalg.cond(B))
+print(np.linalg.solve(B, [2, 2.01]))  # [1. 1.]
+print(np.linalg.solve(B, [2, 2.02]))  # [0. 2.]`} />
 
 <Takeaways>
 

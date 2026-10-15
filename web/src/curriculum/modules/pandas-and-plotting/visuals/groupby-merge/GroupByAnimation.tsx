@@ -1,5 +1,6 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Figure, Controls, Segmented, usePlayer, PlayerControls, useNarrow } from '../../../../../kit'
+import { fmtFloatColumn } from '../cleaning-data/data'
 import s from './gm.module.css'
 
 /*
@@ -50,18 +51,36 @@ function aggregate(vals: number[], agg: Agg): number {
   }
 }
 
-/** Format like pandas (means are floats: 590.0, 82.5); long decimals are rounded to 2 places (pandas prints 91.666667). */
+/**
+ * Format the values of one result column like pandas: counts, sums and maxima of whole numbers stay
+ * integers; a mean column is float64, printed with one shared number of decimals (70.0 and 82.5 ->
+ * 70.0, 82.5). If pandas would need more than 2 decimals (91.666667), round to 2 so it fits, and say so.
+ */
+function fmtColumn(vals: number[], agg: Agg): { text: string[]; rounded: boolean; exact: string[] } {
+  if (agg !== 'mean') {
+    const t = vals.map(String)
+    return { text: t, rounded: false, exact: t }
+  }
+  const exact = fmtFloatColumn(vals)
+  const decimals = exact[0].length - exact[0].indexOf('.') - 1
+  if (decimals <= 2) return { text: exact, rounded: false, exact }
+  return { text: vals.map((v) => v.toFixed(2)), rounded: true, exact }
+}
+
+/** One value on its own (used in the worked formula). */
 function fmt(v: number, agg: Agg): string {
   if (agg !== 'mean') return String(v)
   if (Number.isInteger(v)) return v.toFixed(1)
-  return String(Math.round(v * 100) / 100)
+  return Math.round(v * 100) / 100 === v ? String(v) : v.toFixed(2)
 }
 
 function formula(vals: number[], agg: Agg): string {
-  const v = fmt(aggregate(vals, agg), agg)
+  const x = aggregate(vals, agg)
+  const v = fmt(x, agg)
+  const eq = Math.round(x * 100) / 100 === x ? '=' : '≈'
   switch (agg) {
     case 'mean':
-      return `(${vals.join(' + ')}) / ${vals.length} = ${v}`
+      return `(${vals.join(' + ')}) / ${vals.length} ${eq} ${v}`
     case 'sum':
       return `${vals.join(' + ')} = ${v}`
     case 'count':
@@ -107,10 +126,18 @@ export default function GroupByAnimation() {
         agg,
       ),
     }))
-    return { keys, members, blockTop, splitHeight, groupOf, posInGroup, summaries }
+    const areaCol = fmtColumn(
+      summaries.map((x) => x.area),
+      agg,
+    )
+    const priceCol = fmtColumn(
+      summaries.map((x) => x.price),
+      agg,
+    )
+    return { keys, members, blockTop, splitHeight, groupOf, posInGroup, summaries, areaCol, priceCol }
   }, [key, agg, labelH])
 
-  const { keys, members, blockTop, splitHeight, groupOf, posInGroup, summaries } = layout
+  const { keys, members, blockTop, splitHeight, groupOf, posInGroup, summaries, areaCol, priceCol } = layout
   const heights = [HEAD_H + ROWS.length * ROW_H + 4, splitHeight, splitHeight, HEAD_H + keys.length * ROW_H + 4]
 
   const rowTop = (i: number) => {
@@ -141,7 +168,41 @@ export default function GroupByAnimation() {
     </div>
   )
 
-  const aggWord = { mean: 'mean', sum: 'sum', count: 'count', max: 'maximum' }[agg]
+  // what the text column would give if it had NOT been left out of the selection (first group as the example)
+  const firstTexts = members[0].map((x) => x.r[other])
+  const textAgg: Record<Agg, ReactNode> = {
+    mean: (
+      <>
+        <code>.mean()</code> would raise a <code>TypeError</code> in pandas 2 and later, because text has no mean
+      </>
+    ),
+    sum: (
+      <>
+        <code>.sum()</code> would keep <b>{other}</b> and glue its words together: {keys[0]} would get <code>'{firstTexts.join('')}'</code>
+      </>
+    ),
+    count: (
+      <>
+        <code>.count()</code> would keep <b>{other}</b> too, because text can be counted
+      </>
+    ),
+    max: (
+      <>
+        <code>.max()</code> would keep <b>{other}</b> too, as the alphabetically last word: {keys[0]} would get{' '}
+        <code>'{[...firstTexts].sort().pop()}'</code>
+      </>
+    ),
+  }
+  const roundCol = areaCol.rounded ? { name: 'area', col: areaCol } : priceCol.rounded ? { name: 'price', col: priceCol } : null
+  const roundIdx = roundCol ? roundCol.col.text.findIndex((t, i) => t !== roundCol.col.exact[i] && !roundCol.col.exact[i].startsWith(t)) : -1
+  const roundNote: ReactNode =
+    roundCol && roundIdx >= 0 ? (
+      <>
+        {' '}
+        Here {roundCol.col.text[roundIdx]} is rounded to fit: pandas prints <code>{roundCol.col.exact[roundIdx]}</code> and gives the whole {roundCol.name} column 6
+        decimal places.
+      </>
+    ) : null
   const notes: ReactNode[] = [
     <>
       Eight flats. Each row is coloured by its <b>{key}</b>. Nothing has been computed yet. Press <b>Play</b> or <b>Next</b>.
@@ -151,12 +212,12 @@ export default function GroupByAnimation() {
       order). The rows are only regrouped: no number has changed.
     </>,
     <>
-      <b>Apply.</b> <code>.{agg}()</code> is worked out <i>separately inside each pile</i> for every numeric column. The <b>{other}</b> column is text, so it
-      has no {aggWord} and is left out.
+      <b>Apply.</b> <code>.{agg}()</code> is worked out <i>separately inside each pile</i>, for the two columns we selected with <code>[['area', 'price']]</code>.
+      The <b>{other}</b> column was not selected, so it is not in the result. (Without that selection, {textAgg[agg]}.){roundNote}
     </>,
     <>
       <b>Combine.</b> The {keys.length} summary rows are stacked into a new table. Its <b>index</b> (row labels) is now <b>{key}</b>: one row per group, not one
-      per flat.
+      per flat.{roundNote}
     </>,
   ]
 
@@ -166,7 +227,7 @@ export default function GroupByAnimation() {
       caption={
         <>
           Step through it, then switch the grouping column and the aggregation and replay. Notice that the result always has <b>one row per group</b>, its row
-          labels are the group names, and the text column that was not grouped on simply disappears.
+          labels are the group names, and only the columns you selected, <code>[['area', 'price']]</code>, are summarised.
         </>
       }
     >
@@ -268,8 +329,8 @@ export default function GroupByAnimation() {
                 {step <= 2 && <span className={s.dim}>{agg} → </span>}
                 {k}
               </span>
-              <span className={s.num}>{step <= 1 ? '?' : fmt(summaries[g].area, agg)}</span>
-              <span className={s.num}>{step <= 1 ? '?' : fmt(summaries[g].price, agg)}</span>
+              <span className={s.num}>{step <= 1 ? '?' : areaCol.text[g]}</span>
+              <span className={s.num}>{step <= 1 ? '?' : priceCol.text[g]}</span>
             </div>
           ))}
         </div>

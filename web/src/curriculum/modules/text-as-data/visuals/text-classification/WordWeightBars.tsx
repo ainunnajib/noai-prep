@@ -58,7 +58,7 @@ export default function WordWeightBars() {
       title="One weight per word"
       caption={
         <>
-          The bars are the learned weights of a bag-of-words logistic regression trained on {TRAIN_POS.length + TRAIN_NEG.length} toy reviews. Words in your sentence are tinted by their weight, and the score is the bias plus
+          The bars are the learned weights of a word-count (bag-of-words) logistic regression trained on {TRAIN_POS.length + TRAIN_NEG.length} toy reviews. Words in your sentence are tinted by their weight, and the score is the bias plus
           their sum. Try the two "good, not bad" sentences, or press <b>Shuffle the words</b>: the score never changes, because the model only sees <i>which</i> words appear. Spot the accident
           too: <code>mee</code> (noodles) is not a feeling, but 3 of the 4 training reviews with it happened to be positive.
         </>
@@ -101,7 +101,7 @@ export default function WordWeightBars() {
           {human ? (
             <>
               A human reader says <strong>{human}</strong>{' '}
-              {human === pred ? <span className={s.ok}>✓ correct</span> : <span className={s.bad}>✗ wrong</span>}
+              {human === pred ? <span className={s.ok}>✓ correct.</span> : <span className={s.bad}>✗ wrong.</span>}
             </>
           ) : (
             'Is that what a human would say?'

@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'MSE is a quadratic function of $w$ and $b$ (for example $11w^2 + 6wb + b^2 - 42w - 12b + 40.8$ for the Grab rides) whose squared terms dominate, so it is a convex bowl with one minimum (as long as the $x$ values are not all equal). There are no separate valleys to get trapped in, which is why gradient descent always reaches the same best line. "Linear" refers to the model, not to the shape of its loss.',
+      'MSE is a quadratic function of $w$ and $b$ (for example $11w^2 + 6wb + b^2 - 42w - 12b + 40.8$ for the Grab rides) whose squared terms dominate, so it is a convex bowl with one minimum (as long as the $x$ values are not all equal). There are no separate valleys to get trapped in, which is why gradient descent, with a small enough learning rate, always reaches the same best line. "Linear" refers to the model, not to the shape of its loss.',
     difficulty: 'intermediate',
   },
   {

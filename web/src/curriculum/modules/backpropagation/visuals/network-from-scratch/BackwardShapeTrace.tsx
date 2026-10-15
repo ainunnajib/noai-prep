@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { Figure, Controls, Slider, Segmented, MatrixGrid, usePlayer, PlayerControls } from '../../../../../kit'
 import { makeProblem, forward, matmul, T, sumRows, numericalGrad, cloneParams, fmtShape, type Mat, type Vec, type Bug, type ParamName, type Params } from './net'
+import css from './trace.module.css'
 
 /*
   Step through the seven backward-pass lines for a batch, with the shape arithmetic for each line and a heat map
@@ -22,6 +23,8 @@ interface LineResult {
   operands: { name: string; arr: Arr; op?: string }[]
   result?: Arr
   error?: string
+  /** a plain-words reading of the error */
+  gloss?: string
   skipped?: boolean
 }
 
@@ -38,8 +41,10 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
   const res: LineResult[] = []
   const env: Record<string, Arr | undefined> = {}
   const s = (a: number[]) => fmtShape(a)
-  const push = (r: Omit<LineResult, 'result' | 'error' | 'skipped'>, compute: () => Arr, needs: string[]) => {
-    if (needs.some((n) => env[n] === undefined)) {
+  // Python stops at the first error, so every line after a crash is "not run"
+  let crashed = false
+  const push = (r: Omit<LineResult, 'result' | 'error' | 'skipped' | 'gloss'>, compute: () => Arr, needs: string[], gloss?: () => string) => {
+    if (crashed || needs.some((n) => env[n] === undefined)) {
       res.push({ ...r, skipped: true })
       return
     }
@@ -48,8 +53,15 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
       env[r.out] = out
       res.push({ ...r, result: out })
     } catch (e) {
-      res.push({ ...r, error: (e as Error).message })
+      crashed = true
+      res.push({ ...r, error: (e as Error).message, gloss: gloss?.() })
     }
+  }
+  /** "inner sizes must match" explanation for A @ B */
+  const innerGloss = (an: string, A: Arr, bn: string, B: Arr) => {
+    const sa = shapeOf(A)
+    const sb = shapeOf(B)
+    return `In plain words: for A @ B the inner sizes must match. ${an} is ${s(sa)} and ${bn} is ${s(sb)}, so ${sa[sa.length - 1]} ≠ ${sb[0]}.`
   }
   const mask = f.Z1.map((row) => row.map((v) => (v > 0 ? 1 : 0)))
 
@@ -92,6 +104,7 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
     },
     () => matmul(env.dZ2 as Mat, bug === 'noTransposeW2' ? p.W2 : T(p.W2)),
     ['dZ2'],
+    () => innerGloss('dZ2', env.dZ2 as Mat, bug === 'noTransposeW2' ? 'W2' : 'W2.T', bug === 'noTransposeW2' ? p.W2 : T(p.W2)),
   )
   push(
     {
@@ -108,6 +121,7 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
       return bug === 'noMask' ? dA1.map((r) => r.slice()) : dA1.map((row, i) => row.map((v, j) => v * mask[i][j]))
     },
     ['dA1'],
+    () => `In plain words: * works element by element, so both arrays need the same shape (or shapes NumPy can stretch to match), and ${s(shapeOf(env.dA1 as Mat))} and ${s([N, H])} cannot be matched.`,
   )
   push(
     {
@@ -123,6 +137,7 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
     },
     () => matmul(bug === 'noTransposeX' ? X : T(X), env.dZ1 as Mat),
     ['dZ1'],
+    () => innerGloss(bug === 'noTransposeX' ? 'X' : 'X.T', bug === 'noTransposeX' ? X : T(X), 'dZ1', env.dZ1 as Mat),
   )
   push(
     { code: 'db1 = dZ1.sum(axis=0)', out: 'db1', like: 'b1', likeShape: [H], shapeText: `${s([N, H])} summed down the rows → ${s([H])}`, operands: [{ name: 'dZ1', arr: env.dZ1 ?? [[0]] }] },
@@ -193,7 +208,8 @@ export default function BackwardShapeTrace() {
       title="The backward pass, one line at a time, with shapes"
       caption={
         <>
-          Step through the seven lines. Each shows its shape arithmetic and the arrays involved (shaded blue for negative, orange for positive).
+          Step through the seven lines, then a final gradient check (step 8). Each line shows its shape arithmetic and the arrays involved (shaded
+          blue for negative, orange for positive; outlined cells are 0).
           Notice that <b>every gradient comes out with exactly the shape of the thing it is the gradient of</b>: dW1 like W1, db2 like b2. Change N, D,
           H or K and the shapes follow. Then pick a bug: a missing <code>.T</code> usually crashes with a shape error (unless the sizes happen to
           match), but a missing ReLU mask or <code>/ N</code> runs happily and only the gradient check on the last step catches it.
@@ -251,7 +267,7 @@ export default function BackwardShapeTrace() {
             {cur.skipped ? (
               <div style={{ color: 'var(--ink-2)', fontSize: '0.875rem' }}>Not run: an earlier line crashed, so Python stopped there.</div>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+              <div className={css.grids} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
                 {cur.operands.map((o, k) => (
                   <Fragment key={k}>
                     {o.op && <Op>{o.op}</Op>}
@@ -281,6 +297,7 @@ export default function BackwardShapeTrace() {
             {cur.error && (
               <div role="alert" style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--bad)', background: 'var(--bad-soft)', borderRadius: 8, padding: '0.5rem 0.6rem', overflowWrap: 'anywhere' }}>
                 {cur.error}
+                {cur.gloss && <div style={{ marginTop: '0.35rem', fontFamily: 'var(--font-body)', color: 'var(--ink)', fontSize: '0.8125rem' }}>{cur.gloss}</div>}
               </div>
             )}
           </>
@@ -306,7 +323,7 @@ export default function BackwardShapeTrace() {
         )}
       </div>
 
-      <PlayerControls player={player} label={(s) => (s < 7 ? `Line ${s + 1} of 7` : 'Checks')} />
+      <PlayerControls player={player} label={(s) => (s < 7 ? `Step ${s + 1} of 8: line ${s + 1}` : 'Step 8 of 8: final checks')} />
       <Controls>
         <Slider label="N (examples in the batch)" value={N} min={1} max={6} onChange={setN} />
         <Slider label="D (input features)" value={D} min={1} max={5} onChange={setD} />

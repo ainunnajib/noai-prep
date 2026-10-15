@@ -53,8 +53,9 @@ export default function DegreeSweep() {
       title="More powers, more wiggles"
       caption={
         <>
-          Slide the <b>degree</b> from 0 to 9. The model is fitted to the 10 filled points only; the hollow points are fresh data it never saw. Training error
-          (blue) keeps falling and hits 0 at degree 9, where the curve threads every training point. Validation error (orange) falls, then shoots up. Watch the
+          Slide the <b>degree</b> from 0 to 9. The model is fitted to the 10 filled points only; the hollow points are fresh data it never saw. In the error
+          chart, training error (blue) keeps falling and is about 0 at degree 9 (marked ≈ 0, since a log scale cannot show 0 itself), where the curve
+          threads every training point. Validation error (orange) falls, then shoots up. Watch the
           largest weight too: overfitting curves need huge, finely balanced weights.
         </>
       }
@@ -115,7 +116,7 @@ export default function DegreeSweep() {
         >
           <Grid xTicks={10} yTicks={5} />
           <Axes xLabel="degree" xTicks={10} hideYTicks />
-          <Axes yLabel="MSE (log scale)" yTicks={5} hideXTicks tickFormat={(v) => (Number.isInteger(v) && v <= 1.5 && v >= LOG_MIN ? tick(v) : '')} />
+          <Axes yLabel="MSE (log scale: each gridline ×10)" yTicks={5} hideXTicks tickFormat={(v) => (Number.isInteger(v) && v <= 1.5 && v >= LOG_MIN ? tick(v) : '')} />
           <VLine x={deg} color="var(--viz-4)" dash="5 4" />
           <Path points={FITS.map((f, d) => [d, lg(f.tr)])} color="var(--viz-1)" width={2.5} />
           {showVal && <Path points={FITS.map((f, d) => [d, lg(f.va)])} color="var(--viz-2)" width={2.5} />}
@@ -140,6 +141,14 @@ export default function DegreeSweep() {
           <Label x={5} y={lg(FITS[5].tr)} dy={18} anchor="middle" color="var(--viz-1)" weight={700}>
             training
           </Label>
+          {/* a log scale cannot reach 0: mark training errors that sit on the floor */}
+          {FITS.map((f, d) =>
+            f.tr < 10 ** LOG_MIN ? (
+              <Label key={d} x={d} y={LOG_MIN} dx={-12} dy={-9} anchor="end" color="var(--viz-1)" size={12} weight={700}>
+                ≈ 0 ↓
+              </Label>
+            ) : null,
+          )}
           {showVal && (
             <Label x={5} y={lg(FITS[5].va)} dy={-10} anchor="middle" color="var(--viz-2)" weight={700}>
               validation

@@ -12,7 +12,7 @@ In [the previous lesson](#/learn/prompting-and-rag/prompt-engineering) you saw t
 - **Private data.** The model never saw your school's handbook, a company's HR policy or your own notes.
 - **Hallucination.** When the answer is missing, the model still produces fluent, plausible text. A confident but false answer is a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term>.
 
-All three are fixed by putting the right facts **in the prompt**. But you cannot paste everything in. The <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> is limited, every extra token costs time and money, and models answer worse when the useful sentence is buried in pages of irrelevant text. So the real job is to find the **few passages that matter** and put only those in the prompt.
+All three are fixed by putting the right facts **in the prompt**, but you cannot paste everything in. The <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> is limited, every extra token costs time and money, and models answer worse when the useful sentence is buried in pages of irrelevant text. So the real job is to find the **few passages that matter** and put only those in the prompt.
 
 <Analogy title="An open-book exam">
 
@@ -56,7 +56,7 @@ The name lists the last three steps: the **generation** is **augmented** by **re
 
 Three things to notice:
 
-- **The model is the same in both modes.** Switching retrieval on changes only the prompt. No weights are touched, so updating the bot's knowledge means editing documents, not retraining.
+- **The model is the same in both modes.** Retrieval changes only the prompt, so updating the bot's knowledge means editing documents, not retraining.
 - **Search always returns $k$ chunks**, even when none of them is relevant (try the wifi question). It is the prompt's instructions that stop the model from forcing an answer out of irrelevant text.
 - **A missing chunk cannot be fixed later.** With $k = 1$ the camp's cost never reaches the model, so even a perfect LLM can only say it doesn't know.
 
@@ -68,11 +68,11 @@ $$
 \cos(\mathbf{q}, \mathbf{c}) = \frac{\mathbf{q} \cdot \mathbf{c}}{\lVert \mathbf{q} \rVert \, \lVert \mathbf{c} \rVert}
 $$
 
-- $\mathbf{q} \cdot \mathbf{c}$ is the **dot product**: multiply matching entries and add them up. It is large when both vectors are large in the same places.
+- $\mathbf{q} \cdot \mathbf{c}$ is the **dot product**: multiply matching entries and add them up.
 - $\lVert \mathbf{q} \rVert$ and $\lVert \mathbf{c} \rVert$ are the **lengths** (L2 norms): the square root of the sum of squares.
-- Dividing by the lengths removes the effect of size, so only the **direction** counts. The score runs from $-1$ to $1$, and $1$ means "pointing exactly the same way".
+- Dividing by the lengths leaves only the **direction**. The score runs from $-1$ to $1$, and $1$ means "pointing exactly the same way".
 
-The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**. Many systems scale every vector to length 1 when they store it; then both lengths are 1 and the score is just the dot product, which makes search fast.
+The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**. Many systems scale every vector to length 1 when they store it, so the score is just the dot product. With millions of chunks, vector databases use <Term def="A search index that finds vectors very close to the best matches much faster than checking every vector, at the cost of occasionally missing the exact best one. HNSW is a popular kind.">approximate nearest-neighbour</Term> indexes (such as HNSW) that find almost the best matches without checking every vector, and many systems then **re-rank** the top results or mix in keyword search.
 
 <Steps title="Worked example: which 2 chunks does the retriever pick?">
   <Step title="The vectors">
@@ -92,13 +92,13 @@ The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**
   </Step>
 </Steps>
 
-Real embedding models produce hundreds of numbers per text (384, 768 and 1,536 are common sizes), and they are trained so that "How much is the camp?" lands near "The camp costs \$40" even though the two share almost no words. That is the big advantage over keyword search. You will build the keyword version from scratch in [the next lesson](#/learn/prompting-and-rag/rag-from-scratch).
+Real embedding models produce hundreds of numbers per text (384, 768 and 1,536 are common sizes), and they are trained so that "What's the fee for the trip?" lands near "The coding camp costs \$40 per student" even though the two share no important word. That is the big advantage over keyword search. You will build the keyword version from scratch in [the next lesson](#/learn/prompting-and-rag/rag-from-scratch).
 
 <QuickCheck
   q="Why must the question be embedded with the same embedding model that was used for the chunks?"
-  options={["Vectors from different models live in different spaces, so comparing them gives meaningless scores", "The same model makes the question vector longer, which raises every cosine score", "The LLM can only read vectors that were made by its own embedding model", "Using one model means the chunks never need to be embedded in advance"]}
+  options={["Each model has its own coordinate system, so scores across models mean nothing", "The same model makes the question vector longer, which raises every cosine score", "The LLM can only read vectors that were made by the same embedding model as itself", "Using one model means the chunks never need to be embedded ahead of time"]}
   answer={0}
-  explain="Each embedding model has its own coordinate system: entry 5 might mean 'about money' in one model and nothing like that in another. Cosine similarity only makes sense when both vectors use the same coordinates. The length of the question vector does not matter at all, because cosine divides it out."
+  explain="Each embedding model has its own coordinate system (often with a different number of dimensions too), so comparing a vector from one model with a vector from another is meaningless. The length of the question vector does not matter at all, because cosine divides it out."
 />
 
 ## Grounding: answer from the context, and say where
@@ -121,15 +121,9 @@ RAG = **retrieve** the chunks most similar to the question, **augment** the prom
 
 <PastPaperQuestion paper="prelim2026" n={237} />
 
-## Chunk size and top-k: the settings that make or break RAG
+## Chunk size and top‑k
 
-<Analogy title="Photocopying for the open-book exam">
-
-You may bring photocopies into the exam hall. Copy single sentences and you'll have exactly the line you remembered but not the one before it that explains it. Copy whole chapters and the answer is in there somewhere, but you'll spend the exam flipping through pages, and your bag only holds so much.
-
-</Analogy>
-
-Three settings decide what the model gets to read.
+Three settings decide what the model gets to read:
 
 - **Chunk size.** Small chunks match precisely, but an answer that spans two sentences gets **cut in half**, and a lone sentence may lose its meaning ("They must be submitted by 5 pm." Who are *they*?). Large chunks keep context, but bring in irrelevant text, blur the similarity score (the useful sentence is a small part of the chunk) and use up the context window.
 - **Overlap.** Neighbouring chunks share a few words, so an answer that falls on a boundary still appears whole in at least one chunk. The price is that some text is stored and sent twice.
@@ -137,7 +131,14 @@ Three settings decide what the model gets to read.
 
 <ChunkSizer />
 
-The prompt length is easy to estimate: the retrieved context is about $k \times \text{chunk size}$. With chunks of 300 <Term def="A small piece of text, often a word or part of a word, that a language model reads and writes one at a time.">tokens</Term> and $k = 4$, that is $4 \times 300 = 1{,}200$ tokens, plus the instructions and the question. The number of chunks is about $\frac{N}{\text{size} - \text{overlap}}$ for a document of $N$ tokens, because each new chunk starts $\text{size} - \text{overlap}$ tokens after the previous one. A 10,000-token handbook cut into 500-token chunks with 100 tokens of overlap starts a new chunk every 400 tokens, so it gives about $10{,}000 / 400 = 25$ chunks.
+<Steps title="Two quick estimates">
+  <Step title="Prompt length">
+    The retrieved context is about $k \times \text{chunk size}$. Chunks of 300 tokens with $k = 4$ give $4 \times 300 = 1{,}200$ tokens, plus the instructions and the question.
+  </Step>
+  <Step title="Number of chunks">
+    Each new chunk starts $\text{size} - \text{overlap}$ tokens after the previous one, so a document of $N$ tokens gives about $\frac{N}{\text{size} - \text{overlap}}$ chunks. A 10,000-token handbook cut into 500-token chunks with 100 tokens of overlap starts a new chunk every 400 tokens: about $10{,}000 / 400 = 25$ chunks.
+  </Step>
+</Steps>
 
 There is no single best setting: it depends on the documents and the questions. Common starting points are chunks of a few hundred tokens, 10 to 20% overlap and $k$ between about 3 and 10, then you test and adjust.
 
@@ -158,10 +159,29 @@ RAG quality is often decided by the **retrieval settings**, not by the LLM. If t
 
 When a RAG answer is wrong, first find out **which half** failed. Read the retrieved chunks and ask one question: **is the answer in them?**
 
-| | What you see | Typical causes | What to fix |
-|---|---|---|---|
-| **Retrieval failure** | The chunk with the answer is not among the top $k$. | The answer was cut across chunks; $k$ too small; the question's words or meaning don't match the document's; the document is missing or out of date. | Chunk size and overlap, $k$, a better embedding model, adding or refreshing documents. |
-| **Generation failure** | The answer **is** in the retrieved chunks, but the reply is still wrong. | The model misread or ignored the context, mixed in memorised facts, or cited the wrong chunk. | Clearer grounding instructions, fewer but better chunks, a stronger model. |
+<Columns min={240}>
+
+<Note title="Retrieval failure">
+
+**See:** the chunk with the answer is not among the top $k$.
+
+**Causes:** the answer was cut across chunks; $k$ is too small; the question's words or meaning don't match the document's; the document is missing or out of date.
+
+**Fix:** chunk size and overlap, $k$, a better embedding model, adding or refreshing documents.
+
+</Note>
+
+<Note title="Generation failure">
+
+**See:** the answer **is** in the retrieved chunks, but the reply is still wrong.
+
+**Causes:** the model misread or ignored the context, mixed in memorised facts, or cited the wrong chunk.
+
+**Fix:** clearer grounding instructions, fewer but better chunks, a stronger model.
+
+</Note>
+
+</Columns>
 
 The camp question at $k = 1$ in the pipeline visual is a retrieval failure: the cost chunk was ranked second and never reached the model. Swapping in a bigger LLM would change nothing.
 
@@ -180,13 +200,13 @@ You can **ask a tutor a clear question** (prompting). You can **hand them your s
 
 </Analogy>
 
-| | Prompting | RAG | Fine-tuning |
+| | Prompting | RAG | Fine‑tuning |
 |---|---|---|---|
-| **What changes** | the input only | the input (retrieved text added) | the **weights** |
-| **Adds new or private knowledge** | only what you paste in | yes: edit the documents | unreliably, and it goes out of date |
-| **Changes style, format or skill** | somewhat (instructions, examples) | not really | yes: its main use |
-| **Data and cost** | none; cheapest | documents and a vector store | many examples plus training compute |
-| **Shows its sources** | no | yes, with citations | no |
+| **Changes** | the input | the input (plus retrieved text) | the **weights** |
+| **New or private facts** | only what you paste in | yes: edit the documents | unreliable; goes stale |
+| **Style, format, skill** | somewhat | not really | yes: its main use |
+| **Data and cost** | none | documents + vector store | many examples + GPUs |
+| **Cites sources** | no | yes | no |
 
 <Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">Fine-tuning</Term> keeps training the model on examples of the task, so it is the tool for **behaviour**: a house style, a strict output format, or a narrow skill done millions of times. It needs good examples and compute, and training hard on one narrow task can make a model worse at things it used to do well, which is called <Term def="When further training on a new task makes a neural network lose abilities it had learned before.">catastrophic forgetting</Term>.
 
@@ -194,11 +214,9 @@ You can **ask a tutor a clear question** (prompting). You can **hand them your s
 
 <PastPaperQuestion paper="prelim2026" n={234} />
 
-<Mistake title="Two common mix-ups">
+<Mistake title="“RAG trains the model on your documents”">
 
-**"RAG trains the model on your documents."** No. RAG never changes the weights; the documents are read at answer time, inside the prompt. That is why updating them is instant.
-
-**"To teach a model new facts, fine-tune it."** Usually the wrong tool. Facts learned in training cannot be cited, are hard to update, and the model may still hallucinate around them. For knowledge, retrieve it; for behaviour, fine-tune.
+No. RAG never changes the weights; the documents are read at answer time, inside the prompt. That is why updating them is quick: re-index the changed documents (chunk and embed them again), and no retraining is needed. For knowledge, retrieve it; for behaviour, fine-tune.
 
 </Mistake>
 

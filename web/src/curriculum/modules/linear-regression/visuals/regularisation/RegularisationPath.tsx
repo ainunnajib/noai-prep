@@ -1,16 +1,37 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, Path, Dots, VLine, HLine, Label, Bars, useNarrow } from '../../../../../kit'
 import { FEATURES, makeRegData, ridgeFit, lassoFit } from './regData'
 
 /*
-  Regularisation paths on a 6-feature flat-price dataset (15 training flats). Top: every
-  coefficient against log₁₀ λ. Bottom left: validation MSE against log₁₀ λ. Bottom right: the
-  coefficients at the current λ. The knob can be shown as λ or as scikit-learn's C = 1/λ.
+  Regularisation paths on a 6-feature flat-price dataset (15 training flats). Coefficient paths:
+  every coefficient against log₁₀ λ (with a legend). Validation error: validation MSE against
+  log₁₀ λ. Bars: the coefficients at the current λ. The knob can be shown as λ or as C = 1/λ, the
+  convention of LogisticRegression and SVC (Ridge and Lasso themselves use alpha, like λ).
 */
 
 type Kind = 'ridge' | 'lasso'
 type Knob = 'lambda' | 'C'
 const COLORS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-5)', 'var(--viz-6)']
+// the last two features are pure noise: draw them dashed so they read as "useless" at a glance
+const DASH = ['', '', '', '', '6 4', '6 4']
+const title: CSSProperties = { fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--ink-2)' }
+
+/** Swatch legend for the coefficient paths (line style + colour + feature name). */
+function PathLegend() {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.9rem', fontSize: '0.8rem', color: 'var(--ink-2)' }} aria-hidden="true">
+      {FEATURES.map((f, j) => (
+        <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <svg width={26} height={10}>
+            <line x1={1} x2={25} y1={5} y2={5} style={{ stroke: COLORS[j], strokeWidth: 3, strokeDasharray: DASH[j] || undefined }} />
+          </svg>
+          {f}
+          {DASH[j] ? ' (noise)' : ''}
+        </span>
+      ))}
+    </div>
+  )
+}
 const LO = -2
 const HI = 2
 const STEP = 0.05
@@ -62,14 +83,17 @@ export default function RegularisationPath() {
       title="Turning the regularisation knob"
       caption={
         <>
-          Predicting made-up flat prices from 6 standardised features, two of which (postal digit, listing weekday) are pure noise, using only 15 training
-          flats. Slide the knob. With <b>lasso</b>, coefficients hit exactly 0 one after another, noise features first; with <b>ridge</b> they all shrink
-          smoothly together. The validation error (bottom left) is U-shaped: find its lowest point. Switch the knob to <b>C</b> and notice it moves the other
-          way: small C means strong regularisation.
+          Predicting made-up flat prices from 6 standardised features, two of which (postal digit and listing weekday, dashed) are pure noise, using only 15
+          training flats. Slide the knob. In the coefficient paths, with <b>lasso</b> the coefficients hit exactly 0 one after another, noise features first;
+          with <b>ridge</b> they shrink smoothly towards 0 (a small coefficient of a correlated feature may cross 0 on the way), but none sits at exactly 0.
+          The validation-error chart is U-shaped: find its lowest point. Switch the knob to <b>C</b> and notice it moves the other way: small C means strong
+          regularisation. (Ridge and Lasso themselves use <code>alpha</code>, like λ; C is the convention in LogisticRegression and SVC.)
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: 10 }}>
+        <div style={title}>Coefficient paths: one line per feature's weight</div>
+        <PathLegend />
         <Plot
           x={[LO, HI]}
           y={[yLo, yHi]}
@@ -83,7 +107,7 @@ export default function RegularisationPath() {
           <HLine y={0} color="var(--viz-axis)" dash="" width={1.2} />
           <Axes xLabel={xLabel} yLabel="coefficient" xTicks={8} yTicks={6} />
           {FEATURES.map((_, j) => (
-            <Path key={j} points={GRID.map((g, i) => [g, p.ws[i][j]] as [number, number])} color={COLORS[j]} width={2.5} />
+            <Path key={j} points={GRID.map((g, i) => [g, p.ws[i][j]] as [number, number])} color={COLORS[j]} width={2.5} dash={DASH[j] || undefined} />
           ))}
           <VLine x={lg} color="var(--viz-ink)" dash="5 4" />
           <Dots
@@ -103,6 +127,8 @@ export default function RegularisationPath() {
             alignItems: 'center',
           }}
         >
+          <div style={{ display: 'grid', gap: 4 }}>
+          <div style={title}>Validation error</div>
           <Plot
             x={[LO, HI]}
             y={[vLo, vHi]}
@@ -132,14 +158,9 @@ export default function RegularisationPath() {
               best
             </Label>
           </Plot>
+          </div>
           <div style={{ display: 'grid', gap: 6, width: '100%' }}>
-            <div
-              style={{
-                fontSize: 'var(--step--1)',
-                fontWeight: 700,
-                color: 'var(--ink-2)',
-              }}
-            >
+            <div style={title}>
               {kind === 'ridge' ? 'Ridge' : 'Lasso'} coefficients at λ = {fmt(lg)}
             </div>
             <Bars
@@ -182,7 +203,7 @@ export default function RegularisationPath() {
           <Slider label="λ (log scale): bigger = stronger penalty" value={idx} min={0} max={GRID.length - 1} onChange={setIdx} format={(i) => fmt(GRID[i])} />
         ) : (
           <Slider
-            label="C (log scale): bigger = WEAKER penalty"
+            label="C, as in LogisticRegression and SVC (log scale): bigger = WEAKER penalty"
             value={GRID.length - 1 - idx}
             min={0}
             max={GRID.length - 1}

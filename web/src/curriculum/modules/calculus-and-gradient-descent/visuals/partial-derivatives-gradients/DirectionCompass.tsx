@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, FnPath, Path, Arrow, Dots, Label, VLine, HLine, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
-import { HeatMap, ContourLines, Clipped, contourSegments, num, par } from './fieldKit'
+import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, FnPath, Path, Arrow, Dots, Label, VLine, HLine, MBlock, useNarrow } from '../../../../../kit'
+import { HeatMap, ContourLines, Clipped, chainSegments, contourSegments, num, par } from './fieldKit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Which way is steepest? On the oval bowl f(x, y) = x² + 3y², the learner turns a direction
@@ -13,7 +14,7 @@ const f = (x: number, y: number) => x * x + 3 * y * y
 const grad = (x: number, y: number): [number, number] => [2 * x, 6 * y]
 const X: [number, number] = [-3, 3]
 const Y: [number, number] = [-2, 2]
-const LEVELS = [0.5, 1.5, 3, 4.75, 7, 9.5, 12.5]
+const LEVELS = Array.from({ length: 12 }, (_, i) => i + 1) // equal height steps: packed contours = steep
 const RHO = 0.85 // length of the direction arrow on the map
 const DIR = 'var(--viz-4)'
 const GRAD = 'var(--viz-2)'
@@ -42,7 +43,7 @@ export default function DirectionCompass() {
   const tip: [number, number] = [px + RHO * u[0], py + RHO * u[1]]
   const gScale = gLen > 1e-9 ? 1.25 / Math.max(gLen, 2.5) : 0
   const level = f(px, py)
-  const throughP = level > 0.02 ? contourSegments(f, X, Y, 90, 60, level) : []
+  const throughP = level > 0.02 ? chainSegments(contourSegments(f, X, Y, 90, 60, level)) : []
 
   const slopeWord = Math.abs(slope) < 0.05 ? 'flat: you are walking along the contour' : slope > 0 ? 'uphill' : 'downhill'
   const steepest = reveal && between < 2.6
@@ -52,7 +53,7 @@ export default function DirectionCompass() {
       title="Turn the compass: which direction is steepest?"
       caption={
         <>
-          You stand at the orange point P on the oval bowl <i>f</i>(x, y) = x² + 3y² (a map from above; stronger colour = higher). Drag the pink arrow&apos;s tip
+          You stand at the orange point P on the oval bowl <i>f</i>(x, y) = x² + 3y² (a map from above; stronger colour = higher, contour lines at equal steps of height). Drag the pink arrow&apos;s tip
           to turn the direction you walk in, and read the slope of the ground that way. Find the direction where the ground rises fastest, then switch
           on <b>Show the gradient</b> to check. Notice where the slope is exactly 0: along the dashed contour line through P. Drag P to try other spots.
         </>
@@ -77,8 +78,8 @@ export default function DirectionCompass() {
             <ContourLines f={f} fnKey="bowl" levels={LEVELS} />
             <Axes xLabel="x" yLabel="y" xTicks={6} yTicks={4} />
             <Clipped>
-              {throughP.map(([a, b], i) => (
-                <Path key={i} points={[a, b]} color="var(--viz-ink)" width={2} dash="5 4" />
+              {throughP.map((line, i) => (
+                <Path key={i} points={line} color="var(--viz-ink)" width={2} dash="6 4" />
               ))}
             </Clipped>
             <Path
@@ -90,23 +91,25 @@ export default function DirectionCompass() {
             {reveal && gLen > 1e-9 && <Arrow from={p} to={[px + gx * gScale, py + gy * gScale]} color={GRAD} width={3.5} label="∇f" labelOffset={[4, -6]} />}
             <Arrow from={p} to={tip} color={DIR} width={3} />
             <Dots points={[{ x: px, y: py, r: 4, color: 'var(--viz-ink)' }]} stroke="none" />
-            <DraggablePoint
+            <Handle
               x={tip[0]}
               y={tip[1]}
               r={7}
               color={DIR}
               label="u"
+              ariaLabel="walking direction u: drag to turn it"
               onChange={(x, y) => {
                 const d = wrap360(deg(Math.atan2(y - py, x - px)))
                 setTheta(Math.round(d / 5) * 5 === 360 ? 0 : Math.round(d / 5) * 5)
               }}
             />
-            <DraggablePoint
+            <Handle
               x={px}
               y={py}
               r={6}
               color={GRAD}
               label="P"
+              ariaLabel="point P: drag it around the map"
               constrain={(x, y) => [Math.max(-2.6, Math.min(2.6, snap(x))), Math.max(-1.6, Math.min(1.6, snap(y)))]}
               onChange={(x, y) => setP([x, y])}
             />

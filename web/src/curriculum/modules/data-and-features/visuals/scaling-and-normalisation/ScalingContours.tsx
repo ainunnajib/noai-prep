@@ -134,7 +134,7 @@ function Panel({ P, eta, shown, title, xLabel, yLabel }: { P: typeof RAW; eta: n
           start
         </Label>
         {(diverged || offMap) && (
-          <Label x={cx} y={yD[0]} dy={-8} anchor="middle" color="var(--viz-neg)" weight={700}>
+          <Label x={cx} y={yD[1]} dy={15} anchor="middle" color="var(--viz-neg)" weight={700}>
             {diverged ? 'diverges: η is too big for this bowl' : 'path leaves the map'}
           </Label>
         )}
@@ -195,9 +195,12 @@ export default function ScalingContours() {
       caption={
         <>
           A linear model predicts a target from age (years) and monthly income ($ thousands). Each map is the loss over the two weights, seen from
-          above (both axes use the same units, so the shapes are true); the green cross is the minimum. Both runs start at zero and take {STEPS} steps
+          above (both axes use the same units, so the shapes are true); the green cross is the minimum. The bias is kept at its best value, so this
+          picture shows only the effect of each feature's spread. Both runs start at zero and take {STEPS} steps
           with the same learning rate <M>\eta</M>. Slide <M>\eta</M> up: the raw run zig-zags across its narrow valley and then blows up above about{' '}
-          {fmtEta(1 / RAW.lmax)}, while the standardised run only gets faster. <b>Best η for each</b> (on at first) gives each run the learning rate that suits it best.
+          {fmtEta(1 / RAW.lmax)}, while the standardised run copes with learning rates about {Math.round(RAW.lmax / STD.lmax / 10) * 10} times larger
+          (up to about {fmtEta(1 / STD.lmax)}) and is fastest near {fmtEta(bestEta(STD))}. Push <M>\eta</M> past {fmtEta(1 / STD.lmax)} and even the
+          round bowl diverges. <b>Best η for each</b> (on at first) gives each run the learning rate that suits it best.
         </>
       }
     >
@@ -206,15 +209,25 @@ export default function ScalingContours() {
         <Panel P={STD} eta={etaStd} shown={shown} title="Standardised features" xLabel="w (income)" yLabel="w (age)" />
       </div>
       <Controls>
-        <Slider label={<>learning rate <M>\eta</M> (shared)</>} value={logEta} min={-3} max={0} step={0.02} onChange={(v) => { setLogEta(v); setBest(false); setReplayed(false) }} format={(v) => fmtEta(10 ** v)} />
+        <div style={{ flex: '1 1 200px', minWidth: 0, opacity: best ? 0.55 : 1 }}>
+          <Slider
+            label={best ? <>shared <M>\eta</M> (move to use it)</> : <>shared learning rate <M>\eta</M></>}
+            value={logEta}
+            min={-3}
+            max={0}
+            step={0.02}
+            onChange={(v) => { setLogEta(v); setBest(false); setReplayed(false) }}
+            format={(v) => (best ? 'off' : fmtEta(10 ** v))}
+          />
+        </div>
         <Toggle label="best η for each" checked={best} onChange={(v) => { setBest(v); setReplayed(false) }} />
         <Button onClick={replay}>Replay the descent</Button>
       </Controls>
       <Readout
         items={[
-          [`raw, η = ${fmtEta(etaRaw)}`, describe(RAW, etaRaw)],
-          [`standardised, η = ${fmtEta(etaStd)}`, describe(STD, etaStd)],
-          ['largest safe η', `raw ${fmtEta(1 / RAW.lmax)}, standardised ${fmtEta(1 / STD.lmax)}`],
+          [<span key="r" style={{ whiteSpace: 'nowrap' }}>{`raw, η ${fmtEta(etaRaw)}`}</span>, describe(RAW, etaRaw)],
+          [<span key="s" style={{ whiteSpace: 'nowrap' }}>{`standardised, η ${fmtEta(etaStd)}`}</span>, describe(STD, etaStd)],
+          [<span key="l" style={{ whiteSpace: 'nowrap' }}>largest safe η</span>, `raw ${fmtEta(1 / RAW.lmax)}, standardised ${fmtEta(1 / STD.lmax)}`],
         ]}
       />
     </Figure>

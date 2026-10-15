@@ -13,7 +13,9 @@ const MAX_D = 20
 const ROW_H = 7
 
 const U: number[][] = (() => {
-  const rng = mulberry32(20270219)
+  // seed chosen so that, at p = 0.15, the table tracks the formula closely (e.g. 22, 8 and 2
+  // of 40 rows survive at d = 4, 10 and 20, against 20.9, 7.9 and 1.6 expected)
+  const rng = mulberry32(20376878)
   return Array.from({ length: N_ROWS }, () => Array.from({ length: MAX_D }, () => rng()))
 })()
 
@@ -76,7 +78,7 @@ export default function CompleteCaseShrinker() {
         <>
           Each row is one sample and each red cell is a missing value; green rows have no gaps. Slide the number of features <M>d</M> up to 20 with{' '}
           <M>p = 0.15</M> and press <b>dropna()</b>: a row survives only if <i>every</i> one of its cells is present, which happens with probability{' '}
-          <M>(1-p)^d</M>. The curve on the right is that formula; the hollow dot is what happened in this table.
+          <M>(1-p)^d</M>. The curve is that formula; the hollow dot is what happened in this table.
         </>
       }
     >
@@ -88,7 +90,7 @@ export default function CompleteCaseShrinker() {
           <FnPath f={(x) => Math.pow(1 - p, x)} color="var(--viz-1)" width={2.5} domain={[0, MAX_D]} />
           <HLine y={theory} color="var(--viz-muted)" />
           <Dots points={[{ x: d, y: theory, r: 6, color: 'var(--viz-1)' }, { x: d, y: kept / N_ROWS, r: 6, color: 'var(--viz-3)', hollow: true }]} />
-          <Label x={d} y={theory} dx={d > 12 ? -10 : 10} dy={-10} anchor={d > 12 ? 'end' : 'start'} color="var(--viz-1)">
+          <Label x={d} y={theory} dx={d > 12 ? -10 : 10} dy={theory > 0.85 ? 18 : -10} anchor={d > 12 ? 'end' : 'start'} color="var(--viz-1)">
             {(1 - p).toFixed(2)}
             <tspan dy={-7} style={{ fontSize: 10 }}>
               {d}

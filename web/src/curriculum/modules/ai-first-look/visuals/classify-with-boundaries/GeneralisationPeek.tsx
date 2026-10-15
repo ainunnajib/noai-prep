@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Figure, Controls, Button, Segmented, Bars, Plot, Grid, Axes, Path, useNarrow } from '../../../../../kit'
+import { Controls, Button, Segmented, Bars, Plot, Grid, Axes, Path, useNarrow } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { TRAIN, TEST, X_RANGE, Y_RANGE, PASS_BG, FAIL_BG, knnPass, regionRuns, bestLine, linePass, halfPlane, prefersReducedMotion, type Student } from './students'
-import { Regions, StudentMarks, WrongRings, Legend } from './parts'
+import { Regions, StudentMarks, WrongRings, Legend, RegionVars } from './parts'
 
 /*
   Two classifiers trained on the same 24 students:
@@ -13,6 +14,8 @@ import { Regions, StudentMarks, WrongRings, Legend } from './parts'
 type Model = {
   name: string
   sub: string
+  /** colour of this model's bars in the summary chart (shown as a chip next to its name) */
+  color: string
   pass: (x: number, y: number) => boolean
 }
 
@@ -44,11 +47,13 @@ export default function GeneralisationPeek() {
   const best = useMemo(() => bestLine(TRAIN), [])
   const nnRuns = useMemo(() => regionRuns((x, y) => knnPass(TRAIN, x, y, 1), 100, 70), [])
   const models: Model[] = [
-    { name: 'The memoriser', sub: 'wiggly boundary: copy the nearest classmate', pass: (x, y) => knnPass(TRAIN, x, y, 1) },
-    { name: 'The simple line', sub: 'the best straight boundary', pass: (x, y) => linePass(best, x, y) },
+    { name: 'The memoriser', sub: 'wiggly boundary: copy the nearest classmate', color: 'var(--viz-4)', pass: (x, y) => knnPass(TRAIN, x, y, 1) },
+    { name: 'The simple line', sub: 'the best straight boundary', color: 'var(--viz-3)', pass: (x, y) => linePass(best, x, y) },
   ]
   const test = TEST.slice(0, revealed)
   const scores = models.map((m) => ({ train: score(m, TRAIN), test: score(m, test) }))
+  const winner: 'memoriser' | 'line' = scores[1].test.correct >= scores[0].test.correct ? 'line' : 'memoriser'
+  const winnerName = winner === 'line' ? 'the simple line' : 'the memoriser'
   const lineFar: [number, number][] = (() => {
     // two far-apart points on the line a·x + b·y = c
     const { a, b, c } = best
@@ -67,7 +72,7 @@ export default function GeneralisationPeek() {
         <>
           Both maps were trained on the same 24 students. The memoriser copies the label of the nearest classmate, so it gets every one of them right; the
           line gets 22. First guess which will do better on students it has never seen, then press <b>Reveal</b>. New students are drawn as hollow marks, and
-          a blinking ring means that map predicted them wrongly. Reveal all three batches before you decide.
+          a red ring means that map predicted them wrongly. Reveal all three batches before you decide.
         </>
       }
     >
@@ -91,7 +96,10 @@ export default function GeneralisationPeek() {
           return (
             <div key={mi} style={panel}>
               <div>
-                <div style={{ fontWeight: 800, color: 'var(--ink)', fontSize: '0.95rem' }}>{m.name}</div>
+                <div style={{ fontWeight: 800, color: 'var(--ink)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: 3, background: m.color, display: 'inline-block', flex: 'none' }} />
+                  {m.name}
+                </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--ink-3)', fontWeight: 600 }}>{m.sub}</div>
               </div>
               <Plot
@@ -100,20 +108,20 @@ export default function GeneralisationPeek() {
                 width={360}
                 height={262}
                 maxWidth={460}
-                margin={{ left: 30, right: 10, bottom: 28 }}
+                margin={{ left: 30, right: 10 }}
                 ariaLabel={`${m.name}: ${sc.train.correct} of ${TRAIN.length} training students right${revealed ? `, ${sc.test.correct} of ${revealed} new students right` : ''}`}
               >
                 {mi === 0 ? (
                   <Regions runs={nnRuns} />
                 ) : (
-                  <>
+                  <RegionVars>
                     <Path points={passPoly} closed fill={PASS_BG} color="none" width={0} />
                     <Path points={failPoly} closed fill={FAIL_BG} color="none" width={0} />
-                  </>
+                  </RegionVars>
                 )}
                 <Grid xTicks={5} yTicks={4} />
-                <Axes xTicks={5} yTicks={4} />
-                {mi === 1 && <Path points={lineFar} color="var(--viz-5)" width={2.5} />}
+                <Axes xLabel="revision (h)" yLabel="sleep (h)" xTicks={5} yTicks={4} />
+                {mi === 1 && <Path points={lineFar} color="var(--viz-ink)" width={2.5} />}
                 <StudentMarks data={TRAIN} r={5} dim={revealed > 0} />
                 <StudentMarks data={test} r={5.5} hollow />
                 <WrongRings pts={sc.test.wrong} still={still} r={10} />
@@ -159,7 +167,7 @@ export default function GeneralisationPeek() {
             {revealed < TEST.length
               ? `${revealed} new students so far. Reveal more before deciding: a few students can be lucky or unlucky.`
               : `All ${TEST.length} new students revealed: the memoriser misjudged ${TEST.length - scores[0].test.correct}, the line ${TEST.length - scores[1].test.correct}. The perfect training score did not carry over, because the memoriser's boundary bends around individual training students, unusual ones included, and new students who land in those bends and islands are misjudged.${
-                  guess !== 'none' ? ` You guessed ${guess === 'line' ? 'the simple line' : 'the memoriser'}.` : ''
+                  guess === 'none' ? '' : guess === winner ? ` You guessed ${winnerName}: right!` : ` You guessed ${guess === 'line' ? 'the simple line' : 'the memoriser'}. Not this time: ${winnerName} did better.`
                 }`}
           </p>
         </div>

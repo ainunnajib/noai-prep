@@ -30,6 +30,13 @@ const frac = (n: number, d: number) => {
   const g = gcd(n, d)
   return n / g === d / g ? '1' : `\\tfrac{${n / g}}{${d / g}}`
 }
+/** n/36 as plain text, with its reduced form when it simplifies, e.g. "30/36 = 5/6" */
+const plainOver36 = (n: number) => {
+  if (n === 0) return '0'
+  if (n === 36) return '1'
+  const g = gcd(n, 36)
+  return g > 1 ? `${n}/36 = ${n / g}/${36 / g}` : `${n}/36`
+}
 const key = (a: number, b: number) => `${a}${b}`
 const ALL: Pair[] = []
 for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) ALL.push([a, b])
@@ -165,7 +172,9 @@ export default function DiceGrid({ given: withGiven = false }: { given?: boolean
         items={[
           [given === 'none' ? 'outcomes' : 'outcomes still possible', String(world.length)],
           ['in the event', String(hits.length)],
-          ...(given === 'none' ? ([['not in the event', `${36 - hits.length}  (complement: 1 − ${hits.length}/36)`]] as [string, string][]) : []),
+          ...(given === 'none'
+            ? ([['not in the event', `${36 - hits.length} of 36, so P(not) = ${plainOver36(36 - hits.length)} = 1 − ${hits.length}/36`]] as [string, string][])
+            : []),
         ]}
       />
     </Figure>

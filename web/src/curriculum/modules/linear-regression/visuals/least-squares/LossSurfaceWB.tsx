@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Figure, Readout, Button, Plot, Grid, Axes, Path, Dots, Label, FnPath, useNarrow } from '../../../../../kit'
 import { DragDot } from './DragDot'
-import { RIDES, fitLS, mse, ellipse, mseForm, fmt, fix, lineText, type Pt } from './shared'
+import { RIDES, fitLS, mse, ellipse, mseForm, fmt, fix, lineText, lineHandles, lineThrough, type Pt } from './shared'
 
 /*
   Two linked views of the same thing. Left: the data and a line ŷ = wx + b.
@@ -20,6 +20,7 @@ const LABELLED = [1.5, 8, 25]
 const best = fitLS(RIDES)
 const bestMse = mse(RIDES, best.w, best.b)
 const form = mseForm(RIDES)
+const small: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center', marginBottom: '0.2rem' }
 
 export default function LossSurfaceWB() {
   const [wb, setWb] = useState<Pt>([0.5, 4.5])
@@ -34,13 +35,12 @@ export default function LossSurfaceWB() {
   // label position: where each labelled contour crosses the steep axis (well separated there)
   const tag = (L: number): Pt => ellipse(form.a, form.h, form.d, [best.w, best.b], L - bestMse, 4)[0]
 
-  const yL = w * XL + b
-  const yR = w * XR + b
-  const setEnds = (nl: number, nr: number) => {
-    const nw = (nr - nl) / (XR - XL)
-    set(nw, nl - nw * XL)
+  // the handles stay on the line and inside the plot, even when the line's ends leave it
+  const [hL, hR] = lineHandles(w, b, XL, XR, YD)
+  const dragHandle = (which: 0 | 1, ny: number) => {
+    const l = which === 0 ? lineThrough([hL[0], ny], hR) : lineThrough(hL, [hR[0], ny])
+    set(l.w, l.b)
   }
-  const inY = (v: number) => v >= YD[0] && v <= YD[1]
   const pick = (p: Pt) => set(p[0], p[1])
 
   return (
@@ -48,13 +48,16 @@ export default function LossSurfaceWB() {
       title="One line = one point on the loss map"
       caption={
         <>
-          Left: the rides and a line. Right: every possible line, as a point <i>(w, b)</i>, coloured by its MSE, like a contour map of a valley seen
-          from above (darker means lower loss; the small numbers are MSE values on three of the contours). Drag the marker or tap anywhere on the map and watch the line jump; drag the line's green handles and
-          watch the marker move. Can you get the MSE below 0.35 using only the line? The bottom of the bowl, marked ×, is the least-squares line.
+          The data plot shows the rides and a line. The loss map shows every possible line as a point <i>(w, b)</i>, coloured by its MSE, like a contour
+          map of a valley seen from above (the colour gets more intense towards the bottom of the bowl; the small numbers are MSE values on three of the
+          contours). Drag the orange marker or tap anywhere on the loss map and watch the line jump; drag the line's green square handles and watch the
+          marker move. Can you get the MSE below 0.35 using only the line? The bottom of the bowl, marked ×, is the least-squares line.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
+        <div>
+        <div style={small}>The data and the line</div>
         <Plot x={[0, 6]} y={YD} width={340} height={300} minHeight={250} maxWidth={520} ariaLabel={`Data with the line ${lineText(w, b)}`}>
           <Grid xTicks={6} yTicks={6} />
           <Axes xLabel="km" yLabel="fare ($)" xTicks={6} yTicks={6} />
@@ -63,9 +66,12 @@ export default function LossSurfaceWB() {
           ))}
           <FnPath f={(x) => w * x + b} color="var(--viz-3)" width={3} />
           <Dots points={RIDES.map(([x, y]) => ({ x, y, r: 6, color: 'var(--viz-1)' }))} />
-          {inY(yL) && <DragDot x={XL} y={yL} lockX square color="var(--viz-3)" ariaLabel="Left end of the line" onChange={(_, ny) => setEnds(ny, yR)} />}
-          {inY(yR) && <DragDot x={XR} y={yR} lockX square color="var(--viz-3)" ariaLabel="Right end of the line" onChange={(_, ny) => setEnds(yL, ny)} />}
+          <DragDot x={hL[0]} y={hL[1]} lockX square color="var(--viz-3)" ariaLabel="Left handle of the line" onChange={(_, ny) => dragHandle(0, ny)} />
+          <DragDot x={hR[0]} y={hR[1]} lockX square color="var(--viz-3)" ariaLabel="Right handle of the line" onChange={(_, ny) => dragHandle(1, ny)} />
         </Plot>
+        </div>
+        <div>
+        <div style={small}>The loss map over (w, b)</div>
         <Plot
           x={W}
           y={B}
@@ -101,6 +107,7 @@ export default function LossSurfaceWB() {
           </Label>
           <DragDot x={w} y={b} r={8} color="var(--viz-2)" snap={0.05} ariaLabel="Slope and intercept of the line" onChange={(nw, nb) => set(nw, nb)} />
         </Plot>
+        </div>
       </div>
       <Readout
         items={[

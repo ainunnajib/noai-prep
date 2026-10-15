@@ -5,8 +5,8 @@ import { whiteCloud, covariance, covEllipse, Cloud } from './la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
 
 /*
-  A cloud of 200 points shaped by three knobs: the spread along its long axis, the spread across
-  it, and the tilt. The covariance matrix is computed from the points themselves; its eigenvectors
+  A cloud of 200 points shaped by three knobs: the spread in the tilt direction, the spread at right
+  angles to it, and the tilt (the longer of the two spreads becomes the long axis, PC1). The covariance matrix is computed from the points themselves; its eigenvectors
   are drawn as the axes of the 2-standard-deviation ellipse.
 */
 
@@ -56,10 +56,16 @@ export default function CovarianceEllipse() {
   const h2 = scale(dirV(tilt + 90), 2 * s2)
   const L = 5
 
-  const tiltText =
-    Math.abs(cov) < 0.02 ? (
+  const round = Math.abs(s1 - s2) < 1e-9
+  const upright = Math.abs(tilt) % 90 === 0
+  const tiltText = round ? (
+    <>
+      The two spreads are equal, so the cloud is <b>round</b>: Cov(x, y) = 0, the variance is the same in every direction, and <b>every</b> direction is an
+      eigenvector.
+    </>
+  ) : upright ? (
       <>
-        Cov(x, y) ≈ 0: the cloud is <b>not tilted</b>, so its axes line up with the x- and y-axes and the eigenvectors are just (1, 0) and (0, 1).
+        Cov(x, y) = 0: the cloud is <b>not tilted</b>, so its axes line up with the x- and y-axes and the eigenvectors are just (1, 0) and (0, 1).
       </>
     ) : cov > 0 ? (
       <>
@@ -79,7 +85,8 @@ export default function CovarianceEllipse() {
           Drag the two handles (or use the sliders) to stretch and tilt the cloud of 200 points. The matrix is computed from the points. The diagonal holds the
           variances of x and y, the off-diagonal entry holds their covariance, and the two copies of it are always equal. Its <span className={s.c2}>orange</span> and{' '}
           <span className={s.c3}>green</span> eigenvectors are the long and short axes of the ellipse (drawn 2 standard deviations out), and the eigenvalues are the
-          variances along those axes. Set the tilt to 0° and watch the off-diagonal entries become 0.
+          variances along those axes. Whichever spread is larger becomes the long axis v₁, so pushing the second slider past the first swaps them. Set the tilt to
+          0° and watch the off-diagonal entries become 0.
         </>
       }
     >
@@ -107,8 +114,9 @@ export default function CovarianceEllipse() {
             <DraggablePoint
               x={h1[0]}
               y={h1[1]}
-              color="var(--viz-ink)"
-              r={7}
+              color={s1 >= s2 ? 'var(--viz-2)' : 'var(--viz-3)'}
+              r={8}
+              label="drag"
               onChange={(x, y) => {
                 const p: V2 = [x, y]
                 setTilt(wrapTilt(angleOf(p)))
@@ -118,8 +126,9 @@ export default function CovarianceEllipse() {
             <DraggablePoint
               x={h2[0]}
               y={h2[1]}
-              color="var(--viz-ink)"
-              r={7}
+              color={s1 >= s2 ? 'var(--viz-3)' : 'var(--viz-2)'}
+              r={8}
+              label="drag"
               onChange={(x, y) => setS2(clampS(Math.abs(dot([x, y], dirV(tilt + 90))) / 2))}
             />
           </Plot>
@@ -159,8 +168,8 @@ export default function CovarianceEllipse() {
         </div>
       </div>
       <Controls>
-        <Slider label="spread along the long axis" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
-        <Slider label="spread across it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
+        <Slider label="spread in the tilt direction" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
+        <Slider label="spread at right angles to it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
         <Slider label="tilt" value={tilt} min={-90} max={85} step={5} onChange={setTilt} format={(v) => `${fmt(v)}°`} />
       </Controls>
     </Figure>

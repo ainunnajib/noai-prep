@@ -164,7 +164,8 @@ model.score(X_test, y_test)`,
       </>,
       <>
         <code>score</code> predicts the 2 test flats and compares with their real prices. For a regressor it returns <b>R²</b>: 1 is perfect, 0 is no
-        better than always guessing the average price. Here R² = {R2.toFixed(3)}.
+        better than always guessing the average price, and it can even be negative when the predictions are worse than that. Here R² ={' '}
+        {R2.toFixed(3)}.
       </>,
     ],
   },
@@ -583,7 +584,10 @@ export default function SklearnRecipe() {
         <Segmented
           label="Model"
           value={model}
-          onChange={(m) => setModel(m)}
+          onChange={(m) => {
+            setModel(m)
+            player.reset()
+          }}
           options={[
             { value: 'linear', label: narrow ? 'Linear' : 'LinearRegression' },
             { value: 'knn', label: narrow ? 'k-NN' : 'KNeighbors' },
@@ -604,8 +608,8 @@ export default function SklearnRecipe() {
               fontFamily: 'var(--font-mono)',
               fontSize: '0.84rem',
               color: 'var(--ink-2)',
-              overflowX: 'auto',
-              whiteSpace: 'pre',
+              whiteSpace: 'pre-wrap',
+              overflowWrap: 'anywhere',
             }}
             aria-live="polite"
           >

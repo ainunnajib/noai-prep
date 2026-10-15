@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Figure, Controls, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, DraggablePoint, M, MBlock, useNarrow, usePlot } from '../../../../../kit'
+import { Figure, Controls, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, M, MBlock, useNarrow, usePlot } from '../../../../../kit'
+import { BoxLabel, Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Taylor approximations and Newton's method. At the current point the tangent line (first order)
@@ -156,9 +157,7 @@ export default function TaylorFit() {
             )}
           </Clipped>
           {inView && showPara && Number.isFinite(xN) && Math.abs(xN - xk) > span * 0.08 && (
-            <Label x={(xk + clampX(xN)) / 2} y={base} dy={-8} anchor="middle" color={NEWTON} weight={700} size={12}>
-              Newton step
-            </Label>
+            <BoxLabel x={(xk + clampX(xN)) / 2} y={base} dy={-9} color={NEWTON} text="Newton step" />
           )}
           {ok && inView && <Dots points={[{ x: xk, y: fk, r: 7, color: NEWTON }]} />}
           {Number.isFinite(xg) && xg >= F.x[0] && xg <= F.x[1] && <Dots points={[{ x: xg, y: F.f(xg), r: 6, color: GD, hollow: true }]} />}
@@ -167,11 +166,12 @@ export default function TaylorFit() {
               {ok ? `Newton jumped off the chart (x = ${fmt(xk, 1)})` : 'Newton broke down (f″ = 0)'}
             </Label>
           )}
-          <DraggablePoint
+          <Handle
             x={x0}
             y={F.f(x0)}
             r={7}
             color={GD}
+            ariaLabel="start point: drag along the curve"
             label={k === 0 ? 'start' : undefined}
             constrain={(x) => {
               const s = Math.round(x * 20) / 20

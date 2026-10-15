@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label, DraggablePoint } from '../../../../../kit'
-import { LineThrough, Legend, fx } from '../derivatives-as-slopes/plotHelpers'
+import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label } from '../../../../../kit'
+import { Handle, LineThrough, Legend, fx } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   bˣ for b = 2, e, 3: the tangent at the draggable point meets the x-axis exactly 1/ln b to
@@ -88,10 +88,12 @@ function ExpPanel({ b, name, x0, setX0 }: { b: number; name: string; x0: number;
           {`base ${fx(base, 2)}`}
         </Label>
         <Dots points={[{ x: foot, y: 0, r: 4, color: 'var(--viz-3)' }]} />
-        <DraggablePoint
+        <Handle
           x={x0}
           y={y0}
           color="var(--viz-1)"
+          label="drag"
+          ariaLabel="point on the curve: drag along x"
           constrain={(nx) => {
             const s = Math.max(-2, Math.min(2, Math.round(nx * 20) / 20))
             return [s, f(s)]
@@ -137,10 +139,12 @@ function LnPanel({ x0, setX0 }: { x0: number; setX0: (v: number) => void }) {
         </Label>
         <Path points={[[x0, y0], [x0, slope]]} color="var(--viz-muted)" width={1.2} dash="3 4" />
         <Dots points={[{ x: x0, y: slope, r: 6, color: 'var(--viz-2)' }]} />
-        <DraggablePoint
+        <Handle
           x={x0}
           y={y0}
           color="var(--viz-1)"
+          label="drag"
+          ariaLabel="point on the curve: drag along x"
           constrain={(nx) => {
             const s = Math.max(0.25, Math.min(4.8, Math.round(nx * 20) / 20))
             return [s, Math.log(s)]

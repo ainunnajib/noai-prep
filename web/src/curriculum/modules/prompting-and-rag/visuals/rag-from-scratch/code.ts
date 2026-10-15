@@ -25,7 +25,8 @@ index = {w: j for j, w in enumerate(vocab)}
 def vectorise(text):
     v = np.zeros(len(vocab))
     for w in tokenise(text):
-        if w in index:                  # unknown words are ignored
+        # unknown words are ignored
+        if w in index:
             v[index[w]] += 1
     return v
 
@@ -37,7 +38,8 @@ print("D shape:", D.shape)
 def retrieve(query, k=2, min_score=0.0):
     q = vectorise(query)
     norms = np.linalg.norm(D, axis=1) * np.linalg.norm(q)
-    scores = D @ q / (norms + 1e-10)    # epsilon: no 0/0 = nan
+    # epsilon: no 0/0 = nan
+    scores = D @ q / (norms + 1e-10)
     top = np.argsort(-scores, kind="stable")[:k]
     top = [int(i) for i in top if scores[i] > min_score]
     return top, scores

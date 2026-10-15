@@ -33,6 +33,8 @@ import { truth, NOISE_FLOOR, makeRng, sample, fitPoly, predict, mse } from './po
 const MAX_DEG = 15
 const Y_TOP = 0.7
 const N_VAL = 60
+/** --viz-6 alone is too faint for small text on a light surface; mixing in ink keeps the hue and lifts contrast in both themes */
+const UNDER_TEXT = 'color-mix(in srgb, var(--viz-6) 75%, var(--ink))'
 
 export default function PolynomialOverfit() {
   const [deg, setDeg] = useState(3)
@@ -63,7 +65,7 @@ export default function PolynomialOverfit() {
     cur.va <= 1.2 * minVa
       ? { text: 'good fit: near the bottom of the U', color: 'var(--viz-pos)' }
       : deg < data.best
-        ? { text: 'underfitting: both errors high', color: 'var(--viz-6)' }
+        ? { text: 'underfitting: both errors high', color: UNDER_TEXT }
         : { text: 'overfitting: low training error, high validation error', color: 'var(--viz-neg)' }
 
   const fmt = (v: number) => (v >= 100 ? v.toExponential(1) : v >= 10 ? v.toFixed(1) : v.toFixed(3))
@@ -76,7 +78,8 @@ export default function PolynomialOverfit() {
       title="Underfitting and overfitting: slide the degree"
       caption={
         <>
-          The grey dashed curve is the hidden pattern; the blue dots are the training points (pattern + noise). Slide the <b>degree</b> to make the
+          The grey dashed curve is the hidden pattern; the blue dots are the training points (pattern + noise) and the hollow orange dots are the
+          validation points, which the fit never sees. Slide the <b>degree</b> to make the
           polynomial more flexible, or tap a degree on the right-hand chart. Watch the blue <b>training error</b> fall every time while the orange{' '}
           <b>validation error</b>, measured on {N_VAL} fresh points, falls and then shoots up. Then press <b>New random data</b> a few times, and
           switch to 40 or 80 training points: the bottom of the U spreads to the right and overfitting needs a much higher degree.
@@ -97,6 +100,22 @@ export default function PolynomialOverfit() {
             <Dots points={data.train.x.map((x, i) => ({ x, y: data.train.y[i], r: 5, color: 'var(--viz-1)' }))} />
             <FnPath f={(x) => predict(cur.c, x)} color="var(--viz-ink)" width={3} samples={400} />
           </Plot>
+          <div style={{ display: 'flex', gap: '0.2rem 0.9rem', fontSize: '0.8rem', color: 'var(--ink-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span>
+              <b style={{ color: 'var(--viz-muted)' }}>- -</b> hidden pattern
+            </span>
+            <span>
+              <b style={{ color: 'var(--viz-1)' }}>●</b> training points
+            </span>
+            {showVal && (
+              <span>
+                <b style={{ color: 'var(--viz-2)' }}>○</b> validation points
+              </span>
+            )}
+            <span>
+              <b style={{ color: 'var(--viz-ink)' }}>━</b> degree-{deg} fit
+            </span>
+          </div>
         </div>
         <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-2)' }}>Error (MSE) for every degree on this data</div>
@@ -141,7 +160,7 @@ export default function PolynomialOverfit() {
             <Label x={data.best} y={data.curves[data.best - 1].va} dy={-12} anchor="middle" size={12} color="var(--viz-2)" weight={700}>
               best
             </Label>
-            <Label x={0.6} y={Y_TOP} dy={-8} size={11} color="var(--viz-6)" weight={700}>
+            <Label x={0.6} y={Y_TOP} dy={-8} size={11} color={UNDER_TEXT} weight={700}>
               ← underfitting
             </Label>
             <Label x={MAX_DEG + 0.4} y={Y_TOP} dy={-8} anchor="end" size={11} color="var(--viz-neg)" weight={700}>

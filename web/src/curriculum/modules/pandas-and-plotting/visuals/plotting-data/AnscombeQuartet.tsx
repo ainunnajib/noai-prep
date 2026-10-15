@@ -20,13 +20,13 @@ const SETS: { name: string; x: number[]; y: number[]; story: string }[] = [
     name: 'II',
     x: X123,
     y: [9.14, 8.14, 8.74, 8.77, 9.26, 8.1, 6.13, 3.1, 9.13, 7.26, 4.74],
-    story: 'A smooth curve. A straight line is the wrong model: it overshoots in the middle and at the ends.',
+    story: 'A smooth curve. A straight line is the wrong model: it undershoots in the middle (the points arch above it) and overshoots at both ends.',
   },
   {
     name: 'III',
     x: X123,
     y: [7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73],
-    story: 'A perfect line except for one outlier, which drags the fitted line upwards. Check that point before trusting any model.',
+    story: 'A perfect line except for one outlier, which pulls the fitted line towards itself and makes it steeper (slope 0.35 without it, 0.50 with it). Check that point before trusting any model.',
   },
   {
     name: 'IV',
@@ -81,8 +81,8 @@ export default function AnscombeQuartet() {
       title="Same numbers, different pictures"
       caption={
         <>
-          Tap each of the four datasets. Watch the summary numbers under the plot: they stay the same, while the pictures tell four different stories. Summary
-          statistics cannot replace looking at the data.
+          Tap each of the four datasets. Watch the summary numbers under the plot: they stay the same (to two decimal places; the variance of y only wobbles
+          between 4.12 and 4.13), while the pictures tell four different stories. Summary statistics cannot replace looking at the data.
         </>
       }
     >
@@ -103,7 +103,7 @@ export default function AnscombeQuartet() {
             ['mean x', st.mx.toFixed(2)],
             ['mean y', st.my.toFixed(2)],
             ['variance x', st.vx.toFixed(2)],
-            ['variance y', st.vy.toFixed(1)],
+            ['variance y', st.vy.toFixed(2)],
             ['correlation r', st.r.toFixed(2)],
             ['best-fit line', `y = ${st.icpt.toFixed(2)} + ${st.slope.toFixed(2)}x`],
           ]}

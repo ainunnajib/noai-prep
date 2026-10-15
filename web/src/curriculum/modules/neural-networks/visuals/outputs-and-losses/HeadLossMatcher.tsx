@@ -61,10 +61,10 @@ function wrongReason(t: TaskId, h: HeadId): { msg: string; near?: boolean } {
     if (h === 'softmax')
       return {
         near: true,
-        msg: 'Close: with K = 2 logits, softmax works and is equivalent to a sigmoid. But the standard, simpler head for one yes/no question is a single logit with a sigmoid (BCEWithLogitsLoss).',
+        msg: 'With K = 2 logits, softmax works and equals a sigmoid, but the standard, simpler head for one yes/no question is one logit with a sigmoid (BCEWithLogitsLoss).',
       }
     if (h === 'sigmoids') return { msg: '"A sigmoid on each of K logits" is for K separate yes/no questions. Spam or not is a single question: one logit is enough.' }
-    return { msg: 'A raw number with MSE can go below 0 or above 1, so it is not a probability, and MSE learns slowly on classification. Squash one logit with a sigmoid and use binary cross-entropy.' }
+    return { msg: 'A raw number with MSE can go below 0 or above 1, so it is not a probability, and MSE even punishes predictions that are "too right" (say 3 for a label of 1). Squash one logit with a sigmoid and use binary cross-entropy.' }
   }
   if (t === 'multi') {
     if (h === 'sigmoids')

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Grid, Axes, Arrow, Path, Label, DraggablePoint, MatrixGrid, M } from '../../../../../kit'
-import { type M2, type V2, apply, eig2, dirV, angleOf, lineGap, norm, scale, fmt, fix, fmtV, imageOfCircle } from './eig2'
+import { type M2, type V2, type Eig, apply, eig2, dirV, angleOf, lineGap, norm, scale, fmt, fix, fmtV, imageOfCircle } from './eig2'
 import s from './ev.module.css'
 
 /*
@@ -22,21 +22,23 @@ const ALIGN = 0.6 // degrees: closer than this counts as "on the line"
 const SNAP = 3.5 // degrees: dragging this close snaps onto an eigen-line
 
 const sameM = (A: M2, B: M2) => A.every((r, i) => r.every((v, j) => Math.abs(v - B[i][j]) < 1e-9))
+const norm180 = (a: number) => ((a % 180) + 180) % 180
+/** eigen-directions as angles in [0, 180) with their eigenvalues */
+function dirsOf(eig: Eig): { ang: number; l: number }[] {
+  if (eig.kind === 'two') return [{ ang: norm180(angleOf(eig.v1)), l: eig.l1 }, { ang: norm180(angleOf(eig.v2)), l: eig.l2 }]
+  if (eig.kind === 'one') return [{ ang: norm180(angleOf(eig.v)), l: eig.l }]
+  return []
+}
 
 export default function EigenHunter() {
   const [m, setM] = useState<M2>(PRESETS[0].m)
   const [theta, setTheta] = useState(25)
   const [found, setFound] = useState<number[]>([])
   const [showLines, setShowLines] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const eig = useMemo(() => eig2(m), [m])
-  // eigen-directions as angles in [0, 180) with their eigenvalues
-  const dirs: { ang: number; l: number }[] = useMemo(() => {
-    const norm180 = (a: number) => ((a % 180) + 180) % 180
-    if (eig.kind === 'two') return [{ ang: norm180(angleOf(eig.v1)), l: eig.l1 }, { ang: norm180(angleOf(eig.v2)), l: eig.l2 }]
-    if (eig.kind === 'one') return [{ ang: norm180(angleOf(eig.v)), l: eig.l }]
-    return []
-  }, [eig])
+  const dirs = useMemo(() => dirsOf(eig), [eig])
 
   const outline = useMemo(() => imageOfCircle(m), [m])
   const reach = Math.max(...outline.map(norm))
@@ -72,7 +74,9 @@ export default function EigenHunter() {
 
   const choose = (mm: M2) => {
     setM(mm)
-    setFound([])
+    // a new matrix starts a new hunt, but if v already sits on one of its eigen-lines, that one counts as found
+    const d = dirsOf(eig2(mm)).find((q) => lineGap(theta, q.ang) < ALIGN)
+    setFound(d ? [Math.round(d.ang * 10) / 10] : [])
   }
   const setEntry = (i: 0 | 1, j: 0 | 1, val: number) => {
     const mm = m.map((r) => [...r]) as M2
@@ -115,7 +119,8 @@ export default function EigenHunter() {
           The dashed circle holds every input arrow <i>v</i> of length 1; the shaded oval holds every output <i>Av</i>. Drag the <span className={s.c1}>blue</span> tip
           (or use the slider) and watch the <span className={s.c2}>orange</span> output. Most of the time <i>Av</i> points in a new direction. When it lands on v's own
           line (it snaps there when you get close) the line lights up: you have found an eigenvector, and the stretch factor is its eigenvalue λ. Then try the
-          presets: <b>Flip</b> has a negative λ, <b>Shear</b> has only one eigen-line, <b>Squash</b> has λ = 0 and <b>Rotate 90°</b> has none at all.
+          presets: <b>Flip</b> has a negative λ, <b>Shear</b> has only one eigen-line, <b>Squash</b> has λ = 0 and <b>Rotate 90°</b> has none at all. Turn on <b>Edit the matrix entries</b> to build your
+          own.
         </>
       }
     >
@@ -183,15 +188,20 @@ export default function EigenHunter() {
         />
       </Controls>
       <div className={s.row}>
-        <MatrixGrid data={m} format={(x) => fmt(x)} label={<>A (edit below)</>} cellSize={48} ariaLabel="the matrix A" />
-        <Toggle label="Show the eigen-lines" checked={showLines} onChange={setShowLines} />
+        <MatrixGrid data={m} format={(x) => fmt(x)} label={<>A</>} cellSize={48} ariaLabel="the matrix A" />
+        <div style={{ display: 'grid', gap: '0.3rem' }}>
+          <Toggle label="Show the eigen-lines" checked={showLines} onChange={setShowLines} />
+          <Toggle label="Edit the matrix entries" checked={editing} onChange={setEditing} />
+        </div>
       </div>
-      <div className={s.matSliders}>
-        <Slider label="a" value={m[0][0]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="b" value={m[0][1]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="c" value={m[1][0]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="d" value={m[1][1]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x, 1)} />
-      </div>
+      {editing && (
+        <div className={s.matSliders}>
+          <Slider label="a" value={m[0][0]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x, 1)} />
+          <Slider label="b" value={m[0][1]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x, 1)} />
+          <Slider label="c" value={m[1][0]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x, 1)} />
+          <Slider label="d" value={m[1][1]} min={-2} max={2} step={0.1} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x, 1)} />
+        </div>
+      )}
     </Figure>
   )
 }

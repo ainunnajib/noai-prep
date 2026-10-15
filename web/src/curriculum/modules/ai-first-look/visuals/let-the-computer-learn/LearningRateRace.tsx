@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react'
-import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, Label, useContainerWidth } from '../../../../../kit'
+import { Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, Label, usePlot, useContainerWidth } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { loss, slope, fixed, prefersReducedMotion } from './flats'
 
 /*
@@ -35,18 +36,42 @@ function simulate(eta: number, steps: number): number[] {
 }
 
 /**
- * What happens with this learning rate on this valley. For this data every step multiplies the distance
- * to the bottom by (1 − 2η), exactly, because the loss is (w − 6)² + 0.1. We check that numerically too.
+ * What happens with this learning rate on this valley, described in the present tense so it is true at
+ * every step shown. For this data every step multiplies the distance to the bottom by r = 1 − 2η, exactly,
+ * because the loss is (w − 6)² + 0.1; "far" is checked numerically after the full 40 steps (the distance
+ * only shrinks, so far at step 40 means far at every earlier step too).
  */
-function verdict(eta: number): { text: string; color: string } {
+function verdict(eta: number, k: number): { text: string; color: string } {
   const r = 1 - 2 * eta
-  if (Math.abs(r) > 1 + 1e-9) return { text: 'overshoots further every step: diverges', color: 'var(--viz-neg)' }
-  if (Math.abs(Math.abs(r) - 1) < 1e-9) return { text: eta > 0.5 ? 'bounces between two spots forever' : 'does not move', color: 'var(--viz-neg)' }
-  if (Math.abs(r) < 1e-9) return { text: 'lands on the bottom in one step', color: 'var(--viz-pos)' }
+  const end = k >= MAX_STEPS
+  if (Math.abs(r) > 1 + 1e-9) return { text: 'overshooting further every step: diverging', color: 'var(--viz-neg)' }
+  if (Math.abs(Math.abs(r) - 1) < 1e-9) return { text: eta > 0.5 ? 'bouncing between two spots forever' : 'not moving at all', color: 'var(--viz-neg)' }
+  if (Math.abs(r) < 1e-9) return { text: 'landed on the bottom in one step', color: 'var(--viz-pos)' }
   const far = Math.abs(simulate(eta, MAX_STEPS)[MAX_STEPS] - 6) > 0.25
-  if (far) return { text: `crawls: still far from the bottom after ${MAX_STEPS} steps`, color: 'var(--viz-6)' }
-  if (r < 0) return { text: 'zig-zags across the valley, but settles', color: 'var(--viz-pos)' }
-  return { text: 'slides smoothly to the bottom', color: 'var(--viz-pos)' }
+  const when = end ? ` after ${MAX_STEPS} steps` : ''
+  if (far)
+    return r < 0
+      ? { text: `zig-zagging wildly: still far from the bottom${when}`, color: 'var(--viz-neg)' }
+      : { text: `crawling: still far from the bottom${when}`, color: 'var(--ink-2)' }
+  if (r < 0) return { text: end ? 'zig-zagged across the valley, but settled' : 'zig-zagging across the valley, but settling', color: 'var(--viz-pos)' }
+  return { text: end ? 'slid smoothly to the bottom' : 'sliding smoothly towards the bottom', color: 'var(--viz-pos)' }
+}
+
+/** Name tags at the right-hand end of each loss line, pushed apart so they never overlap. */
+function EndLabels({ items }: { items: { x: number; y: number; text: string; color: string }[] }) {
+  const { xs, ys } = usePlot()
+  const bottom = ys.range()[0]
+  const pts = items.map((it) => ({ ...it, px: xs(it.x), py: Math.min(bottom - 2, ys(it.y) + 4) })).sort((a, b) => b.py - a.py)
+  for (let i = 1; i < pts.length; i++) if (pts[i - 1].py - pts[i].py < 13) pts[i].py = pts[i - 1].py - 13
+  return (
+    <g aria-hidden="true">
+      {pts.map((p) => (
+        <text key={p.text} className="plot-label" x={p.px + 8} y={p.py} style={{ fill: p.color, fontSize: 12, fontWeight: 700 }}>
+          {p.text}
+        </text>
+      ))}
+    </g>
+  )
 }
 
 /** Small loss-valley picture drawn in real pixels (no text inside, so it can shrink on phones). */
@@ -121,10 +146,15 @@ export default function LearningRateRace() {
     { eta: 0.01, name: 'tiny steps', color: 'var(--viz-1)' },
     { eta: 0.1, name: 'medium steps', color: 'var(--viz-3)' },
     { eta: 1.1, name: 'huge steps', color: 'var(--viz-neg)' },
-    { eta: custom, name: 'your choice', color: 'var(--viz-5)' },
+    { eta: custom, name: 'your choice', color: 'var(--viz-6)' },
   ]
   const paths = runs.map((r) => simulate(r.eta, k))
   const done = k >= MAX_STEPS
+  // runs whose loss has left the top of the loss chart, and the first step at which one of them did
+  const offTop = runs.filter((_, i) => loss(paths[i][paths[i].length - 1]) > CHART_TOP)
+  const exits = runs.map((_, i) => paths[i].findIndex((w) => loss(w) > CHART_TOP)).filter((j) => j > 0)
+  // the label starts just right of the first step that is off the chart, clear of the line's climb
+  const exitStep = k > 0 && offTop.length && exits.length ? Math.min(...exits) : null
 
   useEffect(() => {
     if (!playing) return
@@ -144,7 +174,7 @@ export default function LearningRateRace() {
       caption={
         <>
           Press <b>Race</b>. All four balls start at w = 1 and follow the same rule, new w = w − η × slope; only the learning rate η differs.
-          Watch the loss chart below as well. Then drag the slider for the fourth ball: find the biggest η that still settles at the bottom,
+          Watch the loss chart below as well. Then drag the slider for the fourth (gold) ball: find the biggest η that still settles at the bottom,
           and the η that lands on the bottom in a single step. (The small tick under each valley marks the bottom, w = 6.)
         </>
       }
@@ -155,7 +185,7 @@ export default function LearningRateRace() {
           const w = p[p.length - 1]
           const L = loss(w)
           const off = !(w >= W_RANGE[0] && w <= W_RANGE[1] && L <= L_TOP)
-          const v = verdict(r.eta)
+          const v = verdict(r.eta, k)
           return (
             <div key={i} style={card}>
               <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '0 0.5rem', alignItems: 'baseline' }}>
@@ -182,13 +212,13 @@ export default function LearningRateRace() {
             </span>
           ))}
         </div>
-        <Plot x={[0, MAX_STEPS]} y={[0, CHART_TOP]} width={560} height={190} maxWidth={700} minHeight={170} margin={{ top: 10, left: 36 }} ariaLabel={`Loss after each step for the four learning rates, up to step ${k}`}>
+        <Plot x={[0, MAX_STEPS]} y={[0, CHART_TOP]} width={560} height={190} maxWidth={700} minHeight={170} margin={{ top: 10, left: 36, right: 52 }} ariaLabel={`Loss after each step for the four learning rates, up to step ${k}`}>
           <Grid xTicks={8} yTicks={3} />
           <Axes xLabel="step" xTicks={8} yTicks={3} />
           <HLine y={0.1} color="var(--viz-muted)" dash="3 4" width={1} />
-          {k > 0 && paths.some((p) => loss(p[p.length - 1]) > CHART_TOP) && (
-            <Label x={k} y={CHART_TOP} dx={k > MAX_STEPS - 8 ? -10 : 10} dy={14} anchor={k > MAX_STEPS - 8 ? 'end' : 'start'} color="var(--viz-neg)" size={12}>
-              off the top: exploding
+          {exitStep !== null && (
+            <Label x={exitStep} y={CHART_TOP} dx={6} dy={14} anchor="start" color="var(--viz-neg)" size={12}>
+              {`${offTop.map((r) => (r.name === 'your choice' ? 'yours' : `η = ${r.eta.toFixed(2)}`)).join(' and ')}: off the top, exploding`}
             </Label>
           )}
           {runs.map((r, i) => {
@@ -203,6 +233,13 @@ export default function LearningRateRace() {
               </g>
             )
           })}
+          {/* at step 0 every run is at the same point, so the name tags only appear once they move apart */}
+          <EndLabels
+            items={k === 0 ? [] : runs
+              .map((r, i) => ({ r, w: paths[i][paths[i].length - 1] }))
+              .filter(({ w }) => loss(w) <= CHART_TOP)
+              .map(({ r, w }) => ({ x: k, y: loss(w), text: r.name === 'your choice' ? 'yours' : r.eta.toFixed(2), color: r.color }))}
+          />
         </Plot>
       </div>
       <Controls>

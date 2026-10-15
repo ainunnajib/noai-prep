@@ -132,13 +132,17 @@ export default function PEBugFixHeatmap() {
   const div = useMemo(() => divTerm(v === 'arange' ? 'ok' : v, d), [v, d])
   const st = useMemo(() => stats(cur, d), [cur, d])
   const zeros = div.reduce((a, x) => a + (x === 0 ? 1 : 0), 0)
+  // the intended bug at the chosen d_model, for the caption (whatever version is shown)
+  const bugDiv = useMemo(() => divTerm('bug', d), [d])
+  const bugZeros = bugDiv.reduce((a, x) => a + (x === 0 ? 1 : 0), 0)
+  const bugSt = useMemo(() => stats(table(bugDiv, d), d), [bugDiv, d])
   const freq = div[Math.floor(c / 2)]
 
   const series = (pe: Float32Array): [number, number][] => Array.from({ length: L }, (_, p) => [p, pe[p * d + c]])
 
   const verdict =
     v === 'ok'
-      ? 'Correct: every column is a wave, fast on the left and slower to the right, so every position gets its own code.'
+      ? 'Correct: every column is a wave, fast on the left and slower to the right, so every position gets its own code. The slowest columns change too slowly to see over 64 positions, but none is exactly constant.'
       : v === 'bug'
         ? `The intended bug: 10000 where ln 10000 belongs. ${zeros} of ${d / 2} frequencies underflow to exactly 0, so those columns are sin 0 = 0 and cos 0 = 1 at every position.`
         : v === 'nominus'
@@ -151,8 +155,8 @@ export default function PEBugFixHeatmap() {
       caption={
         <>
           Switch between the correct line and the wrong ones, and change <code>d_model</code>. Each row of the heat map is one position's code; drag the column slider to follow one
-          column down the positions. With the bug at <code>d_model = 512</code>, 253 of the 256 frequencies are exactly 0 and only 2 columns change at all, so two positions 44 apart
-          (such as 0 and 44) get almost the same code.
+          column down the positions. With the bug at <code>d_model = {d}</code>, {bugZeros} of the {d / 2} frequencies are exactly 0 and only {bugSt.varying} of the {d}{' '}
+          columns change at all, so positions {bugSt.pair[0]} and {bugSt.pair[1]} get almost the same code (at <code>d_model = 512</code>: 253 of 256 frequencies are 0).
         </>
       }
     >
@@ -191,7 +195,7 @@ export default function PEBugFixHeatmap() {
               <Path points={series(good)} color="var(--viz-1)" width={2.5} />
               {v !== 'ok' && <Path points={series(cur)} color="var(--viz-2)" width={2.5} dash="6 4" />}
               {v === 'bug' && <VLine x={st.pair[0]} color="var(--viz-4)" />}
-              {v === 'bug' && <VLine x={st.pair[1]} color="var(--viz-4)" label={`${st.pair[0]} ≈ ${st.pair[1]}`} />}
+              {v === 'bug' && <VLine x={st.pair[1]} color="var(--viz-4)" />}
             </Plot>
             <div className={s.key}>
               <span>
@@ -200,6 +204,12 @@ export default function PEBugFixHeatmap() {
               {v !== 'ok' && (
                 <span>
                   <i style={{ background: 'var(--viz-2)' }} /> this version
+                </span>
+              )}
+              {v === 'bug' && (
+                <span>
+                  <i style={{ background: 'none', borderLeft: '2px dashed var(--viz-4)', borderRadius: 0, width: '0.5rem' }} /> closest pair of positions ({st.pair[0]} and{' '}
+                  {st.pair[1]})
                 </span>
               )}
             </div>

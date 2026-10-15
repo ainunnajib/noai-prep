@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Plot, Grid, Axes, Arrow, Path, DraggablePoint, Segmented, Slider, usePlot } from '../../../../../kit'
+import { Figure, Controls, Readout, Plot, Grid, Axes, Arrow, DraggablePoint, Segmented, Slider, usePlot } from '../../../../../kit'
 import { ArrowLabel, fmt, type P } from '../vectors/shared'
 import { AngleArc, cosOf, degOf, dot, len, signColour } from './geom'
 import vs from '../vectors/vectors.module.css'
@@ -59,10 +59,10 @@ function Dial({ value }: { value: number }) {
           </g>
         )
       })}
-      <text x={cx - R} y={cy + 22} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 11.5, fontWeight: 700 }}>
+      <text x={cx - R} y={cy + 22} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 12.5, fontWeight: 700 }}>
         opposite
       </text>
-      <text x={cx + R} y={cy + 22} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 11.5, fontWeight: 700 }}>
+      <text x={cx + R} y={cy + 22} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 12.5, fontWeight: 700 }}>
         same way
       </text>
       <line x1={cx} y1={cy} x2={nx} y2={ny} style={{ stroke: 'var(--ink)', strokeWidth: 3.5 }} strokeLinecap="round" />
@@ -88,6 +88,56 @@ function Meter({ label, value, max }: { label: string; value: number; max: numbe
         <div className={s.meterFill} style={{ left: f >= 0 ? '50%' : `${50 + f * 50}%`, width: `${Math.abs(f) * 50}%`, background: signColour(Math.sign(value)) }} />
       </div>
     </div>
+  )
+}
+
+/**
+ * The gap between two document tips, labelled with its length. When the two arrows lie on one line
+ * (short vs long report) the gap would run along the arrows and vanish, so it is drawn as a bracket
+ * set a few pixels to the side instead.
+ */
+function DistanceLine({ p, q, dist }: { p: P; q: P; dist: number }) {
+  const { xs, ys } = usePlot()
+  const [x1, y1] = [xs(p[0]), ys(p[1])]
+  const [x2, y2] = [xs(q[0]), ys(q[1])]
+  const l = Math.hypot(x2 - x1, y2 - y1)
+  if (l < 2) return null
+  let nx = -(y2 - y1) / l
+  let ny = (x2 - x1) / l
+  // point the offset away from the origin (or upwards when the gap runs through it)
+  const mx = (x1 + x2) / 2 - xs(0)
+  const my = (y1 + y2) / 2 - ys(0)
+  if (nx * mx + ny * my < 0 || (Math.abs(nx * mx + ny * my) < 1e-6 && ny > 0)) {
+    nx = -nx
+    ny = -ny
+  }
+  const collinear = Math.abs(p[0] * q[1] - p[1] * q[0]) < 1e-9
+  const off = collinear ? 12 : 0
+  const [a1, b1, a2, b2] = [x1 + nx * off, y1 + ny * off, x2 + nx * off, y2 + ny * off]
+  const lx = (a1 + a2) / 2 + nx * 16
+  const ly = (b1 + b2) / 2 + ny * 16
+  return (
+    <g>
+      {collinear ? (
+        <>
+          <line x1={x1 + nx * 4} y1={y1 + ny * 4} x2={a1 + nx * 4} y2={b1 + ny * 4} style={{ stroke: 'var(--ink-2)', strokeWidth: 1.5 }} />
+          <line x1={x2 + nx * 4} y1={y2 + ny * 4} x2={a2 + nx * 4} y2={b2 + ny * 4} style={{ stroke: 'var(--ink-2)', strokeWidth: 1.5 }} />
+          <line x1={a1} y1={b1} x2={a2} y2={b2} style={{ stroke: 'var(--ink-2)', strokeWidth: 2 }} />
+        </>
+      ) : (
+        <line x1={x1} y1={y1} x2={x2} y2={y2} style={{ stroke: 'var(--ink-2)', strokeWidth: 2, strokeDasharray: '4 4' }} />
+      )}
+      <text
+        className="plot-label"
+        x={lx}
+        y={ly}
+        dy="0.35em"
+        textAnchor={Math.abs(nx) < 0.45 ? 'middle' : nx > 0 ? 'start' : 'end'}
+        style={{ fill: 'var(--ink-2)', fontSize: 12.5, fontWeight: 700, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}
+      >
+        {`distance ${fmt(dist)}`}
+      </text>
+    </g>
   )
 }
 
@@ -194,7 +244,7 @@ export default function CosineDial() {
                     <Arrow from={[0, 0]} to={DOCS[k].v} color="var(--viz-muted)" width={2.5} />
                   </g>
                 ))}
-              <Path points={[da, db]} color="var(--viz-muted)" width={2} dash="4 4" />
+              <DistanceLine p={da} q={db} dist={dist} />
               {len(da) >= len(db) ? (
                 <>
                   <Arrow from={[0, 0]} to={da} color={A} width={5} head={12} />
@@ -220,8 +270,8 @@ export default function CosineDial() {
               <Meter label="dot product a·b" value={dot(a, b)} max={len(a) * B_MAX} />
               <Readout
                 items={[
-                  ['|a|', fmt(len(a))],
-                  ['|b|', fmt(blen)],
+                  ['‖a‖', fmt(len(a))],
+                  ['‖b‖', fmt(blen)],
                   ['θ', `${Math.round(degOf(a, b))}°`],
                 ]}
               />
@@ -254,7 +304,7 @@ export default function CosineDial() {
 
       {mode === 'arrows' ? (
         <Controls>
-          <Slider label="length of b" value={blen} min={0.5} max={B_MAX} step={0.25} onChange={setBlen} format={(x) => fmt(x)} />
+          <Slider label="length of b" value={blen} min={1} max={B_MAX} step={0.25} onChange={setBlen} format={(x) => fmt(x)} />
         </Controls>
       ) : (
         <p className={s.note}>{docNote}</p>

@@ -18,18 +18,23 @@ const PRESETS = [
 const BYTES = 4 // one float32 number
 const OPS_PER_SECOND = 1e14 // a fast GPU, order of magnitude
 
-const sup = '⁰¹²³⁴⁵⁶⁷⁸⁹'
+const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
 /** round to a few significant figures and print without exponent notation: 400, 25.6, 1.7 */
 const sig = (v: number, digits = 3) => Number(v.toPrecision(digits)).toLocaleString('en-GB', { maximumFractionDigits: 3 })
 const sig3 = (v: number) => sig(v, 3)
+/** 10^e as "2.5 × 10⁷" or "10⁵"; a mantissa that rounds up to 10 moves into the exponent */
 const pow10 = (e: number) => {
-  const k = Math.floor(e + 1e-9)
-  const m = 10 ** (e - k)
+  let k = Math.floor(e + 1e-9)
+  let m = 10 ** (e - k)
+  if (m >= 9.95) {
+    k += 1
+    m = 1
+  }
   const exp = String(k)
     .split('')
-    .map((d) => sup[Number(d)])
+    .map((d) => SUP[d] ?? d)
     .join('')
-  return `${m >= 9.95 ? '10' : m < 1.05 ? '' : `${m.toFixed(1)} × `}10${exp}`
+  return `${m < 1.05 ? '' : `${m.toFixed(1)} × `}10${exp}`
 }
 const count = (e: number) => {
   const v = 10 ** e

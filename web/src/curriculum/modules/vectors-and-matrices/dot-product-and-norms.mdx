@@ -3,12 +3,12 @@ import NormBalls from './visuals/dot-product-and-norms/NormBalls'
 import NearestHawker from './visuals/dot-product-and-norms/NearestHawker'
 import CosineDial from './visuals/dot-product-and-norms/CosineDial'
 
-How does a music app know two songs are alike, or a search engine find the page that answers your question? It turns each thing into a vector, then **measures** the vectors. This lesson gives you the three measuring tools that AI uses constantly: the **dot product** (how much two vectors agree), **norms** (how long a vector is, and so how far apart two points are) and **cosine similarity** (how closely two vectors point the same way).
+How does a music app know two songs are alike, or a search engine find the page that answers your question? It turns each thing into a vector, then **measures** the vectors. This lesson gives you AI's three everyday measuring tools: the **dot product** (how much two vectors agree), **norms** (how long a vector is, and so how far apart two points are) and **cosine similarity** (how closely two vectors point the same way).
 
 ## The dot product: multiply, then add
 
 <Analogy title="Your hawker bill">
-You order 2 plates of chicken rice, 1 teh and 3 kaya toasts, and they cost \$4, \$2 and \$1 each. To get the bill you multiply each quantity by its price and add everything up: $2 \times 4 + 1 \times 2 + 3 \times 1 = 8 + 2 + 3 = 13$ dollars. Two lists of numbers went in, one total came out. That recipe, "multiply matching pairs, then add", is the dot product.
+You order 2 plates of chicken rice, 1 teh and 3 kaya toasts at \$4, \$2 and \$1 each. Your bill multiplies each quantity by its price and adds: $2 \times 4 + 1 \times 2 + 3 \times 1 = 8 + 2 + 3 = 13$ dollars. Two lists in, one total out. That recipe, "multiply matching pairs, then add", is the dot product.
 </Analogy>
 
 The <Term def="A way of combining two vectors of the same length into ONE number: multiply matching components and add up the results.">dot product</Term> of two vectors of the same dimension is found by multiplying matching components and adding up the results:
@@ -17,16 +17,16 @@ $$
 \mathbf{a} \cdot \mathbf{b} = a_1 b_1 + a_2 b_2 + \dots + a_n b_n = \sum_{i=1}^{n} a_i b_i
 $$
 
-Read it symbol by symbol: $a_i$ and $b_i$ are the $i$-th components of $\mathbf{a}$ and $\mathbf{b}$, each product $a_i b_i$ pairs them up, and $\sum_{i=1}^{n}$ ("sum for $i$ from 1 to $n$") adds all $n$ products. The answer is a single number (a <Term def="A single ordinary number, as opposed to a vector.">scalar</Term>), **not** a vector.
+Here $a_i$ and $b_i$ are the $i$-th components of $\mathbf{a}$ and $\mathbf{b}$, and $\sum_{i=1}^{n}$ ("sum for $i$ from 1 to $n$") adds all $n$ products $a_i b_i$. The answer is a single number (a <Term def="A single ordinary number, as opposed to a vector.">scalar</Term>), **not** a vector.
 
-For example, $[1, 2] \cdot [3, 4] = 1 \times 3 + 2 \times 4 = 3 + 8 = 11$, and the hawker bill above is $[2, 1, 3] \cdot [4, 2, 1] = 13$. A dot product is a **weighted sum**, and that is exactly what a neuron in a neural network computes: inputs times weights, added up.
+For example, $[1, 2] \cdot [3, 4] = 1 \times 3 + 2 \times 4 = 3 + 8 = 11$, and the hawker bill above is $[2, 1, 3] \cdot [4, 2, 1] = 13$. A dot product is a **weighted sum**, the core of what a neuron in a neural network computes: inputs times weights, added up. The neuron then adds a bias $b$ and applies an activation function: $\text{activation}(\mathbf{w} \cdot \mathbf{x} + b)$.
 
 <PastPaperQuestion paper="prelim2026" n={6} />
 
 ## What the dot product means: do two vectors agree?
 
 <Analogy title="Pushing a trolley at an angle">
-You push a supermarket trolley, but your arms point slightly sideways. Only the part of your push that lies **along** the trolley's direction moves it forward; the sideways part is wasted. Push straight along and every bit counts. Push at right angles and the trolley does not move forward at all. Pull backwards and you work against it. The dot product measures that useful part.
+You push a supermarket trolley with your arms pointing slightly sideways. Only the part of your push **along** the trolley's direction moves it forward. Push straight along and every bit counts; push at right angles and it does not move forward at all; pull backwards and you work against it. The dot product measures that useful part.
 </Analogy>
 
 The same number has a second, geometric formula:
@@ -35,47 +35,49 @@ $$
 \mathbf{a} \cdot \mathbf{b} = \lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert \cos\theta
 $$
 
-Here $\lVert \mathbf{a} \rVert$ is the **length** of arrow $\mathbf{a}$ (by Pythagoras: $\lVert [4, 1] \rVert = \sqrt{16 + 1}$, more on this in the next section), $\lVert \mathbf{b} \rVert$ is the length of $\mathbf{b}$, and $\theta$ (the Greek letter theta) is the angle between the two arrows. The <Term def="cos θ is a number between -1 and 1 that depends only on the angle θ: 1 at 0°, 0 at 90°, -1 at 180°.">cosine</Term> $\cos\theta$ is what you met in trigonometry. All you need here is how it behaves as the angle opens up:
+Here $\lVert \mathbf{a} \rVert$ is the **length** of arrow $\mathbf{a}$, found by Pythagoras (the arrow $\mathbf{a} = [4, 1]$ in the figure below has length $\sqrt{4^2 + 1^2} = \sqrt{17} \approx 4.12$; more on lengths soon), $\lVert \mathbf{b} \rVert$ is the length of $\mathbf{b}$, and $\theta$ (theta) is the angle between the arrows.
+
+The <Term def="cos θ is a number between -1 and 1 that depends only on the angle θ: 1 at 0°, 0 at 90°, -1 at 180°.">cosine</Term> $\cos\theta$ comes from trigonometry: in a right-angled triangle, $\cos\theta = \dfrac{\text{adjacent side}}{\text{hypotenuse}}$. If you have not met cosine yet, this table is all you need:
 
 | angle $\theta$ | 0° | 60° | 90° | 120° | 180° |
 |---|---|---|---|---|---|
 | $\cos\theta$ | 1 | 0.5 | 0 | −0.5 | −1 |
 
-In pictures, $\lVert \mathbf{b} \rVert \cos\theta$ is the length of the **shadow** that $\mathbf{b}$ casts on the line through $\mathbf{a}$ (this shadow is called a <Term def="The shadow of one vector on the line of another: drop a perpendicular from the tip of b onto the line through a.">projection</Term>). The shadow counts as negative when it falls behind the origin, which happens when the angle is over 90°. So the dot product is "length of $\mathbf{a}$ times the shadow of $\mathbf{b}$ on it".
+In pictures, drop a line from the tip of $\mathbf{b}$ at 90° onto the line through $\mathbf{a}$. The stretch from the origin to where it lands is the **shadow** of $\mathbf{b}$, its <Term def="The shadow of one vector on the line of another: drop a perpendicular from the tip of b onto the line through a.">projection</Term>. Arrow $\mathbf{b}$ (the hypotenuse), its shadow (the side next to $\theta$) and the drop line form a right-angled triangle, so the shadow's length is $\lVert \mathbf{b} \rVert \cos\theta$, counted as negative when it falls behind the origin (angles over 90°). So the dot product is "length of $\mathbf{a}$ times the shadow of $\mathbf{b}$ on it".
 
 <DotProductProjector />
 
 <KeyIdea>
-The **sign** of the dot product tells you how two vectors relate. Positive: they point roughly the same way (angle under 90°). Zero: they are at right angles. Negative: they point roughly opposite ways (angle over 90°).
+The **sign** of the dot product tells you how two vectors relate. Positive: roughly the same way (angle under 90°). Zero: at right angles. Negative: roughly opposite ways (angle over 90°).
 </KeyIdea>
 
-Two vectors whose dot product is 0 are called <Term def="At right angles to each other. Two non-zero vectors are orthogonal exactly when their dot product is 0.">orthogonal</Term>, the linear-algebra word for perpendicular. This is the fastest perpendicularity test there is: $[3, 1] \cdot [-1, 3] = -3 + 3 = 0$, so those two arrows meet at exactly 90°, with no angles or lengths needed.
+Two vectors whose dot product is 0 are called <Term def="At right angles to each other. Two non-zero vectors are orthogonal exactly when their dot product is 0.">orthogonal</Term>, the linear-algebra word for perpendicular. It is the fastest right-angle test: $[3, 1] \cdot [-1, 3] = -3 + 3 = 0$, so those arrows meet at exactly 90°.
 
 <QuickCheck
   q="Are $[2, -1]$ and $[1, 2]$ perpendicular?"
   options={['Yes: their dot product is $2 - 2 = 0$', 'No: their dot product is $2 + 2 = 4$', 'No: perpendicular vectors must have a negative dot product', 'Yes: they have the same length']}
   answer={0}
-  explain="Multiply matching components and add: $2 \times 1 + (-1) \times 2 = 2 - 2 = 0$. A zero dot product means a 90° angle. It is true that both have length $\sqrt{5}$, but equal length says nothing about the angle between them."
+  explain="$2 \times 1 + (-1) \times 2 = 2 - 2 = 0$, and a zero dot product means a 90° angle. Both do have length $\sqrt{5}$, but equal length says nothing about the angle."
 />
 
 ## Norms: how long is a vector?
 
 <Analogy title="The crow and the taxi">
-Two HDB blocks are 3 streets east and 4 streets north of each other. A crow flies straight across: $\sqrt{3^2 + 4^2} = 5$ streets. A taxi must follow the roads: $3 + 4 = 7$ streets. Both are honest answers to "how far?"; they just use different rulers.
+Two HDB blocks are 3 streets east and 4 streets north of each other. A crow flies straight: $\sqrt{3^2 + 4^2} = 5$ streets. A taxi follows the roads: $3 + 4 = 7$ streets. Both honestly answer "how far?" with different rulers.
 </Analogy>
 
-A <Term def="A rule that gives the length (size) of a vector. It is never negative and is 0 only for the zero vector.">norm</Term> is a way of measuring the length of a vector, written with double bars $\lVert \mathbf{v} \rVert$. The subscript says which ruler you are using. The three you need are:
+A <Term def="A rule that gives the length (size) of a vector. It is never negative and is 0 only for the zero vector.">norm</Term> measures the length of a vector, written with double bars $\lVert \mathbf{v} \rVert$; the subscript names the ruler. The three you need are:
 
 - **L2 norm** (straight-line length): $\lVert \mathbf{v} \rVert_2 = \sqrt{v_1^2 + v_2^2 + \dots + v_n^2}$
 - **L1 norm** (add up the sizes): $\lVert \mathbf{v} \rVert_1 = |v_1| + |v_2| + \dots + |v_n|$
 - **L∞ norm** (the biggest single size): $\lVert \mathbf{v} \rVert_\infty = \max(|v_1|, |v_2|, \dots, |v_n|)$
 
-$|v_i|$ means the size of $v_i$ ignoring its sign ($|-4| = 4$), and $\max$ picks the largest. The L2 norm is Pythagoras in any number of dimensions and is called the <Term def="The ordinary straight-line length or distance, from Pythagoras' theorem. Same as the L2 norm.">Euclidean</Term> length. The L1 norm is called the <Term def="Distance measured along a grid, like a taxi on Manhattan's streets: add the sizes of the components. Same as the L1 norm.">Manhattan</Term> length, after the grid of streets in New York. **When no subscript is written, $\lVert \mathbf{v} \rVert$ means the L2 norm.**
+$|v_i|$ is the size of $v_i$ ignoring its sign ($|-4| = 4$), and $\max$ picks the largest. L2 is Pythagoras in any number of dimensions, the <Term def="The ordinary straight-line length or distance, from Pythagoras' theorem. Same as the L2 norm.">Euclidean</Term> length; L1 is the <Term def="Distance measured along a grid, like a taxi on Manhattan's streets: add the sizes of the components. Same as the L1 norm.">Manhattan</Term> length, after New York's street grid. **With no subscript, $\lVert \mathbf{v} \rVert$ means the L2 norm.**
 
-One link to remember: the L2 norm squared is the dot product of a vector with itself, $\lVert \mathbf{v} \rVert_2^2 = \mathbf{v} \cdot \mathbf{v}$. For $[3, 4]$: $3 \times 3 + 4 \times 4 = 25 = 5^2$.
+One link to remember: $\lVert \mathbf{v} \rVert_2^2 = \mathbf{v} \cdot \mathbf{v}$. For $[3, 4]$: $3 \times 3 + 4 \times 4 = 25 = 5^2$.
 
 <KeyIdea>
-A norm is a ruler for vectors. **L2** = square root of the sum of squares (straight line), **L1** = sum of the absolute values (along the grid), **L∞** = the largest absolute value.
+A norm is a ruler for vectors. **L2** = square root of the sum of squares (the crow), **L1** = sum of absolute values (the taxi), **L∞** = the largest absolute value.
 </KeyIdea>
 
 <NormBalls />
@@ -85,7 +87,7 @@ A norm is a ruler for vectors. **L2** = square root of the sum of squares (strai
     $3^2 + (-4)^2 = 9 + 16 = 25$, and $\sqrt{25} = 5$. So $\lVert \mathbf{v} \rVert_2 = 5$. The minus sign disappears when you square.
   </Step>
   <Step title="L1: add the sizes">
-    $|3| + |-4| = 3 + 4 = 7$. So $\lVert \mathbf{v} \rVert_1 = 7$. Without the absolute values you would get $3 + (-4) = -1$, and a length can never be negative.
+    $|3| + |-4| = 3 + 4 = 7$. So $\lVert \mathbf{v} \rVert_1 = 7$. Without absolute values you would get $3 + (-4) = -1$, and a length is never negative.
   </Step>
   <Step title="L∞: take the biggest size">
     $\max(|3|, |-4|) = \max(3, 4) = 4$. So $\lVert \mathbf{v} \rVert_\infty = 4$.
@@ -98,16 +100,16 @@ A norm is a ruler for vectors. **L2** = square root of the sum of squares (strai
 <PastPaperQuestion paper="prelim2026" n={2} />
 
 <Mistake>
-Two traps appear again and again as wrong options. Forgetting the square root gives 25 instead of 5 for $[3, 4]$ (that is the **squared** norm). Adding the components gives 7, which is the L1 norm, not the L2 norm. Read which norm the question asks for.
+Two classic wrong options: forgetting the square root gives 25 instead of 5 for $[3, 4]$ (the **squared** norm), and adding the components gives 7 (the L1 norm). Read which norm the question asks for.
 </Mistake>
 
-Look again at the diamond in the figure: its sharp corners sit exactly on the axes, where one component is 0. When you later meet <Term def="Adding a penalty on the size of a model's weights to the loss, to discourage overfitting. L1 regularisation uses the L1 norm; L2 regularisation uses the squared L2 norm.">regularisation</Term>, this shape explains why an L1 penalty (Lasso) tends to push model weights to exactly zero while an L2 penalty (Ridge) only shrinks them.
+The L1 diamond in the figure has sharp corners on the axes, where one component is 0. When you later meet <Term def="Adding a penalty on the size of a model's weights to the loss, to discourage overfitting. L1 regularisation uses the L1 norm; L2 regularisation uses the squared L2 norm.">regularisation</Term>, this shape explains why an L1 penalty (Lasso) tends to push weights to exactly zero while an L2 penalty (Ridge) only shrinks them.
 
-**Unit vectors.** A vector of length 1 is called a <Term def="A vector whose L2 norm is exactly 1. It describes a pure direction.">unit vector</Term>. Dividing any non-zero vector by its own length **normalises** it, keeping the direction and setting the length to 1: $\dfrac{[3, 4]}{5} = [0.6, 0.8]$, and indeed $\sqrt{0.36 + 0.64} = 1$.
+**Unit vectors.** A vector of length 1 is a <Term def="A vector whose L2 norm is exactly 1. It describes a pure direction.">unit vector</Term>. Dividing a non-zero vector by its length **normalises** it: same direction, length 1. $\dfrac{[3, 4]}{5} = [0.6, 0.8]$, and $\sqrt{0.36 + 0.64} = 1$.
 
 ## Distance is the norm of the difference
 
-In the last lesson you saw that $\mathbf{a} - \mathbf{b}$ is the arrow from the tip of $\mathbf{b}$ to the tip of $\mathbf{a}$. Its length is the distance between the two points:
+In the last lesson you saw that $\mathbf{a} - \mathbf{b}$ is the arrow from the tip of $\mathbf{b}$ to the tip of $\mathbf{a}$, so its length is the distance between the two points:
 
 $$
 d(\mathbf{a}, \mathbf{b}) = \lVert \mathbf{a} - \mathbf{b} \rVert
@@ -117,17 +119,17 @@ Use the L2 norm and you get the **Euclidean distance** (the crow); use the L1 no
 
 <NearestHawker />
 
-Distance is how many models decide what is "similar". The <Term def="A simple classifier: to label a new point, find the K training points closest to it (smallest distance) and let them vote.">k-nearest neighbours</Term> (KNN) algorithm labels a new data point by finding the $K$ training examples with the smallest distance to it and letting them vote. As the figure shows, the answer can change with the ruler you choose.
+Many models judge "similar" by distance. The <Term def="A simple classifier: to label a new point, find the K training points closest to it (smallest distance) and let them vote.">k-nearest neighbours</Term> (KNN) algorithm labels a new point by letting the $K$ closest training examples vote, and as the figure shows, the answer can change with the ruler you choose.
 
 <PastPaperQuestion paper="prelim2026" n={140} />
 
 ## Cosine similarity: compare directions, ignore lengths
 
 <Analogy title="Two playlists">
-Your playlist has 30 K-pop songs and 10 Mandopop songs. Your friend's has 300 K-pop and 100 Mandopop. The playlists have very different sizes, but exactly the same taste: three K-pop songs for every Mandopop song. A good "similar taste" score should say they match perfectly, and cosine similarity does.
+Your playlist has 30 K-pop and 10 Mandopop songs; your friend's has 300 K-pop and 100 Mandopop. Very different sizes, exactly the same taste: three K-pop songs for every Mandopop one. A good "similar taste" score should say they match perfectly, and cosine similarity does.
 </Analogy>
 
-Rearrange the geometric dot product formula to get the cosine of the angle on its own:
+Rearrange the geometric formula to get the cosine on its own:
 
 $$
 \text{cosine similarity}(\mathbf{a}, \mathbf{b}) = \cos\theta = \frac{\mathbf{a} \cdot \mathbf{b}}{\lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert}
@@ -138,6 +140,8 @@ The top is the dot product; the bottom divides out both lengths, so only the **d
 - $1$: same direction (the playlists above, or any $\mathbf{b} = c\,\mathbf{a}$ with $c > 0$);
 - $0$: perpendicular, nothing in common;
 - $-1$: exactly opposite directions.
+
+It is undefined if either vector is the zero vector (you cannot divide by a length of 0). For word counts, which are never negative, it lies between 0 and 1; negative values need negative entries, as in learned embeddings.
 
 <KeyIdea>
 Cosine similarity compares **directions only**: 1 for the same direction, 0 for perpendicular, $-1$ for opposite, however long the vectors are.
@@ -160,13 +164,13 @@ Cosine similarity compares **directions only**: 1 for the same direction, 0 for 
   </Step>
 </Steps>
 
-This is why search engines and RAG systems (retrieval-augmented generation, where a chatbot first looks up relevant documents) compare text <Term def="A learned vector of numbers that represents a word, sentence or document, placed so that similar meanings get similar directions.">embeddings</Term> with cosine similarity: a long document and a short one about the same topic point the same way. Many systems normalise every embedding to length 1 first. For unit vectors the bottom of the fraction is $1 \times 1$, so **cosine similarity is just the dot product**. You will also see **cosine distance** $= 1 - \text{cosine similarity}$, which is 0 for vectors pointing the same way.
+A long document and a short one on the same topic have word-count vectors pointing the same way but with very different lengths, so cosine similarity is the fair comparison. Learned text <Term def="A learned vector of numbers that represents a word, sentence or document, placed so that similar meanings get similar directions.">embeddings</Term> also store meaning in their direction, so search engines and RAG systems (retrieval-augmented generation: a chatbot first looks up relevant documents) compare them with cosine similarity. Many systems first normalise every embedding to length 1; then the bottom of the fraction is $1 \times 1$, so **cosine similarity is just the dot product**. **Cosine distance** $= 1 - \text{cosine similarity}$ is 0 for vectors pointing the same way.
 
 <QuickCheck
   q="What is the cosine similarity of $[1, 2]$ and $[3, 6]$?"
   options={['$1$', '$15$', '$3$', '$0.5$']}
   answer={0}
-  explain="$[3, 6] = 3 \times [1, 2]$, so the two vectors point in exactly the same direction and the cosine similarity is 1. You can check: the dot product is $3 + 12 = 15$, and the lengths are $\sqrt{5}$ and $\sqrt{45} = 3\sqrt{5}$, so $15 / (\sqrt{5} \times 3\sqrt{5}) = 15/15 = 1$. 15 is the dot product, not the cosine."
+  explain="$[3, 6] = 3 \times [1, 2]$ points in exactly the same direction, so the cosine similarity is 1. Check: the dot product is $3 + 12 = 15$ and the lengths are $\sqrt{5}$ and $3\sqrt{5}$, so $15 / 15 = 1$. 15 is the dot product, not the cosine."
 />
 
 ## In code
@@ -187,22 +191,11 @@ cos = a @ b / (np.linalg.norm(a) * np.linalg.norm(b))
 print("cosine similarity:", cos)
 print("cosine after stretching b:", a @ (10 * b) / (np.linalg.norm(a) * np.linalg.norm(10 * b)))`} />
 
-```text
-dot product: 24
-element-wise a * b: [12 12]
-L2 norm of a: 5.0
-L1 norm of a: 7.0
-L-inf norm of a: 4.0
-distance a to b: 1.4142135623730951
-cosine similarity: 0.96
-cosine after stretching b: 0.96
-```
-
 <Mistake>
-In NumPy, `a * b` is **not** the dot product: it multiplies matching components and keeps them as a vector (`[12 12]` above). The dot product also adds them up: `a @ b`, `np.dot(a, b)` or `(a * b).sum()`, giving the single number 24.
+In NumPy, `a * b` is **not** the dot product: it multiplies matching components and keeps a vector (`[12 12]` above). The dot product also adds them up: `a @ b`, `np.dot(a, b)` or `(a * b).sum()` give 24.
 </Mistake>
 
-The same operations exist in PyTorch, which you will use in the Final (it cannot run in the browser, so here is the code with its real output):
+Here are the same operations in PyTorch, which you will use in the Final (it cannot run in the browser, so this is its real output):
 
 ```python
 import torch
@@ -224,17 +217,17 @@ tensor(0.9600)
 ```
 
 <ExamTip>
-These were among the few calculation questions in the 2026 Prelim, and each should take you under 20 seconds:
+These were among the few calculation questions in the 2026 Prelim; each should take under 20 seconds:
 
 - **Dot product**: multiply pairs, add. Watch the signs.
-- **Norms**: know the Pythagorean triples 3-4-5, 5-12-13, 6-8-10 and 8-15-17 by heart. L1 ≥ L2 ≥ L∞ lets you eliminate options fast.
-- **Cosine similarity**: if one vector is a positive multiple of the other, the answer is 1 (a negative multiple gives −1) with no arithmetic. If the dot product is 0, the cosine is 0. Any option outside $[-1, 1]$ is impossible.
+- **Norms**: know the triples 3-4-5, 5-12-13, 6-8-10 and 8-15-17 by heart. L1 ≥ L2 ≥ L∞ eliminates options fast.
+- **Cosine similarity**: if one vector is a positive multiple of the other, the answer is 1 (a negative multiple: −1), with no arithmetic. A zero dot product gives 0. Any option outside $[-1, 1]$ is impossible.
 </ExamTip>
 
 <Takeaways>
-- Dot product: $\mathbf{a} \cdot \mathbf{b} = \sum a_i b_i$, a single number. Positive means similar direction, 0 means perpendicular (orthogonal), negative means opposite.
+- Dot product: $\mathbf{a} \cdot \mathbf{b} = \sum a_i b_i$, one number. Positive: similar direction; 0: perpendicular (orthogonal); negative: opposite.
 - Geometrically, $\mathbf{a} \cdot \mathbf{b} = \lVert \mathbf{a} \rVert \lVert \mathbf{b} \rVert \cos\theta$: length of $\mathbf{a}$ times the shadow of $\mathbf{b}$.
 - L2 norm $= \sqrt{\text{sum of squares}}$ (crow), L1 norm $=$ sum of absolute values (taxi), L∞ $=$ biggest absolute value. Distance $= \lVert \mathbf{a} - \mathbf{b} \rVert$.
-- Cosine similarity $= \dfrac{\mathbf{a} \cdot \mathbf{b}}{\lVert \mathbf{a} \rVert \lVert \mathbf{b} \rVert}$ lies in $[-1, 1]$ and ignores length, which is why it is used to compare documents and embeddings.
+- Cosine similarity $= \dfrac{\mathbf{a} \cdot \mathbf{b}}{\lVert \mathbf{a} \rVert \lVert \mathbf{b} \rVert}$ lies in $[-1, 1]$ and ignores length, so it is used to compare documents and embeddings.
 - In code: `a @ b` for the dot product, `np.linalg.norm(v)` for the L2 norm; `a * b` is element-wise, not a dot product.
 </Takeaways>

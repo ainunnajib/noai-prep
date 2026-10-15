@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Button, Plot, Grid, Axes, FnPath, Dots, VLine, DraggablePoint, M, MBlock } from '../../../../../kit'
-import { fx } from '../derivatives-as-slopes/plotHelpers'
+import { Figure, Controls, Readout, Button, Plot, Grid, Axes, FnPath, Dots, VLine, M, MBlock } from '../../../../../kit'
+import { Handle, fx } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   A stepper through the quotient-rule derivation of σ′(x), one line of algebra per step, next to a
@@ -121,11 +121,13 @@ export default function SigmoidDerivation() {
         <FnPath f={neat} color="var(--viz-2)" width={2.5} dash="7 5" />
         <VLine x={x} color="var(--viz-muted)" dash="2 4" width={1.2} />
         <Dots points={[{ x, y: messy(x), r: 4, color: 'var(--viz-1)' }]} />
-        <DraggablePoint
+        <Handle
           x={x}
           y={neat(x)}
           r={7}
           color="var(--viz-2)"
+          label="drag"
+          ariaLabel="choose x: drag along the curve"
           constrain={(nx) => {
             const v = Math.round(nx * 10) / 10
             return [v, neat(v)]

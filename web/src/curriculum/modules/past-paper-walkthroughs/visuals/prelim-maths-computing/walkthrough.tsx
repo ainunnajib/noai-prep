@@ -85,9 +85,14 @@ export function Walkthrough({ items, storageKey, stepNames }: { items: WalkItem[
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey])
 
-  useAnimationFrame((dt) => setElapsed((e) => e + dt), running)
-
   const item = items[idx]
+  // the clock stops by itself at three times the target, so an abandoned question does not keep re-rendering
+  const cap = item.target * 3
+  useAnimationFrame((dt) => setElapsed((e) => Math.min(cap, e + dt)), running)
+  useEffect(() => {
+    if (running && elapsed >= cap) setRunning(false)
+  }, [running, elapsed, cap])
+
   const cur = st[idx]
   const answered = cur.chosen != null
   const steps = buildSteps(item, stepNames)

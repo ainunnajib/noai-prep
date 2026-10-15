@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$W_5W_4W_3W_2W_1x = (W_5W_4W_3W_2W_1)x$, and the product in brackets is a single matrix: stacked linear maps compose into one linear map, so straight grid lines stay straight however deep you go. The merging works because of associativity, not commutativity (matrix multiplication is **not** commutative). Without biases the output is $Wx$, which is not zero unless $x$ is. A non-linear activation between layers is what breaks the collapse.',
+      '$W_5W_4W_3W_2W_1x = (W_5W_4W_3W_2W_1)x$, and the product in brackets is a single matrix: stacked linear maps compose into one linear map, so straight grid lines stay straight however deep you go. The merging works because of associativity, not commutativity (matrix multiplication is **not** commutative). Without biases the output is $Wx$, which is not zero in general (only the inputs that $W$ squashes flat give 0). A non-linear activation between layers is what breaks the collapse.',
     difficulty: 'intermediate',
   },
   {

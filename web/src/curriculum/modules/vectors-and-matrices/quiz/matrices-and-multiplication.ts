@@ -4,7 +4,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'vectors-and-matrices.matrices-and-multiplication.1',
     prompt:
-      'A batch of 32 images is stored as a matrix $X$ of shape $32 \\times 784$ (one flattened image per row). A layer multiplies it by a weight matrix $W$ of shape $784 \\times 128$. What is the shape of $XW$?',
+      'A batch of 32 images is stored as a matrix $X$ of shape $32 \\times 784$ (one flattened image per row). A layer multiplies it by a weight matrix $W$ of shape $784 \\times 128$ (here $W$ is stored as inputs × outputs, so no transpose is needed). What is the shape of $XW$?',
     options: ['$32 \\times 128$', '$784 \\times 784$', '$128 \\times 32$', 'It cannot be computed'],
     answer: 0,
     explanation:

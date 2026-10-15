@@ -140,7 +140,7 @@ function trace(fault: Fault, guard: boolean): { entries: Entry[]; status: Status
           retry,
           A2,
           E,
-          { kind: 'thought', text: 'Two failures: my retry limit is 2. I’ll stop and say what I know instead of looping.', guard: true },
+          { kind: 'thought', text: 'Two failures: my limit is 2 attempts (one retry). I’ll stop and say what I know instead of looping.', guard: true },
           { kind: 'answer', text: 'I couldn’t get today’s date. The Prelim is on Friday 19 February 2027, so count the days from today to then.' },
         ],
         status: 'honest but partial',
@@ -190,14 +190,15 @@ export default function AgentLoopStepper() {
       title="The agent loop: think, act, observe, repeat"
       caption={
         <>
-          The trace starts finished; press <b>Restart</b> and <b>Next</b> to watch the loop grow, one entry at a time. Everything above the highlighted entry is
-          what the LLM sees when it writes the next one. Then pick a <b>fault</b> to break one tool result and see how a single bad observation spoils the final
-          answer, or traps the agent in a loop. Switch on <b>guardrails</b> (a sanity check, “tool output is data, not orders”, and a retry limit) to see each
-          failure caught.
+          Everything above the highlighted entry is what the LLM sees when it writes the next one, so a single bad observation can spoil the final answer or trap the agent in
+          a loop. The guardrails are a sanity check, “tool output is data, not orders”, and a retry limit.
         </>
       }
     >
       <div className={s.stack}>
+        <p className={s.tryLine}>
+          <b>Try:</b> press <b>Restart</b>, then <b>Next</b>, to watch the loop grow. Then pick a <b>fault</b>, and switch on <b>guardrails</b> to see it caught.
+        </p>
         <Controls>
           <div style={{ display: 'grid', gap: '0.3rem' }}>
             <span className={s.label}>fault in a tool result</span>
@@ -220,7 +221,10 @@ export default function AgentLoopStepper() {
                     →
                   </span>
                 )}
-                <span className={`${s.phase} ${phase === p.key ? s.phaseOn : ''}`} style={phase === p.key ? { background: p.color } : { borderColor: p.color }}>
+                <span
+                  className={`${s.phase} ${phase === p.key ? s.phaseOn : ''}`}
+                  style={phase === p.key ? { background: `color-mix(in srgb, ${p.color} 30%, var(--surface))`, borderColor: p.color } : { borderColor: p.color }}
+                >
                   {p.label}
                 </span>
               </span>

@@ -56,17 +56,18 @@ const LINES = (rw: boolean, rb: boolean, zero: boolean) => [
   'e = y_hat - y',
   'L = e ** 2',
   'L.backward()',
-  ...(zero ? ['w.grad.zero_(); b.grad.zero_()  # zero first'] : []),
+  // only leaves that require grad have a .grad to zero (None.zero_() would raise AttributeError)
+  ...(zero && (rw || rb) ? [`${[rw && 'w.grad.zero_()', rb && 'b.grad.zero_()'].filter(Boolean).join('; ')}  # zero first`] : []),
   'L = (w * x + b - y) ** 2   # a fresh forward pass',
   'L.backward()               # second backward',
 ]
 
 // which code line (0-based) is current at each step
-const lineAt = (step: number, zero: boolean): number[] => {
+const lineAt = (step: number, hasZero: boolean): number[] => {
   if (step === 0) return [0, 1, 2]
   if (step <= 4) return [step + 2]
   if (step <= 9) return [7]
-  return zero ? [8, 9, 10] : [8, 9]
+  return hasZero ? [8, 9, 10] : [8, 9]
 }
 
 const fmtT = (v: number) => `tensor(${Number.isInteger(v) ? `${v}.` : v})`
@@ -154,7 +155,7 @@ export default function AutogradTape() {
   }
 
   const lines = LINES(rw, rb, zero)
-  const cur = lineAt(step, zero)
+  const cur = lineAt(step, zero && anyReq)
 
   // drawing helpers
   const leafW = 64
@@ -191,7 +192,8 @@ export default function AutogradTape() {
         <>
           Press <b>Next</b> to run the code one line at a time. Each operation on a tensor that needs a gradient is recorded as a <code>grad_fn</code> node (filled
           circles). <code>L.backward()</code> replays the record in reverse, multiplying local derivatives (orange), and stores the result in the leaves' <code>.grad</code>.
-          The last step runs forward and backward again: watch <code>.grad</code> double unless you tick “zero the grads first”. Try switching off{' '}
+          Faint dashed parts are still to come. The last step runs forward and backward again: watch <code>.grad</code> double unless you tick “zero the
+          grads first”. Try switching off{' '}
           <code>requires_grad</code> for <code>w</code> or <code>b</code>.
         </>
       }
@@ -219,10 +221,11 @@ export default function AutogradTape() {
 
         <div ref={ref} style={{ width: '100%' }}>
           <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', margin: '0 auto', maxWidth: '100%' }} role="img" aria-label="Computational graph of L = (w x + b - y) squared, with gradients flowing back">
-            {/* forward edges */}
+            {/* forward edges (not yet recorded: a faint dashed preview, so the graph is complete at rest) */}
             {edges.map((e) => {
-              if (step < e.at) return null
               const [x1, y1, x2, y2] = edgeEnd(e.from, e.to)
+              if (step < e.at)
+                return <line key={`f${e.from}${e.to}`} x1={x1} y1={y1} x2={x2} y2={y2} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.3, strokeDasharray: '3 4', opacity: 0.35 }} />
               const live = req[e.to === 'L' ? 'pow' : e.to]
               const c = live ? 'var(--viz-axis)' : 'var(--viz-muted)'
               return (
@@ -248,7 +251,14 @@ export default function AutogradTape() {
                 <g key={`b${e.from}${e.to}`}>
                   <line x1={x2 + ox} y1={y2 + oy} x2={x1 + ox} y2={y1 + oy} style={{ stroke: 'var(--viz-2)', strokeWidth: isNew ? 3 : 2 }} />
                   {arrowHead(x2 + ox, y2 + oy, x1 + ox, y1 + oy, 'var(--viz-2)', 'h')}
-                  <text className="plot-label" x={mx} y={my} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--viz-2)', fontSize: 12.5 }}>
+                  <text
+                    className="plot-label"
+                    x={mx}
+                    y={my}
+                    dy="0.35em"
+                    textAnchor="middle"
+                    style={{ fill: 'var(--viz-2)', fontSize: 12.5, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}
+                  >
                     {g}
                   </text>
                 </g>
@@ -256,8 +266,16 @@ export default function AutogradTape() {
             })}
             {/* nodes */}
             {NODES.map((n) => {
-              if (!visible(n)) return null
               const [cx, cy] = P[n.id]
+              if (!visible(n))
+                return (
+                  <g key={n.id} style={{ opacity: 0.3 }}>
+                    <circle cx={cx} cy={cy} r={R} style={{ fill: 'var(--surface)', stroke: 'var(--viz-muted)', strokeWidth: 1.3, strokeDasharray: '3 4' }} />
+                    <text x={cx} y={cy} dy="0.36em" textAnchor="middle" style={{ fontSize: 15, fontWeight: 800, fill: 'var(--ink-3)' }}>
+                      {n.sym}
+                    </text>
+                  </g>
+                )
               if (n.kind === 'leaf') {
                 const on = req[n.id]
                 return (
@@ -291,6 +309,14 @@ export default function AutogradTape() {
                 </g>
               )
             })}
+            {step < 4 && (
+              <g style={{ opacity: 0.3 }}>
+                <rect x={P.L[0] - 26} y={P.L[1] - 15} width={52} height={30} rx={6} style={{ fill: 'var(--surface)', stroke: 'var(--viz-muted)', strokeWidth: 1.3, strokeDasharray: '3 4' }} />
+                <text x={P.L[0]} y={P.L[1]} dy="0.35em" textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: 'var(--ink-3)' }}>
+                  L
+                </text>
+              </g>
+            )}
             {step >= 4 && (
               <g>
                 <rect x={P.L[0] - 26} y={P.L[1] - 15} width={52} height={30} rx={6} style={{ fill: 'color-mix(in srgb, var(--viz-2) 14%, var(--surface))', stroke: 'var(--viz-2)', strokeWidth: 2 }} />

@@ -56,7 +56,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The chain rule multiplies one factor per layer, and $\\sigma\' \\le 0.25$, so the product shrinks exponentially with depth ($0.25^{10} \\approx 10^{-6}$ after only 10 layers): the vanishing gradient problem. Gradients are multiplied, not added, and the sigmoid is smooth with slope $0.25$ at $z = 0$; nothing rescales gradients automatically.',
+      'The chain rule multiplies one factor per layer, and $\\sigma\' \\le 0.25$, so with weights of moderate size the product shrinks exponentially with depth ($0.25^{10} \\approx 10^{-6}$ after only 10 layers): the vanishing gradient problem. Gradients are multiplied, not added, and the sigmoid is smooth with slope $0.25$ at $z = 0$; nothing rescales gradients automatically.',
     difficulty: 'beginner',
   },
 ]

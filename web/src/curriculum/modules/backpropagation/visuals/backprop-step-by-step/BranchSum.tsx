@@ -27,8 +27,16 @@ export default function BranchSum() {
   const du = top ? 3 * x1 - u0 : 0
   const dv = bot ? x1 * x1 - v0 : 0
   const df = du + dv
-  const slopeTop = 3
-  const slopeBot = 2 * x
+  // slope of each path, or 0 when that path is closed
+  const slopeTop = top ? 3 : 0
+  const slopeBot = bot ? 2 * x : 0
+  const slopeSum = slopeTop + slopeBot
+  const closedTex = (t: string) => `\\underbrace{0}_{\\text{${t} closed}}`
+  const slopeTex = [
+    top ? '\\underbrace{3}_{\\text{top path}}' : closedTex('top'),
+    bot ? '\\underbrace{2x}_{\\text{bottom path}}' : closedTex('bottom'),
+  ].join(' + ')
+  const slopeNums = [top ? '3' : '0', bot ? (2 * x < 0 ? `(${fmt(2 * x)})` : fmt(2 * x)) : '0'].join(' + ')
 
   const W = Math.max(300, Math.min(720, measured))
   const narrow = W < 520
@@ -100,8 +108,9 @@ export default function BranchSum() {
       caption={
         <>
           <M>x</M> reaches <M>f</M> along two paths. Nudge it by <M>\Delta x</M>: the top path changes <M>f</M> by <M>\Delta u</M>, the bottom path
-          by <M>\Delta v</M>, and the total change is their <b>sum</b> (the arrows join tip to tail). Close a path to see it contribute nothing. Then
-          shrink the nudge: <M>{'\\Delta f / \\Delta x'}</M> approaches <M>3 + 2x</M>, the sum of the two path slopes.
+          by <M>\Delta v</M>, and the total change is their <b>sum</b> (the arrows join tip to tail). Then shrink the nudge:{' '}
+          <M>{'\\Delta f / \\Delta x'}</M> approaches <M>3 + 2x</M>, the sum of the two path slopes. Close a path and both its change and its
+          slope drop to 0, so the total keeps matching the open paths.
         </>
       }
     >
@@ -129,7 +138,7 @@ export default function BranchSum() {
           <text x={cX} y={yMid + 4.5} textAnchor="middle" className="tabular" style={{ fill: 'var(--viz-ink)', fontSize: 13, fontWeight: 700 }}>
             {`x = ${u(x)}`}
           </text>
-          <text x={cX} y={yMid + 33} textAnchor="middle" className="tabular plot-label" style={{ fontSize: 12, fill: 'var(--viz-2)' }}>
+          <text x={cX} y={yMid + 33} textAnchor="middle" className="tabular plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
             {`Δx = ${u(dx, 2)}`}
           </text>
           {/* ops */}
@@ -187,7 +196,7 @@ export default function BranchSum() {
           <M>{`\\Delta f = \\Delta u + \\Delta v = ${u(du).replace('−', '-')} + ${fmt(dv).startsWith('-') ? `(${fmt(dv)})` : fmt(dv)} = ${fmt(df)}`}</M>
         </div>
         <div style={{ color: 'var(--ink-2)' }}>
-          Slopes: <M>{`\\frac{\\partial f}{\\partial x} = \\underbrace{3}_{\\text{top path}} + \\underbrace{2x}_{\\text{bottom path}} = 3 + ${slopeBot < 0 ? `(${fmt(slopeBot)})` : fmt(slopeBot)} = ${fmt(slopeTop + slopeBot)}`}</M>
+          Slopes of the open paths: <M>{`\\frac{\\partial f}{\\partial x} = ${slopeTex} = ${slopeNums} = ${fmt(slopeSum)}`}</M>
         </div>
       </div>
       <Controls>
@@ -198,7 +207,7 @@ export default function BranchSum() {
         <Readout
           items={[
             ['Δf ÷ Δx', u(df / dx, 3)],
-            ['3 + 2x', u(slopeTop + slopeBot)],
+            ['sum of open-path slopes', u(slopeSum)],
           ]}
         />
       </Controls>

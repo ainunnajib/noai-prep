@@ -112,22 +112,33 @@ export default function ArgsortLab() {
   let ok = false
   let text = ''
   if (!final.isIndex) {
-    text = `These are the top ${k} scores themselves, not which documents they belong to. You cannot look up a document from 0.775. Use argsort, which returns positions.`
+    text = `${k === 1 ? 'This is the top score itself, not the document it belongs to' : `These are the top ${k} scores themselves, not the documents they belong to`}. You cannot look up a document from the score ${Number(final.values[0].toFixed(3))}. Use argsort, which returns positions.`
   } else if (idiom === 'argmax' && k > 1) {
     text = `np.argmax returns a single position (the best document), so it cannot give a top-${k} list. It is the right tool only when k = 1.`
   } else {
-    const sameOrder = finalIdx.length === reference.length && finalIdx.every((v, i) => sc[v] === sc[reference[i]])
-    const sameSet = finalIdx.length === reference.length && [...finalIdx].sort().join() === [...reference].sort().join()
+    const n = finalIdx.length === reference.length
+    const sameOrder = n && finalIdx.every((v, i) => sc[v] === sc[reference[i]])
+    // compare the SCORES picked, not the indices: with a tie, two different documents can be equally right
+    const byScore = (idx: number[]) => idx.map((i) => sc[i]).sort((a, b) => a - b).join()
+    const sameScores = n && byScore(finalIdx) === byScore(reference)
+    const lowest = stableArgsortAsc(sc).slice(0, k)
+    const isLowest = n && byScore(finalIdx) === byScore(lowest)
+    const extra = finalIdx.filter((i) => !reference.includes(i))
+    const missing = reference.filter((i) => !finalIdx.includes(i))
+    const tieNote =
+      extra.length === 1 && missing.length === 1 ? ` (and the tie at ${fmt(sc[extra[0]])} went to d${extra[0]} rather than d${missing[0]})` : ''
     if (sameOrder && finalIdx.join() === reference.join()) {
       ok = true
       text = `Correct: the ${k === 1 ? 'best document' : `${k} best documents, best first`}.`
     } else if (sameOrder) {
       ok = true
-      text = 'Correct ranking by score. The tie is broken the other way, though: reversing an ascending sort puts the higher index first. Fine for retrieval, but it can disagree with an expected output.'
-    } else if (sameSet) {
-      text = 'Right documents, wrong order: they come out worst-first. Reverse with [::-1] so the best document is first.'
-    } else {
+      text = `Correct ranking by score. The tie is broken the other way, though: reversing a stable ascending sort puts the higher index first${tieNote}. Fine for retrieval, but it can disagree with an expected output.`
+    } else if (sameScores) {
+      text = `These are the top ${k} scores, but worst first${tieNote}. Reverse with [::-1] so the best document comes first.`
+    } else if (isLowest) {
       text = `Wrong documents. argsort sorts from smallest to largest, so this picks the ${k === 1 ? 'lowest score' : `${k} lowest scores`}.`
+    } else {
+      text = `Wrong documents: these are not the ${k === 1 ? 'highest score' : `${k} highest scores`}.`
     }
   }
 
@@ -136,12 +147,14 @@ export default function ArgsortLab() {
       title="Which line really returns the top-k documents?"
       caption={
         <>
-          Pick a line of NumPy and follow it stage by stage. Blue cells are <b>document numbers</b> (positions), with that document's score underneath; grey cells are
-          scores. Try every line with the tie preset (d0 and d3 both score 0.333) and with k = 1. Notice that <code>argsort</code> always sorts from smallest to
-          largest, so on its own it finds the <i>worst</i> documents.
+          Blue cells are <b>document numbers</b> (positions), with that document's score underneath; grey cells are scores. Notice that <code>argsort</code> always sorts
+          from smallest to largest, so on its own it finds the <i>worst</i> documents, and that ties (d0 and d3 both score 0.333) can be broken either way.
         </>
       }
     >
+      <p className={s.tryLine}>
+        <b>Try:</b> click each line of NumPy below and follow it stage by stage, first with k = 2, then with k = 1.
+      </p>
       <div className={s.field}>
         <span className={s.sectionLabel}>scores from the query</span>
         <div className={s.chips} role="radiogroup" aria-label="Scores from the query">

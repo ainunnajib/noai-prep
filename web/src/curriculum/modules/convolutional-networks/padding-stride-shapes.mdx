@@ -3,21 +3,24 @@ import MultiChannelConv from './visuals/padding-stride-shapes/MultiChannelConv'
 import ConvParamCompare from './visuals/padding-stride-shapes/ConvParamCompare'
 
 export const shapeCode = `def conv_out(n, k, p=0, s=1):
-    """Output size along one side: floor((n + 2p - k) / s) + 1."""
+    """Output size along one side:
+    floor((n + 2p - k) / s) + 1."""
     return (n + 2 * p - k) // s + 1
 
 def conv_params(k, c_in, c_out):
     """Weights and biases of a k x k conv layer."""
     return (k * k * c_in + 1) * c_out
 
-print(conv_out(32, 3, p=1, s=1))    # 'same' padding keeps 32
-print(conv_out(32, 3, p=1, s=2))    # stride 2 halves it
-print(conv_out(224, 7, p=3, s=2))   # ResNet's first layer
+print(conv_out(32, 3, p=1, s=1))   # 'same' keeps 32
+print(conv_out(32, 3, p=1, s=2))   # stride 2 halves it
+print(conv_out(224, 7, p=3, s=2))  # ResNet's first layer
 print(conv_params(3, 64, 128))
 
-# trace a small CNN on a 32 x 32 colour image: (k, p, s, c_out) per layer
+# trace a small CNN on a 32 x 32 colour image
+# each layer is (k, p, s, c_out)
+layers = [(3, 1, 1, 16), (3, 1, 2, 32), (3, 1, 2, 64)]
 c, n = 3, 32
-for k, p, s, c_out in [(3, 1, 1, 16), (3, 1, 2, 32), (3, 1, 2, 64)]:
+for k, p, s, c_out in layers:
     params = conv_params(k, c, c_out)
     c, n = c_out, conv_out(n, k, p, s)
     print(f"-> ({c}, {n}, {n})  params {params}")`
@@ -71,7 +74,7 @@ $$
 - Dividing by $s$ counts the jumps that fit; $\lfloor \; \rfloor$ ("floor") means **round down**, because a jump that would push the kernel past the edge is simply not taken.
 - $+1$ counts the starting position itself (with zero jumps you still have one output).
 
-Check it on the bench: $n = 7$, $k = 3$, $p = 0$, $s = 1$ gives $\lfloor 4/1 \rfloor + 1 = 5$. Now count it yourself in the visual:
+Check it on the bench: $n = 7$, $k = 3$, $p = 0$, $s = 1$ gives $\lfloor 4/1 \rfloor + 1 = 5$. Now count it yourself in the visual (the dots above the grid mark where the window can start along a row, $s$ apart):
 
 <ConvShapeCalculator />
 
@@ -106,6 +109,7 @@ Three shortcuts cover most questions in seconds. Stride 1 with "same" padding: t
   q="A 64 × 64 feature map goes through a 3 × 3 convolution with padding 1 and stride 2. What is the output's height and width?"
   options={['32 × 32', '31 × 31', '33 × 33', '64 × 64']}
   answer={0}
+  id="convolutional-networks.padding-stride-shapes.qc1"
   explain="$\lfloor (64 + 2 - 3)/2 \rfloor + 1 = \lfloor 63/2 \rfloor + 1 = 31 + 1 = 32$. Forgetting the $+1$ gives 31; rounding 31.5 up instead of down gives 33. 'Same' padding keeps 64 only when the stride is 1."
 />
 
@@ -143,6 +147,14 @@ $$
   </Step>
 </Steps>
 
+Parameters are not the same as **computation**. Every weight is used once at every output position, so the number of <Term def="Multiplications that are each followed by an addition, as in w·x + …; the usual measure of how much computation a layer needs.">multiply-adds</Term> a conv layer needs is
+
+$$
+\text{multiply-adds} = k \times k \times C_\text{in} \times C_\text{out} \times H_\text{out} \times W_\text{out}
+$$
+
+For the deeper layer above with a $32 \times 32$ output: $9 \times 64 \times 128 \times 1{,}024 = 75{,}497{,}472$, about 75 million. With stride 2 the output is $16 \times 16$, a quarter as many positions, so about 19 million, while the parameter count stays 73,856.
+
 <Mistake title="Three classic counting traps">
 
 1. Forgetting $C_\text{in}$: a "$3 \times 3$ kernel" on a 64-channel input has $9 \times 64 = 576$ weights, not 9.
@@ -155,6 +167,7 @@ $$
   q="A convolutional layer maps 16 input channels to 32 output channels with 3 × 3 kernels and biases. How many parameters does it have?"
   options={['4,640', '4,608', '320', '4,624']}
   answer={0}
+  id="convolutional-networks.padding-stride-shapes.qc2"
   explain="Each kernel has $3 \times 3 \times 16 = 144$ weights plus 1 bias: 145. Times 32 kernels: $145 \times 32 = 4{,}640$. Without biases it would be 4,608. 320 forgets the input channels: $(9 + 1) \times 32$."
 />
 
@@ -198,7 +211,7 @@ A standard convolution does two jobs at once: it filters **spatially** (looks at
 1. **Depthwise:** one $k \times k$ filter for each input channel, applied to that channel only. Spatial filtering, no mixing: $k^2 \cdot C_\text{in}$ weights.
 2. **Pointwise:** a $1 \times 1$ convolution from $C_\text{in}$ to $C_\text{out}$ channels. Mixing, no spatial filtering: $C_\text{in} \cdot C_\text{out}$ weights.
 
-Instead of one chef doing everything, one cook prepares each ingredient separately and a second combines them: much less work. Ignoring biases:
+Back to the chefs. In a standard layer each of 128 chefs tastes all 128 sauces through a $3 \times 3$ spoon: $9 \times 128 \times 128$ tastes. In a separable layer one helper per sauce does the spoon-tasting once ($9 \times 128$), and each chef just blends the 128 helpers' results ($128 \times 128$). Ignoring biases:
 
 $$
 \underbrace{k^2 \cdot C_\text{in} \cdot C_\text{out}}_{\text{standard}} \quad \text{versus} \quad \underbrace{k^2 \cdot C_\text{in} + C_\text{in} \cdot C_\text{out}}_{\text{depthwise separable}}
@@ -218,11 +231,14 @@ $$
   </Step>
 </Steps>
 
-The number of <Term def="Multiplications that are each followed by an addition, as in w·x + …; the usual measure of how much computation a layer needs.">multiply-adds</Term> shrinks by the same factor, because each weight is used once at every output position. That is why <Term def="A family of small, fast CNNs (2017 onwards) designed for phones, built mostly from depthwise separable convolutions."><b>MobileNet</b></Term>, designed to run on phones, is built from depthwise separable layers. The price is a little flexibility: a standard kernel can mix channels differently at every offset in its window, while the separable version must mix them the same way at each pixel, so accuracy is usually slightly lower for the same depth.
+The number of multiply-adds shrinks by the same factor, because each weight is used once at every output position. That is why <Term def="A family of small, fast CNNs (2017 onwards) designed for phones, built mostly from depthwise separable convolutions."><b>MobileNet</b></Term>, designed to run on phones, is built from depthwise separable layers. The price: the separable layer must filter first and mix afterwards, so it is slightly less flexible, and accuracy is usually a little lower for the same depth.
 
 In PyTorch the depthwise step is an ordinary `Conv2d` with `groups` equal to the number of input channels:
 
 ```python
+import torch
+import torch.nn as nn
+
 depthwise = nn.Conv2d(128, 128, kernel_size=3, padding=1, groups=128, bias=False)
 pointwise = nn.Conv2d(128, 128, kernel_size=1, bias=False)
 standard = nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=False)
@@ -249,7 +265,7 @@ Both produce the same output shape; the separable pair just gets there with abou
 
 <ExamTip>
 
-Spot the type of question. "How big is the output?" uses the size formula and never the channel count of the input. "How many parameters?" uses $(k^2 C_\text{in} + 1) C_\text{out}$ and never the image size, padding or stride. "Why $1 \times 1$?" means channel mixing or changing the channel count cheaply. "Why depthwise separable?" means fewer parameters and less computation (MobileNet).
+Spot the type of question. "How big is the output?" uses the size formula and never the channel count of the input. "How many parameters?" uses $(k^2 C_\text{in} + 1) C_\text{out}$ and never the image size, padding or stride. "Why $1 \times 1$?" means channel mixing or changing the channel count cheaply. "Why depthwise separable?" means fewer parameters and less computation (MobileNet). "How many multiplications?" is $k^2 C_\text{in} C_\text{out}$ times the number of output positions.
 
 </ExamTip>
 

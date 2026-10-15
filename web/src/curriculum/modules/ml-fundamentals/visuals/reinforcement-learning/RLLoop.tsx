@@ -8,6 +8,8 @@ import { Figure, Segmented, usePlayer, PlayerControls, useNarrow } from '../../.
 
 interface Scenario {
   label: string
+  /** shorter label so the four examples fit on one row on a phone */
+  short: string
   agent: string
   env: string
   state: string
@@ -21,6 +23,7 @@ interface Scenario {
 const SCENARIOS: Record<string, Scenario> = {
   dog: {
     label: 'Dog training',
+    short: 'Dog',
     agent: 'the dog',
     env: 'the owner and the room',
     state: 'The owner says "sit" and is holding a treat.',
@@ -32,6 +35,7 @@ const SCENARIOS: Record<string, Scenario> = {
   },
   game: {
     label: 'Video game',
+    short: 'Game',
     agent: 'the game-playing program',
     env: 'the game',
     state: 'The screen: a ghost two squares to the left, a row of dots to the right.',
@@ -43,6 +47,7 @@ const SCENARIOS: Record<string, Scenario> = {
   },
   chess: {
     label: 'Chess',
+    short: 'Chess',
     agent: 'the chess program',
     env: 'the board and the opponent',
     state: 'The board position after move 23.',
@@ -54,6 +59,7 @@ const SCENARIOS: Record<string, Scenario> = {
   },
   traffic: {
     label: 'Traffic lights',
+    short: 'Traffic',
     agent: 'the traffic-light controller',
     env: 'the junction and its cars',
     state: '12 cars queuing north–south, 3 queuing east–west.',
@@ -148,7 +154,7 @@ export default function RLLoop() {
       <Segmented label="Example" value={key} onChange={(k) => {
           setKey(k)
           player.reset()
-        }} options={Object.entries(SCENARIOS).map(([k, s]) => ({ value: k, label: s.label }))} />
+        }} options={Object.entries(SCENARIOS).map(([k, s]) => ({ value: k, label: narrow ? s.short : s.label }))} />
       <div
         ref={ref}
         style={{

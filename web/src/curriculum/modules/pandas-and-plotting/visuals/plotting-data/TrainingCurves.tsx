@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, Path, Dots, VLine, DraggablePoint, mulberry32 } from '../../../../../kit'
+import { useMemo, useRef, useState } from 'react'
+import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, Path, Dots, VLine, DraggablePoint, mulberry32, usePlot } from '../../../../../kit'
 import s from './pc.module.css'
 
 /*
@@ -33,6 +33,56 @@ function curves(sc: Scenario) {
     }
   }
   return { tr, va }
+}
+
+const clampEpoch = (x: number) => Math.max(1, Math.min(40, Math.round(x)))
+
+/** A transparent layer over the plot: press or drag anywhere to move the marker to that epoch. */
+function ScrubArea({ onEpoch }: { onEpoch: (e: number) => void }) {
+  const { xs, ys, toData } = usePlot()
+  const down = useRef(false)
+  const [x0, x1] = xs.range()
+  const [yb, yt] = ys.range()
+  const go = (cx: number, cy: number) => onEpoch(clampEpoch(toData(cx, cy)[0]))
+  return (
+    <rect
+      x={x0}
+      y={yt}
+      width={x1 - x0}
+      height={yb - yt}
+      style={{ fill: 'transparent', cursor: 'ew-resize', touchAction: 'pan-y' }}
+      onPointerDown={(e) => {
+        down.current = true
+        ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+        go(e.clientX, e.clientY)
+      }}
+      onPointerMove={(e) => down.current && go(e.clientX, e.clientY)}
+      onPointerUp={() => (down.current = false)}
+      onPointerCancel={() => (down.current = false)}
+    />
+  )
+}
+
+/** The epoch label as a small pill beside the marker, on a surface background so curves never run through it. */
+function MarkerPill({ ep, v }: { ep: number; v: number }) {
+  const { xs, ys } = usePlot()
+  const text = `epoch ${ep}`
+  const w = text.length * 7.2 + 12
+  const h = 20
+  const cx = xs(ep)
+  const cy = ys(v)
+  const left = ep > 8 // room on the left: put the pill up and to the left of the dot
+  const x = left ? cx - 12 - w : cx + 12
+  const above = cy - 14 - h > ys.range()[1]
+  const y = above ? cy - 14 - h : cy + 14
+  return (
+    <g style={{ pointerEvents: 'none' }} aria-hidden="true">
+      <rect x={x} y={y} width={w} height={h} rx={10} style={{ fill: 'var(--surface)', stroke: 'var(--viz-2)', strokeWidth: 1.5 }} />
+      <text x={x + w / 2} y={y + h / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink)' }}>
+        {text}
+      </text>
+    </g>
+  )
 }
 
 const STORY: Record<Scenario, string> = {
@@ -72,8 +122,8 @@ export default function TrainingCurves() {
       title="Reading a training curve"
       caption={
         <>
-          Choose a scenario and drag the orange marker along the epochs to read both losses. Find the epoch with the lowest validation loss in the overfitting
-          case: that is where <b>early stopping</b> would stop training.
+          Choose a scenario and drag the orange marker (or press anywhere on the plot) to read both losses at that epoch. Find the epoch with the lowest
+          validation loss in the overfitting case: that is where <b>early stopping</b> would stop training.
         </>
       }
     >
@@ -109,6 +159,7 @@ export default function TrainingCurves() {
             </span>
           ))}
       </div>
+      <div className={s.noSelect}>
       <Plot
         x={[0, 41]}
         y={[0, 2.5]}
@@ -120,6 +171,7 @@ export default function TrainingCurves() {
       >
         <Grid xTicks={8} yTicks={5} />
         <Axes xTicks={8} yTicks={5} xLabel="epoch" yLabel="loss" />
+        <ScrubArea onEpoch={setEp} />
         {sc !== 'lr' && <VLine x={best} color="var(--viz-3)" dash="5 4" />}
         <Path points={EPOCHS.map((e, i) => [e, tr[i]])} color="var(--viz-1)" width={2.5} />
         <Path points={EPOCHS.map((e, i) => [e, va[i]])} color="var(--viz-4)" width={2.5} />
@@ -129,13 +181,15 @@ export default function TrainingCurves() {
           y={vNow}
           color="var(--viz-2)"
           label={`epoch ${ep}`}
-          onChange={(x) => setEp(Math.max(1, Math.min(40, Math.round(x))))}
+          onChange={(x) => setEp(clampEpoch(x))}
           constrain={(x) => {
-            const e = Math.max(1, Math.min(40, Math.round(x)))
+            const e = clampEpoch(x)
             return [e, va[e - 1]]
           }}
         />
+        <MarkerPill ep={ep} v={vNow} />
       </Plot>
+      </div>
       <Controls>
         <Readout
           items={[

@@ -2,7 +2,8 @@ import ChainOfFactors from './visuals/vanishing-and-exploding-gradients/ChainOfF
 import GradientDepthBars from './visuals/vanishing-and-exploding-gradients/GradientDepthBars'
 import ResidualHighway from './visuals/vanishing-and-exploding-gradients/ResidualHighway'
 import ClipByNorm from './visuals/vanishing-and-exploding-gradients/ClipByNorm'
-import { GRAD_SIZES_CODE, GRAD_SIZES_OUTPUT } from './visuals/vanishing-and-exploding-gradients/snippets'
+import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
+import { GRAD_SIZES_CODE, GRAD_SIZES_OUTPUT, TORCH_NORMS_CODE, TORCH_NORMS_OUTPUT } from './visuals/vanishing-and-exploding-gradients/snippets'
 
 Backpropagation hands every weight a gradient, but nothing promises that the gradient arrives at a useful size. In a deep network the signal from the loss has to travel back through every layer, and each layer multiplies it by some number. For years this made networks with more than a handful of layers almost impossible to train. This lesson shows exactly why, and the five fixes that make 100-layer networks routine today.
 
@@ -48,7 +49,7 @@ The sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ has the slope $\sigma'(z) = \sigm
     $\sigma(0) = 0.5$, so $\sigma'(0) = 0.5 \times 0.5 = 0.25$.
   </Step>
   <Step title="A saturating neuron: $z = 2$ and $z = 5$">
-    $\sigma(2) \approx 0.88$, so $\sigma'(2) \approx 0.88 \times 0.12 \approx 0.11$. At $z = 5$, $\sigma \approx 0.993$ and $\sigma' \approx 0.007$.
+    $\sigma(2) \approx 0.88$, so $\sigma'(2) \approx 0.88 \times 0.12 \approx 0.105$, about $0.1$. At $z = 5$, $\sigma \approx 0.993$ and $\sigma' \approx 0.007$.
   </Step>
   <Step title="Ten layers, best case, every weight 1">
     The factors multiply: $0.25^{10} = \frac{1}{4^{10}}$. Speed trick: $4^5 = 1024 \approx 10^3$, so $4^{10} \approx 10^6$. The gradient is about **one millionth** of what the loss sent back.
@@ -62,7 +63,7 @@ The sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ has the slope $\sigma'(z) = \sigm
   q="In a chain of sigmoid neurons, every weight is 1 and every pre-activation is $z = 0$. The gradient arriving at layer 5 is 1. How big is it when it reaches layer 1, four layers further back?"
   options={['$1/256 \\approx 0.004$', '$1$', '$0.25$', '$1/16 \\approx 0.06$']}
   answer={0}
-  explain="Each layer multiplies by $w \cdot \sigma'(0) = 1 \times 0.25$. Four layers: $0.25^4 = 1/4^4 = 1/256 \approx 0.004$. The answer 1 comes from adding $0.25$ four times; gradients multiply along a chain, they never add."
+  explain="Each layer multiplies by $w \cdot \sigma'(0) = 1 \times 0.25$. Four layers: $0.25^4 = 1/4^4 = 1/256 \approx 0.004$. The answer 1 comes from adding $0.25$ four times; gradients multiply along a chain, they never add. $0.25$ counts only one layer, and $1/16 = 0.25^2$ only two."
 />
 
 <PastPaperQuestion paper="prelim2026" n={44} />
@@ -83,10 +84,10 @@ A recurrent network (RNN) applies the *same* weights at every time step, so a 10
 
 Real layers have many neurons, so each factor becomes a matrix (the weights) combined with the slopes, but the story is the same: each layer stretches or shrinks the gradient by some typical factor, and depth turns that factor into a power. Two things set the factor: **the activation's slopes** and **the size of the weights**.
 
-If a layer has $n$ inputs (its <Term def="The number of inputs feeding into each neuron of a layer.">fan-in</Term>) and its weights are random with standard deviation $k/\sqrt{n}$, it multiplies the gradient's size by roughly $k$ times the typical slope:
+Take a square layer, with $n$ inputs (its <Term def="The number of inputs feeding into each neuron of a layer.">fan-in</Term>) and $n$ outputs, as in the chart below. If its weights are random with standard deviation $k/\sqrt{n}$, it scales the gradient's size by roughly $k$ times the <Term def="Root-mean-square: square the values, take their mean, then the square root. For ReLU slopes (half 1s, half 0s) it is the square root of 1/2, about 0.71.">root-mean-square</Term> slope of its activation:
 
 - **tanh** near 0 has slope about 1, so $k = 1$ keeps the factor near 1. This is <Term def="Random weights with variance 2/(n_in + n_out), which is 1/n when a layer has n inputs and n outputs. Designed for sigmoid and tanh.">Xavier (Glorot) initialisation</Term>.
-- **ReLU** passes the gradient through only the half of its neurons that are active, which halves the gradient's squared size. Doubling the weights' variance makes up for it: $k = \sqrt{2}$, a variance of $2/n$. This is <Term def="Random weights with variance 2/n_in, where n_in is the fan-in. Designed for ReLU layers.">He (Kaiming) initialisation</Term>.
+- **ReLU** has slope 1 on the half of its neurons that are active and 0 on the rest, so its root-mean-square slope is $\sqrt{1/2}$: it halves the gradient's squared size. Doubling the weights' variance makes up for it: $k = \sqrt{2}$, a variance of $2/n$. This is <Term def="Random weights with variance 2/n_in, where n_in is the fan-in. Designed for ReLU layers.">He (Kaiming) initialisation</Term>.
 - **sigmoid** has slope at most 0.25 (about 0.2 on average), so with sensible weights its factor stays well below 1.
 
 <GradientDepthBars />
@@ -95,11 +96,11 @@ Each of the standard fixes attacks one cause:
 
 1. **ReLU in the hidden layers.** Its slope is exactly 1 for every positive input and it never saturates there, so active neurons pass the gradient back undiminished. The catch: its slope is 0 for negative inputs, and a neuron whose input is negative for every example never learns again (the "dying ReLU"). Leaky ReLU keeps a small slope such as 0.01 for negative inputs.
 2. **He or Xavier initialisation.** Choose the starting weight scale so each layer's factor begins near 1.
-3. **<Term def="Batch normalisation: for each neuron, subtract the mini-batch mean and divide by the mini-batch standard deviation of its pre-activations, then apply a learned scale and shift.">BatchNorm</Term>.** Rescales every neuron's pre-activations over the mini-batch to mean 0 and variance 1, so the weights' scale stops mattering. In the chart, switch BatchNorm on and drag $k$: the bars hardly move.
+3. **<Term def="Batch normalisation: for each neuron, subtract the mini-batch mean and divide by the mini-batch standard deviation of its pre-activations, then apply a learned scale and shift.">BatchNorm</Term>.** Rescales every neuron's pre-activations over the mini-batch to mean 0 and variance 1, so the weights' scale stops mattering. In the chart, switch BatchNorm on and drag $k$: the dots hardly move. BatchNorm alone does not force the factor to exactly 1, though. Try ReLU + BatchNorm (residual off) at depth 30: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets combine it with residual connections (setting 7 in the chart).
 4. **Residual connections**, next.
 5. **Gradient clipping**, for the explosions that still happen.
 
-Initialisation and normalisation get a full lesson in the module on training deep networks; here the point is *why* they work: each one keeps the per-layer factor close to 1.
+Initialisation and normalisation get a full lesson in the module on training deep networks; here the point is *why* they work. Good initialisation starts the per-layer factor near 1, and normalisation stops it depending on the size of the weights.
 
 ## Residual connections: a gradient highway
 
@@ -140,13 +141,13 @@ The first term is the gradient from above, **passed back unchanged**, however sm
 
 <ResidualHighway />
 
-This is the idea behind **ResNet** (2015), which trained networks with 152 layers at a time when a plain 34-layer network trained *worse* than a plain 18-layer one. Every Transformer block uses residual connections too. Notice in the bar chart above that residual connections alone can let the gradient *grow*, because every block adds its own contribution; that is why ResNets also put BatchNorm inside every block.
+This is the idea behind **ResNet** (2015), which trained networks with 152 layers at a time when a plain 34-layer network trained *worse* than a plain 18-layer one. Every Transformer block uses residual connections too. Notice in the gradient-size chart above (setting 6) and in the highway with a large $s$ that residual connections alone can let the gradient *grow*, because every block adds its own contribution; that is why ResNets also put BatchNorm inside every block.
 
 <QuickCheck
   q="A residual block computes $y = x + F(x)$. In the backward pass the gradient arriving at $y$ is 4, and $F'(x) = 0.25$. What gradient reaches $x$?"
   options={['$5$', '$1$', '$4.25$', '$1.25$']}
   answer={0}
-  explain="$\frac{\partial L}{\partial x} = 4 \times (1 + 0.25) = 4 + 1 = 5$. The answer 1 is $4 \times 0.25$, which forgets the skip path: that is the plain network's answer."
+  explain="$\frac{\partial L}{\partial x} = 4 \times (1 + 0.25) = 4 + 1 = 5$. The answer 1 is $4 \times 0.25$, which forgets the skip path: that is the plain network's answer. $4.25$ adds $F'$ to the upstream gradient instead of multiplying by $1 + F'$, and $1.25$ is $1 + F'$ alone, which forgets the upstream 4."
 />
 
 <PastPaperQuestion paper="final2026" n={7} />
@@ -165,6 +166,8 @@ $$
 For example, $g = (6, 8)$ has $\lVert g \rVert = \sqrt{36 + 64} = 10$. With $c = 5$, multiply by $5/10$: the clipped gradient is $(3, 4)$, still pointing the same way but half as long.
 
 <ClipByNorm />
+
+PyTorch also has `clip_grad_value_`, which cuts each component to $[-c, c]$ separately. That can turn the gradient's direction, which is why clipping by norm is the usual choice; try **clip by value** in the figure to see the turn.
 
 In PyTorch the clip goes after the gradients exist and before the optimiser uses them:
 
@@ -185,52 +188,25 @@ Clipping only ever makes gradients *shorter*. A gradient of $10^{-9}$ is left ex
 
 ## Measure it yourself
 
-This NumPy code builds the same kind of 20-layer network as the bar chart (32 neurons per layer), runs a forward pass, sends a gradient of size 1 back from the loss, and prints its size at layers 20, 10 and 1. Run it, then try `depth=40` or other values of `k`.
+This NumPy code builds the same kind of 20-layer network as the gradient-size chart (32 neurons per layer), runs a forward pass, sends a gradient of size 1 back from the loss, and prints its size at layers 20, 10 and 1. Run it, then try `depth=40` or other values of `k`.
 
-<PyRunner packages={['numpy']} code={GRAD_SIZES_CODE} />
+<NoWrapRunner code={GRAD_SIZES_CODE} />
 
 <CodeBlock language="text" code={GRAD_SIZES_OUTPUT} />
 
-In PyTorch you would look at each layer's `weight.grad.norm()` after `loss.backward()`. Here are three 20-layer networks: sigmoid with PyTorch's default initialisation, ReLU with He initialisation, and ReLU with weights that are too large. `clip_grad_norm_` returns the total norm *before* clipping, which makes it a handy health monitor.
+In PyTorch you would look at each layer's `weight.grad.norm()` after `loss.backward()`. The same measurement in PyTorch gives the same picture: a sigmoid network's first layer gets a gradient about seventeen powers of ten smaller than its last layer's, a He-initialised ReLU network is healthy, and oversized weights give gradients around $10^{12}$.
 
-```python
-import torch
-import torch.nn as nn
+<Reveal label="Optional: the same measurement in PyTorch">
 
-def deep_net(act, depth=20, width=32, gain=None):
-    layers = []
-    for _ in range(depth):
-        lin = nn.Linear(width, width)
-        if gain is not None:            # std = gain / sqrt(fan_in)
-            nn.init.normal_(lin.weight, std=gain / width ** 0.5)
-            nn.init.zeros_(lin.bias)
-        layers += [lin, act()]
-    return nn.Sequential(*layers, nn.Linear(width, 1))
+Here are three 20-layer networks: sigmoid with PyTorch's default initialisation, ReLU with He initialisation, and ReLU with weights that are too large. `clip_grad_norm_` returns the total norm *before* clipping, which makes it a handy health monitor.
 
-torch.manual_seed(0)
-x, y = torch.randn(64, 32), torch.randn(64, 1)
-nets = {"sigmoid, default init": deep_net(nn.Sigmoid),
-        "ReLU, He init        ": deep_net(nn.ReLU, gain=2 ** 0.5),
-        "ReLU, std 3/sqrt(n)  ": deep_net(nn.ReLU, gain=3.0)}
-for name, net in nets.items():
-    loss = nn.functional.mse_loss(net(x), y)
-    loss.backward()
-    first = net[0].weight.grad.norm()   # layer 1
-    last = net[38].weight.grad.norm()   # layer 20
-    # clip_grad_norm_ returns the total norm BEFORE clipping
-    before = nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
-    grads = torch.cat([p.grad.flatten() for p in net.parameters()])
-    print(f"{name} layer 1: {first:.1e}  layer 20: {last:.1e}  "
-          f"clipped {before:.1e} -> {grads.norm():.2f}")
-```
+<CodeBlock language="python" code={TORCH_NORMS_CODE} />
 
-```text
-sigmoid, default init layer 1: 7.2e-18  layer 20: 1.8e-01  clipped 1.6e+00 -> 1.00
-ReLU, He init         layer 1: 1.4e-01  layer 20: 3.6e-02  clipped 5.2e-01 -> 0.52
-ReLU, std 3/sqrt(n)   layer 1: 5.4e+11  layer 20: 2.3e+12  clipped 1.7e+13 -> 1.00
-```
+<CodeBlock language="text" code={TORCH_NORMS_OUTPUT} />
 
-The sigmoid network's first layer gets a gradient about seventeen powers of ten smaller than its last layer's: it will never learn. The He-initialised ReLU network is healthy, and its total norm (0.52) is under the threshold, so clipping leaves it alone. The oversized network's gradients are around $10^{12}$, and clipping rescales them to a total length of exactly 1.
+The sigmoid network's first layer will never learn. The He-initialised ReLU network's total norm (0.52) is under the threshold, so clipping leaves it alone. The oversized network's gradients are around $10^{12}$, and clipping rescales them to a total length of exactly 1.
+
+</Reveal>
 
 ## Diagnose and fix
 
@@ -250,7 +226,7 @@ Prelim questions on this topic are mostly matching: **sigmoid or tanh derivative
 
 - Backprop multiplies **one factor per layer** (weight × activation slope), so gradient size changes **exponentially** with depth: below 1 it vanishes, above 1 it explodes.
 - Sigmoid's slope is at most **0.25**, so deep sigmoid networks vanish ($0.25^{10} \approx 10^{-6}$); exploding gradients cause huge updates, overflow and `nan` losses.
-- Fixes: **ReLU** (slope 1), **He/Xavier initialisation** (factor near 1 at the start), **BatchNorm** (scale stops mattering), **residual connections** ($y = x + F(x)$ gives $\partial y / \partial x = 1 + F'(x)$, a gradient highway).
+- Fixes: **ReLU** (slope 1), **He/Xavier initialisation** (factor near 1 at the start), **BatchNorm** (the weights' scale stops mattering), **residual connections** ($y = x + F(x)$ gives $\partial y / \partial x = 1 + F'(x)$, a gradient highway).
 - **Gradient clipping** rescales $g$ to length $c$ when $\lVert g \rVert > c$, keeping its direction; it only fixes *exploding* gradients and goes between `loss.backward()` and `optimiser.step()`.
 
 </Takeaways>

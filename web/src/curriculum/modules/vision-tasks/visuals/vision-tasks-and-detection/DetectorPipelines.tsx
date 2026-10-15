@@ -57,10 +57,11 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         sub: 'stage 2',
         mode: 'classified',
         input: <>the feature map + each proposal</>,
-        output: <>for every proposal: C + 1 class scores (including “background”) and a refined box</>,
+        output: <>for every proposal: C + 1 class scores (the C classes plus “background”) and a refined box</>,
         what: (
           <>
-            Each proposal&rsquo;s features are cut out and resized to a fixed 7 × 7 grid, then classified. Grey boxes were judged “background”.{' '}
+            <b>RoI (region of interest) pooling</b> cuts each proposal&rsquo;s features out of the shared map and resizes them to a fixed 7 × 7 grid; the head
+            then classifies them. Grey boxes were judged “background”.{' '}
             <b>Mask R-CNN</b> adds a third output here, a small mask for each box, which gives instance segmentation.
           </>
         ),
@@ -97,8 +98,9 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         what: (
           <>
             The cell that contains an object&rsquo;s <b>centre</b> is responsible for it. Each cell predicts B boxes, each as (x, y, w, h, confidence), plus C class
-            probabilities. <b>SSD</b> works the same way but predicts from several feature maps of different sizes, using preset default (anchor) boxes, to catch
-            both small and large objects.
+            probabilities, so (in the original YOLO) S × S × (5B + C) numbers. Later YOLO versions give every anchor box its own class scores:
+            S × S × B × (5 + C). <b>SSD</b> works like the later versions but predicts from several feature maps of different sizes, using preset default
+            (anchor) boxes, to catch both small and large objects.
           </>
         ),
       },
@@ -122,7 +124,7 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         sub: 'features',
         mode: 'features',
         input: <>the image</>,
-        output: <>a feature map, flattened into a sequence of vectors (one per cell) with position encodings</>,
+        output: <>a feature map, flattened into a sequence of vectors (one per cell), each tagged with where its cell was (a “position encoding”)</>,
         what: <>Exactly like the first step of the others: a pretrained CNN describes each region of the image.</>,
       },
       {
@@ -131,7 +133,12 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         mode: 'attention',
         input: <>the sequence of cell vectors</>,
         output: <>the same number of vectors, each now informed by the whole image</>,
-        what: <>Self-attention lets every cell look at every other cell (lines), so the model can reason about the whole scene at once.</>,
+        what: (
+          <>
+            Self-attention (taught in the attention-and-transformers module) lets every cell look at every other cell (lines), so the model can reason
+            about the whole scene at once.
+          </>
+        ),
       },
       {
         name: 'Decoder + object queries',
@@ -141,8 +148,8 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         output: <>N predictions, each a box + class, or “∅ no object”</>,
         what: (
           <>
-            Each query is a slot that asks “is there an object for me?”. Most slots answer ∅ (the first 8 of the 100 slots are listed below). During training each real object is matched to exactly one
-            prediction (Hungarian matching), so duplicates are punished.
+            Each query is a slot that asks “is there an object for me?”. Most slots answer ∅ (the first 8 of the 100 slots are listed below). During training a one-to-one matching step pairs each real
+            object with exactly one slot, and any other slot that also predicts it is penalised.
           </>
         ),
       },
@@ -152,7 +159,12 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         mode: 'final',
         input: <>N slot predictions</>,
         output: <>the non-∅ slots: one box per object</>,
-        what: <>Because training already forbids duplicates, DETR needs <b>no anchors and no NMS</b>.</>,
+        what: (
+          <>
+            Because one-to-one matching during training penalises duplicate predictions, DETR learns to output one box per object and needs{' '}
+            <b>no anchors and no NMS</b>.
+          </>
+        ),
       },
     ],
   },
@@ -387,7 +399,7 @@ export default function DetectorPipelines() {
         {stage.mode === 'grid' && (
           <div style={{ color: shared ? 'var(--viz-neg)' : 'var(--ink-2)' }}>
             {shared
-              ? `With a ${S} × ${S} grid, both people's centres fall in the same cell, so one cell must predict both. The original YOLO allowed only one class per cell and struggled with small, crowded objects.`
+              ? `With a ${S} × ${S} grid, both people's centres fall in the same cell, so that one cell must find both. The original YOLO gave each cell only B = 2 boxes and one set of class scores, so it struggled with small objects in crowds.`
               : `With a ${S} × ${S} grid, every object's centre falls in its own cell.`}
           </div>
         )}

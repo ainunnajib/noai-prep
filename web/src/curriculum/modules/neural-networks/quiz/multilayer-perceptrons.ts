@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The theorem is an existence result: one hidden layer with a non-linear activation and enough neurons **has** weights that approximate any continuous function on a bounded region. It says nothing about training finding those weights, and the number of neurons needed may be huge. Without an activation the network is linear, so it can only make straight-line functions; and one hidden layer is enough in principle, whatever the number of features.',
+      'The theorem is an existence result: one hidden layer with a non-linear activation and enough neurons **has** weights that approximate any continuous function on a bounded region (strictly, the activation must be non-polynomial, like ReLU, sigmoid or tanh, and the region closed and bounded). It says nothing about training finding those weights, and the number of neurons needed may be huge. Without an activation the network is linear, so it can only make straight-line functions; and one hidden layer is enough in principle, whatever the number of features.',
     difficulty: 'intermediate',
   },
   {

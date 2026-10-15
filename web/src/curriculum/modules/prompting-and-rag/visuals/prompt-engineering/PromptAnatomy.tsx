@@ -131,7 +131,7 @@ export default function PromptAnatomy() {
     { ok: on.task && on.context, text: 'Uses your exam date and weak topic', why: 'context' },
     { ok: on.task && on.context && on.reasoning, text: 'Counts the weeks correctly', why: 'context + reasoning' },
     { ok: on.task && on.constraints && nWords < 120, text: 'Fits your week and stays under 120 words', why: 'constraints' },
-    { ok: on.task && on.format, text: 'Easy to scan at a glance', why: 'format' },
+    { ok: on.task && on.format && on.constraints, text: 'Easy to scan: a table, with no filler', why: 'format + constraints' },
     { ok: on.task && on.role, text: 'Exam-style practice, not generic tips', why: 'role' },
     { ok: on.task && on.reasoning, text: 'Shows its working, so you can check it', why: 'reasoning' },
   ]
@@ -231,9 +231,7 @@ export default function PromptAnatomy() {
             <span className={`${s.tick} ${c.ok ? s.tickYes : s.tickNo}`} aria-label={c.ok ? 'yes' : 'no'}>
               {c.ok ? '✓' : '✗'}
             </span>
-            <span>
-              {c.text} <span className={s.checkWhy}>({c.why})</span>
-            </span>
+            <span title={`depends on: ${c.why}`}>{c.text}</span>
           </li>
         ))}
       </ul>
@@ -246,13 +244,15 @@ export default function PromptAnatomy() {
       title="Anatomy of a prompt: switch the parts on and off"
       caption={
         <>
-          The prompt starts as a bare task. Switch on <b>context</b> first: the plan stops guessing your dates. Then <b>format</b> (a table instead of a paragraph) and <b>constraints</b> (it now fits
-          your week, and the padding disappears). Turn <b>reasoning</b> off with context on and the week count slips; switch the task to vague and nothing else can rescue the reply. The replies
-          are illustrative: each fragment shows the typical effect of one part, not the output of a real model.
+          Judge the reply yourself before reading the checklist. Some parts only work together: context without reasoning miscounts the weeks, and a table still drowns in filler
+          until constraints cut it. A vague task wastes every other part. The replies are illustrative fragments, not the output of a real model.
         </>
       }
     >
       <div ref={ref} className={s.wrap}>
+        <p className={s.tryLine}>
+          <b>Try:</b> switch on <b>context</b>, then <b>format</b> and <b>constraints</b>. Then turn <b>reasoning</b> on and off, and make the task vague.
+        </p>
         {narrow ? (
           <div className={s.stack}>
             {promptPanel}

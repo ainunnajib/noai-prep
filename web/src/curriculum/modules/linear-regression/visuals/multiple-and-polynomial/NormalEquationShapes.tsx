@@ -173,9 +173,12 @@ export default function NormalEquationShapes() {
     const dt = det(XtX)
     const rk = rank(X)
     const wNE = dt !== 0 ? solve(XtX, Xty) : null
+    // (XᵀX)⁻¹, column by column: column j solves (XᵀX) v = e_j
+    const cols = wNE ? XtX.map((_, j) => solve(XtX, XtX.map((__, i) => (i === j ? 1 : 0)))) : []
+    const inv = wNE && cols.every((c) => c) ? XtX.map((_, i) => cols.map((c) => (c as Vec)[i])) : null
     const wPinv = pinvSolve(X, y)
     const gd = gdSteps(X, y, wNE ?? wPinv)
-    return { X, y, Xt, XtX, Xty, dt, rk, wNE, wPinv, gd }
+    return { X, y, Xt, XtX, Xty, dt, rk, wNE, inv, wPinv, gd }
   }, [n, d, dup])
   const singular = calc.wNE === null
 
@@ -281,7 +284,10 @@ export default function NormalEquationShapes() {
         {dup ? ', and the last column copies x₁' : n < D ? `, with only ${n} rows to pin down ${D} weights` : ''}. Infinitely many w fit the data equally well.
       </>
     ) : (
-      <>det(XᵀX) = {fmt(calc.dt)} ≠ 0, so the inverse exists. Try adding a duplicate column, or making n smaller than d, to break it.</>
+      <>
+        det(XᵀX) = {fmt(calc.dt)} ≠ 0, so the inverse exists (shown below; the next step multiplies it by Xᵀy). Try adding a duplicate column, or
+        making n smaller than d, to break it.
+      </>
     ),
     singular ? (
       <>
@@ -310,7 +316,11 @@ export default function NormalEquationShapes() {
         </>
       )
     if (s === 1) return box('Xᵀ', calc.Xt, 26)
-    if (s === 2 || s === 4) return box('XᵀX', calc.XtX, D > 4 ? 38 : 42)
+    if (s === 2 || (s === 4 && !calc.inv)) return box('XᵀX', calc.XtX, D > 4 ? 38 : 42)
+    if (s === 4 && calc.inv)
+      return box('(XᵀX)⁻¹', calc.inv, D > 4 ? 56 : 62, {
+        format: (v: number) => (Math.abs(v) < 0.0005 ? '0.000' : v.toFixed(3)),
+      })
     if (s === 3)
       return box(
         'Xᵀy',
@@ -332,7 +342,7 @@ export default function NormalEquationShapes() {
       caption={
         <>
           Press <b>Play</b> (or Next) to build <M>{'w = (X^\\top X)^{-1} X^\\top y'}</M> one product at a time. The orange edges show the inner sizes that must
-          match. Then change <b>n</b> and <b>d</b>: the result XᵀX is always d×d. Finally switch on the duplicate column, or drag n below d, and watch det(XᵀX)
+          match. Then change <b>n</b> and <b>d</b>: XᵀX is always a square with one row and one column per column of X, however many rows of data there are. Finally switch on the duplicate column, or drag n below d, and watch det(XᵀX)
           drop to 0.
         </>
       }

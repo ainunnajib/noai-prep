@@ -157,7 +157,13 @@ export default function SimultaneousUpdateCheck() {
                 <div style={{ display: 'grid', gap: '0.25rem' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>θ = {show(th)}</div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 700, color: ok ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>
-                    {ok ? (t === T_MAX ? 'matches the official answer' : 'matches the task method') : 'differs at 4 d.p.'}
+                    {ok
+                      ? t === T_MAX
+                        ? 'matches the official answer'
+                        : 'matches the task method'
+                      : th.length !== ref.length
+                        ? `${th.length} numbers: the task expects ${ref.length} (θ already contains the bias)`
+                        : 'differs at 4 d.p.'}
                   </div>
                 </div>
               </div>

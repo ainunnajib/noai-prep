@@ -58,7 +58,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '`.T` (like `permute` and `transpose`) moves no data: it just changes the strides, so reading `wt` row by row jumps around memory and `wt.is_contiguous()` is False. `view` can only relabel memory that is already in reading order. Use `wt.reshape(24)`, which copies when it must, or `wt.contiguous().view(24)`. The size is fine (24 elements either way), `view` works on tensors of any rank and may change the number of rows, and `.T` never changes the dtype.',
+      '`.T` (like `permute` and `transpose`) moves no data: it just changes the strides, so reading `wt` row by row jumps around memory and `wt.is_contiguous()` is False. Flattening to 24 would merge two axes whose numbers are not next to each other in memory, and `view` can only relabel memory, never copy it. Use `wt.reshape(24)`, which copies when it must, or `wt.contiguous().view(24)`. The size is fine (24 elements either way), `view` works on tensors of any rank and may change the number of rows, and `.T` never changes the dtype.',
     difficulty: 'intermediate',
   },
 ]

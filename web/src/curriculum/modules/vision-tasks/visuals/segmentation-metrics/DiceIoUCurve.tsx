@@ -58,6 +58,9 @@ export default function DiceIoUCurve() {
             <Label x={T0} y={T1} dy={-5} color="var(--viz-2)" weight={700}>
               true
             </Label>
+            <Label x={px1} y={py0 < 1.3 ? py1 : py0} dy={py0 < 1.3 ? -5 : 13} anchor="end" color="var(--viz-1)" weight={700}>
+              prediction
+            </Label>
             <DraggablePoint x={c[0]} y={c[1]} onChange={(x, y) => setC(snap(x, y))} color="var(--viz-1)" label="drag" />
           </Plot>
         </div>
@@ -69,8 +72,11 @@ export default function DiceIoUCurve() {
             <FnPath f={(x) => (2 * x) / (1 + x)} color="var(--viz-5)" width={2.5} />
             <Path points={[[iou, 0], [iou, dice], [0, dice]]} color="var(--viz-axis)" dash="3 3" width={1.2} />
             <Dots points={[{ x: iou, y: dice, color: 'var(--viz-5)', r: 6 }]} />
-            <Label x={0.98} y={0.72} anchor="end" color="var(--viz-muted)" size={11}>
+            <Label x={0.8} y={0.8} dx={4} dy={16} color="var(--ink-2)" size={11}>
               Dice = IoU
+            </Label>
+            <Label x={0.04} y={0.92} color="var(--viz-5)" size={11} weight={700}>
+              Dice = 2·IoU / (1 + IoU)
             </Label>
           </Plot>
         </div>

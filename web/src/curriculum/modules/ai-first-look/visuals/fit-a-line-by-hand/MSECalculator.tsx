@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Slider, Plot, Grid, Axes, FnPath, Dots, usePlot, M } from '../../../../../kit'
+import { Controls, Slider, Plot, Grid, Axes, FnPath, Dots, usePlot, M } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { fmt } from './hdbFlats'
 
 /** The worked example as a live table: three flats, your line, and every number of the MSE calculation. */
@@ -12,16 +13,29 @@ const FLATS3: [number, number][] = [
 const NAMES = ['A', 'B', 'C']
 
 function Res({ w, b }: { w: number; b: number }) {
-  const { xs, ys } = usePlot()
+  const { xs, ys, clipId } = usePlot()
+  const [lo, hi] = ys.domain()
   return (
     <g aria-hidden="true">
+      {/* residuals are clipped to the plot; a small arrowhead marks one that runs off the chart */}
+      <g clipPath={`url(#${clipId})`}>
+        {FLATS3.map(([x, y], i) => (
+          <line key={i} x1={xs(x)} x2={xs(x)} y1={ys(y)} y2={ys(w * x + b)} style={{ stroke: 'var(--viz-neg)', strokeWidth: 2 }} />
+        ))}
+      </g>
+      {FLATS3.map(([x], i) => {
+        const p = w * x + b
+        if (p >= lo && p <= hi) return null
+        const up = p > hi
+        const px = xs(x)
+        const ey = ys(up ? hi : lo)
+        const base = up ? ey + 8 : ey - 8
+        return <path key={`off${i}`} d={`M${px - 5},${base}L${px + 5},${base}L${px},${ey}Z`} style={{ fill: 'var(--viz-neg)' }} />
+      })}
       {FLATS3.map(([x, y], i) => (
-        <g key={i}>
-          <line x1={xs(x)} x2={xs(x)} y1={ys(y)} y2={ys(w * x + b)} style={{ stroke: 'var(--viz-neg)', strokeWidth: 2 }} />
-          <text className="plot-label" x={xs(x) - 10} y={ys(y) - 8} textAnchor="end">
-            {NAMES[i]}
-          </text>
-        </g>
+        <text key={`t${i}`} className="plot-label" x={xs(x) - 10} y={ys(y) - 8} textAnchor="end">
+          {NAMES[i]}
+        </text>
       ))}
     </g>
   )
@@ -49,11 +63,12 @@ export default function MSECalculator() {
       caption={
         <>
           Start with the line from the worked example (<M>w = 5</M>, <M>b = 100</M>), then pick your own <M>w</M> and <M>b</M>, work out the MSE by hand, and
-          check it here. Watch the last column: one residual twice as big gives a square four times as big.
+          check it here. Watch the last column: one residual twice as big gives a square four times as big. (A red arrowhead on the edge means that residual runs
+          off the chart.)
         </>
       }
     >
-      <Plot x={[60, 120]} y={[350, 750]} width={420} height={220} minHeight={190} margin={{ left: 46 }} ariaLabel="Three flats A, B and C with your line and their residuals">
+      <Plot x={[60, 120]} y={[350, 750]} width={420} height={230} minHeight={200} margin={{ left: 46, top: 24 }} ariaLabel="Three flats A, B and C with your line and their residuals">
         <Grid xTicks={6} yTicks={4} />
         <Axes xLabel="area (m²)" yLabel="price (S$k)" xTicks={6} yTicks={4} />
         <Res w={w} b={b} />

@@ -1,11 +1,13 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Segmented, Slider, Plot, Grid, Axes, FnPath, Path, Rect, Dots, Label, VLine, DraggablePoint, M, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Slider, Plot, Grid, Axes, FnPath, Path, Rect, Dots, Label, VLine, M, useNarrow } from '../../../../../kit'
+import { Handle, Verdict, sci } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Why the learning rate has a hard limit. For L(w) = (c/2) w² the update is
   w ← w − η c w = (1 − η c) w, so every step multiplies w by r = 1 − ηc.
   Top: r against η, with the bands that decide the fate of the walk.
   Bottom: the first few values of w on a number line.
+  η is capped at 3.4/c so that r = 1 − ηc ≥ −2.4 stays on the chart (and the handle stays grabbable).
 */
 
 const CURVES = [
@@ -18,12 +20,15 @@ const W0 = 3
 const N = 6
 const LINE = 6.5
 
-const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toExponential(1) : v.toFixed(2))
+const R_MIN = -2.4
+const etaCap = (c: number) => Math.min(ETA_MAX, (1 - R_MIN) / c)
+const fmt = (v: number) => sci(v, 2)
 const smallTitle: CSSProperties = { fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center' }
 
 export default function StepMultiplier() {
   const [c, setC] = useState(2)
-  const [eta, setEta] = useState(0.8)
+  const [etaRaw, setEta] = useState(0.8)
+  const eta = Math.min(etaRaw, etaCap(c))
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>()
   const r = 1 - eta * c
   const ws = Array.from({ length: N + 1 }, (_, k) => W0 * r ** k)
@@ -38,7 +43,7 @@ export default function StepMultiplier() {
             ? { text: 'converges, zig-zagging: r is negative, so w flips sign each step', colour: 'var(--viz-6)' }
             : { text: 'converges smoothly from one side', colour: 'var(--viz-pos)' }
 
-  const snapEta = (x: number) => Math.max(0.01, Math.min(ETA_MAX, Math.round(x * 100) / 100))
+  const snapEta = (x: number) => Math.max(0.01, Math.min(etaCap(c), Math.round(x * 100) / 100))
 
   return (
     <Figure
@@ -46,8 +51,8 @@ export default function StepMultiplier() {
       caption={
         <>
           Drag the point along the line (or use the slider) to change the learning rate η, and watch the first six values of w on the number line
-          below. Inside the green band (−1 &lt; r &lt; 1) the walk shrinks to 0; below −1 it explodes. The edge is at η = 2/c, so switch to the
-          steeper bowl and see the safe range halve.
+          below. Inside the green band (−1 &lt; r &lt; 1) the walk shrinks to 0; below −1 it explodes. The edge is at η = 2/c, so switch to the more
+          sharply curved bowl (bigger c) and see the safe range halve.
         </>
       }
     >
@@ -61,18 +66,18 @@ export default function StepMultiplier() {
           <Grid xTicks={11} yTicks={7} />
           <Axes xLabel="learning rate η" yLabel="r" xTicks={narrow ? 6 : 11} yTicks={7} />
           <Path points={[[0, 0], [ETA_MAX, 0]]} color="var(--viz-axis)" width={1} />
-          <Label x={ETA_MAX} y={0.55} dx={-6} anchor="end" color="var(--viz-pos)" weight={700}>
+          <Label x={ETA_MAX} y={0.55} dx={-6} anchor="end" color="var(--ink-2)" weight={700}>
             {narrow ? 'slides in' : '0 < r < 1: slides in'}
           </Label>
-          <Label x={ETA_MAX} y={-0.5} dx={-6} anchor="end" color="var(--viz-6)" weight={700}>
+          <Label x={ETA_MAX} y={-0.5} dx={-6} anchor="end" color="var(--ink-2)" weight={700}>
             {narrow ? 'zig-zags in' : '−1 < r < 0: zig-zags in'}
           </Label>
-          <Label x={ETA_MAX} y={-1.75} dx={-6} anchor="end" color="var(--viz-neg)" weight={700}>
+          <Label x={ETA_MAX} y={-1.75} dx={-6} anchor="end" color="var(--ink-2)" weight={700}>
             {narrow ? 'blows up' : 'r < −1: blows up'}
           </Label>
           {1 / c <= ETA_MAX && <VLine x={1 / c} color="var(--viz-muted)" />}
           {1 / c <= ETA_MAX && (
-            <Label x={1 / c} y={-2.4} dx={4} dy={-6} color="var(--viz-muted)" weight={700}>
+            <Label x={1 / c} y={-2.4} dx={4} dy={-6} color="var(--ink-2)" weight={700}>
               {`η = 1/c`}
             </Label>
           )}
@@ -83,7 +88,7 @@ export default function StepMultiplier() {
             </Label>
           )}
           <FnPath f={(x) => 1 - c * x} color="var(--viz-1)" width={3} />
-          <DraggablePoint x={eta} y={r} constrain={(x) => [snapEta(x), 1 - c * snapEta(x)]} onChange={(x) => setEta(snapEta(x))} />
+          <Handle x={eta} y={r} label="drag" ariaLabel="learning rate η: drag along the line" constrain={(x) => [snapEta(x), 1 - c * snapEta(x)]} onChange={(x) => setEta(snapEta(x))} />
         </Plot>
         <div style={smallTitle}>
           The walk: <M>{`w_0 = 3,\\; w_{k+1} = r\\, w_k`}</M>
@@ -115,15 +120,17 @@ export default function StepMultiplier() {
       </div>
       <Controls>
         <Segmented label="Bowl curvature" value={c} onChange={setC} options={CURVES} />
-        <Slider label="learning rate η" value={eta} min={0.01} max={ETA_MAX} step={0.01} onChange={setEta} format={(v) => v.toFixed(2)} />
+        <Slider label="learning rate η" value={eta} min={0.01} max={etaCap(c)} step={0.01} onChange={setEta} format={(v) => v.toFixed(2)} />
       </Controls>
       <Readout
         items={[
-          ['r = 1 − ηc', `1 − ${eta.toFixed(2)} × ${c} = ${r.toFixed(2)}`],
+          ['r = 1 − ηc', `1 − ${eta.toFixed(2)} × ${c} = ${sci(r, 2)}`],
           ['w', ws.map(fmt).join(' → ')],
         ]}
       />
-      <div style={{ width: '100%', fontSize: '0.875rem', fontWeight: 600, color: fate.colour }}>{fate.text}</div>
+      <div style={{ width: '100%', fontSize: '0.875rem', fontWeight: 600 }}>
+        <Verdict tone={fate.colour}>{fate.text}</Verdict>
+      </div>
     </Figure>
   )
 }

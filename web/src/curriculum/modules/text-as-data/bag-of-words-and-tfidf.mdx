@@ -37,7 +37,11 @@ Raw counts have a problem: the most frequent words ("the", "is", "and") dominate
 The <Term def="How often a term (word) occurs in one document. Usually the raw count; some courses divide by the document's length.">term frequency</Term> $\mathrm{tf}(t, d)$ is the number of times term $t$ occurs in document $d$ (some versions divide by the length of $d$). The <Term def="The number of documents in the corpus that contain the term at least once.">document frequency</Term> $\mathrm{df}(t)$ is the number of documents that contain $t$ **at least once**. The inverse document frequency turns it into a weight:
 
 $$
-\mathrm{idf}(t) = \log \frac{N}{\mathrm{df}(t)}, \qquad \mathrm{tfidf}(t, d) = \mathrm{tf}(t, d) \times \mathrm{idf}(t)
+\mathrm{idf}(t) = \log \frac{N}{\mathrm{df}(t)}
+$$
+
+$$
+\mathrm{tfidf}(t, d) = \mathrm{tf}(t, d) \times \mathrm{idf}(t)
 $$
 
 - $N$ is the number of documents in the corpus.
@@ -115,7 +119,7 @@ The top line, the dot product, grows with every word the two vectors share (weig
 
 <Note title="This is the R in RAG">
 
-A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant documents, then gives them to a language model as context for its answer.">RAG</Term> system answers a question in two steps: **retrieve** the most relevant documents (what you just built), then **generate** an answer with a language model that reads them. Modern systems usually swap TF-IDF vectors for learned embeddings (next lesson), but the cosine-and-top-$k$ step is identical. You will build the whole pipeline in the RAG module.
+A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant documents, then gives them to a language model as context for its answer.">RAG</Term> system answers a question in two steps: **retrieve** the most relevant documents (what you just built), then **generate** an answer with a language model that reads them. Modern systems usually swap TF-IDF vectors for learned embeddings (next lesson), but the cosine-and-top-$k$ step is identical. You will build the whole pipeline in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline).
 
 </Note>
 
@@ -197,7 +201,7 @@ scores = cosine_similarity(q, X)[0]
 print(scores.round(3))
 print("top 2:", scores.argsort()[::-1][:2])`} />
 
-The scores differ (0, 0.569, 0.168, 0.464 and 0) because the IDF formula and the stop-word list differ, but the ranking is the same: indices 1 and 3 are documents 2 and 4, since Python counts from 0.
+The scores differ (0, 0.569, 0.168, 0.464 and 0) because the IDF formula and the stop-word list differ, but the ranking is the same: indices 1 and 3 are documents 2 and 4, since Python counts from 0. For the full exam walkthrough, with the generation half and the thought-process cells, see [Final lab: RAG with TF-IDF](#/learn/final-lab-numpy/task-rag-tfidf).
 
 <Mistake title="Three classic bugs in this task">
 
@@ -218,7 +222,7 @@ Prelim speed facts: a word in **every** document has IDF $\log 1 = 0$; the **rar
 - A **bag of words** is a count vector over the vocabulary: order is lost and the vectors are sparse.
 - $\mathrm{idf}(t) = \log(N/\mathrm{df}(t))$: 0 for words in every document, large for rare words. TF-IDF $= \mathrm{tf} \times \mathrm{idf}$.
 - Retrieval = vectorise the query the same way, compute **cosine similarity** with every document, return the **top $k$**.
-- The base of the log and other IDF variants change the numbers but rarely the ranking.
+- Changing the log base never changes the ranking; other IDF variants (such as smoothing) change the numbers but rarely the ranking.
 - This is the retrieval half of RAG, and you can build it with NumPy in about 30 lines.
 
 </Takeaways>

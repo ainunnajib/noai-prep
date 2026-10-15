@@ -62,7 +62,8 @@ export default function HalvingCounter() {
       title="How many times can you halve it?"
       caption={
         <>
-          Pick a starting number (or type your own) and press <strong>Play</strong>. Each row halves the one above, drawn to scale, until at most 1
+          Pick a starting number (or type your own) and press <strong>Replay</strong> (or <strong>Restart</strong>, then <strong>Next</strong>) to watch it one
+          halving at a time. Each row halves the one above, drawn to scale, until at most 1
           is left. Count the rows: that count is <M>{'\\log_2 n'}</M>, rounded up. A thousand needs 10 halvings; a million needs only 20, because{' '}
           <M>{'2^{10} \\approx 1000'}</M> and <M>{'2^{20} \\approx 1{,}000{,}000'}</M>. This is binary search: each question halves the candidates.
         </>
@@ -139,7 +140,7 @@ export default function HalvingCounter() {
       <Readout
         items={[
           ['n', n.toLocaleString('en-GB')],
-          ['halvings to reach 1', String(K)],
+          ['halvings to reach 1 or less (log₂ n rounded up)', String(K)],
           [<M key="l">{'\\log_2 n'}</M>, log2n.toFixed(2)],
         ]}
       />

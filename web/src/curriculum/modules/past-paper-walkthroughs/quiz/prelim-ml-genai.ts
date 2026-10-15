@@ -12,7 +12,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Bagging averages many independently trained (usually deep) models, so their separate random errors cancel: variance falls. Boosting adds weak learners one after another, each fixing the current errors: bias falls. The second option is the classic twin swap, with every property moved to the other method.',
+      'Bagging averages many independently trained (usually deep) models, so their separate random errors cancel: variance falls. Boosting adds weak learners one after another, each fixing the current errors: bias falls. The option that has bagging training in sequence and cutting bias is the classic twin swap, with every property moved to the other method.',
     difficulty: 'beginner',
   },
   {
@@ -64,7 +64,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The words are doing the looking, so the queries come from the text, and what they look at (keys) and read off (values) comes from the image. Self-attention keeps everything inside one sequence, so neither self-attention option lets the words see the image. The last option has cross-attention running the wrong way: the image would be looking at the text.',
+      'The words are doing the looking, so the queries come from the text, and what they look at (keys) and read off (values) comes from the image. Self-attention keeps everything inside one sequence, so neither self-attention option lets the words see the image. The option with queries from the image patches has cross-attention running the wrong way: the image would be looking at the text.',
     difficulty: 'intermediate',
   },
 ]

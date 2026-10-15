@@ -57,6 +57,7 @@ export default function BanditBars() {
       eat(d, eps)
       if (d.t >= MEALS) {
         setRunning(false)
+        setReveal(true)
         setYours((y) => ({ ...y, [String(eps)]: d.total }))
       }
       force()
@@ -67,6 +68,8 @@ export default function BanditBars() {
   const newRun = (s = seed + 1) => {
     setRunning(false)
     setSeed(s)
+    // a new diner starts out not knowing the true averages again
+    setReveal(false)
     dRef.current = newDiner(s)
     force()
   }
@@ -74,13 +77,17 @@ export default function BanditBars() {
     const d = dRef.current
     if (d.t >= MEALS) return
     eat(d, eps)
-    if (d.t >= MEALS) setYours((y) => ({ ...y, [String(eps)]: d.total }))
+    if (d.t >= MEALS) {
+      setReveal(true)
+      setYours((y) => ({ ...y, [String(eps)]: d.total }))
+    }
     force()
   }
 
   const d = dRef.current
   const done = d.t >= MEALS
-  const showTruth = reveal || done
+  // the true averages appear automatically after meal 100 (the toggle switches on to match), and can be hidden again
+  const showTruth = reveal
   const atBest = d.N[BEST]
   const maxTotal = 800
 
@@ -152,7 +159,7 @@ export default function BanditBars() {
         {d.last
           ? `Meal ${d.t}: ${d.last.explored ? 'explored (random stall)' : 'exploited (best average so far)'} → ${STALLS[d.last.stall].name}, scored ${d.last.reward.toFixed(1)}.`
           : 'No meals yet: every stall has an unknown average (?).'}
-        {showTruth && <span style={{ color: 'var(--ink-3)' }}> Black ticks: true averages.</span>}
+        {showTruth && <span style={{ color: 'var(--ink-3)' }}> Ticks: true averages.</span>}
       </div>
       <Controls>
         <Segmented

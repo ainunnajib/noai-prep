@@ -30,14 +30,15 @@ export default function AnswerAssembler() {
       title="Augment, then generate: what the retriever hands over"
       caption={
         <>
-          Pick a question, then slide <b>k</b> and the <b>minimum score</b>. The retrieved documents (above the dashed line, within the top k) become the context of the
-          prompt and of the template answer. Notice how raising k adds weaker, partly relevant documents and makes the prompt longer. Then ask about the
-          swimming pool. The handbook never mentions one, but unknown words are silently ignored, so the query shrinks to “open Monday” and the canteen
-          document scores 0.632: the template answer talks confidently about the wrong place. A minimum score of 0.65 hides the problem here, but a sturdier
-          guard is the readout: only 2 of the 4 query words were recognised.
+          Retrieved documents (top k, and right of the dashed minimum-score line) become the prompt's context and the template answer. For the swimming pool, unknown words
+          are silently ignored, so the query shrinks to “open Monday” and the canteen scores 0.632. A minimum score of 0.65 hides that here; a sturdier guard is counting
+          recognised query words.
         </>
       }
     >
+      <p className={s.tryLine}>
+        <b>Try:</b> slide <b>top k</b> up and watch weaker documents join the prompt. Then ask about the swimming pool.
+      </p>
       <div className={s.field}>
         <label className={s.sectionLabel} htmlFor="aa-query">
           Question
@@ -68,7 +69,7 @@ export default function AnswerAssembler() {
                   {sc.toFixed(3)} {used ? <b>✓</b> : r >= k ? <span className={s.muted}>rank {r + 1}</span> : <span className={s.muted}>too low</span>}
                 </span>
                 <span className={s.barTrack} style={{ position: 'relative' }}>
-                  <span className={s.barFill} style={{ width: `${Math.max(0, sc) * 100}%`, background: used ? 'var(--viz-2)' : 'var(--viz-1)' }} />
+                  <span className={s.barFill} style={{ width: `${Math.max(0, sc) * 100}%`, background: used ? 'var(--viz-pos)' : 'var(--viz-1)' }} />
                   <span
                     aria-hidden="true"
                     style={{ position: 'absolute', top: -2, bottom: -2, left: `${minScore * 100}%`, borderLeft: '2px dashed var(--ink)' }}
@@ -108,9 +109,11 @@ export default function AnswerAssembler() {
             <p style={{ margin: 0 }}>{answer}</p>
             <p className={s.note} style={{ margin: '0.6rem 0 0' }}>
               <code>top_documents</code> = [{top.map((i) => `d${i}`).join(', ')}].{' '}
-              {top.length
-                ? 'Every word of this answer is copied from a retrieved document, so it cannot invent facts. It is clumsy, but in a NumPy-only exam it is honest.'
-                : 'Nothing passed the filters, so the honest answer is that the documents do not say.'}
+              {!top.length
+                ? 'Nothing passed the filters, so the honest answer is that the documents do not say.'
+                : recognised < qTok.length
+                  ? `Warning: only ${recognised} of ${qTok.length} query words were recognised, so the copied text may be about something else. Copying avoids invented facts, but not wrong documents.`
+                  : 'Every word of this answer is copied from a retrieved document, so it cannot invent facts. It is clumsy, but in a NumPy-only exam it is honest.'}
             </p>
           </div>
         </div>

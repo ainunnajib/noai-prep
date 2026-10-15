@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Segmented, Slider, Button } from '../../../../../kit'
+import { fmtFloatColumn } from '../cleaning-data/data'
 import s from './gm.module.css'
 
 /*
@@ -37,7 +38,7 @@ const REGION: [string, string][] = [
 
 /* ---------------- a tiny vectorised expression evaluator ---------------- */
 type Val = number | number[]
-type Tok = { t: 'num'; v: number } | { t: 'col'; v: string } | { t: 'op'; v: string } | { t: 'meth'; v: string }
+type Tok = { t: 'num'; v: number; float: boolean } | { t: 'col'; v: string } | { t: 'op'; v: string } | { t: 'meth'; v: string }
 
 function tokenise(src: string): Tok[] {
   const out: Tok[] = []
@@ -62,7 +63,7 @@ function tokenise(src: string): Tok[] {
     }
     const num = /^\d+(\.\d+)?|^\.\d+/.exec(src.slice(i))
     if (num) {
-      out.push({ t: 'num', v: parseFloat(num[0]) })
+      out.push({ t: 'num', v: parseFloat(num[0]), float: num[0].includes('.') })
       i += num[0].length
       continue
     }
@@ -79,9 +80,7 @@ function tokenise(src: string): Tok[] {
     const id = /^[A-Za-z_]\w*/.exec(src.slice(i))
     if (id) {
       if (id[0] === 'df') throw new Error("write a column as df['price'], with quotes and square brackets")
-      out.push({ t: 'col', v: id[0] })
-      i += id[0].length
-      continue
+      throw new Error(`write df['${id[0]}'], not ${id[0]}: on its own, ${id[0]} is a Python variable name (a NameError), not a column`)
     }
     throw new Error(`I don't understand "${c}"`)
   }
@@ -95,9 +94,11 @@ const lift = (a: Val, b: Val, f: (x: number, y: number) => number): Val => {
   return aa.map((x: number, i: number) => f(x, bb[i]))
 }
 
-function evaluate(src: string): Val {
+/** Evaluate like pandas. `float` says whether the result is float64: true division, a decimal literal or .mean() makes it so. */
+function evaluate(src: string): { v: Val; float: boolean } {
   const toks = tokenise(src)
   let p = 0
+  let float = false
   const peek = () => toks[p]
   const isOp = (v: string) => peek()?.t === 'op' && peek()?.v === v
   const expr = (): Val => {
@@ -114,6 +115,7 @@ function evaluate(src: string): Val {
     while (isOp('*') || isOp('/')) {
       const op = (toks[p++] as { v: string }).v
       const r = unary()
+      if (op === '/') float = true
       v = lift(v, r, op === '*' ? (x, y) => x * y : (x, y) => x / y)
     }
     return v
@@ -129,7 +131,11 @@ function evaluate(src: string): Val {
     const base = postfix()
     if (isOp('**')) {
       p++
-      return lift(base, unary(), (x, y) => x ** y)
+      const e = unary()
+      // NumPy refuses whole numbers to a negative whole-number power
+      if (!float && (typeof e === 'number' ? e < 0 : e.some((x) => x < 0)))
+        throw new Error('integers to negative integer powers are not allowed in NumPy (a ValueError): write 1 / ... instead')
+      return lift(base, e, (x, y) => x ** y)
     }
     return base
   }
@@ -138,7 +144,10 @@ function evaluate(src: string): Val {
     while (peek()?.t === 'meth') {
       const m = (toks[p++] as { v: string }).v
       const arr = typeof v === 'number' ? [v] : v
-      if (m === 'mean') v = arr.reduce((a, b) => a + b, 0) / arr.length
+      if (m === 'mean') {
+        float = true
+        v = arr.reduce((a, b) => a + b, 0) / arr.length
+      }
       else if (m === 'sum') v = arr.reduce((a, b) => a + b, 0)
       else if (m === 'max') v = Math.max(...arr)
       else if (m === 'min') v = Math.min(...arr)
@@ -149,9 +158,12 @@ function evaluate(src: string): Val {
   const primary = (): Val => {
     const tk = toks[p++]
     if (!tk) throw new Error('the formula ends too early')
-    if (tk.t === 'num') return tk.v
+    if (tk.t === 'num') {
+      if (tk.float) float = true
+      return tk.v
+    }
     if (tk.t === 'col') {
-      if (tk.v === 'town') throw new Error("'town' holds text, so it can't go into arithmetic")
+      if (tk.v === 'town') throw new Error("'town' holds text, so this is not maths: * 2 would just repeat each word ('TampinesTampines') and / fails. Use area or price")
       if (!NUM_COLS.includes(tk.v as NumCol)) throw new Error(`there is no column called '${tk.v}' (try 'area' or 'price')`)
       return DF.map((r) => r[tk.v as NumCol])
     }
@@ -165,10 +177,16 @@ function evaluate(src: string): Val {
   }
   const v = expr()
   if (p < toks.length) throw new Error(`unexpected "${(toks[p] as { v: string | number }).v}"`)
-  return v
+  return { v, float }
 }
 
-const fmtNum = (v: number) => (!Number.isFinite(v) ? 'inf' : Number.isInteger(v) ? String(v) : v.toFixed(2))
+/** Print a column like pandas: int64 as whole numbers; float64 with one shared number of decimals, NaN, inf and -inf. */
+function fmtColumn(nums: number[], float: boolean): string[] {
+  const special = (x: number) => (Number.isNaN(x) ? 'NaN' : x > 0 ? 'inf' : '-inf')
+  if (!float) return nums.map((x) => (Number.isFinite(x) ? String(x) : special(x)))
+  const finite = fmtFloatColumn(nums.map((x) => (Number.isFinite(x) ? x : null)))
+  return nums.map((x, i) => (Number.isFinite(x) ? finite[i] : special(x)))
+}
 
 const PRESETS: [string, string][] = [
   ['psm', "df['price'] / df['area']"],
@@ -198,9 +216,10 @@ export default function ColumnBuilder() {
 
   const parsed = useMemo(() => {
     try {
-      return { v: evaluate(src), err: null as string | null }
+      const r = evaluate(src)
+      return { v: r.v, float: r.float, err: null as string | null }
     } catch (e) {
-      return { v: null, err: e instanceof Error ? e.message : String(e) }
+      return { v: null, float: false, err: e instanceof Error ? e.message : String(e) }
     }
   }, [src])
 
@@ -230,9 +249,8 @@ export default function ColumnBuilder() {
   if (mode === 'vec' && parsed.v != null) {
     const v = parsed.v
     const nums = DF.map((_, i) => (typeof v === 'number' ? v : v[i]))
-    // like pandas, a column is either all whole numbers or all decimals (5 shows as 5.00 next to 5.78)
-    const allInt = nums.every((x) => Number.isInteger(x))
-    newVals = nums.map((x) => (allInt ? fmtNum(x) : Number.isFinite(x) ? x.toFixed(2) : 'inf'))
+    // like pandas: price / area is float64 even when it divides exactly (520 / 10 shows 52.0), with shared decimals
+    newVals = fmtColumn(nums, parsed.float)
   } else if (mode === 'map') {
     const dict = new Map(REGION.filter((_, k) => mapOn[k]))
     newVals = DF.map((r) => dict.get(r.town) ?? 'NaN')
@@ -310,8 +328,10 @@ export default function ColumnBuilder() {
               df['
               <input
                 aria-label="new column name"
+                title="Type a new column name, or an existing one such as price"
+                placeholder="name"
                 className={s.nameInput}
-                style={{ width: `${Math.max(2, name.length) + 0.3}ch` }}
+                style={{ width: `${Math.max(4, name.length) + 0.6}ch` }}
                 value={name}
                 spellCheck={false}
                 onChange={(e) => setName(e.target.value.replace(/[^\w]/g, ''))}
@@ -334,6 +354,9 @@ export default function ColumnBuilder() {
                 {f}
               </button>
             ))}
+          </div>
+          <div className={s.dim} style={{ fontSize: '0.78rem', width: '100%' }}>
+            Both boxes are editable: rename the new column (try <code>price</code>) or type your own formula.
           </div>
           {parsed.err && <div className={s.error}>Can't compute that: {parsed.err}.</div>}
         </>
@@ -363,7 +386,7 @@ export default function ColumnBuilder() {
         </Controls>
       )}
 
-      <div className={s.code}>{code}</div>
+      {mode !== 'vec' && <div className={s.code}>{code}</div>}
 
       <div className={s.scroll}>
         <table className={s.tbl} style={{ maxWidth: 440, margin: '0 auto' }}>
@@ -439,7 +462,7 @@ export default function ColumnBuilder() {
       </div>
 
       <div className={s.timing} role="group" aria-label="Measured times on one million rows">
-        <div className={s.timingTitle}>Time on 1,000,000 rows (measured once; your computer will differ, the gap will not)</div>
+        <div className={s.timingTitle}>Time on 1,000,000 rows (measured once; your computer will differ, but vectorised code still wins by a wide margin)</div>
         {TIMINGS.map((t, i) => {
           const strong = (mode === 'apply' && t.mode === 'apply') || (mode !== 'apply' && t.mode === 'vec')
           const colour = t.mode === 'vec' ? 'var(--viz-3)' : t.mode === 'apply' ? 'var(--viz-2)' : 'var(--viz-neg)'

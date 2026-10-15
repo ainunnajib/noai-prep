@@ -85,8 +85,9 @@ export default function PixelAccuracyTrap() {
             max={1}
             format={(v) => v.toFixed(2)}
             data={[
-              { label: 'pixel accuracy', value: acc, color: 'var(--viz-muted)', strong: true },
-              { label: 'IoU background', value: iouBg, color: 'var(--viz-3)' },
+              // neutral stripes for accuracy (not a class); the background bar uses the background cells' colour
+              { label: 'pixel accuracy', value: acc, color: 'repeating-linear-gradient(135deg, var(--ink-3) 0 4px, color-mix(in srgb, var(--ink-3) 35%, transparent) 4px 7px)', strong: true },
+              { label: 'IoU background', value: iouBg, color: 'var(--viz-muted)' },
               { label: 'IoU object', value: iouObj, color: 'var(--viz-1)' },
               { label: 'mean IoU', value: miou, color: 'var(--viz-5)', strong: true },
               { label: 'Dice (object)', value: dice, color: 'var(--viz-2)' },

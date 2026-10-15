@@ -15,12 +15,12 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.distributions-and-clt.2',
     prompt: 'A fair six-sided die has expected value $E[X] = 3.5$. Which statement about this die is correct?',
     options: [
-      'The average of a very large number of rolls will be close to 3.5',
-      'After a run of high rolls, low rolls become more likely, pulling the average back to 3.5',
       'A roll of 3.5 is the single most likely outcome of one roll',
+      'After a run of high rolls, low rolls become more likely, pulling the average back to 3.5',
+      'The average of a very large number of rolls will be close to 3.5',
       'Any 10 rolls of the die always add up to exactly 35',
     ],
-    answer: 0,
+    answer: 2,
     explanation:
       'Expectation is a long-run average: by the law of large numbers, the average of many rolls settles near 3.5. The die has no memory, so a streak never makes low rolls more likely (the gambler\'s fallacy); the average settles because many ordinary rolls swamp the streak. 3.5 cannot be rolled at all, and 10 rolls only total about 35 on average, not exactly.',
     difficulty: 'beginner',
@@ -29,8 +29,8 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.distributions-and-clt.3',
     prompt:
       'Marks in a large exam are approximately normal with mean 70 and standard deviation 5. Roughly what percentage of candidates scored **below** 80?',
-    options: ['97.5%', '95%', '2.5%', '68%'],
-    answer: 0,
+    options: ['2.5%', '95%', '97.5%', '68%'],
+    answer: 2,
     explanation:
       'The z-score of 80 is $z = (80 - 70)/5 = 2$. About 95% lie within $\\pm 2\\sigma$, so 5% lie outside, 2.5% in each tail. Below $z = 2$ is therefore about $100\\% - 2.5\\% = 97.5\\%$. 95% is the share *within* two standard deviations, not below; 2.5% is the share *above* 80; 68% is the one-standard-deviation band.',
     difficulty: 'intermediate',
@@ -48,16 +48,16 @@ const questions: QuizQuestion[] = [
   {
     id: 'probability-and-statistics.distributions-and-clt.5',
     prompt:
-      'Waiting times at a hawker stall are right-skewed with mean 6 minutes and standard deviation 4 minutes. Each week you average the waits of 16 random visits, and you repeat this for many weeks. How are the weekly averages distributed?',
+      'Waiting times at a hawker stall are right-skewed with mean 6 minutes and standard deviation 6 minutes. Each month you average the waits of 36 random visits, and you repeat this for many months. How are the monthly averages distributed?',
     options: [
       'Approximately normal, with mean 6 min and standard deviation 1 min',
-      'Right-skewed like single waits, with mean 6 min and standard deviation 4 min',
-      'Approximately normal, with mean 6 min and standard deviation 4 min',
-      'Approximately normal, with mean 6 min and standard deviation 0.25 min',
+      'Right-skewed like single waits, with mean 6 min and standard deviation 6 min',
+      'Approximately normal, with mean 6 min and standard deviation 6 min',
+      'Approximately normal, with mean 6 min and standard deviation 1/6 min',
     ],
     answer: 0,
     explanation:
-      'By the Central Limit Theorem, sample means are approximately normal, centred on the population mean (6 min), with standard error $\\sigma/\\sqrt{n} = 4/\\sqrt{16} = 4/4 = 1$ min. Keeping $\\sigma = 4$ forgets that averaging shrinks the spread; 0.25 divides by $n = 16$ instead of $\\sqrt{n} = 4$. The single waits stay skewed, but their averages do not.',
+      'By the Central Limit Theorem, sample means are approximately normal, centred on the population mean (6 min), with standard error $\\sigma/\\sqrt{n} = 6/\\sqrt{36} = 6/6 = 1$ min. Keeping $\\sigma = 6$ forgets that averaging shrinks the spread; $1/6$ divides by $n = 36$ instead of $\\sqrt{n} = 6$. The single waits stay skewed, but averages of 36 are close to normal.',
     difficulty: 'intermediate',
   },
 ]

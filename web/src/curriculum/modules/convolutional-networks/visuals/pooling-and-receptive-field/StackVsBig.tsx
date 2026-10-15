@@ -15,7 +15,8 @@ export default function StackVsBig() {
   const [ci, setCi] = useState(3)
   const L = (view - 1) / 2 // number of 3×3 layers
   const sizes = Array.from({ length: L + 1 }, (_, l) => view - 2 * l) // input, layer 1, ..., layer L (=1)
-  const [sel, setSel] = useState<[number, number, number]>([1, 0, 0]) // [layer, row, col] in the stack
+  // [layer, row, col] in the stack; starts on the output neuron, which sees the whole patch
+  const [sel, setSel] = useState<[number, number, number]>([2, 0, 0])
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>(600)
   const C = CHANNELS[ci]
 
@@ -101,9 +102,8 @@ export default function StackVsBig() {
       title={`${L} stacked 3×3 convs versus one ${view}×${view} conv`}
       caption={
         <>
-          Top: a stack of 3×3 convs. <b>Click any neuron</b> (or press <b>Next neuron</b>) to light up the pixels it depends on: each first-layer neuron sees only 3×3,
-          but the output neuron sees the whole {view}×{view} patch, exactly like the single big kernel underneath. Then compare the weights: with <M>C</M> channels in and
-          out, the stack needs <M>{`${L} \\times 9C^2 = ${stackW8}C^2`}</M> against <M>{`${view * view}C^2`}</M>, and it gets {L} ReLUs instead of 1.
+          <b>Try:</b> click any neuron (or press <b>Next neuron</b>) to light up the pixels it depends on. <b>Notice:</b> the output neuron sees the whole{' '}
+          {view}×{view} patch, like the big kernel below, with <M>{`${stackW8}C^2`}</M> weights instead of <M>{`${view * view}C^2`}</M> and {L} ReLUs instead of 1.
         </>
       }
     >
@@ -132,7 +132,7 @@ export default function StackVsBig() {
           value={view}
           onChange={(v) => {
             setView(v)
-            setSel([1, 0, 0])
+            setSel([(v - 1) / 2, 0, 0])
           }}
           options={[
             { value: 5, label: '5×5' },

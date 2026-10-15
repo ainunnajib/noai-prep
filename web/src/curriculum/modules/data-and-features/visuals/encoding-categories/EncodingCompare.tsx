@@ -47,7 +47,13 @@ export default function EncodingCompare() {
     verdict = 'Every pair of different towns is exactly √2 apart. No town is “between” two others, and no order is invented.'
   else if (enc === 'integer')
     verdict = 'Here the order is real: a 4-room flat is bigger than a 3-room flat, which is bigger than a 2-room flat. Ordinal codes keep that information, and neighbouring sizes are closest.'
-  else verdict = 'One-hot treats a 2-room and a 5-room flat as just as different as a 4-room and a 5-room flat. It throws the real order away.'
+  else {
+    const a = (s: string) => (/^[aeiou]/i.test(s) ? 'an' : 'a')
+    const first = used[0]
+    const last = used[K - 1]
+    const prev = used[K - 2]
+    verdict = `One-hot treats ${a(first)} ${first} and ${a(last)} ${last} flat as just as different as ${a(prev)} ${prev} and ${a(last)} ${last} flat. It throws the real order away.`
+  }
 
   return (
     <Figure
@@ -83,7 +89,7 @@ export default function EncodingCompare() {
             { value: 'onehot', label: 'one-hot' },
           ]}
         />
-        <Button onClick={() => setK((x) => (x >= maxK ? 2 : x + 1))}>{K >= maxK ? 'Reset categories' : `+ add ${cats[K]}`}</Button>
+        <Button onClick={() => setK((x) => (x >= maxK ? 3 : x + 1))}>{K >= maxK ? 'Reset categories' : `+ add ${cats[K]}`}</Button>
       </Controls>
       <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', alignItems: 'start' }}>
         <div style={{ minWidth: 0 }}>

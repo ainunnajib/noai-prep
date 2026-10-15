@@ -5,14 +5,15 @@ import FeatureMapGallery from './visuals/convolution/FeatureMapGallery'
 export const convCode = `import numpy as np
 
 def conv2d(image, kernel):
-    """'Valid' convolution with stride 1 (no kernel flip, exactly like PyTorch)."""
+    """'Valid' conv, stride 1, no flip (like PyTorch)."""
     H, W = image.shape
     k = kernel.shape[0]
     out = np.zeros((H - k + 1, W - k + 1))
-    for i in range(H - k + 1):          # every row position
-        for j in range(W - k + 1):      # every column position
+    for i in range(H - k + 1):      # every row position
+        for j in range(W - k + 1):  # every column position
             patch = image[i:i + k, j:j + k]
-            out[i, j] = np.sum(patch * kernel)   # multiply element-wise, then add
+            # multiply element-wise, then add
+            out[i, j] = np.sum(patch * kernel)
     return out
 
 # dark on the left (0), bright on the right (1)
@@ -78,6 +79,7 @@ A convolution multiplies **matching positions** (element-wise) and adds everythi
   q="The patch $\begin{bmatrix} 1 & 2 & 0 \\ 0 & 1 & 3 \\ 2 & 0 & 1 \end{bmatrix}$ is multiplied by the kernel $\begin{bmatrix} 1 & 0 & -1 \\ 1 & 0 & -1 \\ 1 & 0 & -1 \end{bmatrix}$. What is the output?"
   options={['−1', '1', '3', '10']}
   answer={0}
+  id="convolutional-networks.convolution.qc1"
   explain="The middle column has weight 0. The left column has weight +1: $1 + 0 + 2 = 3$. The right column has weight −1: $-(0 + 3 + 1) = -4$. Total $3 - 4 = -1$. Getting 10 means adding all the pixels and ignoring the weights."
 />
 
@@ -91,6 +93,8 @@ Two things to notice:
 
 - The feature map is **smaller** than the image: a $3 \times 3$ kernel fits in only $8 - 3 + 1 = 6$ positions across, so $8 \times 8$ becomes $6 \times 6$. The next lesson shows how padding and stride control this size.
 - The vertical-edge kernel lights up along the two upright strokes of the 4 (orange on one side of a stroke, blue on the other) and is 0 on the flat black background.
+
+The readout names each output $y(i, j)$ with rows and columns counted from 0, exactly as in the formula and in Python.
 
 In a real CNN layer each output also gets a **bias** $b$ added, and then passes through an activation such as ReLU: $\text{output} = \text{ReLU}(y_{i,j} + b)$.
 
@@ -151,12 +155,13 @@ $$
 \text{conv}(\text{shift}(x)) = \text{shift}(\text{conv}(x))
 $$
 
-It follows directly from weight sharing: the same filter is applied at every position, so a pattern produces the same response wherever it is, just in a different place. (Strictly, this holds away from the image borders, where pixels fall off the edge.) Note the word: **equi**variant, the output moves with the input. It is not **in**variant, which would mean the output does not change at all. Pooling, in a later lesson, adds a little invariance.
+It follows directly from weight sharing: the same filter is applied at every position, so a pattern produces the same response wherever it is, just in a different place. (Strictly, this holds away from the image borders, where pixels fall off the edge, and for a stride-1 convolution; with the next lesson's stride 2 it holds only for shifts of an even number of pixels.) Note the word: **equi**variant, the output moves with the input. It is not **in**variant, which would mean the output does not change at all. Pooling, in a later lesson, adds a little invariance.
 
 <QuickCheck
   q="A picture is shifted 2 pixels to the right and fed through the same convolutional filter (stride 1). Ignoring the borders, what happens to the feature map?"
   options={['It shifts 2 pixels to the right, with the same values', 'It stays exactly the same', 'Its values change, because different weights now cover the object', 'It shifts 2 pixels to the left']}
   answer={0}
+  id="convolutional-networks.convolution.qc2"
   explain="The same kernel is used at every position (weight sharing), so the object produces exactly the same responses, just 2 pixels further right: translation equivariance. 'Stays the same' would be invariance, which convolution alone does not give. The weights cannot change, since every position uses the same ones."
 />
 
@@ -168,9 +173,11 @@ The edge, blur and sharpen kernels above were designed by people. In a CNN, nobo
 
 <PastPaperQuestion paper="prelim2026" n={187} />
 
+<PastPaperQuestion paper="prelim2026" n={186} />
+
 ### In code
 
-A convolution from scratch is two loops over positions and one `np.sum(patch * kernel)`. This kind of implement-from-scratch function is exactly what the Final's programming tasks ask for. Run it:
+A convolution from scratch is two loops over positions and one `np.sum(patch * kernel)`. Turning a formula into loops like this is the skill the Final's programming tasks reward. Run it:
 
 <PyRunner packages={['numpy']} code={convCode} />
 

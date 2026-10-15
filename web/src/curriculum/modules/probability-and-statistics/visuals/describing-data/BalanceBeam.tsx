@@ -16,6 +16,16 @@ const X_MAX = 22
 
 type Mode = 'auto' | 'manual'
 
+/** Pivot positions snap to quarter-minutes, and to the exact mean when within half a step of it,
+ *  so the beam can always be levelled (e.g. a mean of 36/7 = 5.142…). */
+const PIVOT_STEP = 0.25
+function snapPivot(x: number, m: number) {
+  const p = Math.max(0, Math.min(X_MAX, Math.round(x / PIVOT_STEP) * PIVOT_STEP))
+  return Math.abs(x - m) < PIVOT_STEP / 2 ? m : p
+}
+/** level when the pivot sits at the mean (allowing only floating-point error) */
+const isLevel = (p: number, m: number) => Math.abs(p - m) < 1e-9
+
 /** a weight the learner can drag along the beam (snaps to whole minutes; arrow keys move it by 1) */
 function Weight({ cx, cy, r, value, color, onMove, label }: { cx: number; cy: number; r: number; value: number; color: string; onMove: (v: number) => void; label: string }) {
   const { toData } = usePlot()
@@ -65,7 +75,7 @@ function Scene({ values, mode, pivot, setPivot, setValue, outlierIndex }: { valu
   const RULER = 18
   const beamY = height - margin.bottom - RULER - 26 - 24 // top surface of the beam, where the weights sit
   const torque = values.reduce((s, v) => s + (v - p), 0)
-  const angle = mode === 'auto' ? 0 : Math.max(-8, Math.min(8, torque * 0.8))
+  const angle = mode === 'auto' || isLevel(p, m) ? 0 : Math.max(-8, Math.min(8, torque * 0.8))
   const px = xs(p)
   const tipY = beamY + RULER
   const groundY = tipY + 26
@@ -124,6 +134,11 @@ function Scene({ values, mode, pivot, setPivot, setValue, outlierIndex }: { valu
         )}
       </g>
 
+      {/* what can be dragged in this mode */}
+      <text x={med > X_MAX * 0.6 ? xs(0) : xs(X_MAX)} y={margin.top + 14} textAnchor={med > X_MAX * 0.6 ? 'start' : 'end'} className="plot-label" style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 600 }}>
+        {mode === 'auto' ? '⇆ drag any weight' : 'weights fixed: ⇆ drag the triangle'}
+      </text>
+
       {/* pivot (fulcrum) */}
       <g
         className={mode === 'manual' ? 'plot-drag' : undefined}
@@ -133,8 +148,8 @@ function Scene({ values, mode, pivot, setPivot, setValue, outlierIndex }: { valu
         aria-valuenow={mode === 'manual' ? pivot : undefined}
         onKeyDown={(e) => {
           if (mode !== 'manual') return
-          if (e.key === 'ArrowLeft') setPivot(Math.max(0, pivot - 0.25))
-          else if (e.key === 'ArrowRight') setPivot(Math.min(X_MAX, pivot + 0.25))
+          if (e.key === 'ArrowLeft') setPivot(snapPivot(pivot - PIVOT_STEP, m))
+          else if (e.key === 'ArrowRight') setPivot(snapPivot(pivot + PIVOT_STEP, m))
           else return
           e.preventDefault()
         }}
@@ -146,7 +161,7 @@ function Scene({ values, mode, pivot, setPivot, setValue, outlierIndex }: { valu
         onPointerMove={(e) => {
           if (!pivotDrag.current) return
           const x = toData(e.clientX, e.clientY)[0]
-          setPivot(Math.max(0, Math.min(X_MAX, Math.round(x * 4) / 4)))
+          setPivot(snapPivot(x, m))
         }}
         onPointerUp={(e) => {
           pivotDrag.current = false
@@ -175,7 +190,7 @@ export default function BalanceBeam() {
   const p = mode === 'auto' ? m : pivot
   const left = values.filter((v) => v < p).reduce((s, v) => s + (p - v), 0)
   const right = values.filter((v) => v > p).reduce((s, v) => s + (v - p), 0)
-  const balanced = Math.abs(left - right) < 0.75
+  const balanced = isLevel(p, m)
   const setValue = (i: number, v: number) => setValues((vs) => vs.map((x, j) => (j === i ? v : x)))
 
   return (
@@ -185,8 +200,8 @@ export default function BalanceBeam() {
         <>
           Seven friends' waiting times for a bus, as equal weights on a beam. Drag any weight, then press <b>Add an outlier</b> (one friend's bus broke down:{' '}
           {OUTLIER} minutes). Notice that the orange pivot (the mean) slides a long way towards the outlier, while the green median line hardly moves. Then switch
-          to <b>You place the pivot</b> and drag the triangle: the beam only levels out when the pivot reaches the mean, where the total distance on the left equals
-          the total distance on the right.
+          to <b>you place the pivot</b> (the weights stay fixed) and drag the triangle: the beam only levels out when the pivot reaches the mean, where the total
+          distance on the left equals the total distance on the right.
         </>
       }
     >
@@ -199,11 +214,11 @@ export default function BalanceBeam() {
           value={mode}
           onChange={(v) => {
             setMode(v)
-            if (v === 'manual') setPivot(Math.min(X_MAX - 1, Math.round(m) + 5))
+            if (v === 'manual') setPivot(snapPivot(Math.min(X_MAX - 1, Math.round(m) + 5), m))
           }}
           options={[
             { value: 'auto', label: 'sits at the mean' },
-            { value: 'manual', label: 'you place it' },
+            { value: 'manual', label: 'you place the pivot' },
           ]}
         />
         <Button primary onClick={() => setValues((vs) => (hasOutlier ? vs.slice(0, START.length) : [...vs, OUTLIER]))}>

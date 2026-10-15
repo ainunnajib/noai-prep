@@ -14,7 +14,7 @@ const MARKS = [
   [7, 9, 8, 4],
 ]
 const STUDENTS = ['Aisyah', 'Bala', 'Chloe']
-const SUBJECTS = ['Math', 'Sci', 'Eng', 'MT']
+const SUBJECTS = ['Maths', 'Sci', 'Eng', 'MT']
 const R = 3
 const C = 4
 
@@ -153,7 +153,7 @@ export default function AxisCollapse() {
         <>
           A mark sheet with 3 students (rows, axis 0) and 4 subjects (columns, axis 1). Pick an axis and an operation; the copies of the cells fly into
           the result. <code>axis=0</code> squashes the 3 rows together, so one value per <b>column</b> is left; <code>axis=1</code> squashes the 4 columns,
-          leaving one value per <b>row</b>. Hover a result to see its group, and try <code>argmax</code>: it returns a <em>position</em>, not a mark.
+          leaving one value per <b>row</b>. Tap (or hover over) a result to see its group, and try <code>argmax</code>: it returns a <em>position</em>, not a mark.
         </>
       }
     >
@@ -223,6 +223,7 @@ export default function AxisCollapse() {
               <button
                 key={`r${k}`}
                 type="button"
+                onClick={() => setHover(k)}
                 onMouseEnter={() => setHover(k)}
                 onMouseLeave={() => setHover(null)}
                 onFocus={() => setHover(k)}
@@ -233,7 +234,7 @@ export default function AxisCollapse() {
                   position: 'absolute',
                   left: x,
                   top: y,
-                  cursor: 'default',
+                  cursor: 'pointer',
                   ...mono,
                   fontSize: '0.92rem',
                   opacity: showResult ? 1 : 0,

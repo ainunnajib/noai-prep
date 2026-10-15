@@ -109,3 +109,18 @@ export function elemStr(x: number, isFloat: boolean): string {
 }
 
 export const shapeStr = (shape: number[]) => (shape.length === 1 ? `(${shape[0]},)` : `(${shape.join(', ')})`)
+
+/**
+ * How many characters of the visuals' 0.85rem monospace output fit on one line of a box `px` wide
+ * (0.75rem padding each side, about 8.6 px per character). Passed to npPrint as its line width, this
+ * makes NumPy's own wrapping (as with np.set_printoptions(linewidth=...)) keep a printout inside a
+ * phone-width box instead of scrolling; on wider screens it stays at NumPy's default of 75.
+ */
+export const charsThatFit = (px: number) => Math.max(24, Math.min(75, Math.floor((px - 26) / 8.6)))
+
+/** Break a one-line call such as `a = np.array([[1, 2], [3, 4]])` after its first `(` when it is too long. */
+export function wrapCall(line: string, maxChars: number): string {
+  const i = line.indexOf('(')
+  if (line.length <= maxChars || i < 0) return line
+  return `${line.slice(0, i + 1)}\n    ${line.slice(i + 1)}`
+}

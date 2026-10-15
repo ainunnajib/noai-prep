@@ -138,7 +138,7 @@ export default function WhatFitDoes() {
       <MBlock>
         {`\\begin{aligned}
 \\text{price} &= ${w.toFixed(2)} \\times \\text{area} ${b < 0 ? '-' : '+'} ${Math.abs(b).toFixed(1)} \\\\
-\\text{MSE} &= \\tfrac{1}{6}\\big(${narrow ? '\\dots' : residuals.slice(0, 3).map((r) => `${sq(r)}^2`).join(' + ') + ' + \\dots'}\\big) = ${loss.toFixed(1)}
+\\text{MSE} &= \\tfrac{1}{6}\\big(${residuals.slice(0, narrow ? 2 : 3).map((r) => `${sq(r)}^2`).join(' + ')} + \\dots\\big) ${narrow ? '\\\\ &' : ''}= ${loss.toFixed(1)}
 \\end{aligned}`}
       </MBlock>
       <Controls>

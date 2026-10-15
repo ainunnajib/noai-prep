@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Button, Plot, Grid, Axes, Arrow, Label, useNarrow, mulberry32, shuffled } from '../../../../../kit'
-import { type M2, I2, col, fmtV, ColMat, FShape, WarpedGrid, Clip } from './la'
+import { Figure, Controls, Button, Plot, Grid, Axes, Arrow, useNarrow, mulberry32, shuffled } from '../../../../../kit'
+import { type M2, col, fmtV, mul, ColMat, FShape, WarpedGrid, Clip, TipLabel } from './la'
 import s from './lt.module.css'
 
 /*
@@ -150,6 +150,12 @@ const ROUNDS: Round[] = [
   },
 ]
 
+// the F is drawn at 3/4 size so that even the sheared and stretched copies fit inside the plot
+const F_SIZE: M2 = [
+  [0.75, 0],
+  [0, 0.75],
+]
+
 export default function MatrixMatch() {
   const [round, setRound] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
@@ -168,8 +174,13 @@ export default function MatrixMatch() {
     setAnswered((a) => a + 1)
     if (i === correctIdx) setScore((v) => v + 1)
   }
+  const finished = revealed && round === ROUNDS.length - 1
   const next = () => {
-    setRound((r) => (r + 1) % ROUNDS.length)
+    if (finished) {
+      setRound(0)
+      setScore(0)
+      setAnswered(0)
+    } else setRound((r) => r + 1)
     setPicked(null)
   }
   const c1 = col(R.m, 0)
@@ -208,27 +219,14 @@ export default function MatrixMatch() {
           <Axes origin xTicks={5} yTicks={5} />
           <Clip>
             <WarpedGrid m={R.m} />
-            <FShape m={I2} color="var(--viz-muted)" width={3.5} dash="4 5" />
-            <FShape m={R.m} width={5.5} />
+            <FShape m={F_SIZE} color="var(--viz-muted)" width={3.5} dash="4 5" />
+            <FShape m={mul(R.m, F_SIZE)} width={5.5} />
             <Arrow from={[0, 0]} to={c1} color="var(--viz-1)" width={3.5} head={10} />
             <Arrow from={[0, 0]} to={c2} color="var(--viz-2)" width={3.5} head={10} />
             {revealed && (
               <>
-                <Label x={c1[0]} y={c1[1]} dx={c1[0] < -0.1 ? -8 : 8} dy={c1[1] < -0.1 ? 16 : -8} anchor={c1[0] < -0.1 ? 'end' : 'start'} color="var(--viz-1)">
-                  {`col 1 ${fmtV(c1)}`}
-                </Label>
-                {Math.hypot(c2[0], c2[1]) > 1e-6 && (
-                  <Label
-                    x={c2[0]}
-                    y={c2[1]}
-                    dx={c2[0] < -0.1 ? -8 : 8}
-                    dy={c2[1] < -0.1 ? 16 : -8}
-                    anchor={c2[0] < -0.1 ? 'end' : 'start'}
-                    color="var(--viz-2)"
-                  >
-                    {`col 2 ${fmtV(c2)}`}
-                  </Label>
-                )}
+                <TipLabel tip={c1} away={c2} text={`col 1 ${fmtV(c1)}`} color="var(--viz-1)" />
+                {Math.hypot(c2[0], c2[1]) > 1e-6 && <TipLabel tip={c2} away={c1} text={`col 2 ${fmtV(c2)}`} color="var(--viz-2)" />}
               </>
             )}
           </Clip>
@@ -262,10 +260,18 @@ export default function MatrixMatch() {
             <b>{picked === correctIdx ? 'Yes!' : 'Not quite.'}</b> It is a <b>{R.name}</b>. {R.why}
           </div>
         )}
+        {finished && (
+          <div className={s.feedback} aria-live="polite">
+            <b>
+              That was the last picture: you named {score} of {ROUNDS.length} correctly.
+            </b>{' '}
+            {score === ROUNDS.length ? 'Every one right: you can read a matrix from its columns.' : 'Press Play again to have another go.'}
+          </div>
+        )}
       </div>
       <Controls>
         <Button primary onClick={next} disabled={!revealed}>
-          Next picture
+          {finished ? 'Play again' : 'Next picture'}
         </Button>
         <span className={s.muted} style={{ fontSize: 'var(--step--1)' }}>
           Score: {score} / {answered}

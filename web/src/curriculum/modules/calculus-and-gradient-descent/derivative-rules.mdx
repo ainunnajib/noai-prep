@@ -4,11 +4,11 @@ import ProductRuleRectangle from './visuals/derivative-rules/ProductRuleRectangl
 import SigmoidDerivation from './visuals/derivative-rules/SigmoidDerivation'
 import ActivationSlopes from './visuals/derivative-rules/ActivationSlopes'
 
-In the last lesson you found the derivative of $x^2$ the slow way: secants, a limit and some algebra. In the Prelim you have about 36 seconds per question, so nobody does that. Instead, a handful of **rules** give the answer in one line. This lesson covers every rule NOAI expects, including the two that appear in almost every neural network: the derivatives of the **sigmoid** and of **ReLU**.
+In the last lesson you found the derivative of $x^2$ the slow way, with secants and a limit. With about 36 seconds per Prelim question, nobody does that: a handful of **rules** give the answer in one line. This lesson covers every rule NOAI expects, including the two in almost every neural network: the derivatives of the **sigmoid** and of **ReLU**.
 
 <Analogy title="Times tables for slopes">
 
-You do not work out $7 \times 8$ by adding seven eights each time; you just know it is 56. Derivative rules work the same way. Each rule is a pattern that the zoom-in method always produces, so once you know the pattern you never need the limit again.
+You do not work out $7 \times 8$ by adding seven eights; you just know it is 56. Each derivative rule is a pattern that the zoom-in method always produces, so once you know the pattern you never need the limit again.
 
 </Analogy>
 
@@ -57,9 +57,10 @@ Three helper rules let you differentiate any polynomial term by term:
 </Steps>
 
 <QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc1"
   q="What is the derivative of $f(x) = 4x^3 - 6x + 9$?"
-  options={['$12x^2 - 6$', '$12x^2 - 6 + 9$', '$12x^3 - 6x$', '$x^4 - 3x^2 + 9x$']}
-  answer={0}
+  options={['$12x^2 - 6 + 9$', '$12x^2 - 6$', '$12x^3 - 6x$', '$x^4 - 3x^2 + 9x$']}
+  answer={1}
   explain="Term by term: $4 \times 3x^2 = 12x^2$, then $-6x$ gives $-6$, and the constant $9$ gives $0$. Keeping the $+9$ forgets that constants vanish, $12x^3$ forgets to lower the power, and $x^4 - 3x^2 + 9x$ goes the wrong way (that is integrating, not differentiating)."
 />
 
@@ -67,8 +68,8 @@ Three helper rules let you differentiate any polynomial term by term:
 
 The derivative $f'(x)$ is itself a function, so you can differentiate it again. The result is the <Term def="The derivative of the derivative. It tells you how fast the slope is changing, which is how sharply the graph bends.">second derivative</Term>, written $f''(x)$ or $\frac{d^2y}{dx^2}$. It measures how fast the **slope** changes, which is how sharply the curve bends:
 
-- $f''(x) > 0$: the slope is increasing, so the curve bends **upwards**, like a bowl.
-- $f''(x) < 0$: the slope is decreasing, so the curve bends **downwards**, like a dome.
+- $f''(x) > 0$: the slope is increasing, so the curve bends **upwards**, like a bowl ($\cup$).
+- $f''(x) < 0$: the slope is decreasing, so the curve bends **downwards**, like a cap ($\cap$).
 
 For $f(x) = x^3$: $f'(x) = 3x^2$ and then $f''(x) = 3 \times 2x = 6x$. For a loss, a bowl shape ($L'' > 0$) at a point where $L' = 0$ means a minimum. The curvature lesson at the end of this module builds on this.
 
@@ -106,13 +107,13 @@ The power rule needs the **power** to be a fixed number, as in $x^3$. In $e^x$ t
 
 ## $\ln x$: slope $1/x$
 
-The natural log $\ln x$ undoes $e^x$: its graph is the graph of $e^x$ reflected in the line $y = x$, which swaps every rise with its run. On $e^x$, at height $x$ the slope is $x$ (height equals slope). Swapping rise and run turns a slope of $x$ into $\frac{1}{x}$, so
+The natural log $\ln x$ undoes $e^x$: its graph is $e^x$ reflected in the line $y = x$, which swaps every rise with its run. On $e^x$ the point $(2,\ 7.39)$ has slope $7.39$ (slope equals height). Reflected, it becomes $(7.39,\ 2)$ on $\ln x$, with slope $\frac{1}{7.39}$. The same happens at every point: at input $x$, the slope of $\ln x$ is one over $x$,
 
 $$
 \frac{d}{dx} \ln x = \frac{1}{x} \qquad (x > 0).
 $$
 
-Switch the visual above to **ln x** to see it. This rule is behind the logs in cross-entropy: the loss $-\ln p$ for a correct class with predicted probability $p$ has slope $-\frac{1}{p}$. If the model gives the right answer only $p = 0.1$, the slope is $-10$, a strong push to raise $p$; at $p = 0.9$ it is only about $-1.1$.
+Switch the visual above to **ln x** to see it. This rule is behind the logs in <Term def="A loss for classification: −ln p, where p is the probability the model gave to the correct class. You will meet it properly in the classification module.">cross-entropy</Term>: the loss $-\ln p$ has slope $-\frac{1}{p}$. If the model gives the correct class a probability of only $p = 0.1$, the slope is $-10$, a strong push to raise $p$; at $p = 0.9$ it is only about $-1.1$.
 
 ## Products and quotients
 
@@ -144,9 +145,10 @@ The order matters because of the minus sign: say "bottom times derivative of top
 </Steps>
 
 <QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc2"
   q="What is the derivative of $x \ln x$ (for $x > 0$)?"
-  options={['$\\ln x + 1$', '$\\dfrac{1}{x}$', '$\\ln x$', '$x + \\dfrac{1}{x}$']}
-  answer={0}
+  options={['$\\dfrac{1}{x}$', '$\\ln x$', '$\\ln x + 1$', '$x + \\dfrac{1}{x}$']}
+  answer={2}
   explain="Product rule with $u = x$ ($u' = 1$) and $v = \ln x$ ($v' = \frac{1}{x}$): $1 \cdot \ln x + x \cdot \frac{1}{x} = \ln x + 1$. Multiplying the two derivatives, $1 \times \frac{1}{x}$, is the classic wrong move."
 />
 
@@ -173,9 +175,10 @@ The slope of the sigmoid is "output times one minus output". A network has alrea
 Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \tanh^2(x)$. That peaks at $1$ at $x = 0$: four times the sigmoid's best. Remember the number **0.25**: the next lesson shows how multiplying many such slopes together makes deep sigmoid networks stop learning.
 
 <QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc3"
   q="A sigmoid neuron outputs $\sigma(z) = 0.9$. What is the slope $\sigma'(z)$ at that input?"
-  options={['0.09', '0.9', '0.25', '0.81']}
-  answer={0}
+  options={['0.9', '0.25', '0.81', '0.09']}
+  answer={3}
   explain="$\sigma'(z) = \sigma(z)(1 - \sigma(z)) = 0.9 \times 0.1 = 0.09$. 0.9 confuses the sigmoid with $e^x$ (whose slope equals its height), 0.25 is the maximum slope, reached only when the output is 0.5, and 0.81 is $0.9^2$."
 />
 
@@ -183,12 +186,12 @@ Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \
 
 ## Corners: ReLU and $|x|$
 
-Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zooming in never makes it look straight, so there is no single tangent there.">kink</Term>. Zoom in on a kink as far as you like and it never turns into a straight line, because the slopes on the two sides disagree. At a kink the derivative is **undefined**.
+Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zooming in never makes it look straight, so there is no single tangent there.">kink</Term>. Zoom in as far as you like and it never looks straight, because the slopes on the two sides disagree, so the derivative there is **undefined**.
 
 - **ReLU**, $\text{ReLU}(x) = \max(0, x)$: slope $0$ for $x < 0$ (flat), slope $1$ for $x > 0$, and a kink at $x = 0$. Switch the visual above to ReLU: its slope is a step from 0 to 1.
 - **Absolute value** $|x|$: slope $-1$ on the left and $+1$ on the right, so its derivative is the <Term def="sign(x) is −1 for negative x, +1 for positive x, and 0 at x = 0.">sign</Term> of $x$, written $\text{sign}(x)$.
 
-Training code still needs *some* number at exactly 0, so frameworks simply pick one. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph. Such a value is called a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0:
+Training code still needs *some* number at exactly 0, so frameworks pick one. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; such a slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0:
 
 ```python
 import torch
@@ -207,7 +210,13 @@ tensor([0., 0., 1.])
 tensor([-1.,  0.,  1.])
 ```
 
-This appeared in the 2026 Final. Gradient boosting (a method you will meet later) trains each new tree on the **negative gradient** of the loss with respect to the current prediction $F$, and a question asked what changes when the loss becomes the absolute error $|y - F|$. Its slope with respect to $F$ is $-\text{sign}(y - F)$, so the negative gradient is $\text{sign}(y - F)$: just $+1$ or $-1$ for each sample, and $0$ when the prediction is exact.
+<PastPaperQuestion paper="prelim2026" n={36} />
+
+<Note title="Seen in the 2026 Final">
+
+If a prediction $F$ is scored by the absolute error $|y - F|$, its slope with respect to $F$ is $-1$ when $F$ is too small and $+1$ when $F$ is too big (and undefined at the corner $F = y$). So the direction that lowers the loss is just the sign of $y - F$: $+1$ (raise $F$) or $-1$ (lower $F$), however big the error is.
+
+</Note>
 
 ## Check any rule with code
 
@@ -261,10 +270,9 @@ Traps to expect: answers that apply the power rule to $e^x$, that keep a constan
 
 <Takeaways>
 
-- Power rule: $x^n \to n x^{n-1}$. Constants vanish, multiples stay, sums split. Differentiate twice for $f''$, which measures bending.
-- $e^x$ is its own derivative (slope = height); $e^{-x} \to -e^{-x}$; $\ln x \to \frac{1}{x}$.
-- Product rule $(uv)' = u'v + uv'$; quotient rule $(u/v)' = \frac{u'v - uv'}{v^2}$.
-- $\sigma'(x) = \sigma(x)(1 - \sigma(x)) \le 0.25$, and it is nearly 0 when the sigmoid saturates.
-- ReLU has slope 0 or 1 with a kink at 0; $|x|$ has slope $\text{sign}(x)$; code picks 0 at the kink.
+- Learn the cheat sheet above cold: it answers most NOAI calculus questions in seconds.
+- Power rule $x^n \to n x^{n-1}$; constants vanish, multiples stay, sums split. Differentiating twice gives $f''$, which measures bending.
+- $e^x$ is its own slope and $\ln x$ has slope $\frac{1}{x}$; products and fractions need the product and quotient rules, not $u'v'$.
+- $\sigma'(x) = \sigma(x)(1 - \sigma(x)) \le 0.25$ (nearly 0 when saturated); ReLU has slope 0 or 1 with a kink at 0, where code uses 0.
 
 </Takeaways>

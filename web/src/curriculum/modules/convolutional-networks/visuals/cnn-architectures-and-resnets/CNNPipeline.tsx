@@ -113,10 +113,8 @@ export default function CNNPipeline() {
       title="Follow the shapes through a small CNN"
       caption={
         <>
-          A 32 × 32 colour photo flows left to right. Each card shows the tensor shape <M>{'(C, H, W)'}</M>; the small heat maps are 4 of each layer's feature maps,
-          computed live from hand-made filters (a trained network learns its own). <b>Click a conv card</b> and change its kernel, padding, stride or channels: every
-          shape after it updates, and the linear layer, whose input size was typed into the code, breaks with PyTorch's real error until you fix it. Then try{' '}
-          <b>global average pooling</b>: the classifier stops caring about height and width (but still cares about channels).
+          <b>Try:</b> click a conv card and change its kernel, padding, stride or channels, then switch the head to global average pooling. <b>Notice:</b> every
+          later shape updates, and the linear layer breaks with PyTorch's real error until its input size matches.
         </>
       }
     >
@@ -137,10 +135,10 @@ export default function CNNPipeline() {
           <Card title="⑤ max-pool 2×2" shape={shape(c2.c, h2p)} sub="0 params" error={!!h2 && !h2p}>
             <Maps t={p2} names={L2_NAMES} size={mapPx} />
           </Card>
-          <Card title={head === 'flatten' ? '⑥ flatten' : '⑥ global avg pool'} shape={broken ? '—' : `(${nf(feats)})`} sub={head === 'flatten' ? `${c2.c} × ${h2p} × ${h2p} numbers in a row` : `one mean per channel`}>
+          <Card title={head === 'flatten' ? '⑥ flatten' : '⑥ global avg pool'} shape={broken ? '—' : `(${feats})`} sub={head === 'flatten' ? `${c2.c} × ${h2p} × ${h2p} numbers in a row` : `one mean per channel`}>
             <div aria-hidden="true" style={{ width: '90%', height: 10, borderRadius: 3, background: 'repeating-linear-gradient(90deg, color-mix(in srgb, var(--viz-1) 45%, var(--surface)) 0 3px, var(--surface-2) 3px 5px)', opacity: head === 'flatten' ? 1 : 0.35 }} />
           </Card>
-          <Card title="⑦ linear → 10" shape={`Linear(${nf(expected)}, 10)`} sub={`${nf(paramsFc)} params`} error={mismatch}>
+          <Card title="⑦ linear → 10" shape={`Linear(${expected}, 10)`} sub={`${nf(paramsFc)} params`} error={mismatch}>
             {mismatch && <span style={{ fontSize: 11.5, color: 'var(--ink)' }}>gets {nf(feats)} numbers</span>}
           </Card>
           <Card title="⑧ softmax" shape="(10)" sub={mismatch || broken ? 'no output' : 'illustrative, after training'}>

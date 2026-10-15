@@ -14,11 +14,12 @@ const CORPORA = {
     name: 'Hawker guide',
     query: 'where is the laksa',
     docs: [
-      'Chicken rice is steamed chicken with fragrant rice and chilli sauce.',
-      'Laksa is a spicy noodle soup with coconut milk and prawns.',
-      'Char kway teow is fried flat noodles with egg and cockles.',
-      'The hawker centre near the MRT station opens early in the morning.',
-      'Teh tarik is sweet milk tea, pulled to make it frothy.',
+      // "the" is in every document, so its IDF is ln(6/6) = 0, as in the lesson
+      'The chicken rice is steamed chicken with fragrant rice and chilli sauce.',
+      'The laksa is a spicy noodle soup with coconut milk and prawns.',
+      'The char kway teow is fried flat noodles with egg and cockles.',
+      'The hawker centre near the MRT station is the busiest in the morning.',
+      'The teh tarik is sweet milk tea, pulled to make it frothy.',
       'Most stalls at the hawker centre close late at night.',
     ],
   },
@@ -106,8 +107,8 @@ export default function CosineSearch() {
         <>
           Type a question. The query is turned into a vector exactly like the documents, and each bar is the cosine similarity between the query and
           a document; the top <i>k</i> are retrieved. Start with <b>where is the laksa</b> and switch between raw counts and TF-IDF: with raw counts the
-          MRT document wins because it contains “the” three times, while TF-IDF gives the rare word “laksa” (in only one document) the largest weight and
-          shrinks the common “is”, so the laksa document comes first. Then try removing stop words. Switch to the NOAI 2025 Final documents to see the retrieval half of that 40-mark task.
+          MRT document wins because it contains “the” four times. TF-IDF gives “the” (in all 6 documents) an IDF of exactly 0, shrinks “is” (in 5 of
+          them) and gives the rare word “laksa” (in only one) the largest weight, so the laksa document comes first. Then try removing stop words. Switch to the NOAI 2025 Final documents to see the retrieval half of that 40-mark task.
         </>
       }
     >

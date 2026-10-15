@@ -23,7 +23,7 @@ export default function ProductRuleRectangle() {
   const corner = du * dv
   const total = right + top + corner
 
-  const X: [number, number] = [-0.15, 4.65]
+  const X: [number, number] = [-0.15, 4.85] // room on the right for the Δv mark at the largest Δt
   const Y: [number, number] = [-0.55, 2.85]
   // keep 1 unit the same length on both axes
   const W = 440
@@ -39,14 +39,14 @@ export default function ProductRuleRectangle() {
       title="The product rule: a rectangle with growing sides"
       caption={
         <>
-          The rectangle has sides <i>u</i> = 3 and <i>v</i> = 2. Over a short time Δ<i>t</i>, <i>u</i> grows at rate <i>u</i>′ = 1 and <i>v</i> at rate{' '}
-          <i>v</i>′ = 0.5. Slide Δ<i>t</i> towards 0. The two strips shrink in proportion to Δ<i>t</i>, but the pink corner shrinks much faster (it is
+          The rectangle has sides <i>u</i> = 3 and <i>v</i> = 2. Over a short time Δ<i>t</i>, <i>u</i> grows by Δ<i>u</i> = <i>u</i>′Δ<i>t</i> (rate{' '}
+          <i>u</i>′ = 1) and <i>v</i> by Δ<i>v</i> = <i>v</i>′Δ<i>t</i> (rate <i>v</i>′ = 0.5). The numbers in the strips are their areas. Slide Δ<i>t</i> towards 0. The two strips shrink in proportion to Δ<i>t</i>, but the pink corner shrinks much faster (it is
           Δ<i>t</i> × Δ<i>t</i>). So in the rate of growth, area added ÷ Δ<i>t</i>, the corner disappears and only <i>u</i>′<i>v</i> + <i>uv</i>′ = 3.5
           is left.
         </>
       }
     >
-      <div style={{ width: '100%' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
         <Plot x={X} y={Y} width={W} height={H} maxWidth={470} margin={{ left: 11, right: 11, top: 11, bottom: 11 }} ariaLabel="A rectangle whose sides grow, with the added area split into two strips and a corner">
           <Rect x0={0} x1={U0} y0={0} y1={V0} fill="var(--surface-3)" stroke="var(--viz-axis)" />
           <Rect x0={U0} x1={U0 + du} y0={0} y1={V0} fill={tint(cRight)} stroke={cRight} />
@@ -63,14 +63,48 @@ export default function ProductRuleRectangle() {
           <Label x={0.1} y={0.22} dy={4} color="var(--ink-2)" size={12}>
             v = 2
           </Label>
-          {du > 0.55 && (
-            <Label x={U0 + du / 2} y={V0 / 2} anchor="middle" dy={5} color={cRight} weight={700}>
-              {`${ft(right, 2)}`}
-            </Label>
+          {/* the two growth widths, Δu (right strip) and Δv (top strip) */}
+          {du > 0.25 && (
+            <>
+              <Path points={[[U0, -0.2], [U0 + du, -0.2]]} color={cRight} width={2.4} />
+              <Label x={U0 + du / 2} y={-0.2} dy={15} anchor="middle" color={cRight} size={12} weight={700}>
+                Δu
+              </Label>
+            </>
+          )}
+          {dv > 0.12 && (
+            <>
+              <Path points={[[U0 + du + 0.08, V0], [U0 + du + 0.08, V0 + dv]]} color={cTop} width={2.4} />
+              <Label x={U0 + du + 0.08} y={V0 + dv / 2} dx={5} dy={4} color={cTop} size={12} weight={700}>
+                Δv
+              </Label>
+            </>
+          )}
+          {/* strip areas: u′Δt·v on the right, u·v′Δt on top */}
+          {du > 0.7 ? (
+            <>
+              <Label x={U0 + du / 2} y={V0 / 2} anchor="middle" dy={-4} color={cRight} size={12} weight={700}>
+                Δu·v
+              </Label>
+              <Label x={U0 + du / 2} y={V0 / 2} anchor="middle" dy={12} color={cRight} size={12} weight={700}>
+                {`= ${ft(right, 2)}`}
+              </Label>
+            </>
+          ) : (
+            du > 0.4 && (
+              <Label x={U0 + du / 2} y={V0 / 2} anchor="middle" dy={5} color={cRight} size={12} weight={700}>
+                {ft(right, 2)}
+              </Label>
+            )
           )}
           {dv > 0.22 && (
-            <Label x={U0 / 2} y={V0 + dv / 2} anchor="middle" dy={5} color={cTop} weight={700}>
-              {`${ft(top, 2)}`}
+            <Label x={U0 / 2} y={V0 + dv / 2} anchor="middle" dy={5} color={cTop} size={12} weight={700}>
+              {`area u·Δv = ${ft(top, 2)}`}
+            </Label>
+          )}
+          {dt > 0.7 && (
+            <Label x={U0 + du / 2} y={V0 + dv / 2} anchor="middle" dy={4} color={cCorner} size={11} weight={700}>
+              Δu·Δv
             </Label>
           )}
         </Plot>

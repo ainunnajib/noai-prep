@@ -100,13 +100,18 @@ export default function SlidingWindowFeatures() {
             </>
           )}
           {showMean && <Dots points={[{ x: tt, y: cur.mean, r: 5.5, color: 'var(--viz-1)' }]} />}
+          {tt > N * 0.7 && (
+            <Label x={tt} y={0.25} dx={-14} dy={4} anchor="end" color="var(--viz-2)" size={12}>
+              drag window
+            </Label>
+          )}
           <DraggablePoint
             x={tt}
             y={0.25}
             lockY
             color="var(--viz-2)"
             r={8}
-            label="drag window"
+            label={tt > N * 0.7 ? undefined : 'drag window'}
             onChange={(nx) => setT((p) => {
               let r = Math.round(nx)
               if (r === p && Math.abs(nx - p) > 0.6) r = p + Math.sign(nx - p)

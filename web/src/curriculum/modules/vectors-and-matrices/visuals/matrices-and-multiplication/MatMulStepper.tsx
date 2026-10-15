@@ -24,7 +24,7 @@ const DISHES = ['rice', 'laksa', 'kopi']
 const EXAMPLES: Record<Ex, { A: Named; B: Named }> = {
   hawker: {
     A: { name: 'A (orders)', M: [[0, 1, 2], [2, 1, 1]], rows: ['Aisha', 'Ben'], cols: DISHES },
-    B: { name: 'B (per dish)', M: [[4, 6], [5, 6], [2, 1]], rows: DISHES, cols: ['$', 'kcal'] },
+    B: { name: 'B (per dish)', M: [[4, 600], [5, 600], [2, 100]], rows: DISHES, cols: ['$', 'kcal'] },
   },
   numbers: {
     A: { name: 'A', M: [[1, 2], [3, 4]] },
@@ -99,7 +99,7 @@ export default function MatMulStepper() {
     ex === 'hawker' && order === 'AB'
       ? j === 0
         ? `${L.rows![i]} pays $${C[i][j]} in total.`
-        : `${L.rows![i]} eats about ${C[i][j] * 100} kcal.`
+        : `${L.rows![i]} eats ${C[i][j]} kcal.`
       : null
 
   return (
@@ -109,7 +109,7 @@ export default function MatMulStepper() {
         <>
           Press <b>Play</b> or <b>Next</b>, or tap any cell of the product. Each entry is a <b>row of the left matrix</b> (blue) times a{' '}
           <b>column of the right matrix</b> (orange): multiply matching pairs and add. In the hawker example A holds who ordered what (rice = chicken rice) and B
-          holds each dish's price and calories (in hundreds of kcal). Then switch to B·A and compare.
+          holds each dish's price and calories. Then switch to B·A and compare.
         </>
       }
     >
@@ -146,7 +146,7 @@ export default function MatMulStepper() {
                 on ? 'var(--viz-3)' : done ? tint('var(--viz-3)', 50) : 'var(--viz-muted)',
                 on ? 2.4 : 1.2,
                 done ? String(v) : '?',
-                done ? 'var(--viz-ink)' : 'var(--viz-muted)',
+                done ? 'var(--viz-ink)' : 'var(--ink-3)',
                 `c${ii}${jj}`,
                 () => jump(ii, jj),
                 `entry row ${ii + 1}, column ${jj + 1}${done ? ` = ${v}` : ''}`,
@@ -175,16 +175,13 @@ export default function MatMulStepper() {
               {t}
             </text>
           ))}
-          {!labelled && (
-            <>
-              <text x={xL + (n * c) / 2} y={yB - 6} textAnchor="middle" style={{ fontSize: 13, fontWeight: 800, fill: 'var(--viz-1)' }}>
-                {Lname}
-              </text>
-              <text x={xR - 8} y={yT + (n * c) / 2} dy="0.35em" textAnchor="end" style={{ fontSize: 13, fontWeight: 800, fill: 'var(--viz-2)' }}>
-                {Rname}
-              </text>
-            </>
-          )}
+          {/* matrix names: the left matrix is named above itself, the right one in the empty corner to its left */}
+          <text x={xL + (n * c) / 2} y={yB - 6} textAnchor="middle" style={{ fontSize: 13, fontWeight: 800, fill: 'var(--viz-1)' }}>
+            {L.name}
+          </text>
+          <text x={xR - 8} y={labelled ? yT - 6 : yT + (n * c) / 2} dy={labelled ? undefined : '0.35em'} textAnchor="end" style={{ fontSize: 13, fontWeight: 800, fill: 'var(--viz-2)' }}>
+            {R.name}
+          </text>
         </svg>
       </div>
 

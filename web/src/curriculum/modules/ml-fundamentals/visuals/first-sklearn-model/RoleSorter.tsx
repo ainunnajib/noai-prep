@@ -83,6 +83,9 @@ export default function RoleSorter() {
 
   const onDown = (id: string) => (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return
+    // A fresh press: forget any click-swallow left over from the last drag. (After a drag the chip is
+    // re-parented into a box and remounted, so the click that should clear the flag never arrives.)
+    swallowClick.current = false
     press.current = { id, x: e.clientX, y: e.clientY, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
   }

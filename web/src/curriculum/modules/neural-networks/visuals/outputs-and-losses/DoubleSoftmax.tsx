@@ -28,7 +28,11 @@ function pipeline(m: number, K: number, bug: boolean) {
   return { probs: q, loss: -Math.log(q[0]), grad: p[0] * (g[0] - pg) }
 }
 
-const f3 = (v: number) => v.toFixed(3).replace('-', '−')
+/** Three decimals with a real minus sign; values that round to 0 print as 0.000, never −0.000. */
+const f3 = (v: number) => {
+  const s = v.toFixed(3)
+  return (/^-0\.0+$/.test(s) ? s.slice(1) : s).replace('-', '−')
+}
 
 export default function DoubleSoftmax() {
   const [K, setK] = useState(10)
@@ -45,22 +49,26 @@ export default function DoubleSoftmax() {
       title="The double-softmax bug"
       caption={
         <>
-          The model gives the true class a logit <M>m</M> bigger than every other class. <code>nn.CrossEntropyLoss</code> applies (log-)softmax itself, so the model should end
-          with plain logits. Switch the bug on and the model ends with its own softmax, so the loss squashes the scores <b>twice</b>: the probabilities it sees are pulled
-          towards <M>{'1/K'}</M>. Slide <M>m</M>: the correct loss heads to 0, but the buggy loss can never fall below <M>{'\\ln\\!\\left(1 + \\frac{K-1}{e}\\right)'}</M>, and at
-          the start (<M>{'m = 0'}</M>) its push on the true logit is about <M>K</M> times weaker. No error message warns you.
+          The true class&rsquo;s logit is <M>m</M> bigger than every other. With the bug on, the model ends with its own softmax, so the scores are squashed{' '}
+          <b>twice</b> and pulled towards <M>{'1/K'}</M>. Slide <M>m</M>: the correct loss heads to 0, but the buggy loss never falls below{' '}
+          <M>{'\\ln\\!\\left(1 + \\frac{K-1}{e}\\right)'}</M>, and no error message warns you.
         </>
       }
     >
       <div ref={wrapRef} className={s.wrap}>
         <div className={s.pipe} aria-label="The pipeline from model to loss">
-          <span className={s.pipeBox}>model</span>→<span className={s.pipeBox}>logits z</span>→
+          <span className={s.pipeStep}>
+            <span className={s.pipeBox}>model</span>→
+          </span>
+          <span className={s.pipeStep}>
+            <span className={s.pipeBox}>logits z</span>→
+          </span>
           {bug && (
-            <>
+            <span className={s.pipeStep}>
               <span className={`${s.pipeBox} ${s.bug}`}>extra softmax (bug)</span>→
-            </>
+            </span>
           )}
-          <span className={`${s.pipeBox} ${s.inside}`}>CrossEntropyLoss: log-softmax, then −log of the true class</span>
+          <span className={`${s.pipeBox} ${s.inside}`}>CrossEntropyLoss (log-softmax inside)</span>
         </div>
         <div className={`${s.panels} ${narrow ? s.panelsNarrow : ''}`}>
           <div className={s.panel}>
@@ -70,10 +78,12 @@ export default function DoubleSoftmax() {
             <Plot x={[0, 10]} y={[0, yMax]} width={340} height={250} minHeight={220} margin={{ left: 40, bottom: 32, top: 26, right: 12 }} ariaLabel="Cross-entropy loss against the true-class lead, with and without the extra softmax">
               <Grid xTicks={5} yTicks={4} />
               <Axes xLabel="m" yLabel="loss" xTicks={5} yTicks={4} />
-              <HLine y={floor} color="var(--viz-neg)" />
-              <Label x={5} y={floor} dy={16} anchor="middle" color="var(--viz-neg)" size={12}>
-                {`floor for the bug: ${floor.toFixed(2)}`}
-              </Label>
+              {bug && <HLine y={floor} color="var(--viz-neg)" />}
+              {bug && (
+                <Label x={5} y={floor} dy={16} anchor="middle" color="var(--viz-neg)" size={12}>
+                  {`floor for the bug: ${floor.toFixed(2)}`}
+                </Label>
+              )}
               <FnPath f={(v) => pipeline(v, K, false).loss} color="var(--viz-3)" width={2.6} samples={160} />
               {bug && <FnPath f={(v) => pipeline(v, K, true).loss} color="var(--viz-neg)" width={2.6} dash="7 5" samples={160} />}
               <Dots points={[{ x: m, y: good.loss, color: 'var(--viz-3)', r: 6 }, ...(bug ? [{ x: m, y: bad.loss, color: 'var(--viz-neg)', r: 6 }] : [])]} />

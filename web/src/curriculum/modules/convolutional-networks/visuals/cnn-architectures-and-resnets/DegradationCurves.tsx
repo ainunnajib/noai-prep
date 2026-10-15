@@ -49,16 +49,29 @@ function curve(levels: number[], seed: number, train: boolean): [number, number]
   return pts
 }
 
+/** Labels at the right-hand end of the curves, spread at least GAP px apart inside the plot area, with leader lines. */
 function EndLabels({ ends }: { ends: { y: number; text: string; color: string }[] }) {
-  const { xs, ys } = usePlot()
-  const sorted = ends.map((e) => ({ ...e, py: ys(e.y) })).sort((p, q) => p.py - q.py)
-  for (let i = 1; i < sorted.length; i++) if (sorted[i].py - sorted[i - 1].py < 14) sorted[i].py = sorted[i - 1].py + 14
+  const { xs, ys, height, margin } = usePlot()
+  const GAP = 14
+  const lo = margin.top + 6
+  const hi = height - margin.bottom - 6
+  const sorted = ends.map((e) => ({ ...e, cy: ys(e.y), py: ys(e.y) })).sort((p, q) => p.py - q.py)
+  for (let i = 1; i < sorted.length; i++) if (sorted[i].py - sorted[i - 1].py < GAP) sorted[i].py = sorted[i - 1].py + GAP
+  // if the lowest label is pushed below the axis, slide the stack back up
+  const over = sorted.length ? sorted[sorted.length - 1].py - hi : 0
+  if (over > 0) for (const e of sorted) e.py -= over
+  for (let i = sorted.length - 2; i >= 0; i--) if (sorted[i + 1].py - sorted[i].py < GAP) sorted[i].py = sorted[i + 1].py - GAP
+  for (const e of sorted) e.py = Math.max(lo, e.py)
+  const x0 = xs(64)
   return (
     <g>
       {sorted.map((e) => (
-        <text key={e.text} x={xs(64) + 6} y={e.py} dy="0.35em" className="plot-label" style={{ fill: e.color, fontSize: 12.5 }}>
-          {e.text}
-        </text>
+        <g key={e.text}>
+          <path d={`M${x0 + 1},${e.cy} L${x0 + 8},${e.py}`} style={{ fill: 'none', stroke: e.color, strokeWidth: 1.2 }} />
+          <text x={x0 + 10} y={e.py} dy="0.35em" className="plot-label" style={{ fill: e.color, fontSize: 12.5 }}>
+            {e.text}
+          </text>
+        </g>
       ))}
     </g>
   )
@@ -79,16 +92,14 @@ export default function DegradationCurves() {
       title="Deeper plain networks train worse"
       caption={
         <>
-          Error during training of 20- to 56-layer networks on a small image dataset (illustrative curves with the shape of the ResNet paper's CIFAR-10 plots; the
-          sudden drops are where the learning rate is cut). With <b>plain</b> networks the deepest one is the worst, <i>even on its own training data</i>, so this is not
-          overfitting. Switch to <b>ResNet</b>: the same depths with skip connections, and now deeper is better. Turn on the construction to see why plain-56 "should"
-          be able to match plain-20.
+          <b>Try:</b> switch between Plain and ResNet, and between training and test error. <b>Notice:</b> the deepest plain network is worst even on its own
+          training data, so it is not overfitting; with skip connections, deeper is better. (Illustrative curves.)
         </>
       }
     >
-      <Plot x={[0, 64]} y={[0, 20]} width={520} height={330} minHeight={260} margin={{ right: 74, left: 40, top: 26 }} ariaLabel={`${split === 'train' ? 'Training' : 'Test'} error curves for ${kind === 'plain' ? 'plain' : 'residual'} networks of 20 to 56 layers`}>
-        <Grid xTicks={8} yTicks={4} />
-        <Axes xLabel="iterations (thousands)" yLabel={split === 'train' ? 'training error (%)' : 'test error (%)'} xTicks={8} yTicks={4} />
+      <Plot x={[0, 64]} y={[0, split === 'train' ? 14 : 20]} width={520} height={330} minHeight={300} margin={{ right: 84, left: 40, top: 26 }} ariaLabel={`${split === 'train' ? 'Training' : 'Test'} error curves for ${kind === 'plain' ? 'plain' : 'residual'} networks of 20 to 56 layers`}>
+        <Grid xTicks={8} yTicks={split === 'train' ? 7 : 4} />
+        <Axes xLabel="iterations (thousands)" yLabel={split === 'train' ? 'training error (%)' : 'test error (%)'} xTicks={8} yTicks={split === 'train' ? 7 : 4} />
         {curves.map((pts, i) => (
           <Path key={DEPTHS[i]} points={pts} color={COLOURS[i]} width={2.2} />
         ))}

@@ -1,6 +1,7 @@
 import TrainingCycleLoop from './visuals/network-from-scratch/TrainingCycleLoop'
 import BackwardShapeTrace from './visuals/network-from-scratch/BackwardShapeTrace'
 import GradCheckMeter from './visuals/network-from-scratch/GradCheckMeter'
+import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
 import { TRAIN_CODE, TRAIN_OUTPUT, GRADCHECK_CODE, GRADCHECK_OUTPUT } from './visuals/network-from-scratch/snippets'
 
 In PyTorch, one line, `loss.backward()`, computes every gradient for you. In this lesson you write that line yourself: a complete neural-network classifier in about 40 lines of NumPy, trained by gradient descent, with a test that proves its gradients are right. This is exactly the skill the NOAI Final rewards. Its programming tasks ask you to implement algorithms straight from their formulas (in 2025, gradient-descent linear regression in pure NumPy; in 2026, gradient boosting from scratch and attention in PyTorch), and once you have built backprop by hand, nothing in PyTorch is magic any more.
@@ -44,7 +45,7 @@ Adding $b_1$, shape $(H,)$, to $XW_1$, shape $(N, H)$, uses NumPy <Term def="Num
 Every training step does the same four things:
 
 1. **Forward pass**: compute $P$ from $X$ with the current weights.
-2. **Loss**: one number for how wrong $P$ is. For classification this is the average <Term def="The loss −log(probability the model gave to the true class), averaged over the examples. 0 means certain and right; large means confident and wrong.">cross-entropy</Term>, $L = -\frac{1}{N}\sum_{i}\sum_{k} Y_{ik}\log P_{ik}$: for each example, minus the log of the probability given to the true class.
+2. **Loss**: one number for how wrong $P$ is. For classification this is the average <Term def="The loss −log(probability the model gave to the true class), averaged over the examples. 0 means certain and right; large means confident and wrong.">cross-entropy</Term>, $L = -\frac{1}{N}\sum_{i}\sum_{k} Y_{ik}\log P_{ik}$: for each example, minus the log of the probability given to the true class. Here, as in NumPy's `np.log`, log means the natural log, $\ln$.
 3. **Backward pass**: the gradient of $L$ with respect to every weight and bias.
 4. **Update**: one step of gradient descent, $W \leftarrow W - \eta\,\frac{\partial L}{\partial W}$, for every parameter ($\eta$ is the learning rate).
 
@@ -67,7 +68,7 @@ L &= -\log p_c = -\log \frac{e^{z_c}}{\sum_k e^{z_k}} \\
 \end{aligned}
 $$
 
-Now differentiate with respect to any logit $z_j$. The first term gives $-1$ if $j = c$ and $0$ otherwise, which is exactly $-y_j$. The second term gives $\frac{e^{z_j}}{\sum_k e^{z_k}}$, which is exactly $p_j$. So
+Now differentiate with respect to any logit $z_j$. The first term gives $-1$ if $j = c$ and $0$ otherwise, which is exactly $-y_j$. The second term gives $\frac{e^{z_j}}{\sum_k e^{z_k}}$, which is exactly $p_j$ (the slope of $\log u$ is $1/u$ times the slope of $u$, and only the $e^{z_j}$ term of the sum depends on $z_j$). So
 
 $$
 \frac{\partial L}{\partial z_j} = p_j - y_j
@@ -91,7 +92,7 @@ For the whole batch the loss is an average, so every row is divided by $N$: `dZ2
   q="A 3-class model outputs $p = (0.1, 0.6, 0.3)$ for an example whose true class is class 2. What is $\partial L / \partial z$ for this example?"
   options={['$(0.1,\\ 0.6,\\ -0.7)$', '$(-0.1,\\ -0.6,\\ 0.7)$', '$(0.1,\\ 0.6,\\ 0.3)$', '$(0,\\ 0,\\ -0.7)$']}
   answer={0}
-  explain="$y = (0, 0, 1)$, so $p - y = (0.1, 0.6, 0.3 - 1) = (0.1, 0.6, -0.7)$. The sign-flipped answer is $y - p$, which would make gradient descent walk uphill. Forgetting to subtract $y$ leaves $p$ itself."
+  explain="$y = (0, 0, 1)$, so $p - y = (0.1, 0.6, 0.3 - 1) = (0.1, 0.6, -0.7)$. The sign-flipped answer is $y - p$, which would make gradient descent walk uphill. Forgetting to subtract $y$ leaves $p$ itself, and $(0, 0, -0.7)$ keeps only the true class's entry: the wrong classes' probabilities must push their logits down too."
 />
 
 ## The backward pass in matrix form
@@ -130,14 +131,14 @@ You do not need to memorise these. Three rules write them for you:
   q="`X` has shape `(64, 10)` and the hidden layer has 32 units. What is the shape of `dW1 = X.T @ dZ1`?"
   options={['`(10, 32)`', '`(64, 32)`', '`(32, 10)`', '`(64, 10)`']}
   answer={0}
-  explain="`dZ1` has the hidden layer's shape, `(64, 32)`, and `X.T` is `(10, 64)`. So `(10, 64) @ (64, 32)` gives `(10, 32)`: the same shape as `W1`, which maps 10 features to 32 units. `(64, 32)` is the shape of `dZ1` itself, not of a weight gradient."
+  explain="`dZ1` has the hidden layer's shape, `(64, 32)`, and `X.T` is `(10, 64)`. So `(10, 64) @ (64, 32)` gives `(10, 32)`: the same shape as `W1`, which maps 10 features to 32 units. `(64, 32)` is the shape of `dZ1` itself, not of a weight gradient, `(32, 10)` is `W1` transposed, and `(64, 10)` is the shape of `X`."
 />
 
 ## The whole network in NumPy
 
-Here is everything together: two moon-shaped classes of 200 points, 16 hidden units, plain gradient descent. Every line of the loop matches the cycle above. Run it, then experiment: set `lr = 5.0` or `lr = 0.01`, change `H`, or break the backward pass on purpose and watch the accuracy.
+Here is everything together: 200 points in two moon-shaped classes (100 each), 16 hidden units, plain gradient descent. Every line of the loop matches the cycle above. Run it, then experiment. Set `lr = 20.0`: the steps are so big that some probabilities hit exactly 0, `np.log` gives `-inf`, and the loss prints `nan`. Set `lr = 0.01`: progress is much slower (the loss is still about 0.29 after 2000 steps). Change `H`, or break the backward pass on purpose and watch the accuracy.
 
-<PyRunner packages={['numpy']} code={TRAIN_CODE} />
+<NoWrapRunner code={TRAIN_CODE} />
 
 <CodeBlock language="text" code={TRAIN_OUTPUT} />
 
@@ -145,10 +146,16 @@ Two details are worth copying into your own code. The softmax subtracts each row
 
 Here is how each stage of our NumPy loop maps onto PyTorch:
 
-- **Forward + loss** (`Z1 = X @ W1 + b1` … `loss = …`) becomes `loss = F.cross_entropy(model(X), y)`.
+- **Forward + loss** (`Z1 = X @ W1 + b1` … `loss = …`) becomes `loss = F.cross_entropy(model(X), y)`. Here `model(X)` must return the **logits** `Z2`, with no softmax at the end, because `F.cross_entropy` applies the softmax itself (as log-softmax plus negative log-likelihood). Its targets are the class indices `y`, not the one-hot `Y`.
 - **Backward** (our seven lines) becomes `loss.backward()`.
 - **Update** (`W1 -= lr * dW1` …) becomes `optimiser.step()`.
 - **Clear old gradients**, not needed in our code, is `optimiser.zero_grad()`.
+
+<Mistake title="Softmax twice">
+
+Copying our forward pass line by line into a PyTorch model puts a softmax at its end, and then `F.cross_entropy` applies a second one. Nothing crashes and the loss still falls, but it can never get near 0: the second softmax only ever sees numbers between 0 and 1, so with two classes its largest probability is $e/(e + 1) \approx 0.73$ and the loss cannot go below about $0.31$. End the model at the logits, and use `model(X).softmax(dim=1)` only when you want to report probabilities.
+
+</Mistake>
 
 <PastPaperQuestion paper="prelim2026" n={109} />
 
@@ -180,11 +187,17 @@ How small should $\varepsilon$ be? Not as small as possible. A large $\varepsilo
 
 Here is a gradient checker for our network: it nudges every entry of every parameter and compares.
 
-<PyRunner packages={['numpy']} code={GRADCHECK_CODE} />
+<NoWrapRunner code={GRADCHECK_CODE} />
 
 <CodeBlock language="text" code={GRADCHECK_OUTPUT} />
 
-PyTorch has this built in, and you can also compare your NumPy gradients with autograd directly. Both should agree to within rounding:
+The checker compares a whole array at once, with lengths in place of absolute values: $\frac{\lVert a - n \rVert}{\max(\lVert a \rVert, \lVert n \rVert)}$, where $\lVert \cdot \rVert$ is the square root of the sum of squares (`np.linalg.norm`). Besides giving one number per parameter, this avoids $0/0$ when a single entry's gradient is exactly 0, such as the bias of a ReLU unit that is off for every example.
+
+PyTorch has this test built in: `torch.autograd.gradcheck` runs the same central-difference check on every input. It wants float64 tensors, because in float32 (about 7 significant digits) the round-off error is far too large for a fair check.
+
+<Reveal label="Optional: compare with PyTorch's autograd">
+
+Our NumPy gradients and PyTorch's autograd should agree to within rounding:
 
 ```python
 import numpy as np
@@ -220,7 +233,7 @@ largest difference in dW1: 4.163336342344337e-17
 gradcheck: True
 ```
 
-`torch.autograd.gradcheck` runs the same central-difference test on every input. It wants float64 tensors: in float32 (about 7 significant digits) the round-off error is far too large for a fair check.
+</Reveal>
 
 <Mistake title="Gradient checks that lie">
 

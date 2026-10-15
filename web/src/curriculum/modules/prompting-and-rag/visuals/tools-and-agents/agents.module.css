@@ -163,8 +163,7 @@
   transition: all 0.25s;
 }
 .phaseOn {
-  color: var(--surface);
-  border-color: transparent;
+  color: var(--ink);
 }
 .arrow {
   color: var(--ink-2);
@@ -317,6 +316,23 @@
 }
 .quad:hover {
   border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.quad:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+.quad:focus-visible,
+.caseBtn:focus-visible,
+.chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.quadHint {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent);
 }
 .quadTitle {
   font-size: 0.82rem;
@@ -353,4 +369,19 @@
 .fbBad {
   background: var(--bad-soft);
   border: 1.5px solid var(--bad);
+}
+
+/* ---------- "Try" prompt at the top of a figure ---------- */
+.tryLine {
+  width: 100%;
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 60%, var(--rule));
+}
+.tryLine > b:first-child {
+  color: var(--accent);
 }

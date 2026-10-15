@@ -1,6 +1,7 @@
 import DeterminantArea from './visuals/identity-inverse-determinant/DeterminantArea'
 import InverseUndo from './visuals/identity-inverse-determinant/InverseUndo'
 import MatrixTypeSpotter from './visuals/identity-inverse-determinant/MatrixTypeSpotter'
+import AreaProof from './visuals/identity-inverse-determinant/AreaProof'
 
 Some matrices can be undone and some destroy information for ever. A single number, the **determinant**, tells you which. This lesson covers the special matrices and numbers that NOAI loves to ask about (identity, inverse, determinant, singular, symmetric, diagonal and trace) and gives each one a picture, so you can answer most of these questions by looking rather than calculating.
 
@@ -36,7 +37,7 @@ $$
 
 - $a$ and $d$ are the entries on the main diagonal (top-left to bottom-right); $ad$ is their product.
 - $b$ and $c$ are the other two entries; $bc$ is their product.
-- The determinant is "main diagonal product minus other diagonal product". It is also written $|A|$.
+- The determinant is "main diagonal product minus other diagonal product". It is also written $|A|$. Careful: here the bars mean the determinant, which can be negative; they are not an absolute value.
 
 What the value tells you:
 
@@ -50,7 +51,11 @@ The determinant is the **area scale factor** of a matrix: $\det\begin{bmatrix} a
 
 <Reveal label="Why is the area exactly ad − bc?">
 
-Take columns $(a, c)$ and $(b, d)$ with positive entries and column 1 lying below column 2, as in the default picture above. The parallelogram fits inside a rectangle that is $a + b$ wide and $c + d$ tall. What lies outside the parallelogram but inside the rectangle is two triangles of area $\tfrac12 ac$, two triangles of area $\tfrac12 bd$ and two small rectangles of area $bc$. So
+Take columns $(a, c)$ and $(b, d)$ with positive entries and column 1 lying below column 2, as in the default picture above. The parallelogram fits inside a rectangle that is $a + b$ wide and $c + d$ tall. What lies outside the parallelogram but inside the rectangle is two triangles of area $\tfrac12 ac$, two triangles of area $\tfrac12 bd$ and two small rectangles of area $bc$ (drawn here for $a = 3$, $c = 1$, $b = 1$, $d = 2$):
+
+<AreaProof />
+
+So
 
 $$
 \begin{aligned}
@@ -84,10 +89,10 @@ Adding instead of subtracting ($ad + bc$), or multiplying along the rows ($ab - 
   q="What is $\det \begin{bmatrix} 2 & 3 \\ 4 & 6 \end{bmatrix}$, and what does it tell you?"
   options={['0, so the matrix squashes the plane onto a line and has no inverse', '24, so the matrix multiplies every area by 24', '0, so every entry of the matrix must be 0', '−18, so the matrix mirrors the plane and scales areas by 18']}
   answer={0}
-  explain="$ad - bc = 2 \times 6 - 3 \times 4 = 12 - 12 = 0$. The second column $[3, 6]$ is 1.5 times the first column $[2, 4]$, so both columns point the same way and the square collapses onto a line. 24 comes from adding ($ad + bc$), and a matrix can have determinant 0 without being all zeros."
+  explain="$ad - bc = 2 \times 6 - 3 \times 4 = 12 - 12 = 0$. Column $[3, 6]$ is 1.5 times column $[2, 4]$, so both point the same way and the square collapses onto a line. 24 comes from adding ($ad + bc$), −18 is $ab - cd = 6 - 24$ (multiplying along the rows), and a matrix can have determinant 0 without being all zeros."
 />
 
-Determinants exist for every **square** matrix (2×2, 3×3, …), never for non-square ones. Two facts follow straight from "area scale factor": doing $B$ then $A$ scales areas by both factors, so $\det(AB) = \det(A)\,\det(B)$; and a matrix that only stretches along the axes multiplies areas by the product of its stretches (more on that below).
+Determinants exist for every **square** matrix, never for non-square ones. For a 3×3 matrix the determinant scales **volumes** (in general, $n$-dimensional volume), but you will only be asked to work out 2×2 determinants by hand. Since doing $B$ then $A$ scales areas by both factors, $\det(AB) = \det(A)\,\det(B)$.
 
 ## The identity matrix: the "1" of matrices
 
@@ -100,6 +105,8 @@ $$
 Its columns are the basic arrows themselves, so it moves nothing: $Ix = x$ for every vector, and $AI = IA = A$ for every square matrix $A$ of the same size. It plays the role that the number 1 plays in ordinary multiplication ($1 \times 7 = 7$). Try the **Identity** preset above: the unit square stays put, so $\det I = 1 \times 1 - 0 \times 0 = 1$.
 
 <PastPaperQuestion paper="prelim2026" n={8} />
+
+<PastPaperQuestion paper="prelim2026" n={4} />
 
 ## The inverse: undoing a matrix
 
@@ -146,13 +153,15 @@ In words: **swap** $a$ and $d$, **change the sign** of $b$ and $c$, then **divid
 
 ### Why a zero determinant means no inverse
 
-The formula divides by $ad - bc$, and you cannot divide by 0. The picture says why that is not just a technicality: if $\det A = 0$, the matrix squashes the plane onto a line, so **different points land on the same spot**. When two inputs give the same output, no matrix can know which one to send it back to. Information has been destroyed.
+The formula divides by $ad - bc$, and you cannot divide by 0. The picture shows why this is more than a technicality: if $\det A = 0$, the plane is squashed onto a line, so **different points land on the same spot**. When two inputs give the same output, no matrix can know which one to send it back to: information has been destroyed.
 
 A square matrix with determinant 0 is called <Term def="A square matrix with determinant 0. It squashes space into fewer dimensions and has no inverse. Also called non-invertible.">singular</Term> (or non-invertible). For a 2×2 matrix this happens exactly when one column is a multiple of the other, as in $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$.
 
 <KeyIdea>
 Singular $\iff$ $\det A = 0$ $\iff$ $A$ squashes space flat $\iff$ $A$ has no inverse. If $\det A \neq 0$, the inverse exists and $A^{-1}A = I$.
 </KeyIdea>
+
+Do not confuse "singular" with an **orthogonal matrix**, a common distractor. An orthogonal matrix $Q$ has perpendicular columns of length 1, so $Q^TQ = I$ and $Q^{-1} = Q^T$. It only rotates or reflects, so $\det Q = \pm 1$: never singular. You will meet it again in *Matrices as transformations*.
 
 <PastPaperQuestion paper="prelim2026" n={11} />
 
@@ -166,6 +175,8 @@ $$
 
 Only square matrices can have an inverse, and only when they are not singular. The inverse of a product reverses the order, just like the transpose did: $(AB)^{-1} = B^{-1}A^{-1}$ (undo the last thing first).
 
+<PastPaperQuestion paper="prelim2026" n={3} />
+
 <Mistake>
 Three classic slips with the 2×2 inverse: forgetting to divide by the determinant; swapping $b$ and $c$ instead of $a$ and $d$; and taking $1/\text{entry}$ of each entry, which is **not** the inverse. Always check by multiplying: $AA^{-1}$ must come out as $I$.
 </Mistake>
@@ -176,7 +187,9 @@ Three more patterns you can spot at a glance.
 
 A <Term def="A square matrix whose only non-zero entries are on the main diagonal.">diagonal matrix</Term> has zeros everywhere off the main diagonal, such as $D = \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}$. It simply stretches each axis by its own factor (here x by 2 and y by 3), so its determinant is the product of the diagonal ($2 \times 3 = 6$), and if none of them is 0 its inverse just uses the reciprocals, $\begin{bmatrix} \tfrac12 & 0 \\ 0 & \tfrac13 \end{bmatrix}$. The identity is the diagonal matrix with all 1s.
 
-A <Term def="A square matrix equal to its own transpose: the entry in row i, column j equals the entry in row j, column i.">symmetric matrix</Term> equals its own transpose: $A = A^T$, which means $a_{ij} = a_{ji}$ for every $i$ and $j$. Fold it along the main diagonal and the numbers land on equal partners. A table of distances between MRT stations is symmetric (Bishan to Tampines is the same distance as Tampines to Bishan). So is every <Term def="A table of how much each pair of features varies together. Entry (i, j) is the covariance of feature i and feature j.">covariance matrix</Term>, because the covariance of height with weight is the same as the covariance of weight with height. You will meet these in statistics and PCA.
+A <Term def="A square matrix equal to its own transpose: the entry in row i, column j equals the entry in row j, column i.">symmetric matrix</Term> equals its own transpose: $A = A^T$, which means $a_{ij} = a_{ji}$ for every $i$ and $j$. Fold it along the main diagonal and the numbers land on equal partners. A table of distances between MRT stations is symmetric (Bishan to Tampines equals Tampines to Bishan). So is every <Term def="A table of how much each pair of features varies together. Entry (i, j) is the covariance of feature i and feature j.">covariance matrix</Term>, because the covariance of height with weight is the same as the covariance of weight with height. You will meet these in statistics and PCA.
+
+<PastPaperQuestion paper="prelim2026" n={13} />
 
 The <Term def="The sum of the entries on the main diagonal of a square matrix, written tr(A).">trace</Term> of a square matrix is the sum of its main-diagonal entries:
 
@@ -187,6 +200,8 @@ $$
 For example, $\operatorname{tr}\begin{bmatrix} 4 & 2 \\ 7 & 5 \end{bmatrix} = 4 + 5 = 9$.
 
 Only the diagonal counts: not all the entries, and not their product. Similarly $\operatorname{tr}(I_3) = 1 + 1 + 1 = 3$.
+
+<PastPaperQuestion paper="prelim2026" n={16} />
 
 <MatrixTypeSpotter />
 
@@ -242,9 +257,8 @@ In PyTorch the same functions are `torch.linalg.det`, `torch.linalg.inv`, `torch
 - **2×2 determinant:** $ad - bc$, "main diagonal minus other diagonal". Spot a column (or row) that is a multiple of another: then $\det = 0$ with no arithmetic.
 - **Diagonal or triangular matrix** (all zeros below, or all zeros above, the main diagonal): the determinant is the product of the diagonal.
 - **$\det(I) = 1$**, $\det(AB) = \det A \det B$, and a row or column of zeros gives $\det = 0$.
-- **Singular** = determinant 0 = no inverse = squashes space. "Invertible" means the opposite.
-- **Trace** = sum of the diagonal only. **Symmetric** = mirror pairs across the diagonal are equal ($A = A^T$); covariance matrices are always symmetric.
-- **No matrix division:** multiply by an inverse instead.
+- **More det facts:** $\det(A^T) = \det A$; $\det(A^{-1}) = 1/\det A$ (because $\det(A^{-1})\det(A) = \det I = 1$); $\det(cA) = c^n \det A$ for an $n \times n$ matrix, so $\det(2A) = 8\det A$ for a 3×3, not $2\det A$.
+- **Trace facts:** $\operatorname{tr}(A + B) = \operatorname{tr}A + \operatorname{tr}B$ and $\operatorname{tr}(AB) = \operatorname{tr}(BA)$, even though $AB \neq BA$.
 
 </ExamTip>
 

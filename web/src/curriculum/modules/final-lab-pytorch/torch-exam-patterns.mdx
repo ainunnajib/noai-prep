@@ -3,13 +3,15 @@ import ShapeCommentTrace from './visuals/torch-exam-patterns/ShapeCommentTrace'
 import TranslationTable from './visuals/torch-exam-patterns/TranslationTable'
 import BugCatcherGrid from './visuals/torch-exam-patterns/BugCatcherGrid'
 
-The Final on {FINAL.dateLabel} ends with three Python programming tasks, and if 2027 looks like 2026, at least one of them will hand you half-finished PyTorch code to complete or repair. In 2026, two of the three tasks (55 of the 80 programming marks) were PyTorch, and almost every way to lose those marks was a **shape** mistake: a feature map a few pixels too big, a head axis in the wrong place, a softmax along the wrong dimension. This lesson sets up three habits that the rest of this module uses on every line: write the shape of every tensor as a comment, translate NumPy into PyTorch without thinking, and test tiny cases yourself before you trust the notebook's test cell.
+The Final on {FINAL.dateLabel} ends with three Python programming tasks, and in 2026 two of them (55 of the 80 programming marks) were PyTorch. Almost every way to lose those marks was a **shape** mistake: a feature map a few pixels too big, a head axis in the wrong place, a softmax along the wrong dimension.
 
 <Analogy title="Label every box when you move house">
 
 When your family moves to a new HDB flat, you could throw everything into unmarked boxes and sort it out later. Then you spend the first evening opening twenty boxes to find the kettle. Writing "kitchen: kettle, mugs" on each box takes a few seconds and saves the whole evening. A shape comment is that label. Typing `# (B, h, T, d_k)` after a line of tensor code takes five seconds, and when something breaks, it tells you what should be inside every box.
 
 </Analogy>
+
+This lesson sets up three habits that the rest of the module uses on every line: write the shape of every tensor as a comment, translate NumPy into PyTorch without thinking, and test tiny cases yourself before you trust the notebook's test cell.
 
 ## Habit 1: a shape comment on every line
 
@@ -48,27 +50,31 @@ You should be able to do every one of those comments in your head. Here are the 
   </Step>
 </Steps>
 
-Here is the same function the way you would type it in the exam: a comment on every tensor line and one `assert` at the step most likely to go wrong.
+Here is the same function the way you would type it in the exam: a shape comment for every tensor line and one `assert` at the step most likely to go wrong. When a line of code is long, put its comment on its own line just above it, as here, so the shape stays in view.
 
 ```python
 import math
 import torch
 
 def attention_weights(x, W_q, W_k, h):
-    B, T, d = x.shape                                   # (B, T, d)
-    d_k = d // h                                        # features per head
-    Q = (x @ W_q).view(B, T, h, d_k).transpose(1, 2)    # (B, h, T, d_k)
-    K = (x @ W_k).view(B, T, h, d_k).transpose(1, 2)    # (B, h, T, d_k)
-    scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k)   # (B, h, T, T)
+    B, T, d = x.shape           # (B, T, d)
+    d_k = d // h                # numbers per head
+    # Q, K: (B, h, T, d_k)
+    Q = (x @ W_q).view(B, T, h, d_k).transpose(1, 2)
+    K = (x @ W_k).view(B, T, h, d_k).transpose(1, 2)
+    # scores: (B, h, T, T)
+    scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k)
     assert scores.shape == (B, h, T, T), scores.shape
-    return torch.softmax(scores, dim=-1)                # (B, h, T, T)
+    # weights: (B, h, T, T)
+    return torch.softmax(scores, dim=-1)
 
 torch.manual_seed(0)
-x = torch.randn(2, 5, 12)                 # B=2, T=5, d=12: all different
+# B=2, T=5, d=12: all different
+x = torch.randn(2, 5, 12)
 W_q, W_k = torch.randn(12, 12), torch.randn(12, 12)
 w = attention_weights(x, W_q, W_k, h=3)
 print(w.shape)
-print(w.sum(dim=-1)[0])                   # every row of weights sums to 1
+print(w.sum(dim=-1)[0])     # rows sum to 1
 ```
 
 ```text
@@ -82,7 +88,8 @@ Notice that the function reads `B, T, d` from `x.shape` instead of using the num
 
 ```python
 B, T, h, d_k = 2, 5, 3, 4
-K = torch.randn(B, T, h * d_k).view(B, T, h, d_k)    # forgot .transpose(1, 2)
+# forgot .transpose(1, 2):
+K = torch.randn(B, T, h * d_k).view(B, T, h, d_k)
 assert K.shape == (B, h, T, d_k), K.shape
 ```
 
@@ -114,18 +121,29 @@ If you have worked through Final lab I, you can already write NumPy. PyTorch <Te
 
 The differences that cost marks are few enough to learn in one sitting:
 
-1. **Default floats.** `np.array([1.0])` is float64; `torch.tensor([1.0])` is float32. A float64 tensor made with `torch.from_numpy` crashes a layer with "mat1 and mat2 must have the same dtype"; add `.float()`.
+1. **Default floats.** Every array and tensor has a <Term def="The type of number stored in an array or tensor, the same for every entry: for example float32 (decimals stored in 32 bits), float64 (64 bits, more precise) or int64 (whole numbers).">dtype</Term>, the kind of number it stores. `np.array([1.0])` is float64; `torch.tensor([1.0])` is float32. A float64 tensor made with `torch.from_numpy` crashes a layer with "mat1 and mat2 must have the same dtype"; add `.float()`.
 2. **`dim`, `keepdim`.** Write PyTorch's own names, `dim=` and `keepdim=True` (no s). Many tensor methods quietly accept NumPy's `axis=` as well, but not all: `F.softmax(scores, axis=-1)` is a `TypeError`. Always writing `dim` means you never have to remember which.
 3. **`t.max(dim=1)` returns two things**, the values and their indices. Take `.values` (or use `t.amax(dim=1)`), or `.indices` (same as `t.argmax(dim=1)`).
 4. **`mean` refuses integers.** Counting pixels gives an int64 tensor; call `.float()` before `.mean()`.
 5. **Size.** NumPy's `a.size` counts elements; PyTorch's `t.size()` is the *shape*. Count elements with `t.numel()`.
 6. **Plain numbers need `math`.** `torch.sqrt(16)` is a `TypeError`; the scaling factor $\sqrt{d_k}$ is a plain number, so write `math.sqrt(d_k)`.
 
+<QuickCheck
+  q="What does this print?"
+  code={`t = torch.tensor([[3, 9, 4],
+                  [8, 1, 5]])
+v = t.max(dim=1)
+print(v.indices)`}
+  options={['tensor([1, 0])', 'tensor([9, 8])', 'tensor([1, 2])', 'tensor([8, 9, 5])']}
+  answer={0}
+  explain="With a dim, max returns both the largest values (9 and 8, one per row) and where they are. Row 0's maximum 9 is at index 1 and row 1's maximum 8 is at index 0, so v.indices is tensor([1, 0]). tensor([9, 8]) is v.values; tensor([8, 9, 5]) is the maximum of each column, which dim=0 would give."
+/>
+
 One more creation trap appears in the Prelim: `torch.tensor` (small t) is a function that copies your data and **infers** the dtype from it, while `torch.Tensor` (capital T) is the tensor class, and calling it always gives the default float32.
 
 <PastPaperQuestion paper="prelim2026" n={118} />
 
-The last conversion matters in every metric function. A sum or a count over a tensor is still a tensor, just one with zero axes, written like `tensor(3)`. The method <Term def="Tensor.item() returns the single number stored in a one-element tensor as a plain Python int or float, with no gradient tracking and no device.">`.item()`</Term> turns it into a plain Python number, which is what a docstring that says "Returns: float" wants:
+The last conversion matters in every metric function. A sum or a count over a tensor is still a tensor, just one with zero axes, written like `tensor(3)`. The method <Term def="Tensor.item() returns the single number stored in a one-element tensor as a plain Python int or float, with no gradient tracking and no device.">`.item()`</Term> turns it into a plain Python number, which is what a <Term def="The text in triple quotes just under a def line that says what the function takes, what it must do and what it returns. Exam notebooks put the task's rules there.">docstring</Term> that says "Returns: float" wants:
 
 ```python
 pred = torch.tensor([0, 1, 1, 0])
@@ -140,18 +158,9 @@ tensor(3) 3 <class 'int'>
 tensor(0.7500) 0.75
 ```
 
-<PastPaperQuestion paper="prelim2026" n={134} />
+`.item()` only reads a number out. Its cousin `.detach()` keeps a tensor but cuts it off from gradient tracking, and the Prelim asked about the difference:
 
-<QuickCheck
-  q="What does this print?"
-  code={`t = torch.tensor([[3, 9, 4],
-                  [8, 1, 5]])
-v = t.max(dim=1)
-print(v.indices)`}
-  options={['tensor([1, 0])', 'tensor([9, 8])', 'tensor([1, 2])', 'tensor([8, 9, 5])']}
-  answer={0}
-  explain="With a dim, max returns both the largest values (9 and 8, one per row) and where they are. Row 0's maximum 9 is at index 1 and row 1's maximum 8 is at index 0, so v.indices is tensor([1, 0]). tensor([9, 8]) is v.values; tensor([8, 9, 5]) is the maximum of each column, which dim=0 would give."
-/>
+<PastPaperQuestion paper="prelim2026" n={134} />
 
 ## Habit 3: test tiny before you trust the test cell
 
@@ -165,6 +174,10 @@ The table shows the three rules for a good scratch test:
 - **Use random inputs, not all ones.** An all-ones input makes every score equal, so every softmax row is uniform whichever way it runs. Use `torch.manual_seed(0)` and `torch.randn` so the test is random but repeatable.
 - **Compare values with something you trust.** A slow version with plain loops (one sequence, one head at a time) is easy to get right, and a single `torch.allclose` against it catches bugs that keep the shape intact.
 
+Here are all three rules in one scratch cell: a slow loop version of `attention_weights`, then three asserts.
+
+<Reveal label="Show the scratch cell">
+
 ```python
 def slow_attention(x, W_q, W_k, h):
     """Obviously correct: one sequence and one head at a time."""
@@ -173,25 +186,30 @@ def slow_attention(x, W_q, W_k, h):
     out = torch.zeros(B, h, T, T)
     for b in range(B):
         for j in range(h):
-            cols = slice(j * d_k, (j + 1) * d_k)    # this head's columns
-            q = x[b] @ W_q[:, cols]                 # (T, d_k)
-            k = x[b] @ W_k[:, cols]                 # (T, d_k)
-            out[b, j] = torch.softmax(q @ k.T / math.sqrt(d_k), dim=-1)
+            # this head's columns
+            cols = slice(j * d_k, (j + 1) * d_k)
+            q = x[b] @ W_q[:, cols]      # (T, d_k)
+            k = x[b] @ W_k[:, cols]      # (T, d_k)
+            s = q @ k.T / math.sqrt(d_k)
+            out[b, j] = torch.softmax(s, dim=-1)
     return out
 
 torch.manual_seed(1)
-x = torch.randn(2, 5, 12)                           # sizes all different
+x = torch.randn(2, 5, 12)        # all sizes different
 W_q, W_k = torch.randn(12, 12), torch.randn(12, 12)
 w = attention_weights(x, W_q, W_k, h=3)
 assert w.shape == (2, 3, 5, 5), w.shape
 assert torch.allclose(w.sum(dim=-1), torch.ones(2, 3, 5))
-assert torch.allclose(w, slow_attention(x, W_q, W_k, h=3), atol=1e-6)
+slow = slow_attention(x, W_q, W_k, h=3)
+assert torch.allclose(w, slow, atol=1e-6)
 print("all checks passed")
 ```
 
 ```text
 all checks passed
 ```
+
+</Reveal>
 
 `torch.allclose(a, b)` is `True` when every pair of numbers agrees up to a tiny rounding error; `atol=1e-6` allows differences up to one millionth, because the loop adds the same numbers in a different order. With the "view without transpose" bug, the first two asserts pass and the third fails: the largest difference from the slow version is about 1.0, a whole attention weight in the wrong place.
 

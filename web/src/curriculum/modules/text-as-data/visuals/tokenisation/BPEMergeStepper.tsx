@@ -59,7 +59,8 @@ export default function BPEMergeStepper() {
 
   const breakdown = (c: (typeof counts)[number]) => c.words.map(([w, f]) => `${w} ×${f}`).join(' + ')
   let message: string
-  if (n === 0 && !best) message = 'Every word is a single character, so there are no pairs to merge. Add longer words to the corpus.'
+  if (!freq.length) message = 'The corpus is empty: type one word and its count per line, for example “hug 10”.'
+  else if (n === 0 && !best) message = 'Every word is a single character, so there are no pairs to merge. Add longer words to the corpus.'
   else if (n === 0 && best)
     message = `Start: every word is split into single characters, so the vocabulary is just the ${base.length} letters. Count every adjacent pair, weighted by how often each word occurs. The most frequent is (${pairText(best.pair)}): ${breakdown(best)} = ${best.count}. Press Next to merge it.`
   else {

@@ -70,18 +70,23 @@ export function newAgent(seed: number): Agent {
 
 export const maxQ = (Q: Float64Array, s: number) => Math.max(Q[s * 4], Q[s * 4 + 1], Q[s * 4 + 2], Q[s * 4 + 3])
 
-/** Best action in state s, or -1 if all four actions still look the same (nothing learned yet). */
+/**
+ * The move the agent prefers in state s, or -1 if it has no preference yet. It has a preference when one
+ * move is strictly best, or when the best moves are worth more than 0 (then any of them is a good plan).
+ * A tile that has only learned "this one move is bad" (say Q = −5 for stepping into the pit, 0 for the
+ * other three) has no preference among the three untried moves, so it gets no arrow.
+ */
 export function bestAction(Q: Float64Array, s: number): number {
   const m = maxQ(Q, s)
   let best = -1
   let count = 0
   for (let a = 0; a < 4; a++) {
     if (Q[s * 4 + a] === m) {
-      best = a
+      if (best < 0) best = a
       count++
     }
   }
-  return count === 4 ? -1 : best
+  return count === 1 || (m > 0 && count < 4) ? best : -1
 }
 
 /** One time step: choose an action ε-greedily, move, receive the reward, update Q. Returns the outcome if the episode ended. */

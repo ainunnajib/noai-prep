@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Segmented, Button, mulberry32, useNarrow } from '../../../../../kit'
-import { PyPanel, MONO } from '../training-loop/PyCode'
+import { PyPanel, Out, MONO } from '../training-loop/PyCode'
 
 /*
   Transfer learning on a small image classifier: three pretrained conv blocks and a new head.
@@ -77,6 +77,8 @@ export default function FreezePanel() {
   const [s, setS] = useState<State>(INIT)
   const [buildMode, setBuildMode] = useState<Build>('trainable')
   const [last, setLast] = useState<Record<L, string> | null>(null)
+  // a real PyTorch error from the last button press (everything frozen), or null
+  const [err, setErr] = useState<{ line: string; msg: string; note: string } | null>(null)
   const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const trainable = LAYERS.filter((l) => !s.frozen[l.id]).reduce((a, l) => a + l.n, 0)
@@ -86,12 +88,34 @@ export default function FreezePanel() {
   const toggle = (id: L) => {
     setS({ ...s, frozen: { ...s.frozen, [id]: !s.frozen[id] } })
     setLast(null)
+    setErr(null)
   }
   const build = () => {
-    setS({ ...s, opt: buildMode === 'all' ? ALL : ALL.filter((id) => !s.frozen[id]), built: buildMode, builtFrozen: { ...s.frozen } })
     setLast(null)
+    const opt = buildMode === 'all' ? ALL : ALL.filter((id) => !s.frozen[id])
+    if (opt.length === 0) {
+      // Adam([]) refuses; the old optimiser (if any) is kept
+      setErr({
+        line: 'optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=1e-3)',
+        msg: 'ValueError: optimizer got an empty parameter list',
+        note: 'Every layer is frozen, so the list of trainable parameters is empty. Unfreeze at least the head first.',
+      })
+      return
+    }
+    setErr(null)
+    setS({ ...s, opt, built: buildMode, builtFrozen: { ...s.frozen } })
   }
   const step = () => {
+    if (ALL.every((id) => s.frozen[id])) {
+      setLast(null)
+      setErr({
+        line: 'loss.backward()',
+        msg: 'RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn',
+        note: 'With every layer frozen, nothing in the forward pass requires grad, so autograd recorded no graph and the loss cannot be differentiated.',
+      })
+      return
+    }
+    setErr(null)
     const updates = { ...s.updates }
     const msg = {} as Record<L, string>
     for (const id of ALL) {
@@ -212,6 +236,14 @@ export default function FreezePanel() {
           Take a training step
         </Button>
       </Controls>
+      {err && (
+        <div style={{ width: '100%', display: 'grid', gap: 4 }} role="alert">
+          <Out tone="err" title={err.line}>
+            {err.msg}
+          </Out>
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-2)' }}>{err.note}</div>
+        </div>
+      )}
       <Readout
         items={[
           ['trainable', trainable.toLocaleString('en-GB')],

@@ -30,6 +30,8 @@ import {
 const MOVE_NAMES = ['up', 'right', 'down', 'left']
 const OUT_LABEL: Record<Outcome, string> = { G: 'goal', P: 'pit', T: 'gave up after 40 moves' }
 const OUT_COLOUR: Record<Outcome, string> = { G: 'var(--viz-pos)', P: 'var(--viz-neg)', T: 'var(--viz-muted)' }
+/** a glyph per outcome as well as a colour, so the strip reads without colour vision */
+const OUT_GLYPH: Record<Outcome, string> = { G: '✓', P: '✗', T: '–' }
 const OPEN_TILES = Array.from({ length: N_STATES }, (_, s) => s).filter((s) => tile(s) !== '#' && !isTerminal(s)).length
 
 const fmtR = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${-v}` : '0')
@@ -89,6 +91,7 @@ export default function GridworldAgent() {
   const planned = Array.from({ length: N_STATES }, (_, s) => s).filter((s) => tile(s) !== '#' && !isTerminal(s) && bestAction(ag.Q, s) >= 0).length
   const last = ag.outcomes[ag.outcomes.length - 1]
   const recent = ag.outcomes.slice(-30)
+  const tally = (o: Outcome) => recent.filter((x) => x === o).length
   const agentR = ag.pos
   const ax = (agentR % COLS) * cell + cell / 2
   const ay = Math.floor(agentR / COLS) * cell + cell / 2
@@ -203,13 +206,31 @@ export default function GridworldAgent() {
         <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 3 }} aria-label={`Recent outcomes: ${recent.map((o) => OUT_LABEL[o]).join(', ') || 'none yet'}`}>
           {recent.length === 0 && <span>none yet</span>}
           {recent.map((o, i) => (
-            <span key={i} title={OUT_LABEL[o]} style={{ width: 10, height: 14, borderRadius: 2, background: OUT_COLOUR[o], display: 'inline-block' }} />
+            <span
+              key={i}
+              title={OUT_LABEL[o]}
+              aria-hidden="true"
+              style={{
+                width: 13,
+                height: 16,
+                borderRadius: 2,
+                background: OUT_COLOUR[o],
+                color: 'var(--surface)',
+                fontSize: 11,
+                fontWeight: 800,
+                lineHeight: '16px',
+                textAlign: 'center',
+                display: 'inline-block',
+              }}
+            >
+              {OUT_GLYPH[o]}
+            </span>
           ))}
         </span>
-        <span style={{ display: 'inline-flex', gap: '0.6rem' }}>
-          <span style={{ color: 'var(--viz-pos)', fontWeight: 700 }}>■ goal</span>
-          <span style={{ color: 'var(--viz-neg)', fontWeight: 700 }}>■ pit</span>
-          <span style={{ color: 'var(--viz-muted)', fontWeight: 700 }}>■ gave up</span>
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.2rem 0.6rem' }} className="tabular">
+          <span style={{ color: 'var(--viz-pos)', fontWeight: 700 }}>✓ goal {tally('G')}</span>
+          <span style={{ color: 'var(--viz-neg)', fontWeight: 700 }}>✗ pit {tally('P')}</span>
+          <span style={{ color: 'var(--ink-2)', fontWeight: 700 }}>– gave up {tally('T')}</span>
         </span>
       </div>
       <Controls>

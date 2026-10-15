@@ -288,7 +288,7 @@ export function GraphView({
                   y={vy}
                   textAnchor={vAnchor}
                   className="tabular plot-label"
-                  style={{ fill: done ? 'var(--viz-ink)' : 'var(--viz-muted)', fontSize: fs, fontWeight: 700 }}
+                  style={{ fill: done ? 'var(--viz-ink)' : 'var(--ink-2)', fontSize: fs, fontWeight: 700 }}
                 >
                   {`${n.name} = ${done ? fmtShort(v) : '?'}`}
                 </text>

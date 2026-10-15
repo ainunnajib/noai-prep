@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, Label, Readout, mulberry32 } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, Label, Readout, M, mulberry32 } from '../../../../../kit'
 import { type V2, fmt, Clip } from '../linear-transformations/la'
 import { singular2 } from './linalg'
 import s from './sri.module.css'
@@ -78,8 +78,8 @@ export default function ConditionNumberWobble() {
         <>
           Each line is one equation of a 2×2 system <i>Ax = b</i>; the solution is where they cross (black ring). Every green dot is the solution after nudging{' '}
           <i>b</i> by at most {EPS}. Press <b>Jitter b</b> for more nudges, then drag the angle down: as the lines become nearly parallel, the same tiny nudges
-          throw the solution far along the lines. The dashed ellipse holds every possible answer; its long side divided by its short side is the condition
-          number κ.
+          throw the solution far along the lines. The dashed ellipse is every answer you can get from a nudge of size {EPS}; its longest half-width divided
+          by its shortest is exactly the condition number κ.
         </>
       }
     >
@@ -117,6 +117,10 @@ export default function ConditionNumberWobble() {
       </Plot>
 
       <div className={s.info} aria-live="polite">
+        <div className={s.eq}>
+          <M>{`A = \\begin{bmatrix} ${fmt(A[0][0], 2)} & ${fmt(A[0][1], 2)} \\\\ ${fmt(A[1][0], 2)} & ${fmt(A[1][1], 2)} \\end{bmatrix},\\quad b = \\begin{bmatrix} ${fmt(b[0], 2)} \\\\ ${fmt(b[1], 2)} \\end{bmatrix},\\quad x = \\begin{bmatrix} 1 \\\\ 1 \\end{bmatrix}`.replace(/−/g, '-')}</M>
+        </div>
+        <span className={s.muted}>Each row of A holds the two coefficients of one equation (one line); the answer x = (1, 1) is where the lines cross.</span>
         <Readout
           items={[
             ['angle between lines', `${theta}°`],

@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.encoding-categories.5',
     prompt:
-      'A vocabulary is `{"[PAD]": 0, "[UNK]": 1, "the": 2, "cat": 3, "sat": 4, "on": 5, "mat": 6}`. Unknown words map to `[UNK]` and sequences are padded at the end to length 5. What is the encoding of “the dog sat”?',
+      'A vocabulary maps `[PAD]`\u00a0→\u00a00, `[UNK]`\u00a0→\u00a01, “the”\u00a0→\u00a02, “cat”\u00a0→\u00a03, “sat”\u00a0→\u00a04, “on”\u00a0→\u00a05 and “mat”\u00a0→\u00a06. Unknown words map to `[UNK]` and sequences are padded at the end to length 5. What is the encoding of “the dog sat”?',
     options: ['`[2, 1, 4, 0, 0]`', '`[2, 4, 0, 0, 0]`', '`[2, 0, 4, 0, 0]`', '`[2, 7, 4, 0, 0]`'],
     answer: 0,
     explanation:

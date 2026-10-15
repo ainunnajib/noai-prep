@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, Bars, DraggablePoint, useNarrow } from '../../../../../kit'
+import { useMemo, useState, type CSSProperties } from 'react'
+import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, Bars, useNarrow } from '../../../../../kit'
+import { DragDot } from '../least-squares/DragDot'
 
 /*
-  Nine points that follow y ≈ 1 + 0.5x. One of them (orange) can be dragged anywhere. Two lines
+  Nine points that follow y ≈ 1 + 0.5x. One of them (pink) can be dragged up and down at x = 8
+  (vertical only: a point far to the side has high leverage and can move even the MAE line). Two lines
   are fitted: least squares (minimises MSE) and least absolute deviations (minimises MAE; the best
   line always passes through two of the data points, so we try every pair). Optionally a Huber
   line (δ = 1, by iteratively reweighted least squares). Right: each loss as a function of one
@@ -55,6 +57,7 @@ const fitHuber = (pts: Pt[]) => {
 }
 const CLEAN_LS = fitLS(BASE)
 const CLEAN_LAD = fitLAD(BASE)
+const title: CSSProperties = { fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center' }
 const huber = (r: number) => (Math.abs(r) <= DELTA ? 0.5 * r * r : DELTA * (Math.abs(r) - 0.5 * DELTA))
 
 export default function RobustLossCompare() {
@@ -65,7 +68,7 @@ export default function RobustLossCompare() {
   const ls = useMemo(() => fitLS(pts), [pts])
   const lad = useMemo(() => fitLAD(pts), [pts])
   const hub = useMemo(() => fitHuber(pts), [pts])
-  // how far the orange point drags each line, measured at the point's own x
+  // how far the pink point drags each line, measured at the point's own x
   const movedLS = Math.abs(ls.b + ls.m * q[0] - (CLEAN_LS.b + CLEAN_LS.m * q[0]))
   const movedLAD = Math.abs(lad.b + lad.m * q[0] - (CLEAN_LAD.b + CLEAN_LAD.m * q[0]))
 
@@ -74,10 +77,10 @@ export default function RobustLossCompare() {
       title="One outlier: MSE swings, MAE shrugs"
       caption={
         <>
-          Eight points follow a clear trend; drag the <b>orange</b> point to make it an outlier (it starts as one). The blue line minimises the <b>MSE</b>, the
-          orange line the <b>MAE</b>. Squaring makes the outlier's big error enormous, so the MSE line tilts towards it to shrink that one square. The MAE line
-          pays only in proportion to the distance, so it stays with the majority. The bars measure how far the point drags each line away from where the other
-          eight points would put it; the curves on the right show why: r² rises much faster than |r|.
+          Eight points follow a clear trend; drag the <b>pink</b> point up or down to make it an outlier (it starts as one). The blue line minimises the{' '}
+          <b>MSE</b>, the orange line the <b>MAE</b>. Squaring makes the outlier's big error enormous, so the MSE line tilts towards it to shrink that one
+          square. The MAE line pays only in proportion to the distance, so it stays with the majority. The bars measure how far the point drags each line away
+          from where the other eight points would put it, and the loss-shape chart shows why: r² rises much faster than |r|.
         </>
       }
     >
@@ -91,6 +94,8 @@ export default function RobustLossCompare() {
           alignItems: 'start',
         }}
       >
+        <div style={{ display: 'grid', gap: 4 }}>
+        <div style={title}>Eight points and one outlier</div>
         <Plot
           x={[-0.5, 9.5]}
           y={[-1.5, 8.5]}
@@ -128,15 +133,21 @@ export default function RobustLossCompare() {
           <Label x={9.4} y={lad.b + lad.m * 9.4} dy={ls.m < lad.m ? -10 : 18} anchor="end" color="var(--viz-2)" weight={700}>
             MAE line
           </Label>
-          <DraggablePoint
+          <DragDot
             x={q[0]}
             y={q[1]}
-            color="var(--viz-2)"
-            onChange={(x, y) => setQ([Math.round(x * 10) / 10, Math.round(y * 10) / 10])}
-            label="drag me"
+            lockX
+            r={7}
+            color="var(--viz-4)"
+            tag="drag me"
+            tagSide="left"
+            ariaLabel="The outlier's y value (it moves up and down at x = 8)"
+            onChange={(x, y) => setQ([x, Math.round(y * 10) / 10])}
           />
         </Plot>
+        </div>
         <div style={{ display: 'grid', gap: 8, width: '100%' }}>
+          <div style={title}>Loss shape: the cost of one residual r</div>
           <Plot
             x={[-4, 4]}
             y={[0, 8]}
@@ -170,7 +181,7 @@ export default function RobustLossCompare() {
               color: 'var(--ink-2)',
             }}
           >
-            How far the orange point drags each line (measured at its x)
+            How far the pink point drags each line (measured at its x)
           </div>
           <Bars
             data={[
@@ -190,7 +201,7 @@ export default function RobustLossCompare() {
       </Controls>
       <Readout
         items={[
-          ['true trend slope', '0.50'],
+          ['slope without the outlier (MSE / MAE)', `${CLEAN_LS.m.toFixed(2)} / ${CLEAN_LAD.m.toFixed(2)}`],
           ['MSE line slope', ls.m.toFixed(2)],
           ['MAE line slope', lad.m.toFixed(2)],
           ...(showHuber ? ([['Huber line slope', hub.m.toFixed(2)]] as [string, string][]) : []),

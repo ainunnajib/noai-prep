@@ -13,6 +13,7 @@ function GridView({
   cell,
   label,
   paint,
+  onStrokeStart,
   overlay,
   ariaLabel,
 }: {
@@ -20,6 +21,7 @@ function GridView({
   cell: number
   label: ReactNode
   paint?: (k: number) => void
+  onStrokeStart?: () => void
   overlay?: { c: number; truth: Grid }
   ariaLabel: string
 }) {
@@ -74,6 +76,7 @@ function GridView({
           paint
             ? (e) => {
                 painting.current = true
+                onStrokeStart?.()
                 ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
                 const k = cellAt(e)
                 if (k >= 0) paint(k)
@@ -117,9 +120,23 @@ export default function MaskIoUPainter() {
   const [pred, setPred] = useState<Grid>(PRED0)
   const [brush, setBrush] = useState(2)
   const [rule, setRule] = useState<AbsentRule>('skip')
+  const [hist, setHist] = useState<Grid[]>([])
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>(640)
   const threeAcross = width >= 600
-  const cell = threeAcross ? Math.max(12, Math.min(19, Math.floor((width - 48) / 36))) : Math.max(11, Math.min(18, Math.floor((width - 20) / 24)))
+  const cell = Math.max(12, Math.min(19, Math.floor((width - 48) / 36)))
+  // on phones the prediction gets its own full-width row with finger-sized cells; truth and overlap sit smaller beneath it
+  const bigCell = Math.max(14, Math.min(26, Math.floor((width - 8) / N)))
+  const smallCell = Math.max(9, Math.min(14, Math.floor((width - 24) / 24)))
+  const remember = () => setHist((h) => [...h.slice(-29), pred])
+  const replace = (g: Grid) => {
+    remember()
+    setPred(g)
+  }
+  const undo = () => {
+    if (!hist.length) return
+    setPred(hist[hist.length - 1])
+    setHist((h) => h.slice(0, -1))
+  }
 
   const stats = classStats(pred, TRUTH)
   const m = meanIoU(stats, rule)
@@ -152,9 +169,21 @@ export default function MaskIoUPainter() {
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.9rem 1rem' }}>
-        <GridView grid={TRUTH} cell={cell} label="truth (fixed)" ariaLabel="Ground-truth label map" />
-        <GridView grid={pred} cell={cell} label={<>prediction (paint here)</>} paint={paint} ariaLabel="Predicted label map. Click or drag to paint the selected class." />
-        <GridView grid={pred} cell={cell} label={<>overlap for {CLASSES[brush].name}</>} overlay={{ c: brush, truth: TRUTH }} ariaLabel={`Overlap for class ${CLASSES[brush].name}`} />
+        {threeAcross ? (
+          <>
+            <GridView grid={TRUTH} cell={cell} label="truth (fixed)" ariaLabel="Ground-truth label map" />
+            <GridView grid={pred} cell={cell} label={<>prediction (paint here)</>} paint={paint} onStrokeStart={remember} ariaLabel="Predicted label map. Click or drag to paint the selected class." />
+            <GridView grid={pred} cell={cell} label={<>overlap for {CLASSES[brush].name}</>} overlay={{ c: brush, truth: TRUTH }} ariaLabel={`Overlap for class ${CLASSES[brush].name}`} />
+          </>
+        ) : (
+          <>
+            <GridView grid={pred} cell={bigCell} label={<>prediction (tap or drag to paint)</>} paint={paint} onStrokeStart={remember} ariaLabel="Predicted label map. Tap or drag to paint the selected class." />
+            <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', width: '100%' }}>
+              <GridView grid={TRUTH} cell={smallCell} label="truth (fixed)" ariaLabel="Ground-truth label map" />
+              <GridView grid={pred} cell={smallCell} label={<>overlap for {CLASSES[brush].name}</>} overlay={{ c: brush, truth: TRUTH }} ariaLabel={`Overlap for class ${CLASSES[brush].name}`} />
+            </div>
+          </>
+        )}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 1rem', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
         <span>
@@ -229,9 +258,12 @@ export default function MaskIoUPainter() {
             { value: 'zero', label: 'count IoU = 0' },
           ]}
         />
-        <Button onClick={() => setPred(PRED0)}>reset</Button>
-        <Button onClick={() => setPred(TRUTH.slice())}>perfect</Button>
-        <Button onClick={() => setPred(TRUTH.map(() => 0))}>all background</Button>
+        <Button onClick={undo} disabled={!hist.length}>
+          undo
+        </Button>
+        <Button onClick={() => replace(PRED0)}>reset</Button>
+        <Button onClick={() => replace(TRUTH.slice())}>perfect</Button>
+        <Button onClick={() => replace(TRUTH.map(() => 0))}>all background</Button>
       </Controls>
     </Figure>
   )

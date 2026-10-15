@@ -120,15 +120,15 @@ export default function LogRuler() {
         {/* the answer, measured from 1 */}
         {drop(lr, mode !== 'pow' ? ROW2 : nn === 0 ? ROW1 : ROW1 - 0.32 * ((Math.abs(nn) - 1) % 2), 'var(--viz-3)')}
         {Math.abs(lr) > 1e-9 && <Arrow from={[0, ROW3]} to={[lr, ROW3]} color="var(--viz-3)" width={3} />}
-        <ClampedLabel x={lr / 2} y={ROW3} text={`${mode === 'pow' ? `log ${fmtNum(a)}${sup(nn)}` : `log ${fmtNum(result)}`} = ${f3(lr)}`} color="var(--viz-3)" />
+        <ClampedLabel x={lr / 2} y={ROW3} text={`${mode === 'pow' ? `log₁₀ ${fmtNum(a)}${sup(nn)}` : `log₁₀ ${fmtNum(result)}`} = ${f3(lr)}`} color="var(--viz-3)" />
         {mode !== 'pow' ? (
           <>
             {drop(0, ROW1, 'var(--viz-muted)')}
             <Path points={[[la, ROW1], [la, ROW2]]} color="var(--viz-1)" width={1.2} dash="3 4" opacity={0.8} />
             {la > 1e-9 && <Arrow from={[0, ROW1]} to={[la, ROW1]} color="var(--viz-1)" width={3} />}
-            <ClampedLabel x={la / 2} y={ROW1} text={`log ${a} = ${f3(la)}`} color="var(--viz-1)" />
+            <ClampedLabel x={la / 2} y={ROW1} text={`log₁₀ ${a} = ${f3(la)}`} color="var(--viz-1)" />
             {lb > 1e-9 && <Arrow from={[la, ROW2]} to={[lr, ROW2]} color="var(--viz-2)" width={3} />}
-            <ClampedLabel x={(la + lr) / 2} y={ROW2} text={`${mode === 'mul' ? '+' : '−'} log ${b} = ${f3(lb)}`} color="var(--viz-2)" />
+            <ClampedLabel x={(la + lr) / 2} y={ROW2} text={`${mode === 'mul' ? '+' : '−'} log₁₀ ${b} = ${f3(lb)}`} color="var(--viz-2)" />
           </>
         ) : (
           <>
@@ -143,7 +143,7 @@ export default function LogRuler() {
                 </g>
               )
             })}
-            <ClampedLabel x={lr / 2} y={ROW1 + 0.05} text={nn === 0 ? `no arrows: ${a}⁰ = 1` : `${Math.abs(nn)} arrow${Math.abs(nn) > 1 ? 's' : ''} of ${nn < 0 ? '−' : ''}log ${a} = ${nn < 0 ? '−' : ''}${f3(la)}`} color="var(--viz-1)" />
+            <ClampedLabel x={lr / 2} y={ROW1 + 0.05} text={nn === 0 ? `no arrows: ${a}⁰ = 1` : `${Math.abs(nn)} arrow${Math.abs(nn) > 1 ? 's' : ''} of ${nn < 0 ? '−' : ''}log₁₀ ${a} = ${nn < 0 ? '−' : ''}${f3(la)}`} color="var(--viz-1)" />
           </>
         )}
         <ResultDot x={lr} />

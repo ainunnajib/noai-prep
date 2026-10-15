@@ -1,8 +1,11 @@
 /*
-  Twenty made-up SMS messages (10 spam, 10 normal), listed in the order the learner reads them.
+  Twenty made-up SMS messages (10 spam, 10 normal), listed in the order the learner reads them,
+  plus 8 NEW messages (4 spam, 4 normal) that are never used for learning: they are the fair test.
   spam = 1 means the message is spam. The word-score learner and the keyword rules in
   RulesVsExamples are checked in Python (same tokeniser): the learner reaches 20/20 after reading
-  all 20; the default rules (free, win, prize) score 7/20.
+  all 20 and then gets 7/8 new messages right; the default rules (free, win, prize) score 7/20 and 2/8.
+  Every set of the 12 palette keywords that scores 20/20 on the training messages gets only 3 or 4
+  of the 8 new ones right (the best any palette set manages on the new messages is 5/8).
 */
 export interface Sms {
   text: string
@@ -32,6 +35,18 @@ export const SMS: Sms[] = [
   { text: 'Got the prize for best project!! So happy', spam: 0 },
 ]
 
+/** New messages: neither method learns from these. They are only used to test both at the end. */
+export const NEW_SMS: Sms[] = [
+  { text: 'Your package could not be delivered. Reschedule the delivery at bit.ly/redeliver7', spam: 1 },
+  { text: 'Are you free now? Can call you after dinner', spam: 0 },
+  { text: 'Hi, I am a recruiter. Work from home 2 hours a day and earn big. WhatsApp me', spam: 1 },
+  { text: 'Mum says can bring the cash for the class trip tomorrow', spam: 0 },
+  { text: 'Your bank login has expired. Log in again at bank-secure-sg.co to keep your account', spam: 1 },
+  { text: 'Happy to help! I won the class quiz prize, will treat you', spam: 0 },
+  { text: 'Final notice: pay your $4.50 road toll today at toll-pay-sg.co', spam: 1 },
+  { text: 'Is this your water bottle? You left it at the canteen', spam: 0 },
+]
+
 const LINK = /[a-z0-9./-]+\.(com|co|ly)(\/[a-z0-9]*)?/
 
 /** Split a message into the distinct "words" the learner scores: lower-case words, plus "$" and "[web link]". */
@@ -48,6 +63,7 @@ export function tokens(text: string): string[] {
 }
 
 export const SMS_TOKENS: string[][] = SMS.map((m) => tokens(m.text))
+export const NEW_TOKENS: string[][] = NEW_SMS.map((m) => tokens(m.text))
 
 /** Word scores after reading the first k messages: +1 per spam message containing the word, −1 per normal one. */
 export function scoresAfter(k: number): Map<string, number> {
@@ -59,7 +75,12 @@ export function scoresAfter(k: number): Map<string, number> {
   return sc
 }
 
-/** Total score of message i under the given word scores. Above 0 means "spam". */
+/** Total score of a tokenised message under the given word scores (unseen words score 0). Above 0 means "spam". */
+export function tokensScore(toks: string[], sc: Map<string, number>): number {
+  return toks.reduce((a, w) => a + (sc.get(w) ?? 0), 0)
+}
+
+/** Total score of training message i under the given word scores. Above 0 means "spam". */
 export function messageScore(i: number, sc: Map<string, number>): number {
-  return SMS_TOKENS[i].reduce((a, w) => a + (sc.get(w) ?? 0), 0)
+  return tokensScore(SMS_TOKENS[i], sc)
 }

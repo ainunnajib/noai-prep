@@ -1,12 +1,14 @@
 import { useRef, useState, type CSSProperties } from 'react'
-import { Figure, Controls, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Dots, Label, HLine, VLine, DraggablePoint, MatrixGrid, M, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Dots, Label, HLine, VLine, MatrixGrid, M, useNarrow } from '../../../../../kit'
+import { Handle, Verdict } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Critical points in 2-D and the Hessian. Each surface f(x, y) = a x² + b xy + c y² is flat at the
   centre (gradient 0). Slicing it through the centre in direction θ gives a parabola whose second
   derivative, the curvature in that direction, is uᵀHu with u = [cos θ, sin θ] and
   H = [[2a, b], [b, 2c]]. Its largest and smallest values over all directions are the eigenvalues
-  of H, and their signs decide: minimum, maximum or saddle.
+  of H, and their signs decide: minimum, maximum or saddle. A slice that curves down is also
+  drawn dashed and named in words, so the colour is never the only cue.
 */
 
 type Kind = 'bowl' | 'dome' | 'saddle' | 'tricky'
@@ -122,7 +124,7 @@ export default function SaddleSurface() {
       caption={
         <>
           Every surface here is perfectly flat at the centre (gradient = 0), so the centre is a <b>critical point</b>. Turn the slice direction θ
-          and watch the coloured slice: green curves up, red curves down. The lower graph shows the curvature in <i>every</i> direction; its highest
+          and watch the slice: green and solid curves up (∪), red and dashed curves down (∩). The lower graph shows the curvature in <i>every</i> direction; its highest
           and lowest values are the Hessian&apos;s eigenvalues. Find an up direction and a down direction on the saddle, then try x² + 3xy + y²: both
           diagonal entries of its Hessian are positive, yet it is a saddle. Drag the surface sideways to rotate it.
         </>
@@ -169,12 +171,15 @@ export default function SaddleSurface() {
           {lines.map((d, i) => (
             <path key={i} d={d} style={{ fill: 'none', stroke: 'var(--viz-1)', strokeWidth: 1, opacity: 0.45 }} />
           ))}
-          <path d={pathOf(slice)} style={{ fill: 'none', stroke: sliceColour, strokeWidth: 4 }} strokeLinecap="round" />
+          <path d={pathOf(slice)} style={{ fill: 'none', stroke: sliceColour, strokeWidth: 4, strokeDasharray: curv < -0.05 ? '9 5' : undefined }} strokeLinecap="round" />
           <circle cx={ox} cy={oy} r={5.5} style={{ fill: 'var(--viz-2)', stroke: 'var(--surface)', strokeWidth: 2 }} />
           <text x={8} y={18} className="plot-label">
             z = {name}
           </text>
-          <text x={VB_W - 8} y={VB_H - 8} textAnchor="end" className="plot-label" style={{ fill: 'var(--viz-muted)', fontSize: 11 }}>
+          <text x={8} y={36} className="plot-label" style={{ fontSize: 12 }}>
+            {curv > 0.05 ? 'slice curves up ∪' : curv < -0.05 ? 'slice curves down ∩' : 'slice is flat'}
+          </text>
+          <text x={VB_W - 8} y={VB_H - 8} textAnchor="end" className="plot-label" style={{ fill: 'var(--ink-2)', fontSize: 11 }}>
             drag to rotate
           </text>
         </svg>
@@ -197,7 +202,9 @@ export default function SaddleSurface() {
               det H = {fmt(det)}, trace H = {fmt(tr)}
             </div>
           </div>
-          <div style={{ ...small, fontWeight: 700, color: verdict.colour }}>{verdict.text}</div>
+          <div style={{ ...small, fontWeight: 700 }}>
+            <Verdict tone={verdict.colour}>{verdict.text}</Verdict>
+          </div>
         </div>
       </div>
       <div style={{ width: '100%', display: 'grid', justifyItems: 'center', gap: '0.25rem' }}>
@@ -236,9 +243,10 @@ export default function SaddleSurface() {
           )}
           <FnPath f={curvAt} color="var(--viz-1)" width={2.5} />
           <Dots points={[{ x: deg, y: curv, r: 3, color: sliceColour }]} stroke="none" />
-          <DraggablePoint
+          <Handle
             x={deg}
             y={curv}
+            ariaLabel="slice direction θ: drag along the curve"
             color={sliceColour === 'var(--viz-muted)' ? 'var(--viz-2)' : sliceColour}
             r={8}
             constrain={(x) => {

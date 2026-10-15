@@ -4,7 +4,13 @@ import GradientDescentBall from './visuals/gradient-descent/GradientDescentBall'
 import StepMultiplier from './visuals/gradient-descent/StepMultiplier'
 import GD2DContours from './visuals/gradient-descent/GD2DContours'
 
-Every model you will meet, from a straight-line fit to a chatbot, learns the same way. It has adjustable numbers, a score for how wrong it is, and a search for the numbers that make that score as small as possible. The search is done by one short rule called **gradient descent**: take the gradient from the previous lesson, which points uphill, and step the other way. This lesson builds the picture the rule works on (the **loss landscape**), then the rule itself, and the one number in it that most often makes training fail: the **learning rate**.
+Every model, from a straight-line fit to a chatbot, learns the same way: it adjusts its numbers to shrink a score of how wrong it is. The search uses one short rule, **gradient descent**: the gradient from the previous lesson points uphill, so step the other way. This lesson builds the **loss landscape** the rule walks on, then the rule itself, and the **learning rate**, the number that most often makes training fail.
+
+<Analogy title="Downhill in thick haze">
+
+You are in Bukit Batok Nature Park in haze so thick you can only see your own feet, and you want the lowest ground. You can feel which way the ground slopes under your shoes, so you step downhill, feel again and step again: big strides where it is steep, small shuffles where it is nearly flat. A model in training is in the same position: it can compute its loss and gradient *here*, but never sees the whole landscape.
+
+</Analogy>
 
 ## The loss landscape
 
@@ -21,7 +27,7 @@ $$
 L(w) = \frac{1}{n}\sum_{i=1}^{n} \big(y_i - w\,x_i\big)^2
 $$
 
-Here $x_i$ and $y_i$ are the distance and fare of ride $i$, $n = 4$ is the number of rides, $y_i - w\,x_i$ is the error on ride $i$ (real fare minus predicted fare), and the formula squares each error and averages them. For $w = 1$ the errors are $2, 2, 4, 3$, so $L(1) = \frac{4 + 4 + 16 + 9}{4} = 8.25$. For $w = 2$ they are $1, 0, 1, -1$, so $L(2) = \frac{3}{4} = 0.75$: much better.
+Here $x_i$ and $y_i$ are the distance and fare of ride $i$, $n = 4$ rides, and $y_i - w\,x_i$ is the error on ride $i$ (real minus predicted fare): square each error, then average. For $w = 1$ the errors are $2, 2, 4, 3$, so $L(1) = \frac{4 + 4 + 16 + 9}{4} = 8.25$. For $w = 2$ they are $1, 0, 1, -1$, so $L(2) = \frac{3}{4} = 0.75$: much better.
 
 Every value of $w$ gives one loss value. Plot them all and you get the <Term def="The graph of the loss against the model's parameters. Low points are good parameter values; training searches for them.">loss landscape</Term>.
 
@@ -33,32 +39,21 @@ Every value of $w$ gives one loss value. Plot them all and you get the <Term def
 
 </KeyIdea>
 
-With two parameters ($\text{fare} = w\,x + b$) the landscape becomes a surface over a map, exactly the contour maps of the previous lesson. A neural network has millions of parameters, so its landscape lives in millions of dimensions and nobody can draw it.
+With two parameters ($\text{fare} = w\,x + b$) the landscape becomes a surface, drawn as the contour maps of the previous lesson. A neural network's landscape has millions of dimensions, and nobody can draw it.
 
-<Analogy title="Blindfolded in a hilly park">
-
-You are blindfolded somewhere in Bukit Batok Nature Park and must find the lowest spot. You cannot see the park, but you can feel which way the ground slopes under your feet. A model being trained is in exactly this position: it can compute its loss and its gradient *here*, but it never sees the whole landscape.
-
-</Analogy>
-
-Real landscapes are rarely one smooth bowl. A <Term def="A point that is lower than everything close to it, but not necessarily the lowest point overall.">local minimum</Term> is lower than everything *nearby*; the <Term def="The lowest point of the whole function: no other parameter value gives a smaller loss.">global minimum</Term> is the lowest point *anywhere*. The ball below follows the only rule a blindfolded walker can follow: move in the direction that goes downhill.
+Real landscapes are rarely one smooth bowl. A <Term def="A point that is lower than everything close to it, but not necessarily the lowest point overall.">local minimum</Term> is lower than everything *nearby*; the <Term def="The lowest point of the whole function: no other parameter value gives a smaller loss.">global minimum</Term> is the lowest point *anywhere*. The ball below follows the only rule the walker in the haze can follow: move in the direction that goes downhill.
 
 <LandscapeHiker />
 
-The ball stops wherever the ground is flat, and it has no way of knowing whether a deeper valley exists elsewhere. So **where you start decides which valley you end in**, unless the landscape is a single bowl. (Bowl-shaped functions, called *convex*, are the topic of the next lesson.)
+The ball stops wherever the ground is flat, with no way of knowing whether a deeper valley exists elsewhere. So **where you start decides which valley you end in**, unless the landscape is a single bowl (a *convex* function: next lesson).
 
 <QuickCheck
+  id="calculus-and-gradient-descent.gradient-descent.qc1"
   q="In the bumpy landscape, the hilltops are at about $w = -1.4$ and $w = 1.0$, and the deepest valley is at about $w = 2.2$. The ball is released at $w = 0.5$. Where does it stop?"
-  options={['In the middle valley near $w = 0$, a local minimum', 'In the deepest valley near $w = 2.2$, the global minimum', 'In the left valley near $w = -2.3$, a local minimum', 'It never stops, because the global minimum is still lower']}
-  answer={0}
+  options={['In the deepest valley near $w = 2.2$, the global minimum', 'In the left valley near $w = -2.3$, a local minimum', 'It never stops, because the global minimum is still lower', 'In the middle valley near $w = 0$, a local minimum']}
+  answer={3}
   explain="$w = 0.5$ lies between the two hilltops, and from there every downhill path leads to the middle valley. The ball cannot 'see' the deeper valley at $w = 2.2$: to get there it would have to climb over the hilltop at $w = 1.0$ first."
 />
-
-<Analogy title="Walking down Bukit Timah Hill in thick haze">
-
-The haze is so thick you can only see your own feet. So you feel the slope under your shoes, take a step downhill, feel again, and step again. Where the ground is steep you take a big stride; where it is almost flat you shuffle. That is gradient descent.
-
-</Analogy>
 
 ## The recipe: feel the slope, step the other way
 
@@ -73,20 +68,19 @@ $$
 w_{\text{new}} = w - \eta\, L'(w)
 $$
 
-- $w$ is the current value of the parameter, and $w_{\text{new}}$ is the value after one step.
-- $L'(w)$ is the slope at the current $w$.
-- $\eta$ (the Greek letter eta) is the <Term def="A small positive number that sets how big each gradient descent step is. You choose it before training.">learning rate</Term>. It is a <Term def="A setting you choose before training (such as the learning rate or the number of steps), as opposed to a parameter, which training learns.">hyperparameter</Term>: you choose it, training does not learn it.
+- $w$ is the current parameter value and $L'(w)$ the slope there.
+- $\eta$ (eta) is the <Term def="A small positive number that sets how big each gradient descent step is. You choose it before training.">learning rate</Term>, a <Term def="A setting you choose before training (such as the learning rate or the number of steps), as opposed to a parameter, which training learns.">hyperparameter</Term>: you choose it, training does not learn it.
 - The minus sign makes the step go *against* the slope, i.e. downhill.
 
-One application of this rule is one <Term def="One update of the parameters: one step of gradient descent.">iteration</Term>, and training repeats it many times. Notice that the step is *proportional* to the slope. Far from the bottom the ground is steep, so the steps are big; near the bottom the slope shrinks towards 0, so the steps shrink too and the walker settles instead of jumping about (as long as $\eta$ is sensible).
+One application is one <Term def="One update of the parameters: one step of gradient descent.">iteration</Term>, and training repeats it many times. The step is *proportional* to the slope: big where it is steep and shrinking towards 0 near the bottom, so the walker settles (if $\eta$ is sensible).
 
-With many parameters, the slopes in every parameter's direction form the **gradient** vector $\nabla L$ from the previous lesson, and the rule becomes
+With many parameters, the slopes form the **gradient** vector $\nabla L$ from the previous lesson, and the rule becomes
 
 $$
 \mathbf{w} \leftarrow \mathbf{w} - \eta\, \nabla L(\mathbf{w})
 $$
 
-where the arrow $\leftarrow$ means "replace with". The gradient points in the direction of **steepest ascent** (straight uphill), so $-\nabla L$ points in the direction of **steepest descent**. That is where the name comes from.
+where $\leftarrow$ means "replace with". The gradient points in the direction of steepest ascent, so $-\nabla L$ is the direction of **steepest descent**: hence the name.
 
 <Steps title="Two steps of gradient descent by hand">
   <Step title="Set up">
@@ -111,19 +105,20 @@ where the arrow $\leftarrow$ means "replace with". The gradient points in the di
 <PastPaperQuestion paper="prelim2026" n={33} />
 
 <QuickCheck
+  id="calculus-and-gradient-descent.gradient-descent.qc2"
   q="For $L(w) = (w - 1)^2$, what is $w$ after one gradient descent step from $w = 4$ with $\eta = 0.25$?"
-  options={['2.5', '5.5', '3.25', '1']}
-  answer={0}
+  options={['5.5', '2.5', '3.25', '1']}
+  answer={1}
   explain="The slope is $L'(w) = 2(w - 1) = 2 \times 3 = 6$. The step is $0.25 \times 6 = 1.5$, so $w = 4 - 1.5 = 2.5$. Adding the step (5.5) goes uphill; forgetting the factor 2 in the derivative gives 3.25; jumping straight to the minimum at 1 would need $\eta = 0.5$ here."
 />
 
 ## How big a step? The learning rate
 
-Play with the presets above and you will see four behaviours:
+The presets above show four behaviours:
 
-- **Too small** ($\eta = 0.02$): the ball crawls. Each step only removes 4% of the distance to the bottom, so training wastes time and may stop long before the minimum.
+- **Too small** ($\eta = 0.02$): the ball crawls, removing only 4% of the distance to the bottom per step, so training may stop long before the minimum.
 - **About right** ($\eta = 0.3$): fast, smooth convergence.
-- **Large but below the limit** ($\eta = 0.85$): every step *overshoots* the bottom and lands on the other side, but a bit closer each time. The ball zig-zags in.
+- **Large but below the limit** ($\eta = 0.85$): every step *overshoots* to the other side, but a bit closer each time. The ball zig-zags in.
 - **Above the limit** ($\eta = 1.05$): every overshoot is bigger than the last. The walk <Term def="Gets further and further from the minimum instead of settling: the loss grows, often until it becomes infinity or NaN.">diverges</Term>.
 
 Why is the limit exactly 1 for $L(w) = w^2$? Put the slope $2w$ into the update rule:
@@ -132,21 +127,21 @@ $$
 w_{\text{new}} = w - \eta \cdot 2w = (1 - 2\eta)\, w
 $$
 
-Every step multiplies $w$, which is the distance from the minimum at 0, by $r = 1 - 2\eta$. If $r$ is between $-1$ and $1$, the distance shrinks every step; if $r$ is negative, $w$ flips sign every step (the zig-zag); if $r < -1$, it grows. And $1 - 2\eta > -1$ means $\eta < 1$.
+Every step multiplies $w$, the distance from the minimum at 0, by $r = 1 - 2\eta$. If $r$ is between $-1$ and $1$ the distance shrinks; if $r$ is negative, $w$ flips sign every step (the zig-zag); if $r < -1$ it grows. And $1 - 2\eta > -1$ means $\eta < 1$.
 
-The same algebra works for any bowl $L(w) = \tfrac{c}{2}w^2$. Its slope is $L'(w) = c\,w$, and the number $c = L''(w)$ is its <Term def="How sharply a curve bends: its second derivative. A big curvature means a steep, narrow bowl.">curvature</Term>, how sharply the bowl bends. Then $w_{\text{new}} = (1 - \eta c)\,w$, so gradient descent converges exactly when
+The same algebra works for any bowl $L(w) = \tfrac{c}{2}w^2$. Its slope is $c\,w$, and $c = L''(w)$ is its <Term def="How sharply a curve bends: its second derivative. A big curvature means a sharply bending, narrow bowl.">curvature</Term>, how sharply it bends. Then $w_{\text{new}} = (1 - \eta c)\,w$, so gradient descent converges exactly when
 
 $$
 0 < \eta < \frac{2}{c}.
 $$
 
-The steeper the bowl, the smaller the largest safe learning rate. One more special value: $\eta = 1/c$ gives $r = 0$, which lands on the minimum in a single step.
+Sharper bowls need smaller learning rates. This is about curvature, not steepness: $L = (w - 100)^2$ is very steep at $w = 0$, yet any $\eta < 1$ is safe because its curvature is only 2. And $\eta = 1/c$ gives $r = 0$: the minimum in a single step.
 
 <StepMultiplier />
 
 <KeyIdea>
 
-Each step multiplies the distance to the minimum by $1 - \eta c$. Gradient descent converges only if $\eta < 2/c$, where $c$ is the curvature of the **steepest** direction. Too small crawls; just below the limit zig-zags; above it diverges.
+Each step multiplies the distance to the minimum by $1 - \eta c$. Gradient descent converges only if $\eta < 2/c$, where $c$ is the **largest curvature** (the most sharply curved direction). Too small crawls; just below the limit zig-zags; above it diverges.
 
 </KeyIdea>
 
@@ -165,7 +160,7 @@ Each step multiplies the distance to the minimum by $1 - \eta c$. Gradient desce
   </Step>
 </Steps>
 
-In real training you cannot watch the ball, but you can watch the loss after every step. The small loss chart under the rolling ball above shows the four signatures: a nearly flat line (too small), a quick drop that levels off (good), a drop that wobbles (large), and a curve that shoots upwards (diverging). A diverging run often ends with the loss printed as `nan` ("not a number") once the numbers become too large for the computer.
+In real training you watch the loss, not a ball. The chart under the rolling ball shows the four signatures: nearly flat (too small), a quick drop that levels off (good), a wobbly drop (large) and a curve shooting upwards (diverging), often ending with the loss printed as `nan` ("not a number").
 
 <PastPaperQuestion paper="prelim2026" n={269} />
 
@@ -177,38 +172,34 @@ Only up to the limit $2/c$. Past it, a bigger $\eta$ makes training fail complet
 
 ## Two parameters: zig-zags in long valleys
 
-Real models have many parameters. With two, you can draw the landscape from above like a hiking map, where each <Term def="A line joining points that have the same loss, like the height lines on a hiking map.">contour line</Term> joins points of equal loss. As the previous lesson showed, the gradient $\nabla L = \left[\frac{\partial L}{\partial w_1}, \frac{\partial L}{\partial w_2}\right]$ crosses the contour lines at right angles, pointing straight uphill. On a long, narrow valley that means $-\nabla L$ points mostly *across* the valley, down the nearest wall, instead of along it towards the lowest point. Here is what that does to gradient descent.
+On a contour map of the loss, $-\nabla L$ crosses the <Term def="A line joining points that have the same loss, like the height lines on a hiking map.">contour lines</Term> at right angles (previous lesson), so in a long, narrow valley it points mostly *across* the valley, down the nearest wall, instead of along it towards the lowest point.
 
-Take the bowl $L(w_1, w_2) = \tfrac{1}{2}\left(0.1\,w_1^2 + w_2^2\right)$. Its gradient is $\nabla L = [\,0.1\,w_1,\; w_2\,]$, so the curvature is $0.1$ along $w_1$ (a gentle slope) and $1$ along $w_2$ (steep walls). The contours are long, thin ovals: a narrow valley. Now the trouble starts:
+Take the bowl $L(w_1, w_2) = \tfrac{1}{2}\left(0.1\,w_1^2 + w_2^2\right)$. Its gradient is $\nabla L = [\,0.1\,w_1,\; w_2\,]$, so the curvature is $0.1$ along $w_1$ (gently curved) and $1$ along $w_2$ (sharply curved: steep walls). The contours are long, thin ovals: a narrow valley. Now the trouble starts:
 
-- The **steep** direction sets the speed limit: $\eta < 2/1 = 2$.
+- The **sharply curved** direction sets the speed limit: $\eta < 2/1 = 2$.
 - At $\eta = 1.8$, the $w_2$ coordinate is multiplied by $1 - 1.8 = -0.8$ each step, so it bounces from wall to wall.
 - Meanwhile $w_1$ is multiplied by $1 - 1.8 \times 0.1 = 0.82$, so each step only moves 18% of the remaining way along the valley.
 - You cannot raise $\eta$ to hurry $w_1$ along, because $w_2$ would then diverge.
 
-<Analogy title="A ball in a sloping drain">
-
-Roll a ball down a narrow, sloping drain and it bangs from one wall to the other instead of rolling neatly along the bottom. The walls are steep and the slope along the drain is gentle: exactly the shape of this loss.
-
-</Analogy>
+It is a ball rolling down a narrow, sloping drain: steep walls, a gentle slope along the bottom, so it bangs from wall to wall.
 
 <GD2DContours />
 
-With many parameters the rule is the same: the curvature of the steepest direction caps the learning rate at $\eta < 2/\lambda_{\max}$, and the shallowest direction then decides how many steps you need. Textbooks write that largest curvature as $\lambda_{\max}$ (lambda max); the next lesson shows where it comes from, as the largest eigenvalue of a matrix of second derivatives called the Hessian.
+With many parameters the largest curvature, $\lambda_{\max}$ (lambda max), caps $\eta < 2/\lambda_{\max}$, and the most gently curved direction decides how many steps you need (more in the next lesson).
 
-Where do long valleys come from? For a linear model, the curvature along a weight grows with the size of its feature's values. For example, the Grab loss $L(w) = \text{mean}\big((y - wx)^2\big)$ has curvature $L''(w) = 2 \times \text{mean}(x^2)$. So a feature measured in large units (income in dollars, about 50,000) makes its weight's direction enormously steep compared with a feature such as age in years. The fix changes the data, not the algorithm. <Term def="Rescaling a feature so it has mean 0 and standard deviation 1: z = (x − mean) / standard deviation.">Standardising</Term> each feature,
+Long valleys often come from features on different scales. For a linear model the curvature along a weight grows with its feature's values (the Grab loss has $L''(w) = 2 \times \text{mean}(x^2)$), so income in dollars (about 50,000) makes its weight's direction far more sharply curved than age in years. The fix changes the data, not the algorithm. <Term def="Rescaling a feature so it has mean 0 and standard deviation 1: z = (x − mean) / standard deviation.">Standardising</Term> each feature,
 
 $$
 z = \frac{x - \mu}{\sigma},
 $$
 
-where $\mu$ (mu) is the feature's mean and $\sigma$ (sigma) its standard deviation, gives every feature a similar spread. The curvatures become similar, the valley becomes a round bowl (when the features are not strongly correlated), the gradient points straight at the minimum, and one learning rate suits every direction.
+with mean $\mu$ (mu) and standard deviation $\sigma$ (sigma), gives every feature a similar spread, so the valley becomes a rounder bowl (when the features are not strongly correlated) and one learning rate suits every direction.
 
 <PastPaperQuestion paper="prelim2026" n={156} />
 
 ## Gradient descent in code
 
-Here is gradient descent from scratch for the Grab model from the start of this lesson, $\text{fare} = w \times \text{distance}$. The gradient of the MSE loss is $L'(w) = \text{mean}\big(-2x\,(y - wx)\big)$, and the curvature is $2 \times \text{mean}(x^2) = 2 \times 7.5 = 15$, so the safe limit is $\eta < 2/15 \approx 0.13$. Run it, then try `lr = 0.01` (crawl), `lr = 0.12` (zig-zag) and `lr = 0.14` (diverge).
+Here is gradient descent from scratch for the Grab model, $\text{fare} = w \times \text{distance}$. The MSE gradient is $L'(w) = \text{mean}\big(-2x\,(y - wx)\big)$ and the curvature is $2 \times \text{mean}(x^2) = 15$, so the limit is $\eta < 2/15 \approx 0.13$. Run it, then try `lr = 0.01` (crawl), `0.12` (zig-zag) and `0.14` (diverge).
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
@@ -230,7 +221,11 @@ for step in range(8):
     w = w - lr * g
 print(f"final w = {w:.4f}")`} />
 
-With `lr = 0.05` the multiplier is $1 - 0.05 \times 15 = 0.25$, so the distance to $w = 2$ shrinks by a factor of 4 every step: $2 \to 0.5 \to 0.125 \to \dots$. NOAI Final programming tasks ask for from-scratch loops like this one in NumPy (the 2025 Final included gradient descent for linear regression). In PyTorch, the library computes the gradient for you (`loss.backward()`) and an optimiser applies the update (`optimizer.step()`):
+With `lr = 0.05` the multiplier is $1 - 0.05 \times 15 = 0.25$, so the distance to $w = 2$ shrinks fourfold every step: $2 \to 0.5 \to 0.125$. NOAI Final tasks ask for from-scratch NumPy loops like this (the 2025 Final included gradient descent for linear regression).
+
+<Reveal label="The same loop in PyTorch">
+
+PyTorch computes the gradient (`loss.backward()`) and an optimiser applies the update (`optimizer.step()`):
 
 ```python
 import torch
@@ -260,16 +255,17 @@ step 4: w = 1.9922  loss = 0.7505  grad = -0.1172
 final w = 1.9980
 ```
 
-The numbers match the NumPy version exactly: `torch.optim.SGD` with one parameter and the whole dataset is the same update $w \leftarrow w - \eta\,L'(w)$. Forgetting `optimizer.zero_grad()` is a classic bug: PyTorch *adds* new gradients to the old ones, so the steps become wrong.
+The numbers match the NumPy version: `torch.optim.SGD` on the whole dataset is the same update $w \leftarrow w - \eta\,L'(w)$. Forgetting `optimizer.zero_grad()` is a classic bug: PyTorch *adds* new gradients to the old ones.
+
+</Reveal>
 
 <ExamTip>
 
-How NOAI asks about this, and what to have ready:
+How NOAI asks about this:
 
-- **One-step arithmetic**: $w_{\text{new}} = w - \eta \times \text{gradient}$. Watch the signs: a *negative* gradient makes $w$ *increase*.
-- **Diagnosis**: loss oscillating wildly, exploding or becoming NaN means the learning rate is **too high**; loss falling very slowly means it is **too low**.
-- **Direction**: the gradient points to steepest *ascent*; the negative gradient to steepest *descent*.
-- **Limit**: converges only for $\eta < 2/c$. For $L = a\,w^2$ the curvature is $c = 2a$, so $\eta < 1/a$.
+- **One step**: $w_{\text{new}} = w - \eta \times \text{gradient}$; a *negative* gradient makes $w$ *increase*.
+- **Diagnosis**: loss oscillating, exploding or NaN means the learning rate is **too high**; loss falling very slowly means **too low**.
+- **Limit**: $\eta < 2/c$ with $c$ the curvature (not the slope); for $L = a\,w^2$ that is $\eta < 1/a$.
 - **Feature scaling** makes gradient descent converge faster and more stably.
 
 </ExamTip>
@@ -279,7 +275,7 @@ How NOAI asks about this, and what to have ready:
 - Gradient descent repeats $\mathbf{w} \leftarrow \mathbf{w} - \eta\,\nabla L(\mathbf{w})$: feel the slope, then step against it.
 - The learning rate $\eta$ scales every step: too small crawls, too large overshoots and zig-zags, and above $2/c$ it diverges.
 - For a bowl with curvature $c$, each step multiplies the distance to the minimum by $1 - \eta c$.
-- In long, narrow valleys the steepest direction caps $\eta$, so the path zig-zags and crawls along the shallow direction.
+- In long, narrow valleys the sharpest direction caps $\eta$, so the path zig-zags and crawls along the gentle one.
 - Standardising features makes the bowl rounder, so one learning rate suits every direction.
 
 </Takeaways>

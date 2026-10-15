@@ -94,6 +94,7 @@ export default function PiecewiseGallery() {
   const y0 = d.f(x0)
   const s = d.slope(x0)
   const T = 1.1 // half-length of the tangent, in x units
+  const slopeY: [number, number] = key === 'sigmoid' ? [-0.1, 0.35] : [-1.5, 1.5]
 
   const snapX = (x: number) => {
     const v = Math.round(x * 10) / 10
@@ -127,9 +128,10 @@ export default function PiecewiseGallery() {
       title="Corners and jumps"
       caption={
         <>
-          Pick a function, then drag the orange point (or use the arrow keys). The dashed line is the tangent. Away from 0 it simply follows the straight piece.
-          At the circled corner of <M>{'\\lvert x \\rvert'}</M> and ReLU it splits into two candidates with different slopes; at the step's jump it cannot be drawn.
-          The lower strip graphs the slope itself: a gap there means the slope changes suddenly.
+          Pick a function, then drag the round handle along the graph (or use the arrow keys). The dashed line with a soft band around it is the tangent; on a
+          straight piece it lies right along the graph. At the circled corner of <M>{'\\lvert x \\rvert'}</M> and ReLU it splits into two candidates with
+          different slopes; at the step's jump it cannot be drawn. The lower strip graphs the slope itself: a gap there means the slope changes suddenly. For the
+          sigmoid the strip is zoomed in, so you can see its slope peak at 0.25.
         </>
       }
     >
@@ -143,6 +145,8 @@ export default function PiecewiseGallery() {
         {ORDER.filter((k) => k !== key).map((k) => (
           <FnPath key={k} f={DEFS[k].f} color="var(--viz-muted)" width={1.5} opacity={0.45} samples={300} />
         ))}
+        {/* a soft band under the tangent so it stays visible where it lies along a straight piece */}
+        {!atSpecial && <Path points={[[x0 - T, y0 - T * s], [x0 + T, y0 + T * s]]} color="var(--viz-4)" width={10} opacity={0.28} />}
         {d.left && d.right ? (
           <>
             <FnPath f={d.left} domain={[XR[0], 0]} color="var(--viz-2)" width={3.5} />
@@ -178,7 +182,7 @@ export default function PiecewiseGallery() {
           x={x0}
           y={y0}
           r={7}
-          color="var(--viz-2)"
+          color="var(--viz-5)"
           constrain={(x) => {
             const v = snapX(x)
             return [v, d.f(v)]
@@ -189,9 +193,9 @@ export default function PiecewiseGallery() {
 
       <div style={{ width: '100%', display: 'grid', justifyItems: 'center', gap: 2 }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-2)' }}>the slope of the tangent at each x</div>
-        <Plot x={XR} y={[-1.5, 1.5]} width={480} height={130} minHeight={120} margin={{ top: 10, bottom: 26 }} ariaLabel={`Slope of ${d.label} plotted against x`}>
-          <Grid xTicks={7} yTicks={4} />
-          <Axes origin xTicks={7} yTicks={4} />
+        <Plot x={XR} y={slopeY} width={480} height={130} minHeight={120} margin={{ top: 10, bottom: 26 }} ariaLabel={`Slope of ${d.label} plotted against x`}>
+          <Grid xTicks={7} yTicks={key === 'sigmoid' ? 3 : 4} />
+          <Axes origin xTicks={7} yTicks={key === 'sigmoid' ? 3 : 4} />
           {d.special ? (
             <>
               <Path points={[[XR[0], d.leftSlope!], [-0.06, d.leftSlope!]]} color="var(--viz-2)" width={3} />
@@ -204,7 +208,12 @@ export default function PiecewiseGallery() {
               />
             </>
           ) : (
-            <FnPath f={d.slope} color="var(--viz-3)" width={3} />
+            <>
+              <FnPath f={d.slope} color="var(--viz-3)" width={3} />
+              <Label x={0} y={0.25} dx={8} dy={-7} color="var(--viz-3)" size={12}>
+                max slope 0.25 at x = 0
+              </Label>
+            </>
           )}
           {atSpecial ? (
             <Path points={[[0, d.leftSlope!], [0, d.rightSlope!]]} color="var(--viz-neg)" width={2} dash="3 3" />

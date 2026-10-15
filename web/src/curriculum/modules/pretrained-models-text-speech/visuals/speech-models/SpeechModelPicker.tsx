@@ -21,21 +21,21 @@ const SCENARIOS: { short: string; text: string; answer: Family; why: string; cod
     text: 'Write subtitles for a one-hour recorded lecture in English.',
     answer: 'whisper',
     why: 'The output is the exact words, in order: a sequence-to-sequence job. Whisper is trained for exactly this and works through long audio 30 seconds at a time. An audio LLM could do it, but it is much bigger and slower for plain transcription.',
-    code: 'asr = pipeline("automatic-speech-recognition", model="openai/whisper-small")\nasr("lecture.wav", return_timestamps=True)',
+    code: 'asr = pipeline("automatic-speech-recognition",\n               model="openai/whisper-small")\nasr("lecture.wav", return_timestamps=True)',
   },
   {
     short: 'Angry callers',
     text: 'Flag angry callers from 5-second clips. You have 2,000 clips labelled calm or angry.',
     answer: 'encoder',
     why: 'The output is one label per clip. Take a pretrained encoder, average its frame vectors into one clip vector, add a small linear head and fine-tune on your 2,000 labels. It is small and fast, and the labels teach it exactly what you want.',
-    code: 'clf = pipeline("audio-classification", model="superb/hubert-base-superb-er")\nclf("call.wav")   # emotion labels with scores',
+    code: 'clf = pipeline("audio-classification",\n               model="superb/hubert-base-superb-er")\nclf("call.wav")   # emotion labels with scores',
   },
   {
     short: 'Mandarin → English',
     text: 'Turn a Mandarin voice message into English text.',
     answer: 'whisper',
     why: 'Whisper can translate speech straight into English text: set the language token to Mandarin and the task token to translate. No separate translation model is needed. (Whisper only translates into English.)',
-    code: 'asr("voice_note.wav", generate_kwargs={"language": "chinese", "task": "translate"})',
+    code: 'asr("voice_note.wav",\n    generate_kwargs={"language": "chinese", "task": "translate"})',
   },
   {
     short: 'Sound questions',
@@ -49,7 +49,7 @@ const SCENARIOS: { short: string; text: string; answer: Family; why: string; cod
     text: 'Recognise which of 50 CCA members is speaking, from short recordings of each member.',
     answer: 'encoder',
     why: 'Speaker identity is a property of the whole clip, so use clip embeddings from a pretrained encoder (HuBERT or wav2vec 2.0 layers carry a lot of speaker information) and train a 50-way classifier on top. A transcript would throw away the voice itself.',
-    code: 'feats = encoder(wave).last_hidden_state.mean(dim=1)   # (batch, 768) clip vectors\nlogits = head(feats)                                   # nn.Linear(768, 50)',
+    code: 'h = encoder(wave).last_hidden_state  # (batch, frames, 768)\nclip = h.mean(dim=1)                 # (batch, 768)\nlogits = head(clip)                  # head = nn.Linear(768, 50)',
   },
   {
     short: 'Meeting summary',
@@ -63,7 +63,7 @@ const SCENARIOS: { short: string; text: string; answer: Family; why: string; cod
     text: 'Detect the wake word "Hey Merlion" on a phone, offline, many times per second.',
     answer: 'encoder',
     why: 'Keyword spotting is classification on short clips ("wake word" or "not"), and it must be tiny and fast. A small audio encoder with a classification head fits; running Whisper or an LLM non-stop on a phone would be far too slow.',
-    code: 'kws = pipeline("audio-classification", model="superb/hubert-base-superb-ks")\nkws("clip.wav")   # keyword labels with scores',
+    code: 'kws = pipeline("audio-classification",\n               model="superb/hubert-base-superb-ks")\nkws("clip.wav")   # keyword labels with scores',
   },
 ]
 

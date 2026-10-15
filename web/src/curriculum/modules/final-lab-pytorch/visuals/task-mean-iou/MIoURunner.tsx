@@ -87,7 +87,7 @@ export default function MIoURunner() {
       caption={
         <>
           Press <b>Run</b> to execute the NumPy version in your browser with the task's test cases, then break it on purpose: delete the <code>if union == 0</code>{' '}
-          check, or change <code>&amp;</code> to <code>and</code>, and read the error. The PyTorch tab shows the exam version, line for line the same logic, with the
+          check and watch test 3 print <code>nan</code>, or change <code>&amp;</code> to <code>and</code> and read the error. The PyTorch tab shows the exam version, line for line the same logic, with the
           real output of the notebook's two self-check cells.
         </>
       }

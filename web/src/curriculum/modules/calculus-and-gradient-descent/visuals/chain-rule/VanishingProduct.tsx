@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, Rect, HLine, usePlot } from '../../../../../kit'
+import { Verdict } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Backprop through n layers multiplies one local factor per layer. With the same factor f in
@@ -21,18 +22,23 @@ function sci(v: number): string {
 }
 
 const PRESETS = [
-  { value: 0.25, label: 'sigmoid at best ×0.25' },
+  { value: 0.25, label: 'sigmoid, weights ≈ 1: ×0.25' },
   { value: 0.9, label: '×0.9' },
   { value: 1, label: 'ReLU (active) ×1' },
   { value: 1.5, label: '×1.5' },
 ]
 
-/** the row of layer boxes along the top of the plot, each showing its factor */
+/** the row of layer boxes along the top of the plot, each showing its factor (one caption when too narrow) */
 function LayerRow({ n, f, yTop }: { n: number; f: number; yTop: number }) {
   const { xs, ys } = usePlot()
   const cell = Math.abs(xs(1) - xs(0))
   const showText = cell >= 34
-  if (cell < 9) return null
+  if (!showText)
+    return (
+      <text x={(xs(0.4) + xs(n + 0.6)) / 2} y={ys(yTop) + 7} textAnchor="middle" className="tabular" style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 700 }}>
+        {`${n} layers, each ×${f}`}
+      </text>
+    )
   return (
     <g aria-hidden="true">
       {Array.from({ length: n }, (_, i) => {
@@ -80,7 +86,7 @@ export default function VanishingProduct() {
         <>
           Each box is a layer that multiplies the gradient passing back through it by the same factor. The dark line at 10⁰ = 1 is the gradient&apos;s
           size at the output; the bars show its size by the time it reaches each layer, on a <b>log scale</b> (10⁻³ means 0.001), so multiplying by
-          the same factor again and again makes a straight staircase. Try the sigmoid&apos;s best case, 0.25, with 10 layers, then 30 layers, then a factor just above 1.
+          the same factor again and again makes a straight staircase. Try sigmoid layers with weights near 1 (×0.25) with 10 layers, then 30 layers, then a factor just above 1, which large weights can cause.
         </>
       }
     >
@@ -113,7 +119,7 @@ export default function VanishingProduct() {
       <Readout
         items={[
           ['gradient at layer 1', `${f}${sup(n)} = ${sci(first)}`],
-          ['verdict', <span key="v" style={{ color: tone }}>{verdict}</span>],
+          ['verdict', <Verdict key="v" tone={tone}>{verdict}</Verdict>],
         ]}
       />
     </Figure>

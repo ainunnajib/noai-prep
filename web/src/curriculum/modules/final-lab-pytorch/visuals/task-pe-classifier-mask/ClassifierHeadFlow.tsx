@@ -64,21 +64,21 @@ const SHAPES: [string, string][] = [
 
 const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(2)).replace('-', '−')
 
-function Tokens({ showIds, showMask }: { showIds?: boolean; showMask?: boolean }) {
+function Tokens({ showIds, showMask, compact }: { showIds?: boolean; showMask?: boolean; compact?: boolean }) {
   const row = (label: string, toks: readonly (readonly [string, number])[]) => (
     <div className={s.tokRow}>
       <span className={s.tokLab}>{label}</span>
       {toks.map(([w, id], i) => (
         <span key={i} className={`${s.tok} ${w === '[PAD]' ? s.tokPad : ''}`}>
           {w}
-          {showIds && <small>id {id}</small>}
+          {showIds && !compact && <small>id {id}</small>}
           {showMask && <small>mask {w === '[PAD]' ? 0 : 1}</small>}
         </span>
       ))}
     </div>
   )
   return (
-    <div className={s.tokens}>
+    <div className={`${s.tokens} ${compact ? s.tokensCompact : ''}`}>
       {row('sentence 1', S1)}
       {row('sentence 2', S2)}
     </div>
@@ -93,10 +93,14 @@ export default function ClassifierHeadFlow() {
   const step = player.step
   const pad = PADS[padIdx]
 
-  const lines: CodeLine[] = CODE.map((l, i) => {
-    let code = l.code
-    if (i === 7 && pool === 'masked') code = 'pooled = (x * m).sum(dim=1) / m.sum(dim=1)'
-    return { code, tone: STEP_LINES[step].includes(i) ? 'cur' : undefined }
+  const lines: CodeLine[] = CODE.flatMap((l, i): CodeLine[] => {
+    const tone = STEP_LINES[step].includes(i) ? ('cur' as const) : undefined
+    if (i === 7 && pool === 'masked')
+      return [
+        { code: 'm = attention_mask.unsqueeze(-1).float()', note: '# (B, T, 1)', tone },
+        { code: 'pooled = (x * m).sum(dim=1) / m.sum(dim=1).clamp(min=1)', tone },
+      ]
+    return [{ code: l.code, tone }]
   })
 
   const sum = REAL.reduce((a, v) => [a[0] + v[0], a[1] + v[1]], [0, 0])
@@ -107,7 +111,7 @@ export default function ClassifierHeadFlow() {
   let stage: ReactNode
   let say: ReactNode
   if (step === 0) {
-    stage = <Tokens showIds showMask />
+    stage = <Tokens showIds showMask compact={narrow} />
     say = (
       <>
         A batch of two sentences, already turned into token ids and padded to the same length T = 4. <code>attention_mask</code> has shape (B, T): 1 for a real token, 0 for padding.
@@ -228,7 +232,8 @@ export default function ClassifierHeadFlow() {
       title="From token ids to two logits"
       caption={
         <>
-          Step through <code>forward</code> and watch the shape after each line, for this tiny batch and for the notebook's test. At the pooling step, switch between plain and masked
+          Step through <code>forward</code> (the six numbered steps of the lesson's code) and watch the shape after each line, for this tiny batch and for the
+          notebook's test. At the pooling step, switch between plain and masked
           mean and press <b>Change the [PAD] vector</b>: only plain mean is affected by the padding.
         </>
       }
@@ -238,9 +243,7 @@ export default function ClassifierHeadFlow() {
         <div className={s.verdict} style={{ background: 'color-mix(in srgb, var(--surface-2) 60%, var(--surface))', border: '1px solid var(--rule)', display: 'grid', gap: '0.7rem', justifyItems: 'center' }}>
           {stage}
           <p style={{ margin: 0, justifySelf: 'stretch', color: 'var(--ink-2)' }}>
-            <b>
-              Step {step + 1}, {STEP_NAMES[step]}.
-            </b>{' '}
+            <b>{step === 0 ? 'The inputs.' : `Step ${step} of 6, ${STEP_NAMES[step]}.`}</b>{' '}
             {say}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 1rem', fontSize: 12.5, color: 'var(--ink-3)', justifySelf: 'stretch' }}>
@@ -252,7 +255,7 @@ export default function ClassifierHeadFlow() {
             </span>
           </div>
         </div>
-        <PlayerControls player={player} label={(i) => `Step ${i + 1} of 7`} />
+        <PlayerControls player={player} label={(i) => (i === 0 ? 'The inputs' : `Step ${i} of 6`)} />
         <Controls>
           <Chips
             label="Pooling"

@@ -4,34 +4,45 @@ import DeadNeuronMap from './visuals/activation-functions/DeadNeuronMap'
 
 export const actCode = `import numpy as np
 
-z = np.array([-3.0, -1.0, 0.0, 1.0, 3.0])
+z = np.array([-3., -1., 0., 1., 3.])
 
-sigmoid = 1 / (1 + np.exp(-z))
+sig = 1 / (1 + np.exp(-z))
 tanh = np.tanh(z)
 relu = np.maximum(0, z)
 leaky = np.where(z > 0, z, 0.01 * z)
 
+# slopes (derivatives)
+dsig = sig * (1 - sig)
+dtanh = 1 - tanh**2
+drelu = (z > 0).astype(float)
+
 print("z        ", z)
-print("sigmoid  ", sigmoid.round(3))
-print("sigmoid' ", (sigmoid * (1 - sigmoid)).round(3))
+print("sigmoid  ", sig.round(3))
+print("sigmoid' ", dsig.round(3))
 print("tanh     ", tanh.round(3))
-print("tanh'    ", (1 - tanh**2).round(3))
+print("tanh'    ", dtanh.round(3))
 print("relu     ", relu)
-print("relu'    ", (z > 0).astype(float))
+print("relu'    ", drelu)
 print("leaky    ", leaky)
 
-# Two linear layers with no activation collapse into one
+# Two linear layers with no
+# activation collapse into one
 rng = np.random.default_rng(0)
-W1, b1 = rng.normal(size=(4, 3)), rng.normal(size=4)
-W2, b2 = rng.normal(size=(2, 4)), rng.normal(size=2)
+W1 = rng.normal(size=(4, 3))
+b1 = rng.normal(size=4)
+W2 = rng.normal(size=(2, 4))
+b2 = rng.normal(size=2)
 x = rng.normal(size=3)
 
-two_layers = W2 @ (W1 @ x + b1) + b2
-W, b = W2 @ W1, W2 @ b1 + b2      # one equivalent layer
-print("two layers:", two_layers.round(4))
-print("one layer: ", (W @ x + b).round(4))`
+two = W2 @ (W1 @ x + b1) + b2
+# the one equivalent layer
+W = W2 @ W1
+b = W2 @ b1 + b2
+one = W @ x + b
+print("two layers:", two.round(4))
+print("one layer: ", one.round(4))`
 
-The last lesson ended with a promise: a few perceptrons stacked in layers can beat XOR, but training such stacks needs something smoother than the step function. That something is the **activation function**, the small function every neuron applies to its weighted sum. It decides two things: whether stacking layers gains you anything at all, and whether a training signal can flow back through the network so it can learn.
+Stacked perceptrons can beat XOR, but training them needs something smoother than the step function: an **activation function**, the small function every neuron applies to its weighted sum. It decides whether stacking layers gains anything at all, and whether a training signal can flow back through the network.
 
 <Analogy title="Glass panes and a folding screen">
 
@@ -46,7 +57,7 @@ A layer of neurons computes, for each neuron, a weighted sum plus a bias. In mat
 Now feed one linear layer into another, with nothing in between.
 
 <Steps title="Two layers by hand: h = 2x + 1, then y = 3h − 4">
-  <Step title="Substitute the first layer into the second">
+  <Step title="Substitute">
     $y = 3h - 4 = 3(2x + 1) - 4$.
   </Step>
   <Step title="Expand">
@@ -108,13 +119,13 @@ Five activations cover almost everything NOAI asks. Explore them, especially the
 
 <ActivationGallery />
 
-| Activation | Formula | Output range | Slope $f'(z)$ | Notes |
-|---|---|---|---|---|
-| Sigmoid | $\sigma(z) = 1/(1+e^{-z})$ | $(0, 1)$ | $\sigma(z)(1-\sigma(z))$, at most $0.25$ | saturates both ends; outputs always positive |
-| Tanh | $\tanh(z)$ | $(-1, 1)$ | $1 - \tanh^2(z)$, at most $1$ | zero-centred; saturates both ends |
-| ReLU | $\max(0, z)$ | $[0, \infty)$ | $1$ if $z > 0$, $0$ if $z < 0$ | cheap; never saturates for $z > 0$ |
-| Leaky ReLU | $z$ if $z > 0$, else $\alpha z$ | $(-\infty, \infty)$ | $1$ or $\alpha$ (often $0.01$) | never exactly 0 slope |
-| GELU | $z\,\Phi(z)$ | about $[-0.17, \infty)$ | smooth | used in Transformers (BERT, GPT) |
+| Name | $f(z)$ | Range | Slope $f'(z)$ |
+|---|---|---|---|
+| Sigmoid | $\frac{1}{1+e^{-z}}$ | $(0, 1)$ | $\sigma(1-\sigma)$, max $0.25$ |
+| Tanh | $\tanh z$ | $(-1, 1)$ | $1 - \tanh^2 z$, max $1$ |
+| ReLU | $\max(0, z)$ | $[0, \infty)$ | $1$ if $z>0$; $0$ if $z<0$ |
+| Leaky ReLU | $\max(\alpha z, z)$ | $(-\infty, \infty)$ | $1$ or $\alpha$ (often $0.01$) |
+| GELU | $z\,\Phi(z)$ | $\approx[-0.17, \infty)$ | smooth, like ReLU's |
 
 A few details worth knowing:
 
@@ -167,13 +178,25 @@ Here is why, step by step. The neuron outputs $\max(0, \mathbf{w}\cdot\mathbf{x}
 
 1. Its output is 0 for every example, so it contributes nothing.
 2. Its slope $\text{ReLU}'(z)$ is 0 for every example.
-3. So the gradient for $\mathbf{w}$ and $b$ is 0 for every example, and gradient descent changes them by exactly nothing, at every step, for ever.
+3. So the gradient for $\mathbf{w}$ and $b$ is 0 for every example, and gradient descent changes them by exactly nothing.
 
-This is a <Term def="A ReLU neuron whose weighted sum is negative for every training input, so it always outputs 0 and receives zero gradient; it can never recover by gradient descent.">dead neuron</Term>. The usual cause is a learning rate that is too large (one wild step shoves the neuron off the data) or a badly initialised, very negative bias. See it happen:
+The neuron cannot revive itself. Only a change in an **earlier** layer, which alters the inputs it sees, could ever switch it back on, and that rarely happens.
+
+This is a <Term def="A ReLU neuron whose weighted sum is negative for every training input, so it always outputs 0 and its own weights get exactly zero gradient: it cannot revive itself.">dead neuron</Term>. The usual cause is a learning rate that is too large (one wild step shoves the neuron off the data) or a badly initialised, very negative bias. See it happen:
 
 <DeadNeuronMap />
 
-You can check the "exactly zero gradient" claim in PyTorch. Here one neuron's bias has been pushed to $-6$, so $z$ is negative for all three inputs; the "loss" is just a stand-in that adds up the outputs:
+<TryIt title="Kill some neurons, then try to rescue them">
+
+1. Press **Train 100 steps** a few times at η = 0.1: every neuron stays alive and the loss falls.
+2. Press **Reset**, set η to 3 and train 100 steps once: 15 of the 16 neurons die. Now set η back to 0.1 and press **Train 500 steps** twice. The dead tiles show "moved 0" every time, and with one neuron left the loss is stuck at about 0.16.
+3. Turn on **Leaky ReLU** (this restarts training) and repeat step 2. Neurons still get knocked off the square, but none ever shows "moved 0", and the loss keeps falling (to about 0.04). Compare the two rows of the "latest run" table. Leaky ReLU keeps neurons alive; it does not rescue a learning rate that is far too big: look at the loss while η = 3.
+
+</TryIt>
+
+<Reveal label="Check the zero gradient in PyTorch">
+
+You will learn PyTorch properly in its own module. All you need here: `requires_grad=True` asks PyTorch to track `w` and `b`, `.backward()` computes the gradient of the loss with respect to each of them, and `.grad` holds the result. One neuron's bias has been pushed to $-6$, so $z$ is negative for all three inputs; the "loss" is a stand-in that adds up the outputs.
 
 ```python
 import torch
@@ -188,8 +211,8 @@ for name, act in [("ReLU", F.relu), ("Leaky ReLU", leaky)]:
     w = torch.tensor([1.0, 0.5], requires_grad=True)
     b = torch.tensor(-6.0, requires_grad=True)  # pushed far negative
     z = X @ w + b                               # negative for every input
-    act(z).sum().backward()                     # a stand-in loss
-    print(name)
+    act(z).sum().backward()                     # gradients of a stand-in loss
+    print(name)                                 # .grad now holds them
     print("  z      =", z.detach())
     print("  grad w =", w.grad)
     print("  grad b =", b.grad)
@@ -207,6 +230,8 @@ Leaky ReLU
 ```
 
 With ReLU the gradients are exactly zero. With Leaky ReLU they are small but real ($0.01 \times$ the inputs), so the neuron can still learn its way back.
+
+</Reveal>
 
 **How to prevent dead neurons:**
 
@@ -263,7 +288,7 @@ Activation questions are some of the quickest marks in the Prelim (the 2026 pape
 - **Ranges**: sigmoid $(0, 1)$, tanh $(-1, 1)$, ReLU $[0, \infty)$, Leaky ReLU $(-\infty, \infty)$.
 - **Formulas**: ReLU $= \max(0, z)$; sigmoid $= \frac{1}{1+e^{-z}}$; $\sigma' = \sigma(1-\sigma)$; $\tanh' = 1 - \tanh^2$.
 - **Anchor values**: $\sigma(0) = 0.5$, $\sigma'(0) = 0.25$; $\tanh(0) = 0$, $\tanh'(0) = 1$; ReLU slope 1 for $z > 0$, 0 for $z < 0$, undefined at 0.
-- **Why**: activations add non-linearity; ReLU beats sigmoid in hidden layers because it does not saturate for positive inputs (no vanishing gradient) and is cheap; Leaky ReLU fixes dying ReLU with a small negative slope. Distractor alert: "uses an exponential" describes ELU, not Leaky ReLU.
+- **Why**: activations add non-linearity; ReLU beats sigmoid in hidden layers because it does not saturate for positive inputs (much less vanishing gradient) and is cheap; Leaky ReLU fixes dying ReLU with a small negative slope. Distractor alert: "uses an exponential" describes ELU (a smooth ReLU variant that uses $e^z$ for negative inputs), not Leaky ReLU.
 
 </ExamTip>
 
@@ -273,6 +298,6 @@ Activation questions are some of the quickest marks in the Prelim (the 2026 pape
 - Training multiplies the gradient by the activation's slope $f'(z)$ at every layer, so flat (saturated) regions choke learning.
 - Sigmoid $(0,1)$ and tanh $(-1,1)$ saturate at both ends; the sigmoid's slope is at most $0.25$, tanh's at most $1$.
 - ReLU, $\max(0, z)$, has slope 1 for positive inputs and is the default for hidden layers; GELU is its smooth cousin used in Transformers.
-- A ReLU neuron negative for every input is dead: zero output, zero gradient, no recovery. Leaky ReLU, smaller learning rates and good initialisation prevent it.
+- A ReLU neuron negative for every input is dead: zero output and zero gradient, so it cannot revive itself. Leaky ReLU, smaller learning rates and good initialisation prevent it.
 
 </Takeaways>

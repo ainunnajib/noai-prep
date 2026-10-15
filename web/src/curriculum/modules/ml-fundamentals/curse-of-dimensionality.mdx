@@ -26,22 +26,22 @@ Suppose you want at least one training example close to every possible input, so
 - 3 features: a cube cut into 10 × 10 × 10, so **1,000** cells.
 - $d$ features: $10^d$ cells.
 
-In general, with $k$ slices per feature and $d$ features,
+In general, with $m$ slices per feature and $d$ features,
 
 $$
-\text{number of cells} = \underbrace{k \times k \times \dots \times k}_{d \text{ times}} = k^d
+\text{number of cells} = \underbrace{m \times m \times \dots \times m}_{d \text{ times}} = m^d
 $$
 
-- $k$ is how finely you slice each feature (10 above).
+- $m$ is how finely you slice each feature (10 above).
 - $d$ is the number of features.
-- Each extra feature **multiplies** the count by $k$, so it grows <Term def="Growing by multiplying by the same factor at every step, like 10, 100, 1,000, 10,000. Much faster than adding the same amount each step.">exponentially</Term> in $d$.
+- Each extra feature **multiplies** the count by $m$, so it grows <Term def="Growing by multiplying by the same factor at every step, like 10, 100, 1,000, 10,000. Much faster than adding the same amount each step.">exponentially</Term> in $d$.
 
 <Steps title="Could all of Singapore fill a 10-feature space?">
   <Step title="Count the cells">
     10 features with 10 slices each give $10^{10}$ cells: ten billion.
   </Step>
   <Step title="Count the data">
-    Make every Singapore resident a data point: about 6 million people, or $6 \times 10^6$.
+    Make everyone living in Singapore a data point: about 6 million people, or $6 \times 10^6$.
   </Step>
   <Step title="Best case">
     Even if no two people share a cell, at most $\dfrac{6 \times 10^6}{10^{10}} = 6 \times 10^{-4} = 0.0006$ of the cells contain anybody. That is 0.06%.
@@ -80,6 +80,7 @@ The flip side is just as strange. To catch 10% of the data, the box must have si
 With 10 features, the box holding your 10% "most similar" examples must stretch across 79% of every feature's range. Those examples are not really near the new point at all.
 
 <QuickCheck
+  id="ml-fundamentals.curse-of-dimensionality.qc1"
   q="Data is spread evenly, with every feature between 0 and 1. A box around a new point covers 10% of each feature's range. With 3 features, what share of the whole space does the box cover?"
   options={['0.1%', '10%', '30%', '1%']}
   answer={0}
@@ -95,11 +96,12 @@ Why does sparsity hurt learning? With few examples near any new input, a model m
 Many methods are built on distance. The simplest is <Term def="k-nearest neighbours: to predict for a new point, find the k training points closest to it and take a majority vote of their labels (or their average, for numbers).">k-nearest neighbours (k-NN)</Term>: find the $k$ training points closest to the new point and copy their most common label. Closeness is usually the <Term def="The straight-line distance between two points: square the difference in each feature, add the squares, take the square root.">Euclidean distance</Term>:
 
 $$
-\text{dist}(\mathbf{x}, \mathbf{q}) = \sqrt{(x_1 - q_1)^2 + (x_2 - q_2)^2 + \dots + (x_d - q_d)^2}
+\text{dist}(\mathbf{x}, \mathbf{q}) = \sqrt{\sum_{j=1}^{d} (x_j - q_j)^2}
 $$
 
 - $\mathbf{q}$ is the new (query) point and $\mathbf{x}$ is a training point; each is a list of $d$ feature values.
 - $x_j - q_j$ is how much they differ in feature $j$; squaring makes every difference count as positive.
+- $\sum_{j=1}^{d}$ means "add up over every feature $j$ from 1 to $d$": $(x_1 - q_1)^2 + (x_2 - q_2)^2 + \dots + (x_d - q_d)^2$.
 - Every feature adds one more squared term to the sum, and all terms count **equally**.
 
 <Analogy title="Equally far hawker stalls">
@@ -108,7 +110,7 @@ If every stall in the hawker centre were exactly 50 m from your table, "go to th
 
 </Analogy>
 
-Here is why. The squared distance is a sum of $d$ small random pieces, one per feature. For features spread evenly between 0 and 1, each piece is $\tfrac16$ on average, so the sum is about $\tfrac{d}{6}$ and the typical distance is about $\sqrt{d/6}$. But adding up many random pieces also **evens them out**, just as your average over 100 quizzes is steadier than your score on one quiz. However big $d$ gets, the distances wobble by only about $\pm 0.2$ around the typical value:
+Here is why. The squared distance is a sum of $d$ small random pieces, one per feature. For features spread evenly between 0 and 1, each piece is $\tfrac16$ on average, so the sum is about $\tfrac{d}{6}$ and the typical distance is about $\sqrt{d/6}$. The sum also wobbles from point to point, because every piece is random, but the wobble grows **much more slowly** than the sum: add up $d$ random pieces and the total grows like $d$, while its wobble grows only like $\sqrt{d}$, because random ups and downs partly cancel. Taking the square root to get the distance squashes both, and the result is that however big $d$ gets, the distances wobble by only about $\pm 0.2$ around the typical value:
 
 - $d = 6$: distances are about $1 \pm 0.2$, a big spread compared with the distance itself.
 - $d = 600$: distances are about $10 \pm 0.2$, so almost every point is between 9.5 and 10.5 away.
@@ -135,7 +137,7 @@ Check the numbers yourself. This code measures the distances from one query poin
 
 <PyRunner packages={['numpy']} code={distanceCode} />
 
-Real data is rarely as extreme as random points, because real features are related to each other. But useless features hurt in exactly this way. Below, the label depends on 2 useful features, and we bolt on more and more features of pure noise. Run it and watch k-NN's accuracy fall from about 0.92 to about 0.69:
+Real data is rarely as extreme as random points, because real features are related to each other. But useless features hurt in exactly this way. Below, the label depends on 2 useful features, and we bolt on more and more features of pure noise. To get a steadier score than one train/test split gives, `cross_val_score(model, X, y, cv=5)` splits the data 5 different ways, trains and tests the model on each split, and returns the 5 accuracies, which we average. Run it and watch k-NN's accuracy fall from about 0.92 to about 0.69:
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={knnCode} />
 
@@ -147,13 +149,13 @@ k-NN cannot ignore anything: every feature adds its own term to the distance, wi
 
 <Tip>
 
-Distance-based methods also need features on the same scale. If one feature is monthly income in dollars (around 5,000) and another is age in years (around 40), income dominates every distance. <Term def="Rescaling a feature so it has mean 0 and standard deviation 1: subtract the mean, then divide by the standard deviation.">Standardise</Term> the features first.
+Distance-based methods also need features on the same scale. If incomes differ between people by thousands of dollars while ages differ by tens of years, the income differences dominate every distance, and age hardly counts. <Term def="Rescaling a feature so it has mean 0 and standard deviation 1: subtract the mean, then divide by the standard deviation.">Standardise</Term> the features first.
 
 </Tip>
 
 ## More features than examples: p > n
 
-Statisticians write $p$ for the number of features and $n$ for the number of training examples. A linear model
+Statisticians write $p$ for the number of features (the same thing we have been calling $d$) and $n$ for the number of training examples. A linear model
 
 $$
 \hat y = w_1 x_1 + w_2 x_2 + \dots + w_p x_p + b
@@ -172,7 +174,7 @@ has one weight $w_j$ per feature plus a bias $b$: that is $p + 1$ <Term def="Num
     Replace the labels with random numbers: $(1, 7)$ and $(2, -4)$. Now $w + b = 7$ and $2w + b = -4$, so $w = -11$ and $b = 18$. Training error is 0 again, although there was no pattern to learn.
   </Step>
   <Step title="The general rule">
-    Two points can always be fitted by a line, three points by a flat plane using 2 features, and $n$ examples (almost always) by a linear model with $n - 1$ features plus a bias. Once parameters $\ge$ examples, a perfect training score is guaranteed, so it tells you nothing.
+    Two points with different $x$ can always be fitted by a line, three points by a flat plane using 2 features, and $n$ examples (almost always) by a linear model with $n - 1$ features plus a bias. (The rare exception is two examples with identical features but different labels: no model can fit both.) So once parameters $\ge$ examples, a perfect training score is (almost always) guaranteed, and it tells you nothing.
   </Step>
 </Steps>
 
@@ -181,15 +183,16 @@ has one weight $w_j$ per feature plus a bias $b$: that is $p + 1$ <Term def="Num
 In the visual, training error drops to exactly 0 once $p + 1$ reaches $n = 10$, while the error on new patients shoots up: the model has memorised the noise in its 10 training patients instead of learning the one real pattern. (Push $p$ further and the error on new patients can drift down again, which researchers call *double descent*, but it stays worse than the honest one-feature model.) This is the over-flexible, high-variance behaviour from the lesson on generalisation, and high dimensions make it very easy to fall into.
 
 <QuickCheck
+  id="ml-fundamentals.curse-of-dimensionality.qc2"
   q="A linear model with 4 features and a bias is trained on 5 examples whose labels were chosen at random. What training error should you expect?"
-  options={['0, because 5 parameters can fit 5 labels exactly', 'Very high, because random labels have no pattern', 'About the same as on new examples', 'Exactly 1, because the labels are random']}
-  answer={0}
+  options={['About the same as on new examples', 'Very high, because random labels have no pattern', '0, because 5 parameters can fit 5 labels exactly', 'Exactly 1, because the labels are random']}
+  answer={2}
   explain="4 weights + 1 bias = 5 parameters for 5 examples, so the model can pass through every point exactly, random labels included: training error 0. That is precisely why a perfect training score means nothing when $p + 1 \ge n$; the error on new examples would be large."
 />
 
 <KeyIdea>
 
-When the number of features $p$ is close to or larger than the number of examples $n$, a model can fit the training data perfectly, noise and all. The signature is a near-perfect training score with a much worse validation score: overfitting.
+When the number of features $p$ is close to or larger than the number of examples $n$, a model can fit the training data perfectly or almost perfectly, noise and all. The signature is a near-perfect training score with a much worse validation score: overfitting.
 
 </KeyIdea>
 
@@ -197,7 +200,7 @@ When the number of features $p$ is close to or larger than the number of example
 
 ## Lifting the curse
 
-- **Feature selection**: keep only features that matter, using domain knowledge or <Term def="A penalty on the sum of the absolute values of the weights. It pushes the weights of useless features to exactly 0 (also called Lasso).">L1 regularisation</Term>, which sets the weights of useless features to exactly 0.
+- **Feature selection**: keep only features that matter, using domain knowledge or <Term def="A penalty on the sum of the absolute values of the weights (also called Lasso). It tends to push many weights to exactly 0, which removes those features from the model.">L1 regularisation</Term> (Lasso), which tends to push many weights, ideally those of the useless features, to exactly 0.
 - **Dimensionality reduction**: replace many related features with a few new ones that keep most of the information, for example with <Term def="Principal component analysis: finds the few directions along which the data varies most and describes each point by its position along them.">PCA</Term>.
 - **Regularisation**: penalise large weights (L1 or L2) so the model cannot twist itself through every training point.
 - **More data**: helps, but the amount needed grows exponentially with $d$, so it is rarely enough on its own.
@@ -221,7 +224,7 @@ NOAI asks about the curse in two ways, and the arithmetic behind it is quick.
 
 <Takeaways>
 
-- Each feature is a dimension. The cells needed to cover the space grow exponentially: $k^d$.
+- Each feature is a dimension. The cells needed to cover the space grow exponentially: $m^d$.
 - A neighbourhood covering a share $s$ of every feature holds only $s^d$ of the space, so high-dimensional data is sparse.
 - Distances concentrate: the nearest point is almost as far as the farthest, so k-NN and other distance-based methods degrade.
 - With $p + 1 \ge n$ a linear model can fit even random labels perfectly: perfect training score, poor validation score.

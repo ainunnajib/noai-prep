@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Underfitting means the model does badly even on its own training data, with only a small gap to validation: 68% and 67%. A 28- or 36-point train–validation gap is high variance (overfitting). The last set has a modest gap but collapses only on later data, which is distribution drift.',
+      'Underfitting means the model does badly even on its own training data, with only a small gap to validation: 68% and 67%. A 28- or 36-point train–validation gap is high variance (overfitting). The 99.8% / 92% / 64% set has a modest train–validation gap but collapses only on later data, which is distribution drift.',
     difficulty: 'beginner',
   },
   {
@@ -65,7 +65,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Gradient accumulation gives an effective batch of $b \\times k = 16 \\times 4 = 64$ while only one micro-batch of 16 is in memory at a time (divide each micro-batch loss by 4 so the summed gradient is an average). A bigger learning rate on batch 16 changes the step size, not the gradient estimate. `empty_cache()` only returns cached blocks to the driver, and the number of epochs has no effect on the memory one step needs.',
+      'Gradient accumulation gives an effective batch of $b \\times k = 16 \\times 4 = 64$ while only one micro-batch of 16 is in memory at a time (divide each micro-batch loss by 4 so the summed gradient is an average; only BatchNorm layers would still see batches of 16). A bigger learning rate on batch 16 changes the step size, not the gradient estimate. `empty_cache()` only returns cached blocks to the driver, and the number of epochs has no effect on the memory one step needs.',
     difficulty: 'intermediate',
   },
 ]

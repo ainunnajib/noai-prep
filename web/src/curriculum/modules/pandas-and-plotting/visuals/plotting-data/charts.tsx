@@ -10,6 +10,8 @@ export { FRIENDLY, defaultTitle, yLabelFor, type CatCol, type Kind, type NumCol,
 */
 
 export const HUE_COLOURS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
+/** overlapping hue histograms are see-through (like seaborn's default layers); the legend swatches use the same fill */
+const HIST_ALPHA = 0.5
 export const PART_COLOURS = {
   fig: 'var(--viz-5)',
   axes: 'var(--viz-1)',
@@ -197,7 +199,7 @@ export function build(spec: Spec, thumb = false, data: Flat[] = DATA): Built {
       }))
       const top = Math.max(...per.flatMap((p) => p.c))
       const rects = per.flatMap((p) =>
-        p.c.map((c, k) => ({ x0: edges[k], x1: edges[k + 1], y0: 0, y1: c, colour: p.colour, alpha: spec.hue ? 0.42 : undefined })),
+        p.c.map((c, k) => ({ x0: edges[k], x1: edges[k + 1], y0: 0, y1: c, colour: p.colour, alpha: spec.hue ? HIST_ALPHA : undefined })),
       )
       return {
         xDom: [edges[0] - (edges[1] - edges[0]) * 0.4, edges[edges.length - 1] + (edges[1] - edges[0]) * 0.4],
@@ -281,7 +283,7 @@ function CategoryTicks({ cats, show }: { cats: string[]; show: boolean }) {
   )
 }
 
-function Legend({ title, items, side, outline }: { title: string; items: string[]; side: 'left' | 'right'; outline: boolean }) {
+function Legend({ title, items, side, outline, alpha }: { title: string; items: string[]; side: 'left' | 'right'; outline: boolean; alpha?: number }) {
   const { xs, ys } = usePlot()
   const [x0, x1] = xs.range()
   const yTop = ys.range()[1]
@@ -297,7 +299,17 @@ function Legend({ title, items, side, outline }: { title: string; items: string[
       </text>
       {items.map((t, i) => (
         <g key={t} transform={`translate(${left + 8},${top + 22 + i * 17})`}>
-          <rect y={2} width={11} height={11} rx={2} style={{ fill: HUE_COLOURS[i] }} />
+          <rect
+            y={2}
+            width={11}
+            height={11}
+            rx={2}
+            style={
+              alpha != null
+                ? { fill: `color-mix(in srgb, ${HUE_COLOURS[i]} ${Math.round(alpha * 100)}%, transparent)`, stroke: HUE_COLOURS[i], strokeWidth: 1 }
+                : { fill: HUE_COLOURS[i] }
+            }
+          />
           <text x={17} y={11.5} style={{ fontSize: 11.5, fill: 'var(--ink)' }}>
             {t}
           </text>
@@ -407,7 +419,9 @@ export function Chart({
       {b.categorical && <CategoryTicks cats={b.categorical} show={!thumb} />}
       {b.marks}
       {!thumb && <Frame title={title} xlabel={xlabel} ylabel={ylabel} anatomy={anatomy} />}
-      {showLegend && <Legend title={legendTitle ?? spec.hue!} items={b.hueLevels} side={side} outline={anatomy} />}
+      {showLegend && (
+        <Legend title={legendTitle ?? spec.hue!} items={b.hueLevels} side={side} outline={anatomy} alpha={spec.kind === 'hist' ? HIST_ALPHA : undefined} />
+      )}
     </Plot>
   )
 }

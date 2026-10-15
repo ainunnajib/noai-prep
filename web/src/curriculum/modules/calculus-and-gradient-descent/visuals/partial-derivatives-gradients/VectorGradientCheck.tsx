@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Segmented, Plot, Grid, Axes, Arrow, Dots, DraggablePoint, M, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Segmented, Plot, Grid, Axes, Arrow, Dots, Label, M, useNarrow } from '../../../../../kit'
 import { ContourLines, Clipped, num } from './fieldKit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Two gradients worth memorising, checked by brute force.
@@ -39,7 +40,12 @@ export default function VectorGradientCheck() {
   const fw = f(w)
   const numeric: [number, number] = [(f([w[0] + h, w[1]]) - fw) / h, (f([w[0], w[1] + h]) - fw) / h]
   const err: [number, number] = [numeric[0] - g[0], numeric[1] - g[1]]
-  const levels = mode === 'norm' ? [0.25, 1, 2.25, 4, 6.25, 9, 12.25] : [-8, -6, -4, -2, 0, 2, 4, 6, 8]
+  // equal height steps for both functions, so packed contours mean a long gradient
+  const levels = mode === 'norm' ? Array.from({ length: 12 }, (_, i) => i + 1) : [-8, -6, -4, -2, 0, 2, 4, 6, 8]
+  // label 'w' beside the middle of its arrow, on the side away from the w₁-axis (never next to a tick number)
+  const wl = Math.hypot(w[0], w[1])
+  let nrm: [number, number] = wl > 1e-9 ? [w[1] / wl, w[0] / wl] : [0, -1] // screen-space normal to the arrow
+  if ((w[1] >= 0 && nrm[1] > 0) || (w[1] < 0 && nrm[1] < 0)) nrm = [-nrm[0], -nrm[1]]
   const fmt = (v: number) => (Math.abs(v) < 5e-10 ? '0' : Math.abs(v) < 0.001 ? v.toExponential(1) : v.toFixed(3))
   const half = 0.5
 
@@ -73,11 +79,16 @@ export default function VectorGradientCheck() {
           <Axes origin xLabel="w₁" yLabel="w₂" xTicks={6} yTicks={4} />
           <Clipped>
             {mode === 'dot' && <Arrow from={[0, 0]} to={XV} color="var(--viz-5)" width={2.5} label="x" labelOffset={[6, 14]} />}
-            <Arrow from={[0, 0]} to={w} color="var(--viz-1)" width={2.5} label="w" labelOffset={[-6, 18]} />
+            <Arrow from={[0, 0]} to={w} color="var(--viz-1)" width={2.5} />
             <Arrow from={w} to={[w[0] + g[0] * half, w[1] + g[1] * half]} color="var(--viz-2)" width={3.5} label="∇f" />
           </Clipped>
           <Dots points={[{ x: 0, y: 0, r: 3, color: 'var(--viz-ink)' }]} stroke="none" />
-          <DraggablePoint x={w[0]} y={w[1]} r={8} color="var(--viz-1)" constrain={(a, b) => [snap(a), snap(b)]} onChange={(a, b) => setW([a, b])} />
+          {wl > 0.35 && (
+            <Label x={w[0] / 2} y={w[1] / 2} dx={nrm[0] * 13} dy={nrm[1] * 13 + 4} anchor="middle" color="var(--viz-1)" weight={800}>
+              w
+            </Label>
+          )}
+          <Handle x={w[0]} y={w[1]} r={8} color="var(--viz-1)" ariaLabel="the weight vector w: drag its tip" constrain={(a, b) => [snap(a), snap(b)]} onChange={(a, b) => setW([a, b])} />
         </Plot>
         <div style={{ width: '100%', overflowX: 'auto' }}>
           <table className="tabular" style={{ borderCollapse: 'collapse', fontSize: '0.875rem', width: '100%', minWidth: 0 }}>

@@ -52,6 +52,45 @@ export function contourSegments(f: Fn2, xr: [number, number], yr: [number, numbe
   return out
 }
 
+/**
+ * Join marching-squares segments that share end points into longer polylines, so a dashed
+ * contour is dashed along its whole length (SVG restarts the dash pattern on every new piece).
+ */
+export function chainSegments(segs: Seg[]): [number, number][][] {
+  const key = (p: [number, number]) => `${Math.round(p[0] * 1e6)},${Math.round(p[1] * 1e6)}`
+  const ends = new Map<string, number[]>()
+  segs.forEach(([p, q], i) => {
+    for (const e of [p, q]) {
+      const k = key(e)
+      const list = ends.get(k)
+      if (list) list.push(i)
+      else ends.set(k, [i])
+    }
+  })
+  const used = new Uint8Array(segs.length)
+  const other = (i: number, at: [number, number]): [number, number] => (key(segs[i][0]) === key(at) ? segs[i][1] : segs[i][0])
+  const grow = (line: [number, number][]) => {
+    for (;;) {
+      const tail = line[line.length - 1]
+      const next = (ends.get(key(tail)) ?? []).find((j) => !used[j])
+      if (next === undefined) return
+      used[next] = 1
+      line.push(other(next, tail))
+    }
+  }
+  const out: [number, number][][] = []
+  segs.forEach((s, i) => {
+    if (used[i]) return
+    used[i] = 1
+    const line: [number, number][] = [s[0], s[1]]
+    grow(line)
+    line.reverse()
+    grow(line)
+    out.push(line)
+  })
+  return out
+}
+
 /** Contour lines of f at the given levels, clipped to the plot. */
 export function ContourLines({
   f,

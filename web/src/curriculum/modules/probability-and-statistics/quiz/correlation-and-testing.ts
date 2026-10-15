@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
     options: ['`100 1`', '`100 100`', '`1 1`', '`10000 1`'],
     answer: 0,
     explanation:
-      'Multiplying every height by 100 multiplies each $(x - \\bar{x})$ by 100, so the covariance grows 100 times. The correlation divides by $\\sigma_X$, which also grows 100 times, so the factors cancel and $r$ is unchanged (ratio 1). `100 100` forgets that correlation is unit-free; `10000 1` squares the factor, which would happen to the *variance* of the heights, not to the covariance.',
+      'Multiplying every height by 100 multiplies each $(x - \\bar{x})$ by 100, so the covariance grows 100 times. The correlation divides by $\\sigma_X$, which also grows 100 times, so the factors cancel and $r$ is unchanged (ratio 1). `100 100` forgets that correlation is unit-free; `1 1` wrongly assumes the covariance is unit-free too; `10000 1` squares the factor, which would happen to the *variance* of the heights, not to the covariance.',
     difficulty: 'intermediate',
   },
   {

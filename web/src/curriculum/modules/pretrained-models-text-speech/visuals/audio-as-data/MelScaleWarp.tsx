@@ -55,7 +55,7 @@ export default function MelScaleWarp() {
         </>
       }
     >
-      <Plot x={[0, F_TOP]} y={[0, M_TOP]} width={520} height={240} minHeight={210} margin={{ left: 46, right: 14, top: 26, bottom: 40 }} ariaLabel={`The mel scale curve. A ${step} Hz step from ${start} Hz covers ${dMel.toFixed(0)} mel`}>
+      <Plot x={[0, F_TOP]} y={[0, M_TOP]} width={520} height={240} minHeight={250} margin={{ left: 46, right: 14, top: 26, bottom: 40 }} ariaLabel={`The mel scale curve. A ${step} Hz step from ${start} Hz covers ${dMel.toFixed(0)} mel`}>
         <Grid xTicks={8} yTicks={6} />
         {/* projections of the step onto both axes */}
         <Rect x0={start} x1={f1} y0={0} y1={m1} fill="color-mix(in srgb, var(--viz-2) 13%, transparent)" />
@@ -86,7 +86,7 @@ export default function MelScaleWarp() {
         />
       </Plot>
 
-      <Plot x={[0, F_TOP]} y={[0, 1.25]} width={520} height={140} minHeight={130} margin={{ left: 46, right: 14, top: 12, bottom: 40 }} ariaLabel={`${nMels} triangular mel filters spread over 0 to 8000 Hz`}>
+      <Plot x={[0, F_TOP]} y={[0, 1.08]} width={520} height={150} minHeight={150} margin={{ left: 46, right: 14, top: 26, bottom: 40 }} ariaLabel={`${nMels} triangular mel filters spread over 0 to 8000 Hz`}>
         {tris.map(([lo, c, hi], i) => (
           <Path
             key={i}
@@ -103,7 +103,7 @@ export default function MelScaleWarp() {
         ))}
         <VLine x={start} color="var(--viz-1)" dash="4 3" width={1.5} />
         <Axes xLabel="frequency (Hz)" xTicks={4} hideYTicks tickFormat={kHz} />
-        <Label x={F_TOP} y={1.25} dx={-2} dy={11} anchor="end" color="var(--ink-2)" size={11}>
+        <Label x={F_TOP} y={1.08} dx={-2} dy={-10} anchor="end" color="var(--ink-2)" size={11}>
           {`${nMels} mel filters · highlighted one is ${widthAt.toFixed(0)} Hz wide`}
         </Label>
       </Plot>

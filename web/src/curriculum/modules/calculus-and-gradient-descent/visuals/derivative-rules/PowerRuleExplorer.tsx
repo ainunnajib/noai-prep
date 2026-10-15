@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, DraggablePoint, MBlock } from '../../../../../kit'
-import { TangentSeg, Legend, fx, ft } from '../derivatives-as-slopes/plotHelpers'
+import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, MBlock } from '../../../../../kit'
+import { Handle, TangentSeg, Legend, fx, ft } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   The power rule as a shortcut for the zoom-in picture. The curve c·xⁿ (blue) and the formula
   c·n·xⁿ⁻¹ (orange) share the axes. At the draggable point, the tangent's slope is MEASURED
   numerically (rise over a tiny run) and compared with the formula's value: they always agree,
-  and the orange curve's height equals the blue curve's slope.
+  and the orange curve's height equals the blue curve's slope. The point is kept where the
+  curve is on the chart (|c·xⁿ| ≤ 5.9), so it never disappears off the top or bottom.
 */
 
 const X: [number, number] = [-2, 2]
@@ -35,14 +36,21 @@ export default function PowerRuleExplorer() {
   const [showD, setShowD] = useState(true)
 
   const frac = !Number.isInteger(n)
-  const xMin = frac ? 0.05 : X[0]
-  const xp = Math.max(xMin, x0)
+  // largest |x| at which |c·xⁿ| stays on the chart (|c|·|x|ⁿ grows with |x| for n > 0)
+  const xLim = n > 0 && c !== 0 ? Math.min(X[1], (5.9 / Math.abs(c)) ** (1 / n)) : X[1]
+  const xMin = frac ? 0.05 : Math.max(X[0], -xLim)
+  const xMax = xLim
+  const clampX = (v: number) => Math.max(xMin, Math.min(xMax, v))
+  const xp = clampX(x0)
+  // the point is pinned at the edge of where the curve is still on the chart
+  const atLimit = (xMax < X[1] && xp >= xMax - 1e-9) || (!frac && xMin > X[0] && xp <= xMin + 1e-9)
   const f = (x: number) => c * pow(x, n)
   const d = (x: number) => (n === 0 ? 0 : c * n * pow(x, n - 1))
   const y0 = f(xp)
   const formula = d(xp)
   const hh = 1e-4
-  const measured = frac ? (f(xp + hh) - f(xp)) / hh : (f(xp + hh) - f(xp - hh)) / (2 * hh)
+  // central difference: rise over a tiny run either side (xp ≥ 0.05 ≫ hh, so it is fine for fractional n too)
+  const measured = (f(xp + hh) - f(xp - hh)) / (2 * hh)
   const onChart = Number.isFinite(y0) && y0 >= Y[0] && y0 <= Y[1]
   const dOnChart = Number.isFinite(formula) && formula >= Y[0] && formula <= Y[1]
 
@@ -56,7 +64,7 @@ export default function PowerRuleExplorer() {
       caption={
         <>
           Pick a power <i>n</i> and a coefficient <i>c</i>, then drag the point along the blue curve. The readout measures the tangent&apos;s slope by
-          zooming in (rise over a run of 0.0001) and compares it with the power-rule formula: they always match. The orange curve is the formula itself,
+          zooming in (rise over a tiny run of 0.0001 either side of the point) and compares it with the power-rule formula: they always match. The orange curve is the formula itself,
           so its <b>height</b> at any <i>x</i> equals the blue curve&apos;s <b>slope</b> there. Try <i>n</i> = 1 (a line: constant slope) and <i>n</i> = 0 (a
           constant: slope 0).
         </>
@@ -83,12 +91,14 @@ export default function PowerRuleExplorer() {
         )}
         {onChart && <TangentSeg x={xp} y={y0} slope={measured} len={80} color="var(--viz-3)" width={3} />}
         {onChart && (
-          <DraggablePoint
+          <Handle
             x={xp}
             y={y0}
             color="var(--viz-1)"
+            label="drag"
+            ariaLabel="point on the curve: drag along x"
             constrain={(nx) => {
-              const s = Math.max(xMin, Math.round(nx * 20) / 20)
+              const s = clampX(Math.round(nx * 20) / 20)
               return [s, f(s)]
             }}
             onChange={(nx) => setX0(nx)}
@@ -100,14 +110,16 @@ export default function PowerRuleExplorer() {
         <Slider label="coefficient c" value={c} min={-2} max={3} step={0.5} onChange={setC} />
       </Controls>
       <Controls>
-        <Slider label="x" value={xp} min={xMin} max={X[1]} step={0.05} onChange={setX0} format={(v) => fx(v, 2)} />
+        <Slider label="x" value={xp} min={xMin} max={xMax} step={0.01} onChange={(v) => setX0(clampX(v))} format={(v) => fx(v, 2)} />
         <Toggle label="Show the formula's curve" checked={showD} onChange={setShowD} />
       </Controls>
       <Readout
         items={[
           ['measured slope', Number.isFinite(measured) ? fx(measured, 4) : 'vertical'],
           ['formula c·n·xⁿ⁻¹', Number.isFinite(formula) ? fx(formula, 4) : '∞'],
-          ...(frac ? [['note', 'fractional n: x ≥ 0 only'] as [string, string]] : []),
+          ...(frac || atLimit
+            ? [['note', [frac ? 'fractional n: x ≥ 0 only' : '', atLimit ? 'any further and the curve leaves the chart' : ''].filter(Boolean).join('; ')] as [string, string]]
+            : []),
         ]}
       />
     </Figure>

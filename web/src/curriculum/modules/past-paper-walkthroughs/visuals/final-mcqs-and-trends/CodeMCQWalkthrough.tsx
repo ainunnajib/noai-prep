@@ -6,7 +6,7 @@ import { CodePanel, type LineState } from './CodePanel'
 import { FINAL_ITEMS } from './finalItems'
 
 /*
-  Five 2026 Final MCQs read the way an examiner wrote them. 1) click the line you suspect, 2) answer,
+  Four 2026 Final MCQs read the way an examiner wrote them. 1) click the line you suspect, 2) answer,
   3) step through the reasoning trail: the lines an expert reads, in order, and why each option fails.
   Stems, code and options are verbatim (finalItems.ts is generated from the paper JSON).
 */
@@ -128,62 +128,6 @@ const WALKS: Walk[] = [
     ),
   },
   {
-    n: 8,
-    decisive: [17, 18],
-    trail: [
-      {
-        lines: [20, 22],
-        text: (
-          <>
-            Symptom: training is fine, evaluation is poor. Only one thing differs between the modes: training normalises with the batch&rsquo;s own mean and
-            variance (line 20), evaluation uses the stored running statistics (line 22). Suspect whatever writes those statistics.
-          </>
-        ),
-      },
-      {
-        lines: [6, 7],
-        text: <>They are registered as <b>buffers</b>: state that is saved in <code>state_dict</code> and moved by <code>.to(device)</code>, but never trained.</>,
-      },
-      {
-        lines: [17, 18],
-        text: (
-          <>
-            The update <i>re-assigns</i> a brand-new tensor computed from <code>mean</code>, so the buffer now carries autograd history (we ran it:{' '}
-            <code>requires_grad=True</code>, <code>grad_fn=AddBackward0</code>). PyTorch&rsquo;s own BatchNorm writes into the existing buffer in place, with no
-            gradient tracking.
-          </>
-        ),
-      },
-      {
-        lines: [],
-        text: (
-          <>
-            Why in place matters: when copies of the module run (for example <code>nn.DataParallel</code> replicas), a re-assigned tensor lands on the throw-away
-            copy and is lost, while an in-place write reaches the real buffer. Best practice combines both ideas: update in place inside{' '}
-            <code>torch.no_grad()</code>.
-          </>
-        ),
-      },
-    ],
-    why: [
-      '.detach() removes the gradient history (half of the best fix), but a re-assigned tensor can still be lost when the module runs as a replica.',
-      'PyTorch does store the unbiased variance, but the n/(n−1) factor is tiny; it cannot make predictions poor.',
-      'in-place updates write into the real buffers, so the statistics survive; the option\'s reason ("breaks autograd") is loosely worded.',
-      'false: the code already uses PyTorch\'s convention, (1 − momentum)·running + momentum·batch.',
-    ],
-    concept: <>Buffers are state, not parameters: update them in place under <code>torch.no_grad()</code>.</>,
-    lessons: [
-      { to: 'training-deep-networks/initialisation-and-normalisation', label: 'Initialisation, BatchNorm and LayerNorm' },
-      { to: 'pytorch/modules-and-layers', label: 'nn.Module, layers and saving models' },
-    ],
-    caveat: (
-      <>
-        Low-confidence item. In an ordinary single-GPU loop the original code works (a re-run matched <code>nn.BatchNorm1d</code>), so the stem&rsquo;s symptom only
-        appears in replica-style execution. Learn the principle, not the story.
-      </>
-    ),
-  },
-  {
     n: 10,
     decisive: [7],
     trail: [
@@ -285,7 +229,7 @@ export default function CodeMCQWalkthrough() {
 
   return (
     <Figure
-      title="Five Final MCQs, read line by line"
+      title="Four Final MCQs, read line by line"
       caption={
         <>
           Real 2026 Final questions, word for word. First click the line you suspect, then choose an option, then step through the reasoning trail: the lines an

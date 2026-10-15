@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Segmented, usePlayer, PlayerControls, Plot, Grid, Axes, Path, Dots, Arrow, Label, HLine, M, useNarrow } from '../../../../../kit'
+import { Controls, Segmented, usePlayer, PlayerControls, Plot, Grid, Axes, Path, Dots, Arrow, Label, HLine, M, useNarrow } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { AREA, PRICE, loss, slope, fixed, prefersReducedMotion } from './flats'
 
 /*
@@ -120,8 +121,8 @@ export default function TrainingLoopAnimation() {
   } else if (stage === 1) {
     text = (
       <>
-        <b>2. Measure.</b> Compare with the real prices. The 130 m² flat really sold for {money(yf)}, a miss of <M>{`${fixed(yf, 2)} - ${fixed(w * xf, 2)} = ${fixed(yf - w * xf, 2)}`}</M>. Square
-        every miss and average them: <M>{`\\text{MSE} = ${fixed(L, 2)}`}</M>.
+        <b>2. Measure.</b> Compare with the real prices. The 130 m² flat really sold for {money(yf)}, a miss of <M>{`${fixed(yf, 2)} - ${fixed(w * xf, 2)} = ${fixed(yf - w * xf, 2)}`}</M>,
+        i.e. {money(yf - w * xf)}. Square every miss and average them: <M>{`\\text{MSE} = ${fixed(L, 2)}`}</M> (in the lesson's small units).
       </>
     )
   } else if (stage === 2) {
@@ -199,7 +200,15 @@ export default function TrainingLoopAnimation() {
           <Plot x={[0, STEPS]} y={[0, 30]} width={360} height={270} maxWidth={460} margin={{ left: 40, right: 12 }} ariaLabel={`Loss after each training step; ${measured} measured so far, latest ${fixed(L, 2)}`}>
             <Grid xTicks={4} yTicks={5} />
             <Axes xLabel="step" yLabel="loss" xTicks={4} yTicks={3} />
-            <HLine y={0.1} color="var(--viz-muted)" dash="3 4" width={1} label="lowest possible" />
+            <HLine y={0.1} color="var(--viz-muted)" dash="3 4" width={1} />
+            <Label x={STEPS} y={0.1} dx={-4} dy={-5} anchor="end" color="var(--ink-3)" size={12}>
+              lowest possible
+            </Label>
+            {lossPts.length === 0 && (
+              <Label x={STEPS / 2} y={17} anchor="middle" color="var(--ink-3)" size={12}>
+                each Measure stage adds a point here
+              </Label>
+            )}
             {lossPts.length > 1 && <Path points={lossPts.map((p): [number, number] => [p.x, p.y])} color="var(--viz-1)" width={2} />}
             <Dots points={lossPts.map((p, j) => ({ ...p, r: j === lossPts.length - 1 ? 5.5 : 3.5, color: j === lossPts.length - 1 ? 'var(--viz-2)' : 'var(--viz-1)' }))} stroke="none" />
           </Plot>
@@ -212,7 +221,7 @@ export default function TrainingLoopAnimation() {
           value={speed}
           onChange={setSpeed}
           options={[
-            { value: 'slow', label: 'one stage at a time' },
+            { value: 'slow', label: 'slow' },
             { value: 'fast', label: 'fast' },
           ]}
         />

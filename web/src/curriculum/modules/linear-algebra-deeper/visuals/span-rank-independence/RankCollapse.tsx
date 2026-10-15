@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Figure, Controls, Slider, Segmented, Button, Plot, Grid, Axes, Arrow, Path, Rect, Dots, Label, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Slider, Segmented, Button, Plot, Grid, Axes, Arrow, Path, Rect, Dots, Label, usePlot, useNarrow } from '../../../../../kit'
 import { type M2, type V2, fmt, Smiley, Clip } from '../linear-transformations/la'
 import { type Mat, columns, det, matVec, orthoBasis, rankOf, makeProj } from './linalg'
 import s from './sri.module.css'
@@ -35,10 +35,14 @@ const DEFAULTS: Record<Shape, Mat> = {
 const COL = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-4)']
 const clone = (M: Mat) => M.map((r) => r.slice())
 
+/** Entries are rounded to 2 decimal places and kept within ±9; an empty cell counts as 0. */
+const cleanEntry = (v: number) => Math.round(Math.max(-9, Math.min(9, v)) * 100) / 100
+
 function NumCell({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
   const [text, setText] = useState(String(value))
   useEffect(() => {
-    if (parseFloat(text) !== value) setText(String(value))
+    const shown = text.trim() === '' ? 0 : parseFloat(text)
+    if (!(Number.isFinite(shown) && cleanEntry(shown) === value)) setText(String(value))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
   return (
@@ -48,10 +52,15 @@ function NumCell({ value, onChange, label }: { value: number; onChange: (v: numb
       className={s.edCell}
       value={text}
       aria-label={label}
+      onBlur={() => {
+        // tidy the text once the learner leaves the cell (e.g. an empty cell shows 0)
+        if (text.trim() === '' || cleanEntry(parseFloat(text)) !== parseFloat(text)) setText(String(value))
+      }}
       onChange={(e) => {
         setText(e.target.value)
-        const v = parseFloat(e.target.value)
-        if (Number.isFinite(v)) onChange(Math.max(-9, Math.min(9, v)))
+        const raw = e.target.value.trim()
+        const v = raw === '' ? 0 : parseFloat(raw)
+        if (Number.isFinite(v)) onChange(cleanEntry(v))
       }}
     />
   )
@@ -76,6 +85,42 @@ function cubeImage(M: Mat) {
         faces.push([rest, rest | (1 << j), rest | (1 << j) | (1 << k), rest | (1 << k)])
       }
   return { verts, edges, faces }
+}
+
+/** "col j" labels at the arrow tips, nudged apart vertically when two tips are close on screen. */
+function ColLabels({ tips }: { tips: V2[] }) {
+  const { xs, ys } = usePlot()
+  const placed: { x: number; y: number; anchor: 'start' | 'end'; j: number }[] = []
+  tips.forEach((tip, j) => {
+    const px = xs(tip[0])
+    const py = ys(tip[1])
+    if (Math.hypot(px - xs(0), py - ys(0)) < 4) return
+    const left = tip[0] < 0
+    const x = px + (left ? -7 : 7)
+    let y = py + (tip[1] < 0 ? 15 : -7)
+    // the text "col j" is about 40 px wide: [x, x + 40] when anchored at its start, [x − 40, x] at its end.
+    // Move it down a line until it no longer overlaps an earlier label.
+    const span = (q: { x: number; anchor: 'start' | 'end' }) => (q.anchor === 'start' ? [q.x, q.x + 42] : [q.x - 42, q.x])
+    const mine = span({ x, anchor: left ? 'end' : 'start' })
+    for (let tries = 0; tries < 4; tries++) {
+      const clash = placed.find((q) => {
+        const o = span(q)
+        return Math.abs(q.y - y) < 14 && o[0] < mine[1] && mine[0] < o[1]
+      })
+      if (!clash) break
+      y = clash.y + 15
+    }
+    placed.push({ x, y, anchor: left ? 'end' : 'start', j })
+  })
+  return (
+    <g aria-hidden="true">
+      {placed.map((p) => (
+        <text key={p.j} className="plot-label" x={p.x} y={p.y} textAnchor={p.anchor} style={{ fill: COL[p.j], fontWeight: 750 }}>
+          {`col ${p.j + 1}`}
+        </text>
+      ))}
+    </g>
+  )
 }
 
 export default function RankCollapse() {
@@ -125,11 +170,11 @@ export default function RankCollapse() {
   const span = (() => {
     if (r === 0) return <Dots points={[{ x: 0, y: 0, r: 8, color: 'var(--viz-3)' }]} />
     if (m === 2 && r === 2) return <Rect x0={-LIM} x1={LIM} y0={-LIM} y1={LIM} fill="color-mix(in srgb, var(--viz-3) 10%, transparent)" />
-    if (r === 1) {
+    if (r === 1 && basis.length >= 1) {
       const b = basis[0]
       return <Path points={[S(b.map((x) => -L * x)), S(b.map((x) => L * x))]} color="color-mix(in srgb, var(--viz-3) 50%, transparent)" width={9} />
     }
-    if (m === 3 && r === 2) {
+    if (m === 3 && r === 2 && basis.length >= 2) {
       const [b1, b2] = basis
       const k = 3.2
       const corner = (s1: number, s2: number) => S(b1.map((x, i) => k * s1 * x + k * s2 * b2[i]))
@@ -221,7 +266,8 @@ export default function RankCollapse() {
       title="Rank: how many dimensions survive?"
       caption={
         <>
-          The coloured arrows are the columns of <i>A</i>; every output <i>Ax</i> is a combination of them, so the outputs fill their span (shaded green). Type
+          The coloured arrows are the columns of <i>A</i>; every output <i>Ax</i> is a combination of them, so the outputs fill their span (shaded green). The
+          violet shape is where the unit square (or, in 3-D, the unit cube) lands. Type
           in entries or press <b>column 2 = 2 × column 1</b> and watch the output collapse and the rank drop. Switch shape: with 2 rows the columns live in a
           plane, so rank can never pass 2 however many columns you add; with 2 columns you can only ever reach a plane, even in 3-D. In 3-D, turn the view to
           check that a flattened shape really is flat.
@@ -290,19 +336,10 @@ export default function RankCollapse() {
               <Path key={`e${i}`} points={[S(img.verts[p]), S(img.verts[q])]} color="var(--viz-5)" width={1.6} />
             ))}
             {shape === '2x2' && r > 0 && <Smiley m={M as M2} cx={-0.8} cy={-0.9} r={0.6} />}
-            {cols.map((c, j) => {
-              const tip = S(c)
-              return (
-                <g key={j}>
-                  <Arrow from={[0, 0]} to={tip} color={COL[j]} width={3.5} head={10} />
-                  {Math.hypot(tip[0], tip[1]) > 0.05 && (
-                    <Label x={tip[0]} y={tip[1]} dx={tip[0] < 0 ? -6 : 6} dy={tip[1] < 0 ? 14 : -6} anchor={tip[0] < 0 ? 'end' : 'start'} color={COL[j]}>
-                      {`col ${j + 1}`}
-                    </Label>
-                  )}
-                </g>
-              )
-            })}
+            {cols.map((c, j) => (
+              <Arrow key={j} from={[0, 0]} to={S(c)} color={COL[j]} width={3.5} head={10} />
+            ))}
+            <ColLabels tips={cols.map(S)} />
           </Clip>
         </Plot>
       </div>

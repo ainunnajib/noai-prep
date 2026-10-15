@@ -62,8 +62,9 @@ export default function GradAccumulation() {
       title="Gradient accumulation: four small backward() calls, one step"
       caption={
         <>
-          Each arrow is one micro-batch's gradient <M>{'(\\partial L/\\partial w,\\ \\partial L/\\partial b)'}</M>, added onto <code>.grad</code> by <code>loss.backward()</code>. The dashed arrow
-          is the gradient of one real batch of all 8 examples. With the division switched off, the four mean-gradients add up to <b>4 times</b> too much. Switch on{' '}
+          Toy version: a batch of 8 examples split into 4 micro-batches of 2 (the text's 32 = 4 × 8 works the same way). Each arrow is one micro-batch's
+          gradient <M>{'(\\partial L/\\partial w,\\ \\partial L/\\partial b)'}</M>, added onto <code>.grad</code> by <code>loss.backward()</code>. The dashed
+          arrow is the gradient of the full batch, all 8 examples at once. With the division switched off, the four mean-gradients add up to <b>4 times</b> too much. Switch on{' '}
           <code>loss = loss / 4</code> and the sum lands exactly on the dashed arrow. Use the buttons to replay the loop. (Model <M>{'\\hat y = wx + b'}</M> at <M>{'w = b = 0'}</M>, mean squared error.)
         </>
       }
@@ -78,7 +79,9 @@ export default function GradAccumulation() {
           ∂L/∂b
         </Label>
         <Arrow from={[0, 0]} to={G} color="var(--ink-2)" width={2.2} dash="5 4" />
-        {!divide && <ArrowLabel from={[0, 0]} to={G} text="batch of 8" color="var(--ink-2)" off={16} />}
+        <Label x={G[0]} y={G[1]} dx={-12} dy={-9} anchor="end" size={12} weight={700} color="var(--ink-2)">
+          full batch (all 8)
+        </Label>
         {divide &&
           MICRO.slice(0, k).map((m, i) => {
             const a = MICRO.slice(0, i).reduce<[number, number]>((p, q) => [p[0] + q.g[0], p[1] + q.g[1]], [0, 0])
@@ -98,14 +101,14 @@ export default function GradAccumulation() {
         <Label
           x={grad[0]}
           y={grad[1]}
-          dx={grad[0] < -8 ? 10 : -10}
-          dy={18}
-          anchor={grad[0] < -8 ? 'start' : 'end'}
+          dx={k === 0 ? 10 : grad[0] < -8 ? 10 : -10}
+          dy={k === 0 ? -10 : 18}
+          anchor={k === 0 || grad[0] < -8 ? 'start' : 'end'}
           size={12.5}
           weight={750}
           color={done ? (divide ? 'var(--ok)' : 'var(--bad)') : 'var(--ink)'}
         >
-          {done ? (divide ? '.grad = batch of 8 ✓' : '.grad: 4 × too big') : '.grad so far'}
+          {done ? (divide ? '.grad = full batch ✓' : '.grad: 4 × too big') : '.grad so far'}
         </Label>
       </Plot>
       </div>
@@ -155,8 +158,8 @@ export default function GradAccumulation() {
       <Readout
         items={[
           ['.grad', vec(grad)],
-          ['batch-of-8 gradient', vec(G)],
-          ['.grad ÷ batch-of-8', ratio == null ? `after ${k} of 4` : `${ratio.toFixed(2)}×`],
+          ['full-batch gradient', vec(G)],
+          ['.grad ÷ full batch', ratio == null ? `after ${k} of 4` : `${ratio.toFixed(2)}×`],
           ['step (lr 0.1) moves (w, b) to', done ? vec([-LR * grad[0], -LR * grad[1]]) : 'not yet'],
         ]}
       />

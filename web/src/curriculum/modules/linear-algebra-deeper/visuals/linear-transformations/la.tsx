@@ -77,10 +77,83 @@ export function describe(m: M2): string {
   if (near(b, 0) && near(c, 0)) return `scaling: x × ${fmt(a)}, y × ${fmt(d)}${D < 0 ? ' (with a flip)' : ''}`
   if (near(a, 1) && near(d, 1) && near(c, 0)) return `horizontal shear by ${fmt(b)}`
   if (near(a, 1) && near(d, 1) && near(b, 0)) return `vertical shear by ${fmt(c)}`
+  // perpendicular columns of equal length: a turn (or a mirror) combined with an even scaling
+  if (perp && near(a * a + c * c, b * b + d * d)) {
+    const sc = fmt(Math.sqrt(a * a + c * c))
+    if (D > 0) {
+      const ang = Math.round((Math.atan2(c, a) * 180) / Math.PI)
+      return `${ang >= 0 ? `rotation by ${ang}° anticlockwise` : `rotation by ${-ang}° clockwise`} and scaling × ${sc}`
+    }
+    return `reflection and scaling × ${sc}`
+  }
   return D < 0 ? 'a mix of stretch, turn and shear, with a flip' : 'a mix of stretch, turn and shear'
 }
 
+/**
+ * The in-between matrix shown while a move is played from I to `target` (f from 0 to 1).
+ * A turn (possibly with an even scaling) turns through part of its angle, so lengths never dip
+ * on the way; any other move blends the entries in a straight line.
+ */
+export function morphM(target: M2, f: number): M2 {
+  const [[a, b], [c, d]] = target
+  const n1 = a * a + c * c
+  const n2 = b * b + d * d
+  const perp = Math.abs(a * b + c * d) < 1e-9
+  if (perp && Math.abs(n1 - n2) < 1e-9 && det(target) > 1e-9) {
+    const ang = (Math.atan2(c, a) * 180) / Math.PI
+    if (Math.abs(ang) > 1e-9) {
+      const k = 1 + (Math.sqrt(n1) - 1) * f
+      const r = rot(ang * f)
+      return [
+        [k * r[0][0], k * r[0][1]],
+        [k * r[1][0], k * r[1][1]],
+      ]
+    }
+  }
+  return lerpM(I2, target, f)
+}
+
 /* ---------------- drawing pieces (use inside <Plot>) ---------------- */
+
+/**
+ * A label for the tip of an arrow from the origin, set off to the SIDE of the arrow (not past its
+ * tip), on the side away from `away`, so dashed guides that run along the arrow never cross it.
+ */
+export function TipLabel({ tip, away, text, color }: { tip: V2; away?: V2; text: string; color: string }) {
+  const { xs, ys } = usePlot()
+  const ox = xs(0)
+  const oy = ys(0)
+  const px = xs(tip[0])
+  const py = ys(tip[1])
+  let dx = px - ox
+  let dy = py - oy
+  const len = Math.hypot(dx, dy)
+  if (len < 1e-6) {
+    dx = 1
+    dy = 0
+  } else {
+    dx /= len
+    dy /= len
+  }
+  let nx = -dy
+  let ny = dx
+  if (away) {
+    const ax = xs(away[0]) - ox
+    const ay = ys(away[1]) - oy
+    if (nx * ax + ny * ay > 0) {
+      nx = -nx
+      ny = -ny
+    }
+  }
+  const x = px + nx * 17 + dx * 4
+  const y = py + ny * 17 + dy * 4 + (ny > 0.35 ? 9 : ny < -0.35 ? 0 : 4)
+  const anchor = nx > 0.35 ? 'start' : nx < -0.35 ? 'end' : 'middle'
+  return (
+    <text className="plot-label" x={x} y={y} textAnchor={anchor} style={{ fill: color, fontWeight: 750 }} aria-hidden="true">
+      {text}
+    </text>
+  )
+}
 
 /** Clip children to the plot area (the kit's Dots, Arrow and Label are not clipped on their own). */
 export function Clip({ children }: { children: ReactNode }) {

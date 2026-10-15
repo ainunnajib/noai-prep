@@ -21,8 +21,33 @@ function fmtExpected(v: number): string {
   if (v >= 10) return v.toFixed(0)
   if (v >= 1) return v.toFixed(1)
   if (v >= 0.01) return v.toFixed(2)
-  const e = Math.floor(Math.log10(v))
-  return `${Math.round(v / 10 ** e)} × ${pow10(e)}`
+  let e = Math.floor(Math.log10(v))
+  let m = Math.round(v / 10 ** e)
+  // rounding the mantissa can give 10 (e.g. 9.5e-4): renormalise to 1 × 10^(e+1)
+  if (m >= 10) {
+    m = 1
+    e += 1
+  }
+  return `${m} × ${pow10(e)}`
+}
+
+/** the right-hand chart's floor, in log10 units (0.0004 neighbours) */
+const FLOOR = -3.4
+
+/** downward triangles sitting on the floor: "this value is below the bottom of the chart" */
+function OffChart({ ds, current }: { ds: number[]; current: number }) {
+  const { xs, ys } = usePlot()
+  const yb = ys(FLOOR)
+  return (
+    <g aria-hidden="true">
+      {ds.map((x) => {
+        const r = x === current ? 6.5 : 4
+        const cx = xs(x)
+        const cy = yb - r - 1
+        return <path key={x} d={`M${cx - r},${cy - r * 0.7}L${cx + r},${cy - r * 0.7}L${cx},${cy + r}Z`} style={{ fill: 'var(--viz-2)', stroke: 'var(--surface)', strokeWidth: 1 }} />
+      })}
+    </g>
+  )
 }
 
 const logTick = (v: number) => {
@@ -95,7 +120,12 @@ export default function DimensionFill() {
 
   const frac = s ** d
   const expected = N * frac
-  const curve: [number, number][] = Array.from({ length: DMAX }, (_, k) => [k + 1, Math.max(-3.4, Math.log10(N * s ** (k + 1)))])
+  const raw: [number, number][] = Array.from({ length: DMAX }, (_, k) => [k + 1, Math.log10(N * s ** (k + 1))])
+  const firstOff = raw.findIndex(([, y]) => y < FLOOR)
+  const onChart = firstOff < 0 ? raw : raw.slice(0, firstOff)
+  const offChart = firstOff < 0 ? [] : raw.slice(firstOff).map(([x]) => x)
+  // the line runs down to the floor at the first off-chart d, then stops: the values keep falling below the chart
+  const line: [number, number][] = firstOff < 0 ? raw : [...onChart, [raw[firstOff][0], FLOOR]]
   const found = inside.length
 
   return (
@@ -151,7 +181,7 @@ export default function DimensionFill() {
           <div style={small}>Expected neighbours out of 1,000</div>
           <Plot
             x={[0.5, DMAX + 0.5]}
-            y={[-3.4, 3.2]}
+            y={[FLOOR, 3.2]}
             width={320}
             height={320}
             maxWidth={380}
@@ -163,12 +193,13 @@ export default function DimensionFill() {
             <LogYTicks from={-3} to={3} />
             <HLine y={0} color="var(--viz-neg)" label="1 neighbour" />
             <VLine x={d} color="var(--viz-muted)" />
-            <Path points={curve} color="var(--viz-2)" width={2.5} />
-            <Dots points={curve.map(([x, y]) => ({ x, y, r: x === d ? 6.5 : 2.6, color: 'var(--viz-2)' }))} />
+            <Path points={line} color="var(--viz-2)" width={2.5} />
+            <Dots points={onChart.map(([x, y]) => ({ x, y, r: x === d ? 6.5 : 2.6, color: 'var(--viz-2)' }))} />
+            <OffChart ds={offChart} current={d} />
             {found > 0 ? (
               <DotCloud pts={[[d, Math.log10(found)]]} r={9} style={{ fill: 'none', stroke: 'var(--viz-1)', strokeWidth: 2.2 }} />
             ) : (
-              <Label x={d} y={-3.4} dy={-6} dx={d > 14 ? -6 : 6} anchor={d > 14 ? 'end' : 'start'} color="var(--viz-1)">
+              <Label x={d} y={FLOOR} dy={offChart.includes(d) ? -18 : -6} dx={d > 14 ? -6 : 6} anchor={d > 14 ? 'end' : 'start'} color="var(--viz-1)">
                 0 found
               </Label>
             )}
@@ -186,6 +217,11 @@ export default function DimensionFill() {
             <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
               <Swatch kind="look" /> actually found in this sample
             </span>
+            {offChart.length > 0 && (
+              <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                <b style={{ color: 'var(--viz-2)' }}>▼</b> below 0.0004: off the chart, still falling
+              </span>
+            )}
           </div>
         </div>
       </div>

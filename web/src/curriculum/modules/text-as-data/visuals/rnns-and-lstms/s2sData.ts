@@ -1,6 +1,6 @@
 /*
-  Real results of a small experiment (PyTorch 2.14, CPU): GRU encoder–decoders trained to write out
-  a sequence of 4–40 random symbols from a 20-symbol vocabulary (a toy 'translation'), one model
+  Real results of a small experiment (PyTorch 2.14, CPU): GRU encoder–decoders trained to copy a
+  random sequence of 4–40 symbols from a 20-symbol vocabulary (a toy stand-in for translation), one model
   per hidden size and with/without dot-product attention; 6,000 Adam steps of 64 sequences each.
   Values: % of output symbols correct with greedy decoding on 400 new test sequences per length.
 */

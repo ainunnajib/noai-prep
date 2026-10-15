@@ -67,6 +67,33 @@ const codeStyle: CSSProperties = {
   overflowX: 'auto',
 }
 
+/** Both times as bars on one scale: visible at rest, so the gap never looks like a tie. */
+function TimeBars({ loopMs, npMs }: { loopMs: number; npMs: number }) {
+  const rows: [string, number, string][] = [
+    ['Python loop', loopMs, 'var(--viz-2)'],
+    ['NumPy', npMs, 'var(--viz-1)'],
+  ]
+  return (
+    <div style={{ width: '100%', display: 'grid', gap: '0.3rem' }}>
+      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)' }}>Time taken, drawn to the same scale</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: '0.3rem 0.6rem', alignItems: 'center', fontSize: '0.82rem' }}>
+        {rows.map(([name, ms, colour]) => (
+          <div key={name} style={{ display: 'contents' }}>
+            <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{name}</span>
+            <div style={{ height: 12, borderRadius: 6, background: 'var(--surface-2)' }} role="img" aria-label={`${name}: ${fmtTime(ms)}`}>
+              <div style={{ width: `${(ms / loopMs) * 100}%`, minWidth: 3, height: '100%', borderRadius: 6, background: colour }} />
+            </div>
+            <span className="tabular" style={{ fontWeight: 700, color: colour, textAlign: 'right' }}>
+              {fmtTime(ms)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: '0.78rem', color: 'var(--ink-3)' }}>ms = millisecond, a thousandth of a second; µs = microsecond, a millionth of a second (1 ms = 1000 µs).</div>
+    </div>
+  )
+}
+
 function Lane({ title, code, colour, frac, ms, n, done }: { title: string; code: string; colour: string; frac: number; ms: number; n: number; done: boolean }) {
   return (
     <div style={{ display: 'grid', gap: '0.35rem', width: '100%' }}>
@@ -122,7 +149,8 @@ export default function SpeedRace() {
       caption={
         <>
           Pick an operation and a size, then press <b>Race</b> to replay the measured times in slow motion (the loop's time is stretched to 3
-          seconds and NumPy's is stretched by the same factor). The vectorised line wins by tens of times. These times were measured once on
+          seconds and NumPy's is stretched by the same factor). The time bars under the race show the same gap at a glance: the vectorised line
+          wins by tens of times. These times were measured once on
           a test machine; your own computer will differ, but the gap will be similar. Time it yourself in the code runner below.
         </>
       }
@@ -145,6 +173,7 @@ export default function SpeedRace() {
       </Controls>
       <Lane title="Python for-loop over a list" code={CODE[op].loop} colour="var(--viz-2)" frac={loopFrac} ms={loopMs} n={n} done={loopFrac >= 1} />
       <Lane title="NumPy, vectorised" code={CODE[op].np} colour="var(--viz-1)" frac={npFrac} ms={npMs} n={n} done={npFrac >= 1} />
+      <TimeBars loopMs={loopMs} npMs={npMs} />
       <Readout
         items={[
           ['loop', fmtTime(loopMs)],

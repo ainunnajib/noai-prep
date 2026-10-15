@@ -1,30 +1,26 @@
 import DistanceMatrixHeatmap from './visuals/from-scratch-patterns/DistanceMatrixHeatmap'
 import ArgOpsPlayground from './visuals/from-scratch-patterns/ArgOpsPlayground'
 import OutputFormatChecker from './visuals/from-scratch-patterns/OutputFormatChecker'
-import { KMEANS_CODE } from './visuals/from-scratch-patterns/snippets'
+import { KMEANS_CODE, CHEAT_SHEET_CODE } from './visuals/from-scratch-patterns/snippets'
 
-In the Final you will implement classic algorithms (K-means, k-nearest neighbours, an evaluation metric, a boosting step) inside a prepared Jupyter notebook, and hidden tests will check what your functions return. The maths is usually the easy part. What costs marks is turning "for every point, for every centroid…" into array code, and returning the answer in *exactly* the format the test expects. This lesson is a toolbox of ten NumPy moves that cover most of that work.
+In the Final you implement classic algorithms (K-means, k-nearest neighbours, an evaluation metric, a boosting step) inside a prepared Jupyter notebook, and hidden tests check what your functions return. The maths is usually the easy part. What costs marks is turning "for every point, for every centroid…" into array code, and returning *exactly* the format the test expects. This lesson is a toolbox of ten NumPy moves for that work, collected in a cheat sheet at the end.
 
 <Analogy title="The distance table on the MRT map">
 
-Nobody works out the distance between two MRT stations from scratch each time: there is one table listing every station against every other station, and you just read off the cell you need. Most from-scratch algorithms start the same way: build the whole table of distances in one go, then read the answers off it.
+Nobody works out the distance between two MRT stations from scratch each time: one table lists every station against every other, and you read off the cell you need. Most from-scratch algorithms start the same way: build the whole table of distances in one go, then read the answers off it.
 
 </Analogy>
 
-## The ten moves
+<Note title="The two algorithms in this lesson">
 
-Here is the whole toolbox at a glance; the rest of the lesson takes the moves one group at a time.
+Later modules cover both; for now, just know what they do.
 
-1. **Every pairwise difference:** `X[:, None, :] - C[None, :, :]`. *K-means, kNN.*
-2. **Distances (square, sum over features, root):** `np.sqrt((diff ** 2).sum(axis=-1))`. *K-means, kNN.*
-3. **The nearest one per row:** `D.argmin(axis=1)`. *K-means assignment.*
-4. **The k nearest per row:** `np.argsort(D, axis=1)[:, :k]`. *kNN.*
-5. **Average one group with a mask:** `X[labels == j].mean(axis=0)`. *K-means update.*
-6. **Count classes, take a vote:** `np.unique(y, return_counts=True)` or `np.bincount(y)`. *kNN vote, class balance.*
-7. **Choose element by element:** `np.where(cond, a, b)`. *Thresholds, ReLU.*
-8. **Signs and medians:** `np.sign(r)`, `np.median(r)`. *Boosting with absolute error.*
-9. **Metrics in one line:** `(pred == y).mean()`, `((pred - y) ** 2).mean()`. *Accuracy, MSE.*
-10. **Return the exact format:** `np.round(x, 4)`, `.tolist()`, `float(x)`. *Every graded function.*
+- **K-means** sorts unlabelled points into $k$ groups (clusters). Put down $k$ centre points, give every point to its nearest centre, move each centre to the average of its points, and repeat until nothing changes.
+- **k-nearest neighbours (kNN)** labels a new point by finding the $k$ labelled points closest to it and taking a vote among their labels.
+
+Both begin with the same job: measuring a lot of distances.
+
+</Note>
 
 ## Moves 1 to 3: every distance at once
 
@@ -38,24 +34,34 @@ $$
 - $f$ runs over the $d$ features. $X_{if} - C_{jf}$ is the gap between point $i$ and centroid $j$ in feature $f$.
 - Square the gaps, add them up, take the square root: Pythagoras in $d$ dimensions, the <Term def="The straight-line distance between two points: the square root of the sum of squared differences in each coordinate.">Euclidean distance</Term>.
 
-The beginner's version is a double loop. It is correct, but slow in Python, and its loops are easy to get wrong:
+The beginner's version is a correct but slow double loop:
 
 ```python
 D = np.zeros((n, k))
 for i in range(n):
     for j in range(k):
-        D[i, j] = np.sqrt(((X[i] - C[j]) ** 2).sum())
+        diff = X[i] - C[j]
+        sq = (diff ** 2).sum()
+        D[i, j] = np.sqrt(sq)
 ```
 
 The NumPy version builds all $n \times k$ differences in one broadcast:
 
 ```python
-diff = X[:, None, :] - C[None, :, :]       # (n, 1, d) - (1, k, d) -> (n, k, d)
-D = np.sqrt((diff ** 2).sum(axis=-1))      # sum over the d features -> (n, k)
-labels = D.argmin(axis=1)                  # nearest centroid for each point -> (n,)
+# (n, d) -> (n, 1, d)
+A = X[:, None, :]
+# (k, d) -> (1, k, d)
+B = C[None, :, :]
+# (n, k, d): every X[i] - C[j]
+diff = A - B
+# sum over the d features -> (n, k)
+sq = (diff ** 2).sum(axis=-1)
+D = np.sqrt(sq)
+# nearest centroid -> (n,)
+labels = D.argmin(axis=1)
 ```
 
-`X[:, None, :]` inserts a length-1 axis in the middle, turning $(n, d)$ into $(n, 1, d)$; `C[None, :, :]` turns $(k, d)$ into $(1, k, d)$. Lined up from the right, $d$ matches $d$, and the two 1s stretch, so `diff[i, j]` is exactly `X[i] - C[j]`, for every pair.
+`X[:, None, :]` inserts a length-1 axis in the middle, turning $(n, d)$ into $(n, 1, d)$; `C[None, :, :]` turns $(k, d)$ into $(1, k, d)$. Lined up from the right, $d$ matches $d$, and the two 1s stretch, so `diff[i, j]` is exactly `X[i] - C[j]`, for every pair. In one line: `X[:, None, :] - C[None, :, :]`.
 
 <DistanceMatrixHeatmap />
 
@@ -89,15 +95,28 @@ labels = D.argmin(axis=1)                  # nearest centroid for each point -> 
 
 ## Moves 4 to 6: neighbours, groups and votes
 
-**k-nearest neighbours.** To classify test points, build the distance matrix from every test point to every training point, shape $(m, n)$, then keep the $k$ closest. `np.argsort` returns the positions that would sort each row, so its first $k$ columns are the nearest neighbours. Indexing the training labels with that $(m, k)$ array of positions gives each point's $k$ neighbour labels, and a vote decides.
+**k-nearest neighbours.** To classify test points, build the distance matrix from every test point to every training point, shape $(m, n)$, then keep the $k$ closest. `np.argsort` returns the positions that would sort each row, so its first $k$ columns are the nearest neighbours. Indexing the training labels with these positions gives each point's neighbour labels, and a vote decides.
 
 ```python
-idx = np.argsort(D, axis=1)[:, :3]     # (m, 3): positions of the 3 nearest training points
-votes = y_train[idx]                   # (m, 3): their labels
-pred = np.array([np.bincount(v).argmax() for v in votes])
+# (m, 3): the 3 nearest neighbours
+idx = np.argsort(D, axis=1)[:, :3]
+# (m, 3): their labels
+votes = y_train[idx]
+# (m,): most common label per row
+pred = np.array(
+    [np.bincount(v).argmax()
+     for v in votes])
 ```
 
 `np.bincount(v)` counts how many times each whole number 0, 1, 2, … appears in `v`, so `.argmax()` of it is the most common label. `np.unique(y, return_counts=True)` does the same job for any labels and returns the sorted distinct values with their counts.
+
+<Note title="Big data and ties">
+
+The broadcast builds the whole $(m, n, d)$ difference array before it sums: for MNIST (10,000 test and 60,000 training images of 784 pixels, in float64) that is about 3.8 TB. Handle the test points in chunks, or use $\lVert x - c \rVert^2 = \lVert x \rVert^2 + \lVert c \rVert^2 - 2\, x \cdot c$, which needs just one matrix product.
+
+When two distances tie, `np.argsort`'s default sort may put them in either order. Pass `kind='stable'` when the lower index must come first, as exact-match graders usually expect.
+
+</Note>
 
 <PastPaperQuestion paper="prelim2026" n={140} />
 
@@ -105,12 +124,15 @@ pred = np.array([np.bincount(v).argmax() for v in votes])
 
 ```python
 for j in range(k):
-    mask = labels == j                 # (n,) True where the point belongs to cluster j
-    if mask.any():                     # an empty cluster would give nan
-        C[j] = X[mask].mean(axis=0)    # (d,): the average point of cluster j
+    # (n,): True if in cluster j
+    mask = labels == j
+    # an empty cluster gives nan
+    if mask.any():
+        # (d,): mean of cluster j
+        C[j] = X[mask].mean(axis=0)
 ```
 
-A short loop over the $k$ clusters is fine: $k$ is small, and the expensive $n \times k$ part is already vectorised. The `if` matters: if no point chose centroid $j$, `X[mask]` has shape $(0, d)$ and its mean is an array of `nan` ("not a number") with the warning `RuntimeWarning: Mean of empty slice`. Keeping the old centroid (or re-seeding it) is the usual fix.
+A short loop over the $k$ clusters is fine: $k$ is small, and the expensive $n \times k$ part is already vectorised. The `if` matters: if no point chose centroid $j$, `X[mask]` has shape $(0, d)$ and its mean is `nan` ("not a number"), so keep the old centroid instead. And `C` must be a **float** array: if it was copied from whole-number data, `C[j] = ...` silently cuts the means down to whole numbers, so start from `X[idx].astype(float)`.
 
 ## Moves 7 to 9: arg-functions, where, sign
 
@@ -120,7 +142,9 @@ A few facts that the playground makes visible:
 
 - `argmax`/`argmin` return a **position**; `max`/`min` return a **value**. For cluster assignment you need the position. With ties, the *first* position wins.
 - `np.where(cond, a, b)` picks from `a` where `cond` is True and from `b` elsewhere: `np.where(p >= 0.5, 1, 0)` turns probabilities into class predictions, and `np.where(z > 0, z, 0)` is ReLU.
-- `np.sign(r)` gives $-1$, $0$ or $1$. In gradient boosting with the absolute-error loss $|y - F|$, the direction to move each prediction $F$ is `np.sign(y - F)`, and the best single constant prediction is the <Term def="The middle value once the numbers are sorted; with an even count, the average of the two middle values.">median</Term> of `y` (`np.median`), just as for squared error it is the **mean**.
+- `np.sign(r)` gives $-1$, $0$ or $1$. If `r = y - guess`, it says which way to nudge each guess: $+1$ means too low (move up), $-1$ too high, $0$ spot on.
+- To pick **one** number $c$ to stand for every value in `y`, the <Term def="The middle value once the numbers are sorted; with an even count, the average of the two middle values.">median</Term> (`np.median(y)`) makes the total gap $\sum |y_i - c|$ smallest, and the **mean** makes the total *squared* gap $\sum (y_i - c)^2$ smallest. One extreme value drags the mean a long way but barely moves the median.
+- `np.clip(a, lo, hi)` squeezes values into a range: `np.clip(p, 1e-7, 1 - 1e-7)` keeps probabilities away from exactly 0 and 1, where `np.log` would give `-inf`.
 - Metrics are one line each: accuracy `(pred == y).mean()` (True counts as 1), mean squared error `((pred - y) ** 2).mean()`, mean absolute error `np.abs(pred - y).mean()`.
 
 <QuickCheck
@@ -132,21 +156,77 @@ A few facts that the playground makes visible:
 
 <PastPaperQuestion paper="prelim2026" n={47} />
 
-Put moves 1 to 5 together and you have K-means. Run it and watch the labels and centroids settle; then try changing the starting centroids `C`.
+## Putting the moves together: K-means
+
+Moves 1, 2, 3 and 5 make K-means. Run it and watch the labels and centroids settle; then try other starting centroids `C`.
 
 <PyRunner packages={['numpy']} code={KMEANS_CODE} />
 
+<Reveal label="Show the expected output">
+
 ```text
-0 [0 1 1 1 1 1 1] [[1.0, 1.0], [3.5, 4.5833]]
-1 [0 0 1 1 1 1 1] [[1.25, 1.5], [3.9, 5.1]]
-2 [0 0 1 1 1 1 1] [[1.25, 1.5], [3.9, 5.1]]
+0 [0 1 1 1 1 1 1]
+[[1.0, 1.0], [3.5, 4.5833]]
+1 [0 0 1 1 1 1 1]
+[[1.25, 1.5], [3.9, 5.1]]
+2 [0 0 1 1 1 1 1]
+[[1.25, 1.5], [3.9, 5.1]]
 ```
 
-By step 1 the labels stop changing, so the centroids stop moving: K-means has converged.
+</Reveal>
+
+Step 2 gives the same labels as step 1, so the centroids no longer move: K-means has converged. A real loop would stop as soon as the labels repeat.
+
+### Random starts you can repeat
+
+Here the start was simply the first two points; usually it is **random**. A computer's random numbers follow a recipe that begins at a number called the <Term def="The starting number of a random number generator. The same seed always produces the same sequence of 'random' numbers.">seed</Term>, and the same seed always gives the same numbers, so you, and a grader, can reproduce a "random" result exactly.
+
+```python
+import numpy as np
+
+# a generator started from seed 0
+rng = np.random.default_rng(0)
+# 5 whole numbers from 0 to 9
+print(rng.integers(0, 10, size=5))
+# same seed, same numbers
+rng = np.random.default_rng(0)
+print(rng.integers(0, 10, size=5))
+# 2 numbers from a bell curve
+print(rng.normal(0, 1, size=2))
+# 0 to 5 in a shuffled order
+print(rng.permutation(6))
+
+X = np.array([[1, 1], [2, 1],
+              [8, 9], [9, 8],
+              [1, 2]])
+rng = np.random.default_rng(0)
+# 2 different row numbers
+n = len(X)
+idx = rng.choice(n, 2,
+                 replace=False)
+# starting centroids, as floats
+C = X[idx].astype(float)
+print(idx)
+print(C)
+```
+
+```text
+[8 6 5 2 3]
+[8 6 5 2 3]
+[ 0.10490012 -0.53566937]
+[0 2 4 3 5 1]
+[3 4]
+[[9. 8.]
+ [1. 2.]]
+```
+
+- `rng.choice(n, k, replace=False)` picks $k$ *different* positions out of $n$: the standard way to choose $k$ starting centroids from the data.
+- `rng.permutation(n)` shuffles the positions 0 to $n - 1$. Use the same `idx` for both arrays, `X[idx]` and `y[idx]`, so that every example keeps its own label.
+- Older code writes `np.random.seed(0)` and then calls `np.random.rand(...)`; the idea is the same. If a Final stub sets a seed, use exactly the random calls it shows, in the same order: one extra random call shifts every number after it.
 
 ## Move 10: return exactly what the grader expects
 
-An automatic grader calls your function and compares the result with a stored answer. Some tests compare **exactly** (`==`); others allow a small **tolerance** (`np.allclose`, `np.testing.assert_allclose`). You usually cannot see which, so the only safe answer is one that matches the stub's instructions to the letter: the right **type**, the right **shape**, and the right **rounding**.
+A grader calls your function and compares the result with a stored answer, either **exactly** (`==`) or with a small **tolerance** (`np.allclose`). You usually cannot see which, so match the stub's instructions to the letter: the right **type**, **shape** and **rounding**.
 
 <OutputFormatChecker />
 
@@ -158,25 +238,29 @@ An automatic grader calls your function and compares the result with a stored an
     `(n,)` and `(n, 1)` hold the same numbers but are different answers. Print `.shape` and compare with the example in the docstring.
   </Step>
   <Step title="Rounding">
-    Round only the final output, with `np.round(x, 4)` (or `round(float(x), 4)` for one number). Rounding in the middle of a calculation adds errors. Note that NumPy rounds exact halves to the nearest **even** digit: `np.round(2.5)` is `2.0` and `np.round(0.125, 2)` is `0.12`.
+    Round only the final output, with `np.round(x, 4)` (or `round(float(x), 4)` for one number); rounding mid-calculation adds errors. NumPy rounds exact halves to the nearest **even** digit: `np.round(2.5)` is `2.0`.
   </Step>
   <Step title="Edge cases">
-    Empty clusters, division by zero (precision when nothing is predicted positive, IoU when a class appears nowhere), and negative zero: `np.round(-0.00001, 4)` prints `-0.0`, and adding `0.0` turns it into `0.0`.
+    Empty clusters, division by zero (precision when nothing is predicted positive, IoU when a class appears nowhere), and `-0.0` from rounding a tiny negative number. Since `-0.0 == 0.0` is `True`, it only matters when output is compared as printed text; adding `0.0` removes it.
   </Step>
   <Step title="Return, don't print">
     The test sees only what your function **returns**. A function that prints the perfect answer and returns `None` scores zero.
   </Step>
 </Steps>
 
-Edge cases are often where a metric's *definition* matters. Mean <Term def="Intersection over Union: the number of pixels (or items) that both the prediction and the truth mark as a class, divided by the number that either of them marks as that class.">IoU</Term> averages, over the classes, the ratio $\frac{|\text{pred} \cap \text{true}|}{|\text{pred} \cup \text{true}|}$: overlap divided by combined area. If a class appears in *neither* the prediction nor the ground truth, that ratio is $\frac{0}{0}$: undefined, neither perfect nor zero. The usual choice is to skip that class, so that it neither inflates nor drags down the average; a class that is predicted but absent still counts, with IoU 0.
+Edge cases are often where a metric's *definition* matters. Mean <Term def="Intersection over Union: the number of pixels (or items) that both the prediction and the truth mark as a class, divided by the number that either of them marks as that class.">IoU</Term> averages, over the classes, overlap divided by combined area: $\frac{|\text{pred} \cap \text{true}|}{|\text{pred} \cup \text{true}|}$. A class in *neither* the prediction nor the ground truth gives $\frac{0}{0}$, which is undefined, so the usual choice is to skip it; a class that is predicted but absent still counts, with IoU 0.
 
 <PastPaperQuestion paper="final2026" n={13} />
 
 <ExamTip>
 
-Prelim questions on this material are short: what kNN bases its prediction on, how K-means assigns points, the median or mean of a small list. The Final tests the *doing*: in 2025 the programming tasks included K-means, and in 2026 gradient boosting and mean IoU, each built from these moves. Before writing any loop in a Final task, ask "which axis am I reducing over, and what shape do I want at the end?", write that shape as a comment, and check it with `print(x.shape)`.
+Prelim questions on this material are short: what kNN bases its prediction on, how K-means assigns points, the median or mean of a small list. The Final tests the *doing*: in 2025 the programming tasks included K-means, and in 2026 gradient boosting and mean IoU, each built from these moves. Before writing any loop, ask "which axis am I reducing over, and what shape do I want at the end?", write that shape as a comment, and check it with `print(x.shape)`.
 
 </ExamTip>
+
+## Cheat sheet: the ten moves
+
+<CodeBlock code={CHEAT_SHEET_CODE} title="the ten moves" showLineNumbers={false} />
 
 <Takeaways>
 

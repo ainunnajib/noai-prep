@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, useNarrow } from '../../../../../kit'
 import { WORDS, N_WORDS, ANSWER_SENTENCES, QUESTION, retrieveChunks } from './chunkToy'
 import s from './rag.module.css'
 
@@ -37,6 +37,7 @@ export default function ChunkSizer() {
   const [k, setK] = useState(1)
   const overlap = Math.round((size * ovPct) / 100)
   const r = useMemo(() => retrieveChunks(size, overlap, k), [size, overlap, k])
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const rankOf = new Map(r.top.map((c, i) => [c.idx, i]))
   // which chunks contain each word
@@ -69,25 +70,15 @@ export default function ChunkSizer() {
     return o[0] % 2 ? TINT_B : TINT_A
   }
 
-  return (
-    <Figure
-      wide
-      title="Chunk size, overlap and top-k"
-      caption={
-        <>
-          The underlined words answer the question. It starts at 40-word chunks with no overlap and k = 1: the answer straddles a chunk boundary, so the best chunk holds only half of it.
-          Raise <b>overlap</b> to 25% and the answer fits inside one chunk. Now slide <b>chunk size</b> down to 10: the answer is chopped into many small chunks, and even k = 3 misses parts.
-          Slide it all the way up to 120: the answer is in, but most of the prompt is irrelevant and it blows the budget (the black line). In between, notice how the result jumps around as the
-          boundaries move. Striped words sit in two overlapping chunks. Chunks are ranked by keyword cosine similarity with the question.
-        </>
-      }
-    >
-      <div className={s.wrap}>
-        <div>
+  const head = (
+    <>
           <div className={s.head}>
             <span>Question: “{QUESTION}”</span>
             <small>{N_WORDS}-word camp guide, split into {r.chunks.length} chunks</small>
           </div>
+    </>
+  )
+  const doc = (
           <div className={s.doc} aria-label="The document, coloured by chunk">
             {WORDS.map((w, j) => {
               const st = starts.get(j)
@@ -106,7 +97,8 @@ export default function ChunkSizer() {
               )
             })}
           </div>
-        </div>
+  )
+  const legend = (
         <div className={s.legend} aria-hidden="true">
           <span>
             <span className={s.sw} style={{ background: TINT_A }} />
@@ -126,7 +118,8 @@ export default function ChunkSizer() {
             answer
           </span>
         </div>
-
+  )
+  const meters = (
         <div className={s.meters}>
           <Meter
             label="Answer coverage"
@@ -143,14 +136,17 @@ export default function ChunkSizer() {
             text={`${r.retrievedWords} words`}
             color={over ? 'var(--viz-neg)' : 'var(--viz-1)'}
             budget={BUDGET}
-            note={`retrieved context; black line = toy budget of ${BUDGET} words`}
+            note={`retrieved context; the vertical budget line marks a toy limit of ${BUDGET} words`}
           />
           <Meter label="Relevant share" value={r.relevantShare} max={1} text={pct(r.relevantShare)} color="var(--viz-3)" note="share of the retrieved words that are answer words" />
         </div>
+  )
+  const verdictEl = (
         <p className={s.verdict} style={{ background: `color-mix(in srgb, ${verdict.bg} 16%, var(--surface))` }} aria-live="polite">
           {verdict.text}
         </p>
-
+  )
+  const controls = (
         <Controls>
           <Slider label="chunk size (words)" value={size} min={6} max={120} step={2} onChange={setSize} />
           <Slider label="overlap" value={ovPct} min={0} max={50} step={5} onChange={setOvPct} format={(v) => `${v}% (${Math.round((size * v) / 100)} words)`} />
@@ -163,6 +159,42 @@ export default function ChunkSizer() {
             ]}
           />
         </Controls>
+  )
+
+  return (
+    <Figure
+      wide
+      title="Chunk size, overlap and top-k"
+      caption={
+        <>
+          The underlined words answer the question. Striped words sit in two overlapping chunks, and chunks are ranked by keyword cosine similarity with the question. Notice how
+          the result jumps around as the boundaries move: tiny chunks cut the answer apart, and huge ones blow the budget with irrelevant text.
+        </>
+      }
+    >
+      <div className={s.wrap} ref={ref}>
+        <p className={s.tryLine}>
+          <b>Try:</b> raise <b>overlap</b> to 25% so the answer fits in one chunk. Then slide <b>chunk size</b> down to 10, and up to 120.
+        </p>
+        {narrow ? (
+          <>
+            {head}
+            {controls}
+            {verdictEl}
+            {doc}
+            {legend}
+            {meters}
+          </>
+        ) : (
+          <>
+            {head}
+            {doc}
+            {legend}
+            {meters}
+            {verdictEl}
+            {controls}
+          </>
+        )}
       </div>
     </Figure>
   )

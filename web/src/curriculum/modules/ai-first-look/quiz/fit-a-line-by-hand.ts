@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'ai-first-look.fit-a-line-by-hand.5',
     prompt:
-      'Keeping $b$ fixed, you try five slopes and record the MSE: $w = 2$: 50, $w = 3$: 18, $w = 4$: 6, $w = 5$: 14, $w = 6$: 40. What is the best conclusion?',
+      'Keeping $b$ fixed, you try five slopes and record the MSE: $w = 2$: 50, $w = 3$: 18, $w = 4$: 6, $w = 5$: 14, $w = 6$: 42. What is the best conclusion?',
     options: [
       'The best slope is near $w = 4$, at the bottom of the U-shaped loss curve',
       'The best slope is $w = 6$, because the loss changes fastest there',

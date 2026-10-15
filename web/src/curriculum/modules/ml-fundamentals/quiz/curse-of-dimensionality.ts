@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
     options: ['1', '500', '100', '50'],
     answer: 0,
     explanation:
-      'The share of the space in the box is $0.5^{10} = \\tfrac{1}{1024}$, so you expect $1000 \\div 1024 \\approx 1$ point. 500 forgets that each of the 10 features halves the count again; 100 and 50 divide by 10 instead of multiplying the halves.',
+      'The share of the space in the box is $0.5^{10} = \\tfrac{1}{1024}$, so you expect $1000 \\div 1024 \\approx 1$ point. 500 halves only once, forgetting that each of the 10 features halves the count again. 100 divides by 10 (as if the 10 features cut the count by a tenth just once), and 50 multiplies by one half and then by a tenth; neither multiplies ten halves together.',
     difficulty: 'intermediate',
   },
   {

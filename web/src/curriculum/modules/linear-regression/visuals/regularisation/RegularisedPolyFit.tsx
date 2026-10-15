@@ -68,9 +68,10 @@ export default function RegularisedPolyFit() {
       title="Taming a degree-9 curve with a penalty"
       caption={
         <>
-          This is the overfitted degree-9 polynomial from the last lesson (10 weights, 10 training points). Slide <b>λ</b> to the right: the loss now charges λ
-          for every unit of squared weight, so the huge, finely balanced weights become too expensive and the curve calms down. Keep going and it flattens into
-          a horizontal line at the average of y. The dashed curve is the unpenalised fit, for comparison.
+          This is the overfitted degree-9 polynomial from the last lesson (10 weights, fitted to the 10 filled training points; the hollow points are new
+          data). Slide <b>λ</b> to the right: the loss now charges λ for every unit of squared weight, so the huge, finely balanced weights become too expensive
+          and the curve calms down. Keep going and it flattens into a horizontal line at the average of y. The dashed curve is the unpenalised fit, for
+          comparison.
         </>
       }
     >
@@ -126,13 +127,13 @@ export default function RegularisedPolyFit() {
               color: 'var(--ink-2)',
             }}
           >
-            Weights w₁ … w₉ (bars cut off at ±20)
+            Weights w₁ … w₉ (bar length = size, cut off at 20; the sign is in the number)
           </div>
           <Bars
             data={cur.w.slice(1).map((v, k) => ({
               label: `w${'₁₂₃₄₅₆₇₈₉'[k]}`,
               value: v,
-              color: v >= 0 ? 'var(--viz-2)' : 'var(--viz-1)',
+              color: 'var(--viz-4)',
             }))}
             max={20}
             format={big}

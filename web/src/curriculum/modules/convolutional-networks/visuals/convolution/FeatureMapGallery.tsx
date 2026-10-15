@@ -12,7 +12,8 @@ import s from './conv.module.css'
 */
 
 const N = 28
-const MAX_SHIFT = 3
+// within ±2 pixels no ink reaches the border, so every map (and its peak) shifts exactly
+const MAX_SHIFT = 2
 
 interface Filt {
   name: string
@@ -21,10 +22,11 @@ interface Filt {
 }
 
 const FILTERS: Filt[] = [
-  { name: 'Vertical edges', w: [[1, 0, -1], [2, 0, -2], [1, 0, -1]], div: 1 },
-  { name: 'Horizontal edges', w: [[1, 2, 1], [0, 0, 0], [-1, -2, -1]], div: 1 },
+  // the same vertical, horizontal and blur kernels as in the lesson's table and the explorer
+  { name: 'Vertical edges', w: [[1, 0, -1], [1, 0, -1], [1, 0, -1]], div: 1 },
+  { name: 'Horizontal edges', w: [[1, 1, 1], [0, 0, 0], [-1, -1, -1]], div: 1 },
   { name: 'Diagonal edges', w: [[0, 1, 2], [-1, 0, 1], [-2, -1, 0]], div: 1 },
-  { name: 'Blur', w: [[1, 2, 1], [2, 4, 2], [1, 2, 1]], div: 16 },
+  { name: 'Blur', w: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], div: 9 },
   { name: 'Sharpen', w: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]], div: 1 },
   { name: 'Outline', w: [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]], div: 1 },
 ]
@@ -122,9 +124,8 @@ export default function FeatureMapGallery() {
       title="Six filters, six feature maps"
       caption={
         <>
-          Each 3 × 3 filter slides over the same picture and produces its own feature map (blue = negative, orange = positive, pale = near 0). Tap a map to
-          inspect and edit its kernel. Then nudge the picture with the arrows: every feature map moves by exactly the same amount, and the yellow marker (each
-          map's strongest response) moves with it.
+          <b>Try:</b> tap a map to see and edit its kernel, then nudge the picture with the arrows. <b>Notice:</b> every feature map moves by exactly the
+          same amount, and so does each map's strongest response (the yellow square).
         </>
       }
     >
@@ -142,6 +143,16 @@ export default function FeatureMapGallery() {
             <PixelCanvas w={M} h={M} pixels={mapPix[sel]} ariaLabel={`Feature map of the ${FILTERS[sel].name} filter`}>
               {marker(peaks[sel], 0.18)}
             </PixelCanvas>
+            <div className={s.legend}>
+              <span>
+                <span className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-1) 70%, var(--surface))' }} />
+                negative
+              </span>
+              <span>
+                <span className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-2) 70%, var(--surface))' }} />
+                positive
+              </span>
+            </div>
           </div>
         </div>
         <div className={s.row} style={{ marginTop: '0.8rem', alignItems: 'center' }}>
@@ -156,8 +167,8 @@ export default function FeatureMapGallery() {
               <button type="button" onClick={() => nudge(-1, 0)} aria-label="Shift picture left">
                 ←
               </button>
-              <button type="button" onClick={() => setShift([0, 0])} aria-label="Reset position" style={{ fontSize: '0.7rem' }}>
-                0
+              <button type="button" onClick={() => setShift([0, 0])} aria-label="Reset position" title="Reset position">
+                ↺
               </button>
               <button type="button" onClick={() => nudge(1, 0)} aria-label="Shift picture right">
                 →

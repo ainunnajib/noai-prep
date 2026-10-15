@@ -45,9 +45,9 @@ const questions: QuizQuestion[] = [
     prompt: "What does `sns.histplot(data=df, x='price', hue='flat_type')` draw?",
     options: [
       'Histograms of price for each flat type, in different colours on the same axes, with a legend',
-      'A separate figure for each flat type, each holding one histogram of price',
-      'A histogram of flat_type in which each bar is coloured by its average price',
-      'One histogram of price that uses only the most common flat type',
+      'A separate figure for each flat type, each holding one histogram of price with its own title',
+      'A histogram of flat_type in which each bar is coloured by the average price of that flat type',
+      'One histogram of price that uses only the rows of the most common flat type in the table',
     ],
     answer: 0,
     explanation:
@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     options: ['700', '640', '780', '580'],
     answer: 0,
     explanation:
-      'IQR $= Q_3 - Q_1 = 520 - 400 = 120$, so the upper fence is $Q_3 + 1.5 \\times 120 = 520 + 180 = 700$. Adding only one IQR gives 640, and $1.5 \\times 520 = 780$ multiplies the wrong number. Prices up to 700 are reached by the whisker; anything above is drawn as a dot.',
+      'IQR $= Q_3 - Q_1 = 520 - 400 = 120$, so the upper fence is $Q_3 + 1.5 \\times 120 = 520 + 180 = 700$. Adding only one IQR gives 640, 580 is only half an IQR above $Q_3$, and $1.5 \\times 520 = 780$ multiplies the wrong number. The whisker stretches to the largest actual price at or below 700; any price above 700 is drawn as a separate dot.',
     difficulty: 'intermediate',
   },
 ]

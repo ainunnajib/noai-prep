@@ -116,7 +116,7 @@ function Diagram({ x, W1, W2, z1, a1, y, step, act }: { x: number[]; W1: number[
         {[0, 1].map((i) => node(`x${i}`, colX[0], rowY(i, 2), step === 0, `${n(x[i])}`.replace('-', '−'), null))}
         {[0, 1, 2].map((j) =>
           shown(1, j)
-            ? node(`h${j}`, colX[1], rowY(j, 3), step === j + 1 || step === 4, `z ${n(z1[j], 2)}`.replace('-', '−'), n(a1[j], dec).replace('-', '−'), act === 'relu' && a1[j] === 0)
+            ? node(`h${j}`, colX[1], rowY(j, 3), step === j + 1 || step === 4, `z=${n(z1[j], 2)}`.replace('-', '−'), n(a1[j], dec).replace('-', '−'), act === 'relu' && a1[j] === 0)
             : node(`h${j}`, colX[1], rowY(j, 3), false, null, null),
         )}
         {shown(2, 0) ? node('y', colX[2], rowY(0, 1), step >= 5, `${n(y, dec)}`.replace('-', '−'), null) : node('y', colX[2], rowY(0, 1), false, null, null)}
@@ -187,9 +187,9 @@ export default function ForwardPassStepper() {
       title="Step through a forward pass"
       caption={
         <>
-          Press <b>Next</b> to compute one neuron at a time. Each hidden neuron takes one row of <M>{'W^{(1)}'}</M>, multiplies it with the inputs, adds its bias and applies the
-          activation. Tap any number in a matrix to change it (it cycles −2 → 2), move the sliders to change the inputs, or switch ReLU to sigmoid. Notice that a ReLU neuron
-          whose sum is negative outputs exactly 0, so its outgoing weight has no effect on <M>{'\\hat y'}</M> for that input.
+          Press <b>Next</b> to compute one neuron at a time: each hidden neuron takes one row of <M>{'W^{(1)}'}</M>, multiplies it with the inputs, adds its bias and
+          applies the activation (top number in a node: <i>z</i>; bottom: <i>h</i>). Tap a matrix number to change it, and notice that a ReLU neuron with a negative
+          sum outputs exactly 0, so its outgoing weight has no effect on <M>{'\\hat y'}</M>.
         </>
       }
     >
@@ -201,7 +201,8 @@ export default function ForwardPassStepper() {
           {words}
         </div>
       </div>
-      <div className={s.row} style={{ justifyContent: 'center' }}>
+      <div className={s.editHint}>Tap any number below to change it (it cycles −2 → 2).</div>
+      <div className={`${s.row} ${s.editable}`} style={{ justifyContent: 'center' }}>
         <MatrixGrid data={W1} rows={hlRow} label={<M>{'W^{(1)}\\ (3\\times 2)'}</M>} cellSize={34} format={minus} onCellClick={(i, j) => setW1((m) => m.map((r, a) => r.map((v, b) => (a === i && b === j ? cycle(v) : v))))} ariaLabel="Weights of layer 1" />
         <MatrixGrid data={b1.map((v) => [v])} rows={hlRow} label={<M>{'\\mathbf{b}^{(1)}'}</M>} cellSize={34} format={minus} onCellClick={(i) => setB1((v) => v.map((u, a) => (a === i ? cycle(u) : u)))} ariaLabel="Biases of layer 1" />
         <MatrixGrid data={W2} rows={step === 5 ? [0] : []} label={<M>{'W^{(2)}\\ (1\\times 3)'}</M>} cellSize={34} format={minus} onCellClick={(i, j) => setW2((m) => m.map((r, a) => r.map((v, b) => (a === i && b === j ? cycle(v) : v))))} ariaLabel="Weights of layer 2" />

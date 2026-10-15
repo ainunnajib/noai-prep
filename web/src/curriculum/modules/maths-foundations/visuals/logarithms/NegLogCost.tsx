@@ -32,6 +32,14 @@ function verdict(p: number) {
   return { text: 'confident and WRONG: punished hard', colour: 'var(--viz-neg)' }
 }
 
+/** −ln p equals ln(1/p): the cost of a fair guess among 1/p options. Only say so when 1/p is (nearly) whole. */
+function guessText(p: number) {
+  if (p >= 1) return 'being certain: no guessing'
+  const k = 1 / p
+  const r = Math.round(k)
+  return Math.abs(k - r) < 0.05 ? `a fair guess among ${r} options` : `a fair guess among about ${r} options`
+}
+
 const cell: CSSProperties = { padding: '0.3rem 0.5rem', borderBottom: '1px solid var(--rule)', textAlign: 'left', fontSize: '0.9rem' }
 
 export default function NegLogCost() {
@@ -83,7 +91,7 @@ export default function NegLogCost() {
             {quiz ? 'p = 0.1: ?' : 'p = 0.1: ln 10 ≈ 2.303'}
           </Label>
           <Label x={0.01} y={cost(0.01)} dx={9} dy={4} color="var(--viz-neg)">
-            {quiz ? 'p = 0.01: ?' : 'p = 0.01: ≈ 4.605'}
+            {quiz ? 'p = 0.01: ?' : 'p = 0.01: 2 ln 10 ≈ 4.605'}
           </Label>
           <DraggablePoint x={p} y={c} color="var(--viz-2)" constrain={(x) => [snapP(x), cost(snapP(x))]} onChange={(x) => setP(snapP(x))} />
         </Plot>
@@ -148,7 +156,7 @@ export default function NegLogCost() {
         items={[
           ['p', p.toFixed(2)],
           ['cost −ln p', c.toFixed(3)],
-          ['like guessing among', `${(1 / p).toFixed(1).replace(/\.0$/, '')} options`],
+          ['same cost as', guessText(p)],
         ]}
       />
       <div style={{ width: '100%', fontSize: '0.875rem', fontWeight: 700, color: v.colour }}>{v.text}</div>

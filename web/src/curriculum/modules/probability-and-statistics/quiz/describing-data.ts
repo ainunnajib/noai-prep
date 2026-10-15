@@ -19,8 +19,8 @@ const questions: QuizQuestion[] = [
   {
     id: 'probability-and-statistics.describing-data.2',
     prompt: 'What is the standard deviation of $[2, 4, 4, 4, 5, 5, 7, 9]$, dividing by $n$? (Hint: the mean is 5.)',
-    options: ['$2$', '$4$', '$1.5$', '$32$'],
-    answer: 0,
+    options: ['$1.5$', '$4$', '$2$', '$32$'],
+    answer: 2,
     explanation:
       'Deviations from 5: $-3, -1, -1, -1, 0, 0, 2, 4$. Squares: $9, 1, 1, 1, 0, 0, 4, 16$, which sum to 32. Variance $= 32 \\div 8 = 4$, so the SD is $\\sqrt{4} = 2$. 4 is the variance (you forgot the square root), 32 is the sum of squares (you forgot to divide), and 1.5 is the mean *absolute* deviation $12 \\div 8$.',
     difficulty: 'intermediate',

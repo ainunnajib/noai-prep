@@ -1,6 +1,7 @@
 import VectorPlayground from './visuals/vectors/VectorPlayground'
 import VectorAddScale from './visuals/vectors/VectorAddScale'
 import DataAsVectors from './visuals/vectors/DataAsVectors'
+import WordVectors from './visuals/vectors/WordVectors'
 
 Every AI model, from a spam filter to ChatGPT, only ever works with lists of numbers. A photo, a sentence and a student's report card all have to become a list of numbers before a model can learn from them. That list is called a **vector**, and it is the single most important object in this course. This lesson shows you two ways to picture one, and the two operations everything else is built on: adding and scaling.
 
@@ -67,6 +68,8 @@ $$
 
 In words: to **add**, add the first components together and the second components together. To **scale**, multiply every component by $c$. The number $c$ is called a <Term def="A single ordinary number, as opposed to a list. Multiplying a vector by a scalar stretches, shrinks or flips it.">scalar</Term>, because it scales the arrow. **Subtracting** is adding a flipped copy: $\mathbf{u} - \mathbf{v} = \mathbf{u} + (-1)\mathbf{v} = [u_1 - v_1,\ u_2 - v_2]$.
 
+In pictures, $\mathbf{u} - \mathbf{v}$ is the arrow from the tip of $\mathbf{v}$ to the tip of $\mathbf{u}$, because walking $\mathbf{v}$ and then $\mathbf{u} - \mathbf{v}$ lands you on $\mathbf{u}$: $\mathbf{v} + (\mathbf{u} - \mathbf{v}) = \mathbf{u}$. So $\mathbf{u} - \mathbf{v}$ measures the gap between two points, which the next lesson turns into a distance. Try the **u − v** tab in the figure below.
+
 The same rules hold for any dimension (just keep going through all $n$ components), but both vectors must have the **same** dimension: $[1, 2] + [1, 2, 3]$ is not defined, because the third component has no partner.
 
 Now the pictures. Adding is **tip to tail**: slide $\mathbf{v}$ so that its tail sits on the tip of $\mathbf{u}$; the sum runs from the start of $\mathbf{u}$ to the end of $\mathbf{v}$. Scaling stretches the arrow when $c > 1$, shrinks it when $0 < c < 1$, collapses it to the <Term def="The vector whose components are all 0, e.g. [0, 0]. It has no length and no direction.">zero vector</Term> when $c = 0$, and flips it to point the opposite way when $c$ is negative.
@@ -98,7 +101,7 @@ Vector arithmetic is done **component by component**: add matching entries, or m
   q="What is $3\,[1, -2] + [0, 4]$?"
   options={['$[3, -2]$', '$[3, -6]$', '$[1, 2]$', '$[3, 10]$']}
   answer={0}
-  explain="Scale first: $3\,[1, -2] = [3, -6]$. Then add component by component: $[3 + 0,\ -6 + 4] = [3, -2]$. $[3, -6]$ forgets the addition, and $[3, 10]$ comes from dropping the minus sign on $-6$."
+  explain="Scale first: $3\,[1, -2] = [3, -6]$. Then add component by component: $[3 + 0,\ -6 + 4] = [3, -2]$. $[3, -6]$ forgets the addition, $[1, 2]$ forgets to scale by 3 before adding, and $[3, 10]$ comes from dropping the minus sign on $-6$."
 />
 
 ## Words and pictures become vectors too
@@ -107,26 +110,9 @@ A <Term def="A vector with a single 1 at the word's own position in the vocabula
 
 Modern models instead learn a word <Term def="A short list of real numbers (say 300) learned for each word, arranged so that words with similar meanings get similar vectors.">embedding</Term>: a short, **dense** vector of real numbers, placed so that words with related meanings end up close together.
 
-<Columns min={220}>
-<MatrixGrid
-  label="One-hot (sparse): cat, dog, rice"
-  data={[[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0]]}
-  heat={[0, 1]}
-  cellSize={34}
-  ariaLabel="One-hot vectors for cat, dog and rice"
-/>
-<MatrixGrid
-  label="Embedding (dense, made-up values): cat, dog, rice"
-  data={[[0.8, 0.6, -0.3], [0.7, 0.7, -0.2], [-0.4, 0.1, 0.9]]}
-  diverging
-  heat
-  cellSize={44}
-  format={(v) => v.toFixed(1)}
-  ariaLabel="Small dense embedding vectors for cat, dog and rice"
-/>
-</Columns>
+<WordVectors />
 
-Look at the right-hand grid: the rows for *cat* and *dog* are nearly the same list of numbers, and *rice* is quite different. In the next lesson you will measure "nearly the same" with a single number.
+Look at the embedding grid: the rows for *cat* and *dog* are nearly the same list of numbers, and *rice* is quite different. In the next lesson you will measure "nearly the same" with a single number.
 
 <PastPaperQuestion paper="prelim2026" n={206} />
 

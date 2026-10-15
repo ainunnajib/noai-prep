@@ -52,8 +52,9 @@ export default function GPUMemoryBudget() {
       title="What fills a 16 GB GPU during training"
       caption={
         <>
-          Start: a 110-million-parameter text model (about BERT-base size) reading 512-token texts in batches of 32, with Adam in FP32. It does not fit. Find three different ways to get under the 16
-          GB line. Notice which slider moves the orange block (activations) and which move the others. Figures are rough: real runs add some overhead.
+          Start: a mid-sized text model (110 million parameters) reading long texts of 512 tokens (word pieces) in batches of 32, with Adam in FP32. It does not fit.
+          Find three different ways to get under the 16 GB line. Notice which slider moves the orange block (activations) and which move the others. The
+          activations slider is the memory one example needs in FP32. Figures are rough: real runs add some overhead.
         </>
       }
     >
@@ -105,7 +106,7 @@ export default function GPUMemoryBudget() {
       <Controls>
         <Slider label="parameters" value={pi} min={0} max={PARAMS.length - 1} onChange={setPi} format={(i) => (PARAMS[i] >= 1000 ? `${PARAMS[i] / 1000} billion` : `${PARAMS[i]} million`)} />
         <Slider label="batch size" value={bi} min={0} max={BATCHES.length - 1} onChange={setBi} format={(i) => String(BATCHES[i])} />
-        <Slider label="activations per example (FP32)" value={act} min={0.05} max={1.5} step={0.05} onChange={setAct} format={(v) => `${v.toFixed(2)} GB`} />
+        <Slider label="activations / example" value={act} min={0.05} max={1.5} step={0.05} onChange={setAct} format={(v) => `${v.toFixed(2)} GB`} />
       </Controls>
       <Controls>
         <Segmented

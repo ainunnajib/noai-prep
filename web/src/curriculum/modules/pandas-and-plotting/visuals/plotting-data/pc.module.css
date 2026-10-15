@@ -99,11 +99,14 @@
   line-height: 1.55;
   color: var(--ink);
   overflow-x: auto;
-  white-space: pre;
+  /* long lines wrap (at spaces) instead of disappearing off the right edge */
+  white-space: pre-wrap;
 }
+/* a wrapped line continues with a hanging indent, so it still reads as one line of code */
 .codeLine {
   display: block;
-  padding-left: 0.5rem;
+  padding-left: calc(0.5rem + 4ch);
+  text-indent: -4ch;
   margin-left: -0.5rem;
   border-left: 4px solid transparent;
 }
@@ -231,4 +234,60 @@
   color: var(--ink);
   background: var(--surface-2);
   border-left: 4px solid var(--accent);
+}
+
+/* training curves: dragging must move the marker, never select the SVG text; the kit's own marker
+   label is replaced by a pill drawn beside the dot */
+.noSelect {
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.noSelect :global(.plot-drag text) {
+  display: none;
+}
+
+/* box plot fences: the sorted values, with the quartile positions marked */
+.sortedRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.sortedLabel {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  padding-top: 0.2rem;
+}
+.sortedChip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.1rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+.sortedKey {
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+}
+.sortedOut {
+  border-color: var(--viz-neg);
+  color: var(--viz-neg);
+}
+.sortedRole {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink-2);
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented } from '../../../../../kit'
+import { Figure, Controls, Segmented, useNarrow } from '../../../../../kit'
 import { Mat, matmul, type Tone } from './Mat'
 import s from './mm.module.css'
 
@@ -20,9 +20,23 @@ const CASES: Record<Case, { A: number[][]; B: number[][]; label: string }> = {
 
 const shape = (M: number[][]) => [M.length, M[0].length] as const
 
+/** A failed operation: a plain-English reason first, the real NumPy message tucked away underneath. */
+function Fail({ why, error }: { why: string; error: string }) {
+  return (
+    <div className={s.errorBox} style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--step--1)' }}>
+      <div style={{ fontWeight: 700, color: 'var(--ink)' }}>✗ {why}</div>
+      <details className={s.errDetails}>
+        <summary>NumPy's error message</summary>
+        <code>{error}</code>
+      </details>
+    </div>
+  )
+}
+
 export default function HadamardVsMatmul() {
   const [cs, setCs] = useState<Case>('sq')
   const [sel, setSel] = useState<{ op: Op; i: number; j: number }>({ op: '@', i: 0, j: 1 })
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(420)
   const { A, B } = CASES[cs]
   const [ma, na] = shape(A)
   const [mb, nb] = shape(B)
@@ -52,7 +66,8 @@ export default function HadamardVsMatmul() {
       caption={
         <>
           Tap any cell in either answer to see which inputs produced it. <b>*</b> pairs each cell with the cell in the <i>same position</i>; <b>@</b> pairs a whole{' '}
-          <i>row</i> with a whole <i>column</i>. Then change the shapes: one operation survives each time, and it is never the same one.
+          <i>row</i> with a whole <i>column</i>. With two square matrices of the same size both run, which is the dangerous case. Switch to the other two shape
+          pairs: each time only one operation survives, and it is a different one.
         </>
       }
     >
@@ -61,8 +76,8 @@ export default function HadamardVsMatmul() {
         <Mat data={B} name={`B (${mb}×${nb})`} cell={cell} tone={toneB} strong={(ii, jj) => toneB(ii, jj) !== undefined} ariaLabel="matrix B" />
       </div>
 
-      <div className={s.pair} style={{ alignItems: 'stretch' }}>
-        <div className={s.panel} style={{ flex: '1 1 150px', maxWidth: 260, borderColor: op === '*' ? 'var(--viz-3)' : undefined }}>
+      <div ref={wrapRef} className={s.pair} style={{ alignItems: 'stretch', flexDirection: narrow ? 'column' : undefined }}>
+        <div className={s.panel} style={{ flex: '1 1 150px', maxWidth: narrow ? 'none' : 260, borderColor: op === '*' ? 'var(--viz-3)' : undefined }}>
           <div className={s.panelTitle}>A * B</div>
           <div className={s.panelSub}>element-wise: shapes must be equal</div>
           {star ? (
@@ -75,10 +90,10 @@ export default function HadamardVsMatmul() {
               ariaLabel="A times B element-wise"
             />
           ) : (
-            <div className={s.errorBox}>{errStar}</div>
+            <Fail why={`shapes differ: ${ma}×${na} and ${mb}×${nb}`} error={errStar} />
           )}
         </div>
-        <div className={s.panel} style={{ flex: '1 1 150px', maxWidth: 260, borderColor: op === '@' ? 'var(--viz-3)' : undefined }}>
+        <div className={s.panel} style={{ flex: '1 1 150px', maxWidth: narrow ? 'none' : 260, borderColor: op === '@' ? 'var(--viz-3)' : undefined }}>
           <div className={s.panelTitle}>A @ B</div>
           <div className={s.panelSub}>matrix product: inner sizes must match</div>
           {at ? (
@@ -91,7 +106,7 @@ export default function HadamardVsMatmul() {
               ariaLabel="A matrix-multiplied by B"
             />
           ) : (
-            <div className={s.errorBox}>{errAt}</div>
+            <Fail why={`inner sizes ${na} and ${mb} differ`} error={errAt} />
           )}
         </div>
       </div>

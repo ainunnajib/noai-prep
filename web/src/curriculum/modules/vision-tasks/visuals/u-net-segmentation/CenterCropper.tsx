@@ -82,9 +82,9 @@ crop = x[:, :, ${start}:${start} + ${dec}, ${start}:${start} + ${dec}]
       caption={
         <>
           The grey border is thrown away and the outlined window is kept, so the crop stays centred on the same part of the image as the
-          decoder map. Slide the sizes until the difference is <b>odd</b> (e.g. 15 and 12): the window cannot sit exactly in the middle, so
-          integer division puts the extra row at the bottom. Switch on the <code>d:-d</code> shortcut to see it give the wrong size (or nothing
-          at all when the sizes are equal).
+          decoder map. It starts at 15 → 12, an <b>odd</b> difference: the window cannot sit exactly in the middle, so integer division puts
+          the extra row at the bottom. Switch on the <code>d:-d</code> shortcut to see it keep the wrong number of rows, then press 25 → 24 or 12 → 12,
+          where it keeps nothing at all.
         </>
       }
     >

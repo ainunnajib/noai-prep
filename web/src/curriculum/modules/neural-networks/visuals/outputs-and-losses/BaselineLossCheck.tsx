@@ -51,10 +51,9 @@ export default function BaselineLossCheck() {
       title="What should the very first loss be?"
       caption={
         <>
-          Left: the probabilities an untrained <M>K</M>-class model gives one input. Right: the expected first cross-entropy loss (averaged over balanced labels) against the
-          curve <M>{'\\ln K'}</M>. Slide <M>K</M> with the spread at 0: every class gets <M>{'1/K'}</M>, and the loss sits exactly on the curve. Now raise the spread of the
-          initial logits (as happens when the output layer starts with weights that are too big): the model becomes confidently random, and the first loss climbs above{' '}
-          <M>{'\\ln K'}</M>. A first loss far from <M>{'\\ln K'}</M> is a free warning that something is off.
+          Left: the probabilities an untrained <M>K</M>-class model gives one input. Right: its expected first loss against the curve <M>{'\\ln K'}</M>. Slide{' '}
+          <M>K</M> with the spread at 0 (every class gets <M>{'1/K'}</M>), then raise the spread of the starting logits, as when the output weights start too big:
+          the model becomes confidently random and the first loss climbs above <M>{'\\ln K'}</M>.
         </>
       }
     >

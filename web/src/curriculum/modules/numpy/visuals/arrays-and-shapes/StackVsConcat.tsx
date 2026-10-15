@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Figure, Controls, Readout, Segmented, Button, useContainerWidth } from '../../../../../kit'
-import { npPrint, shapeStr, type Nested } from './npFormat'
+import { npPrint, shapeStr, charsThatFit, wrapCall, type Nested } from './npFormat'
 import css from './reshape.module.css'
 
 /*
@@ -178,7 +178,7 @@ export default function StackVsConcat() {
           Play
         </Button>
       </Controls>
-      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>result = {call}</pre>
+      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>{wrapCall(`result = ${call}`, charsThatFit(w))}</pre>
       <div ref={ref} style={{ width: '100%' }}>
         <div className={css.stage} style={{ height: H, maxWidth: W, margin: '0 auto' }}>
           {show.labels.map((l, i) => (
@@ -226,7 +226,7 @@ export default function StackVsConcat() {
       {res.nested && (
         <div style={{ width: '100%' }}>
           <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-3)', marginBottom: '0.2rem' }}>print(result) shows</div>
-          <pre style={pre}>{npPrint(res.nested, false)}</pre>
+          <pre style={pre}>{npPrint(res.nested, false, charsThatFit(w))}</pre>
         </div>
       )}
     </Figure>

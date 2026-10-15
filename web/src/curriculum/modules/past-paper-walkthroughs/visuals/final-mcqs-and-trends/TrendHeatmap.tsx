@@ -49,12 +49,17 @@ function TopicView() {
   const [cell, setCell] = useState<{ row: string; col: number } | null>({ row: 'training-regularisation', col: 2 })
   const [rowSel, setRowSel] = useState<string | null>(null)
   const [papers, setPapers] = useState<Record<string, PaperQuestion[]>>({})
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let live = true
-    Promise.all(PAPERS.map((p) => loadPaper(p.id))).then((qs) => {
-      if (live) setPapers(Object.fromEntries(PAPERS.map((p, i) => [p.id, qs[i]])))
-    })
+    Promise.all(PAPERS.map((p) => loadPaper(p.id)))
+      .then((qs) => {
+        if (live) setPapers(Object.fromEntries(PAPERS.map((p, i) => [p.id, qs[i]])))
+      })
+      .catch(() => {
+        if (live) setFailed(true)
+      })
     return () => {
       live = false
     }
@@ -178,7 +183,7 @@ function TopicView() {
             {selRow.counts[cell.col] === 0 ? (
               <span className={s.muted}>None in this paper.</span>
             ) : cellQs === null ? (
-              <span className={s.muted}>Loading the questions…</span>
+              <span className={s.muted}>{failed ? 'The questions could not be loaded. Reload the page to try again.' : 'Loading the questions…'}</span>
             ) : (
               <ul className={s.logList}>
                 {cellQs.slice(0, 12).map((q) => (

@@ -134,7 +134,11 @@ pe = pe.unsqueeze(0)               # (1, max_len, d_model)
 self.register_buffer('pe', pe)
 ```
 
-A <Term def="A tensor stored inside an nn.Module that is part of its state (saved in state_dict and moved by .to(device)) but is not a trainable parameter, so the optimiser never changes it.">buffer</Term> belongs to the module: it moves when the model moves to a GPU, and it is saved with the model, but the optimiser never trains it. A plain attribute (`self.pe = pe`) is invisible to the module. This machine has no GPU, so here the same effect is shown with a change of number type, which `.to()` applies to buffers too:
+A <Term def="A tensor stored inside an nn.Module that is part of its state (saved in state_dict and moved by .to(device)) but is not a trainable parameter, so the optimiser never changes it.">buffer</Term> belongs to the module: it moves when the model moves to a GPU, and it is saved with the model, but the optimiser never trains it. A plain attribute (`self.pe = pe`) is invisible to the module. On a GPU, `.to("cuda")` would leave a plain attribute behind on the CPU, and adding it to the input would then fail with a "tensors on different devices" error. The notebook's positional-encoding test includes a GPU-transfer check for exactly this reason.
+
+<Reveal label="Show the difference in code">
+
+We ran this without a GPU, so a change of number type shows the same effect: `.to()` converts buffers too, but not plain attributes.
 
 ```python
 import torch
@@ -163,13 +167,17 @@ torch.float64 torch.float32
 0
 ```
 
-The attribute version was left behind. On a GPU, `.to('cuda')` leaves it behind in the same way, on the CPU, and adding it to the input then fails with a "tensors on different devices" error. The notebook's positional-encoding test includes a GPU-transfer check for exactly this reason. The `forward` adds only the first `T` rows, `self.pe[:, :x.size(1)]`, which broadcasts over the batch.
+The attribute version was left behind, and only the buffer is saved in the `state_dict`. Neither is a trainable parameter.
+
+</Reveal>
+
+The `forward` adds only the first `T` rows, `self.pe[:, :x.size(1)]`, which broadcasts over the batch.
 
 <PastPaperQuestion paper="prelim2026" n={214} />
 
 ## Part 4: the classification head
 
-Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for example, whether a sentence is positive or negative. The embedding, the positional encoding and the stack of encoder layers are already created in `__init__`. You add the head and write `forward`.
+Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for example, whether a sentence is positive or negative. The <Term def="nn.Embedding(vocab_size, d_model) is a lookup table with one learned vector of d_model numbers per token id: row 2304 is the vector for token 2304.">embedding</Term>, the positional encoding and the stack of encoder layers are already created in `__init__`. You add the head and write `forward`.
 
 **Q3.6: the head.** The comment lists the layers, in order: LayerNorm, Linear(d_model, d_model), ReLU, Dropout, Linear(d_model, num_classes). Wrap them in an `nn.Sequential`, which applies its layers one after another:
 
@@ -178,7 +186,7 @@ Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for e
 - `nn.Dropout(dropout)` reduces overfitting during training;
 - `nn.Linear(d_model, num_classes)` produces the <Term def="Raw, unnormalised scores, one per class. Softmax would turn them into probabilities; the loss function usually does that itself.">logits</Term>.
 
-**Q3.7: the forward pass.** The comments give five steps. The two that need thought are the mask and the pooling.
+**Q3.7: the forward pass.** The notebook's comments give five steps: embed and scale by $\sqrt{d_\text{model}}$, add the positional encoding, convert the mask, run the encoder layers, then pool and classify. (The code below numbers six, because it writes "pool, then classify" as two lines.) The scaling in step 1 comes from the original Transformer paper: it makes the embedding values large compared with the positional codes, which stay between −1 and 1, so adding positions does not drown out which word it is. The two steps that need thought are the mask and the pooling.
 
 - **The mask.** `attention_mask` has shape `(B, T)`, with 1 for real tokens and 0 for <Term def="Filler tokens added to the end of shorter sentences so that every sentence in a batch has the same length T.">padding</Term>. The attention scores have shape `(B, h, T, T)`, so the mask needs two extra axes of size 1: `attention_mask.unsqueeze(1).unsqueeze(2)` gives `(B, 1, 1, T)`, which <Term def="An axis of size 1 is stretched to match the other tensor, without copying data.">broadcasts</Term> across every head and every query. `unsqueeze(k)` inserts a new axis of size 1 at position `k`. The test also calls `model(input_ids)` without a mask, so keep `mask = None` in that case.
 - **The pooling.** The encoder gives one vector per token, `(B, T, d_model)`, but a classifier needs one vector per **sentence**. The markdown asks for the mean over the sequence dimension, `x.mean(dim=1)`, which gives `(B, d_model)`.
@@ -269,13 +277,18 @@ where $x_t$ is token $t$'s output vector and $m_t$ is 1 for a real token and 0 f
   </Step>
 </Steps>
 
-```python
-def masked_mean(x, attention_mask):                         # x (B, T, d), mask (B, T)
-    m = attention_mask.unsqueeze(-1).to(x.dtype)            # (B, T, 1)
-    return (x * m).sum(dim=1) / m.sum(dim=1).clamp(min=1)   # (B, d)
+<Reveal label="Show masked mean in code">
 
-x = torch.tensor([[[2., 0], [0, 2], [4, 4], [9, 9]]])      # (B=1, T=4, d=2)
-am = torch.tensor([[1, 1, 1, 0]])                           # last token is [PAD]
+```python
+def masked_mean(x, attention_mask):
+    # x (B, T, d), attention_mask (B, T)
+    m = attention_mask.unsqueeze(-1).to(x.dtype)   # (B, T, 1)
+    total = (x * m).sum(dim=1)                     # (B, d)
+    return total / m.sum(dim=1).clamp(min=1)       # (B, d)
+
+# (B=1, T=4, d=2); the last token is [PAD]
+x = torch.tensor([[[2., 0], [0, 2], [4, 4], [9, 9]]])
+am = torch.tensor([[1, 1, 1, 0]])
 print(x.mean(dim=1))
 print(masked_mean(x, am))
 ```
@@ -285,7 +298,11 @@ tensor([[3.7500, 3.7500]])
 tensor([[2., 2.]])
 ```
 
-`.clamp(min=1)` avoids dividing by 0 for a sentence that is all padding. Does it matter in the full model? We put the classifier above in evaluation mode (`model.eval()`, which switches dropout off), changed **only** the ids of the two padding tokens, and measured the largest change in the logits: `tensor(0.0653)` with plain mean, and exactly `tensor(0.)` after swapping in masked mean. The official solution uses plain mean, which matches the markdown, so it is the safe exam answer; masked mean is what you would write in practice.
+`.clamp(min=1)` avoids dividing by 0 for a sentence that is all padding.
+
+</Reveal>
+
+Does masked mean matter in the full model? We put the classifier above in evaluation mode (`model.eval()`, which switches dropout off), changed **only** the ids of the two padding tokens, and measured the largest change in the logits: `tensor(0.0653)` with plain mean, and exactly `tensor(0.)` after swapping in masked mean. The official solution uses plain mean, which matches the markdown, so it is the safe exam answer; masked mean is what you would write in practice.
 
 <QuickCheck
   q="A sentence has encoder outputs $[1, 3]$, $[3, 1]$ and $[8, 8]$, and its mask is $[1, 1, 0]$. What are its plain mean and its masked mean?"

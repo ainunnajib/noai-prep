@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     options: ['$6$', '$4$', '$9$', '$1$'],
     answer: 0,
     explanation:
-      '$w_{\\text{new}} = w - \\eta \\times \\text{slope} = 5 - 0.25 \\times (-4) = 5 + 1 = 6$. Getting $4$ means the minus sign was lost; $9$ forgets to multiply by the learning rate ($5 - (-4)$).',
+      '$w_{\\text{new}} = w - \\eta \\times \\text{slope} = 5 - 0.25 \\times (-4) = 5 + 1 = 6$. Getting $4$ means the minus sign was lost; $9$ forgets to multiply by the learning rate ($5 - (-4)$); and $1$ comes from $5 - 4$, which drops both the learning rate and the minus sign.',
     difficulty: 'beginner',
   },
   {
@@ -64,7 +64,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Each step is $\\eta \\times \\text{slope}$. Near the bottom the valley flattens, so the slope shrinks towards 0 and so does the step: for example $0.1 \\times (-10) = -1$ far away, but $0.1 \\times (-0.5) = -0.05$ close by. Plain gradient descent never changes $\\eta$ on its own (a learning-rate schedule would, but that is an extra you add), and the MSE loss can never be negative.',
+      'Each step moves $w$ by $\\eta \\times$ (size of the slope). Near the bottom the valley flattens, so the slope shrinks towards 0 and so does the step: for example $0.1 \\times 10 = 1$ far away, but $0.1 \\times 0.5 = 0.05$ close by. Plain gradient descent never changes $\\eta$ on its own (a learning-rate schedule would, but that is an extra you add), and the MSE loss can never be negative.',
     difficulty: 'intermediate',
   },
 ]

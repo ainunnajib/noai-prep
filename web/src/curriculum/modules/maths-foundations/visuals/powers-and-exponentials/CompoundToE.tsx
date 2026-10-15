@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Figure, Controls, Slider, Plot, Grid, Axes, FnPath, Path, Dots, Label, HLine, useNarrow, M } from '../../../../../kit'
 
 /*
-  $1 in a bank that pays 100% interest a year, added n times a year at 1/n each time.
+  $1 in a bank that pays 100% interest a year, added n times a year: each time the balance
+  grows by 1/n of itself (it is multiplied by 1 + 1/n).
   The money grows in a staircase of n steps; as n grows the staircase smooths into the curve e^t
   and the year-end amount (1 + 1/n)^n creeps up towards e = 2.71828..., but never past it.
 */
@@ -20,6 +21,14 @@ const OPTIONS: { n: number; how: string }[] = [
 const E = Math.E
 const amount = (n: number) => (1 + 1 / n) ** n
 const fmtN = (n: number) => n.toLocaleString('en-GB')
+/** the same inside KaTeX, where a bare comma would be followed by a space */
+const texN = (n: number) => fmtN(n).replace(/,/g, '{,}')
+/** the gap to e: 5 decimals while that is readable, then a power of ten (2.6 × 10⁻⁶) */
+function gapTex(g: number) {
+  if (g >= 1e-4) return g.toFixed(5)
+  const e = Math.floor(Math.log10(g))
+  return `${(g / 10 ** e).toFixed(1)} \\times 10^{${e}}`
+}
 
 export default function CompoundToE() {
   const [idx, setIdx] = useState(2)
@@ -42,7 +51,8 @@ export default function CompoundToE() {
       title="Compounding more and more often leads to e"
       caption={
         <>
-          You put $1 in a bank paying 100% interest a year. If the interest is added <M>n</M> times a year at <M>{'\\tfrac{1}{n}'}</M> each time, you end the year with{' '}
+          You put $1 in a bank paying 100% interest a year. If interest is added <M>n</M> times a year, each time <M>{'\\tfrac{1}{n}'}</M> of the current
+          balance (so the balance is multiplied by <M>{'1 + \\tfrac{1}{n}'}</M>), you end the year with{' '}
           <M>{'\\left(1 + \\tfrac{1}{n}\\right)^n'}</M> dollars. Slide <M>n</M> up: the staircase gets finer and hugs the smooth curve <M>{'e^t'}</M>, and the
           year-end amount creeps up to <M>{'e \\approx 2.718'}</M> but never passes it.
         </>
@@ -57,6 +67,9 @@ export default function CompoundToE() {
             e ≈ 2.718
           </Label>
           <FnPath f={(t) => Math.exp(t)} color="var(--viz-3)" width={2} dash="3 4" />
+          <Label x={0.62} y={Math.exp(0.62)} dx={-6} dy={-8} anchor="end" color="var(--viz-3)" size={13} weight={700}>
+            eᵗ
+          </Label>
           {n <= 400 ? <Path points={steps} color="var(--viz-1)" width={2.5} /> : <FnPath f={(t) => (1 + 1 / n) ** (n * t)} color="var(--viz-1)" width={2.5} />}
           <Dots points={[{ x: 1, y: end, color: 'var(--viz-2)', r: 6 }]} />
         </Plot>
@@ -111,7 +124,7 @@ export default function CompoundToE() {
         <Slider
           label={
             <>
-              interest added <b>{how}</b> (<M>{`n = ${fmtN(n)}`}</M>)
+              interest added <b>{how}</b> (<M>{`n = ${texN(n)}`}</M>)
             </>
           }
           value={idx}
@@ -123,8 +136,11 @@ export default function CompoundToE() {
         />
       </Controls>
       <div style={{ width: '100%', fontSize: '0.95rem', textAlign: 'center' }} aria-live="polite">
-        <M>{`\\left(1 + \\tfrac{1}{${n === 525600 ? '525{,}600' : n === 8760 ? '8{,}760' : n}}\\right)^{${n === 525600 ? '525{,}600' : n === 8760 ? '8{,}760' : n}} = ${end.toFixed(5)}`}</M>
-        <span style={{ color: 'var(--ink-3)' }}> · gap to e: {(E - end).toFixed(5)}</span>
+        <M>{`\\left(1 + \\tfrac{1}{${texN(n)}}\\right)^{${texN(n)}} = ${end.toFixed(5)}`}</M>
+        <span style={{ color: 'var(--ink-3)' }}>
+          {' '}
+          · gap to e: <M>{gapTex(E - end)}</M>
+        </span>
       </div>
     </Figure>
   )

@@ -24,7 +24,7 @@ export interface PracticeTask {
   hiddenCode: string
 }
 
-export const DRIVER = "\nimport json\nimport numpy as np\n\ndef _fmt(x):\n    try:\n        a = np.asarray(x, dtype=float)\n    except Exception:\n        return repr(x)\n    if a.ndim == 0:\n        return f\"{float(a):.4f}\"\n    return np.array2string(np.round(a, 4), separator=\", \")\n\ndef expect_close(got, want, tol=1e-4):\n    if got is None:\n        raise AssertionError(\"your function returned None (is a return statement missing?)\")\n    try:\n        g = np.asarray(got, dtype=float)\n    except Exception:\n        raise AssertionError(f\"expected {_fmt(want)}, got {got!r}\")\n    w = np.asarray(want, dtype=float)\n    if g.shape != w.shape:\n        raise AssertionError(f\"expected shape {w.shape}, got shape {g.shape}: {_fmt(g)}\")\n    if not np.all(np.isfinite(g)):\n        raise AssertionError(f\"got nan or inf: {_fmt(g)}\")\n    if not np.allclose(g, w, atol=tol, rtol=0):\n        raise AssertionError(f\"expected {_fmt(w)}, got {_fmt(g)}\")\n\ndef expect_true(cond, msg):\n    if not cond:\n        raise AssertionError(msg)\n\ndef _run(user_code, test_code):\n    ns = {\"np\": np, \"__name__\": \"__main__\", \"expect_close\": expect_close, \"expect_true\": expect_true}\n    try:\n        exec(user_code, ns)\n    except Exception as e:\n        return json.dumps({\"error\": f\"{type(e).__name__}: {e}\", \"results\": []})\n    try:\n        exec(test_code, ns)\n    except Exception as e:\n        return json.dumps({\"error\": f\"{type(e).__name__} while setting up the tests: {e}\", \"results\": []})\n    out = []\n    for name, fn in ns[\"TESTS\"]:\n        try:\n            fn()\n            out.append([name, True, \"\"])\n        except AssertionError as e:\n            out.append([name, False, str(e) or \"assertion failed\"])\n        except Exception as e:\n            out.append([name, False, f\"{type(e).__name__}: {e}\"])\n    return json.dumps({\"error\": None, \"results\": out})\n"
+export const DRIVER = "\nimport json\nimport numpy as np\n\ndef _fmt(x):\n    try:\n        a = np.asarray(x, dtype=float)\n    except Exception:\n        return repr(x)\n    if a.ndim == 0:\n        return f\"{float(a):.4f}\"\n    return np.array2string(np.round(a, 4), separator=\", \")\n\ndef expect_close(got, want, tol=1e-4):\n    if got is None:\n        raise AssertionError(\"your function returned None (is a return statement missing?)\")\n    try:\n        g = np.asarray(got, dtype=float)\n    except Exception:\n        raise AssertionError(f\"expected {_fmt(want)}, got {got!r}\")\n    w = np.asarray(want, dtype=float)\n    if g.shape != w.shape:\n        raise AssertionError(f\"expected shape {w.shape}, got shape {g.shape}: {_fmt(g)}\")\n    if not np.all(np.isfinite(g)):\n        raise AssertionError(f\"got nan or inf: {_fmt(g)}\")\n    if not np.allclose(g, w, atol=tol, rtol=0):\n        raise AssertionError(f\"expected {_fmt(w)}, got {_fmt(g)}\")\n\ndef expect_true(cond, msg):\n    if not cond:\n        raise AssertionError(msg)\n\ndef _run(user_code, test_code):\n    ns = {\"np\": np, \"__name__\": \"__main__\", \"expect_close\": expect_close, \"expect_true\": expect_true, \"USER_SOURCE\": user_code}\n    try:\n        exec(user_code, ns)\n    except Exception as e:\n        return json.dumps({\"error\": f\"{type(e).__name__}: {e}\", \"results\": []})\n    try:\n        exec(test_code, ns)\n    except Exception as e:\n        return json.dumps({\"error\": f\"{type(e).__name__} while setting up the tests: {e}\", \"results\": []})\n    out = []\n    for name, fn in ns[\"TESTS\"]:\n        try:\n            fn()\n            out.append([name, True, \"\"])\n        except AssertionError as e:\n            out.append([name, False, str(e) or \"assertion failed\"])\n        except Exception as e:\n            out.append([name, False, f\"{type(e).__name__}: {e}\"])\n    return json.dumps({\"error\": None, \"results\": out})\n"
 
 export const TASKS: PracticeTask[] = [
   {
@@ -74,7 +74,7 @@ export const TASKS: PracticeTask[] = [
     "brief": "logits has shape (N, C) and labels holds N class indices. Return the mean cross-entropy as a float. It must not overflow for huge logits such as 1000.",
     "hand": "One sample with logits [0, 0, 0, 0]: every class gets probability 1/4, so the loss is −ln(1/4) = ln 4 ≈ 1.3863.",
     "stub": "import numpy as np\n\ndef softmax_cross_entropy(logits, labels):\n    logits = np.asarray(logits, dtype=float)\n    labels = np.asarray(labels)\n    # subtract each row's maximum first, then use log-sum-exp\n    ...\n",
-    "solution": "import numpy as np\n\ndef softmax_cross_entropy(logits, labels):\n    logits = np.asarray(logits, dtype=float)\n    labels = np.asarray(labels)\n    z = logits - logits.max(axis=1, keepdims=True)              # largest entry becomes 0\n    log_probs = z - np.log(np.exp(z).sum(axis=1, keepdims=True))\n    return float(-log_probs[np.arange(len(labels)), labels].mean())\n",
+    "solution": "import numpy as np\n\ndef softmax_cross_entropy(logits, labels):\n    logits = np.asarray(logits, dtype=float)\n    labels = np.asarray(labels)\n    # subtract each row's max: the largest entry becomes 0\n    z = logits - logits.max(axis=1, keepdims=True)\n    log_probs = z - np.log(np.exp(z).sum(axis=1, keepdims=True))\n    return float(-log_probs[np.arange(len(labels)), labels].mean())\n",
     "visible": [
       {
         "name": "equal logits",
@@ -114,7 +114,7 @@ export const TASKS: PracticeTask[] = [
     "brief": "Euclidean distance. Each test point takes a majority vote among its k nearest training points; break a tied vote by choosing the smallest label. Return an integer array of shape (n_test,).",
     "hand": "Training points (0, 0), (1, 0), (0, 1) with labels 0, 0, 1 and a test point (0.2, 0.2), k = 3: all three are neighbours and the vote is two 0s against one 1, so the prediction is 0.",
     "stub": "import numpy as np\n\ndef knn_predict(X_train, y_train, X_test, k):\n    X_train = np.asarray(X_train, dtype=float)\n    y_train = np.asarray(y_train)\n    X_test = np.asarray(X_test, dtype=float)\n    # distances (n_test, n_train), the k smallest per row, then a vote\n    ...\n",
-    "solution": "import numpy as np\n\ndef knn_predict(X_train, y_train, X_test, k):\n    X_train = np.asarray(X_train, dtype=float)\n    y_train = np.asarray(y_train)\n    X_test = np.asarray(X_test, dtype=float)\n    d = ((X_test[:, None, :] - X_train[None, :, :]) ** 2).sum(axis=-1)   # (n_test, n_train)\n    nearest = np.argsort(d, axis=1, kind='stable')[:, :k]                 # (n_test, k)\n    votes = y_train[nearest]\n    return np.array([np.bincount(v).argmax() for v in votes])            # ties -> smallest label\n",
+    "solution": "import numpy as np\n\ndef knn_predict(X_train, y_train, X_test, k):\n    X_train = np.asarray(X_train, dtype=float)\n    y_train = np.asarray(y_train)\n    X_test = np.asarray(X_test, dtype=float)\n    # squared distances, shape (n_test, n_train)\n    d = ((X_test[:, None, :] - X_train[None, :, :]) ** 2).sum(axis=-1)\n    # indices of the k nearest, shape (n_test, k)\n    nearest = np.argsort(d, axis=1, kind='stable')[:, :k]\n    votes = y_train[nearest].astype(np.intp)   # bincount wants this int type\n    # bincount counts each label; argmax picks the smallest label on a tie\n    return np.array([np.bincount(v).argmax() for v in votes])\n",
     "visible": [
       {
         "name": "1-D, k = 1",
@@ -145,7 +145,7 @@ export const TASKS: PracticeTask[] = [
       }
     ],
     "visibleCode": "def _t0():\n    expect_close(knn_predict([[0], [10]], [0, 1], [[2], [9]], 1), [0, 1])\ndef _t1():\n    expect_close(knn_predict([[0, 0], [1, 0], [0, 1], [5, 5], [6, 5]], [0, 0, 1, 1, 1], [[0.2, 0.2]], 3), [0])\nTESTS = [('1-D, k = 1', _t0), ('the hand example, k = 3', _t1)]\n",
-    "hiddenCode": "def _t0():\n    expect_close(knn_predict([[0], [1]], [1, 0], [[0.4]], 2), [0])\ndef _t1():\n    expect_true(np.issubdtype(np.asarray(knn_predict([[0], [1]], [0, 1], [[0.9]], 1)).dtype, np.integer), \"return integer labels, not floats\")\ndef _t2():\n    _r = np.random.default_rng(3); _X = _r.normal(size=(40, 2)); _y = _r.integers(0, 3, 40); _T = _r.normal(size=(50, 2)); _slow = [np.bincount(_y[np.argsort(((_X - t) ** 2).sum(1), kind=\"stable\")[:5]], minlength=3).argmax() for t in _T]; expect_close(knn_predict(_X, _y, _T, 5), _slow)\nTESTS = [('a tied vote picks the smallest label', _t0), ('returns integers', _t1), ('many test points at once', _t2)]\n"
+    "hiddenCode": "def _t0():\n    expect_close(knn_predict([[0], [1]], [1, 0], [[0.4]], 2), [0])\ndef _t1():\n    expect_true(np.issubdtype(np.asarray(knn_predict([[0], [1]], [0, 1], [[0.9]], 1)).dtype, np.integer), \"return integer labels, not floats\")\ndef _t2():\n    _r = np.random.default_rng(3); _X = _r.normal(size=(40, 2)); _y = _r.integers(0, 3, 40).astype(np.intp); _T = _r.normal(size=(50, 2)); _slow = [np.bincount(_y[np.argsort(((_X - t) ** 2).sum(1), kind=\"stable\")[:5]], minlength=3).argmax() for t in _T]; expect_close(knn_predict(_X, _y, _T, 5), _slow)\nTESTS = [('a tied vote picks the smallest label', _t0), ('returns integers', _t1), ('many test points at once', _t2)]\n"
   },
   {
     "id": "pca",
@@ -154,7 +154,7 @@ export const TASKS: PracticeTask[] = [
     "brief": "Centre X (n, d), take the eigenvectors of its covariance matrix and keep the n_components with the largest eigenvalues. Return (X_projected of shape (n, n_components), components of shape (n_components, d)), components sorted by decreasing variance, each of length 1. The sign of a component may be either way.",
     "hand": "Points (1, 2), (2, 4), (3, 6), (4, 8) all lie on the line y = 2x, so the first component points along [1, 2] / √5 ≈ [0.447, 0.894] (or its negative).",
     "stub": "import numpy as np\n\ndef pca(X, n_components):\n    X = np.asarray(X, dtype=float)\n    # centre, covariance, np.linalg.eigh, sort by eigenvalue (largest first)\n    ...\n",
-    "solution": "import numpy as np\n\ndef pca(X, n_components):\n    X = np.asarray(X, dtype=float)\n    Xc = X - X.mean(axis=0)\n    cov = Xc.T @ Xc / (len(X) - 1)                  # (d, d)\n    values, vectors = np.linalg.eigh(cov)           # ascending eigenvalues, vectors in columns\n    order = np.argsort(values)[::-1][:n_components]\n    components = vectors[:, order].T                # (n_components, d)\n    return Xc @ components.T, components\n",
+    "solution": "import numpy as np\n\ndef pca(X, n_components):\n    X = np.asarray(X, dtype=float)\n    Xc = X - X.mean(axis=0)\n    cov = Xc.T @ Xc / (len(X) - 1)                  # (d, d)\n    # eigenvalues in ascending order, eigenvectors in columns\n    values, vectors = np.linalg.eigh(cov)\n    order = np.argsort(values)[::-1][:n_components]\n    components = vectors[:, order].T                # (n_components, d)\n    return Xc @ components.T, components\n",
     "visible": [
       {
         "name": "points on y = 2x",
@@ -234,7 +234,7 @@ export const TASKS: PracticeTask[] = [
     "brief": "image (H, W) and a square kernel (k, k). Cross-correlation, as in PyTorch (do not flip the kernel). Pad with zeros, then slide with the given stride. Each output side is (H + 2·padding − k) // stride + 1.",
     "hand": "Image [[1, 2, 3], [4, 5, 6], [7, 8, 9]] and kernel [[1, 0], [0, 1]]: each output adds a window's top-left and bottom-right, giving [[1 + 5, 2 + 6], [4 + 8, 5 + 9]] = [[6, 8], [12, 14]].",
     "stub": "import numpy as np\n\ndef conv2d(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding)\n    kernel = np.asarray(kernel, dtype=float)\n    # output size, then loop over output positions\n    ...\n",
-    "solution": "import numpy as np\n\ndef conv2d(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding)\n    kernel = np.asarray(kernel, dtype=float)\n    k = kernel.shape[0]\n    H, W = image.shape                               # already padded\n    out_h = (H - k) // stride + 1\n    out_w = (W - k) // stride + 1\n    out = np.zeros((out_h, out_w))\n    for i in range(out_h):\n        for j in range(out_w):\n            patch = image[i * stride:i * stride + k, j * stride:j * stride + k]\n            out[i, j] = np.sum(patch * kernel)\n    return out\n",
+    "solution": "import numpy as np\n\ndef conv2d(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding)\n    kernel = np.asarray(kernel, dtype=float)\n    k = kernel.shape[0]\n    H, W = image.shape          # already padded\n    out_h = (H - k) // stride + 1\n    out_w = (W - k) // stride + 1\n    out = np.zeros((out_h, out_w))\n    for i in range(out_h):\n        for j in range(out_w):\n            r, c = i * stride, j * stride\n            patch = image[r:r + k, c:c + k]\n            out[i, j] = np.sum(patch * kernel)\n    return out\n",
     "visible": [
       {
         "name": "the hand example",
@@ -268,13 +268,53 @@ export const TASKS: PracticeTask[] = [
     "hiddenCode": "def _t0():\n    expect_close(conv2d(np.arange(25).reshape(5, 5), np.ones((3, 3)), stride=2), [[54, 72], [144, 162]])\ndef _t1():\n    expect_close(conv2d(np.ones((4, 4)), np.ones((3, 3)), padding=1), [[4, 6, 6, 4], [6, 9, 9, 6], [6, 9, 9, 6], [4, 6, 6, 4]])\ndef _t2():\n    expect_close(conv2d([[1, 0], [0, 0]], [[1, 2], [3, 4]]), [[1]])\nTESTS = [('stride 2', _t0), ('padding 1 keeps a 4 × 4 size', _t1), ('the kernel is not flipped', _t2)]\n"
   },
   {
+    "id": "conv2d_fast",
+    "title": "conv2d without loops (stretch)",
+    "lib": "NumPy",
+    "brief": "The conv2d task again (cross-correlation, zero padding, stride, same output size), but vectorised: no Python for loop, while loop or comprehension anywhere. Build the patch matrix with sliding_window_view and use one matrix-vector product. A hidden test reads your code to check for loops.",
+    "hand": "Image [[1, 2, 3], [4, 5, 6], [7, 8, 9]] and kernel [[1, 0], [0, 1]]: the four 2 × 2 windows, read row by row, are [1, 2, 4, 5], [2, 3, 5, 6], [4, 5, 7, 8] and [5, 6, 8, 9]. Stacked as rows they form a 4 × 4 patch matrix; times the flattened kernel [1, 0, 0, 1] it gives [6, 8, 12, 14], which reshapes to [[6, 8], [12, 14]].",
+    "stub": "import numpy as np\nfrom numpy.lib.stride_tricks import sliding_window_view\n\ndef conv2d_fast(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding)\n    kernel = np.asarray(kernel, dtype=float)\n    k = kernel.shape[0]\n    # sliding_window_view(image, (k, k)) has shape\n    # (H - k + 1, W - k + 1, k, k): one k x k window per position.\n    # Keep every stride-th window, reshape to (windows, k * k),\n    # multiply by the flattened kernel, reshape to the output.\n    ...\n",
+    "solution": "import numpy as np\nfrom numpy.lib.stride_tricks import sliding_window_view\n\ndef conv2d_fast(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding)\n    kernel = np.asarray(kernel, dtype=float)\n    k = kernel.shape[0]\n    # every k x k window, then every stride-th one\n    windows = sliding_window_view(image, (k, k))[::stride, ::stride]\n    out_h, out_w = windows.shape[:2]\n    # the patch matrix: one window per row\n    patches = windows.reshape(out_h * out_w, k * k)\n    return (patches @ kernel.reshape(-1)).reshape(out_h, out_w)\n",
+    "visible": [
+      {
+        "name": "the hand example",
+        "call": "conv2d_fast([[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 0], [0, 1]])",
+        "expect": "[[6, 8], [12, 14]]"
+      },
+      {
+        "name": "matches the loop version",
+        "call": "random 8 × 8 image, 3 × 3 kernel",
+        "expect": "the same as a loop conv2d"
+      }
+    ],
+    "hidden": [
+      {
+        "name": "stride 2 and padding 1",
+        "call": "random 9 × 9 image, stride=2, padding=1",
+        "expect": "the same as a loop conv2d"
+      },
+      {
+        "name": "a non-square image",
+        "call": "random 5 × 8 image, 2 × 2 kernel",
+        "expect": "a (4, 7) result that matches"
+      },
+      {
+        "name": "no Python loops",
+        "call": "your code",
+        "expect": "no for, while or comprehension"
+      }
+    ],
+    "visibleCode": "def _slow(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding); kernel = np.asarray(kernel, dtype=float); k = len(kernel)\n    oh = (image.shape[0] - k) // stride + 1; ow = (image.shape[1] - k) // stride + 1\n    return np.array([[np.sum(image[i * stride:i * stride + k, j * stride:j * stride + k] * kernel) for j in range(ow)] for i in range(oh)])\ndef _t0():\n    expect_close(conv2d_fast([[1, 2, 3], [4, 5, 6], [7, 8, 9]], [[1, 0], [0, 1]]), [[6, 8], [12, 14]])\ndef _t1():\n    _r = np.random.default_rng(10); _x = _r.normal(size=(8, 8)); _k = _r.normal(size=(3, 3)); expect_close(conv2d_fast(_x, _k), _slow(_x, _k))\nTESTS = [('the hand example', _t0), ('matches the loop version', _t1)]\n",
+    "hiddenCode": "import ast as _ast\ndef _slow(image, kernel, stride=1, padding=0):\n    image = np.pad(np.asarray(image, dtype=float), padding); kernel = np.asarray(kernel, dtype=float); k = len(kernel)\n    oh = (image.shape[0] - k) // stride + 1; ow = (image.shape[1] - k) // stride + 1\n    return np.array([[np.sum(image[i * stride:i * stride + k, j * stride:j * stride + k] * kernel) for j in range(ow)] for i in range(oh)])\ndef _t0():\n    _r = np.random.default_rng(11); _x = _r.normal(size=(9, 9)); _k = _r.normal(size=(3, 3)); expect_close(conv2d_fast(_x, _k, stride=2, padding=1), _slow(_x, _k, stride=2, padding=1))\ndef _t1():\n    _r = np.random.default_rng(12); _x = _r.normal(size=(5, 8)); _k = _r.normal(size=(2, 2)); expect_close(conv2d_fast(_x, _k), _slow(_x, _k))\ndef _t2():\n    expect_close(conv2d_fast([[1, 2], [3, 4]], [[2]]), [[2, 4], [6, 8]])\n    _names = {_ast.For: 'a for loop', _ast.AsyncFor: 'a for loop', _ast.While: 'a while loop', _ast.comprehension: 'a comprehension'}\n    _found = [_names[type(n)] for n in _ast.walk(_ast.parse(USER_SOURCE)) if type(n) in _names]\n    expect_true(not _found, f\"your code still has {_found[0] if _found else ''}: replace it with array operations\")\nTESTS = [('stride 2 and padding 1', _t0), ('a non-square image', _t1), ('no Python loops', _t2)]\n"
+  },
+  {
     "id": "logreg",
     "title": "Logistic regression gradient with L2",
     "lib": "NumPy",
     "brief": "Loss = mean binary cross-entropy of p = sigmoid(X @ w + b), plus (lam / 2)·sum(w²). Return the gradients (dw, db). The bias b is not regularised.",
     "hand": "w = [0, 0], b = 0: every p = 0.5. With X = [[1, 2], [3, 4]] and y = [1, 0], p − y = [−0.5, 0.5], so dw = Xᵀ(p − y) / 2 = [0.5, 0.5] and db = mean(p − y) = 0.",
     "stub": "import numpy as np\n\ndef logistic_grad(w, b, X, y, lam):\n    w = np.asarray(w, dtype=float)\n    X = np.asarray(X, dtype=float)\n    y = np.asarray(y, dtype=float)\n    # p = sigmoid(X @ w + b); dw = X.T @ (p - y) / n + lam * w; db = mean(p - y)\n    ...\n",
-    "solution": "import numpy as np\n\ndef logistic_grad(w, b, X, y, lam):\n    w = np.asarray(w, dtype=float)\n    X = np.asarray(X, dtype=float)\n    y = np.asarray(y, dtype=float)\n    p = 1 / (1 + np.exp(-(X @ w + b)))\n    dw = X.T @ (p - y) / len(y) + lam * w          # L2 term on the weights only\n    db = np.mean(p - y)\n    return dw, float(db)\n",
+    "solution": "import numpy as np\n\ndef logistic_grad(w, b, X, y, lam):\n    w = np.asarray(w, dtype=float)\n    X = np.asarray(X, dtype=float)\n    y = np.asarray(y, dtype=float)\n    p = 1 / (1 + np.exp(-(X @ w + b)))\n    # the L2 term goes on the weights only, not on b\n    dw = X.T @ (p - y) / len(y) + lam * w\n    db = np.mean(p - y)\n    return dw, float(db)\n",
     "visible": [
       {
         "name": "the hand example",

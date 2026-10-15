@@ -9,7 +9,7 @@ export type FnName = 'abs' | 'max' | 'min' | 'sqrt' | 'relu'
 const FNS: Record<FnName, number> = { abs: 1, max: 2, min: 2, sqrt: 1, relu: 1 }
 
 export type Node =
-  | { k: 'num'; v: number }
+  | { k: 'num'; v: number; s?: string } // s: the literal exactly as typed, e.g. "0.0001"
   | { k: 'x' }
   | { k: 'neg'; a: Node }
   | { k: 'bin'; op: '+' | '-' | '*' | '/' | '^'; a: Node; b: Node }
@@ -120,7 +120,7 @@ export function parse(src: string): Node {
     if (!t) throw new Error('The formula ends too early.')
     if (t.t === 'num') {
       p++
-      return { k: 'num', v: t.v }
+      return { k: 'num', v: t.v, s: t.s }
     }
     if (t.t === 'id') {
       p++
@@ -178,12 +178,36 @@ export function evaluate(n: Node, x: number): number {
   }
 }
 
-/** Format a number for display: integers stay integers, others get up to 3 decimals. */
+/**
+ * Format a computed number for display: integers stay integers, others get up to 3 decimals.
+ * Tiny non-zero values keep 3 significant figures (0.00005, not 0); huge ones use e-notation (1.5e7).
+ */
 export function fmt(v: number): string {
   if (!Number.isFinite(v)) return 'undefined'
-  if (Math.abs(v) >= 1e6) return v.toExponential(2)
+  if (Math.abs(v) >= 1e6) {
+    const [m, e] = v.toExponential(2).split('e')
+    return `${Number(m)}e${Number(e)}`
+  }
+  if (v !== 0 && Math.abs(v) < 0.001) return String(Number(v.toPrecision(3)))
   const r = Math.round(v * 1000) / 1000
   return String(Object.is(r, -0) ? 0 : r)
+}
+
+/** The same, for use inside LaTeX: "undefined" is set as words, not as maths letters. */
+export function fmtTex(v: number): string {
+  return Number.isFinite(v) ? fmt(v) : '\\text{undefined}'
+}
+
+/**
+ * A number the learner typed, printed exactly as typed (so 0.0001 stays 0.0001), tidied into a
+ * valid Python literal: "3." → "3", ".5" → "0.5", "007" → "7".
+ */
+function lit(n: { v: number; s?: string }): string {
+  if (!n.s) return fmt(n.v)
+  let t = n.s.replace(/\.$/, '')
+  if (t.startsWith('.')) t = '0' + t
+  t = t.replace(/^0+(?=\d)/, '')
+  return t
 }
 
 // precedence: + - → 1, * / → 2, unary minus → 3, ^ → 4, atoms → 5
@@ -194,7 +218,7 @@ export function toTex(n: Node, sub?: number): { s: string; p: number } {
   const wrap = (c: { s: string; p: number }, min: number) => (c.p < min ? `\\left(${c.s}\\right)` : c.s)
   switch (n.k) {
     case 'num':
-      return { s: fmt(n.v), p: 5 }
+      return { s: lit(n), p: 5 }
     case 'x':
       if (sub === undefined) return { s: 'x', p: 5 }
       return sub < 0 ? { s: `(${fmt(sub)})`, p: 5 } : { s: fmt(sub), p: 5 }
@@ -236,7 +260,7 @@ export function toPy(n: Node): { s: string; p: number; math: boolean } {
   const wrap = (c: { s: string; p: number }, min: number) => (c.p < min ? `(${c.s})` : c.s)
   switch (n.k) {
     case 'num':
-      return { s: fmt(n.v), p: 5, math: false }
+      return { s: lit(n), p: 5, math: false }
     case 'x':
       return { s: 'x', p: 5, math: false }
     case 'neg': {

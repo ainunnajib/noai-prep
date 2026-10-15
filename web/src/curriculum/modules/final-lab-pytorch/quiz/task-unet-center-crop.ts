@@ -40,14 +40,14 @@ const questions: QuizQuestion[] = [
     id: 'final-lab-pytorch.task-unet-center-crop.4',
     prompt: 'Which statement about the alternatives to centre cropping (Q2.1b) is correct?',
     options: [
-      'Same padding keeps every map the same size, so skip maps line up without cropping, but the border pixels are computed partly from zeros',
+      'Same padding stops the 3 × 3 convolutions shrinking the maps, so skip maps line up without cropping, but the border pixels are computed partly from zeros',
       'Interpolating the decoder map up to the skip map\'s size recovers the exact values that the unpadded convolutions removed',
       'Cropping keeps the output the same size as the input, because only the skip map is cut and the decoder map is untouched',
       'Padding the decoder map with `F.pad` adds no artificial values, because the next convolution ignores zeros',
     ],
     answer: 0,
     explanation:
-      'With padding=1 a 3 × 3 convolution keeps the height and width, so nothing needs cropping, at the cost of a little more compute and less reliable values at the zero-padded edges. Interpolation only estimates in-between values (and stretches the map out of line); it cannot recover lost information. Cropping leaves the output smaller than the input (110 × 110 for 256 × 256), and the zeros from `F.pad` are multiplied by real weights like any other input.',
+      'With padding=1 a 3 × 3 convolution keeps the height and width, so nothing needs cropping, at the cost of a little more compute and less reliable values at the zero-padded edges. Interpolation only estimates in-between values (and stretches the map out of line); it cannot recover lost information. With valid convolutions and cropping the output is 110 × 110 for a 256 × 256 input (same padding would give 128 × 128 in this half-resolution network), and the zeros from `F.pad` are multiplied by real weights like any other input.',
     difficulty: 'intermediate',
   },
   {

@@ -60,10 +60,8 @@ export default function PoolingShift() {
       title="Shift the input: what does pooling notice?"
       caption={
         <>
-          A "corner detector" fired at four places (all other values are 0, as is typical after ReLU). Move the input with the arrow buttons. In the feature map every
-          detection moves with it: convolution is <i>equivariant</i>. After 2×2 max pooling, a detection only changes the output when it crosses one of the thick block
-          borders (changed cells get a red outline; dashed outlines mark where things were). Try one step right, then a second step right: a shift of 2 pixels moves the
-          pooled map by exactly one cell.
+          <b>Try:</b> move the input one step right, then another. <b>Notice:</b> the feature map moves with every step, but the max-pooled map changes only
+          when a detection crosses a thick block border (red outlines); two steps move it exactly one cell.
         </>
       }
     >

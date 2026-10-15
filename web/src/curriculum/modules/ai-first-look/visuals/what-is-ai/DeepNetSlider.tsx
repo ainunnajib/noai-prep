@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, NeuralNet } from '../../../../../kit'
+import { Controls, Readout, Slider, NeuralNet } from '../../../../../kit'
+import Figure from '../TouchFigure'
 
 /** Add hidden layers to a small network and watch it become "deep" (and its number of weights grow). */
 export default function DeepNetSlider() {
-  const [hidden, setHidden] = useState(3)
+  const [hidden, setHidden] = useState(1)
   const layers = [3, ...Array.from({ length: hidden }, () => 4), 2]
   const labels = ['in', ...Array.from({ length: hidden }, (_, i) => `h${i + 1}`), 'out']
   let weights = 0
@@ -15,9 +16,10 @@ export default function DeepNetSlider() {
       title="What makes a neural network “deep”?"
       caption={
         <>
-          Each circle is a <strong>neuron</strong>: a tiny unit that multiplies each incoming number by a weight, adds them up and passes the result on. Each line
-          is a <strong>weight</strong>, a number the network learns from data. Slide to add hidden layers between input and output. With more than one hidden layer, a
-          network is usually called <em>deep</em>. Real ones are far bigger: GPT-3 has 96 layers and about 175 billion learned numbers.
+          The input circles just hold the input numbers. Every circle after them is a <strong>neuron</strong>: a tiny unit that multiplies each incoming number
+          by a weight, adds them up with a bias, passes the total through a simple non-linear function (an <em>activation</em>) and sends the result on. Each line
+          is a <strong>weight</strong>, a number the network learns from data. This network is shallow: slide to add hidden layers between input and output. With
+          more than one hidden layer, a network is usually called <em>deep</em>. Real ones are far bigger: GPT-3 has 96 layers and about 175 billion learned numbers.
         </>
       }
     >

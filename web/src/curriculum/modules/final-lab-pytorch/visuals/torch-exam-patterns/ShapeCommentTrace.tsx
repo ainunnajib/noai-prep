@@ -170,8 +170,8 @@ export default function ShapeCommentTrace() {
       caption={
         <>
           Press <b>Restart</b>, then <b>Next</b> to write one shape comment per line and compare it with what PyTorch really returns (B = 2 sequences, T = 5 tokens,
-          d = 12 features, h = 3 heads). Then inject a bug. Two bugs are flagged by a comment before PyTorch crashes; two others keep every shape right and are only
-          caught by the value checks at the end.
+          d = 12 features, h = 3 heads). Then inject a bug. One bug is flagged by a comment a line before PyTorch crashes, and one crashes on the very line whose comment
+          you are writing; the other two keep every shape right and are only caught by the value checks at the end.
         </>
       }
     >

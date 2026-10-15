@@ -92,10 +92,10 @@ The obvious score would be to add the residuals up. It fails completely, because
 
 <ResidualSumTrap />
 
-Squaring fixes this, and gives two more benefits:
+Squaring has three benefits:
 
 1. **No cancelling.** A square is never negative, so a miss above the line and a miss below it both add to the score.
-2. **Big misses count much more.** A miss of 1 costs $1^2 = 1$, a miss of 2 costs 4, a miss of 3 costs 9. So the best line never ignores any point badly. The price is that one <Term def="A data point far away from the pattern of the others, for example a surge-priced ride.">outlier</Term> can drag the whole line: change ride 5 to a surge fare of 15 dollars and the best line jumps from $1.5x + 1.5$ to $2.7x - 0.9$, with a nonsense *negative* base fare.
+2. **Big misses count much more.** A miss of 1 costs $1^2 = 1$, a miss of 2 costs 4, a miss of 3 costs 9. So the best line never ignores any point badly. The price is that one <Term def="A data point far away from the pattern of the others, for example a surge-priced ride.">outlier</Term> can drag the whole line: drag ride 5 up to a surge fare of 15 dollars in the residual-squares figure above and the best line jumps from $1.5x + 1.5$ to $2.7x - 0.9$, with a nonsense *negative* base fare.
 3. **It is smooth.** $r^2$ is a parabola in $r$, with a slope everywhere and one clear bottom. The total turns out to be a smooth bowl over $(w, b)$, which is exactly what calculus and gradient descent need. (Absolute values $|r|$ also avoid cancelling, but have a sharp corner at 0. That loss, the MAE, returns in the regularisation lesson.)
 
 <QuickCheck
@@ -159,7 +159,10 @@ Three slips that exam options love: averaging the residuals before squaring (for
 For one feature there is a formula for the best line, using the means $\bar{x}$ and $\bar{y}$ again:
 
 $$
-w = \frac{\sum_i (x_i - \bar{x})(y_i - \bar{y})}{\sum_i (x_i - \bar{x})^2}, \qquad b = \bar{y} - w\,\bar{x}.
+\begin{aligned}
+w &= \frac{\sum_i (x_i - \bar{x})(y_i - \bar{y})}{\sum_i (x_i - \bar{x})^2} \\[4pt]
+b &= \bar{y} - w\,\bar{x}
+\end{aligned}
 $$
 
 The top of $w$ adds up "how far $x$ is from its mean times how far $y$ is from its mean": it is large and positive when big $x$ goes with big $y$. The bottom measures how spread out the $x$ values are. The formula for $b$ says the best line always passes through the centre point $(\bar{x}, \bar{y})$.
@@ -259,7 +262,7 @@ How NOAI asks about this, and what to have ready:
 - Linear regression predicts a number with $\hat{y} = wx + b$: slope $w$ is the change per unit of $x$, intercept $b$ the prediction at $x = 0$.
 - A residual is $r = y - \hat{y}$: positive when the point is above the line.
 - $\text{MSE} = \frac{1}{n}\sum (y_i - \hat{y}_i)^2$: square first (no cancelling, big misses count most), then average. RMSE $= \sqrt{\text{MSE}}$ is in the original units.
-- The least-squares line has the smallest MSE; for one feature, $w = \frac{\sum (x - \bar{x})(y - \bar{y})}{\sum (x - \bar{x})^2}$ and $b = \bar{y} - w\bar{x}$.
-- MSE over $(w, b)$ is a convex bowl with one lowest point, the best line, which is why gradient descent can always find it.
+- The least-squares line has the smallest MSE; for one feature, $w = \frac{\sum (x - \bar{x})(y - \bar{y})}{\sum (x - \bar{x})^2}$ and ${b = \bar{y} - w\bar{x}}$.
+- MSE over $(w, b)$ is a convex bowl with one lowest point, the best line, which is why gradient descent, with a small enough learning rate, always finds it.
 
 </Takeaways>

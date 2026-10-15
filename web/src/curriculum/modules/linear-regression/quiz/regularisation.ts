@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-regression.regularisation.2',
     prompt: 'Why does L1 regularisation tend to make some weights exactly 0, while L2 regularisation only makes them small?',
     options: [
-      'Near 0, the pull (slope) of $\\lambda|w|$ stays at $\\lambda$, while the slope of $\\lambda w^2$, which is $2\\lambda w$, fades away',
+      'Near 0, the pull (slope) of $\\lambda|w|$ stays at $\\lambda$, while the slope $2\\lambda w$ of $\\lambda w^2$ fades away',
       'L1 punishes large weights more heavily than L2 does, so the largest weights are the first to be removed',
       'L2 cannot be minimised by gradient descent, so the optimiser always stops just before the weights reach 0',
       'L1 removes the features with the smallest variance before training starts, which leaves their weights at 0',

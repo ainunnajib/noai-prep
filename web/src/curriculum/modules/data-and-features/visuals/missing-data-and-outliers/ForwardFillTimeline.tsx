@@ -34,6 +34,7 @@ export default function ForwardFillTimeline() {
 
   const s = Math.min(start, N - 1 - len)
   const gap = Array.from({ length: len }, (_, k) => s + k)
+  const handleX = s + (len - 1) / 2
   const before = TRUE_T[s - 1]
   const after = TRUE_T[s + len]
 
@@ -99,13 +100,19 @@ export default function ForwardFillTimeline() {
         <Label x={s + len / 2 - 0.5} y={Y[1]} dy={13} anchor="middle" size={11} color="var(--viz-neg)">
           missing
         </Label>
+        {/* the hint sits on whichever side of the handle has room */}
+        {handleX > N * 0.62 && (
+          <Label x={handleX} y={Y[0] + 0.55} dx={-14} dy={-4} anchor="end" size={12} color="var(--viz-neg)">
+            drag the gap
+          </Label>
+        )}
         <DraggablePoint
-          x={s + (len - 1) / 2}
+          x={handleX}
           y={Y[0] + 0.55}
           r={8}
           lockY
           color="var(--viz-neg)"
-          label="drag the gap"
+          label={handleX > N * 0.62 ? undefined : 'drag the gap'}
           constrain={(x, y) => [Math.round(x - (len - 1) / 2) + (len - 1) / 2, y]}
           onChange={(x) => setStart(Math.max(1, Math.min(N - 1 - len, Math.round(x - (len - 1) / 2))))}
         />

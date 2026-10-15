@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, FnPath, MBlock, usePlayer, PlayerControls, useNarrow } from '../../../../../kit'
-import { RIDES, fmt } from '../least-squares/shared'
+import { RIDES, fmt, lineText } from '../least-squares/shared'
 
 /*
   The MSE gradient computed as a table, one column at a time:
@@ -20,6 +20,16 @@ const head: CSSProperties = { ...cell, fontWeight: 700, color: 'var(--ink-2)', b
 
 const mseOf = (w: number, b: number) => RIDES.reduce((s, [x, y]) => s + (w * x + b - y) ** 2, 0) / N
 const sgn = (v: number) => (v < 0 ? `(${fmt(v, 3)})` : fmt(v, 3))
+
+/** A gradient entry in the table: its name on a small line above its value. */
+function GradCell({ name, v }: { name: string; v: number }) {
+  return (
+    <span style={{ display: 'inline-grid', justifyItems: 'end', lineHeight: 1.15 }}>
+      <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-body)', fontWeight: 600 }}>{name} =</span>
+      <span>{fmt(v, 3)}</span>
+    </span>
+  )
+}
 
 function verdict(name: string, g: number): ReactNode {
   if (Math.abs(g) < 0.005) return <>{name}: gradient ≈ 0, already at its best for now.</>
@@ -85,7 +95,7 @@ export default function GradientPieces() {
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr) minmax(0, 1.15fr)', gap: '0.9rem', alignItems: 'center' }}>
-        <Plot x={[0, 6]} y={[0, 12]} width={300} height={260} minHeight={220} maxWidth={440} ariaLabel={`The rides with the line y-hat = ${fmt(w)}x + ${fmt(b)} and the error of each ride`}>
+        <Plot x={[0, 6]} y={[0, 12]} width={300} height={260} minHeight={220} maxWidth={440} ariaLabel={`The rides with the line ${lineText(w, b)} and the error of each ride`}>
           <Grid xTicks={6} yTicks={6} />
           <Axes xLabel="km" yLabel="fare ($)" xTicks={6} yTicks={6} />
           {rows.map((r, i) => (
@@ -127,8 +137,8 @@ export default function GradientPieces() {
                 <td style={{ ...cell, textAlign: 'left', fontFamily: 'var(--font-body)', fontWeight: 700, borderBottom: 'none' }} colSpan={3}>
                   × 2/n = gradient
                 </td>
-                <td style={{ ...cell, ...col(5), fontWeight: 700, borderBottom: 'none', color: s >= 5 ? 'var(--accent)' : undefined }}>{show(5, <>∂b {fmt(gb, 3)}</>)}</td>
-                <td style={{ ...cell, ...col(5), fontWeight: 700, borderBottom: 'none', color: s >= 5 ? 'var(--accent)' : undefined }}>{show(5, <>∂w {fmt(gw, 3)}</>)}</td>
+                <td style={{ ...cell, ...col(5), fontWeight: 700, borderBottom: 'none', color: s >= 5 ? 'var(--accent)' : undefined }}>{show(5, <GradCell name="∂L/∂b" v={gb} />)}</td>
+                <td style={{ ...cell, ...col(5), fontWeight: 700, borderBottom: 'none', color: s >= 5 ? 'var(--accent)' : undefined }}>{show(5, <GradCell name="∂L/∂w" v={gw} />)}</td>
               </tr>
             </tbody>
           </table>

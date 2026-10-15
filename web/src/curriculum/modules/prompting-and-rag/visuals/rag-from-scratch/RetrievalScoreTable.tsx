@@ -58,7 +58,7 @@ export function TokenText({ text, hits, known }: { text: string; hits?: Set<stri
   )
 }
 
-const fmtCell = (v: number, tfidf: boolean) => (v === 0 ? '0' : tfidf ? v.toFixed(1) : String(v))
+const fmtCell = (v: number, tfidf: boolean) => (v === 0 ? '0' : tfidf ? v.toFixed(2) : String(v))
 const f3 = (v: number) => (Number.isNaN(v) ? 'nan' : v.toFixed(3))
 const f2 = (v: number) => v.toFixed(2)
 
@@ -98,7 +98,7 @@ export default function RetrievalScoreTable() {
     setMsg(null)
   }
 
-  const cellW = tfidf ? 30 : 26
+  const cellW = tfidf ? 36 : 26
   const cols = `2.3rem repeat(${V}, ${cellW}px)`
 
   // per-step explanation, with live numbers
@@ -161,13 +161,15 @@ export default function RetrievalScoreTable() {
       title="The scoring table: a whole retriever in five arrays"
       caption={
         <>
-          The table starts finished. Press <b>Restart</b>, then <b>Next</b>, to build the retriever one array at a time and see the line of NumPy that makes each one. Then edit the query or click a
-          preset. Notice that d0 and d2 have the <b>same</b> dot product for the first preset (3 each), but d0 wins after dividing by length because d2 is longer.
-          Add the suggested document and see the vocabulary and every score update. With <b>TF-IDF</b>, “canteen open Monday” no longer ties d0 with d3.
+          Notice that d0 and d2 have the <b>same</b> dot product for the first preset (3 each), but d0 wins after dividing by length because d2 is longer. Adding a document
+          changes the vocabulary and every score. With <b>TF-IDF</b>, “canteen open Monday” no longer ties d0 with d3.
         </>
       }
     >
       <div className={s.stack}>
+        <p className={s.tryLine}>
+          <b>Try:</b> press <b>Restart</b>, then <b>Next</b>, to build one array at a time. Then click another preset, add the suggested document, or switch to TF-IDF.
+        </p>
         <div className={s.field}>
           <label className={s.sectionLabel} htmlFor="rst-query">
             Query
@@ -273,7 +275,7 @@ export default function RetrievalScoreTable() {
               ))}
               {step >= 2 && tfidf && (
                 <>
-                  <span className={`${s.mLabel}`} style={{ fontSize: 10.5 }}>
+                  <span className={s.mLabel} style={{ fontSize: 11.5 }}>
                     idf
                   </span>
                   {model.idf.map((v, j) => (
@@ -334,7 +336,7 @@ export default function RetrievalScoreTable() {
                   <span className={`${s.num} ${step < 6 ? s.muted : ''}`}>{step >= 6 ? f3(res.scores[i]) : '…'}</span>
                   <span className={s.barTrack}>
                     {step >= 6 && (
-                      <span className={s.barFill} style={{ width: `${Math.max(0, Math.min(1, res.scores[i])) * 100}%`, background: isTop ? 'var(--viz-2)' : 'var(--viz-1)' }} />
+                      <span className={s.barFill} style={{ width: `${Math.max(0, Math.min(1, res.scores[i])) * 100}%`, background: isTop ? 'var(--viz-pos)' : 'var(--viz-1)' }} />
                     )}
                   </span>
                   <span className={`${s.num} ${step < 7 ? s.muted : ''}`}>{step >= 7 ? (isTop ? <b>#{r + 1}</b> : `${r + 1}`) : '…'}</span>

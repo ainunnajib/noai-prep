@@ -4,10 +4,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.scaling-and-normalisation.1',
     prompt: 'A feature has mean 60 and standard deviation 8. What is the standardised value (z-score) of 76?',
-    options: ['2', '16', '9.5', '0.5'],
+    options: ['2', '16', '9.5', '−2'],
     answer: 0,
     explanation:
-      '$z = (x - \\mu)/\\sigma = (76 - 60)/8 = 16/8 = 2$: the value is two standard deviations above the mean. 16 forgets to divide by $\\sigma$; 9.5 divides $x$ itself by 8 without subtracting the mean.',
+      '$z = (x - \\mu)/\\sigma = (76 - 60)/8 = 16/8 = 2$: the value is two standard deviations above the mean. 16 forgets to divide by $\\sigma$; 9.5 divides $x$ itself by 8 without subtracting the mean; and −2 subtracts the wrong way round, $(60 - 76)/8$.',
     difficulty: 'beginner',
   },
   {
@@ -16,16 +16,16 @@ const questions: QuizQuestion[] = [
     options: ['0.25', '0.4', '0.5', '0.2'],
     answer: 0,
     explanation:
-      '$x\' = (x - x_{\\min})/(x_{\\max} - x_{\\min}) = (20 - 10)/(50 - 10) = 10/40 = 0.25$. Dividing by the maximum without subtracting the minimum gives $20/50 = 0.4$; dividing by the range without subtracting the minimum gives $20/40 = 0.5$.',
+      '$x\' = (x - x_{\\min})/(x_{\\max} - x_{\\min}) = (20 - 10)/(50 - 10) = 10/40 = 0.25$. Dividing by the maximum without subtracting the minimum gives $20/50 = 0.4$; dividing by the range without subtracting the minimum gives $20/40 = 0.5$; and subtracting the minimum but dividing by the maximum gives $10/50 = 0.2$.',
     difficulty: 'beginner',
   },
   {
     id: 'data-and-features.scaling-and-normalisation.3',
     prompt: 'For which of these models does standardising the features make the least difference?',
-    options: ['A random forest', 'k-nearest neighbours', 'An SVM with an RBF kernel', 'Logistic regression trained by gradient descent'],
+    options: ['A random forest', 'k-nearest neighbours', 'A support vector machine (SVM)', 'Logistic regression trained by gradient descent'],
     answer: 0,
     explanation:
-      'Each tree in a random forest splits on one feature at a time using a threshold, and scaling keeps the order of the values, so the same samples go left and right. k-NN and RBF SVMs measure distances, which large-unit features dominate, and gradient descent converges much faster on standardised features.',
+      'Each tree in a random forest splits on one feature at a time using a threshold, and scaling keeps the order of the values, so the same samples go left and right. k-NN and SVMs measure distances, which large-unit features dominate, and gradient descent converges much faster on standardised features.',
     difficulty: 'beginner',
   },
   {

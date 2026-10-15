@@ -36,23 +36,23 @@ const SCEN: Record<Scen, { title: string; eg: string; small: boolean; similar: b
     similar: true,
     rec: [1, 1],
     pick: 1,
-    why: 'Feature extraction: ImageNet features already describe food photos well, and 300 images are far too few to retune millions of weights. Train only the new head.',
+    why: 'Feature extraction: ImageNet features already describe food photos well, so there is little to gain from retuning millions of weights on 300 images, and a lot of overfitting to lose. Train only the new head.',
   },
   sd: {
     title: 'Small, different',
     eg: '300 chest X-rays',
     small: true,
     similar: false,
-    rec: [2, 3],
-    pick: 2,
-    why: 'Keep the generic early layers (edges and textures appear in X-rays too) frozen, and gently fine-tune the top block or two plus the head, with strong augmentation. Too few images to retrain everything.',
+    rec: [1, 2],
+    pick: 1,
+    why: 'Little data wins: stay cautious. Edges and textures appear in X-rays too, so keep the backbone frozen and train a head. Because layer4 holds the most ImageNet-specific features, a head on layer3\'s features can do even better. If validation accuracy is still poor, gently fine-tune layer4 as well.',
   },
   ls: {
     title: 'Large, similar',
     eg: '50,000 photos of 100 dog breeds',
     small: false,
     similar: true,
-    rec: [3, 6],
+    rec: [2, 6],
     pick: 3,
     why: 'Plenty of data, so fine-tuning the upper blocks (or the whole network) with a small learning rate adds accuracy without overfitting.',
   },
@@ -91,17 +91,26 @@ export default function FreezeDial() {
 
   let tone: 'good' | 'warn' | 'bad' = 'good'
   let msg: string
-  if (u >= s.rec[0] && u <= s.rec[1]) {
+  if (scen === 'sd' && u === 2) {
+    msg = `Reasonable, if done gently: fine-tune only layer4 with a very small learning rate, plenty of label-safe augmentation (small rotations and shifts; no flips and no strong brightness changes for X-rays) and early stopping, so its 8.4 million weights are nudged rather than retrained. Compare with the frozen version on validation data: 300 images can easily overfit this many weights.`
+  } else if (u >= s.rec[0] && u <= s.rec[1]) {
     msg = `Matches the usual recommendation for this scenario. ${s.why}`
   } else if (u > s.rec[1]) {
     // only reachable for the small-data scenarios (the large-data ones allow up to everything)
     tone = 'bad'
     msg = `Risky: ${fmt(trainable)} trainable weights but only a few hundred images. Expect overfitting, and with a large learning rate the pretrained features can be wiped out (catastrophic forgetting).`
   } else {
-    tone = s.similar ? 'warn' : 'bad'
-    msg = s.similar
-      ? `Safe but leaves accuracy on the table: with this much data you can afford to adapt more layers.`
-      : `Too frozen: the top layers' ImageNet features (fur, faces, wheels) do not describe these images well, so the model underfits.`
+    // only reachable for the large-data scenarios
+    if (s.similar) {
+      tone = 'warn'
+      msg = `Safe but leaves accuracy on the table: with this much data you can afford to adapt more layers.`
+    } else if (u >= 3) {
+      tone = 'warn'
+      msg = `Close: only the early layers are still frozen. With this much data you can let them adapt too, but this setting is reasonable.`
+    } else {
+      tone = 'bad'
+      msg = `Too frozen: the top layers' ImageNet features (fur, faces, wheels) do not describe these images well, so the model underfits.`
+    }
   }
 
   const order = [...LAYERS].map((l, i) => ({ ...l, i })).reverse() // draw output side on top
@@ -113,7 +122,7 @@ export default function FreezeDial() {
         <>
           The stack is a real ResNet-18 pretrained on ImageNet with a new {K}-class head (parameter counts are exact). Slide to unfreeze blocks from the top down,
           then click a scenario in the grid. Notice how the last stage alone holds three quarters of the weights, and how the advice moves from &ldquo;train only the
-          head&rdquo; (small, similar data) to &ldquo;fine-tune everything, gently&rdquo; (large, different data).
+          head&rdquo; (small data) to &ldquo;fine-tune everything, gently&rdquo; (large, different data).
         </>
       }
     >

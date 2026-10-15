@@ -4,7 +4,8 @@ import { Figure, Controls, Slider, Toggle, Plot, usePlot, M, useNarrow } from '.
 /*
   Bayes by counting people. 1000 dots, one per person, in reading order:
   sick & test positive, sick & negative, healthy & positive, healthy & negative.
-  Colour = true condition, solid dot with a ring = tests positive, faint dot = tests negative.
+  Colour = true condition, solid dot with an outline = tests positive, faint dot = tests negative.
+  On phones the grid has fewer columns and the positive dots are drawn larger, so they stand out.
   Sliders set prevalence, sensitivity and false-positive rate; "only positives" fades everyone who
   tested negative, so the posterior is literally (red ringed dots) / (all ringed dots).
 */
@@ -27,10 +28,11 @@ function counts(prev: number, sens: number, fpr: number): Counts {
   return { sick, tp, fn: sick - tp, fp, tn: N - sick - fp }
 }
 
-function Dots({ c, cols, onlyPos }: { c: Counts; cols: number; onlyPos: boolean }) {
+function Dots({ c, cols, onlyPos, narrow }: { c: Counts; cols: number; onlyPos: boolean; narrow: boolean }) {
   const { xs, ys } = usePlot()
   const pitch = xs(1) - xs(0)
   const r = pitch * 0.36
+  const posR = r * (narrow ? 1.32 : 1.05)
   const kinds: { n: number; sick: boolean; pos: boolean }[] = [
     { n: c.tp, sick: true, pos: true },
     { n: c.fn, sick: true, pos: false },
@@ -47,10 +49,10 @@ function Dots({ c, cols, onlyPos }: { c: Counts; cols: number; onlyPos: boolean 
         fill: k.sick ? 'var(--viz-neg)' : 'var(--viz-1)',
         opacity: k.pos ? 1 : onlyPos ? 0.07 : 0.3,
         stroke: k.pos ? 'var(--viz-ink)' : 'none',
-        strokeWidth: k.pos ? Math.max(1.2, r * 0.38) : 0,
+        strokeWidth: k.pos ? Math.max(narrow ? 1.5 : 1.2, r * 0.38) : 0,
         transition: 'opacity 0.3s',
       }
-      out.push(<circle key={i} cx={xs(col + 0.5)} cy={ys(row + 0.5)} r={k.pos ? r * 1.05 : r * 0.85} style={style} />)
+      out.push(<circle key={i} cx={xs(col + 0.5)} cy={ys(row + 0.5)} r={k.pos ? posR : r * 0.85} style={style} />)
     }
   }
   return <g>{out}</g>
@@ -74,14 +76,14 @@ export default function BayesGrid() {
       caption={
         <>
           Each dot is a person. <b style={{ color: 'var(--viz-neg)' }}>Red</b> dots have the condition and <b style={{ color: 'var(--viz-1)' }}>blue</b> dots do not.
-          A solid dot with a dark ring tested <b>positive</b>; a faint dot tested negative. Switch on <b>Only show positive tests</b> and ask: of all the ringed
+          A solid dot with an outline tested <b>positive</b>; a faint dot tested negative. Switch on <b>Only show positive tests</b> and ask: of all the outlined
           dots, what fraction are red? Then slide the prevalence up and watch the answer change, even though the test itself is just as accurate.
         </>
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
         <Plot x={[0, cols]} y={[rows, 0]} width={600} height={(600 * rows) / cols} maxWidth={680} margin={{ left: 4, right: 4, top: 4, bottom: 4 }} ariaLabel={`1000 people: ${c.sick} have the condition, ${c.tp} true positives and ${c.fp} false positives`}>
-          <Dots c={c} cols={cols} onlyPos={onlyPos} />
+          <Dots c={c} cols={cols} onlyPos={onlyPos} narrow={narrow} />
         </Plot>
       </div>
       <div style={{ width: '100%', display: 'grid', gap: '0.4rem' }}>

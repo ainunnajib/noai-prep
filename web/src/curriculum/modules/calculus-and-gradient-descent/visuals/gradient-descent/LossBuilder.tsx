@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, MBlock, useNarrow } from '../../../../../kit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   One parameter, one loss number. The learner changes w (price per km) and sees
@@ -32,7 +33,7 @@ const panelTitle: CSSProperties = { fontSize: '0.875rem', fontWeight: 700, color
 
 export default function LossBuilder() {
   const [w, setW] = useState(1)
-  const [trail, setTrail] = useState<number[]>([0, 1, 3, 4])
+  const [trail, setTrail] = useState<number[]>([1]) // just the starting w: every other dot is one the learner tried
   const [showAll, setShowAll] = useState(false)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(480)
 
@@ -72,7 +73,7 @@ export default function LossBuilder() {
               <Path key={i} points={[[x, FARE[i]], [x, w * x]]} color="var(--viz-neg)" width={3} />
             ))}
             <Dots points={KM.map((x, i) => ({ x, y: FARE[i], color: 'var(--viz-ink)' }))} r={5.5} />
-            <DraggablePoint x={HANDLE_X} y={w * HANDLE_X} lockX onChange={(_, y) => update(y / HANDLE_X)} label="drag" />
+            <Handle x={HANDLE_X} y={w * HANDLE_X} lockX onChange={(_, y) => update(y / HANDLE_X)} label="drag" ariaLabel="tilt the line: price per km w" />
           </Plot>
         </div>
         <div>
@@ -84,7 +85,7 @@ export default function LossBuilder() {
             {showAll && !atBest && <Dots points={[{ x: 2, y: loss(2), color: 'var(--viz-3)', r: 6, label: 'lowest point' }]} />}
             <Dots points={trail.map((t) => ({ x: t, y: loss(t), r: 4, color: 'color-mix(in srgb, var(--viz-1) 75%, var(--surface))' }))} stroke="none" />
             <Path points={[[w, 0], [w, L]]} color="var(--viz-2)" width={1.5} dash="4 4" />
-            <DraggablePoint x={w} y={L} onChange={(x) => update(x)} constrain={(x) => [x, loss(snap(x))]} label={atBest ? 'lowest point!' : `L = ${L.toFixed(2)}`} />
+            <Handle x={w} y={L} onChange={(x) => update(x)} constrain={(x) => [x, loss(snap(x))]} label={atBest ? 'lowest point!' : `L = ${L.toFixed(2)}`} ariaLabel="w on the loss landscape: drag sideways" />
           </Plot>
         </div>
       </div>
@@ -95,7 +96,7 @@ export default function LossBuilder() {
       </MBlock>
       <Controls>
         <Slider label="price per km, w" value={w} min={W_MIN} max={W_MAX} step={0.05} onChange={update} format={(v) => `$${v.toFixed(2)}`} />
-        <Readout items={[['w', w.toFixed(2)], ['loss', L.toFixed(2)], ['dots tried', String(trail.length)]]} />
+        <Readout items={[['w', w.toFixed(2)], ['loss', L.toFixed(2)], ['values of w tried', String(trail.length)]]} />
         <Toggle label="Show the whole landscape" checked={showAll} onChange={setShowAll} />
       </Controls>
     </Figure>

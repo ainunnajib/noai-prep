@@ -32,6 +32,8 @@ export default function ShapeShrinkTable() {
           Each bar is a feature map's height as a fraction of the input. With <b>padding 0</b> every 3 × 3 conv shaves 2 pixels, so the skip map <code>x2</code>{' '}
           (orange) ends up bigger than the upsampled map <code>d1</code> (green) and <code>torch.cat</code> fails. Switch to <b>padding 1</b>: the convs stop
           shrinking and the two meet at 128. Then try padding 1 with input 250, where pooling's rounding down breaks the match anyway, or switch the centre crop on.
+          The pink bar is the joined map (256 channels) and the purple bar the 2-class output; with the crop on, the dashed outline behind the pink bar is the size
+          of <code>x2</code> before <code>center_crop</code> cut its outer ring off.
         </>
       }
     >

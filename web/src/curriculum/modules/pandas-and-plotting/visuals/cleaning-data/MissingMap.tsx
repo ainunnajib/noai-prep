@@ -1,6 +1,7 @@
-import { useState, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { Figure, Segmented, useNarrow } from '../../../../../kit'
 import s from './clean.module.css'
+import { useScrollFade } from '../dataframes-and-selection/scrollFade'
 import { MM_COLS, MM_START_MISSING, MM_TRUE, fmtFloatColumn, fmtSeries, type MMCol } from './data'
 
 /*
@@ -28,6 +29,8 @@ export default function MissingMap() {
   const [hot, setHot] = useState<MMCol | null>(null)
   const [ref, narrow] = useNarrow<HTMLDivElement>(400)
   const [wideRef, stacked] = useNarrow<HTMLDivElement>(660)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const fade = useScrollFade(scrollRef, `${view}${stacked}`)
 
   const toggle = (c: MMCol, i: number) => setMiss((m) => ({ ...m, [c]: m[c].map((v, k) => (k === i ? !v : v)) }))
 
@@ -88,7 +91,7 @@ export default function MissingMap() {
           ref={wideRef}
           style={{ display: 'grid', gridTemplateColumns: stacked ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)', gap: '0.9rem 1.2rem', width: '100%', alignItems: 'start' }}
         >
-          <div className={s.scroll}>
+          <div className={s.scroll} ref={scrollRef} style={fade}>
             <table className={`${s.table} ${s.compact}${narrow ? ` ${s.tiny}` : ''}`} aria-label={view === 'values' ? 'HDB resale records with missing values' : 'df.isna(): True where a value is missing'}>
               <thead>
                 <tr>

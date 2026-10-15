@@ -68,9 +68,8 @@ export default function PixelZoom() {
       title="Zoom in until the picture becomes numbers"
       caption={
         <>
-          Drag the yellow window (or focus the picture and use the arrow keys). Every pixel is <b>three</b> numbers: how much red, green and blue light it
-          has. Tap a channel to switch it off and see what is left. Notice that each channel on its own is just a grey brightness grid: a colour image is a stack of
-          three such grids. In PyTorch this picture is a tensor of shape (3, {SKY_H}, {SKY_W}): channels, height, width.
+          <b>Try:</b> drag the yellow window (or use the arrow keys) and tap a channel to switch it off. <b>Notice:</b> every pixel is three numbers, and each
+          channel alone is a grey brightness grid; this picture is a ({3}, {SKY_H}, {SKY_W}) tensor.
         </>
       }
     >

@@ -30,9 +30,9 @@ const questions: QuizQuestion[] = [
     prompt:
       'A RAG bot often gives half-answers. Asked about late projects, it says "you lose 10% per day" but never mentions the deadline, which is in the sentence just before. It uses 15-word chunks, no overlap and $k = 1$. Which change is most likely to help?',
     options: [
-      'Use bigger chunks or add overlap, so the deadline and the penalty end up in the same chunk',
+      'Use bigger chunks or add overlap, so deadline and penalty share a chunk',
       'Switch to a larger LLM, so that it can work out the missing deadline by itself',
-      'Lower the sampling temperature, so the answer sticks more closely to the context',
+      'Lower the temperature, so the answer sticks more closely to the context',
       'Use smaller chunks, so that each retrieved chunk matches the question more precisely',
     ],
     answer: 0,
@@ -43,16 +43,16 @@ const questions: QuizQuestion[] = [
   {
     id: 'prompting-and-rag.rag-pipeline.4',
     prompt:
-      'A student asks "When is the AI Club mock exam?". The retrieved chunk [2] says "Saturday 23 January". The bot answers "The mock exam is on 30 January [2]." What went wrong, and what should be fixed first?',
+      'A student asks the club bot "When does the library close on Friday?". The two retrieved chunks, [3] and [5], are both about the canteen. The bot replies "The library closes at 6 pm." with no citation. What should be fixed first?',
     options: [
-      'A generation failure: the right chunk was retrieved, so tighten the grounding instructions or use a stronger model',
-      'A retrieval failure: the right chunk was missed, so raise $k$ so that more chunks reach the prompt',
-      'A retrieval failure: the chunks are too long, so split the handbook into single sentences',
-      'A generation failure: the embedding model is wrong, so re-embed the handbook with a newer model',
+      'Retrieval: chunking, $k$ or the embeddings, so the library chunk reaches the prompt',
+      'Generation: the model ignored the library chunk, so tighten the grounding instructions',
+      'Citations: add "cite every fact" to the prompt, so that the 6 pm answer gets a source',
+      'The LLM: switch to a larger model that is more likely to know the library hours',
     ],
     answer: 0,
     explanation:
-      'The correct date was in the retrieved context, so retrieval worked; the model then contradicted its own cited source. That is a generation failure, fixed on the generation side ("answer only from the context", a stronger model). Raising $k$ or re-chunking fixes retrieval, and the embedding model only affects which chunks are retrieved, not what the LLM writes from them.',
+      'Neither retrieved chunk mentions the library, so the fact the answer needs never reached the model: a retrieval failure, and no prompt or model can cite a chunk it was not given. A well-grounded generator should also have said it did not know, so stricter instructions help as a second fix, but they cannot produce the right time. A larger model would only guess more fluently.',
     difficulty: 'intermediate',
   },
   {

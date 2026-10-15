@@ -85,7 +85,8 @@ export function SatelliteTile() {
 /*
   A chest X-ray with a faint nodule in the patient's right lung (image left). Drawn from
   brightness values v in [0, 1] (0 = black film, 1 = white bone) so a brightness/contrast change
-  can be applied to the numbers themselves, with clipping, exactly as a real pixel transform.
+  can be applied to the numbers themselves, exactly as a real pixel transform (results are clipped
+  to [0, 1], although the change used in this lesson never reaches either end).
   The film colours come from a local CSS class so it looks like an X-ray in both themes.
 */
 const XR = { film: 0.03, body: 0.3, lung: 0.13, nodule: 0.24, heart: 0.52, rib: 0.62, spine: 0.8, clavicle: 0.7 }

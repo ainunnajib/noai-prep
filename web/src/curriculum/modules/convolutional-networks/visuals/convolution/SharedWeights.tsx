@@ -49,9 +49,8 @@ export default function SharedWeights() {
       title="Local connections and shared weights"
       caption={
         <>
-          A strip of 8 inputs (top) feeds 6 outputs (bottom). Tap an output to see which inputs and weights it uses, then switch between the three layer types. A
-          convolution combines two ideas: each output looks only at <b>nearby</b> inputs, and every output uses the <b>same</b> small set of weights. The colours
-          a, b, c repeat because they are the same three numbers slid along the strip.
+          <b>Try:</b> tap an output, then switch between the three layer types. <b>Notice:</b> a convolution's outputs look only at <b>nearby</b> inputs
+          and all reuse the <b>same</b> three weights a, b, c, slid along the strip.
         </>
       }
     >

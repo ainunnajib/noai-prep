@@ -50,8 +50,6 @@ Two things make RL different. First, a reward says *how well* you did, never *wh
 
 <PastPaperQuestion paper="noai2025" n={3} />
 
-<PastPaperQuestion paper="prelim2026" n={136} />
-
 ## The loop: agent, environment, state, action, reward
 
 Every RL problem has the same five ingredients:
@@ -66,7 +64,7 @@ They form a loop. At each time step $t$ the agent observes the state $s_t$, take
 
 <RLLoop />
 
-What the agent learns is a <Term def="The agent's rule for choosing an action in each state, often written π (pi). A good policy collects a lot of total reward.">policy</Term>, usually written $\pi$ (the Greek letter pi): a rule that says which action to take in each state. The aim is the policy that collects the most **total** reward over the whole episode, not just the next reward.
+What the agent learns is a <Term def="The agent's rule for choosing an action in each state, often written π (pi). A good policy collects a lot of total reward.">policy</Term>, usually written $\pi$ (the Greek letter pi): a rule that says which action to take in each state. The aim is the policy that collects the most **total** (discounted) reward on average over the whole episode, not just the next reward.
 
 <KeyIdea>
 
@@ -101,12 +99,13 @@ $$
   </Step>
 </Steps>
 
-The expected return when you start in a state and then follow your policy is that state's <Term def="How good it is to be in a state: the total (discounted) reward you can expect from there on if you follow your policy.">value</Term>. A tile one move from a $+10$ goal has value 10, two moves away $0.9 \times 10 = 9$, three moves away $8.1$, and so on. You will see exactly these numbers appear in the next visual.
+The expected return when you start in a state and then follow your policy is that state's <Term def="How good it is to be in a state: the total (discounted) reward you can expect from there on if you follow your policy.">value</Term>. A tile one move from a $+10$ goal has value 10, two moves away $0.9 \times 10 = 9$, three moves away $8.1$, and so on. Once the agent in the next visual has learned its route (press "+10 episodes" once or twice), you will see exactly these numbers along it: 10.0, 9.0, 8.1, 7.3, …
 
 <QuickCheck
+  id="ml-fundamentals.reinforcement-learning.qc1"
   q="With discount $\gamma = 0.5$, an agent's next three rewards are 4, 4 and 8. What is the return $G$?"
-  options={['8', '16', '10', '6']}
-  answer={0}
+  options={['16', '8', '10', '6']}
+  answer={1}
   explain="$G = 4 + 0.5 \times 4 + 0.5^2 \times 8 = 4 + 2 + 2 = 8$. Adding without discounting gives 16, and using $\gamma$ instead of $\gamma^2$ for the third reward gives $4 + 2 + 4 = 10$: each step further away gets one more factor of $\gamma$."
 />
 
@@ -126,7 +125,7 @@ $$
 Q(s, a) \leftarrow Q(s, a) + \alpha \, \big(\text{target} - Q(s, a)\big)
 $$
 
-- $s$ is the tile it was on, $a$ the move it made, $r$ the reward it got and $s'$ the tile it landed on.
+- $s$ is the tile it was on, $a$ the move it made, $r$ the reward it got and $s'$ the tile it landed on. (If the move ends the episode, at the goal or the pit, there is no next tile, so the target is just $r$.)
 - $\max_{a'} Q(s', a')$ is the score of the best move from the new tile: its current estimate of how good $s'$ is.
 - $\alpha$ is the learning rate: with $\alpha = 0.5$ each update moves the score halfway towards the new evidence.
 
@@ -140,7 +139,7 @@ The agent maximises exactly the reward you give it, nothing else. Set the pit's 
 
 ## Exploration versus exploitation
 
-Try this in the maze: switch exploration off and press Reset. The agent still learns a route, but it keeps repeating whatever first worked, so about a third of the maze never gets a plan (watch "tiles with a plan" get stuck at around 10 of 15). With exploration on, it fills in almost the whole map, at the price of the occasional fall into the pit. Every learning agent faces this central dilemma of RL:
+Try this in the maze: switch exploration off and press Reset. The agent still learns a route, but it keeps repeating whatever first worked, so a third or more of the maze never gets a plan (watch "tiles with a plan" get stuck at around 9 of 15, however long you let it run). With exploration on, it keeps filling in the map, usually reaching 12 or more of the 15 tiles after a few hundred episodes, at the price of the occasional fall into the pit. Every learning agent faces this central dilemma of RL:
 
 - <Term def="Choosing the action that currently looks best, to collect reward now.">Exploitation</Term>: do what currently looks best, to collect reward now.
 - <Term def="Trying an action that may not look best, to learn more about it; it may reveal something better.">Exploration</Term>: try something else, to learn whether it is better.
@@ -190,9 +189,10 @@ You need some exploration to discover the best option, but every exploring step 
 </KeyIdea>
 
 <QuickCheck
+  id="ml-fundamentals.reinforcement-learning.qc2"
   q="A diner's estimate for every stall starts at 0. On day 1 they try chicken rice and score 6. With ε = 0, what happens next?"
-  options={['They eat chicken rice every day, because 6 beats every other estimate of 0', 'They try each of the other stalls once, then settle on the best one', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
-  answer={0}
+  options={['They try each of the other stalls once, then settle on the best one', 'They eat chicken rice every day, because 6 beats every other estimate of 0', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
+  answer={1}
   explain="With ε = 0 the diner always exploits: chicken rice's estimate of 6 is higher than the untried stalls' 0, so they never try anything else, even though nasi lemak (average 8) is better. Trying each stall once is a different strategy; it needs exploration built in."
 />
 

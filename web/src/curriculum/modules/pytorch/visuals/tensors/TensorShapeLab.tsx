@@ -70,6 +70,7 @@ export default function TensorShapeLab() {
   const contiguous = isContiguous(t.shape, t.strides)
   const done = t.shape.join(',') === '1,3,4,5' && t.names.join(',') === '1,C,H,W'
   const scrambled = t.names.includes('?')
+  const goalShape = t.shape.join(',') === '1,3,4,5' || t.shape.join(',') === '3,4,5'
 
   const lay = layoutTensor(t.shape, avail, {
     maxCell: 26,
@@ -118,9 +119,9 @@ export default function TensorShapeLab() {
       caption={
         <>
           The photo is 4 pixels tall and 5 wide with 3 colour channels, loaded as <code>(H, W, C)</code>: each row of cells is one pixel's R, G, B
-          values. Apply operations to reach <code>(N, C, H, W) = (1, 3, 4, 5)</code>. Watch the cells: <code>permute</code> moves whole axes, so after{' '}
-          <code>permute(2, 0, 1)</code> each sheet is one colour plane and the picture appears. Then try <code>view(-1)</code>, and switch on memory order
-          to see why it fails while <code>reshape(-1)</code> works.
+          values. Apply operations to reach <code>(N, C, H, W) = (1, 3, 4, 5)</code>. Try <code>reshape(3, 4, 5)</code> first: the shape is right, but
+          each sheet mixes R, G and B. Undo and use <code>permute(2, 0, 1)</code>: it moves whole axes, so each sheet is one colour plane and the picture
+          appears. Then try <code>view(-1)</code>, and switch on memory order to see why it fails while <code>reshape(-1)</code> works.
         </>
       }
     >
@@ -130,6 +131,11 @@ export default function TensorShapeLab() {
           {done ? (
             <>
               <b>Done:</b> <code>(1, 3, 4, 5)</code> is a batch of one image in <code>(N, C, H, W)</code> order, ready for <code>nn.Conv2d</code>.
+            </>
+          ) : scrambled && goalShape ? (
+            <>
+              <b>Right shape, wrong layout:</b> reshape poured the numbers in memory order, so each sheet mixes R, G and B (marked <b>?</b>). Undo and use{' '}
+              <code>permute</code> instead.
             </>
           ) : scrambled ? (
             <>This shape no longer lines up with H, W and C (marked <b>?</b>). Undo or reset.</>
@@ -210,11 +216,15 @@ export default function TensorShapeLab() {
       </div>
 
       <Controls>
-        <Segmented label="Operation" value={op} onChange={setOp} options={OPS.map((o) => ({ value: o, label: <span className={css.mono}>{o}</span> }))} />
+        <div className={css.segGrid}>
+          <Segmented label="Operation" value={op} onChange={setOp} options={OPS.map((o) => ({ value: o, label: <span className={css.mono}>{o}</span> }))} />
+        </div>
       </Controls>
       <div className={css.row}>
         {choices.length === 0 ? (
-          <span className={css.note}>This lab stops at 4 axes. Squeeze or flatten first.</span>
+          <span className={css.note}>
+            {d === 1 ? 'A 1-D tensor has only one axis: there is nothing to reorder.' : 'This lab stops at 4 axes. Squeeze or flatten first.'}
+          </span>
         ) : (
           <>
             <span className={css.mono} style={{ fontWeight: 700, color: 'var(--ink-2)' }}>
@@ -245,8 +255,8 @@ export default function TensorShapeLab() {
           <br />
           {error.msg}
           <div style={{ fontFamily: 'var(--font-body)', fontWeight: 400, color: 'var(--ink-2)', marginTop: 4 }}>
-            The tensor was not changed. Switch on memory order: the numbers are no longer stored in reading order, so <code>view</code> cannot simply
-            relabel them. Use <code>.reshape(…)</code>, or <code>.contiguous()</code> first.
+            The tensor was not changed. Switch on memory order: this shape would merge axes whose numbers are not next to each other in memory, so{' '}
+            <code>view</code> cannot simply relabel the strip. Use <code>.reshape(…)</code>, or <code>.contiguous()</code> first.
           </div>
         </div>
       )}

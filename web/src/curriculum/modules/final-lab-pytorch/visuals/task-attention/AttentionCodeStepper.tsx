@@ -102,8 +102,10 @@ export default function AttentionCodeStepper() {
     return { raw, scaled, masked, maskedCells, weights, out, rowSums }
   }, [bug, useMask])
 
+  // a mask slip does nothing while no mask is passed: the masked_fill line is skipped
+  const maskSlipIdle = !useMask && (bug === 'mask1' || bug === 'fill0')
   const line = (i: number, code: string, note?: ReactNode, badWhen?: Bug[]): CodeLine => {
-    const isBad = badWhen?.includes(bug)
+    const isBad = badWhen?.includes(bug) && !(i === 3 && !useMask)
     const skipped = (i === 3 && !useMask) || i === 5
     return { code, note, tone: step === i ? (isBad ? 'bad' : 'cur') : isBad ? 'bad' : skipped && step >= i ? 'dim' : undefined }
   }
@@ -255,7 +257,7 @@ export default function AttentionCodeStepper() {
       title="Six lines of Q3.1, one at a time"
       caption={
         <>
-          Press <b>Next</b> to run one line at a time on the example sentence <code>cats purr [PAD]</code>. Then pick a slip from the chips: watch which line turns red, how the
+          Press <b>Next</b> to run the given <code>d_k</code> line and then your six lines, one at a time, on the example sentence <code>cats purr [PAD]</code>. Then pick a slip from the chips: watch which line turns red, how the
           numbers change, and what the notebook's real test cell printed. Notice that forgetting <M>{'\\sqrt{d_k}'}</M> passes every visible check.
         </>
       }
@@ -265,7 +267,7 @@ export default function AttentionCodeStepper() {
         <div className={s.stage}>
           <div className={s.stageMain}>{main}</div>
           <p className={s.say}>
-            <b>Step {step + 1}, {STEP_NAMES[step]}.</b> {say}
+            <b>{step === 0 ? 'The given line, inputs.' : `Line ${step} of 6, ${STEP_NAMES[step]}.`}</b> {say}
           </p>
           <div className={s.shapes}>
             <span>
@@ -276,12 +278,21 @@ export default function AttentionCodeStepper() {
             </span>
           </div>
         </div>
-        <PlayerControls player={player} label={(i) => `Line ${i + 1} of 7`} />
+        <PlayerControls player={player} label={(i) => (i === 0 ? 'The given line' : `Line ${i} of 6`)} />
         <Controls>
           <Chips label="Inject a slip" options={BUG_OPTIONS} value={bug} onChange={setBug} />
           <Toggle label="Pass the padding mask [1, 1, 0]" checked={useMask} onChange={setUseMask} />
         </Controls>
-        <p className={`${s.verdict} ${bug === 'ok' ? s.verdictOk : s.verdictBad}`}>{VERDICT[bug]}</p>
+        <p className={`${s.verdict} ${bug === 'ok' || maskSlipIdle ? s.verdictOk : s.verdictBad}`}>
+          {maskSlipIdle ? (
+            <>
+              With <code>mask=None</code> the <code>masked_fill</code> line is skipped, so this slip changes nothing here. Switch the mask on to see it. (The
+              notebook's mask test, below, always passes a mask.)
+            </>
+          ) : (
+            VERDICT[bug]
+          )}
+        </p>
         <Console title={HEAD} lines={TEST[bug]} />
       </div>
     </Figure>

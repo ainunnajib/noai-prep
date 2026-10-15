@@ -4,25 +4,25 @@ const questions: QuizQuestion[] = [
   {
     id: 'backpropagation.vanishing-and-exploding-gradients.1',
     prompt:
-      'A chain of sigmoid neurons has every weight equal to 1 and every pre-activation $z = 0$. The loss sends a gradient of 1 back to the last neuron. How big is the gradient after it has passed back through **five** of these neurons?',
-    options: ['$1/1024 \\approx 0.001$', '$1.25$', '$0.25$', '$0.05$'],
+      'A chain of sigmoid neurons has every weight equal to 1 and every pre-activation $z = 0$, the sigmoid\'s steepest point. The loss sends a gradient of 1 back into the chain. After passing back through how many of these neurons does the gradient first drop below $1/1000$?',
+    options: ['$5$', '$4$', '$10$', '$3$'],
     answer: 0,
     explanation:
-      'Each neuron multiplies the gradient by $w \\cdot \\sigma\'(0) = 1 \\times 0.25$. Five of them give $0.25^5 = 1/4^5 = 1/1024 \\approx 0.001$. $1.25$ comes from *adding* $0.25$ five times, but along a chain the chain rule multiplies; $0.25$ counts only one neuron.',
+      'Each neuron multiplies the gradient by $w \\cdot \\sigma\'(0) = 1 \\times 0.25 = 1/4$, so after $n$ neurons it is $1/4^n$. After four it is $1/256 \\approx 0.004$, still above $1/1000$; after five it is $1/1024$, just below. So $4$ stops one neuron early. $10$ assumes each neuron halves the gradient (using $\\sigma(0) = 0.5$ instead of $\\sigma\'(0) = 0.25$), and $3$ assumes each one divides it by 10.',
     difficulty: 'beginner',
   },
   {
     id: 'backpropagation.vanishing-and-exploding-gradients.2',
     prompt: 'He initialisation draws a ReLU layer\'s weights with variance $2/n_{in}$, twice the $1/n_{in}$ that suits tanh. Why the factor of 2?',
     options: [
-      'ReLU outputs 0 for about half its inputs, which halves the signal\'s squared size at each layer; doubling the weight variance cancels that so the per-layer factor stays near 1',
-      'ReLU\'s derivative is 2 for positive inputs, so the weights must be twice as large to match it and keep the backward factor equal to 1',
-      'Larger weights make the gradients grow slightly at every layer, and a little explosion speeds up training of deep ReLU networks',
-      'A ReLU layer has two weight matrices, one for positive and one for negative inputs, so the variance is split between the two of them',
+      'ReLU zeroes about half its inputs, which halves the signal\'s squared size; doubling the weight variance cancels that',
+      'ReLU\'s derivative is 2 for positive inputs, so the weights must double to match it and keep the backward factor at 1',
+      'Larger weights make the gradients grow slightly at every layer, and that small growth speeds up deep ReLU training',
+      'A ReLU layer keeps separate weights for positive and negative inputs, so the variance is split across the two sets',
     ],
     answer: 0,
     explanation:
-      'With weights of standard deviation $k/\\sqrt{n}$ a layer scales the signal by about $k$ times the typical slope. ReLU passes signal through only its active half, halving the squared size, so $k^2 = 2$ (variance $2/n_{in}$) brings the factor back to about 1. ReLU\'s derivative is 1, not 2, for positive inputs, and deliberately making gradients grow is exactly the exploding-gradient problem.',
+      'With weights of standard deviation $k/\\sqrt{n}$ a layer scales the signal by about $k$ times the root-mean-square slope. ReLU passes signal through only its active half, halving the squared size, so $k^2 = 2$ (variance $2/n_{in}$) brings the factor back to about 1. ReLU\'s derivative is 1, not 2, for positive inputs, and deliberately making gradients grow is exactly the exploding-gradient problem.',
     difficulty: 'intermediate',
   },
   {
@@ -62,7 +62,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Clipping must act on the gradients after `loss.backward()` has computed them and before `optimiser.step()` uses them. After `step()` the update has already happened; before `backward()` the `.grad` values are still zero (or last step\'s), so there is nothing useful to clip, and anything clipped before `zero_grad()` is wiped anyway.',
+      'Clipping must act on the gradients after `loss.backward()` has computed them and before `optimiser.step()` uses them. After `step()` the update has already happened; before `backward()` the `.grad` values are still `None` (what `zero_grad()` leaves by default) or last step\'s, so there is nothing useful to clip, and anything clipped before `zero_grad()` is wiped anyway.',
     difficulty: 'intermediate',
   },
 ]

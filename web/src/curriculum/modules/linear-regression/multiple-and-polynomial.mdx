@@ -86,7 +86,10 @@ $$
 Here $Xw - y$ is the column of errors, and $X^\top$ is the <Term def="The matrix flipped over its diagonal: row i becomes column i. An n×d matrix becomes d×n.">transpose</Term> of $X$. At the bottom of the bowl the gradient is zero, so
 
 $$
-X^\top X\, w = X^\top y \quad\Longrightarrow\quad w = (X^\top X)^{-1} X^\top y .
+\begin{aligned}
+X^\top X\, w &= X^\top y \\
+\Longrightarrow\quad w &= (X^\top X)^{-1} X^\top y .
+\end{aligned}
 $$
 
 This is the <Hl>normal equation</Hl>. Symbol by symbol:
@@ -116,7 +119,7 @@ Why "normal"? Setting the gradient to zero says $X^\top(y - Xw) = 0$: the errors
     $w = \frac{1}{6}\begin{bmatrix} 5\cdot9 - 3\cdot14 \\ -3\cdot9 + 3\cdot14 \end{bmatrix} = \frac{1}{6}\begin{bmatrix} 3 \\ 15 \end{bmatrix} = \begin{bmatrix} 0.5 \\ 2.5 \end{bmatrix}$. The best line is $\hat{y} = 0.5 + 2.5x$.
   </Step>
   <Step title="Check">
-    Predictions $0.5, 3, 5.5$; errors $y - \hat{y} = 0.5, -1, 0.5$. They add up to $0$, and $x$ times error adds up to $0\cdot0.5 + 1\cdot(-1) + 2\cdot0.5 = 0$. That is $X^\top(y - Xw) = 0$, the "normal" condition.
+    Predictions $0.5, 3, 5.5$; residuals $y - \hat{y} = 0.5, -1, 0.5$. They add up to $0$, and $x$ times error adds up to $0\cdot0.5 + 1\cdot(-1) + 2\cdot0.5 = 0$. That is $X^\top(y - Xw) = 0$, the "normal" condition.
   </Step>
 </Steps>
 
@@ -134,7 +137,9 @@ $(X^\top X)^{-1}$ only exists when $\det(X^\top X) \neq 0$. A square matrix with
 - **Redundant features.** Height in cm *and* height in m; temperature in °C *and* °F (since $F = 1.8C + 32$ is built from the °C column and the column of 1s); a feature copied twice.
 - **More columns than examples** ($d > n$). Three points cannot pin down five weights.
 
-Then infinitely many $w$ fit the data equally well. If columns 1 and 2 are identical, only $w_1 + w_2$ matters: $(1, 1)$, $(2, 0)$ and $(5, -3)$ all give the same predictions, so there is no single answer to "invert" towards.
+In floating point an exactly or nearly redundant column (two features that are almost copies, called <Term def="Two or more features that are (almost) linear combinations of each other, such as area in m² and area in ft². It makes XᵀX singular or nearly singular.">multicollinearity</Term>) often gives **no error at all**, just huge, unstable weights. Check with `np.linalg.matrix_rank(X)` (fewer than the number of columns means redundant) or `np.linalg.cond(X.T @ X)` (enormous, like $10^{15}$ or more, means trouble).
+
+When columns are redundant, infinitely many $w$ fit the data equally well. If columns 1 and 2 are identical, only $w_1 + w_2$ matters: $(1, 1)$, $(2, 0)$ and $(5, -3)$ all give the same predictions, so there is no single answer to "invert" towards.
 
 Three ways out:
 
@@ -146,7 +151,7 @@ Three ways out:
 
 **Normal equation or gradient descent?** Both reach the same $w$ (the visual above counts the gradient descent steps). The normal equation needs no learning rate and no iterations, but inverting a $d \times d$ matrix costs roughly $d^3$ operations: fine for $d = 100$, hopeless for a million features. Gradient descent takes many cheap steps, scales to huge $d$ and $n$, and also works for models that have no formula at all (logistic regression, neural networks).
 
-<PyRunner packages={['numpy']} code={`import numpy as np
+<PyRunner packages={['numpy']} rows={20} code={`import numpy as np
 
 # taxi rides: [1, km, minutes] and fares
 X = np.array([[1, 2, 10],
@@ -156,10 +161,14 @@ X = np.array([[1, 2, 10],
               [1, 10, 25]], dtype=float)
 y = np.array([6.3, 9.4, 15.0, 8.6, 15.6])
 
-w = np.linalg.inv(X.T @ X) @ X.T @ y        # the normal equation, literally
+# the normal equation, literally
+w = np.linalg.inv(X.T @ X) @ X.T @ y
 print("w     =", w.round(3))
-print("solve =", np.linalg.solve(X.T @ X, X.T @ y).round(3))  # better: no explicit inverse
-print("lstsq =", np.linalg.lstsq(X, y, rcond=None)[0].round(3))
+# better: solve the system, no explicit inverse
+w_solve = np.linalg.solve(X.T @ X, X.T @ y)
+print("solve =", w_solve.round(3))
+w_lstsq = np.linalg.lstsq(X, y, rcond=None)[0]
+print("lstsq =", w_lstsq.round(3))
 print("pinv  =", (np.linalg.pinv(X) @ y).round(3))
 print("predictions:", (X @ w).round(2))`} />
 
@@ -210,20 +219,25 @@ For example, with features $[1, x, x^2, x^3]$ and weights $w = [1, -1, 0.5, 0.25
   explain="In the other three, each weight multiplies a fixed feature ($x^2$, $\log x$ or $x_1x_2$ can all be computed before training), so they are linear in the weights. In $e^{w_1 x}$ the weight sits inside the exponential, so the prediction is not a weighted sum of fixed columns."
 />
 
-<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+<PyRunner packages={['numpy', 'scikit-learn']} rows={19} code={`import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 
 x = np.array([-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2])
-y = np.array([0.8, 1.36, 1.85, 1.14, 0.85, -0.04, 0.4, 1.59, 3.65])
+y = np.array([0.8, 1.36, 1.85, 1.14, 0.85,
+              -0.04, 0.4, 1.59, 3.65])
 
-X = np.column_stack([x**0, x, x**2, x**3])   # features 1, x, x², x³
+# features 1, x, x², x³
+X = np.column_stack([x**0, x, x**2, x**3])
 w = np.linalg.lstsq(X, y, rcond=None)[0]
 print("NumPy weights  :", w.round(3))
 
-poly = PolynomialFeatures(degree=3, include_bias=False)  # makes x, x², x³
-model = LinearRegression().fit(poly.fit_transform(x.reshape(-1, 1)), y)
-print("sklearn weights:", round(model.intercept_, 3), model.coef_.round(3))`} />
+# PolynomialFeatures makes the columns x, x², x³
+poly = PolynomialFeatures(degree=3, include_bias=False)
+Xp = poly.fit_transform(x.reshape(-1, 1))
+model = LinearRegression().fit(Xp, y)
+b, w_rest = model.intercept_, model.coef_
+print("sklearn weights:", round(b, 3), w_rest.round(3))`} />
 
 Both give $w \approx [0.628, -1.079, 0.396, 0.456]$, the same weights the **Fit** button found above. scikit-learn's `PolynomialFeatures` just builds the extra columns for you.
 
@@ -262,7 +276,7 @@ Prelim questions on this topic are fast recall, so have these ready:
 
 <Takeaways>
 
-- Stack examples as rows of $X$ with a column of 1s: all predictions are $\hat{y} = Xw$, shapes $(n \times d)(d \times 1)$.
+- Stack examples as rows of $X$ with a column of 1s: all predictions are $\hat{y} = Xw$, shapes ${(n \times d)(d \times 1)}$.
 - Setting the MSE gradient to zero gives the normal equation $w = (X^\top X)^{-1}X^\top y$: the exact least-squares answer in one step.
 - It needs $X^\top X$ to be invertible. Redundant columns or $d > n$ make it singular; the pseudoinverse `np.linalg.pinv` still returns the shortest best-fitting $w$.
 - Polynomial features $x, x^2, x^3, \dots$ fit curves with the same maths, because the model stays linear in $w$.

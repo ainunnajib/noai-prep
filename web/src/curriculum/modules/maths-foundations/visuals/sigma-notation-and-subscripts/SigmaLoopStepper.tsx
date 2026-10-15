@@ -5,6 +5,7 @@ import { Figure, Controls, Readout, Segmented, Button, usePlayer, PlayerControls
   Σ is a for-loop. One expression, three versions that always agree:
     maths (expanded term by term), a plain Python loop with a running total, and a NumPy one-liner.
   Step through the terms; edit the numbers; switch the expression (Σxᵢ, Σxᵢ², MSE, Πxᵢ).
+  It opens on Σxᵢ for x = [3, 1, 5, 2], the lesson's own example (total 11).
 */
 
 type Mode = 'sum' | 'sq' | 'mse' | 'prod'
@@ -44,9 +45,39 @@ const inputStyle: CSSProperties = {
 }
 const label: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }
 
+/**
+ * A whole-number box from −9 to 9. It keeps what the learner types as a draft string, so a lone
+ * "-" (on the way to "-3") or an empty box is allowed while typing; only a real number is committed.
+ */
+function NumInput({ value, onCommit, ariaLabel, style }: { value: number; onCommit: (v: number) => void; ariaLabel: string; style: CSSProperties }) {
+  const [draft, setDraft] = useState(String(value))
+  // follow outside changes (another term added, a reset) without fighting the learner's typing
+  useEffect(() => {
+    setDraft((d) => (d.trim() !== '' && Number(d) === value ? d : String(value)))
+  }, [value])
+  return (
+    <input
+      type="number"
+      min={-9}
+      max={9}
+      step={1}
+      value={draft}
+      aria-label={ariaLabel}
+      onChange={(e) => {
+        const t = e.target.value
+        setDraft(t)
+        const v = Number(t)
+        if (t.trim() !== '' && Number.isFinite(v)) onCommit(Math.max(-9, Math.min(9, Math.round(v))))
+      }}
+      onBlur={() => setDraft(String(value))}
+      style={style}
+    />
+  )
+}
+
 export default function SigmaLoopStepper() {
-  const [mode, setMode] = useState<Mode>('sq')
-  const [x, setX] = useState<number[]>([3, 1, 4, 2])
+  const [mode, setMode] = useState<Mode>('sum')
+  const [x, setX] = useState<number[]>([3, 1, 5, 2])
   const [y, setY] = useState<number[]>([3, 5, 2, 6])
   const [yh, setYh] = useState<number[]>([2, 5, 4, 5])
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
@@ -82,7 +113,7 @@ export default function SigmaLoopStepper() {
           ? `\\displaystyle\\text{MSE} = \\frac{1}{${n}} \\sum_{i=1}^{${n}} (y_i - \\hat{y}_i)^2`
           : `\\displaystyle\\prod_{i=1}^{${n}} x_i`
   const symTerm = (k: number) => (mode === 'sum' || mode === 'prod' ? `x_{${k + 1}}` : mode === 'sq' ? `x_{${k + 1}}^2` : `(y_{${k + 1}} - \\hat{y}_{${k + 1}})^2`)
-  const numTerm = (k: number) => (mode === 'sum' || mode === 'prod' ? `${x[k]}` : mode === 'sq' ? `${paren(x[k])}^2` : `(${y[k]} - ${yh[k]})^2`)
+  const numTerm = (k: number) => (mode === 'sum' || mode === 'prod' ? `${x[k]}` : mode === 'sq' ? `${paren(x[k])}^2` : `(${y[k]} - ${paren(yh[k])})^2`)
 
   // ----- code -----
   const list = (v: number[]) => `[${v.join(', ')}]`
@@ -105,10 +136,7 @@ export default function SigmaLoopStepper() {
     mode === 'sum' ? 'np.sum(x)' : mode === 'sq' ? 'np.sum(x ** 2)' : mode === 'mse' ? 'np.mean((y - y_hat) ** 2)' : 'np.prod(x)'
 
   // ----- editing -----
-  const edit = (arr: number[], set: (v: number[]) => void, k: number, v: string) => {
-    const num = Math.max(-9, Math.min(9, Math.round(Number(v))))
-    if (Number.isFinite(num)) set(arr.map((a, i) => (i === k ? num : a)))
-  }
+  const edit = (arr: readonly number[], set: (v: number[]) => void, k: number, num: number) => set(arr.map((a, i) => (i === k ? num : a)))
   const addTerm = () => {
     if (n >= 6) return
     setX([...x, ((x.length * 3 + 2) % 7) + 1])
@@ -146,7 +174,8 @@ export default function SigmaLoopStepper() {
         <>
           Press <strong>Restart</strong> then <strong>Next</strong> to add one term at a time: the highlighted term in the maths, the highlighted lines
           of the loop and the running total all move together. Change the numbers or the expression and check that the maths, the loop and the
-          NumPy one-liner always agree. Notice two details: Python counts from 0 while maths counts from 1, and a product (Π) must start at 1, not 0.
+          NumPy one-liner always agree (try a negative number such as −3 in <M>{'\\sum x_i^2'}</M>). Notice two details: Python counts from 0 while maths counts
+          from 1, and a product (Π) must start at 1, not 0. The MSE option is explained in the next section.
         </>
       }
     >
@@ -195,7 +224,10 @@ export default function SigmaLoopStepper() {
         {step === 0
           ? `Before the loop: ${accName} = ${init}`
           : step <= n
-            ? `Running ${accName} after term ${step}: ${terms.slice(0, step).map(fmt).join(isProd ? ' × ' : ' + ')} = ${fmt(total)}`
+            ? `Running ${accName} after term ${step}: ${terms
+                .slice(0, step)
+                .map((t, i) => (i === 0 || t >= 0 ? fmt(t) : `(${fmt(t)})`))
+                .join(isProd ? ' × ' : ' + ')} = ${fmt(total)}`
             : mode === 'mse'
               ? `All ${n} terms: total = ${fmt(running(n))}, divided by ${n} gives ${fmt(final)}`
               : `All ${n} terms: ${fmt(final)}`}
@@ -213,15 +245,11 @@ export default function SigmaLoopStepper() {
           <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span style={{ width: '1.4rem', fontWeight: 700, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>{name}</span>
             {arr.map((v, k) => (
-              <input
+              <NumInput
                 key={k}
-                type="number"
-                min={-9}
-                max={9}
-                step={1}
                 value={v}
-                aria-label={`${name} number ${k + 1}`}
-                onChange={(e) => edit([...arr], set as (v: number[]) => void, k, e.target.value)}
+                ariaLabel={`${name} number ${k + 1}`}
+                onCommit={(num) => edit(arr, set as (v: number[]) => void, k, num)}
                 style={{ ...inputStyle, borderColor: step === k + 1 ? 'var(--highlight)' : 'var(--rule)' }}
               />
             ))}

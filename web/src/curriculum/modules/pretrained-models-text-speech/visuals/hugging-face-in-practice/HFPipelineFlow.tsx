@@ -187,7 +187,7 @@ export default function HFPipelineFlow() {
       note = (
         <>
           A token-classification head gives <b>every token</b> its own 9 scores, one per label (columns: O, B-MISC, I-MISC, B-PER, I-PER, B-ORG, I-ORG, B-LOC,
-          I-LOC; B = beginning of a name, I = inside it). Darker = higher; the outlined cell is each row's winner.
+          I-LOC; B = beginning of a name, I = inside it). The stronger the colour, the higher the score; the outlined cell is each row's winner.
         </>
       )
     } else {

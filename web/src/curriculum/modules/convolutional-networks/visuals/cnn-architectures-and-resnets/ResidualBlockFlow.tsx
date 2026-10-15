@@ -75,9 +75,8 @@ export default function ResidualBlockFlow() {
       title="Inside a residual block"
       caption={
         <>
-          The block computes <M>{'y = \\mathrm{ReLU}(F(x) + x)'}</M>, where <M>F</M> is the conv-BN-ReLU-conv-BN path. Shapes are written <M>{'(C, H, W)'}</M>. Set the
-          stride to 2 or the output channels to 128: <M>F(x)</M> changes shape, the plain shortcut no longer fits, and PyTorch refuses to add them. Switch on the 1×1
-          projection to fix it. Then show the backward pass: the shortcut hands the gradient straight back, multiplied by 1.
+          <b>Try:</b> set the stride to 2 or the channels to 128, then switch on the 1×1 projection; finally show the backward pass. <b>Notice:</b>{' '}
+          <M>{'F(x) + x'}</M> needs equal <M>{'(C, H, W)'}</M> shapes, and the shortcut hands the gradient straight back (× 1).
         </>
       }
     >
@@ -108,16 +107,17 @@ export default function ResidualBlockFlow() {
               <path d={`M${cx + 6},${ys.x + 9} L${xs},${ys.x + 9} L${xs},${ys.add} L${cx + addR},${ys.add}`} style={{ fill: 'none', stroke: ok ? 'var(--viz-4)' : bad, strokeWidth: 2.4, strokeDasharray: ok ? undefined : '6 4' }} />
               {proj && (
                 <g>
-                  <rect x={xs - 56} y={projY} width={76} height={44} rx={7} style={{ fill: 'color-mix(in srgb, var(--viz-4) 15%, var(--surface))', stroke: 'var(--viz-4)', strokeWidth: 1.5 }} />
-                  <text x={xs - 18} y={projY + 16} textAnchor="middle" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink)' }}>
+                  <rect x={xs - 64} y={projY} width={86} height={44} rx={7} style={{ fill: 'color-mix(in srgb, var(--viz-4) 15%, var(--surface))', stroke: 'var(--viz-4)', strokeWidth: 1.5 }} />
+                  <text x={xs - 21} y={projY + 16} textAnchor="middle" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink)' }}>
                     1×1 conv
                   </text>
-                  <text x={xs - 18} y={projY + 32} textAnchor="middle" style={{ fontSize: 11.5, fill: 'var(--ink-2)' }}>
-                    {stride === 2 ? 'stride 2 + BN' : '+ BN'}
+                  <text x={xs - 21} y={projY + 32} textAnchor="middle" style={{ fontSize: 11, fill: 'var(--ink-2)' }}>
+                    {stride === 2 ? 'stride 2, BN' : 'then BN'}
                   </text>
                 </g>
               )}
-              {shapeLabel((cx + addR + xs) / 2 + 4, ys.add - 11, sS, ok ? 'var(--viz-4)' : bad, 'middle')}
+              {/* the skip's shape sits at the right, above the pink line, clear of the F(x) label */}
+              {shapeLabel(xs - 8, ys.add - 11, sS, ok ? 'var(--viz-4)' : bad, 'end')}
               <circle cx={cx} cy={ys.add} r={addR} style={{ fill: ok ? 'var(--surface)' : `color-mix(in srgb, ${bad} 20%, var(--surface))`, stroke: ok ? 'var(--viz-ink)' : bad, strokeWidth: 2 }} />
               <text x={cx} y={ys.add} dy="0.36em" textAnchor="middle" style={{ fontSize: 18, fontWeight: 700, fill: ok ? 'var(--ink)' : bad }}>
                 +
@@ -180,7 +180,7 @@ export default function ResidualBlockFlow() {
         <Toggle label="Skip connection" checked={skip} onChange={setSkip} />
         <Segmented label="Stride of first conv" value={stride} onChange={setStride} options={[{ value: 1, label: '1' }, { value: 2, label: '2' }]} />
         <Segmented label="Output channels" value={cout} onChange={setCout} options={[{ value: 64, label: '64' }, { value: 128, label: '128' }]} />
-        <Toggle label="1×1 projection on the skip" checked={proj} onChange={setProj} />
+        {skip && <Toggle label="1×1 projection on the skip" checked={proj} onChange={setProj} />}
         <Toggle label="Show backward pass" checked={back} onChange={setBack} />
       </Controls>
       <Readout

@@ -5,7 +5,7 @@ import { BASE_CHARS, encodeWord, inBase, isWord, pretokenise, trainBPE, wordFreq
 import s from './tok.module.css'
 
 /*
-  One sentence, three tokenisers, all trained on the same ~400-word corpus (corpus.ts):
+  One sentence, three tokenisers, all trained on the same ~370-word corpus (corpus.ts):
     - word-level: vocabulary = every distinct corpus word (+ punctuation); anything else is [UNK];
     - character-level: vocabulary = a–z, 0–9 and 11 punctuation marks;
     - BPE: the same characters plus the first k merge rules learned from the corpus.
@@ -145,7 +145,7 @@ export default function TokeniserCompare() {
       title="One sentence, three tokenisers"
       caption={
         <>
-          All three tokenisers learned from the same 400-word school-day text. Edit the sentence or tap a preset, then slide the number of BPE merges.
+          All three tokenisers learned from the same short school-day text (about 370 words). Edit the sentence or tap a preset, then slide the number of BPE merges.
           At 0 merges BPE is exactly character-level; as it learns more merges, frequent chunks such as <code>ing</code>, <code>un</code> and{' '}
           <code>token</code> become single tokens and the sentence gets shorter, yet a word it never saw is still spelled out from pieces instead of
           becoming <code>[UNK]</code>. Only symbols outside the base alphabet (like the emoji) are unknown; byte-level BPE, used by GPT models, avoids
@@ -176,10 +176,17 @@ export default function TokeniserCompare() {
         <Slider label="BPE merges learned" value={k} min={0} max={M} step={1} onChange={setK} format={(v) => `${v} (vocab ${BASE_CHARS.length + v})`} />
       </Controls>
       <div ref={plotRef} style={{ width: '100%' }}>
+      {pieces.length === 0 ? (
+        <p className={s.message}>Type a sentence above to see how many tokens each tokeniser needs.</p>
+      ) : (
       <Plot x={[0, M]} y={[0, yMax]} width={560} height={210} minHeight={190} margin={{ left: 44, bottom: 38, right: 18 }} ariaLabel="Number of tokens for the sentence against the number of BPE merges">
         <Grid xTicks={narrow ? 4 : 8} yTicks={5} />
         <Axes xLabel="BPE merges (vocabulary grows →)" yLabel="tokens" xTicks={narrow ? 4 : 8} yTicks={5} />
-        <HLine y={nWord} color="var(--viz-2)" label={`word-level: ${nWord}`} />
+        <HLine y={nWord} color="var(--viz-2)" />
+        {/* the word-level label sits at the left end, away from the BPE dot, which ends up near this line on the right */}
+        <Label x={0} y={nWord} dx={8} dy={-6} color="var(--viz-2)">
+          {`word-level: ${nWord}`}
+        </Label>
         <Path points={path} color="var(--viz-1)" width={2.5} />
         <Dots points={[{ x: k, y: nBpe, color: 'var(--viz-1)', r: 6 }]} />
         {k < M * 0.12 ? (
@@ -188,7 +195,7 @@ export default function TokeniserCompare() {
           </Label>
         ) : (
           <>
-            <Label x={k} y={nBpe} dx={k > M * 0.7 ? -10 : 10} dy={-10} anchor={k > M * 0.7 ? 'end' : 'start'} color="var(--viz-1)">
+            <Label x={k} y={nBpe} dx={k > M * 0.7 ? -10 : 10} dy={Math.abs(nBpe - nWord) <= 2 ? -16 : -10} anchor={k > M * 0.7 ? 'end' : 'start'} color="var(--viz-1)">
               {`BPE: ${nBpe}`}
             </Label>
             <Label x={0} y={nChars} dx={8} dy={-7} color="var(--ink-2)">
@@ -197,6 +204,7 @@ export default function TokeniserCompare() {
           </>
         )}
       </Plot>
+      )}
       </div>
     </Figure>
   )

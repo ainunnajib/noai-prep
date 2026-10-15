@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Button, Plot, usePlot, MBlock, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Button, Plot, usePlot, MBlock, useContainerWidth } from '../../../../../kit'
 import { fmt, mean } from './stats'
 
 /*
@@ -7,6 +7,8 @@ import { fmt, mean } from './stats'
   between the point and the mean, with side = distance to the mean, so its area is the squared
   deviation. The dashed square has the AVERAGE area (the variance); its side is the standard
   deviation, also shown as a "mean ± 1 SD" bracket under the line. Divide by n or n − 1.
+  The plot grows taller when a point is dragged far from the mean, so every square stays a true
+  square (never clipped into a rectangle).
 */
 
 const START = [1, 3, 4, 5, 7]
@@ -16,6 +18,10 @@ const PRESETS: Record<string, number[]> = {
   start: START,
 }
 const X_MAX = 10
+const DESIGN_W = 540
+const MARGIN = { left: 22, right: 22, top: 10, bottom: 58 }
+/** room above the tallest square for the "mean" label */
+const HEADROOM = 22
 
 function Handle({ x, y, value, onMove, label, color }: { x: number; y: number; value: number; onMove: (v: number) => void; label: string; color: string }) {
   const { toData } = usePlot()
@@ -116,10 +122,11 @@ function Scene({ values, setValue, sd, showAvg }: { values: number[]; setValue: 
       ))}
       {/* mean ± 1 SD bracket */}
       {sd > 0 && (
+        // the bracket is cut at the ends of the number line (no end tick there) so it never leaves the picture
         <g style={{ stroke: 'var(--viz-4)', strokeWidth: 2 }}>
-          <line x1={xs(m - sd)} x2={xs(m + sd)} y1={axisY + 30} y2={axisY + 30} />
-          <line x1={xs(m - sd)} x2={xs(m - sd)} y1={axisY + 25} y2={axisY + 35} />
-          <line x1={xs(m + sd)} x2={xs(m + sd)} y1={axisY + 25} y2={axisY + 35} />
+          <line x1={xs(Math.max(0, m - sd))} x2={xs(Math.min(X_MAX, m + sd))} y1={axisY + 30} y2={axisY + 30} />
+          {m - sd >= 0 && <line x1={xs(m - sd)} x2={xs(m - sd)} y1={axisY + 25} y2={axisY + 35} />}
+          {m + sd <= X_MAX && <line x1={xs(m + sd)} x2={xs(m + sd)} y1={axisY + 25} y2={axisY + 35} />}
         </g>
       )}
       <text x={Math.max(xs(0) + 40, Math.min(xs(X_MAX) - 40, mx))} y={axisY + 49} textAnchor="middle" className="plot-label" style={{ fill: 'var(--viz-4)', fontSize: 12 }}>
@@ -136,9 +143,15 @@ export default function VarianceSquares() {
   const [values, setValues] = useState<number[]>(START)
   const [ddof, setDdof] = useState<0 | 1>(0)
   const [showAvg, setShowAvg] = useState(true)
-  const [ref, narrow] = useNarrow<HTMLDivElement>()
+  const [ref, containerW] = useContainerWidth<HTMLDivElement>(DESIGN_W)
+  const narrow = containerW < 520
   const n = values.length
   const m = mean(values)
+  // Plot keeps 1 minute = the same number of px on both axes; make it tall enough for the biggest square.
+  const plotW = Math.max(200, Math.min(DESIGN_W * 1.25, containerW))
+  const unitPx = (plotW - MARGIN.left - MARGIN.right) / X_MAX
+  const maxDev = Math.max(...values.map((v) => Math.abs(v - m)))
+  const minHeight = Math.max(260, Math.ceil(MARGIN.top + MARGIN.bottom + HEADROOM + maxDev * unitPx))
   const sq = values.map((v) => (v - m) ** 2)
   const ss = sq.reduce((s, v) => s + v, 0)
   const variance = ss / (n - ddof)
@@ -157,13 +170,14 @@ export default function VarianceSquares() {
       caption={
         <>
           Queue times (minutes) at one hawker stall on five days. Each square joins a point to the mean (blue on the left, green on the right), so its area is that point's squared distance
-          from the mean. The dashed pink square has the <b>average</b> area: that area is the variance, and its side is the standard deviation. Drag a point
-          far away and watch its square grow much faster than its distance. Try the two stalls: both have a mean of 4 minutes, but very different spreads.
+          from the mean. The dashed pink square's area is the variance: the average square when you divide by <i>n</i>, slightly bigger when you divide by{' '}
+          <i>n</i> − 1. Its side is the standard deviation. Drag a point far away and watch its square grow much faster than its distance (the picture grows
+          taller to fit it). Try the two stalls: both have a mean of 4 minutes, but very different spreads.
         </>
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
-        <Plot x={[0, X_MAX]} y={[0, 1]} width={540} height={270} minHeight={260} margin={{ left: 22, right: 22, top: 10, bottom: 58 }} ariaLabel={`Points at ${values.join(', ')} with squares to the mean; variance ${fmt(variance, 2)}, standard deviation ${fmt(sd, 2)}`}>
+        <Plot x={[0, X_MAX]} y={[0, 1]} width={DESIGN_W} height={270} minHeight={minHeight} margin={MARGIN} ariaLabel={`Points at ${values.join(', ')} with squares to the mean; variance ${fmt(variance, 2)}, standard deviation ${fmt(sd, 2)}`}>
           <Scene values={values} setValue={setValue} sd={sd} showAvg={showAvg} />
         </Plot>
       </div>

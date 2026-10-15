@@ -25,10 +25,14 @@
 }
 
 /* ---------- animated groupby table ---------- */
+/* overflow + pointer-events: hidden labels and rows parked below the stage must never sit on top of
+   the Play / Next buttons (the stage has no interactive children of its own) */
 .stage {
   position: relative;
   width: 100%;
   max-width: 520px;
+  overflow: hidden;
+  pointer-events: none;
   transition: height 0.55s ease;
   font-family: var(--font-mono);
   font-size: 0.82rem;
@@ -38,7 +42,7 @@
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: 1.9rem minmax(0, 1.55fr) minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.95fr);
+  grid-template-columns: 1.7rem minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   border-radius: 6px;
   transition:
@@ -335,12 +339,19 @@
 
 .nameInput {
   border: none;
+  border-bottom: 2px dashed var(--viz-3);
   outline: none;
-  background: color-mix(in srgb, var(--viz-3) 14%, var(--surface));
+  background: color-mix(in srgb, var(--viz-3) 18%, var(--surface));
   color: var(--ink);
   font: inherit;
-  padding: 0 1px;
-  border-radius: 3px;
+  font-weight: 700;
+  padding: 0 2px;
+  border-radius: 3px 3px 0 0;
+  cursor: text;
+}
+.nameInput:focus {
+  border-bottom-style: solid;
+  background: color-mix(in srgb, var(--viz-3) 28%, var(--surface));
 }
 .placeholder {
   background: transparent !important;

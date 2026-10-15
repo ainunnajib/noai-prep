@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Dots, Label, VLine, Rect, DraggablePoint, useNarrow } from '../../../../../kit'
 
 /*
@@ -12,6 +12,18 @@ type Mode = 'l1' | 'l2'
 const l2Star = (a: number, lam: number) => a / (1 + lam)
 const l1Star = (a: number, lam: number) => Math.sign(a) * Math.max(Math.abs(a) - lam / 2, 0)
 const f2 = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2))
+
+/** One legend entry: a short line in the curve's colour and dash style. */
+function Swatch({ color, dash, width, children }: { color: string; dash?: string; width: number; children: ReactNode }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <svg width={26} height={10} aria-hidden="true">
+        <line x1={1} x2={25} y1={5} y2={5} style={{ stroke: color, strokeWidth: width, strokeDasharray: dash }} />
+      </svg>
+      {children}
+    </span>
+  )
+}
 
 export default function ShrinkOrSnap() {
   const [mode, setMode] = useState<Mode>('l1')
@@ -32,9 +44,10 @@ export default function ShrinkOrSnap() {
       title="Shrink (L2) or snap to zero (L1)"
       caption={
         <>
-          One weight on its own. Without a penalty the best weight is <b>a</b> (green handle: drag it, or use the slider). Adding the penalty moves the bottom
-          of the total loss towards 0. On the right, follow both answers as a changes: L2 <b>divides</b> by 1 + λ, so the weight shrinks but never reaches 0; L1{' '}
-          <b>subtracts</b> λ/2 and stops at 0, so every a inside the shaded band gives a weight of exactly 0.
+          One weight on its own. Without a penalty the best weight is <b>a</b> (green handle: drag it, or use the slider). In the loss chart, the dashed
+          curve is the data part, the dotted curve the penalty and the solid curve their sum: adding the penalty moves the bottom of the total towards 0. In
+          the chart of where the best weight lands, follow both answers as a changes: L2 <b>divides</b> by 1 + λ, so the weight shrinks but never reaches 0;
+          L1 <b>subtracts</b> λ/2 and stops at 0, so every a inside the shaded band gives a weight of exactly 0.
         </>
       }
     >
@@ -58,6 +71,17 @@ export default function ShrinkOrSnap() {
           >
             Loss for one weight: (w − a)² + {mode === 'l2' ? 'λw²' : 'λ|w|'}
           </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.2rem 0.8rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
+            <Swatch color="var(--viz-3)" dash="6 5" width={2}>
+              data (w − a)²
+            </Swatch>
+            <Swatch color={col} dash="2 4" width={2}>
+              penalty {mode === 'l2' ? 'λw²' : 'λ|w|'}
+            </Swatch>
+            <Swatch color={col} width={3.5}>
+              total
+            </Swatch>
+          </div>
           <Plot
             x={[-3, 3]}
             y={[-0.4, 7]}
@@ -68,7 +92,7 @@ export default function ShrinkOrSnap() {
             ariaLabel="Data term, penalty and total loss for one weight"
           >
             <Grid xTicks={6} yTicks={7} />
-            <Axes xLabel="w" xTicks={6} yTicks={4} origin />
+            <Axes xLabel="w" yLabel="loss" xTicks={6} yTicks={4} origin />
             <FnPath f={(w) => (w - a) ** 2} color="var(--viz-3)" width={2} dash="6 5" />
             <FnPath f={pen} color={col} width={2} dash="2 4" />
             <FnPath f={total} color={col} width={3.5} />
@@ -113,13 +137,14 @@ export default function ShrinkOrSnap() {
                 { x: a, y: s1, r: 6, color: 'var(--viz-2)' },
               ]}
             />
-            <Label x={2.4} y={l2Star(2.4, lam)} dx={-2} dy={18} anchor="end" color="var(--viz-1)" weight={700}>
+            {/* at the right edge, the higher curve's label goes above it and the lower one's below */}
+            <Label x={2.4} y={l2Star(2.4, lam)} dx={-2} dy={l2Star(2.4, lam) > l1Star(2.4, lam) ? -8 : 18} anchor="end" color="var(--viz-1)" weight={700}>
               L2
             </Label>
-            <Label x={2.0} y={l1Star(2.0, lam)} dx={-6} dy={-8} anchor="end" color="var(--viz-2)" weight={700}>
+            <Label x={2.4} y={l1Star(2.4, lam)} dx={-2} dy={l2Star(2.4, lam) > l1Star(2.4, lam) ? 18 : -8} anchor="end" color="var(--viz-2)" weight={700}>
               L1
             </Label>
-            <Label x={-2.45} y={2.5} dy={14} color="var(--viz-muted)">
+            <Label x={-1.3} y={-1.3} dx={8} dy={16} color="var(--viz-muted)">
               no penalty
             </Label>
           </Plot>
@@ -141,8 +166,14 @@ export default function ShrinkOrSnap() {
       <Readout
         items={[
           ['L2: a ÷ (1 + λ)', f2(s2)],
-          ['L1: a − λ/2, stopped at 0', <span style={{ color: zero ? 'var(--viz-neg)' : undefined }}>{zero ? '0 exactly' : f2(s1)}</span>],
-          ['pull towards 0 at the answer', `L2: 2λw = ${f2(Math.abs(2 * lam * s2))}, L1: λ = ${f2(lam)}`],
+          ['L1: move λ/2 towards 0, stop at 0', <span style={{ color: zero ? 'var(--viz-neg)' : undefined }}>{zero ? '0 exactly' : f2(s1)}</span>],
+          ['L2 pull at its answer: 2λ|w|', f2(Math.abs(2 * lam * s2))],
+          ...((zero
+            ? [
+                ['L1 pull at w = 0', `up to λ = ${f2(lam)}`],
+                ['data pull 2|a|', `${f2(2 * Math.abs(a))}: too weak to leave 0`],
+              ]
+            : [['L1 pull at its answer', `λ = ${f2(lam)}`]]) as [string, string][]),
         ]}
       />
     </Figure>

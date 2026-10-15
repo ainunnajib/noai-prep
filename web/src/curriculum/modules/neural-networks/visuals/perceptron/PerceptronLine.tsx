@@ -7,7 +7,10 @@ import { POS_C, NEG_C, W_C, clipLine, halfPlane, foot, num, step, type Pt } from
   One perceptron on the four corners of the unit square. The learner slides w₁, w₂ and b and tries to
   reproduce AND, OR or XOR. The background shows the neuron's answer everywhere (orange = 1,
   blue = 0); the solid line is w₁x₁ + w₂x₂ + b = 0. A button checks every slider setting
-  (13 × 13 × 13 = 2,197 of them) to show that none solves XOR.
+  (13 × 13 × 13 = 2,197 of them) to show that none solves XOR. Among the settings that work it shows
+  the one with the widest safety margin (biggest min |z| / ‖w‖ over the corners, i.e. the corners sit
+  as far from the line as possible), so it never picks a knife-edge line through a corner that only
+  works because of the "z = 0 counts as 0" tie rule.
 */
 
 type Gate = 'AND' | 'OR' | 'XOR'
@@ -60,7 +63,7 @@ function Corners({ targets, preds, sel, onSel }: { targets: number[]; preds: num
             <text x={cx} y={cy} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--surface)', fontSize: 12, fontWeight: 800, pointerEvents: 'none' }}>
               {t}
             </text>
-            <text x={lx} y={cy + (c[1] === 0 ? 24 : -20)} textAnchor={c[0] === 0 ? 'end' : 'start'} className="plot-label" style={{ fontSize: 12 }}>
+            <text x={lx} y={cy + (c[1] === 0 ? 24 : -20)} textAnchor={c[0] === 0 ? 'end' : 'start'} className="plot-label" style={{ fontSize: 12, strokeWidth: 5 }}>
               {`(${c[0]}, ${c[1]})`}
             </text>
           </g>
@@ -101,19 +104,34 @@ export default function PerceptronLine() {
   }
 
   const search = () => {
+    // Rank by (corners right, safety margin, then smaller weights). The margin is the distance from the
+    // line to the nearest corner, min |z| / ‖w‖, so a line through a corner scores 0.
     let best = -1
     let bestSet: [number, number, number] = [0, 0, 0]
+    let bestMargin = -1
     let bestSize = Infinity
     let perfect = 0
+    let clear = 0
     for (const a of GRID)
       for (const c of GRID)
         for (const d of GRID) {
-          const score = CORNERS.reduce((s, [p, q], i) => s + (step(a * p + c * q + d) === targets[i] ? 1 : 0), 0)
-          if (score === 4) perfect++
+          const z = CORNERS.map(([p, q]) => a * p + c * q + d)
+          const score = z.reduce((s, v, i) => s + (step(v) === targets[i] ? 1 : 0), 0)
+          const wl = Math.hypot(a, c)
+          const margin = wl > 0 ? Math.min(...z.map(Math.abs)) / wl : 0
+          if (score === 4) {
+            perfect++
+            if (z.every((v) => v !== 0)) clear++
+          }
           const size = Math.abs(a) + Math.abs(c) + Math.abs(d)
-          if (score > best || (score === best && size < bestSize)) {
+          const better =
+            score > best ||
+            (score === best && margin > bestMargin + 1e-9) ||
+            (score === best && Math.abs(margin - bestMargin) <= 1e-9 && size < bestSize)
+          if (better) {
             best = score
             bestSet = [a, c, d]
+            bestMargin = margin
             bestSize = size
           }
         }
@@ -122,8 +140,8 @@ export default function PerceptronLine() {
     setB(bestSet[2])
     setMsg(
       perfect
-        ? `Checked all 2,197 slider settings: ${perfect} of them get all four ${gate} corners right. The sliders now show the simplest one.`
-        : `Checked all 2,197 slider settings: not one gets all four XOR corners right. The best manage ${best} of 4; the sliders now show one of them.`,
+        ? `Checked all 2,197 slider settings: ${perfect.toLocaleString('en-GB')} get all four ${gate} corners right, but only ${clear} of those keep every corner off the line (the rest rely on the tie rule z = 0 → 0). The sliders now show the one with the widest safety margin.`
+        : `Checked all 2,197 slider settings: not one gets all four XOR corners right. The best manage ${best} of 4; the sliders now show the one with the widest safety margin.`,
     )
   }
 
@@ -133,11 +151,9 @@ export default function PerceptronLine() {
       title="One neuron, one straight line: AND, OR and XOR"
       caption={
         <>
-          The four dots are the four possible inputs; the number on each is the answer the gate should give (orange circle = 1, blue square = 0). The shading is
-          the neuron's own answer everywhere: orange where <i>z</i> &gt; 0, blue elsewhere. A red ring marks a corner it gets wrong. Start with <b>AND</b>: only
-          (1, 1) should be orange, so slide <i>b</i> down until the line cuts that corner off. Then try <b>OR</b>. Then spend a minute on <b>XOR</b>, and press the
-          button to let the computer try every setting. The pink arrow is the weight vector <i>w</i>; it always points into the orange side. Click a corner to
-          feed it through the neuron below.
+          Each dot shows the answer the gate wants (orange circle = 1, blue square = 0); the shading is the neuron&rsquo;s answer (orange where <i>z</i> &gt; 0), and a
+          red ring marks a mistake. Solve <b>AND</b> (slide <i>b</i> down until the line cuts off (1, 1)), then <b>OR</b>, then try <b>XOR</b> and press the button.
+          Click a corner to feed it through the neuron diagram.
         </>
       }
     >

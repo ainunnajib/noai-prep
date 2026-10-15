@@ -13,6 +13,9 @@ const H = 12
 const LR = 0.5
 const GRID = 30
 const LIM = 2.5
+/* the two classes get their own colour pair, so orange keeps meaning "gradient" elsewhere in the module */
+const C0 = 'var(--viz-4)'
+const C1 = 'var(--viz-6)'
 
 const STAGES = [
   {
@@ -78,7 +81,7 @@ function Boundary({ grid }: { grid: number[][] }) {
       {grid.map((row, r) =>
         row.map((p1, c) => {
           const a = Math.round(Math.min(1, Math.abs(p1 - 0.5) * 2) * 38)
-          const col = p1 >= 0.5 ? 'var(--viz-2)' : 'var(--viz-1)'
+          const col = p1 >= 0.5 ? C1 : C0
           return (
             <rect
               key={`${r}-${c}`}
@@ -105,11 +108,11 @@ function Points({ X, y, P, ring }: { X: number[][]; y: number[]; P: number[][]; 
         const cy = ys(b)
         return (
           <g key={i}>
-            {ring && wrong && <circle cx={cx} cy={cy} r={8} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2.2 }} />}
+            {ring && wrong && <circle cx={cx} cy={cy} r={8} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 2.2 }} />}
             {y[i] === 0 ? (
-              <circle cx={cx} cy={cy} r={3.8} style={{ fill: 'var(--viz-1)', stroke: 'var(--surface)', strokeWidth: 1.2 }} />
+              <circle cx={cx} cy={cy} r={3.8} style={{ fill: C0, stroke: 'var(--surface)', strokeWidth: 1.2 }} />
             ) : (
-              <rect x={cx - 3.6} y={cy - 3.6} width={7.2} height={7.2} style={{ fill: 'var(--viz-2)', stroke: 'var(--surface)', strokeWidth: 1.2 }} />
+              <rect x={cx - 3.6} y={cy - 3.6} width={7.2} height={7.2} style={{ fill: C1, stroke: 'var(--surface)', strokeWidth: 1.2 }} />
             )}
           </g>
         )
@@ -302,9 +305,8 @@ export default function TrainingCycleLoop() {
       caption={
         <>
           Press <b>Next stage</b> to walk through one loop: the matching NumPy lines light up below, with the shapes of the arrays involved. Then
-          press <b>Run 100 loops</b> a few times. Each loop nudges every weight a little; watch the loss fall and the boundary bend around the
-          moons until (almost) every point is on the right side. Blue circles and orange squares are the two classes; the shading is the
-          network's probability for each class.
+          press <b>Run 100 loops</b> a few times. Each loop nudges every weight a little; watch the loss fall and the boundary bend between the
+          two curved clusters until (almost) every point is on the right side.
         </>
       }
     >
@@ -318,6 +320,17 @@ export default function TrainingCycleLoop() {
             <Boundary grid={grid} />
             <Points X={data.X} y={data.y} P={f.P} ring={!busy && stage === 1} />
           </Plot>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem 0.9rem', justifyContent: 'center', fontSize: '0.8125rem', color: 'var(--ink-2)', marginTop: '0.3rem' }}>
+            <span>
+              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: C0, verticalAlign: '-0.05em', marginRight: 5 }} />
+              class 0 (circles); shaded where the network predicts it
+            </span>
+            <span>
+              <span style={{ display: 'inline-block', width: 10, height: 10, background: C1, verticalAlign: '-0.05em', marginRight: 5 }} />
+              class 1 (squares); shaded likewise
+            </span>
+            <span>stronger shading = more confident{!busy && stage === 1 ? '; ringed = misclassified' : ''}</span>
+          </div>
         </div>
       </div>
       <div style={{ width: '100%', borderRadius: 10, padding: '0.6rem 0.8rem', background: 'var(--surface-2)', border: '1px solid var(--rule)' }}>
@@ -350,13 +363,13 @@ export default function TrainingCycleLoop() {
             ['accuracy', `${(acc * 100).toFixed(0)}%`],
           ]}
         />
-        <Plot x={[0, hx]} y={[0, hMax]} width={300} height={80} margin={{ left: 34, right: 8, top: 8, bottom: 18 }} ariaLabel="Loss after each loop">
+        <Plot x={[0, hx]} y={[0, hMax]} width={300} height={96} margin={{ left: 34, right: 8, top: 10, bottom: 20 }} ariaLabel="Loss after each loop">
           <Path points={history.map((v, i) => [i, v] as [number, number])} color="var(--viz-3)" width={2} />
           <AxisHint hMax={hMax} hx={hx} last={history[history.length - 1]} n={history.length - 1} />
         </Plot>
       </div>
       <div style={{ width: '100%' }}>
-        <CodeBlock code={CODE} language="python" title="the whole loop in NumPy" highlight={busy ? [] : STAGES[stage].lines} />
+        <CodeBlock code={CODE} language="python" title="The whole loop in NumPy" highlight={busy ? [] : STAGES[stage].lines} />
       </div>
     </Figure>
   )
@@ -365,9 +378,9 @@ export default function TrainingCycleLoop() {
 function AxisHint({ hMax, hx, last, n }: { hMax: number; hx: number; last: number; n: number }) {
   const { xs, ys } = usePlot()
   return (
-    <g style={{ fontSize: 10 }}>
+    <g style={{ fontSize: 11.5 }}>
       <circle cx={xs(n)} cy={ys(last)} r={3.5} style={{ fill: 'var(--viz-3)' }} />
-      <text x={xs(0) + 6} y={ys(hMax) + 8} style={{ fill: 'var(--viz-axis)' }}>
+      <text x={xs(0) + 6} y={ys(hMax) + 9} style={{ fill: 'var(--viz-axis)' }}>
         loss per loop
       </text>
       <line x1={xs(0)} x2={xs(hx)} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)' }} />
@@ -378,7 +391,7 @@ function AxisHint({ hMax, hx, last, n }: { hMax: number; hx: number; last: numbe
       <text x={xs(0) - 4} y={ys(hMax) + 8} textAnchor="end" style={{ fill: 'var(--viz-axis)' }}>
         {hMax.toFixed(1)}
       </text>
-      <text x={xs(hx)} y={ys(0) + 13} textAnchor="end" style={{ fill: 'var(--viz-axis)' }}>
+      <text x={xs(hx)} y={ys(0) + 15} textAnchor="end" style={{ fill: 'var(--viz-axis)' }}>
         {hx} loops
       </text>
     </g>

@@ -17,6 +17,11 @@ import css from './tl.module.css'
 
 type Space = 'raw' | 'feat'
 const { items, stats } = FEATURE_DATA
+/**
+ * Start on a cat (item 7) whose 5 raw-pixel neighbours sit visibly apart on the 2-D map, so the lines are readable at rest
+ * (FEATURE_DATA.start, item 5, has its neighbours almost on top of one another). Raw pixels: 1 of 5 are cats; encoder: 4 of 5.
+ */
+const START = 7
 
 function Marker({ x, y, cls, r, dim, ring }: { x: number; y: number; cls: number; r: number; dim: boolean; ring: boolean }) {
   const { color, shape } = CLASS_STYLE[cls]
@@ -68,7 +73,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`
 
 export default function PretrainedFeatureSpace() {
   const [space, setSpace] = useState<Space>('raw')
-  const [sel, setSel] = useState(FEATURE_DATA.start)
+  const [sel, setSel] = useState(START)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
   const nn = space === 'raw' ? items[sel].nnRaw : items[sel].nnFeat
   const nSame = nn.filter((j) => items[j].cls === items[sel].cls).length
@@ -96,7 +101,8 @@ export default function PretrainedFeatureSpace() {
       title="Raw pixels or pretrained features?"
       caption={
         <>
-          Each dot is one of 60 small images, placed on a 2-D map so that images with similar numbers sit close together. Start with <b>raw pixels</b> (32&times;32 pixels &times; 3 colours = 3,072
+          Each dot is one of 60 small images, placed on a 2-D map so that images with similar numbers sit roughly close together (the map squashes thousands of
+          numbers into two, so true neighbours can look further apart than they are). Start with <b>raw pixels</b> (32&times;32 pixels &times; 3 colours = 3,072
           numbers per image): tap a dot and its 5 nearest neighbours light up (green line: same class; red dashed: different class). Then switch to the{' '}
           <b>pretrained encoder</b> (64 features per image), a small CNN that was trained only to tell basic shapes apart and then frozen. Without ever seeing a cat, house or car label, it already groups them.
         </>

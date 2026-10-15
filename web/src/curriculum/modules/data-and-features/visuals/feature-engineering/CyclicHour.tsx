@@ -91,6 +91,7 @@ const small: CSSProperties = { fontSize: '0.875rem', fontWeight: 700, color: 'va
 export default function CyclicHour() {
   const [a, setA] = useState(23)
   const [b, setB] = useState(1)
+  const [moved, setMoved] = useState(false)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
 
   const raw = Math.abs(a - b)
@@ -105,8 +106,8 @@ export default function CyclicHour() {
       title="Hours live on a circle, not a line"
       caption={
         <>
-          Drag either time on the number line or on the clock (or pick a pair). As a raw number, 23:00 and 01:00 look 22 apart, the same as 01:00 and
-          23:00 on opposite ends of the line. Encoded as the point <M>{'(\\sin\\frac{2\\pi h}{24},\\ \\cos\\frac{2\\pi h}{24})'}</M>, they are exactly as
+          Drag either time on the number line or on the clock (or pick a pair). As raw numbers, 23:00 and 01:00 are 22 apart, nearly the whole length
+          of the line, although only 2 hours separate them. Encoded as the point <M>{'(\\sin\\frac{2\\pi h}{24},\\ \\cos\\frac{2\\pi h}{24})'}</M>, they are exactly as
           close as 11:00 and 13:00. Distances between encoded points now grow with the real time gap, which is what a model needs.
         </>
       }
@@ -133,8 +134,8 @@ export default function CyclicHour() {
               {`gap ${raw}`}
             </Label>
           )}
-          <DraggablePoint x={a} y={0.35} lockY color="var(--viz-1)" r={8} label="A" onChange={(x) => setA((p) => nudge(p, x))} />
-          <DraggablePoint x={b} y={0.35} lockY color="var(--viz-2)" r={8} label="B" onChange={(x) => setB((p) => nudge(p, x))} />
+          <DraggablePoint x={a} y={0.35} lockY color="var(--viz-1)" r={8} label="A" onChange={(x) => { setMoved(true); setA((p) => nudge(p, x)) }} />
+          <DraggablePoint x={b} y={0.35} lockY color="var(--viz-2)" r={8} label={moved || b > 18 ? 'B' : 'B ↔ drag'} onChange={(x) => { setMoved(true); setB((p) => nudge(p, x)) }} />
         </Plot>
       </div>
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 300px) 1fr', gap: '0.8rem', alignItems: 'center', justifyItems: 'center' }}>
@@ -146,8 +147,8 @@ export default function CyclicHour() {
             <Dots points={[{ x: 0, y: 0, r: 2.5, color: 'var(--viz-axis)' }]} stroke="none" />
             <Label x={ax * 0.76} y={ay * 0.76} dy={5} anchor="middle" color="var(--viz-1)" weight={700}>A</Label>
             <Label x={bx * 0.76} y={bx === ax && by === ay ? by * 0.6 : by * 0.76} dy={5} anchor="middle" color="var(--viz-2)" weight={700}>B</Label>
-            <DraggablePoint x={ax} y={ay} color="var(--viz-1)" r={8} onChange={(x, y) => setA((p) => dialNudge(p, x, y))} />
-            <DraggablePoint x={bx} y={by} color="var(--viz-2)" r={8} onChange={(x, y) => setB((p) => dialNudge(p, x, y))} />
+            <DraggablePoint x={ax} y={ay} color="var(--viz-1)" r={8} onChange={(x, y) => { setMoved(true); setA((p) => dialNudge(p, x, y)) }} />
+            <DraggablePoint x={bx} y={by} color="var(--viz-2)" r={8} onChange={(x, y) => { setMoved(true); setB((p) => dialNudge(p, x, y)) }} />
           </Plot>
         </div>
         <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.95rem', color: 'var(--ink)', width: '100%', maxWidth: 320 }}>

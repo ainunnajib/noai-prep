@@ -3,8 +3,9 @@ import { Figure, Controls, Slider, Toggle, Button, Readout, M, useAnimationFrame
 import s from './mm.module.css'
 
 /*
-  The transpose as a mirror flip across the main diagonal. Every entry a_ij travels to
-  position (j, i); entries on the diagonal stay put. Rows (coloured) become columns.
+  The transpose as a mirror flip across the main diagonal. The grid turns over like a card
+  hinged on the diagonal: every entry a_ij lands on position (j, i), entries on the diagonal
+  stay put, and rows (coloured) become columns. Halfway through, the card is edge-on.
 */
 
 const NUMS = [
@@ -45,6 +46,9 @@ export default function TransposeFlip() {
   }
 
   const e = ease(t)
+  // the card-flip: distances from the diagonal are multiplied by k, which runs from 1 to −1
+  const k = Math.cos(Math.PI * e)
+  const textOpacity = Math.min(1, Math.abs(k) * 1.8)
   const c = W < 360 ? 46 : 54
   const hw = timetable ? 46 : 12
   const hh = timetable ? 28 : 12
@@ -75,9 +79,9 @@ export default function TransposeFlip() {
       title="The transpose: flip across the diagonal"
       caption={
         <>
-          Press <b>Flip</b> or drag the slider. Each entry moves from row i, column j to row j, column i, crossing the dashed <b>main diagonal</b> like a mirror;
-          entries on the diagonal don't move. Watch the blue row become the first column. Tap a cell to follow it, and switch on the timetable to see the same flip
-          turn "days across" into "days down".
+          Press <b>Flip</b> or drag the slider. The grid turns over like a card hinged on the dashed <b>main diagonal</b>: each entry moves from row i, column j
+          to row j, column i, and entries on the diagonal don't move. Watch the blue row become the first column. Tap a cell to follow it, and switch on the
+          timetable to see the same flip turn days down the side into days across the top.
         </>
       }
     >
@@ -88,8 +92,11 @@ export default function TransposeFlip() {
           {bracket(ox, oy, bw, bh)}
           {data.map((row, i) =>
             row.map((v, j) => {
-              const x = ox + lerp(j, i, e) * c
-              const y = oy + lerp(i, j, e) * c
+              // centre of the cell after flipping: (j, i) → (i, j) by way of the diagonal
+              const ax = (j + i + 1) / 2
+              const bx = (j - i) / 2
+              const cxp = ox + (ax + bx * k) * c
+              const cyp = oy + (ax - bx * k) * c
               const on = i === si && j === sj
               const col = ROW_COLOUR[i]
               return (
@@ -102,23 +109,29 @@ export default function TransposeFlip() {
                   onClick={() => setSel([i, j])}
                   onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && (ev.preventDefault(), setSel([i, j]))}
                 >
+                  {/* the square itself turns with the card (an affine squash, then a mirror) */}
                   <rect
-                    x={x + ins}
-                    y={y + ins}
+                    x={ins - c / 2}
+                    y={ins - c / 2}
                     width={c - 2 * ins}
                     height={c - 2 * ins}
                     rx={7}
+                    transform={`translate(${cxp} ${cyp}) matrix(${(1 + k) / 2} ${(1 - k) / 2} ${(1 - k) / 2} ${(1 + k) / 2} 0 0)`}
+                    vectorEffect="non-scaling-stroke"
                     style={{ fill: `color-mix(in srgb, ${col} ${on ? 34 : 16}%, var(--surface))`, stroke: col, strokeWidth: on ? 3 : 1.4 }}
                   />
-                  <text x={x + c / 2} y={y + c / 2 + (timetable ? 0 : 3)} dy="0.35em" textAnchor="middle" className={timetable ? s.svgText : s.monoText} style={{ fontSize: timetable ? 12.5 : 17, fontWeight: 700, fill: 'var(--viz-ink)' }}>
-                    {v}
-                  </text>
-                  {!timetable && (
-                    <text x={x + 8} y={y + 15} style={{ fontSize: 10.5, fontWeight: 600, fill: 'var(--ink-3)' }}>
-                      a{SUB[i]}
-                      {SUB[j]}
+                  {/* text is never mirrored: it fades out while the card is edge-on and back in afterwards */}
+                  <g style={{ opacity: textOpacity }}>
+                    <text x={cxp} y={cyp + (timetable ? 0 : 3)} dy="0.35em" textAnchor="middle" className={timetable ? s.svgText : s.monoText} style={{ fontSize: timetable ? 12.5 : 17, fontWeight: 700, fill: 'var(--viz-ink)' }}>
+                      {v}
                     </text>
-                  )}
+                    {!timetable && (
+                      <text x={cxp - c / 2 + 7} y={cyp - c / 2 + 16} style={{ fontSize: 12, fontWeight: 600, fill: 'var(--ink-3)' }}>
+                        a{SUB[i]}
+                        {SUB[j]}
+                      </text>
+                    )}
+                  </g>
                 </g>
               )
             }),
@@ -137,7 +150,15 @@ export default function TransposeFlip() {
               ))}
             </>
           )}
-          <text x={ox + 3 * c + 6} y={oy + 3 * c + 14} textAnchor="end" style={{ fontSize: 11, fontWeight: 600, fill: 'var(--viz-muted)' }}>
+          {Math.abs(k) < 0.25 && (
+            // in the empty triangle below the diagonal, short lines so it fits on a phone
+            <text x={ox + 4} y={oy + 1.75 * c} textAnchor="start" style={{ fontSize: 12, fontWeight: 650, fontStyle: 'italic', fill: 'var(--ink-3)', opacity: 1 - Math.abs(k) * 4 }}>
+              <tspan x={ox + 4}>halfway:</tspan>
+              <tspan x={ox + 4} dy="1.2em">the grid is</tspan>
+              <tspan x={ox + 4} dy="1.2em">edge-on</tspan>
+            </text>
+          )}
+          <text x={ox + 3 * c + 6} y={oy + 3 * c + 14} textAnchor="end" style={{ fontSize: 12, fontWeight: 600, fill: 'var(--ink-3)' }}>
             main diagonal
           </text>
           <text x={ox} y={oy + 3 * c + 32} style={{ fontSize: 13, fontWeight: 800, fill: 'var(--viz-ink)', opacity: Math.abs(1 - 2 * e) * 0.7 + 0.3 }}>

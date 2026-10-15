@@ -14,7 +14,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'linear-regression.multiple-and-polynomial.2',
     prompt:
-      'To predict flat prices you use the columns [1, floor area in m², floor area in ft², age]. Computing `np.linalg.inv(X.T @ X)` fails with "Singular matrix". What is the cause?',
+      'To predict flat prices you use the columns [1, floor area in m², floor area in ft², age]. Computing `np.linalg.inv(X.T @ X)` either fails with "Singular matrix" or returns enormous, meaningless numbers. What is the cause?',
     options: [
       'Area in ft² is area in m² times 10.764, so one column is built from another and $X^\\top X$ has determinant 0',
       'The four columns are measured on very different scales, and a matrix with mixed scales has no inverse',
@@ -23,7 +23,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$X^\\top X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well. Different scales slow gradient descent down but do not stop a matrix being invertible, and having more rows than columns is the normal situation that least squares is designed for. Fix it by dropping one of the two area columns (or use `np.linalg.pinv`).',
+      '$X^\\top X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well (rounding can hide the exact singularity, so NumPy may return huge numbers instead of an error). Different scales slow gradient descent down but do not stop a matrix being invertible, and having more rows than columns is the normal situation that least squares is designed for. Fix it by dropping one of the two area columns (or use `np.linalg.pinv`).',
     difficulty: 'intermediate',
   },
   {

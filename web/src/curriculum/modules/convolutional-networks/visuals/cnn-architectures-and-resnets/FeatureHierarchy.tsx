@@ -198,9 +198,8 @@ export default function FeatureHierarchy() {
       title="From edges to objects"
       caption={
         <>
-          Hover or tap any unit. Orange lines show what it is built from (below) and what it helps to build (above). Notice how one simple part, such as a ring, is
-          reused by several objects: that sharing is why the early and middle layers of a network trained on one task are useful for many others. (Hand-drawn patterns;
-          visualisations of real trained networks, such as Zeiler and Fergus's in 2014, show the same progression.)
+          <b>Try:</b> tap any unit. <b>Notice:</b> orange lines show what it is built from (below) and what it helps build (above); one part, such as a
+          ring, is reused by several objects, which is why pretrained layers transfer.
         </>
       }
     >
@@ -223,11 +222,18 @@ export default function FeatureHierarchy() {
               )
             }),
           )}
-          {[2, 1, 0].map((tier) => (
-            <text key={tier} x={W / 2} y={rowY(tier) - 7} textAnchor="middle" className="plot-label" style={{ fontSize: 12.5, fontWeight: 700, fill: 'var(--ink-2)', strokeWidth: 5 }}>
-              {TIER_LABEL[tier]}
-            </text>
-          ))}
+          {[2, 1, 0].map((tier) => {
+            // a backing plate in the card colour, so the connection lines never run through the label
+            const tw = TIER_LABEL[tier].length * 6.9 + 14
+            return (
+              <g key={tier}>
+                <rect x={W / 2 - tw / 2} y={rowY(tier) - 20} width={tw} height={17} rx={5} style={{ fill: 'var(--surface)' }} />
+                <text x={W / 2} y={rowY(tier) - 7} textAnchor="middle" className="plot-label" style={{ fontSize: 12.5, fontWeight: 700, fill: 'var(--ink-2)', strokeWidth: 5 }}>
+                  {TIER_LABEL[tier]}
+                </text>
+              </g>
+            )
+          })}
           {UNITS.map((u) => {
             const [x, y] = pos[u.id]
             const isSel = u.id === sel

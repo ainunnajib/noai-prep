@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Button, M } from '../../../../../kit'
-import { parse, evaluate, toTex, pyDef, fmt, type Node } from './formula'
+import { parse, evaluate, toTex, pyDef, fmt, fmtTex, type Node } from './formula'
 import s from './FunctionPipeline.module.css'
 
 /*
@@ -74,7 +74,7 @@ export default function FunctionPipeline() {
   const subst = (name: string, tree: Node, at: number, val: number) => {
     const sub = toTex(tree, at).s
     const plain = toTex(tree).s === 'x'
-    return `${name}(${fmt(at)}) = ${plain ? '' : `${sub} = `}${fmt(val)}`
+    return `${name}(${fmt(at)}) = ${plain ? '' : `${sub} = `}${fmtTex(val)}`
   }
 
   const ball = (idx: number, value: number, out = false) => {
@@ -146,7 +146,7 @@ export default function FunctionPipeline() {
           <div className={s.mathLine}>
             {Number.isFinite(mid) ? <M>{subst(second.name, second.tree, mid, out)}</M> : <span>the first machine gave no number</span>}
             <div>
-              so <M>{`${comp} = ${fmt(out)}`}</M>
+              so <M>{`${comp} = ${fmtTex(out)}`}</M>
             </div>
           </div>
         ) : (
@@ -179,12 +179,18 @@ export default function FunctionPipeline() {
 
       <div className={s.compare} aria-live="polite">
         <span className={`${s.compareItem} ${s.compareItemOn}`}>
-          this order: <M>{`${comp} = ${fmt(out)}`}</M>
+          this order: <M>{`${comp} = ${fmtTex(out)}`}</M>
         </span>
         <span className={s.compareItem}>
-          swapped: <M>{`${compOther} = ${fmt(otherOut)}`}</M>
+          swapped: <M>{`${compOther} = ${fmtTex(otherOut)}`}</M>
         </span>
       </div>
+      {(!Number.isFinite(out) || !Number.isFinite(otherOut)) && (
+        <div style={{ width: '100%', fontSize: '0.88rem', color: 'var(--ink-2)', textAlign: 'center' }}>
+          “Undefined” means no number comes out: dividing by 0 has no answer (Python stops with <code>ZeroDivisionError</code>), and neither has the square root of
+          a negative number.
+        </div>
+      )}
 
       <Controls>
         <Slider

@@ -3,29 +3,44 @@ import ParameterExplosion from './visuals/images-as-tensors/ParameterExplosion'
 import FlattenShuffle from './visuals/images-as-tensors/FlattenShuffle'
 import SignLockedSteps from './visuals/images-as-tensors/SignLockedSteps'
 import ImageNormaliser from './visuals/images-as-tensors/ImageNormaliser'
+import GreyImage from './visuals/images-as-tensors/GreyImage'
 
 export const npCode = `import numpy as np
 
-# A tiny 2x3 colour image, stored the way image files and NumPy store it: (H, W, C)
-img = np.array([[[255,   0,   0], [  0, 255,   0], [  0,   0, 255]],
-                [[255, 255,   0], [255, 255, 255], [  0,   0,   0]]], dtype=np.uint8)
+# A tiny 2x3 colour image stored (H, W, C),
+# the way image files and NumPy store it
+img = np.array([
+    [[255, 0, 0], [0, 255, 0], [0, 0, 255]],
+    [[255, 255, 0], [255, 255, 255], [0, 0, 0]],
+], dtype=np.uint8)
 print("HWC shape:", img.shape)
 
-chw = img.transpose(2, 0, 1)      # channels first, as PyTorch expects
+# channels first, as PyTorch expects
+chw = img.transpose(2, 0, 1)
 print("CHW shape:", chw.shape)
 print("red channel:")
 print(chw[0])
 
-x = chw.astype(np.float32) / 255  # bytes 0..255 -> 0..1
-batch = np.stack([x, x, x, x])    # four images -> (N, C, H, W)
-print("batch shape:", batch.shape, "numbers:", batch.size)
+# bytes 0..255 -> 0..1
+x = chw.astype(np.float32) / 255
+one = x[None]                  # add a batch axis in front
+print("one image as a batch:", one.shape)
+batch = np.stack([x, x, x, x])  # four images
+print("batch shape:", batch.shape)
+print("numbers in it:", batch.size)
 
-# one mean and std per channel: average over N, H and W (axes 0, 2, 3)
+# one mean and std per channel:
+# average over N, H and W (axes 0, 2, 3)
 mean = batch.mean(axis=(0, 2, 3))
 std = batch.std(axis=(0, 2, 3))
-print("channel means:", mean.round(3), "stds:", std.round(3))
-normed = (batch - mean.reshape(1, 3, 1, 1)) / std.reshape(1, 3, 1, 1)
-print("after: means", normed.mean(axis=(0, 2, 3)).round(3) + 0.0, "stds", normed.std(axis=(0, 2, 3)).round(3))`
+print("channel means:", mean.round(3))
+print("channel stds: ", std.round(3))
+
+m = mean.reshape(1, 3, 1, 1)
+s = std.reshape(1, 3, 1, 1)
+normed = (batch - m) / s
+print("after:", normed.mean(axis=(0, 2, 3)).round(3) + 0.0,
+      normed.std(axis=(0, 2, 3)).round(3))`
 
 A phone photo looks like a picture to you. To a neural network it is a block of numbers, and before you can understand convolutional networks you need to see that block clearly: what shape it has, how many numbers it holds, why the "obvious" network wastes millions of weights on it, and how to scale the numbers so that training goes well.
 
@@ -39,14 +54,9 @@ Some MRT stations have big mosaic murals. From the platform you see a picture. W
 
 A digital image is a grid of tiny squares called <Term def="Short for 'picture element': one tiny square of a digital image, holding one colour.">pixels</Term>. In a **greyscale** (black-and-white) image each pixel holds one number, its brightness: usually a whole number from **0 (black)** to **255 (white)**, with greys in between.
 
-Why 255? Each pixel is stored in one <Term def="A group of 8 bits. With 8 bits you can write 2⁸ = 256 different patterns, so one byte stores a whole number from 0 to 255.">byte</Term>, and 8 bits give $2^8 = 256$ possible values: 0, 1, …, 255.
+Why 255? Each pixel is stored in one <Term def="A group of 8 bits. With 8 bits you can write 2⁸ = 256 different patterns, so one byte stores a whole number from 0 to 255.">byte</Term>, and 8 <Term def="A bit is a single 0 or 1, the smallest unit of computer memory.">bits</Term> give $2^8 = 256$ possible values: 0, 1, …, 255.
 
-<MatrixGrid
-  label="A 5 × 5 greyscale image of the letter T (shaded by value)"
-  data={[[0, 0, 0, 0, 0], [0, 255, 255, 255, 0], [0, 0, 255, 0, 0], [0, 0, 255, 0, 0], [0, 0, 0, 0, 0]]}
-  heat
-  cellSize={46}
-/>
+<GreyImage />
 
 That is the whole secret: the picture *is* the grid. Height $H$ = 5 rows, width $W$ = 5 columns, 25 numbers.
 
@@ -76,7 +86,7 @@ Image files, NumPy, Pillow and matplotlib usually store images **channels last**
 
 </Note>
 
-A **video** just adds a time axis: $T$ frames gives $(T, C, H, W)$, and a batch of videos is $(N, T, C, H, W)$. Each frame is an ordinary image.
+A **video** just adds a time axis: $T$ frames gives $(T, C, H, W)$, and a batch of videos is $(N, T, C, H, W)$. Each frame is an ordinary image. (3-D convolution layers such as `nn.Conv3d` expect the channels before time instead: $(N, C, T, H, W)$.)
 
 ## Counting the numbers
 
@@ -103,12 +113,13 @@ Smaller benchmark images are worth knowing too: an <Term def="A classic dataset 
   q="A batch of 16 colour images, each 32 pixels high and 32 wide, is fed to a PyTorch convolutional layer. What is the batch's shape?"
   options={['(16, 3, 32, 32)', '(16, 32, 32, 3)', '(3, 16, 32, 32)', '(32, 32, 3, 16)']}
   answer={0}
+  id="convolutional-networks.images-as-tensors.qc1"
   explain="PyTorch uses (N, C, H, W): batch size first, then channels, then height and width. (16, 32, 32, 3) is the channels-last layout used by NumPy and image files, not what a PyTorch conv layer expects. The batch holds $16 \times 3 \times 32 \times 32 = 49{,}152$ numbers."
 />
 
 ### In code
 
-Run this: it builds a tiny $2 \times 3$ colour image, moves its channels first, makes a batch, and normalises each channel (the last part is explained at the end of the lesson).
+Run this: it builds a tiny $2 \times 3$ colour image, moves its channels first, makes a batch, and normalises each channel (the last part is explained at the end of the lesson). `x[None]` adds a new axis of length 1 at the front, turning one $(C, H, W)$ image into a batch of one, $(1, C, H, W)$.
 
 <PyRunner packages={['numpy']} code={npCode} />
 
@@ -122,7 +133,7 @@ print(x.shape)
 print(x[0].shape, x[0].numel())     # one image
 print(x.numel())                    # the whole batch
 print(x.permute(0, 2, 3, 1).shape)  # channels last, e.g. for plotting
-print(x[0].unsqueeze(0).shape)      # one image as a batch of 1
+print(x[0].unsqueeze(0).shape)      # one image as a batch of 1, like x[None]
 ```
 
 ```text
@@ -147,8 +158,6 @@ You already know one network that takes a list of numbers: the multilayer percep
 
 <FlattenShuffle />
 
-It is like reading a comic after cutting it into single pixels and lining them up in a row: all the information is technically still there, but the structure that makes it easy to read is gone.
-
 <KeyIdea>
 
 A dense layer sees an image as one long list where the order means nothing. It needs a weight for every (pixel, neuron) pair and has to relearn each pattern at every position. Convolutional layers fix both problems with **small filters that look at neighbouring pixels and are reused everywhere**: that is the next lesson.
@@ -159,12 +168,11 @@ A dense layer sees an image as one long list where the order means nothing. It n
   q="A 100 × 100 greyscale image is flattened and fed into a dense layer of 500 neurons. How many weights does that layer have, not counting biases?"
   options={['5,000,000', '50,000', '10,500', '5,000,500']}
   answer={0}
+  id="convolutional-networks.images-as-tensors.qc2"
   explain="The image has $100 \times 100 = 10{,}000$ inputs, and each of the 500 neurons has one weight per input: $10{,}000 \times 500 = 5{,}000{,}000$. Adding the 500 biases would give 5,000,500, but the question excludes them. 10,500 adds the counts instead of multiplying them."
 />
 
 <PastPaperQuestion paper="prelim2026" n={166} />
-
-<PastPaperQuestion paper="prelim2026" n={186} />
 
 ## Normalising image inputs
 
@@ -178,11 +186,11 @@ $$
 \frac{\partial L}{\partial w_i} = \delta \cdot x_i, \qquad \text{where } \delta = \frac{\partial L}{\partial z}.
 $$
 
-In words: each weight's gradient is the neuron's error signal $\delta$ (one number, shared by all its weights) times the input that weight multiplies. If every $x_i$ is positive, then every gradient has **the same sign as $\delta$**. In one update the neuron's weights can only all go up or all go down. If the best weights need some to rise and others to fall, the neuron must zig-zag there:
+In words: each weight's gradient is the neuron's error signal $\delta$ (one number, shared by all its weights) times the input that weight multiplies. If every $x_i$ is positive, then for a single training example every gradient has **the same sign as $\delta$**, so one update can only move all the weights up or all of them down. (With mini-batches the signs can partly mix, but the loss surface stays stretched along the "all weights together" direction, so training still zig-zags.) If the best weights need some to rise and others to fall, the neuron must zig-zag there:
 
 <SignLockedSteps />
 
-Here there are only two inputs. A neuron in a real network's first layer has many more positive inputs (150,528 for a dense layer on a $224 \times 224$ photo), and the problem is far stronger.
+The two settings differ only in centring. A real first-layer neuron has far more than two positive inputs (150,528 in a dense layer on a $224 \times 224$ photo), and the zig-zag gets much worse.
 
 **Step 2: standardise (z-score).** Subtract a mean and divide by a standard deviation, separately for each channel:
 
@@ -236,12 +244,14 @@ The mean and standard deviation come from the **training set** only, and then th
 
 <ExamTip>
 
-The 2026 Prelim had a long scenario on 512 × 512 greyscale X-rays comparing min-max scaling, dataset-wide z-scoring and per-image standardisation, with validation accuracy best for dataset z-score, then min-max, then per-image. Know both reasons: **zero-centring** explains why z-scoring beats min-max (both are one fixed linear transform, so only the centring differs), and **fixed dataset-wide statistics** explain why both beat per-image scaling.
+The 2026 Prelim had a long scenario on 512 × 512 greyscale X-rays comparing min-max scaling, dataset-wide z-scoring and per-image standardisation, with validation accuracy best for dataset z-score, then min-max, then per-image. Know both reasons: **zero-centring** explains why z-scoring beats min-max (both apply one fixed transform to every image; apart from a rescaling, they differ only in centring), and **fixed dataset-wide statistics** explain why both beat per-image scaling. Check which two methods a question compares: a reason that also holds for the loser cannot explain the gap.
 
 </ExamTip>
 
+<PastPaperQuestion paper="prelim2026" n={296} />
+
 <QuickCheck
-  q="Two X-ray datasets are prepared. Pipeline 1 divides by 255, then standardises with the training set's mean and standard deviation. Pipeline 2 divides by 255, then standardises each image with its own mean and standard deviation. Which statement is true?"
+  q="An X-ray dataset is prepared in two ways. Pipeline 1 divides by 255, then standardises with the training set's mean and standard deviation. Pipeline 2 divides by 255, then standardises each image with its own mean and standard deviation. Which statement is true?"
   options={[
     'After pipeline 2, a dense X-ray and a clear X-ray have the same mean pixel value',
     'After pipeline 1, every image has mean exactly 0',
@@ -249,10 +259,9 @@ The 2026 Prelim had a long scenario on 512 × 512 greyscale X-rays comparing min
     'Only pipeline 1 makes some inputs negative',
   ]}
   answer={0}
+  id="convolutional-networks.images-as-tensors.qc3"
   explain="Per-image standardisation subtracts each image's own mean, so every image ends with mean exactly 0: the density difference is erased. Pipeline 1 makes the *training set* mean 0, but individual images keep different means (a dense X-ray stays above 0). Both pipelines subtract a mean, so both produce negative values."
 />
-
-<PastPaperQuestion paper="prelim2026" n={156} />
 
 <Takeaways>
 

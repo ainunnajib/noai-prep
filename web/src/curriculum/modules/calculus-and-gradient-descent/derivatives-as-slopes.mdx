@@ -106,9 +106,10 @@ Try it with $f(x) = x^2$ at $a = 3$, where $f(3) = 9$ and $f'(3) = 6$. The rule 
 This is exactly how a model uses derivatives. If the slope of the loss with respect to a weight $w$ is $-4$, then increasing $w$ by $0.01$ changes the loss by about $-4 \times 0.01 = -0.04$: the loss **drops**. So the model knows to increase $w$. The sign says which way to go; the size says how sensitive the loss is.
 
 <QuickCheck
+  id="calculus-and-gradient-descent.derivatives-as-slopes.qc1"
   q="You know that $f(2) = 5$ and $f'(2) = 3$. What is the best estimate of $f(2.1)$?"
-  options={['5.3', '8', '5.03', '0.3']}
-  answer={0}
+  options={['8', '5.03', '0.3', '5.3']}
+  answer={3}
   explain="Near $x = 2$ the curve rises about 3 units per unit of $x$. A nudge of $0.1$ therefore adds about $3 \times 0.1 = 0.3$, giving $5 + 0.3 = 5.3$. Adding the full slope (8) pretends the nudge was a whole unit, 5.03 uses a nudge of 0.01 instead of 0.1, and 0.3 is only the change, not the new value."
 />
 
@@ -116,7 +117,7 @@ This is exactly how a model uses derivatives. If the slope of the loss with resp
 
 Sometimes all you have is a picture, such as a plotted loss curve, and no formula. To estimate a derivative from a graph:
 
-1. Lay a ruler so it **just touches** the curve at the point, tilted the same way as the curve there. Near the point, the curve should stay on one side of it.
+1. Lay a ruler so it **just touches** the curve at the point, tilted the same way as the curve there. Near the point, the curve should stay on one side of it (except at an inflection point, where the curve switches its bend and the tangent passes through it).
 2. Pick two points on the ruler that are easy to read, as far apart as is convenient.
 3. Divide their rise by their run. Read the units too: if $y$ is in km and $x$ in hours, the slope is in km per hour.
 
@@ -134,18 +135,19 @@ The **size** $|f'(x)|$ tells you how steep: a slope of $-6$ is a steeper descent
 
 <DerivativeTracer />
 
-Sweep across the loss curve and watch the slope at a valley. Just before it the slope is negative (going down); just after, positive (going up); exactly at the bottom it is 0. At a peak it goes from positive to 0 to negative. That is why training is a hunt for places where the slope is zero: the lowest loss sits where the derivative crosses zero going upwards.
+Choose **a loss curve** in the visual, press **Sweep**, and watch the slope at each valley. Just before it the slope is negative (going down); just after, positive (going up); exactly at the bottom it is 0. At a peak it goes from positive to 0 to negative. That is why training is a hunt for places where the slope is zero: the lowest loss sits where the derivative crosses zero going upwards.
 
 <Mistake title="Slope is not height">
 
-$f'(x)$ and $f(x)$ answer different questions. At the bottom of a valley the **height** can be anything (the loss curve's valleys sit at heights near 0.4 and 2.2) but the **slope** is 0. And $f'(x) = 0$ does not always mean a peak or a valley: $x^3$ has slope $3 \times 0^2 = 0$ at $x = 0$, yet it keeps rising on both sides, just pausing on a flat shelf. The curvature lesson later in this module shows how to tell these apart.
+$f'(x)$ and $f(x)$ answer different questions. At the bottom of a valley the **height** can be anything (the loss curve's valleys sit at heights near 0.4 and 2.2) but the **slope** is 0. And $f'(x) = 0$ does not always mean a peak or a valley: $x^3$ is flat at $x = 0$ (zoom in and the tangent there is horizontal), yet it keeps rising on both sides, just pausing on a flat shelf. You will be able to check this with the power rule in the next lesson. The curvature lesson later in this module shows how to tell these apart.
 
 </Mistake>
 
 <QuickCheck
+  id="calculus-and-gradient-descent.derivatives-as-slopes.qc2"
   q="A loss curve $L(w)$ has $L'(w) < 0$ for every $w$ below 3, $L'(3) = 0$, and $L'(w) > 0$ for every $w$ above 3. What happens at $w = 3$?"
-  options={['The loss has its lowest point (a minimum)', 'The loss has its highest point (a maximum)', 'The loss equals 0', 'The loss is at its steepest']}
-  answer={0}
+  options={['The loss has its highest point (a maximum)', 'The loss equals 0', 'The loss has its lowest point (a minimum)', 'The loss is at its steepest']}
+  answer={2}
   explain="Falling before 3 and rising after 3 means the curve goes down, flattens and goes back up: a valley, so $w = 3$ is a minimum. A maximum would need the slope to go from positive to negative. $L'(3) = 0$ says the slope is 0, not that the loss itself is 0."
 />
 

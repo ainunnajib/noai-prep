@@ -1,12 +1,14 @@
 import BackpropStepper from './visuals/backprop-step-by-step/BackpropStepper'
 import BranchSum from './visuals/backprop-step-by-step/BranchSum'
 import NetGradientFlow from './visuals/backprop-step-by-step/NetGradientFlow'
+import OneTwoOneNet from './visuals/backprop-step-by-step/OneTwoOneNet'
+import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
 
 Last lesson you broke formulas into graphs and learned each node's local derivative. Now comes the payoff. **Backpropagation** (backprop for short) runs the graph in reverse and, in one sweep, finds how the loss depends on **every** weight and bias. Every neural network is trained this way, from a two-neuron toy to a large language model. NOAI asks about it in both rounds: what it computes in the Prelim, and how to code it in the Final.
 
 <Analogy title="Tracing blame for a late group project">
 
-Your Project Work group submits three days late. The leader traces the delay backwards. The report was late because the slides were late, and the slides were late because the survey data was late. Each person's share of the blame is the blame passed to them by the person they handed work to, times how much their own part held that person up. Nobody needs to see the whole project: each person only needs the blame passed to them and their own contribution. Backprop works the same way. Blame (the gradient) flows backwards and gets multiplied at every step.
+Your Project Work group submits its report 3 days late, and the leader traces the delay backwards. Two-thirds of the report's delay came from the slides arriving late, so the slides carry $3 \times \tfrac{2}{3} = 2$ days of blame. Half of the slides' delay came from the survey data arriving late, so the survey carries $2 \times \tfrac{1}{2} = 1$ day. Nobody needs to see the whole project: each person only needs the blame passed to them and how much their own part held the next person up. Backprop works the same way. Blame (the gradient) is passed backwards and **multiplied** at every hand-over.
 
 </Analogy>
 
@@ -93,7 +95,7 @@ $$
 \frac{\partial L}{\partial x} = \underbrace{\frac{\partial L}{\partial u_1}\,\frac{\partial u_1}{\partial x}}_{\text{path through } u_1} + \underbrace{\frac{\partial L}{\partial u_2}\,\frac{\partial u_2}{\partial x}}_{\text{path through } u_2}
 $$
 
-So a gradient is a chain-rule product for each path, summed over all paths.
+So a gradient is a chain-rule product for each path, summed over all paths. The next figure uses a simpler pair of paths, $u = 3x$ and $v = x^2$, which meet again in $f = u + v$, so you can check every slope in your head.
 
 <BranchSum />
 
@@ -108,7 +110,7 @@ Branches are everywhere in real networks:
 
 <Mistake title="Overwriting instead of adding">
 
-In hand-written backprop code, `grad_x = ...` inside a loop over paths keeps only the last path. It must be `grad_x += ...`. PyTorch does the adding for you: every call to `.backward()` **adds** into each tensor's `.grad`. That is exactly why a training loop calls `optimizer.zero_grad()` before each backward pass; otherwise the previous batch's gradients are still sitting there and the new ones are added on top.
+In hand-written backprop code, `grad_x = ...` inside a loop over paths keeps only the last path. It must be `grad_x += ...`. PyTorch does the adding for you: every call to `.backward()` **adds** into each tensor's `.grad`. That is exactly why a training loop calls `optimiser.zero_grad()` before each backward pass; otherwise the previous batch's gradients are still sitting there and the new ones are added on top.
 
 </Mistake>
 
@@ -140,7 +142,9 @@ Three things to notice in the visual:
 
 - A weight whose input activation is $0$ gets **zero** gradient: it had no effect on this example, so there is nothing to correct.
 - A ReLU neuron that is "off" ($z \le 0$) has slope $0$ and **blocks** the gradient to every weight feeding into it.
-- With sigmoid, every hidden error is multiplied by at most $0.25$. Stack ten such layers and the factor can be as small as $0.25^{10} \approx 0.000001$. That is the **vanishing-gradient** problem, the subject of the next lesson.
+- With sigmoid, the activation's slope contributes a factor of **at most** $0.25$ per layer. Over ten layers the slopes alone multiply to at most $0.25^{10} \approx 10^{-6}$, and usually to much less (a saturated neuron's slope is close to 0), unless large weights make up for it. That is the **vanishing-gradient** problem, the subject of the next lesson.
+
+<Reveal label="Preview: the same rules as matrices (optional)">
 
 In matrix form, for one example with input row vector $a$ going into a layer $z = aW + b$, the same rules read
 
@@ -149,6 +153,8 @@ $$
 $$
 
 Entry $(j, k)$ of $a^{\top}\delta$ is $a_j \delta_k$, which is pattern 1, and $\delta W^{\top}$ adds up $w_{jk}\delta_k$ over $k$, which is pattern 2. Each gradient has the **same shape** as the thing it is the gradient of, a handy check. The network-from-scratch lesson uses exactly these lines for a whole batch.
+
+</Reveal>
 
 <Mistake title="Which activation goes into a weight's gradient?">
 
@@ -160,16 +166,12 @@ $\frac{\partial L}{\partial w_{jk}}$ uses the activation flowing **into** the we
 
 Now a real (if tiny) network: one input, two ReLU hidden neurons and one output, with squared-error loss.
 
-<NeuralNet layers={[1, 2, 1]} layerLabels={['input', 'hidden (ReLU)', 'output']} nodeLabels={[['x'], ['h₁', 'h₂'], ['ŷ']]} weights={[[[1, -1]], [[2], [3]]]} width={420} height={200} ariaLabel="A 1-2-1 network: input x feeds hidden neurons h1 and h2 through weights 1 and -1, which feed output y-hat through weights 2 and 3" />
+- **Hidden neuron 1:** $z_1 = w_1 x + b_1$ with $w_1 = 1$ and $b_1 = -1$, then $h_1 = \text{ReLU}(z_1)$.
+- **Hidden neuron 2:** $z_2 = w_2 x + b_2$ with $w_2 = -1$ and $b_2 = 1$, then $h_2 = \text{ReLU}(z_2)$.
+- **Output:** $\hat y = v_1 h_1 + v_2 h_2 + c$ with $v_1 = 2$, $v_2 = 3$ and $c = 0.5$ (no activation).
+- **Data:** input $x = 2$, target $y = 1$, loss $L = (\hat y - y)^2$.
 
-Line thickness shows the size of each weight and colour its sign (orange positive, blue negative).
-
-| Part | Parameters |
-|---|---|
-| hidden neuron 1 | $z_1 = w_1 x + b_1$ with $w_1 = 1$, $b_1 = -1$; then $h_1 = \text{ReLU}(z_1)$ |
-| hidden neuron 2 | $z_2 = w_2 x + b_2$ with $w_2 = -1$, $b_2 = 1$; then $h_2 = \text{ReLU}(z_2)$ |
-| output | $\hat y = v_1 h_1 + v_2 h_2 + c$ with $v_1 = 2$, $v_2 = 3$, $c = 0.5$ |
-| data | input $x = 2$, target $y = 1$, loss $L = (\hat y - y)^2$ |
+<OneTwoOneNet />
 
 <Steps title="Forward, backward and one update">
   <Step title="Forward: hidden layer">
@@ -211,7 +213,7 @@ Line thickness shows the size of each weight and colour its sign (orange positiv
 
 Here is the hand calculation in NumPy. Each backward line is one "upstream × local" step. Run it, then change `x` to `-2` and see which hidden neuron switches on.
 
-<PyRunner packages={['numpy']} code={`import numpy as np
+<NoWrapRunner code={`import numpy as np
 
 x, y = 2.0, 1.0
 W1 = np.array([1.0, -1.0])   # hidden weights (2 neurons)
@@ -237,6 +239,8 @@ d_b1 = d_z1
 print("L =", L)
 print("dL/dv =", d_v, "  dL/dc =", d_c)
 print("dL/dW1 =", d_W1, "  dL/db1 =", d_b1)`} />
+
+With `x = -2` one entry prints as `-0.`: that is just zero with a minus sign, because NumPy keeps the sign of $-2 \times 0$. It equals 0.
 
 PyTorch's autograd records the same graph during the forward pass, and `L.backward()` runs the same backward sweep:
 
@@ -264,15 +268,35 @@ tensor([3., 0.]) tensor(3.)
 tensor([12.,  0.]) tensor([6., 0.])
 ```
 
-The numbers match the hand calculation exactly. Note that `L.backward()` only **computes** the gradients and stores them in `.grad`; changing the weights is the optimiser's job (`optimizer.step()`).
+The numbers match the hand calculation exactly. Note that `L.backward()` only **computes** the gradients and stores them in `.grad`; changing the weights is the optimiser's job (`optimiser.step()`).
 
 ## Why go backwards at all?
 
 You could find each gradient by nudging each weight separately and re-running the forward pass, as in the check at the end of the last lesson. For a network with a million weights, that is a million forward passes for a single training step. Backprop gets **all** the gradients in one backward sweep. That sweep costs only a small multiple (roughly two to three times) of one forward pass, because each upstream gradient is computed once and then shared by everything below it. This trick is called <Term def="Computing derivatives by recording the computation as a graph and sweeping it once from the output back to the inputs, reusing each upstream gradient. Backpropagation is reverse-mode automatic differentiation applied to a neural network's loss.">reverse-mode automatic differentiation</Term>, and it is what makes training large networks possible.
 
+It helps to know the three ways a computer can find derivatives, because exam options mix them up:
+
+- **Numerical** differentiation nudges and divides, as in the check above: easy, but approximate and slow (two forward passes per weight).
+- **Symbolic** differentiation rewrites the formula, as you do in school calculus. For a big network the formula grows enormous.
+- **Automatic** differentiation applies the chain rule node by node to the recorded graph, giving exact values without ever writing out the whole formula. **Forward mode** carries derivatives along with the values from the inputs to the outputs and needs one sweep per input. **Reverse mode** (backprop) sweeps from an output back to every input and needs one sweep per output.
+
+Training has one output, the loss, and millions of inputs, the weights, so reverse mode wins by a factor of millions.
+
+<QuickCheck
+  q="Why does training a neural network use reverse-mode rather than forward-mode automatic differentiation?"
+  options={[
+    'There is one output (the loss) and many weights, and reverse mode needs one sweep per output',
+    'Reverse mode gives exact gradients, while forward mode only estimates them from small nudges',
+    'Forward mode cannot pass through activation functions such as ReLU and sigmoid',
+    'Reverse mode needs less memory, because it does not have to keep the forward values',
+  ]}
+  answer={0}
+  explain="Reverse mode gets the loss's gradient for every weight in one backward sweep; forward mode would need a separate sweep for each weight, millions of them. Both modes are exact (nudging is numerical differentiation, a different method), both handle any node with a local derivative, and reverse mode actually needs **more** memory, because it keeps every forward value for the backward pass."
+/>
+
 <ExamTip>
 
-Keep the roles straight, because Prelim options love to swap them. The **forward pass** makes predictions. **Backpropagation** computes gradients with the chain rule (`loss.backward()`). The **optimiser** uses them to update the weights (`optimizer.step()`). Backprop does not initialise weights, update weights or measure accuracy.
+Keep the roles straight, because Prelim options love to swap them. The **forward pass** makes predictions. **Backpropagation** computes gradients with the chain rule (`loss.backward()`). The **optimiser** uses them to update the weights (`optimiser.step()`). Backprop does not initialise weights, update weights or measure accuracy.
 
 </ExamTip>
 

@@ -23,11 +23,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.indexing-and-masks.3',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\nx = np.array([3, -1, 4, -1, 5])\nprint(x[x > 0].sum(), (x > 0).mean())',
+    code: 'import numpy as np\nx = np.array([3, -1, 4, -1, 5])\nm = x > 0\nprint(x[m].sum(), m.mean())',
     options: ['`12 0.6`', '`3 0.6`', '`12 3`', '`10 0.4`'],
     answer: 0,
     explanation:
-      '`x[x > 0]` keeps `[3 4 5]`, whose sum is 12. The mask `x > 0` is `[True False True False True]`; with True as 1 and False as 0 its mean is $3 \\div 5 = 0.6$. `3` is the *count* of positives, `mask.sum()`, not the sum of the values.',
+      'The mask `m` is `[True False True False True]`, so `x[m]` keeps `[3 4 5]`, whose sum is 12. With True as 1 and False as 0 the mean of `m` is $3 \\div 5 = 0.6$. `3` is the *count* of positives, `m.sum()`, not the sum of the values.',
     difficulty: 'intermediate',
   },
   {

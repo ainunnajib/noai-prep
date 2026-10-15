@@ -46,7 +46,7 @@ function Domino({
       setDims(d)
     }
     return (
-      <div className={s.half} style={{ background: tones[k] ? HALF_BG[tones[k]!] : undefined, minHeight: 72 }}>
+      <div className={s.half} style={{ background: tones[k] ? HALF_BG[tones[k]!] : undefined, minHeight: 72, gap: setDims ? 3 : undefined, padding: setDims ? '4px 0' : undefined }}>
         {setDims && (
           <button type="button" className={s.step} disabled={v >= MAX} onClick={() => set(v + 1)} aria-label={`${name}: more ${what}`}>
             ▲
@@ -319,8 +319,8 @@ export default function ShapeDominoes() {
         </div>
       ) : (
         <div className={s.okBox}>
-          Each entry of AB pairs the {a[1]} numbers in a row of A with the {b[0]} numbers in a column of B, multiplies each pair and adds. The inner size {a[1]}{' '}
-          is used up by that adding, which is why it disappears from the answer.
+          Each entry of AB pairs the {a[1]} number{a[1] === 1 ? '' : 's'} in a row of A with the {b[0]} number{b[0] === 1 ? '' : 's'} in a column of B, multiplies
+          each pair and adds. The inner size {a[1]} is used up by that adding, which is why it disappears from the answer.
         </div>
       )}
 

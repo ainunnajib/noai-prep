@@ -4,13 +4,28 @@ import ColumnMixer from './visuals/matrices-and-multiplication/ColumnMixer'
 import TransposeFlip from './visuals/matrices-and-multiplication/TransposeFlip'
 import HadamardVsMatmul from './visuals/matrices-and-multiplication/HadamardVsMatmul'
 
-When a neural network looks at a photo, almost all of its arithmetic is one operation repeated millions of times: **matrix multiplication**. It is so central that graphics chips (GPUs) are built around doing it fast. In this lesson you will learn to read a matrix's shape, predict whether two matrices can be multiplied, and work out a product by hand. NOAI tests all three, usually as questions you can answer in under 30 seconds once you know the trick.
+When a neural network looks at a photo, almost all of its arithmetic is one operation repeated millions of times: **matrix multiplication**. This lesson teaches you to read a matrix's shape, predict whether two matrices can be multiplied, and work out a product by hand. NOAI tests all three, usually in questions you can answer in under 30 seconds.
 
 <Analogy title="Matrices at the hawker centre">
 
-Aisha and Ben order lunch. A table of who ordered what, with customers down the side and dishes across the top, is a matrix. A second table lists each dish's price and calories. To get Aisha's bill, you go **along her row** of orders and **down the price column**, multiplying and adding: 0 chicken rice × \$4 + 1 laksa × \$5 + 2 kopi × \$2 = \$9. That one sum is one entry of a matrix product.
+Aisha and Ben order lunch. The table of who ordered what (customers down the side, dishes across the top) is a matrix, and so is the table of dish prices and calories. For Aisha's bill, go **along her row** and **down the \$ column**, multiplying and adding: 0 × \$4 + 1 × \$5 + 2 × \$2 = \$9. That sum is one entry of a matrix product.
 
 </Analogy>
+
+<Columns min={230}>
+
+| Orders | chicken rice | laksa | kopi |
+|---|---|---|---|
+| **Aisha** | **0** | **1** | **2** |
+| Ben | 2 | 1 | 1 |
+
+| Per dish | **\$** | kcal |
+|---|---|---|
+| chicken rice | **4** | 600 |
+| laksa | **5** | 600 |
+| kopi | **2** | 100 |
+
+</Columns>
 
 ## What is a matrix?
 
@@ -20,19 +35,29 @@ $$
 A = \begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{bmatrix}
 $$
 
-This $A$ has 2 rows and 3 columns, so it is a **2×3** matrix. The number in row $i$ and column $j$ is called an <Term def="One number inside a matrix, identified by its row and column.">entry</Term> and is written $a_{ij}$: a small letter, then the row number, then the column number. So $a_{12} = 2$ (row 1, column 2) and $a_{21} = 4$ (row 2, column 1). A matrix with the same number of rows and columns, such as 2×2 or 3×3, is called <Term def="Having the same number of rows as columns.">square</Term>.
+This $A$ has 2 rows and 3 columns, so it is **2×3**. The <Term def="One number inside a matrix, identified by its row and column.">entry</Term> in row $i$, column $j$ is written $a_{ij}$, so $a_{12} = 2$ and $a_{21} = 4$. A matrix with as many rows as columns (2×2, 3×3, …) is <Term def="Having the same number of rows as columns.">square</Term>.
 
-Vectors fit in neatly. A list of $n$ numbers written as a column is an $n \times 1$ matrix (a **column vector**); written as a row it is $1 \times n$ (a **row vector**).
+A vector is a matrix too: an $n \times 1$ **column vector** or a $1 \times n$ **row vector**. From now on vectors are plain lowercase letters such as $x$ (not bold), as in most machine-learning books, and matrices are capitals such as $A$.
 
-Real data is stored the same way. A class of 40 students with marks in 4 subjects is a 40×4 matrix: each **row** is one student (a data point), each **column** is one subject (a <Term def="One measured property of each data point, such as height or a subject mark. In a data matrix, each column is a feature.">feature</Term>). Machine learning almost always uses this convention: rows are samples, columns are features. A batch of 32 photos, each flattened into 784 pixel values, is a 32×784 matrix.
+Data is stored the same way: **rows are samples, columns are <Term def="One measured property of each data point, such as height or a subject mark. In a data matrix, each column is a feature.">features</Term>**. A class of 40 students with marks in 4 subjects is a 40×4 matrix; a batch of 32 photos, each flattened into 784 pixel values, is 32×784.
 
 <Tip>
-Rows before columns, every time, like finding your seat at the NDP: the **row** first, then the seat number along that row. In NumPy, `A.shape` is `(2, 3)` for the matrix above, and `A[0, 1]` is `2` because Python counts rows and columns from 0.
+Rows before columns, like finding your NDP seat: the **row** first, then the seat. In NumPy, `A.shape` is `(2, 3)` and `A[0, 1]` is `2` (Python counts from 0).
 </Tip>
+
+### Adding and scaling matrices
+
+Adding, subtracting and scaling work entry by entry, as they did for vectors:
+
+$$
+(A + B)_{ij} = a_{ij} + b_{ij}, \qquad (cA)_{ij} = c\,a_{ij}
+$$
+
+For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} + \begin{bmatrix} 5 & 0 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 6 & 2 \\ 2 & 6 \end{bmatrix}$ and $3\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} = \begin{bmatrix} 3 & 6 \\ 9 & 12 \end{bmatrix}$. Adding needs **identical** shapes (2×3 plus 3×2 is undefined). Multiplication has a different shape rule.
 
 ## The shape rule: which matrices can be multiplied?
 
-Before computing anything, check the shapes. Try it with dominoes: the touching ends must match.
+Before computing anything, check the shapes. Try the dominoes: touching ends must match.
 
 <ShapeDominoes />
 
@@ -42,20 +67,20 @@ $$
 \underbrace{A}_{m \times n}\;\underbrace{B}_{n \times p} \;=\; \underbrace{AB}_{m \times p}
 $$
 
-- $m$ is the number of rows of $A$; it becomes the number of rows of the answer.
+- $m$, the rows of $A$, becomes the rows of the answer.
 - $n$ is the <Term def="The two touching numbers when you write two shapes side by side: the columns of the first matrix and the rows of the second.">inner dimension</Term>: the columns of $A$, which must equal the rows of $B$.
-- $p$ is the number of columns of $B$; it becomes the number of columns of the answer.
+- $p$, the columns of $B$, becomes the columns of the answer.
 
-**Why does it work like this?** Every entry of $AB$ is made by pairing up a row of $A$ with a column of $B$. A row of $A$ has $n$ numbers (one per column of $A$). A column of $B$ has as many numbers as $B$ has rows. You can only pair them off 1-with-1, 2-with-2 if those counts are equal. And the answer has one entry for every choice of (row of $A$, column of $B$): that is $m$ rows and $p$ columns.
+**Why?** Each entry of $AB$ pairs the $n$ numbers along a row of $A$ one-to-one with the numbers down a column of $B$, so that column needs $n$ numbers too. There is one entry per (row of $A$, column of $B$) pair: $m \times p$.
 
 <KeyIdea>
-Write the shapes side by side: $(m \times \mathbf{n})(\mathbf{n} \times p)$. If the two **inner** numbers match, cross them out; the two **outer** numbers that remain, $m \times p$, are the shape of the answer. If the inner numbers differ, the product does not exist.
+Write the shapes side by side: $(m \times \mathbf{n})(\mathbf{n} \times p)$. If the **inner** numbers match, cross them out; the **outer** numbers left, $m \times p$, are the answer's shape. If the inner numbers differ, the product does not exist.
 </KeyIdea>
 
-For a chain like $ABC$ the same trick works link by link: $(2 \times 3)(3 \times 5)(5 \times 4)$ cancels the 3s and the 5s, leaving $2 \times 4$.
+Chains work link by link: $(2 \times 3)(3 \times 5)(5 \times 4)$ cancels the 3s and the 5s, leaving $2 \times 4$.
 
 <Mistake>
-Two popular wrong rules: "the rows of A must equal the rows of B" and "the two shapes must be the same". A 3×2 matrix times a 2×4 matrix works even though the shapes differ, and a 3×2 times a 3×2 fails even though the shapes are identical (the inner numbers are 2 and 3).
+Two popular wrong rules: "rows of A must equal rows of B" and "the shapes must be the same". A 3×2 times a 2×4 works although the shapes differ; a 3×2 times a 3×2 fails although they are identical (inner numbers 2 and 3).
 </Mistake>
 
 The 2026 Prelim opened with exactly this question:
@@ -64,7 +89,7 @@ The 2026 Prelim opened with exactly this question:
 
 ## Each entry is a row times a column
 
-Recall the <Term def="Multiply two equal-length lists entry by entry and add up the products. For [1, 2] and [3, 4]: 1×3 + 2×4 = 11.">dot product</Term> from the previous lesson: multiply matching entries of two lists and add. Matrix multiplication is nothing more than lots of dot products arranged in a grid:
+Recall the <Term def="Multiply two equal-length lists entry by entry and add up the products. For [1, 2] and [3, 4]: 1×3 + 2×4 = 11.">dot product</Term>: multiply matching entries and add. Matrix multiplication is many dot products arranged in a grid:
 
 $$
 \begin{aligned}
@@ -73,12 +98,9 @@ $$
 \end{aligned}
 $$
 
-Read it symbol by symbol:
-
-- $(AB)_{ij}$ is the entry in row $i$, column $j$ of the answer.
-- $a_{ik}$ is the $k$-th number **along row $i$** of $A$.
-- $b_{kj}$ is the $k$-th number **down column $j$** of $B$.
-- $\sum_{k=1}^{n}$ means "add up the terms for $k = 1, 2, \dots, n$". The counter $k$ walks along the row and down the column at the same time, which is where the inner dimension $n$ gets used up.
+- $(AB)_{ij}$ is the answer's entry in row $i$, column $j$.
+- $a_{ik}$ is the $k$-th number **along row $i$** of $A$; $b_{kj}$ is the $k$-th number **down column $j$** of $B$.
+- $\sum_{k=1}^{n}$ adds the terms for $k = 1, \dots, n$, walking along the row and down the column together.
 
 In words: **entry $(i, j)$ of $AB$ is row $i$ of $A$ dotted with column $j$ of $B$.**
 
@@ -106,37 +128,37 @@ In words: **entry $(i, j)$ of $AB$ is row $i$ of $A$ dotted with column $j$ of $
   q="Let $A = \begin{bmatrix} 2 & 0 & 1 \\ 1 & 3 & 2 \end{bmatrix}$ and $B = \begin{bmatrix} 1 & 4 \\ 2 & 0 \\ 3 & 1 \end{bmatrix}$. What is the entry in row 2, column 1 of $AB$?"
   options={['13', '6', '5', '9']}
   answer={0}
-  explain="Row 2 of $A$ is $[1, 3, 2]$ and column 1 of $B$ is $[1, 2, 3]$, so the entry is $1 \times 1 + 3 \times 2 + 2 \times 3 = 1 + 6 + 6 = 13$. The other options are the other three entries of $AB$ (6 is row 2, column 2): always check which row and which column you are using."
+  explain="Row 2 of $A$ is $[1, 3, 2]$ and column 1 of $B$ is $[1, 2, 3]$: $1 \times 1 + 3 \times 2 + 2 \times 3 = 1 + 6 + 6 = 13$. The other options are the other entries of $AB$ (6 is row 2, column 2), so check which row and column you use."
 />
 
 <ExamTip>
-If a question asks for **one** entry of a product, compute only that one dot product: row $i$ of the first matrix with column $j$ of the second. Never multiply out the whole matrix under time pressure.
+If a question asks for **one** entry of a product, compute only that dot product (row $i$ of the first matrix, column $j$ of the second), never the whole matrix.
 </ExamTip>
 
 ### Order matters: $AB \neq BA$
 
-With ordinary numbers $3 \times 5 = 5 \times 3$; we say multiplication is <Term def="An operation is commutative if swapping the order never changes the answer, like 3 + 5 = 5 + 3.">commutative</Term>. Matrix multiplication is **not**. Switch the stepper above to B·A and compare:
+With ordinary numbers $3 \times 5 = 5 \times 3$: multiplication is <Term def="An operation is commutative if swapping the order never changes the answer, like 3 + 5 = 5 + 3.">commutative</Term>. Matrix multiplication is **not**. Switch the stepper above to B·A and compare:
 
-- With the 2×2 numbers, $AB = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}$ but $BA = \begin{bmatrix} 23 & 34 \\ 31 & 46 \end{bmatrix}$. Same shape, different numbers.
-- In the hawker example, $AB$ is 2×2 but $BA$ is 3×3: not even the same shape, and $BA$ pairs prices with customers, which means nothing.
-- If $A$ is 2×3 and $B$ is 3×4, then $AB$ exists (2×4) but $BA$ does not exist at all, because $(3 \times 4)(2 \times 3)$ has inner numbers 4 and 2.
-
-Some familiar rules do survive: $(AB)C = A(BC)$, so you may choose which product to do first (but keep the left-to-right order), and $A(B + C) = AB + AC$.
+- With the 2×2 numbers, $AB = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}$ but $BA = \begin{bmatrix} 23 & 34 \\ 31 & 46 \end{bmatrix}$: same shape, different numbers.
+- In the hawker example, $AB$ is 2×2 but $BA$ is 3×3.
+- If $A$ is 2×3 and $B$ is 3×4, $AB$ is 2×4 but $BA$ does not exist: $(3 \times 4)(2 \times 3)$ has inner numbers 4 and 2.
 
 ## Matrix times vector: what a neural-network layer does
 
-The most common product in AI is a matrix times a vector. If $A$ is $m \times n$ and $x$ is a column vector with $n$ numbers ($n \times 1$), then $Ax$ is $m \times 1$: a new vector. There are two equally correct ways to see it:
+The most common product in AI is a matrix times a vector. If $A$ is $m \times n$ and $x$ is a column vector of $n$ numbers, $Ax$ is a new $m \times 1$ vector. Two equally correct pictures:
 
 - **Row picture:** each entry of $Ax$ is one row of $A$ dotted with $x$.
-- **Column picture:** $Ax$ is a mix of the columns of $A$, using the numbers in $x$ as the amounts: $Ax = x_1 \cdot (\text{column } 1) + x_2 \cdot (\text{column } 2) + \dots$ This kind of "scale and add" is called a <Term def="A sum of vectors, each multiplied by a number: for example 2u + 3v.">linear combination</Term>.
+- **Column picture:** $Ax = x_1 \cdot (\text{column } 1) + x_2 \cdot (\text{column } 2) + \dots$, a mix of the columns of $A$ with the numbers in $x$ as the amounts. Such a "scale and add" is a <Term def="A sum of vectors, each multiplied by a number: for example 2u + 3v.">linear combination</Term>.
 
 <ColumnMixer />
 
-This is exactly what a layer of a neural network computes. A layer with 3 inputs and 2 output neurons stores a 2×3 <Term def="The table of numbers (weights) a neural-network layer learns. Entry (i, j) says how strongly input j affects output i.">weight matrix</Term> $W$ and outputs $Wx + b$, where $b$ is a vector of 2 extra numbers called biases. Row $i$ of $W$ holds the weights of output neuron $i$ (row picture). Feeding a whole batch of inputs at once just turns the vector $x$ into a matrix with one sample per row, and the shape rule tells you everything fits.
+This is what a linear (fully connected) layer of a neural network computes before its activation function. A layer with 3 inputs and 2 outputs stores a 2×3 <Term def="The table of numbers (weights) a neural-network layer learns. Entry (i, j) says how strongly input j affects output i.">weight matrix</Term> $W$ (row $i$ holds output neuron $i$'s weights) and outputs $Wx + b$, where $b$ holds 2 extra numbers called biases.
+
+For a batch, stack $N$ inputs as the rows of $X$ ($N \times 3$). $WX$ would be $(2 \times 3)(N \times 3)$, which does not fit, so the layer computes $XW^T + b$: $(N \times 3)(3 \times 2) = N \times 2$, one row of outputs per sample, with $b$ added to each row. $W^T$, the transpose, comes next.
 
 ## The transpose: swap rows and columns
 
-The <Term def="The matrix you get by turning rows into columns: entry (i, j) moves to (j, i). Written A with a superscript T.">transpose</Term> of $A$, written $A^T$, turns every row into a column. Entry $(i, j)$ moves to position $(j, i)$:
+The <Term def="The matrix you get by turning rows into columns: entry (i, j) moves to (j, i). Written A with a superscript T.">transpose</Term> $A^T$ turns every row of $A$ into a column: entry $(i, j)$ moves to $(j, i)$:
 
 $$
 (A^T)_{ij} = a_{ji}
@@ -146,7 +168,7 @@ $$
 \begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{bmatrix}^T = \begin{bmatrix} 1 & 4 \\ 2 & 5 \\ 3 & 6 \end{bmatrix}
 $$
 
-So an $m \times n$ matrix becomes $n \times m$. The entries on the <Term def="The entries a₁₁, a₂₂, a₃₃, … running from the top-left corner downwards to the right.">main diagonal</Term> ($a_{11}, a_{22}, \dots$) stay where they are, and transposing twice gets you back where you started: $(A^T)^T = A$.
+An $m \times n$ matrix becomes $n \times m$. The <Term def="The entries a₁₁, a₂₂, a₃₃, … running from the top-left corner downwards to the right.">main diagonal</Term> ($a_{11}, a_{22}, \dots$) stays put, and transposing twice gets you back: $(A^T)^T = A$.
 
 <TransposeFlip />
 
@@ -156,22 +178,28 @@ $$
 (AB)^T = B^T A^T
 $$
 
-Think of socks and shoes: you put on socks, then shoes, but to undo it you take off the shoes first. The shapes prove it. Say $A$ is 2×3 and $B$ is 3×4, so $AB$ is 2×4 and $(AB)^T$ is 4×2. Then $B^T A^T$ is $(4 \times 3)(3 \times 2) = 4 \times 2$, which fits. The "obvious" guess $A^T B^T$ is $(3 \times 2)(4 \times 3)$, which does not even exist.
+Like socks and shoes: socks go on first, but shoes come off first. Check with shapes: if $A$ is 2×3 and $B$ is 3×4, $(AB)^T$ is 4×2; $B^T A^T = (4 \times 3)(3 \times 2) = 4 \times 2$ fits, but $A^T B^T = (3 \times 2)(4 \times 3)$ does not even exist.
 
-The transpose also explains a dot product in matrix language: for two column vectors $u$ and $v$ with $n$ numbers each, $u^T v$ is $(1 \times n)(n \times 1) = 1 \times 1$, a single number, which is their dot product. (Try "row · column" in the dominoes. "column · row" gives an $n \times n$ table instead.)
+The transpose also writes a dot product as a matrix product: for column vectors $u$ and $v$ of $n$ numbers each, $u^T v$ is $(1 \times n)(n \times 1) = 1 \times 1$, one number.
 
-You will meet the transpose constantly in PyTorch. A layer `nn.Linear(784, 10)` stores its weights with shape (outputs, inputs) = (10, 784), so to apply it to a batch `X` of shape (32, 784) it computes `X @ W.T + b`:
+PyTorch's `nn.Linear(784, 10)` stores its weights as (outputs, inputs) = (10, 784) and, for a batch `X` of shape (32, 784), computes `X @ W.T + b`. Forgetting the `.T` gives the commonest error in network code, Final tasks included: `mat1 and mat2 shapes cannot be multiplied (32x784 and 10x784)`. The inner numbers 784 and 10 differ, so a transpose is missing.
+
+<Reveal label="Peek ahead: what this looks like in PyTorch">
+
+You will learn PyTorch properly in its own module. For now, read the shapes:
 
 ```python
 import torch
 import torch.nn as nn
 
+torch.manual_seed(0)        # same random numbers every run
 X = torch.randn(32, 784)    # 32 images, 784 pixels each
 layer = nn.Linear(784, 10)  # 784 inputs -> 10 outputs
 W = layer.weight
 print(W.shape)              # stored as (out, in)
 print(layer(X).shape)
-print(torch.allclose(layer(X), X @ W.T + layer.bias))
+# equal up to tiny rounding differences
+print(torch.allclose(layer(X), X @ W.T + layer.bias, atol=1e-6))
 X @ W                       # forgot the transpose
 ```
 
@@ -182,49 +210,49 @@ True
 RuntimeError: mat1 and mat2 shapes cannot be multiplied (32x784 and 10x784)
 ```
 
-The last line is the error you will meet most often when you build networks in PyTorch, for example in the Final's programming tasks. Read the two shapes it prints and apply the inner-dimension rule: 784 and 10 don't match, so a transpose is missing.
+</Reveal>
 
 <PastPaperQuestion paper="prelim2026" n={5} />
 
 ## Element-wise product versus matrix product
 
-There is a second, much simpler way to "multiply" two matrices: multiply the entries in matching positions. This is the <Term def="Multiplying two same-shaped matrices position by position. Also called the Hadamard product, written A ∘ B, and computed with * in NumPy and PyTorch.">element-wise product</Term>, also called the **Hadamard product** and written $A \circ B$:
+A second, simpler way to "multiply" pairs up entries in matching positions. This is the <Term def="Multiplying two same-shaped matrices position by position. Also called the Hadamard product, written A ∘ B, and computed with * in NumPy and PyTorch.">element-wise product</Term>, also called the **Hadamard product** and written $A \circ B$:
 
 $$
 (A \circ B)_{ij} = a_{ij}\, b_{ij}
 $$
 
-For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \circ \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 1 \times 5 & 2 \times 6 \\ 3 \times 7 & 4 \times 8 \end{bmatrix} = \begin{bmatrix} 5 & 12 \\ 21 & 32 \end{bmatrix}$.
-
-It needs the two shapes to be **equal**, and it keeps that shape. In code the two operations look almost identical, which is the trap:
+For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \circ \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 1 \times 5 & 2 \times 6 \\ 3 \times 7 & 4 \times 8 \end{bmatrix} = \begin{bmatrix} 5 & 12 \\ 21 & 32 \end{bmatrix}$. It needs **equal** shapes and keeps that shape. In code the two products look almost identical, which is the trap:
 
 | | Matrix product | Element-wise product |
 |---|---|---|
 | NumPy / PyTorch | `A @ B` (also `np.matmul`, and `np.dot` for 2-D arrays) | `A * B` |
-| Shape needed | inner sizes match: $(m \times n)(n \times p)$ | identical shapes |
+| Shape needed | inner sizes match: $(m \times n)(n \times p)$ | identical shapes* |
 | Each output entry | row · column (a sum of $n$ products) | one product |
+
+\* `*` also accepts some unequal shapes that can be **broadcast** (stretched to match), such as a matrix times one row: see the NumPy module's [Broadcasting](#/learn/numpy/broadcasting) lesson. (2, 3) with (3, 2) still fails.
 
 <HadamardVsMatmul />
 
 <Mistake>
-Writing `A * B` when you meant `A @ B`. For square matrices of the same size **both run without any error**, so nothing warns you: you silently get a different matrix. Whenever your maths says "matrix product", type `@`.
+Typing `A * B` when you meant `A @ B`. For two square matrices of the same size **both run without any error**, so you silently get a different matrix. When your maths says "matrix product", type `@`.
 </Mistake>
 
 <PastPaperQuestion paper="prelim2026" n={102} />
 
 ## Try it in Python
 
-Run this, then change it: make `A @ A` work by transposing one of them, or predict a shape before printing it.
+Run this, then change it: make `A @ A` work with a transpose, or predict a shape before printing it.
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
 # orders: 2 customers x 3 dishes
 A = np.array([[0, 1, 2],
               [2, 1, 1]])
-# per dish: price ($) and kcal/100
-B = np.array([[4, 6],
-              [5, 6],
-              [2, 1]])
+# per dish: price ($) and kcal
+B = np.array([[4, 600],
+              [5, 600],
+              [2, 100]])
 
 print(A.shape, B.shape)
 bill = A @ B       # (2x3)(3x2) -> 2x2
@@ -240,9 +268,8 @@ except ValueError as e:
 
 <ExamTip title="Speed tricks for the Prelim">
 
-- **Shape questions:** write the two shapes side by side, cross out the matching inner pair, read off the outer pair. No arithmetic needed.
-- **Transpose shape:** just swap the two numbers. $(AB)^T = B^T A^T$, with the order reversed.
-- **Cost:** multiplying $(m \times n)(n \times p)$ takes $m \times n \times p$ multiplications, so two $n \times n$ matrices cost about $n^3$. This is why big matrix operations dominate training time.
+- **Cost:** $(m \times n)(n \times p)$ takes $m \times n \times p$ multiplications, about $n^3$ for two $n \times n$ matrices. This is why matrix products dominate training time.
+- **Rules that still hold:** $(AB)C = A(BC)$ and $A(B + C) = AB + AC$. The one that fails is $AB = BA$.
 
 </ExamTip>
 
@@ -251,7 +278,7 @@ except ValueError as e:
 - A matrix's shape is **rows × columns**; entry $a_{ij}$ sits in row $i$, column $j$.
 - $(m \times n)(n \times p) = m \times p$: the inner numbers must match and then disappear.
 - Entry $(i, j)$ of $AB$ is row $i$ of $A$ dotted with column $j$ of $B$. In general $AB \neq BA$.
-- $Ax$ mixes the columns of $A$ using the numbers in $x$: this is what a neural-network layer computes.
-- $A^T$ swaps rows and columns ($m \times n \to n \times m$), and $(AB)^T = B^T A^T$. `A * B` is element-wise (same shapes); `A @ B` is the matrix product.
+- $Ax$ mixes the columns of $A$ using the numbers in $x$, as a neural-network layer does.
+- $A^T$ swaps rows and columns; $(AB)^T = B^T A^T$. `A @ B` is the matrix product, `A * B` is element-wise.
 
 </Takeaways>

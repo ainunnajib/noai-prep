@@ -72,6 +72,10 @@ const Y = XN.map((r) => r.map((v, j) => A[j] * v + C[j]))
 export type StepResult = { next: Values; loss?: number; error?: string; partial?: Name }
 
 export const DEVICE_ERROR = 'RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!'
+/** what SGD(model.parameters()) raises when nothing is registered as a Parameter */
+export const EMPTY_OPT_ERROR = 'ValueError: optimizer got an empty parameter list'
+/** what loss.backward() raises when nothing used in the training forward pass requires grad */
+export const NO_GRAD_ERROR = 'RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn'
 
 const map3 = (f: (j: number) => number) => [f(0), f(1), f(2)] as Vec
 
@@ -92,6 +96,9 @@ export function trainStep(v: Values, kinds: Record<Name, Kind>, onGpu: boolean):
   }
   next.num_batches += 1 // fine on either device: it never meets a GPU tensor
   if (cpuOnly('gamma') || cpuOnly('beta')) return { next, error: DEVICE_ERROR }
+  // forward() ran (and updated the statistics), but if neither gamma nor beta is a Parameter the
+  // output does not require grad, so loss.backward() has nothing to differentiate
+  if (kinds.gamma !== 'param' && kinds.beta !== 'param') return { next, error: NO_GRAD_ERROR }
   // forward output with the batch statistics, then the MSE loss and its gradients
   const out = XN.map((r) => r.map((x, j) => v.gamma[j] * x + v.beta[j]))
   let loss = 0

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, FnPath, Dots, Path, VLine, DraggablePoint, usePlot, useNarrow, M } from '../../../../../kit'
+import { Controls, Readout, Toggle, Button, Plot, Grid, Axes, FnPath, Dots, Path, VLine, DraggablePoint, usePlot, useNarrow, M } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { FLATS, AREA, PRICE, mse, fmt, kTicks, plainTick } from './hdbFlats'
 
 /*

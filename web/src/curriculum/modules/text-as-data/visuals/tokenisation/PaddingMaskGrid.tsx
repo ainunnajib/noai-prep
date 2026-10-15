@@ -76,6 +76,7 @@ export default function PaddingMaskGrid() {
   const cw = Math.max(24, Math.min(60, Math.floor((width - labelW - noteW - (L + 2) * 3) / Math.max(1, L))))
   const cols = `${labelW}px repeat(${L}, ${cw}px) ${noteW}px`
   const showWords = cw >= 34
+  const overflows = labelW + noteW + L * cw + (L + 2) * 3 > width + 1
 
   const cellClass = (c: Cell) =>
     [s.cell, c.kind === 'pad' ? s.cellPad : '', c.kind === 'special' ? s.cellSpecial : '', c.kind === 'over' ? s.cellMissing : ''].join(' ')
@@ -177,21 +178,25 @@ export default function PaddingMaskGrid() {
             </div>
           </div>
         )}
+        {overflows && sentences.length > 0 && <p className={s.scrollHint}>scroll the table sideways to see every column →</p>}
         <div className={s.legend}>
           <span>
             <i className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-1) 15%, var(--surface))' }} />
             word
           </span>
           <span>
-            <i className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-5) 24%, var(--surface))' }} />
+            <i className={`${s.swatch} ${s.cellSpecial}`} style={{ borderStyle: 'solid', borderWidth: 1.5 }} />
             special token
           </span>
           <span>
-            <i className={s.swatch} style={{ background: 'var(--surface-3)', border: '1px solid var(--rule)' }} />
+            <i className={`${s.swatch} ${s.cellPad}`} style={{ border: '1px solid var(--rule)' }} />
             [PAD]
           </span>
           <span style={{ color: 'var(--viz-neg)' }}>✂n = words cut off</span>
         </div>
+        <p className={s.legend} style={{ margin: 0 }}>
+          ids: 0 = [PAD], 1 = [UNK], 2 = [CLS], 3 = [SEP], 4 and up = words
+        </p>
         {ragged ? (
           <p className={s.warn} role="status">
             Without truncation some rows are longer than {target}, so the batch is not a rectangle and cannot become one tensor. Real tokenisers raise an

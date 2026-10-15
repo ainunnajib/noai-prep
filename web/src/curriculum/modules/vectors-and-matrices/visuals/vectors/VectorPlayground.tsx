@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Plot, Grid, Axes, Arrow, Path, Dots, Label, DraggablePoint, Segmented, Toggle, mulberry32, type DotDatum } from '../../../../../kit'
-import { Vec, ArrowLabel, fmt, snap, clamp, type P } from './shared'
+import { Figure, Controls, Plot, Grid, Axes, Arrow, Path, Dots, Label, Segmented, Toggle, mulberry32, usePlot, type DotDatum } from '../../../../../kit'
+import { Vec, ArrowLabel, SnapPoint, fmt, snap, clamp, type P } from './shared'
 import s from './vectors.module.css'
 
 type Mode = 'arrow' | 'data'
@@ -15,6 +15,24 @@ function reading([x, y]: P) {
   const across = x === 0 ? null : `${fmt(Math.abs(x))} ${x > 0 ? 'right' : 'left'}`
   const up = y === 0 ? null : `${fmt(Math.abs(y))} ${y > 0 ? 'up' : 'down'}`
   return `Go ${[across, up].filter(Boolean).join(', then ')}.`
+}
+
+/**
+ * The "hours" leg in data mode. It runs along the x-axis, so it is drawn a few pixels above the
+ * axis line (and solid) to stay visible, with its value written under it.
+ */
+function HoursLeg({ x, color }: { x: number; color: string }) {
+  const { xs, ys } = usePlot()
+  const y = ys(0) - 4
+  if (Math.abs(xs(x) - xs(0)) < 2) return null
+  return <line x1={xs(0)} y1={y} x2={xs(x)} y2={y} style={{ stroke: color, strokeWidth: 5 }} strokeLinecap="round" />
+}
+
+/** Which side of the arrow the "v" label goes on, so it never lands on a leg or on the legs' number labels. */
+function labelSide([x, y]: P): 1 | -1 {
+  if (x === 0) return y > 0 ? -1 : 1 // vertical: put it on the left, away from the leg's number on the right
+  if (y === 0) return x > 0 ? -1 : 1 // horizontal: put it above, away from the number under the axis
+  return x * y > 0 ? 1 : -1
 }
 
 /** A small class of students for "data mode" (deterministic, so the picture never changes). */
@@ -61,8 +79,8 @@ export default function VectorPlayground() {
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'arrow', label: 'Arrow (x, y)' },
-            { value: 'data', label: 'Data (hours, score)' },
+            { value: 'arrow', label: 'Arrow [x, y]' },
+            { value: 'data', label: 'Data [hours, score]' },
           ]}
         />
         <Toggle label="Show the two legs" checked={legs} onChange={setLegs} />
@@ -76,16 +94,27 @@ export default function VectorPlayground() {
               <Dots points={others} />
               {legs && (
                 <>
-                  <Path points={[[0, 0], [rec[0], 0]]} color={X_COL} width={4} dash="7 5" />
+                  <HoursLeg x={rec[0]} color={X_COL} />
                   <Path points={[[rec[0], 0], rec]} color={Y_COL} width={4} dash="7 5" />
+                  {rec[0] >= 1 && (
+                    <Label x={rec[0] / 2} y={0} dy={-10} anchor="middle" color={X_COL} size={13} weight={800}>
+                      {`${fmt(rec[0])} h`}
+                    </Label>
+                  )}
+                  {rec[1] >= 12 && (
+                    <Label x={rec[0]} y={rec[1] / 2} dx={rec[0] > 8 ? -10 : 10} dy={5} anchor={rec[0] > 8 ? 'end' : 'start'} color={Y_COL} size={13} weight={800}>
+                      {fmt(rec[1])}
+                    </Label>
+                  )}
                 </>
               )}
               <Arrow from={[0, 0]} to={rec} color={V_COL} width={3.5} />
-              <DraggablePoint
+              <SnapPoint
                 x={rec[0]}
                 y={rec[1]}
                 color={V_COL}
                 label="drag"
+                step={[0.5, 5]}
                 onChange={(x, y) => setRec([clamp(snap(x, 0.5), 0, 10), clamp(Math.round(y), 0, 100)])}
               />
             </Plot>
@@ -110,8 +139,8 @@ export default function VectorPlayground() {
                 </>
               )}
               <Arrow from={[0, 0]} to={tip} color={V_COL} width={3.5} />
-              <ArrowLabel from={[0, 0]} to={tip} text="v" color={V_COL} t={0.5} side={tip[0] * tip[1] >= 0 ? 1 : -1} />
-              <DraggablePoint x={tip[0]} y={tip[1]} color={V_COL} onChange={(x, y) => setTip([snap(x, 0.5), snap(y, 0.5)])} label="drag me" />
+              <ArrowLabel from={[0, 0]} to={tip} text="v" color={V_COL} t={0.5} side={labelSide(tip)} gap={16} />
+              <SnapPoint x={tip[0]} y={tip[1]} color={V_COL} onChange={(x, y) => setTip([snap(x, 0.5), snap(y, 0.5)])} label="drag me" />
             </Plot>
           )}
         </div>

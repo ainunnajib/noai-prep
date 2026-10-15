@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, PlayerControls } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Toggle, PlayerControls, useNarrow } from '../../../../../kit'
 import { useStepper } from './useStepper'
 import { DIMS, PRESETS, INSTRUCTIONS, search, generate, wordCount, matchedKeys } from './ragToy'
 import s from './rag.module.css'
@@ -23,9 +23,11 @@ export default function RAGPipeline() {
   const [focus, setFocus] = useState<number | null>(null)
   const player = useStepper({ steps: STAGES.length, interval: 1400 })
   const step = player.step
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const preset = PRESETS.find((p) => p.id === presetId)
-  const q = preset ? preset.q : custom.trim() || 'Type a question about the AI Club handbook'
+  const q = preset ? preset.q : custom.trim()
+  const empty = q === ''
   const { qvec, ranked } = useMemo(() => search(q), [q])
   const topk = ranked.slice(0, k)
   const answer = useMemo(() => generate(q, preset, topk), [q, preset, topk])
@@ -67,21 +69,35 @@ export default function RAGPipeline() {
       : `${answer.needed[0]} of ${answer.needed[1]}`
     : 'n/a (your own question)'
 
+  const verdictBadges = rag ? (
+    <>
+      {answer.needed && answer.needed[1] > 0 && answer.needed[0] === answer.needed[1] && <span className={`${s.badge} ${s.good}`}>grounded: every fact cites a retrieved chunk</span>}
+      {answer.needed && answer.needed[0] < answer.needed[1] && <span className={`${s.badge} ${s.bad}`}>gap: a needed chunk was not retrieved (retrieval failure)</span>}
+      {answer.needed && answer.needed[1] === 0 && <span className={`${s.badge} ${s.good}`}>honest: says it doesn’t know instead of guessing</span>}
+      {answer.note && <span className={`${s.badge} ${s.meh}`}>{answer.note}</span>}
+    </>
+  ) : preset ? (
+    <span className={`${s.badge} ${preset.noRag.bad ? s.bad : s.good}`}>{preset.noRag.verdict}</span>
+  ) : (
+    <span className={`${s.badge} ${s.bad}`}>no sources to check</span>
+  )
+
   return (
     <Figure
       wide
       title="A question's trip through a RAG pipeline"
       caption={
         <>
-          Press <b>Play</b> to follow the question stage by stage. Then set <b>top-k</b> to 1: the chunk with the camp's cost is ranked second, so it never reaches the model and the answer has a gap.
-          That is a <i>retrieval</i> failure, and no LLM could fix it. Switch <b>retrieval off</b>: the same model now answers from memory alone and confidently makes things up. Try the wifi question:
-          vector search still returns k chunks (it always returns the nearest ones, relevant or not), but the instruction to say &ldquo;I don&rsquo;t know&rdquo; keeps the answer honest. Click a
-          citation to find its chunk. This is a toy: the embedding has 11 hand-made meaning dimensions (real ones learn hundreds), and the &ldquo;LLM&rdquo; is a stand-in that writes from the
-          retrieved text.
+          With retrieval off, the same model answers from memory and makes things up. With the wifi question, search still returns k chunks, but the instruction to say &ldquo;I don&rsquo;t
+          know&rdquo; keeps the answer honest. Click a citation to find its chunk. A toy: the embedding has 11 hand-made dimensions (real ones learn hundreds), and the &ldquo;LLM&rdquo; is a
+          stand-in.
         </>
       }
     >
-      <div className={s.wrap}>
+      <div className={s.wrap} ref={ref}>
+        <p className={s.tryLine}>
+          <b>Try:</b> drag <b>top-k</b> to 1 and watch the answer lose the camp's cost (a <i>retrieval</i> failure). Then switch retrieval off. <b>Replay</b> steps through the stages.
+        </p>
         <div>
           <div className={s.head}>
             <span>Ask the AI Club handbook bot</span>
@@ -103,6 +119,20 @@ export default function RAGPipeline() {
           <Toggle label="Retrieval (RAG) on" checked={rag} onChange={(v) => { setRag(v); player.setStep(STAGES.length - 1) }} />
           <Slider label="top-k (chunks retrieved)" value={k} min={1} max={4} step={1} onChange={(v) => { setK(v); setFocus(null) }} />
         </Controls>
+        {!empty && (
+          <Readout
+            items={[
+              ['retrieved', rag ? topk.map((t) => `[${t.chunk.id}]`).join(' ') : 'nothing'],
+              ['answer chunks found', rag ? neededText : 'retrieval off'],
+              ['prompt length', `${promptWords} words`],
+            ]}
+          />
+        )}
+        {!empty && narrow && <div className={s.badges} aria-hidden="true">{verdictBadges}</div>}
+        {empty ? (
+          <p className={s.emptyNote}>Type a question or pick one above to start.</p>
+        ) : (
+          <>
 
         <div className={s.rail} role="list" aria-label="Pipeline stages">
           {STAGES.map((name, i) => {
@@ -155,15 +185,9 @@ export default function RAGPipeline() {
         {/* 2 + 3. Search the vector store and keep the top k */}
         <section className={cls(step === 2 ? 2 : 1)} aria-label="Stages 2 and 3: search the vector store and keep the top k">
           <div className={s.panelTitle}>
-            <span className={s.num}>2</span>
-            {showTop ? (
-              <>
-                <span className={s.num}>3</span> Search the store, keep the top {k}
-              </>
-            ) : (
-              'Search the vector store'
-            )}
-            <small>8 handbook chunks, embedded once in advance · cosine similarity with the question</small>
+            <span className={`${s.num} ${s.numWide}`}>{showTop ? '2–3' : '2'}</span>
+            {showTop ? `Search the store, keep the top ${k}` : 'Search the vector store'}
+            <small>8 handbook chunks, embedded once in advance · cosine similarity with the question · mini strip = the chunk's {DIMS.length}-number vector (compare it with the question's above)</small>
           </div>
           {rag ? (
             <div className={s.rows}>
@@ -175,7 +199,12 @@ export default function RAGPipeline() {
                     <span className={s.rowText}>{r.chunk.text}</span>
                     <span className={s.rowScore}>{showScores ? r.score.toFixed(2) : '–'}</span>
                     <span className={s.rowMeta}>
-                      <span className={s.mini} role="img" aria-label={`chunk ${r.chunk.id} vector`}>
+                      <span
+                        className={s.mini}
+                        role="img"
+                        aria-label={`chunk ${r.chunk.id} vector: ${DIMS.map((d, j) => `${d} ${r.vec[j].toFixed(2)}`).join(', ')}`}
+                        title={`chunk ${r.chunk.id} vector: ${DIMS.map((d, j) => `${d} ${r.vec[j].toFixed(2)}`).join(', ')}`}
+                      >
                         {r.vec.map((x, j) => (
                           <span key={j} className={s.miniCell} style={{ background: heat(x, 90) }} />
                         ))}
@@ -249,35 +278,19 @@ export default function RAGPipeline() {
                   </span>
                 ))}
               </p>
-              <div className={s.badges}>
-                {answer.needed && answer.needed[1] > 0 && answer.needed[0] === answer.needed[1] && <span className={`${s.badge} ${s.good}`}>grounded: every fact cites a retrieved chunk</span>}
-                {answer.needed && answer.needed[0] < answer.needed[1] && <span className={`${s.badge} ${s.bad}`}>gap: a needed chunk was not retrieved (retrieval failure)</span>}
-                {answer.needed && answer.needed[1] === 0 && <span className={`${s.badge} ${s.good}`}>honest: says it doesn’t know instead of guessing</span>}
-                {answer.note && <span className={`${s.badge} ${s.meh}`}>{answer.note}</span>}
-              </div>
+              <div className={s.badges}>{verdictBadges}</div>
             </>
           ) : (
             <>
               <p className={s.answer}>{preset ? preset.noRag.text : 'The model answers from what it memorised in training. It has never seen this handbook, so anything specific it says would be a guess.'}</p>
-              <div className={s.badges}>
-                {preset ? (
-                  <span className={`${s.badge} ${preset.noRag.bad ? s.bad : s.good}`}>{preset.noRag.verdict}</span>
-                ) : (
-                  <span className={`${s.badge} ${s.bad}`}>no sources to check</span>
-                )}
-              </div>
+              <div className={s.badges}>{verdictBadges}</div>
             </>
           )}
         </section>
 
         <PlayerControls player={player} label={(st) => `Stage ${st + 1} of ${STAGES.length}: ${STAGES[Math.min(st, STAGES.length - 1)]}`} />
-        <Readout
-          items={[
-            ['retrieved', rag ? topk.map((t) => `[${t.chunk.id}]`).join(' ') : 'nothing'],
-            ['answer chunks found', rag ? neededText : 'retrieval off'],
-            ['prompt length', `${promptWords} words`],
-          ]}
-        />
+          </>
+        )}
       </div>
     </Figure>
   )

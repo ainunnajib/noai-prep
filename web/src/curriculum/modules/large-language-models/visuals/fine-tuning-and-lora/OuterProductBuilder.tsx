@@ -42,7 +42,7 @@ function makeTargets(): Record<string, number[][]> {
 function jacobiEig(S: number[][]): { values: number[]; vectors: number[][] } {
   const n = S.length
   const a = S.map((r) => r.slice())
-  const v = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)))
+  const v: number[][] = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)))
   for (let sweep = 0; sweep < 60; sweep++) {
     let off = 0
     for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += a[p][q] * a[p][q]
@@ -161,8 +161,8 @@ export default function OuterProductBuilder() {
   const approx = T.map((row, i) => row.map((_, j) => layers.reduce((acc, L) => acc + L[i][j], 0)))
   const err = frob(T.map((row, i) => row.map((x, j) => x - approx[i][j]))) / frob(T)
   const cell = narrow ? 30 : 34
-  const px = narrow ? 7 : 8
-  const thumb = narrow ? 3 : 4
+  const px = narrow ? 8 : 11
+  const thumb = narrow ? 4 : 5
   const tableMax = Math.max(1, ...u.flatMap((a) => v.map((b) => Math.abs(a * b))))
 
   return (
@@ -243,7 +243,7 @@ export default function OuterProductBuilder() {
           <Slider label="rank-1 layers r" value={r} min={1} max={6} step={1} onChange={setR} />
           <Readout
             items={[
-              ['numbers stored', `${r} × (12 + 12) = ${r * 24} (of 144)`],
+              ['numbers stored', `${r} × 24 = ${r * 24} of 144`],
               ['error', `${(err * 100).toFixed(err < 0.0005 ? 0 : 1)}%`],
             ]}
           />

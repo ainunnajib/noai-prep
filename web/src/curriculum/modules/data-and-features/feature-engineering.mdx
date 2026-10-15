@@ -3,15 +3,15 @@ import PolynomialExpander from './visuals/feature-engineering/PolynomialExpander
 import CyclicHour from './visuals/feature-engineering/CyclicHour'
 import SlidingWindowFeatures from './visuals/feature-engineering/SlidingWindowFeatures'
 
-A model can only learn from the numbers you hand it. **Feature engineering** means building better numbers: new columns, computed from the raw data, that put the pattern in plain sight. With the right feature, even the simplest model can solve a problem that looked impossible, which is why the IOAI syllabus lists feature engineering as a skill to practise.
+A model can only learn from the numbers you hand it. **Feature engineering** means building better numbers: new columns, computed from the raw data, that put the pattern in plain sight. With the right feature, even the simplest model can solve a problem that looked impossible.
 
 <Analogy title="Choosing durians at a stall in Geylang">
 
-The uncle says the best durians are dense. Sorting by **weight** alone fails: a heavy durian may just be a big one. Sorting by **size** alone fails too. But divide one by the other, weight per volume, and the good ones jump out. You did not collect any new data. You combined the data you had, using what you know about durians, into one number that matters.
+The uncle says the best durians are dense. Sorting by **weight** alone fails (a heavy durian may just be a big one), and so does sorting by **size**. But divide one by the other, weight per volume, and the good ones jump out. No new data: just the data you had, combined into one number that matters.
 
 </Analogy>
 
-Recall that a <Term def="One input column of a dataset, such as a flat's floor area or a reading's time stamp. A model sees each example as a list of feature values.">feature</Term> is one input column of your data. <Term def="Creating new input columns from existing ones (or from raw data such as text, dates or sensor readings), using knowledge of the problem, so that a model can learn more easily.">Feature engineering</Term> is creating new features from old ones. This lesson covers the main families: powers and products, ratios and date parts, window statistics for sequences, and features that a model learns for you.
+A <Term def="One input column of a dataset, such as a flat's floor area or a reading's timestamp. A model sees each example as a list of feature values.">feature</Term> is one input column of your data, and <Term def="Creating new input columns from existing ones (or from raw data such as text, dates or sensor readings), using knowledge of the problem, so that a model can learn more easily.">feature engineering</Term> creates new ones from old: powers and products, ratios and date parts, and window statistics for sequences.
 
 ## A new feature can make a hard problem easy
 
@@ -21,7 +21,7 @@ Here are seven points on a number line. Class A sits in the middle and class B o
 |---|---|---|---|---|---|---|---|
 | class | B | B | A | A | A | B | B |
 
-A <Term def="A classifier whose decision boundary is straight: a point, a line or a flat plane. It works out a weighted sum of the features and compares it with a threshold.">linear classifier</Term> on one feature can make only **one cut**: "everything bigger than $t$ is B, everything smaller is A" (or the other way round). Wherever you put the cut, B points sit on both sides of A, so at least two points are wrong. But the classes differ in **distance from 0**, and $x^2$ measures exactly that. Try it below, and then try the two 2-D datasets, where no straight line can separate the classes either.
+A <Term def="A classifier whose decision boundary is straight: a point, a line or a flat plane. It works out a weighted sum of the features and compares it with a threshold.">linear classifier</Term> on one feature can make only **one cut**: "everything bigger than $t$ is B, everything smaller is A" (or the other way round). Wherever you put the cut, B points sit on both sides of A, so at least two points are wrong. But the classes differ in **distance from 0**, and $x^2$ measures exactly that. Try it below on a bigger version of the same pattern, and then try the two 2-D datasets, where no straight line can separate the classes either.
 
 <FeatureLift />
 
@@ -66,11 +66,14 @@ Here is the same experiment with a real model. <Term def="A simple classifier (y
 from sklearn.linear_model import LogisticRegression
 
 x = np.array([-3, -2, -1, 0, 1, 2, 3])
-y = np.array([1, 1, 0, 0, 0, 1, 1])        # 1 = class B, 0 = class A
+# 1 = class B, 0 = class A
+y = np.array([1, 1, 0, 0, 0, 1, 1])
 print("x squared:", x ** 2)
 
-X_raw = x.reshape(-1, 1)                   # one feature: x
-X_new = np.column_stack([x, x ** 2])       # two features: x and x**2
+# one feature: x
+X_raw = x.reshape(-1, 1)
+# two features: x and x**2
+X_new = np.column_stack([x, x ** 2])
 
 m_raw = LogisticRegression().fit(X_raw, y)
 m_new = LogisticRegression().fit(X_new, y)
@@ -78,6 +81,7 @@ print("x only     :", m_raw.predict(X_raw), "accuracy", round(m_raw.score(X_raw,
 print("x and x**2 :", m_new.predict(X_new), "accuracy", round(m_new.score(X_new, y), 3))`} />
 
 <QuickCheck
+  id="data-and-features.features.qc-abs-x"
   q="Class A sits at $x = -1, 0, 1$ and class B at $x = -5, 5$. Which single new feature lets one threshold separate them perfectly?"
   options={['$|x|$', '$x + 5$', '$3x$', '$x - 1$']}
   answer={0}
@@ -96,13 +100,13 @@ scikit-learn's `PolynomialFeatures(degree=d)` builds every power and product up 
 
 <PolynomialExpander />
 
-The number of columns with $n$ input features and degree $d$ (bias included) is
+How many columns does degree 2 give with $n$ input features? Count them: the bias $1$, the $n$ originals, the $n$ squares, and one product for every pair of different features, $\frac{n(n-1)}{2}$ of them:
 
 $$
-\binom{n+d}{d} = \frac{(n+d)!}{n!\, d!}
+1 + n + n + \frac{n(n-1)}{2} = \frac{(n+1)(n+2)}{2}
 $$
 
-read "$n + d$ choose $d$". For $n = 2$, $d = 2$: $\binom{4}{2} = \frac{4 \times 3}{2 \times 1} = 6$ columns, namely $1, x_1, x_2, x_1^2, x_1x_2, x_2^2$. For $n = 3$, $d = 2$: $\binom{5}{2} = 10$. Set `include_bias=False` and there is one fewer.
+For $n = 2$ that is $\frac{3 \times 4}{2} = 6$ columns, namely $1, x_1, x_2, x_1^2, x_1x_2, x_2^2$; for $n = 3$ it is $\frac{4 \times 5}{2} = 10$. Set `include_bias=False` and there is one fewer. For any degree $d$ the count is $\binom{n+d}{d} = \frac{(n+d)!}{n!\, d!}$, read "$n + d$ <Term def="The number of ways to pick k items from n, written C(n, k) or with n above k in brackets. For example, there are 6 ways to pick 2 of 4 items.">choose</Term> $d$", where the factorial $4! = 4 \times 3 \times 2 \times 1$; for $d = 2$ it gives the same answers.
 
 ```python
 import numpy as np
@@ -135,7 +139,7 @@ The most valuable features usually come from knowing the problem, not from a for
 - **Date and time parts.** A raw timestamp is one ever-growing number, but taxi demand repeats every day and every week. Extract `hour`, `day_of_week`, `month` and flags such as `is_weekend` or `is_public_holiday`.
 - **Bins.** <Term def="Turning a number into a small number of ranges (categories), for example age into child, teen, adult and senior. Also called discretisation.">Binning</Term> turns a number into ranges, such as age into child / teen / adult / senior. It helps when the effect jumps at known boundaries (concession fares), at the cost of throwing away detail inside each bin.
 
-Clock time has a twist: it wraps around. As numbers, 23:00 and 01:00 are 22 apart, yet they are only two hours apart in real life. The fix is to put the hour on a circle with two features, $\left(\sin \tfrac{2\pi h}{24},\ \cos \tfrac{2\pi h}{24}\right)$, where $h$ is the hour and $\tfrac{2\pi h}{24}$ is the angle of the hour hand on a 24-hour clock.
+Clock time has a twist: it wraps around. As numbers, 23:00 and 01:00 are 22 apart, yet they are only two hours apart in real life. The fix is to put the hour on a circle with two features, $\left(\sin \tfrac{2\pi h}{24},\ \cos \tfrac{2\pi h}{24}\right)$, where $h$ is the hour. The angles here are in <Term def="A unit for angles in which a full turn is 2π (about 6.28) instead of 360°. NumPy's sin and cos expect radians.">radians</Term>, where a full turn is $2\pi$ instead of 360°, so $\tfrac{2\pi h}{24}$ is simply $\tfrac{h}{24}$ of a full turn: 15° for every hour (6:00 is 90°, 12:00 is 180°). In degrees the features are $(\sin 15h^\circ,\ \cos 15h^\circ)$: the position of the hour hand on a 24-hour clock.
 
 <CyclicHour />
 
@@ -150,11 +154,14 @@ rides = pd.DataFrame({
     'fare': [18.0, 9.0, 12.0],
 })
 rides['hour'] = rides['pickup'].dt.hour
-rides['day_of_week'] = rides['pickup'].dt.dayofweek      # Monday = 0, Sunday = 6
+# Monday = 0, ..., Sunday = 6
+rides['day_of_week'] = rides['pickup'].dt.dayofweek
 rides['is_weekend'] = (rides['day_of_week'] >= 5).astype(int)
 rides['fare_per_km'] = rides['fare'] / rides['distance_km']
-rides['hour_sin'] = np.sin(2 * np.pi * rides['hour'] / 24).round(3)
-rides['hour_cos'] = np.cos(2 * np.pi * rides['hour'] / 24).round(3)
+# np.sin and np.cos work in radians
+angle = 2 * np.pi * rides['hour'] / 24
+rides['hour_sin'] = np.sin(angle).round(3)
+rides['hour_cos'] = np.cos(angle).round(3)
 print(rides[['hour', 'day_of_week', 'is_weekend', 'fare_per_km', 'hour_sin', 'hour_cos']])
 
 ages = pd.Series([8, 15, 34, 70])
@@ -184,7 +191,7 @@ $$
 - $m_t$ is the **rolling mean**: the typical level inside the window.
 - $s_t$ is the **rolling standard deviation**: the typical distance of a reading from that level, i.e. how much the signal shakes.
 
-The mean and the variance ($s_t^2$) are the first two <Term def="Standard summary numbers of a distribution: the mean (1st moment), the variance (2nd), skewness (3rd) and kurtosis (4th). The IOAI syllabus calls window features built from them 'statistical moment-based features'.">statistical moments</Term>, which is why the IOAI syllabus calls these "moment-based features". Minimum, maximum and slope are also popular.
+The mean and the variance ($s_t^2$) are the first two <Term def="Standard summary numbers of a distribution: the mean (1st moment), the variance (2nd), skewness (3rd) and kurtosis (4th). The IOAI syllabus calls window features built from them 'statistical moment-based features'.">statistical moments</Term>, which is why the IOAI syllabus calls these "moment-based features". The next two describe shape, using each reading's z-score $z_i = (x_i - m_t)/s_t$ inside the window. **Skewness**, the mean of $z_i^3$, measures lopsidedness (positive for a long tail to the right), and **kurtosis**, the mean of $z_i^4$, measures how heavy the tails are (how often extreme readings appear). Minimum, maximum and slope are also popular.
 
 <SlidingWindowFeatures />
 
@@ -203,7 +210,10 @@ The mean and the variance ($s_t^2$) are the first two <Term def="Standard summar
   </Step>
 </Steps>
 
-In pandas, `rolling(k)` gives a window that **ends at the current row**, so the first $k-1$ rows are `NaN`:
+In pandas, `rolling(k)` gives a window that **ends at the current row**, so the first $k-1$ rows are `NaN`. In a Final-round task without pandas, NumPy builds all the windows at once:
+
+<Tabs>
+<Tab label="pandas">
 
 ```python
 import pandas as pd
@@ -217,8 +227,7 @@ feats = pd.DataFrame({
 print(feats)
 ```
 
-```text
-    hr  mean_4  std_4
+<CodeBlock language="text" showLineNumbers={false} code={`    hr  mean_4  std_4
 0   70     NaN    NaN
 1   72     NaN    NaN
 2   70     NaN    NaN
@@ -226,16 +235,19 @@ print(feats)
 4   90    76.0   8.12
 5  110    85.5  16.15
 6   90    90.5  13.44
-7  110   100.0  10.00
-```
+7  110   100.0  10.00`} />
 
-`ddof=0` divides by $k$, as in our formula. Pandas' default (`ddof=1`) divides by $k - 1$ instead, giving slightly bigger values such as 1.15 for the first window. In a Final-round task without pandas, NumPy builds all windows at once:
+`ddof=0` divides by $k$, as in our formula. Pandas' default (`ddof=1`) divides by $k - 1$, giving slightly bigger values such as 1.15 for the first window. `hr.rolling(4).skew()` and `.kurt()` give the next two moments (with small-sample corrections, and `.kurt()` subtracts 3 so that a bell curve scores 0).
+
+</Tab>
+<Tab label="NumPy">
 
 ```python
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
-w = sliding_window_view(np.array([70, 72, 70, 72, 90, 110, 90, 110]), 4)
+hr = np.array([70, 72, 70, 72, 90, 110, 90, 110])
+w = sliding_window_view(hr, 4)
 print(w.shape)               # one row per window
 print(w.mean(axis=1))
 print(w.std(axis=1).round(2))
@@ -247,9 +259,18 @@ print(w.std(axis=1).round(2))
 [ 1.    8.12 16.15 13.44 10.  ]
 ```
 
+`np.std` divides by $k$ by default, so these match the pandas column `std_4`.
+
+</Tab>
+</Tabs>
+
 Eight readings and a window of 4 give $8 - 4 + 1 = 5$ windows. In general, $n$ readings give $n - k + 1$ full windows.
 
-You will meet the same idea again in image models. **Pooling** in a convolutional network slides a small window (say 2×2 pixels) over an image and keeps one summary number per window: its maximum (max pooling) or its mean (average pooling).
+<Tip title="The same idea in image models">
+
+**Pooling** in a convolutional network slides a small window (say 2×2 pixels) over an image and keeps one summary number per window: its maximum (max pooling) or its mean (average pooling).
+
+</Tip>
 
 <PastPaperQuestion paper="prelim2026" n={189} />
 
@@ -259,21 +280,20 @@ A **centred** window (`rolling(k, center=True)`) or a feature such as "average o
 
 </Mistake>
 
-## Features a model learns for you: PCA and embeddings
+<Note title="Features a model learns for you: PCA and embeddings">
 
-Hand-made features need knowledge. Two methods learn features from the data instead:
+Hand-made features need knowledge; two methods learn features from the data instead. <Term def="Principal component analysis: an unsupervised method that finds new axes along which the data varies most, and keeps the top few as new features. Each new feature is a weighted sum of the original ones.">PCA</Term> compresses many correlated columns into a few new ones, each a weighted sum of the originals chosen to keep as much of the spread (variance) as possible, without looking at the labels: on scikit-learn's 8×8 digit images, 10 PCA features keep 74% of the variance of the 64 pixels. An <Term def="A short list of real numbers (a dense vector) that a neural network learns to represent a word, image or sound, so that similar things get nearby vectors.">embedding</Term> is a dense vector that a neural network learns for a word, an image or a sound, and a simple classifier on embeddings often beats hand-made features. You will study PCA in the unsupervised learning module and embeddings with text and images.
 
-- <Term def="Principal component analysis: an unsupervised method that finds new axes along which the data varies most, and keeps the top few as new features. Each new feature is a weighted sum of the original ones.">PCA</Term> compresses many correlated columns into a few new ones. Each new feature is a weighted sum of the originals, chosen to keep as much of the data's spread (variance) as possible. It never looks at the labels. For example, PCA turns the 64 pixel values of scikit-learn's 8×8 digit images into 10 features that keep 74% of the variance: `PCA(n_components=10).fit_transform(X)` changes the shape from `(1797, 64)` to `(1797, 10)`.
-- An <Term def="A short list of real numbers (a dense vector) that a neural network learns to represent a word, image or sound, so that similar things get nearby vectors.">embedding</Term> is a dense vector that a neural network learns for a word, an image or a sound. A pre-trained image network can turn each photo into, say, 512 numbers, and a simple classifier on those numbers often beats hand-made features.
-
-You will study both properly later (PCA in the unsupervised learning module, embeddings with text and images). For now, remember that they are feature engineering too: they turn raw, high-dimensional data into a compact set of informative features.
+</Note>
 
 <PastPaperQuestion paper="prelim2026" n={145} />
 
 <ExamTip>
 
+How NOAI asks about this:
+
 - "Data is not linearly separable" in a question points to one of three fixes: add features (such as $x^2$ or products), use a kernel, or use a non-linear model (trees, neural networks). Transforms like $2x$ or $x + 5$ never help a linear model.
-- Know the column count: `PolynomialFeatures(degree=2)` on $n$ features gives $\binom{n+2}{2}$ columns, which is 6 for $n = 2$ and 10 for $n = 3$ (one fewer without the bias).
+- Know the column count: `PolynomialFeatures(degree=2)` on $n$ features gives $\frac{(n+1)(n+2)}{2} = \binom{n+2}{2}$ columns, which is 6 for $n = 2$ and 10 for $n = 3$ (one fewer without the bias).
 - `rolling(k)` leaves $k - 1$ leading `NaN`s, and $n$ readings give $n - k + 1$ windows.
 - PCA reduces dimensions and ignores labels; embeddings are dense vectors, unlike sparse one-hot vectors.
 

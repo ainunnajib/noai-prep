@@ -4,11 +4,20 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.arrays-and-shapes.1',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\na = np.array([[1, 2, 3], [4, 5, 6]])\nprint(a.shape, a.ndim, a.size)',
+    code: 'import numpy as np\na = np.array([[1, 2, 3],\n              [4, 5, 6]])\nprint(a.shape, a.ndim, a.size)',
     options: ['`(2, 3) 2 6`', '`(3, 2) 2 6`', '`(2, 3) 6 2`', '`(6,) 1 6`'],
     answer: 0,
     explanation:
       'The outer list holds 2 inner lists of 3 numbers, so there are 2 rows and 3 columns: shape `(2, 3)`. ndim is the number of axes (2) and size is $2 \\times 3 = 6$. Shapes list rows first, so `(3, 2)` is the classic trap.',
+    difficulty: 'beginner',
+  },
+  {
+    id: 'numpy.arrays-and-shapes.6',
+    prompt: 'What are the shapes of `np.zeros((2, 5))` and `np.ones(4)`?',
+    options: ['`(2, 5)` and `(4,)`', '`(5, 2)` and `(4,)`', '`(2, 5)` and `(1, 4)`', '`10` and `4`'],
+    answer: 0,
+    explanation:
+      'The tuple `(2, 5)` *is* the shape: 2 rows of 5 zeros, rows first. A single number makes a 1-D array, so `np.ones(4)` has shape `(4,)`, with no rows or columns; `(1, 4)` would be a 2-D row. `10` and `4` are the sizes (numbers of elements), not the shapes.',
     difficulty: 'beginner',
   },
   {

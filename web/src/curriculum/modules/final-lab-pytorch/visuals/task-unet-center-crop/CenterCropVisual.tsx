@@ -56,7 +56,7 @@ export default function CenterCropVisual() {
       caption={
         <>
           Change the input size and watch the four TODO steps fill in. The crop keeps a {s} × {s} window starting at row and column{' '}
-          <b>(S − s) // 2</b>, so it works for every size. Try <b>128</b> (the grader's visible test) to see the hard-coded slice fail, and <b>42</b>, where the
+          <b>(S − s) // 2</b>, so it works for every size. Try <b>128</b> (the grader's test) to see the hard-coded slice fail, and <b>42</b>, where the
           difference is odd (9), to see the <code>d:-d</code> shortcut keep one row too many.
         </>
       }

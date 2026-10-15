@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Figure, Segmented, Button, useNarrow } from '../../../../../kit'
 import s from './df.module.css'
 import { COLS, FLATS, TOWNS, fmtCell, type ColName, type Flat } from './data'
+import { useScrollFade } from './scrollFade'
 
 /*
   Build a boolean filter from condition chips. Each condition is evaluated on every row (the
@@ -62,6 +63,7 @@ export default function FilterBuilder() {
   const [nextId, setNextId] = useState(3)
   const [ref, narrow] = useNarrow<HTMLDivElement>(520)
   const [ref2, tiny] = useNarrow<HTMLDivElement>(330)
+  const fade = useScrollFade(ref2, `${narrow}${conds.length}`)
 
   const update = (id: number, patch: Partial<Cond>) => setConds((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)))
   const add = () => {
@@ -71,21 +73,27 @@ export default function FilterBuilder() {
     setNextId((n) => n + 1)
   }
 
+  // a numeric condition with an empty or non-numeric box is ignored (in the mask AND in the code) until it is fixed
+  const valid = conds.map((c) => c.col === 'town' || (c.val.trim() !== '' && Number.isFinite(Number(c.val))))
+  const used = conds.filter((_, k) => valid[k])
   const results = FLATS.map((f) => conds.map((c) => test(f, c)))
-  const invalid = results.some((r) => r.some((v) => v === null))
-  const mask = results.map((r) => (r.length === 0 ? true : join === '&' ? r.every((v) => v === true) : r.some((v) => v === true)))
+  const mask = results.map((r) => {
+    const rv = r.filter((_, k) => valid[k])
+    return rv.length === 0 ? true : join === '&' ? rv.every((v) => v === true) : rv.some((v) => v === true)
+  })
   const kept = mask.filter(Boolean).length
-  const usesArea = conds.some((c) => c.col === 'area')
+  const usesArea = used.some((c) => c.col === 'area')
 
   // the pandas code: one condition needs no brackets, several need one pair each
   let code: string
-  if (conds.length === 0) code = 'df            # no conditions: every row'
-  else if (conds.length === 1) code = `mask = ${condCode(conds[0])}\ndf[mask]      # ${kept} of 8 rows`
+  if (used.length === 0) code = 'df            # no conditions: every row'
+  else if (used.length === 1) code = `mask = ${condCode(used[0])}\ndf[mask]      # ${kept} of 8 rows`
   else
     code =
       'mask = (' +
-      conds.map((c, i) => (i === 0 ? `(${condCode(c)})` : `        ${join} (${condCode(c)})`)).join('\n') +
+      used.map((c, i) => (i === 0 ? `(${condCode(c)})` : `        ${join} (${condCode(c)})`)).join('\n') +
       `)\ndf[mask]      # ${kept} of 8 rows`
+  if (used.length < conds.length) code = '# a condition with an empty number box is ignored\n' + code
 
   const cellTint = (i: number, col: ColName) => {
     const k = conds.findIndex((c, j) => c.col === col && results[i][j] === true)
@@ -141,7 +149,7 @@ export default function FilterBuilder() {
                 ) : (
                   <input aria-label="value" type="number" inputMode="numeric" value={c.val} onChange={(e) => update(c.id, { val: e.target.value })} />
                 )}
-                <span className={s.condCount}>{passCount} True</span>
+                <span className={s.condCount}>{valid[k] ? `${passCount} True` : 'type a number'}</span>
                 <button type="button" className={s.iconBtn} aria-label="Remove this condition" onClick={() => setConds((cs) => cs.filter((x) => x.id !== c.id))}>
                   ×
                 </button>
@@ -163,7 +171,7 @@ export default function FilterBuilder() {
             + Add condition
           </Button>
         </div>
-        <div className={s.scroll} ref={ref2}>
+        <div className={s.scroll} ref={ref2} style={fade}>
           <table className={`${s.table} ${s.compact}${tiny ? ` ${s.tiny}` : ''}`} aria-label="Rows of df with the filter mask">
             <thead>
               <tr>
@@ -185,14 +193,16 @@ export default function FilterBuilder() {
                   ))}
                   <td>
                     {!narrow &&
-                      results[i].map((v, k) => (
+                      results[i].map((v, k) =>
+                        !valid[k] ? null : (
                         <span
                           key={k}
                           className={s.dot}
                           title={`condition ${k + 1}: ${v}`}
                           style={v ? { background: COND_COLOURS[k] } : { boxShadow: `inset 0 0 0 1.5px ${COND_COLOURS[k]}` }}
                         />
-                      ))}
+                        ),
+                      )}
                     <span className={mask[i] ? s.maskT : s.maskF}>{mask[i] ? 'True' : 'False'}</span>
                   </td>
                 </tr>
@@ -200,9 +210,14 @@ export default function FilterBuilder() {
             </tbody>
           </table>
         </div>
+        {!narrow && conds.length > 0 && (
+          <div className={s.hint} style={{ marginTop: '-0.45rem' }}>
+            In the mask column, one dot per condition in that condition's colour: filled = True, hollow = False.
+          </div>
+        )}
         <div className={s.io} style={{ width: '100%' }}>
           <div className={s.ioLabel}>the same filter in pandas</div>
-          <pre className={s.code}>{invalid ? '# type a number in every numeric condition' : code}</pre>
+          <pre className={s.code}>{code}</pre>
         </div>
         <div className={s.resultLine} aria-live="polite">
           <span className={s.big}>

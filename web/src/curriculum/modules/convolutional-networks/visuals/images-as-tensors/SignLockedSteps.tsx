@@ -6,7 +6,9 @@ import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, Path, D
   starting from w = (0, 0). Each update is −lr · δ · (x1, x2). With inputs in [0, 1] both
   components of x are positive, so every step points up-right or down-left (the shaded
   quadrants): the weights zig-zag towards (1, −1). With zero-centred inputs a step can point
-  anywhere. Ellipses are contours of the average loss.
+  anywhere. The centred inputs are rescaled to the same root-mean-square size as the positive
+  ones, so the comparison isolates centring (not input size). Ellipses are contours of the
+  average loss.
 */
 
 type Mode = 'pos' | 'centred'
@@ -18,7 +20,11 @@ function makeData(): { pos: [number, number][]; centred: [number, number][] } {
   const pos: [number, number][] = Array.from({ length: STEPS }, () => [rnd(), rnd()])
   const m0 = pos.reduce((a, p) => a + p[0], 0) / STEPS
   const m1 = pos.reduce((a, p) => a + p[1], 0) / STEPS
-  return { pos, centred: pos.map(([a, b]) => [a - m0, b - m1]) }
+  const shifted = pos.map(([a, b]) => [a - m0, b - m1] as [number, number])
+  // match the mean squared input size, so only the centring differs
+  const msq = (X: [number, number][]) => X.reduce((t, [a, b]) => t + a * a + b * b, 0) / X.length
+  const k = Math.sqrt(msq(pos) / msq(shifted))
+  return { pos, centred: shifted.map(([a, b]) => [a * k, b * k]) }
 }
 
 function sgd(X: [number, number][], lr: number): [number, number][] {
@@ -68,7 +74,7 @@ function contours(X: [number, number][], levels: number[]): [number, number][][]
 
 export default function SignLockedSteps() {
   const [mode, setMode] = useState<Mode>('pos')
-  const [lr, setLr] = useState(2)
+  const [lr, setLr] = useState(1)
   const [n, setN] = useState(STEPS)
   const data = useMemo(makeData, [])
   const paths = useMemo(() => ({ pos: sgd(data.pos, lr), centred: sgd(data.centred, lr) }), [data, lr])
@@ -83,7 +89,7 @@ export default function SignLockedSteps() {
   const settle = (path: [number, number][]) => {
     let k = path.length
     for (let i = path.length - 1; i >= 0 && dist(path[i]) < 0.1; i--) k = i
-    return k < path.length ? `${k} updates` : dist(path[path.length - 1]) > 50 ? 'blew up' : `not within ${STEPS}`
+    return k < path.length ? `${k}` : dist(path[path.length - 1]) > 50 ? 'blew up' : `not in ${STEPS}`
   }
   const colour = mode === 'pos' ? 'var(--viz-2)' : 'var(--viz-1)'
   const ghostColour = mode === 'pos' ? 'var(--viz-1)' : 'var(--viz-2)'
@@ -96,18 +102,15 @@ export default function SignLockedSteps() {
   }
   const inView = (p: [number, number]) => Math.abs(p[0]) < 1e3 && Math.abs(p[1]) < 1e3
   const inBox = (p: [number, number]) => p[0] >= -0.7 && p[0] <= 1.7 && p[1] >= -1.7 && p[1] <= 0.7
-  const R = 0.32
+  const quad = 'color-mix(in srgb, var(--viz-2) 14%, transparent)'
 
   return (
     <Figure
       title="Why all-positive inputs make the weights zig-zag"
       caption={
         <>
-          One neuron with two weights is trained one example at a time to reach the best weights <b>(1, −1)</b> (the star). Each update moves the weights by{' '}
-          −learning rate × δ × (x₁, x₂). With inputs from 0 to 1, both parts of that move always have the same sign, so the weights can only step into the shaded
-          quadrants: up-right or down-left. Switch to zero-centred inputs and compare, then try several learning rates. At small rates the two are
-          similar; push the rate up and the zero-centred weights settle faster and faster, while the all-positive ones zig-zag, overshoot and finally blow
-          up. Zero-centring lets you train with bigger steps.
+          <b>Try:</b> switch to zero-centred inputs, then move the learning rate. <b>Notice:</b> with all-positive inputs every step goes up-right or
+          down-left (shaded), so the weights zig-zag; zero-centred inputs of the same size settle in far fewer updates.
         </>
       }
     >
@@ -119,8 +122,14 @@ export default function SignLockedSteps() {
         ))}
         {mode === 'pos' && inBox(cur) && (
           <>
-            <Rect x0={cur[0]} x1={cur[0] + R} y0={cur[1]} y1={cur[1] + R} fill="color-mix(in srgb, var(--viz-2) 22%, transparent)" />
-            <Rect x0={cur[0] - R} x1={cur[0]} y0={cur[1] - R} y1={cur[1]} fill="color-mix(in srgb, var(--viz-2) 22%, transparent)" />
+            <Rect x0={cur[0]} x1={1.7} y0={cur[1]} y1={0.7} fill={quad} />
+            <Rect x0={-0.7} x1={cur[0]} y0={-1.7} y1={cur[1]} fill={quad} />
+            <Label x={1.7} y={0.7} dx={-6} dy={14} anchor="end" size={11} color="var(--viz-2)" weight={700}>
+              allowed: both up
+            </Label>
+            <Label x={-0.7} y={-1.7} dx={6} dy={-6} size={11} color="var(--viz-2)" weight={700}>
+              allowed: both down
+            </Label>
           </>
         )}
         <Path points={ghost.filter(inView)} color={ghostColour} width={1.5} dash="4 4" opacity={0.45} />
@@ -134,6 +143,11 @@ export default function SignLockedSteps() {
           start
         </Label>
       </Plot>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.25rem 1rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
+        <LegendLine color={colour} label="current inputs" />
+        <LegendLine color={ghostColour} dash="4 4" label="the other setting" />
+        <LegendLine color="var(--viz-muted)" dash="3 4" label="ellipses: equal loss" />
+      </div>
       <Controls>
         <Segmented
           label="Inputs"
@@ -144,16 +158,26 @@ export default function SignLockedSteps() {
             { value: 'centred', label: 'Zero-centred' },
           ]}
         />
-        <Slider label="learning rate" value={lr} min={0.5} max={3.4} step={0.1} onChange={setLr} format={(v) => v.toFixed(1)} />
+        <Slider label="learning rate" value={lr} min={0.3} max={2.4} step={0.1} onChange={setLr} format={(v) => v.toFixed(1)} />
         <Slider label="updates shown" value={n} min={1} max={STEPS} onChange={setN} />
       </Controls>
       <Readout
         items={[
           ['steps going up-right or down-left', `${diag} of ${active.length - 1}`],
-          ['all positive: settles within 0.1 after', settle(paths.pos)],
-          ['zero-centred: settles after', settle(paths.centred)],
+          ['updates to settle (within 0.1 of best)', `all-positive ${settle(paths.pos)} · zero-centred ${settle(paths.centred)}`],
         ]}
       />
     </Figure>
+  )
+}
+
+function LegendLine({ color, dash, label }: { color: string; dash?: string; label: string }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+      <svg width="26" height="8" aria-hidden="true">
+        <line x1="1" y1="4" x2="25" y2="4" style={{ stroke: color, strokeWidth: 2.4, strokeDasharray: dash }} />
+      </svg>
+      {label}
+    </span>
   )
 }

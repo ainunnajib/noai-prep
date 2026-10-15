@@ -2,6 +2,7 @@ import { useId, useMemo, useState, type CSSProperties, type ReactNode } from 're
 import { Figure, Segmented, Toggle, useNarrow } from '../../../../../kit'
 import s from './df.module.css'
 import { cellStyle } from './outline'
+import { useScrollFade } from './scrollFade'
 import { COLS, FLATS, fmtCell } from './data'
 import { evaluate, twinOf, type Frame, type Label, type Outcome } from './indexer'
 
@@ -18,9 +19,10 @@ const LOC = 'var(--viz-1)'
 const ILOC = 'var(--viz-2)'
 const GET = 'var(--viz-3)'
 
-const MODES: Record<Mode, { label: string; setup: string; order: number[]; labels: Label[]; frame: Frame }> = {
+const MODES: Record<Mode, { label: string; short: string; setup: string; order: number[]; labels: Label[]; frame: Frame }> = {
   sorted: {
     label: "sort_values('price')",
+    short: 'sorted',
     setup: "df = df.sort_values('price')   # cheapest first; rows keep their old labels",
     order: [1, 3, 4, 6, 0, 7, 2, 5],
     labels: [1, 3, 4, 6, 0, 7, 2, 5],
@@ -28,6 +30,7 @@ const MODES: Record<Mode, { label: string; setup: string; order: number[]; label
   },
   default: {
     label: 'default 0–7',
+    short: '0–7',
     setup: 'df = pd.DataFrame({...})       # default index: labels 0, 1, 2, … 7',
     order: [0, 1, 2, 3, 4, 5, 6, 7],
     labels: [0, 1, 2, 3, 4, 5, 6, 7],
@@ -35,6 +38,7 @@ const MODES: Record<Mode, { label: string; setup: string; order: number[]; label
   },
   letters: {
     label: 'letters A–H',
+    short: 'A–H',
     setup: "df.index = list('ABCDEFGH')    # text labels, like flat IDs",
     order: [0, 1, 2, 3, 4, 5, 6, 7],
     labels: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
@@ -96,7 +100,9 @@ export default function LocIlocHighlighter() {
   const [showTwin, setShowTwin] = useState(true)
   const inputId = useId()
   const [ref, tiny] = useNarrow<HTMLDivElement>(330)
+  const [setupRef, small] = useNarrow<HTMLDivElement>(440)
   const M = MODES[mode]
+  const fade = useScrollFade(ref, mode)
 
   const out = useMemo(() => evaluate(expr, M.frame), [expr, M])
   const twinSrc = twinOf(expr)
@@ -131,11 +137,13 @@ export default function LocIlocHighlighter() {
     >
       <Segmented
         label="Row labels"
-        options={(Object.keys(MODES) as Mode[]).map((m) => ({ value: m, label: <span className={s.mono}>{MODES[m].label}</span> }))}
+        options={(Object.keys(MODES) as Mode[]).map((m) => ({ value: m, label: <span className={s.mono}>{small ? MODES[m].short : MODES[m].label}</span> }))}
         value={mode}
         onChange={setMode}
       />
-      <div className={s.setup}>{M.setup}</div>
+      <div className={s.setup} ref={setupRef}>
+        {M.setup}
+      </div>
       <div className={s.exprRow}>
         <label className={s.exprLabel} htmlFor={inputId}>
           Type:
@@ -158,7 +166,7 @@ export default function LocIlocHighlighter() {
           </button>
         ))}
       </div>
-      <div className={s.scroll} ref={ref}>
+      <div className={s.scroll} ref={ref} style={fade}>
         <table className={`${s.table} ${s.compact}${tiny ? ` ${s.tiny}` : ''}`} aria-label="The DataFrame with row positions and index labels">
           <thead>
             <tr>
@@ -201,7 +209,8 @@ export default function LocIlocHighlighter() {
       <Toggle label={<>Show the twin ({twinSrc ? <span className={s.mono}>{twinSrc.trim()}</span> : 'loc ↔ iloc'})</>} checked={showTwin} onChange={setShowTwin} />
       <div className={s.result} aria-live="polite">
         <Summary src={expr} out={out} mode={mode} color={color} />
-        {showTwin && twin && twinSrc && <Summary src={twinSrc} out={twin} mode={mode} color={twinColor} />}
+        {/* a message about the typed text itself (not a pandas result) would only be repeated by the twin */}
+        {showTwin && twin && twinSrc && !(!out.ok && out.parse) && <Summary src={twinSrc} out={twin} mode={mode} color={twinColor} />}
       </div>
     </Figure>
   )

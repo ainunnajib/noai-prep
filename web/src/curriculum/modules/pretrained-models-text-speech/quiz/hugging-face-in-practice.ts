@@ -17,12 +17,13 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'pretrained-models-text-speech.hugging-face-in-practice.2',
-    prompt: 'What does this code print?',
-    code: 'import torch\nimport torch.nn.functional as F\n\nlogits = torch.tensor([[2.0, 0.0], [0.0, 1.0], [1.0, 1.0], [5.0, 0.0]])\nlabels = torch.tensor([0, -100, 1, -100])\nloss = F.cross_entropy(logits, labels)\nprint(loss.shape, (labels != -100).sum().item())',
-    options: ['`torch.Size([]) 2`', '`torch.Size([4]) 2`', '`torch.Size([]) 4`', '`torch.Size([2]) 4`'],
+    prompt:
+      'For one review, a sentiment model outputs the logits below. What does `pipeline("sentiment-analysis", model=name)(review)` return? (Scores are rounded to 2 decimal places; $e^{-2} \\approx 0.14$.)',
+    code: 'logits = torch.tensor([[-1.0, 1.0]])\nmodel.config.id2label   # {0: "NEGATIVE", 1: "POSITIVE"}',
+    options: ["`[{'label': 'POSITIVE', 'score': 0.88}]`", "`[{'label': 'POSITIVE', 'score': 1.0}]`", "`[{'label': 1, 'score': 0.88}]`", "`[{'label': 'NEGATIVE', 'score': 0.12}]`"],
     answer: 0,
     explanation:
-      'By default `F.cross_entropy` averages over the positions whose label is not the `ignore_index` (−100), returning a single number, a tensor of shape `torch.Size([])`. Two labels are not −100 (positions 0 and 2), so the count printed is 2. A shape of `[4]` would need `reduction="none"`, and even then the −100 positions would contribute 0, not a real loss.',
+      'Post-processing applies softmax: $P(\\text{POSITIVE}) = \\dfrac{e^{1}}{e^{-1} + e^{1}} = \\dfrac{1}{1 + e^{-2}} \\approx \\dfrac{1}{1.14} \\approx 0.88$. Argmax picks class 1, and `id2label` turns 1 into `\'POSITIVE\'`. A score of 1.0 mistakes the raw logit for a probability, `label: 1` skips the `id2label` step, and NEGATIVE 0.12 reports the losing class.',
     difficulty: 'intermediate',
   },
   {

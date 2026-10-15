@@ -13,7 +13,13 @@ import { gaussian, leastSquares } from './maths'
 const N_TRAIN = 10
 const N_TEST = 200
 const SHOW_TEST = 10
-const P_MAX = 15
+/** features generated per patient (kept at 15 so the hand-picked seeds below keep exactly the same data) */
+const P_GEN = 15
+/**
+ * largest p on the slider. Beyond about p = 12 the error on new patients drifts down again ("double
+ * descent", though it stays worse than p = 1 for every seed); stopping at 12 keeps the main story clean.
+ */
+const P_MAX = 12
 const Y_LIM = 4.5
 const ERR_CAP = 2
 /** hand-picked seeds; every one shows the same story (checked against numpy.linalg.pinv) */
@@ -29,7 +35,7 @@ export interface PatientData {
 export function makePatients(seed: number): PatientData {
   const rnd = mulberry32(seed)
   const g = gaussian(rnd)
-  const row = () => Array.from({ length: P_MAX }, () => rnd() * 2 - 1)
+  const row = () => Array.from({ length: P_GEN }, () => rnd() * 2 - 1)
   const Xtr = Array.from({ length: N_TRAIN }, row)
   const Xte = Array.from({ length: N_TEST }, row)
   const ytr = Xtr.map((x) => 2 * x[0] + 0.5 * g())
@@ -132,14 +138,14 @@ export default function FeaturesVsSamples() {
         <Plot x={[0.5, P_MAX + 0.5]} y={[0, ERR_CAP]} width={560} height={200} minHeight={230} maxWidth={680} margin={{ top: 20, bottom: 34, left: 36, right: 10 }} ariaLabel="Training error falls to zero at 9 features while error on new patients shoots up">
           <Rect x0={N_TRAIN - 1 - 0.5} x1={P_MAX + 0.5} y0={0} y1={ERR_CAP} fill="color-mix(in srgb, var(--viz-neg) 8%, transparent)" />
           <Grid xTicks={P_MAX} yTicks={4} />
-          <Axes xLabel="features p" xTicks={narrow ? 5 : 15} yTicks={4} />
+          <Axes xLabel="features p" xTicks={narrow ? 6 : P_MAX} yTicks={4} />
           <VLine x={p} color="var(--viz-muted)" />
           <Path points={testCurve} color="var(--viz-2)" width={2.5} />
           <Path points={trainCurve} color="var(--viz-1)" width={2.5} />
           <Dots points={testCurve.map(([x, y], i) => ({ x, y, r: x === p ? 6 : 3, color: 'var(--viz-2)', shape: fits[i].test > ERR_CAP ? ('triangle' as const) : undefined }))} />
           <Dots points={trainCurve.map(([x, y]) => ({ x, y, r: x === p ? 6 : 3, color: 'var(--viz-1)' }))} />
           {peak.test > ERR_CAP && (
-            <Label x={peak.p} y={ERR_CAP} dx={peak.p > 12 ? -8 : 8} dy={-2} anchor={peak.p > 12 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
+            <Label x={peak.p} y={ERR_CAP} dx={peak.p > P_MAX - 3 ? -8 : 8} dy={-2} anchor={peak.p > P_MAX - 3 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
               {`↑ ${peak.test >= 100 ? peak.test.toFixed(0) : peak.test.toFixed(1)}`}
             </Label>
           )}
@@ -161,7 +167,8 @@ export default function FeaturesVsSamples() {
       <Readout
         items={[
           ['parameters p + 1', `${params} (patients n = ${N_TRAIN})`],
-          ['training error', fit.train < 5e-7 ? '0.000' : fit.train.toFixed(3)],
+          // a tiny but non-zero error must not round to 0.000: only p + 1 ≥ n gives an exact 0
+          ['training error', fit.train < 5e-7 ? '0 (exact fit)' : fit.train < 0.01 ? fit.train.toPrecision(2) : fit.train.toFixed(3)],
           ['error on new patients', fit.test >= 100 ? fit.test.toFixed(0) : fit.test.toFixed(2)],
         ]}
       />

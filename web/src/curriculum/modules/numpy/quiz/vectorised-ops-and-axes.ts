@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.vectorised-ops-and-axes.3',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\na = np.array([[1, 2],\n              [3, 4]])\nprint((a * a)[1, 1], (a @ a)[1, 1])',
+    code: 'import numpy as np\na = np.array([[1, 2],\n              [3, 4]])\np = a * a\nq = a @ a\nprint(p[1, 1], q[1, 1])',
     options: ['`16 22`', '`22 16`', '`16 16`', '`8 22`'],
     answer: 0,
     explanation:
@@ -35,19 +35,19 @@ const questions: QuizQuestion[] = [
       '`counts` has shape `(4, 3)`: word counts for 4 documents (rows) and 3 words (columns). You want to divide every row by its own total so that each **row** sums to 1. Which line does this?',
     options: [
       '`counts / counts.sum(axis=1, keepdims=True)`',
-      '`counts / counts.sum(axis=1)`',
-      '`counts / counts.sum(axis=0)`',
-      '`counts / counts.sum()`',
+      '`counts / counts.sum(axis=0, keepdims=True)`',
+      '`counts / counts.sum(axis=1)[None, :]`',
+      '`counts / counts.sum(axis=None, keepdims=True)`',
     ],
     answer: 0,
     explanation:
-      'With `keepdims=True` the row totals have shape $(4, 1)$, one per row, so each row is divided by its own total. Without it the totals have shape $(4,)$, which NumPy lines up with the 3 columns and raises a `ValueError`. Dividing by `counts.sum(axis=0)` makes each *column* sum to 1, and `counts.sum()` makes the whole table sum to 1.',
+      'With `axis=1, keepdims=True` the row totals form a $(4, 1)$ column, one per row, so each row is divided by its own total. `[None, :]` turns the 4 totals into a $(1, 4)$ row, which meets the 3 columns and raises a `ValueError` (so does plain `counts.sum(axis=1)`, shape $(4,)$). `axis=0` makes each *column* sum to 1, and `axis=None` makes the whole table sum to 1.',
     difficulty: 'intermediate',
   },
   {
     id: 'numpy.vectorised-ops-and-axes.5',
     prompt: 'A classifier gives these class probabilities for 2 examples. What is printed?',
-    code: 'import numpy as np\nprobs = np.array([[0.1, 0.7, 0.2],\n                  [0.6, 0.3, 0.1]])\nprint(probs.argmax(axis=1))',
+    code: 'import numpy as np\nprobs = np.array(\n    [[0.1, 0.7, 0.2],\n     [0.6, 0.3, 0.1]])\nprint(probs.argmax(axis=1))',
     options: ['`[1 0]`', '`[0.7 0.6]`', '`[1 0 0]`', '`1`'],
     answer: 0,
     explanation:

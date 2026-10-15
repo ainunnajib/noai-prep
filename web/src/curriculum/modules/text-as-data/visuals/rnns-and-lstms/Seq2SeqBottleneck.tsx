@@ -5,8 +5,8 @@ import { LENGTHS, SIZES, ACC } from './s2sData'
 /*
   Top: an encoder RNN squeezes n words into one context vector of d numbers, which a decoder RNN
   unpacks; with attention, each decoder step also looks back at every encoder state.
-  Bottom: real results from small GRU encoder–decoders trained on a toy translation task
-  (write out a sequence of 4–40 random words from a 20-word vocabulary): % of output words correct
+  Bottom: real results from small GRU encoder–decoders trained on a toy stand-in for translation
+  (copy a random sequence of 4–40 "words" from a 20-word vocabulary): % of output words correct
   on new test sentences, against sentence length, with and without attention.
 */
 
@@ -139,6 +139,15 @@ export default function Seq2SeqBottleneck() {
         <Path points={pts(plain)} color="var(--viz-2)" width={2.6} />
         {attn && <Path points={pts(withA)} color="var(--viz-3)" width={2.6} />}
         <Dots points={[{ x: n, y: plain[idx], color: 'var(--viz-2)', r: 6 }, ...(attn ? [{ x: n, y: withA[idx], color: 'var(--viz-3)', r: 6, shape: 'square' as const }] : [])]} />
+        {/* direct labels at the right-hand end of each line */}
+        <Label x={40} y={plain[plain.length - 1]} anchor="end" dx={-2} dy={-9} color="var(--viz-2)" size={12} weight={700}>
+          no attention
+        </Label>
+        {attn && (
+          <Label x={40} y={withA[withA.length - 1]} anchor="end" dx={-2} dy={withA[withA.length - 1] > 85 ? 18 : -9} color="var(--viz-3)" size={12} weight={700}>
+            with attention
+          </Label>
+        )}
         <Axes xLabel="sentence length (words)" yLabel="% output words correct" xTicks={9} yTicks={5} />
       </Plot>
       <Controls>

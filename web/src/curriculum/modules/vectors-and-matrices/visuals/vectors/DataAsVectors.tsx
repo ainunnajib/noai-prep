@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Figure, Controls, Slider, Toggle, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Slider, Toggle, useContainerWidth, useNarrow } from '../../../../../kit'
 import { Vec, fmt } from './shared'
 import s from './vectors.module.css'
 
 type V3 = [number, number, number]
+type Pt = [number, number]
+type Box = { x: number; y: number; hw: number; hh: number }
 
 const SUBJECTS = ['Maths', 'Science', 'English'] as const
 const COLS = ['var(--viz-3)', 'var(--viz-4)', 'var(--viz-5)']
@@ -22,10 +24,12 @@ const AVG: V3 = SUM.map((x) => x / N) as V3
 const CCA_SUM = STUDENTS.reduce((t, st) => t + st.cca, 0)
 const CCA_AVG = CCA_SUM / N
 
-const EL = (32 * Math.PI) / 180 // camera elevation: looking down into the corner of a room
-const PHI_MIN = -160
-const PHI_MAX = -95
-const PHI_0 = -125
+// Camera: Maths runs towards you and to the right, Science away to the right, English straight up,
+// looking slightly down onto the floor. From here every all-positive vector points up and to the right.
+const EL = (22 * Math.PI) / 180
+const PHI_MIN = -35
+const PHI_MAX = -8
+const PHI_0 = -20
 
 /** Orthographic projection that orbits the cube centre (50, 50, 50). Returns [right, up]. */
 function proj([x, y, z]: V3, phiDeg: number): [number, number] {
@@ -66,6 +70,7 @@ export default function DataAsVectors() {
   const [showAvg, setShowAvg] = useState(false)
   const [four, setFour] = useState(false)
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(380)
+  const [figRef, narrow] = useNarrow<HTMLDivElement>(460)
   const drag = useRef<{ x: number; phi: number } | null>(null)
 
   const W = Math.max(240, Math.min(440, measured))
@@ -93,13 +98,12 @@ export default function DataAsVectors() {
     const [x2, y2] = P(b)
     return <line key={key} x1={x1} y1={y1} x2={x2} y2={y2} style={style} strokeLinecap="round" />
   }
-  const arrow = (to: V3, color: string, width: number, dash?: string, key?: string) => {
-    const [x1, y1] = P([0, 0, 0])
-    const [x2, y2] = P(to)
-    const len = Math.hypot(x2 - x1, y2 - y1)
+  /** an arrow between two screen points */
+  const arrowXY = ([x1, y1]: Pt, [x2, y2]: Pt, color: string, width: number, dash?: string, key?: string, head = 11) => {
+    const len = Math.hypot(x2 - x1, y2 - y1) || 1
     const ux = (x2 - x1) / len
     const uy = (y2 - y1) / len
-    const h = Math.min(11, len * 0.5)
+    const h = Math.min(head, len * 0.5)
     const bx = x2 - ux * h
     const by = y2 - uy * h
     return (
@@ -109,20 +113,182 @@ export default function DataAsVectors() {
       </g>
     )
   }
-  const text = (q: V3, t: string, color: string, dx = 0, dy = 0, anchor: 'start' | 'middle' | 'end' = 'middle', size = 13, key?: string) => {
-    const [x, y] = P(q)
-    return (
-      <text key={key} className="plot-label" x={x + dx} y={y + dy} textAnchor={anchor} style={{ fill: color, fontSize: size, fontWeight: 700 }}>
-        {t}
-      </text>
-    )
-  }
+  const arrow = (to: V3, color: string, width: number, dash?: string, key?: string) => arrowXY(P([0, 0, 0]), P(to), color, width, dash, key)
 
   const tip = P(m)
   const org = P([0, 0, 0])
-  const tl = Math.hypot(tip[0] - org[0], tip[1] - org[1]) || 1
-  // put the name just beyond the tip, continuing the arrow's direction, so it never sits on the shaft
-  const nameOff: [number, number] = [((tip[0] - org[0]) / tl) * 14, ((tip[1] - org[1]) / tl) * 14]
+  const unit = (a: Pt, b: Pt): Pt => {
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1
+    return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]
+  }
+  /** unit direction a→b on screen, and the perpendicular pointing away from the middle of the floor */
+  const dirs = (a: Pt, b: Pt) => {
+    const [ux, uy] = unit(a, b)
+    const f = P([50, 50, 0])
+    let [nx, ny] = [-uy, ux]
+    if (nx * (f[0] - a[0]) + ny * (f[1] - a[1]) > 0) [nx, ny] = [-nx, -ny]
+    return { ux, uy, nx, ny }
+  }
+
+  // Science runs away from the viewer, so its axis tip sits among the students' arrows. Its name goes
+  // beside the right-hand floor edge instead (parallel to the Science axis), with a small arrow showing the direction.
+  const sciEdge = (() => {
+    const a = P([100, 0, 0])
+    const b = P([100, 100, 0])
+    const { ux, uy, nx, ny } = dirs(a, b)
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1])
+    const at = (t: number, off: number): Pt => [a[0] + ux * l * t + nx * off, a[1] + uy * l * t + ny * off]
+    return { at, ux, uy, nx, ny, from: at(0.42, 11), to: at(0.92, 11) }
+  })()
+
+  // everything drawn as a line: labels keep clear of these (the faint floor grid is allowed under labels)
+  const segs: [Pt, Pt][] = [
+    [org, P([118, 0, 0])],
+    [org, P([0, 118, 0])],
+    [org, P([0, 0, 112])],
+    [org, tip],
+    [org, P([m[0], 0, 0])],
+    [P([m[0], 0, 0]), P([m[0], m[1], 0])],
+    [P([m[0], m[1], 0]), tip],
+    [sciEdge.from, sciEdge.to],
+    ...STUDENTS.filter((_, i) => i !== sel).map((row) => [org, P(row.marks)] as [Pt, Pt]),
+    ...(showAvg ? [[org, P(AVG)] as [Pt, Pt]] : []),
+  ]
+  const distPtSeg = (q: Pt, a: Pt, b: Pt) => {
+    const L2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 || 1
+    const k = Math.max(0, Math.min(1, ((q[0] - a[0]) * (b[0] - a[0]) + (q[1] - a[1]) * (b[1] - a[1])) / L2))
+    return Math.hypot(q[0] - (a[0] + k * (b[0] - a[0])), q[1] - (a[1] + k * (b[1] - a[1])))
+  }
+  const cross = (o: Pt, a: Pt, b: Pt) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const segsMeet = (a: Pt, b: Pt, c: Pt, d: Pt) => cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0
+  /** gap (px) between a segment and a label box; 0 when they touch */
+  const segBoxGap = (a: Pt, b: Pt, x: Box) => {
+    const ptBox = (q: Pt) => Math.hypot(Math.max(Math.abs(q[0] - x.x) - x.hw, 0), Math.max(Math.abs(q[1] - x.y) - x.hh, 0))
+    const c: Pt[] = [
+      [x.x - x.hw, x.y - x.hh],
+      [x.x + x.hw, x.y - x.hh],
+      [x.x + x.hw, x.y + x.hh],
+      [x.x - x.hw, x.y + x.hh],
+    ]
+    if (ptBox(a) === 0 || ptBox(b) === 0) return 0
+    for (let i = 0; i < 4; i++) if (segsMeet(a, b, c[i], c[(i + 1) % 4])) return 0
+    return Math.min(ptBox(a), ptBox(b), ...c.map((q) => distPtSeg(q, a, b)))
+  }
+  const boxes: Box[] = []
+  const score = (x: Box) => {
+    if (x.x - x.hw < 2 || x.x + x.hw > W - 2 || x.y - x.hh < 2 || x.y + x.hh > H - 2) return -Infinity // stay inside the picture
+    let c = Infinity
+    for (const [a, b] of segs) c = Math.min(c, segBoxGap(a, b, x))
+    // other labels need a wider berth than lines, so two words never read as one
+    for (const o of boxes) c = Math.min(c, Math.hypot(Math.max(Math.abs(x.x - o.x) - x.hw - o.hw, 0), Math.max(Math.abs(x.y - o.y) - x.hh - o.hh, 0)) - 6)
+    return c
+  }
+  /** a label of text t at size px: the first candidate centre with a comfortable gap, else the clearest one */
+  const place = (t: string, size: number, cands: Pt[]): Pt => {
+    const hw = (t.length * size * 0.62) / 2 + 1
+    const hh = size * 0.5
+    let best = cands[0]
+    let bestScore = -Infinity
+    for (const q of cands) {
+      const sc = score({ x: q[0], y: q[1], hw, hh })
+      if (sc >= 5) {
+        best = q
+        break
+      }
+      if (sc > bestScore + 0.5) {
+        best = q
+        bestScore = sc
+      }
+    }
+    boxes.push({ x: best[0], y: best[1], hw, hh })
+    return best
+  }
+  /** centre of a label of half-size (hw, hh) whose nearest edge sits gap px from q in direction (dx, dy) */
+  const off = (q: Pt, dx: number, dy: number, gap: number, t: string, size: number): Pt => {
+    const hw = (t.length * size * 0.62) / 2 + 1
+    const hh = size * 0.5
+    const d = gap + hw * Math.abs(dx) + hh * Math.abs(dy)
+    return [q[0] + dx * d, q[1] + dy * d]
+  }
+
+  /** fallback candidates all round q, every 30° */
+  const ring = (q: Pt, gap: number, t: string, size: number): Pt[] =>
+    Array.from({ length: 12 }, (_, i) => off(q, Math.cos((i * Math.PI) / 6), Math.sin((i * Math.PI) / 6), gap, t, size))
+
+  // Labels are placed in order of importance, each keeping clear of the lines and of the labels before it.
+  const axisLabel = (end: V3, t: string): Pt => {
+    const e = P(end)
+    const { ux, uy, nx, ny } = dirs(org, e)
+    return place(t, 13, [off(e, ux, uy, 8, t, 13), off(e, nx, ny, 10, t, 13), off(e, -nx, -ny, 10, t, 13), off(e, ux, uy, 22, t, 13)])
+  }
+  const mathsAt = axisLabel([118, 0, 0], 'Maths')
+  const englishAt = axisLabel([0, 0, 112], 'English')
+  const sciAt = place('Science', 13, [
+    off(sciEdge.to, sciEdge.ux, sciEdge.uy, 5, 'Science', 13),
+    off(sciEdge.to, 0, -1, 7, 'Science', 13),
+    off(sciEdge.at(0.75, 11), sciEdge.nx, sciEdge.ny, 5, 'Science', 13),
+    off(sciEdge.at(0.6, 11), sciEdge.nx, sciEdge.ny, 5, 'Science', 13),
+  ])
+  const nameAt = (() => {
+    const [ux, uy] = unit(org, tip)
+    const t = st.name
+    return place(t, 13, [off(tip, ux, uy, 7, t, 13), off(tip, -uy, ux, 9, t, 13), off(tip, uy, -ux, 9, t, 13), off(tip, 0, -1, 9, t, 13), ...ring(tip, 9, t, 13), ...ring(tip, 18, t, 13)])
+  })()
+  /** the "100" mark on an axis: a tick on whichever side its label is clearer */
+  const tickAt = (end: V3) => {
+    const e = P(end)
+    const { nx, ny } = dirs(org, e)
+    const q = place('100', 11.5, [off(e, nx, ny, 8, '100', 11.5), off(e, -nx, -ny, 8, '100', 11.5)])
+    const sx = Math.sign((q[0] - e[0]) * nx + (q[1] - e[1]) * ny) || 1
+    return { e, q, nx: sx * nx, ny: sx * ny }
+  }
+  const ticks = [tickAt([100, 0, 0]), tickAt([0, 0, 100])]
+  /** a leg's value beside the middle of the leg, preferring the side away from the selected arrow */
+  const legLabel = (a: V3, b: V3, v: number): Pt | null => {
+    const pa = P(a)
+    const pb = P(b)
+    if (Math.hypot(pb[0] - pa[0], pb[1] - pa[1]) < 16) return null
+    const [ux, uy] = unit(pa, pb)
+    const t = String(v)
+    const at = (k: number): Pt => [pa[0] + (pb[0] - pa[0]) * k, pa[1] + (pb[1] - pa[1]) * k]
+    const sides = [
+      [-uy, ux],
+      [uy, -ux],
+    ].sort((p, q) => distPtSeg(off(at(0.5), q[0], q[1], 5, t, 12.5), org, tip) - distPtSeg(off(at(0.5), p[0], p[1], 5, t, 12.5), org, tip))
+    const cands: Pt[] = []
+    for (const gap of [5, 13]) for (const k of [0.5, 0.35, 0.65, 0.2, 0.8]) for (const [dx, dy] of sides) cands.push(off(at(k), dx, dy, gap, t, 12.5))
+    return place(t, 12.5, cands)
+  }
+  const legAt = [legLabel([0, 0, 0], [m[0], 0, 0], m[0]), legLabel([m[0], 0, 0], [m[0], m[1], 0], m[1]), legLabel([m[0], m[1], 0], m, m[2])]
+  const avgAt = (() => {
+    if (!showAvg) return null
+    const a = P(AVG)
+    const [ux, uy] = unit(org, a)
+    const t = 'average'
+    const mid = (k: number): Pt => [org[0] + (a[0] - org[0]) * k, org[1] + (a[1] - org[1]) * k]
+    return place(t, 12, [
+      off(a, uy, -ux, 8, t, 12),
+      off(a, ux, uy, 8, t, 12),
+      off(a, -uy, ux, 8, t, 12),
+      ...ring(a, 9, t, 12),
+      ...[0.8, 0.65].flatMap((k) => [off(mid(k), uy, -ux, 6, t, 12), off(mid(k), -uy, ux, 6, t, 12)]),
+      ...ring(a, 20, t, 12),
+    ])
+  })()
+  const label = (q: Pt | null, t: string, color: string, size: number, key: string, weight = 700, halo = false) =>
+    q && (
+      <text
+        key={key}
+        className="plot-label"
+        x={q[0]}
+        y={q[1]}
+        dy="0.35em"
+        textAnchor="middle"
+        style={{ fill: color, fontSize: size, fontWeight: weight, ...(halo ? { paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3, strokeLinejoin: 'round' } : {}) }}
+      >
+        {t}
+      </text>
+    )
 
   return (
     <Figure
@@ -134,7 +300,7 @@ export default function DataAsVectors() {
         </>
       }
     >
-      <div className={s.split} style={{ alignItems: 'flex-start' }}>
+      <div className={s.split} style={{ alignItems: 'flex-start' }} ref={figRef}>
         <div className={s.splitSide} style={{ flexBasis: 240, justifyItems: 'stretch' }}>
           <div className={s.tableWrap}>
             <table className={s.table} aria-label="Marks of four students; click a row to select it">
@@ -219,12 +385,19 @@ export default function DataAsVectors() {
               {arrow([118, 0, 0], 'var(--viz-axis)', 1.4, undefined, 'ax')}
               {arrow([0, 118, 0], 'var(--viz-axis)', 1.4, undefined, 'ay')}
               {arrow([0, 0, 112], 'var(--viz-axis)', 1.4, undefined, 'az')}
-              {text([124, 0, 0], 'Maths', COLS[0], 0, 14, 'middle', 13, 'lx')}
-              {text([0, 124, 0], 'Science', COLS[1], 0, 14, 'middle', 13, 'ly')}
-              {text([0, 0, 116], 'English', COLS[2], 8, -2, 'start', 13, 'lz')}
-              {text([100, 0, 0], '100', 'var(--ink-3)', -6, 4, 'end', 11, 'tx')}
-              {text([0, 100, 0], '100', 'var(--ink-3)', 2, -8, 'middle', 11, 'ty')}
-              {[50, 100].map((t) => text([0, 0, t], String(t), 'var(--ink-3)', -6, 4, 'end', 11, `tz${t}`))}
+              {label(mathsAt, 'Maths', COLS[0], 13, 'lx', 700, true)}
+              {label(englishAt, 'English', COLS[2], 13, 'lz', 700, true)}
+              {/* Science: named beside the floor edge that runs parallel to its axis */}
+              {arrowXY(sciEdge.from, sciEdge.to, COLS[1], 2, undefined, 'sci', 8)}
+              {label(sciAt, 'Science', COLS[1], 13, 'ly', 700, true)}
+              {ticks.map(({ e, q, nx, ny }, i) => (
+                <g key={`t${i}`}>
+                  <line x1={e[0]} y1={e[1]} x2={e[0] + nx * 5} y2={e[1] + ny * 5} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.4 }} />
+                  <text x={q[0]} y={q[1]} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 11.5, fontWeight: 700 }}>
+                    100
+                  </text>
+                </g>
+              ))}
 
               {/* the other students, faint */}
               {STUDENTS.map((row, i) =>
@@ -239,20 +412,15 @@ export default function DataAsVectors() {
               {line([0, 0, 0], [m[0], 0, 0], { stroke: COLS[0], strokeWidth: 3.5, strokeDasharray: '6 4' }, 'l1')}
               {line([m[0], 0, 0], [m[0], m[1], 0], { stroke: COLS[1], strokeWidth: 3.5, strokeDasharray: '6 4' }, 'l2')}
               {line([m[0], m[1], 0], m, { stroke: COLS[2], strokeWidth: 3.5, strokeDasharray: '6 4' }, 'l3')}
+              <circle cx={P([m[0], m[1], 0])[0]} cy={P([m[0], m[1], 0])[1]} r={3} style={{ fill: COLS[2] }} />
+              {label(legAt[0], String(m[0]), COLS[0], 12.5, 'v1', 800)}
+              {label(legAt[1], String(m[1]), COLS[1], 12.5, 'v2', 800)}
+              {label(legAt[2], String(m[2]), COLS[2], 12.5, 'v3', 800)}
               {showAvg && arrow(AVG, AVG_COL, 3, '5 4', 'avg')}
-              {showAvg && text(AVG, 'average', AVG_COL, 10, 14, 'start', 12, 'avgl')}
+              {label(avgAt, 'average', AVG_COL, 12, 'avgl', 700, true)}
               {arrow(m, 'var(--viz-1)', 3.5, undefined, 'sel')}
               <circle cx={tip[0]} cy={tip[1]} r={4.5} style={{ fill: 'var(--viz-1)', stroke: 'var(--surface)', strokeWidth: 2 }} />
-              <text
-                className="plot-label"
-                x={tip[0] + nameOff[0]}
-                y={tip[1] + nameOff[1]}
-                dy="0.35em"
-                textAnchor={nameOff[0] > 4 ? 'start' : nameOff[0] < -4 ? 'end' : 'middle'}
-                style={{ fill: 'var(--viz-1)', fontSize: 13, fontWeight: 700 }}
-              >
-                {st.name}
-              </text>
+              {label(nameAt, st.name, 'var(--viz-1)', 13, 'name', 700, true)}
             </svg>
             {four && (
               <div className={s.overlay}>
@@ -274,7 +442,8 @@ export default function DataAsVectors() {
 
       {showAvg && (
         <div className={s.eq}>
-          <span>average = (aisha + ben + chloe + dinesh) ÷ 4</span>
+          <span>average =</span>
+          <span>{narrow ? '(sum of the 4 rows) ÷ 4' : '(aisha + ben + chloe + dinesh) ÷ 4'}</span>
           <span className={s.eqOp}>=</span>
           <span>[{(four ? [...SUM, CCA_SUM] : SUM).join(', ')}] ÷ 4</span>
           <span className={s.eqOp}>=</span>

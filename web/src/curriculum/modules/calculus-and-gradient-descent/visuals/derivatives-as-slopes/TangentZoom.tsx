@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, DraggablePoint, useNarrow, M } from '../../../../../kit'
-import { LineThrough, fx, panelTitle, twoCol } from './plotHelpers'
+import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, useNarrow, M } from '../../../../../kit'
+import { Handle, LineThrough, fx, panelTitle, twoCol } from './plotHelpers'
 
 /*
   Secant → tangent on f(x) = x². P is fixed (draggable along the curve), Q = P + h.
@@ -64,9 +64,9 @@ export default function TangentZoom() {
       title="From secant to tangent"
       caption={
         <>
-          The orange <b>secant</b> joins P and Q, a distance <M>h</M> apart. Slide <M>h</M> towards 0 or tap the values of <M>h</M> below: the secant swings onto the green
+          The orange <b>secant</b> joins P and Q, a distance <M>h</M> apart. Slide <M>h</M> towards 0 or pick a value of <M>h</M>: the secant swings onto the green
           dashed <b>tangent</b>, its slope settles on one number, and the zoomed panel magnifies the view around P until the curve looks perfectly straight. At exactly{' '}
-          <M>h = 0</M> the slope would be <M>0/0</M>, so the derivative is the value the slopes <i>approach</i>. Drag P to try another point.
+          <M>h = 0</M> the slope would be <M>0/0</M>, so the derivative is the value the slopes <i>approach</i>. Drag P (or Q) to try another point.
         </>
       }
     >
@@ -81,24 +81,26 @@ export default function TangentZoom() {
             {showTangent && <LineThrough x={a} y={fa} slope={deriv} color="var(--viz-3)" width={2.2} dash="7 5" />}
             {!zero && <LineThrough x={a} y={fa} slope={secant} color="var(--viz-2)" width={2.6} />}
             {triangle({ label: true })}
-            <DraggablePoint
+            <Handle
               x={q}
               y={fq}
               r={7}
               color="var(--viz-2)"
-              label="Q"
+              label={Math.abs(h) < 0.15 ? undefined : 'Q'}
+              ariaLabel="point Q"
               constrain={(x) => {
                 const nx = Math.round(Math.max(X[0], Math.min(X[1], x)) * 100) / 100
                 return [nx, f(nx)]
               }}
               onChange={(x) => setH(Math.round((x - a) * 100) / 100)}
             />
-            <DraggablePoint
+            <Handle
               x={a}
               y={fa}
               r={8}
               color="var(--viz-1)"
               label="P"
+              ariaLabel="point P"
               constrain={(x) => {
                 const nx = Math.round(Math.max(-0.5, Math.min(2, x)) * 10) / 10
                 return [nx, f(nx)]
@@ -129,6 +131,13 @@ export default function TangentZoom() {
       </div>
       <Controls>
         <Slider label="h (distance from P to Q)" value={h} min={-1.5} max={1.5} step={0.001} onChange={(v) => setH(Math.max(X[0] - a, Math.min(X[1] - a, v)))} format={(v) => fx(v, 3)} />
+        <Segmented
+          label="Jump to h ="
+          value={H_PRESETS.find((v) => Math.abs(v - h) < 1e-9) ?? -1}
+          onChange={(v) => setH(Math.max(X[0] - a, Math.min(X[1] - a, v)))}
+          options={H_PRESETS.map((v) => ({ value: v, label: String(v) }))}
+        />
+        <Toggle label="Show the tangent" checked={showTangent} onChange={setShowTangent} />
       </Controls>
       <Readout
         items={[
@@ -138,38 +147,6 @@ export default function TangentZoom() {
           ['tangent slope', fx(deriv, 2)],
         ]}
       />
-      <div style={{ width: '100%' }}>
-        <div style={{ ...panelTitle, textAlign: 'left' }}>Secant slope at P = {fx(a, 1)} as h shrinks (tap one)</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-          {H_PRESETS.map((v) => {
-            const s = (f(a + v) - fa) / v
-            const on = Math.abs(v - h) < 1e-9
-            return (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setH(Math.max(X[0] - a, Math.min(X[1] - a, v)))}
-                className="tabular"
-                style={{
-                  font: 'inherit',
-                  fontSize: '0.85rem',
-                  padding: '0.25rem 0.55rem',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  border: `1.5px solid ${on ? 'var(--viz-2)' : 'var(--rule)'}`,
-                  background: on ? 'color-mix(in srgb, var(--viz-2) 14%, var(--surface))' : 'var(--surface-2)',
-                  color: 'var(--ink)',
-                }}
-              >
-                h = {v} → <b>{fx(s, dpFor(v))}</b>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      <Controls>
-        <Toggle label="Show the tangent" checked={showTangent} onChange={setShowTangent} />
-      </Controls>
     </Figure>
   )
 }

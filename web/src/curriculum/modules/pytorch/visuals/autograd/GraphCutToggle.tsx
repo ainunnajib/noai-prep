@@ -132,16 +132,18 @@ export default function GraphCutToggle() {
     >
       <Controls>
         <Segmented label="Loop" value={loop} onChange={change(setLoop)} options={[{ value: 'val', label: 'validation' }, { value: 'train', label: 'training' }]} />
-        <Segmented
-          label="Log the loss with"
-          value={log}
-          onChange={change(setLog)}
-          options={[
-            { value: 'loss', label: <span className={css.mono}>loss</span> },
-            { value: 'item', label: <span className={css.mono}>loss.item()</span> },
-            { value: 'detach', label: <span className={css.mono}>loss.detach()</span> },
-          ]}
-        />
+        <div className={css.segGrid}>
+          <Segmented
+            label="Log the loss with"
+            value={log}
+            onChange={change(setLog)}
+            options={[
+              { value: 'loss', label: <span className={css.mono}>loss</span> },
+              { value: 'item', label: <span className={css.mono}>loss.item()</span> },
+              { value: 'detach', label: <span className={css.mono}>loss.detach()</span> },
+            ]}
+          />
+        </div>
         <Toggle label={<code>with torch.no_grad():</code>} checked={nograd} onChange={change(setNograd)} />
       </Controls>
 

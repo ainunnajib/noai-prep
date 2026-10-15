@@ -12,7 +12,7 @@ const PLACES = ['Hawker centre', 'Library', 'Home'] as const
 const SHORT = ['Hawker', 'Library', 'Home'] as const
 const CLUES = ['They send a photo of a cup of kopi.', 'On a call, the background is very quiet.', 'They say: "Leaving now, home in 20 minutes."']
 const DEFAULT_L = [
-  [0.6, 0.1, 0.3],
+  [0.6, 0.1, 0.5],
   [0.1, 0.8, 0.5],
   [0.7, 0.6, 0.05],
 ]
@@ -69,7 +69,7 @@ export default function PriorPosteriorBars() {
 
   const phaseText: Record<Phase, string> = {
     prior: 'Before any clue: the prior. Each bar is how much you believe that place, and they add to 1.',
-    likelihood: `Clue ${c + 1}: ${CLUES[c]} The orange bars are the likelihoods: how probable this clue is if your friend is in each place.`,
+    likelihood: `Clue ${c + 1}: ${CLUES[c]} The orange bars are the likelihoods: how probable this clue is if your friend is in each place. They are separate "if" questions, one per place, so they don't need to add to 1.`,
     multiply: `Multiply each belief by its likelihood. The bars shrink, and now add up to only ${f3(totals[c])}, not 1.`,
     normalise: `Divide every bar by ${f3(totals[c])} so they add to 1 again. This is the posterior${c < CLUES.length - 1 ? ', and it becomes the prior for the next clue.' : '.'}`,
   }

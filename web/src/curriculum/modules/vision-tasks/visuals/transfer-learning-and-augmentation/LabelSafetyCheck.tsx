@@ -31,8 +31,9 @@ interface Card {
 
 /**
  * Geometric augmentations as SVG transforms. The strong light change multiplies contrast by 0.3
- * and brightness by 1.6 (applied to pixel values, then clipped); the X-ray applies the same
- * kind of change to its own pixel values so its faint nodule can be seen to vanish.
+ * and brightness by 1.6 (a linear change of the pixel values; nothing clips at these settings).
+ * The X-ray applies the same change to its own pixel values: the nodule-to-lung difference drops
+ * from 0.11 to about 0.05, so the faint nodule becomes much harder to see.
  */
 const SLOPE = 0.3 * 1.6
 const INTERCEPT = 0.5 * (1 - 0.3) * 1.6
@@ -81,7 +82,7 @@ const CARDS: Card[] = [
     draw: (a) => geo(a, <TurnLeftSign />),
     verdicts: {
       hflip: ['breaks', 'The arrow now points right: this is a "turn right" sign. Training on it with the label "turn left" teaches the model the wrong thing.'],
-      vflip: ['odd', 'Surprise: the arrow still points left, so the label survives. But no camera ever sees an upside-down sign, so this wastes training on an impossible view.'],
+      vflip: ['odd', 'The arrowhead still points left, but the stem now comes down from the top, so this is no longer the standard "turn left" sign, and no camera ever sees an upside-down sign anyway. Avoid it.'],
       rot: ['use', 'A tilted camera or a slightly bent post gives exactly this view, and the meaning is unchanged.'],
       bright: ['use', 'Signs are seen at dusk, in glare and in rain. Lighting changes are realistic and do not change the arrow.'],
     },
@@ -100,7 +101,7 @@ const CARDS: Card[] = [
       hflip: ['odd', 'The nodule is still there, but the heart now appears on the wrong side. X-rays are taken in a standard orientation, and any label that mentions left or right would now be wrong.'],
       vflip: ['odd', 'Still has a nodule, but nobody takes an X-ray upside down. The model would spend effort learning a view it never sees.'],
       rot: ['use', 'Patients never stand perfectly straight, so a few degrees of rotation is realistic and keeps every finding.'],
-      bright: ['breaks', 'The faint spot has vanished into the washed-out lung. The image no longer shows the evidence the label "nodule present" is about.'],
+      bright: ['breaks', 'The faint spot is now barely distinguishable from the washed-out lung. In an X-ray, brightness is the evidence (it shows tissue density), so strong intensity changes can hide a finding or fake one, and the image may no longer support the label "nodule present".'],
     },
   },
   {

@@ -57,7 +57,7 @@ const COLORS = { mean: 'var(--viz-2)', median: 'var(--viz-3)', mode: 'var(--viz-
 type Key = keyof typeof COLORS
 
 function Markers({ stats, top, s }: { stats: { mean: number; median: number; mode: number }; top: number; s: number }) {
-  const { xs, ys } = usePlot()
+  const { xs, ys, width } = usePlot()
   const same = Math.abs(s) < 0.05
   // Flag-style labels: the line furthest from the tail gets the highest label, and every label
   // points towards the tail, so no label ever crosses another line.
@@ -78,7 +78,7 @@ function Markers({ stats, top, s }: { stats: { mean: number; median: number; mod
       ))}
       {same ? (
         <text x={xs(stats.mean) + 6} y={rowY(0)} className="plot-label">
-          mean = median = mode = 50
+          {width < 480 ? 'all three = 50' : 'mean = median = mode = 50'}
         </text>
       ) : (
         keys.map((k, row) => (

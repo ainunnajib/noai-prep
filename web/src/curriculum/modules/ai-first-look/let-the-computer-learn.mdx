@@ -2,19 +2,38 @@ import DownhillBallPreview from './visuals/let-the-computer-learn/DownhillBallPr
 import LearningRateRace from './visuals/let-the-computer-learn/LearningRateRace'
 import TrainingLoopAnimation from './visuals/let-the-computer-learn/TrainingLoopAnimation'
 
-In the last lesson *you* turned the knobs until the line fitted the flats. A computer cannot eyeball a scatter plot, and a modern model has billions of knobs. What it can do is one simple thing, very fast: feel which way is downhill, take a small step, and repeat. That idea is called **gradient descent**, and it trains almost every model in AI, from a straight line to ChatGPT.
+In the last lesson *you* turned the knobs until the line fitted the flats. A computer cannot eyeball a scatter plot, and a modern model has billions of knobs. What it can do is one simple thing, very fast: feel which way is downhill, take a small step, and repeat. That idea is called **gradient descent**, and it trains most of the models you will meet, from a straight line to ChatGPT.
 
 ## The job: reach the bottom of the loss valley
 
-Our running example is 8 HDB flats, and a model with a single knob $w$:
+To keep the hand arithmetic tiny, this lesson swaps the 30 flats of the last lesson for a smaller running example: 8 HDB flats, and a model with a single knob $w$:
 
 $$
 \text{price} = w \times \text{area}
 $$
 
-To keep to one knob, we fix the intercept at $b = 0$ and let the computer learn only the slope $w$; a line through the origin happens to fit these flats well. To keep the numbers small, area is measured in hundreds of square metres (90 m² is 0.9) and price in hundreds of thousands of dollars (\$540,000 is 5.4). Changing the units like this does not change which line fits best; it only shrinks the numbers. So $w = 6$ means "6 hundred thousand dollars per 100 m²", which is \$6,000 per square metre.
+We drop the intercept (fix $b = 0$, since a line through the origin happens to fit these flats well), so the computer only has to learn the slope $w$. We also shrink the units: area in hundreds of m² and price in hundreds of thousands of dollars. Shrinking the units only shrinks the numbers; it does not change which line fits best.
 
-For every value of $w$ you can work out the <Term def="Mean squared error: for each example, square the miss (actual minus predicted), then average the squares. Lower means a better fit.">loss</Term> (the mean squared error from the last lesson). Plot the loss against $w$ and you get a U-shaped valley. The best knob value sits at the very bottom; for our flats that is exactly $w = 6$, where the loss is 0.1. So **training a model means finding the bottom of the loss valley.**
+| Flat | Area (m²) | Price (\$k) | Area, small units | Price, small units |
+|---|---|---|---|---|
+| 1 | 60 | 340 | 0.6 | 3.4 |
+| 2 | 70 | 460 | 0.7 | 4.6 |
+| 3 | 90 | 500 | 0.9 | 5.0 |
+| 4 | 100 | 580 | 1.0 | 5.8 |
+| 5 | 100 | 640 | 1.0 | 6.4 |
+| 6 | 110 | 680 | 1.1 | 6.8 |
+| 7 | 120 | 680 | 1.2 | 6.8 |
+| 8 | 130 | 800 | 1.3 | 8.0 |
+
+For every value of $w$ you can work out the <Term def="Mean squared error: for each example, square the miss (actual minus predicted), then average the squares. Lower means a better fit.">loss</Term> $L(w)$, the mean squared error from the last lesson. Take $w = 1$: it predicts $1 \times 1.3 = 1.3$ (\$130k) for flat 8, which sold for $8.0$ (\$800k), a miss of $6.7$. Square all 8 misses and average them, and you get $L(1) = 25.1$.
+
+<Reveal label="Show all 8 misses for w = 1">
+
+The misses (price minus prediction) are $2.8, 3.9, 4.1, 4.8, 5.4, 5.7, 5.6, 6.7$. Their squares add up to $7.84 + 15.21 + 16.81 + 23.04 + 29.16 + 32.49 + 31.36 + 44.89 = 200.8$, and $200.8 \div 8 = 25.1$.
+
+</Reveal>
+
+Plot the loss against $w$ and you get a U-shaped valley. The best knob value sits at the very bottom; for our flats that is exactly $w = 6$ (that is, \$6,000 per m²), where the loss is $0.1$. So **training a model means finding the bottom of the loss valley.**
 
 Why not just draw the whole valley and look? With one knob you could. But real models have millions of knobs, and trying just 10 values for each of 100 knobs is already $10^{100}$ combinations, far more than the roughly $10^{80}$ atoms in the observable universe. The computer needs a method that never looks at the whole landscape.
 
@@ -47,7 +66,7 @@ The computer can measure the slope without seeing the curve: nudge $w$ by a tiny
 
 The slope tells you two things:
 
-- Its **sign** says which way is downhill. A *negative* slope means the loss falls as $w$ grows, so make $w$ bigger. A *positive* slope means the loss rises as $w$ grows, so make $w$ smaller. A slope of *zero* means flat ground: you are at the bottom.
+- Its **sign** says which way is downhill. A *negative* slope means the loss falls as $w$ grows, so make $w$ bigger. A *positive* slope means the loss rises as $w$ grows, so make $w$ smaller. A slope of *zero* means flat ground. On a single U-shaped valley like this one, that is the bottom. (On bumpier loss landscapes, flat ground can also be a hilltop, a plateau, or a dip that is not the lowest one, called a *local minimum*; you will meet these in the calculus module.)
 - Its **size** says how steep it is: steep far from the bottom, gentle close to it.
 
 (With calculus you can get a formula for the slope instead of nudging; that is coming in the calculus module. For now, nudging is all you need.)
@@ -67,7 +86,7 @@ $$
 - $\eta$ (the Greek letter "eta") is the <Term def="A small positive number that sets how big each step of gradient descent is. You choose it before training.">learning rate</Term>, a small positive number such as 0.1 that sets the step size.
 - The **minus sign** makes the step go *against* the slope, which is downhill: a negative slope makes $w$ bigger, a positive slope makes $w$ smaller.
 
-One use of the rule is one step, also called an <Term def="One update of the knobs: one round of predict, measure, find the slope and nudge.">iteration</Term>. Gradient descent repeats it until the slope is almost zero and the knob stops moving; we then say training has <Term def="Settled down: more steps barely change the knobs or the loss.">converged</Term>.
+One use of the rule is one step, also called an <Term def="One update of the knobs: one round of predict, measure, find the slope and nudge.">iteration</Term>. Gradient descent repeats it until the slope is almost zero and the knob stops moving; we then say training has <Term def="Settled down: more steps barely change the knobs or the loss.">converged</Term>. (On a single valley like ours, that is the bottom; on a bumpy landscape it might be a local dip instead.)
 
 Notice that the step is **proportional to the slope**. Far from the bottom the ground is steep, so the steps are big; near the bottom the slope shrinks towards 0, so the steps shrink too. The ball slows down by itself even though $\eta$ never changes.
 
@@ -96,7 +115,7 @@ Notice that the step is **proportional to the slope**. Far from the bottom the g
   q="You are at $w = 4$, the slope of the loss there is $+6$, and the learning rate is $0.5$. Where does one step of gradient descent take you?"
   options={['$w = 1$', '$w = 7$', '$w = -2$', '$w = 3.5$']}
   answer={0}
-  explain="New $w = 4 - 0.5 \times 6 = 4 - 3 = 1$. The slope is positive, so downhill is to the left and $w$ must get smaller. $7$ comes from adding instead of subtracting, and $-2$ forgets to multiply the slope by the learning rate."
+  explain="New $w = 4 - 0.5 \times 6 = 4 - 3 = 1$. The slope is positive, so downhill is to the left and $w$ must get smaller. $7$ comes from adding instead of subtracting, $-2$ forgets to multiply the slope by the learning rate, and $3.5$ subtracts only the learning rate and forgets the slope."
 />
 
 <Mistake title="Losing the minus sign">
@@ -108,6 +127,8 @@ Subtracting a negative slope makes $w$ **bigger**: $1 - 0.1 \times (-10) = 1 + 1
 ### Many knobs: the gradient
 
 A line with two knobs, $w$ and $b$, has two slopes: nudge $w$ alone to get one, nudge $b$ alone to get the other. Gradient descent then moves each knob against its own slope, both in the same step. The list of all the slopes is called the <Term def="The list of slopes of the loss, one for each knob (parameter). It points in the direction in which the loss increases fastest.">gradient</Term>. Together, the gradient points in the direction in which the loss rises fastest, straight uphill (the direction of **steepest ascent**). So the *negative* gradient points straight downhill (**steepest descent**), and stepping along it is exactly what gives gradient descent its name.
+
+In exam papers you will see the same rule written with symbols: $w \leftarrow w - \eta\,\frac{dL}{dw}$ for one knob, where $\frac{dL}{dw}$ ("d L by d w") is the slope and $\leftarrow$ means "replace with", or $\theta \leftarrow \theta - \eta\,\nabla L(\theta)$ for all the knobs at once, where $\theta$ ("theta") is the list of knobs and $\nabla L$ ("grad L") is the gradient.
 
 <PastPaperQuestion paper="prelim2026" n={33} />
 
@@ -129,6 +150,12 @@ What the race shows:
 - **About right** ($\eta = 0.1$): the ball reaches the bottom smoothly in a few dozen steps.
 - **Too large** ($\eta = 1.1$): the first step jumps right over the bottom and lands *higher* on the other side. The slope there is even steeper, so the next jump is even bigger, and the ball flies off the chart. The loss grows every step: training <Term def="Gets worse and worse: the knobs and the loss shoot off towards huge values instead of settling down.">diverges</Term>.
 - For this valley the tipping point is $\eta = 1$: at exactly 1 the ball bounces between $w = 1$ and $w = 11$ forever, and anything bigger diverges. Bigger steps are faster only up to a point.
+
+<Reveal label="Answers to the slider challenges">
+
+$\eta = 0.5$ lands exactly on $w = 6$ in a single step: the slope at $w = 1$ is $-10$, so $1 - 0.5 \times (-10) = 6$. Every $\eta$ up to just below 1 still settles at the bottom; between 0.5 and 1 the ball zig-zags from side to side as it settles, and the closer $\eta$ gets to 1, the longer the zig-zag lasts.
+
+</Reveal>
 
 In real training, with millions of knobs and noisy data, a learning rate that is too large shows up as a loss curve that **jumps up and down wildly**, or shoots up to enormous values and finally becomes `NaN` ("not a number") when the numbers overflow.
 
@@ -156,7 +183,7 @@ A hawker developing a new laksa cooks a bowl, tastes it, decides "a bit more sal
 
 </Analogy>
 
-Every model you will meet is trained with the same four-move loop:
+Most models you will meet, from linear and logistic regression to every neural network up to ChatGPT, are trained with the same four-move loop:
 
 1. **Predict:** use the current knobs to predict an answer for each training example.
 2. **Measure:** compare the predictions with the true answers using the loss.
@@ -167,7 +194,40 @@ Then go back to step 1, often thousands or millions of times, until the loss sto
 
 <TrainingLoopAnimation />
 
-Measuring slopes by nudging one knob at a time works for our single knob, but it would be far too slow for a model with a billion knobs. Real libraries compute all the slopes in one go using calculus, with an algorithm called backpropagation that you will meet later. The loop itself never changes: linear regression and ChatGPT are both trained by predict, measure, find the slope, nudge.
+Measuring slopes by nudging one knob at a time works for our single knob, but it would be far too slow for a model with a billion knobs. Real libraries compute all the slopes in one go using calculus, with an algorithm called backpropagation that you will meet later. The loop itself never changes: linear regression (which can also be solved in one go with a formula) and ChatGPT can both be trained by predict, measure, find the slope, nudge. A few methods learn differently: k-nearest neighbours, in the next lesson, just stores the examples, and decision trees are grown by choosing splits.
+
+<Reveal label="Peek at the code (optional)">
+
+Here is gradient descent on the 8 flats in NumPy, measuring the slope by nudging exactly as you did by hand.
+
+```python
+import numpy as np
+
+area  = np.array([0.6, 0.7, 0.9, 1.0, 1.0, 1.1, 1.2, 1.3])   # hundreds of m²
+price = np.array([3.4, 4.6, 5.0, 5.8, 6.4, 6.8, 6.8, 8.0])   # hundreds of thousands of $
+
+def loss(w):
+    return np.mean((price - w * area) ** 2)    # MSE of the line price = w × area
+
+w, eta = 1.0, 0.1
+for step in range(1, 21):
+    slope = (loss(w + 0.0001) - loss(w)) / 0.0001   # feel the slope by nudging
+    w = w - eta * slope                              # step downhill
+    if step in (1, 2, 3, 10, 20):
+        print(step, round(w, 2), round(loss(w), 2))
+```
+
+```text
+1 2.0 16.1
+2 2.8 10.34
+3 3.44 6.65
+10 5.46 0.39
+20 5.94 0.1
+```
+
+Each line shows the step number, the new $w$ and the new loss: the same $2, 2.8, 3.44$ you worked out by hand, closing in on $w = 6$.
+
+</Reveal>
 
 <QuickCheck
   q="A classmate says: “Gradient descent first works out the loss for every possible value of $w$, then picks the lowest one.” What is wrong with this?"
@@ -187,6 +247,6 @@ Measuring slopes by nudging one knob at a time works for our single knob, but it
 - **Gradient descent** measures the slope where it stands and steps against it: $w_{\text{new}} = w - \eta \times \text{slope}$. A negative slope makes $w$ bigger; a positive slope makes it smaller.
 - The gradient (the list of slopes) points uphill, so the **negative gradient** points in the direction of steepest descent.
 - The **learning rate** $\eta$ sets the step size: too small crawls, too large overshoots and diverges (the loss jumps around or explodes).
-- Every model learns with the same loop: **predict, measure, find the slope, nudge**, repeated many times.
+- Gradient-trained models, from a line to ChatGPT, all learn with the same loop: **predict, measure, find the slope, nudge**, repeated many times.
 
 </Takeaways>

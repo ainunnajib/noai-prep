@@ -27,7 +27,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'linear-algebra-deeper.eigenvectors-eigenvalues.3',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\nA = np.array([[4, 1],\n              [2, 3]])\nvals = np.linalg.eigvals(A).real\nprint(round(vals.sum()), round(vals.prod()))',
+    code: 'import numpy as np\nA = np.array([[4, 1],\n              [2, 3]])\nvals = np.linalg.eigvals(A).real\ns, p = vals.sum(), vals.prod()\nprint(round(s), round(p))',
     options: ['`7 10`', '`7 12`', '`10 7`', '`5 2`'],
     answer: 0,
     explanation:

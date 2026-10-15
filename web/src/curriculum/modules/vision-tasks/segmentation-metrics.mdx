@@ -32,7 +32,7 @@ miou = calculate_miou(pred, true, num_classes=4)
 print("mIoU:", round(miou, 4))
 print("pixel accuracy:", (pred == true).mean())`
 
-Your U-Net has produced a label map: a class for every pixel. Is it any good? The obvious score, the percentage of pixels it got right, can be 96% for a model that found nothing at all. Segmentation is measured with **IoU** (intersection over union) instead, averaged over the classes to give **mean IoU**. In the NOAI 2026 Final, writing `calculate_miou` was worth half of the U-Net task's marks, and this lesson shows you exactly how to write it.
+Your U-Net has produced a label map: a class for every pixel. Is it any good? The obvious score, the percentage of pixels it got right, can be 95% or more for a model that found nothing at all. Segmentation is measured with **IoU** (intersection over union) instead, averaged over the classes to give **mean IoU**. In the NOAI 2026 Final, writing `calculate_miou` was worth half of the U-Net task's marks, and this lesson shows you exactly how to write it.
 
 <Analogy title="Two people, one colouring book">
 
@@ -226,7 +226,7 @@ $$
   </Step>
 </Steps>
 
-Because the curve always rises, ranking models by Dice or by IoU gives the same order. Dice just looks more generous in the middle. A "soft" version of Dice (using predicted probabilities instead of hard 0/1 masks) is also popular as a training loss, $1 - \text{Dice}$, for tiny structures such as tumours, because, like IoU, it cannot be won by predicting background.
+For a single mask, a higher IoU always means a higher Dice, because the curve always rises, so the two rank single predictions the same way; Dice just looks more generous in the middle. Averages are different: the conversion is curved, so mean Dice and mean IoU over several classes or images can rank two models differently. (Per-class IoUs of 0.9 and 0.1 give mIoU 0.50 and mean Dice 0.57; IoUs of 0.49 and 0.49 give mIoU 0.49 but mean Dice 0.66.) A "soft" version of Dice (using predicted probabilities instead of hard 0/1 masks) is also popular as a training loss, $1 - \text{Dice}$, for tiny structures such as tumours, because, like IoU, it cannot be won by predicting background.
 
 <QuickCheck
   q="A model's tumour mask has IoU = 1/3 with the true mask. What is its Dice score?"
@@ -246,6 +246,6 @@ Prelim questions here are quick recall: IoU is **overlap divided by union**; mIo
 - For each class, $\text{IoU} = |P \cap T| / |P \cup T| = TP/(TP + FP + FN)$; in code, `(p & t).sum() / (p | t).sum()` with `p = pred == c`, `t = true == c`.
 - **Mean IoU** averages the per-class IoUs, giving every class an equal vote. A class absent from **both** maps ($0/0$) is **skipped**; a class predicted but absent scores 0.
 - **Pixel accuracy** is dominated by the background: predicting background everywhere can score 95% while finding nothing. IoU ignores true negatives, so it cannot be gamed this way.
-- **Dice** $= 2|P \cap T|/(|P| + |T|) = 2\,\text{IoU}/(1 + \text{IoU})$: always at least IoU, and it ranks models in the same order.
+- **Dice** $= 2|P \cap T|/(|P| + |T|) = 2\,\text{IoU}/(1 + \text{IoU})$: always at least IoU, and for one mask it orders predictions the same way as IoU (averages over classes can disagree).
 
 </Takeaways>

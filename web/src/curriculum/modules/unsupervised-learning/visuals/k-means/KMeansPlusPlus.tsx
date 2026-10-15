@@ -116,17 +116,17 @@ export default function KMeansPlusPlus() {
 
   return (
     <Figure
-      title="k-means++: spread the starting centres out"
+      title="k-means++: spread the starting centroids out"
       caption={
         <>
-          The first centre is a random data point. Every other point is drawn with an <b>area proportional to its chance</b> of being picked next,{' '}
-          <M>{'P(x) = D(x)^2 / \\sum D^2'}</M>, where <M>D(x)</M> is the length of its grey line to the nearest centre already chosen. Press{' '}
-          <b>Pick next centre</b> and notice that points in blobs without a centre are by far the likeliest picks; the bars compare this with picking
-          uniformly at random. Press <b>New first centre</b> to try again.
+          The first centroid is a random data point. Every other point is drawn with an <b>area proportional to its chance</b> of being picked next,{' '}
+          <M>{'P(x) = D(x)^2 / \\sum D^2'}</M>, where <M>D(x)</M> is the length of its grey line to the nearest centroid already chosen. Press{' '}
+          <b>Pick next centroid</b> and notice that points in blobs without a centroid are by far the likeliest picks; the bars compare this with picking
+          uniformly at random. Press <b>New first centroid</b> to try again.
         </>
       }
     >
-      <Plot x={X} y={Y} width={480} height={384} maxWidth={560} ariaLabel={`${count} of ${K} centres chosen; chance that the next one lands in a blob without a centre: ${pct(ppEmpty)}`}>
+      <Plot x={X} y={Y} width={480} height={384} maxWidth={560} ariaLabel={`${count} of ${K} centroids chosen; chance that the next one lands in a blob without a centroid: ${pct(ppEmpty)}`}>
         <Grid xTicks={10} yTicks={8} />
         <Axes xLabel="feature 1" yLabel="feature 2" xTicks={5} yTicks={4} />
         {lines && !finished && <DistanceLines chosen={chosen} />}
@@ -137,7 +137,7 @@ export default function KMeansPlusPlus() {
           </Label>
         ))}
         {chosen.map((c, j) => (
-          <CentroidHandle key={j} x={D.points[c][0]} y={D.points[c][1]} colour="var(--viz-ink)" label={`centre ${j + 1}`} r={8} />
+          <CentroidHandle key={j} x={D.points[c][0]} y={D.points[c][1]} colour="var(--viz-ink)" label={`centroid ${j + 1}`} r={8} />
         ))}
         {chosen.map((c, j) => (
           <Label key={`l${j}`} x={D.points[c][0]} y={D.points[c][1]} dx={13} dy={-11} size={12} weight={700}>
@@ -147,9 +147,9 @@ export default function KMeansPlusPlus() {
       </Plot>
       {!finished ? (
         <div style={{ width: '100%' }}>
-          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>Chance that centre {count + 1} lands in each blob (k-means++)</div>
+          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.35rem' }}>Chance that centroid {count + 1} lands in each blob (k-means++)</div>
           <Bars
-            ariaLabel="Probability that each blob receives the next centre under k-means++"
+            ariaLabel="Probability that each blob receives the next centroid under k-means++"
             max={1}
             format={pct}
             data={NAMES.map((n, g) => ({
@@ -163,23 +163,23 @@ export default function KMeansPlusPlus() {
       ) : (
         <Note>
           {claimed.size === K
-            ? 'All four centres are chosen and every blob got exactly one, so K-means starts from a good place.'
-            : `All four centres are chosen, but only ${claimed.size} of the 4 blobs got one this time.`}{' '}
-          Over 1000 tries on this data, k-means++ gives every blob a centre {pct(RATES.pp)} of the time; picking 4 points uniformly at random
-          manages it only {pct(RATES.uni)} of the time. Because it can still fail, libraries also run several starts (<code>n_init</code>) and keep
-          the best.
+            ? 'All four centroids are chosen and every blob got exactly one, so K-means starts from a good place.'
+            : `All four centroids are chosen, but only ${claimed.size} of the 4 blobs got one this time.`}{' '}
+          Over 1000 tries on this data, k-means++ gives every blob a centroid {pct(RATES.pp)} of the time; picking 4 points uniformly at random
+          manages it only {pct(RATES.uni)} of the time. Because it can still fail, run several starts and keep the best: in scikit-learn pass <code>n_init=10</code> (since version 1.4
+          its default, <code>n_init='auto'</code>, runs k-means++ only once).
         </Note>
       )}
       <Readout
         items={[
-          ['centres chosen', `${count} of ${K}`],
+          ['centroids chosen', `${count} of ${K}`],
           ['next lands in an empty blob: k-means++', finished ? '—' : pct(ppEmpty)],
           ['uniform random', finished ? '—' : pct(uniEmpty)],
         ]}
       />
       <Controls>
         <Button primary onClick={() => setCount((c) => Math.min(K, c + 1))} disabled={finished}>
-          Pick next centre
+          Pick next centroid
         </Button>
         <Button
           onClick={() => {
@@ -187,7 +187,7 @@ export default function KMeansPlusPlus() {
             setCount(1)
           }}
         >
-          New first centre
+          New first centroid
         </Button>
         <Toggle label="Show distances D(x)" checked={lines} onChange={setLines} />
       </Controls>

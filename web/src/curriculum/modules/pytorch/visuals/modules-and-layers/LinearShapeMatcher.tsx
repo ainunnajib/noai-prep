@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Slider, Readout, useContainerWidth } from '../../../../../kit'
+import { Figure, Slider, Readout, useContainerWidth } from '../../../../../kit'
 import css from './modules.module.css'
 
 /*
@@ -11,7 +11,8 @@ import css from './modules.module.css'
 */
 
 const COL = { n: 'var(--viz-5)', k: 'var(--viz-2)', out: 'var(--viz-3)', bad: 'var(--viz-neg)' }
-const NEURON = ['var(--viz-3)', 'var(--viz-4)', 'var(--viz-6)', 'var(--viz-5)', 'var(--viz-1)', 'var(--viz-3)']
+// six distinct colours, one per output neuron (orange is kept for the in/width sizes, red for errors)
+const NEURON = ['var(--viz-3)', 'var(--viz-4)', 'var(--viz-6)', 'var(--viz-5)', 'var(--viz-1)', 'var(--viz-axis)']
 
 export default function LinearShapeMatcher() {
   const [N, setN] = useState(4)
@@ -153,12 +154,22 @@ export default function LinearShapeMatcher() {
           </div>
         </div>
       )}
-      <Controls>
-        <Slider label="batch size N" value={N} min={1} max={6} onChange={setN} />
-        <Slider label="input width (x.shape[-1])" value={width} min={1} max={6} onChange={setWidth} />
-        <Slider label="in_features" value={inF} min={1} max={6} onChange={setIn} />
-        <Slider label="out_features" value={outF} min={1} max={6} onChange={setOut} />
-      </Controls>
+      <div className={css.sliderGrid}>
+        <div className={css.sliderGroup}>
+          <div className={css.groupHead}>
+            the data <code>x</code>
+          </div>
+          <Slider label="batch size N" value={N} min={1} max={6} onChange={setN} />
+          <Slider label="input width (x.shape[-1])" value={width} min={1} max={6} onChange={setWidth} />
+        </div>
+        <div className={css.sliderGroup}>
+          <div className={css.groupHead}>
+            the layer <code>nn.Linear(in, out)</code>
+          </div>
+          <Slider label="in_features" value={inF} min={1} max={6} onChange={setIn} />
+          <Slider label="out_features" value={outF} min={1} max={6} onChange={setOut} />
+        </div>
+      </div>
       <Readout
         items={[
           ['layer.weight.shape', `(${outF}, ${inF})`],

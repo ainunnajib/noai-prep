@@ -18,7 +18,7 @@ const questions: QuizQuestion[] = [
     options: ['`tensor(15.)`', '`tensor(5.)`', '`tensor(0.)`', 'a RuntimeError, because `backward()` is called more than once'],
     answer: 0,
     explanation:
-      'Each pass builds a fresh graph and contributes $\\frac{dL}{dw} = 5$, and PyTorch adds it to `.grad` instead of replacing it: $5 + 5 + 5 = 15$. There is no error, because every `backward()` runs on a new `L`; the error only appears when `backward()` is called twice on the same graph. Getting 5 each step would need `w.grad.zero_()` (or `optimizer.zero_grad()`) inside the loop.',
+      'Each pass builds a fresh graph and contributes $\\frac{dL}{dw} = 5$, and PyTorch adds it to `.grad` instead of replacing it: $5 + 5 + 5 = 15$. There is no error, because every `backward()` runs on a new `L`; the error usually appears only when `backward()` is called twice on the same graph. Getting 5 each step would need `w.grad.zero_()` (or `optimizer.zero_grad()`) inside the loop.',
     difficulty: 'beginner',
   },
   {

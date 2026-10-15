@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, HLine, VLine, DraggablePoint, Bars } from '../../../../../kit'
-import { TangentSeg, fx, panelTitle } from '../derivatives-as-slopes/plotHelpers'
+import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, HLine, VLine, Bars } from '../../../../../kit'
+import { Handle, TangentSeg, fx, panelTitle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Activation functions and their slopes on a shared x-axis. Saturation zones (slope below 0.01,
   or exactly 0 for ReLU) are shaded. For the sigmoid, bars show σ, 1 − σ and their product,
   which is the slope: the product of two numbers adding to 1 can never exceed 0.5 × 0.5 = 0.25.
+  For tanh, bars show tanh² and 1 − tanh² (both between 0 and 1, so no negative bar is needed).
 */
 
 type Act = 'sigmoid' | 'tanh' | 'relu'
@@ -40,7 +41,6 @@ export default function ActivationSlopes() {
         ]
       : act === 'tanh'
         ? [
-            { label: 'tanh(x)', value: y, color: 'var(--viz-1)' },
             { label: 'tanh²(x)', value: y * y, color: 'var(--viz-5)' },
             { label: 'slope 1 − tanh²', value: dv, color: tone, strong: true },
           ]
@@ -88,10 +88,12 @@ export default function ActivationSlopes() {
             </>
           )}
           <VLine x={x} color="var(--viz-muted)" dash="2 4" width={1.2} />
-          <DraggablePoint
+          <Handle
             x={x}
             y={y}
             color="var(--viz-2)"
+            label="drag"
+            ariaLabel="input x: drag along the curve"
             constrain={(nx) => {
               // snap to 0.1, and onto the kink at 0 when close (so keyboard users can reach it)
               const s = Math.abs(nx) < 0.2 ? 0 : Math.round(nx * 10) / 10
@@ -109,7 +111,7 @@ export default function ActivationSlopes() {
           ))}
           <Grid xTicks={8} yTicks={3} />
           <Axes origin xTicks={8} yTicks={3} xLabel="x" />
-          <HLine y={D.max} color="var(--viz-6)" label={`max slope ${D.max}`} />
+          <HLine y={D.max} color="var(--ink-2)" label={`max slope ${D.max}`} />
           {act === 'relu' ? (
             <>
               <Path points={[[X[0], 0], [0, 0]]} color="var(--viz-5)" width={3} />

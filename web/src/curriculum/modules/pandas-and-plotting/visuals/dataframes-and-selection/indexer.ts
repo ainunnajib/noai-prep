@@ -59,6 +59,10 @@ function tokenize(src: string): Tok[] {
     } else if ('[](),.:'.includes(ch)) {
       out.push({ t: 'sym', v: ch })
       i++
+    } else if ('<>=!&|~'.includes(ch)) {
+      throw new Error(
+        "That looks like a boolean mask. Masks work in loc too, e.g. df.loc[df['price'] > 500000], but this box only handles labels, positions, slices and lists: try masks in the filter builder further down.",
+      )
     } else {
       throw new Error(`Unexpected character "${ch}".`)
     }
@@ -278,6 +282,15 @@ function ilocAxis(k: Key, n: number, two: boolean, isRange: boolean): number[] {
 
 const isScalar = (k?: Key) => k?.kind === 'scalar'
 
+/** common DataFrame methods: typing df.count etc. gives a bound method in pandas, not an AttributeError */
+const METHODS = [
+  'count', 'head', 'tail', 'mean', 'median', 'sum', 'max', 'min', 'std', 'var', 'describe', 'info', 'sort_values', 'sort_index',
+  'value_counts', 'drop', 'dropna', 'fillna', 'isna', 'isnull', 'notna', 'copy', 'apply', 'map', 'groupby', 'merge', 'join', 'plot',
+  'query', 'filter', 'pop', 'abs', 'round', 'rank', 'nunique', 'duplicated', 'drop_duplicates', 'reset_index', 'set_index', 'astype',
+  'corr', 'sample', 'rename', 'replace', 'where', 'any', 'all', 'cumsum', 'diff', 'shift', 'interpolate', 'ffill', 'bfill', 'to_numpy',
+  'to_csv', 'items', 'keys', 'get', 'update', 'agg', 'transform', 'pivot', 'melt', 'explode', 'clip', 'idxmax', 'idxmin', 'prod',
+]
+
 export function evaluate(src: string, f: Frame): Outcome {
   let e: Expr
   try {
@@ -292,7 +305,12 @@ export function evaluate(src: string, f: Frame): Outcome {
     if (e.acc === 'attr') {
       const j = f.columns.indexOf(e.name)
       if (j >= 0) return { ok: true, acc: 'attr', rows: allRows, cols: [j], kind: 'series' }
-      if (['shape', 'index', 'columns', 'dtypes', 'values'].includes(e.name)) throw new Error(`df.${e.name} works, but it is information about the table rather than a block of cells, so there is nothing to highlight.`)
+      if (['shape', 'index', 'columns', 'dtypes', 'values', 'size', 'ndim', 'empty', 'T'].includes(e.name))
+        throw new Error(`df.${e.name} works, but it is information about the table rather than a block of cells, so there is nothing to highlight.`)
+      if (METHODS.includes(e.name))
+        throw new Error(
+          `df.${e.name} is a DataFrame method, not a column: it runs only with brackets, df.${e.name}(). That clash is why df['${e.name}'] is the safer way to reach a column called '${e.name}'.`,
+        )
       throw new PdError(`AttributeError: 'DataFrame' object has no attribute '${e.name}'`)
     }
     if (e.acc === 'get') {

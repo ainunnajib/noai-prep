@@ -11,6 +11,20 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
+    id: 'numpy.why-numpy.6',
+    prompt: 'Which statement best describes **vectorisation** in NumPy?',
+    options: [
+      'Writing one whole-array operation, such as `y = 2 * x + 1`, instead of a Python loop',
+      'Converting single numbers (scalars) into vectors so that NumPy can store them in arrays',
+      'Moving an array onto the GPU so that a graphics card handles every element in parallel',
+      'Changing an array to a smaller dtype, such as `float32`, so each element takes fewer bytes',
+    ],
+    answer: 0,
+    explanation:
+      'Vectorised code states the work for the whole array at once; the loop over the elements still happens, but inside NumPy\'s compiled C code. "Converting scalars to vectors" is the classic trap: it sounds like the word, but it is not what the term means. NumPy runs on the CPU, and changing the dtype (with `astype`) is a separate idea.',
+    difficulty: 'beginner',
+  },
+  {
     id: 'numpy.why-numpy.2',
     prompt: 'Why does `out = arr * 2` on a NumPy array run much faster than a Python `for` loop that doubles each number of a list?',
     options: [
@@ -27,7 +41,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.why-numpy.3',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\na = np.array([3, 1, 4, 1, 5, 9, 2, 6], dtype=np.int32)\nprint(a.nbytes, a.reshape(2, 4).strides)',
+    code: 'import numpy as np\na = np.arange(8, dtype=np.int32)\nb = a.reshape(2, 4)\nprint(a.nbytes, b.strides)',
     options: ['`32 (16, 4)`', '`8 (4, 1)`', '`32 (4, 16)`', '`64 (32, 8)`'],
     answer: 0,
     explanation:

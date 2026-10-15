@@ -100,7 +100,8 @@ export default function SpanExplorer() {
         <>
           Drag the tips of <span className={s.c1}>u</span> and <span className={s.c2}>v</span>. The green dots are the combinations a·u + b·v with a and b in
           steps of ½; the shading is everything reachable with any amounts. Use the sliders to steer the point onto the star (or press <b>Solve for a and b</b>
-          ). Then press <b>Make v parallel to u</b>: every dot falls onto one line, and the star becomes unreachable. Parallel arrows waste a direction.
+          ). Then press <b>Make v parallel to u</b>: every dot falls onto one line, and (unless that line happens to pass through the star) the star becomes
+          unreachable. Parallel arrows waste a direction.
         </>
       }
     >

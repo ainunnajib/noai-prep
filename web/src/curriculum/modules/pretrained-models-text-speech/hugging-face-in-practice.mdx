@@ -19,13 +19,18 @@ from transformers import pipeline
 
 clf = pipeline("sentiment-analysis",
                model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
-print(clf(["The chicken rice here is amazing!",
-           "The queue was long and the food was cold."]))
+results = clf(["The chicken rice here is amazing!",
+               "The queue was long and the food was cold."])
+for r in results:
+    print(r)
 ```
 
 ```text
-[{'label': 'POSITIVE', 'score': 0.9998237490653992}, {'label': 'NEGATIVE', 'score': 0.9996987581253052}]
+{'label': 'POSITIVE', 'score': 0.9998237490653992}
+{'label': 'NEGATIVE', 'score': 0.9996987581253052}
 ```
+
+The pipeline returns one dictionary per text: the predicted label and the model's probability for it.
 
 Other task names work the same way: `"ner"` (tag people, places and organisations), `"fill-mask"` (BERT's fill-in-the-blank game), `"text-generation"` (GPT-style), `"zero-shot-classification"`, `"automatic-speech-recognition"` (for example with Whisper) and `"image-classification"`. In `transformers` version 4 there are also `"summarization"`, `"translation"` and `"question-answering"`; version 5 removed those three, so for them you call the model directly, as shown below. It is good practice to always pass `model=` explicitly, so you know exactly which model you are running.
 
@@ -90,20 +95,19 @@ NEGATIVE 0.9997
 
 The first sentence has 9 tokens and the second 12, so the first row gets 3 padding positions, marked 0 in the mask. The `**enc` passes `input_ids` and `attention_mask` to the model as keyword arguments.
 
-The `Auto` classes pick the architecture from the config. The part after `AutoModelFor` says which **head** sits on top, and therefore what shape the logits have:
+The `Auto` classes pick the architecture from the config. The part after `AutoModelFor` says which **head** sits on top, and therefore what shape the logits have ($V$ is the vocabulary size):
 
-| Class | Head | `logits` shape | Typical models |
-|---|---|---|---|
-| `AutoModel` | none: returns hidden states $(B, T, d)$ | n/a | any, for embeddings |
-| `AutoModelForSequenceClassification` | one label per text, from `[CLS]` | $(B, \text{num\_labels})$ | BERT, DistilBERT, RoBERTa |
-| `AutoModelForTokenClassification` | one label per token | $(B, T, \text{num\_labels})$ | BERT-style NER models |
-| `AutoModelForMaskedLM` | a word for every position | $(B, T, V)$ | BERT (fill-mask) |
-| `AutoModelForCausalLM` | the next token | $(B, T, V)$ | GPT-2, Llama, Qwen |
-| `AutoModelForSeq2SeqLM` | encoder-decoder; use `.generate()` | $(B, T_\text{out}, V)$ | T5, BART, MarianMT |
+- `AutoModel`: no head. It returns the hidden states, shape $(B, T, d)$, for example to use as embeddings.
+- `AutoModelForSequenceClassification`: one label per text, from `[CLS]`. Logits $(B, \text{num\_labels})$. Models: BERT, DistilBERT, RoBERTa.
+- `AutoModelForTokenClassification`: one label per token. Logits $(B, T, \text{num\_labels})$. Models: BERT-style NER models.
+- `AutoModelForMaskedLM`: a word for every position (fill-mask). Logits $(B, T, V)$. Models: BERT.
+- `AutoModelForCausalLM`: the next token. Logits $(B, T, V)$. Models: GPT-2, Llama, Qwen.
+- `AutoModelForSeq2SeqLM`: an encoder-decoder, used with `.generate()`. Logits $(B, T_\text{out}, V)$. Models: T5, BART, MarianMT.
 
-Here $V$ is the vocabulary size. For an encoder-decoder such as T5, `model.generate(**enc)` runs the [decoding loop](#/learn/pretrained-models-text-speech/encoder-decoder-models) for you, and `tok.decode(ids, skip_special_tokens=True)` turns the output ids back into text. This is how you summarise in any version of `transformers`:
+For an encoder-decoder such as T5, `model.generate(**enc)` runs the [decoding loop](#/learn/pretrained-models-text-speech/encoder-decoder-models) for you, and `tok.decode(ids, skip_special_tokens=True)` turns the output ids back into text. This is how you summarise in any version of `transformers`:
 
 ```python
+import textwrap
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
 tok = AutoTokenizer.from_pretrained("google-t5/t5-small")
@@ -115,13 +119,16 @@ text = ("Singapore's public libraries will open longer hours from next month, "
         "study in the evenings. The board will also add more study seats and "
         "power points at its busiest branches, including those in Jurong, "
         "Tampines and Woodlands.")
-enc = tok("summarize: " + text, return_tensors="pt")     # T5 reads the task from a prefix
+enc = tok("summarize: " + text, return_tensors="pt")      # task prefix
 out = model.generate(**enc, max_new_tokens=40)
-print(tok.decode(out[0], skip_special_tokens=True))
+summary = tok.decode(out[0], skip_special_tokens=True)
+print(textwrap.fill(summary, width=60))                   # wrap long lines
 ```
 
 ```text
-the national library board says 12 public libraries will stay open until 11pm on weekdays. the board will add more study seats and power points at its busiest branches.
+the national library board says 12 public libraries will
+stay open until 11pm on weekdays. the board will add more
+study seats and power points at its busiest branches.
 ```
 
 <QuickCheck
@@ -245,7 +252,11 @@ A teacher marking a worksheet skips the blank answer spaces at the end of the pa
 PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` have an argument `ignore_index`, and its default value is $-100$. Any position whose label is $-100$ adds nothing to the loss and is **not counted** in the average:
 
 $$
-\mathcal{L} = \frac{1}{|S|} \sum_{i \in S} -\ln p_i(y_i), \qquad S = \{\, i : y_i \neq -100 \,\}
+\mathcal{L} = \frac{1}{|S|} \sum_{i \in S} -\ln p_i(y_i)
+$$
+
+$$
+S = \{\, i : y_i \neq -100 \,\}
 $$
 
 - $y_i$ is the label at position $i$, and $p_i(y_i)$ is the probability the model gives that label.
@@ -273,7 +284,7 @@ logits = torch.tensor([[2.0, 0.5, 0.1],
 labels = torch.tensor([0, 1, 2, -100, -100])
 
 print(F.cross_entropy(logits, labels))            # ignore_index=-100 is the default
-print(F.cross_entropy(logits[:3], labels[:3]))    # the same: only 3 real positions count
+print(F.cross_entropy(logits[:3], labels[:3]))    # same: only 3 positions count
 bad = torch.tensor([0, 1, 2, 0, 0])               # bug: padding labelled as class 0
 print(F.cross_entropy(logits, bad))
 ```
@@ -301,9 +312,9 @@ for w in enc.word_ids():
     if w is None:
         labels.append(-100)              # [CLS], [SEP]: not scored
     elif w != prev:
-        labels.append(word_labels[w])    # first piece of a word gets the word's label
+        labels.append(word_labels[w])    # first piece: the word's label
     else:
-        labels.append(-100)              # later pieces of the same word: not scored
+        labels.append(-100)              # later pieces: not scored
     prev = w
 print(labels)
 ```

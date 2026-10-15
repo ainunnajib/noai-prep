@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, usePlayer, PlayerControls, useContainerWidth, M } from '../../../../../kit'
 import { H, wordVec, forward, influenceOf, type Model } from './rnnSim'
+import st from './rnn.module.css'
 
 /*
   The RNN unrolled along time: one column per word. Each column shows the hidden state (8 numbers)
@@ -61,7 +62,7 @@ export default function RNNUnroller() {
       caption={
         <>
           Press <b>Play</b> or <b>Next</b>. Each column is the hidden state <M>{'h_t'}</M> (8 numbers, orange positive, blue negative) after reading that word, computed with the{' '}
-          <b>same</b> weights at every step. The bottom row shows how much the tracked word still moves the state. Add words in the middle and watch "Cats" fade in the RNN; switch to the
+          <b>same</b> weights at every step. The bars in the bottom row show how much the tracked word still moves the state. Add words in the middle and watch "Cats" fade in the RNN; switch to the
           LSTM and it lasts far longer. Click any word to track it instead. (Untrained toy weights; the LSTM's forget gate is biased towards keeping.)
         </>
       }
@@ -77,9 +78,18 @@ export default function RNNUnroller() {
           </text>
           <text x={4} y={H_TOP + (H * CELL) / 2 + 11} className="plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
             h
-            <tspan baselineShift="sub" style={{ fontSize: 9 }}>
+            <tspan baselineShift="sub" style={{ fontSize: 11 }}>
               t
             </tspan>
+          </text>
+          {/* colour key for the state cells */}
+          <rect x={4} y={H_TOP + (H * CELL) / 2 + 20} width={10} height={10} rx={2} style={{ fill: 'color-mix(in srgb, var(--viz-2) 75%, var(--surface))' }} />
+          <text x={17} y={H_TOP + (H * CELL) / 2 + 29} className="plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
+            +
+          </text>
+          <rect x={30} y={H_TOP + (H * CELL) / 2 + 20} width={10} height={10} rx={2} style={{ fill: 'color-mix(in srgb, var(--viz-1) 75%, var(--surface))' }} />
+          <text x={43} y={H_TOP + (H * CELL) / 2 + 29} className="plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
+            −
           </text>
           <text x={4} y={INF_TOP + 14} className="plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
             influence
@@ -106,11 +116,11 @@ export default function RNNUnroller() {
                   dy={angle === -90 ? '0.35em' : undefined}
                   role="button"
                   tabIndex={0}
+                  className={st.word}
                   aria-label={`Track the word ${w}`}
                   onClick={() => setTracked(t)}
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setTracked(t)}
                   style={{
-                    cursor: 'pointer',
                     fontSize: 12.5,
                     fontWeight: isK || t === step ? 800 : 500,
                     fill: isK ? 'var(--viz-4)' : read ? 'var(--ink)' : 'var(--ink-3)',
@@ -152,11 +162,20 @@ export default function RNNUnroller() {
         </svg>
       </div>
       <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.5 }}>
-        Step {step + 1}: read <b style={{ fontFamily: 'var(--font-mono)' }}>{words[step]}</b>.{' '}
+        Step {step + 1}: read <b style={{ fontFamily: 'var(--font-mono)' }}>{words[step]}</b>.
         {model === 'rnn' ? (
-          <M>{'h_t = \\tanh(W_x x_t + W_h h_{t-1} + b)'}</M>
+          <span className={st.eqLine}>
+            <M>{'h_t = \\tanh(W_x x_t + W_h h_{t-1} + b)'}</M>
+          </span>
         ) : (
-          <M>{'c_t = f_t \\odot c_{t-1} + i_t \\odot \\tilde c_t,\\; h_t = o_t \\odot \\tanh(c_t)'}</M>
+          <>
+            <span className={st.eqLine}>
+              <M>{'c_t = f_t \\odot c_{t-1} + i_t \\odot \\tilde c_t'}</M>
+            </span>
+            <span className={st.eqLine}>
+              <M>{'h_t = o_t \\odot \\tanh(c_t)'}</M>
+            </span>
+          </>
         )}
       </p>
       <PlayerControls player={player} label={(s) => `Word ${Math.min(s, T - 1) + 1} of ${T}`} />

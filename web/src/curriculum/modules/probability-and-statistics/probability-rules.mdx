@@ -9,16 +9,20 @@ When an AI model says "92% cat", or a spam filter flags an email, or a weather a
 
 Some words first. An <Term def="Anything with an uncertain result that you could repeat, such as rolling a die or flipping a coin.">experiment</Term> is anything with an uncertain result, like rolling a die. Each possible result is an <Term def="One single possible result of an experiment, such as rolling a 4.">outcome</Term>, and the list of all outcomes is the <Term def="The set of all possible outcomes of an experiment. For one die it is 1, 2, 3, 4, 5, 6.">sample space</Term>. An <Term def="A set of outcomes you care about, such as 'the die shows an even number' (2, 4 or 6).">event</Term> is a group of outcomes you care about, such as "the die shows at least 5".
 
+<Analogy>
+Board an empty MRT carriage and sit in a seat picked completely at random. Every seat is equally likely, so the chance of landing a seat by the door is just (seats by the door) ÷ (all the seats).
+</Analogy>
+
 When every outcome is **equally likely**, probability is just counting:
 
 $$
 P(E) = \frac{\text{number of outcomes in } E}{\text{total number of outcomes}}
 $$
 
-Here $P(E)$ is read "the probability of $E$". For a fair die, "at least 5" contains the outcomes 5 and 6, so $P(\text{at least } 5) = \frac{2}{6} = \frac{1}{3}$. Two facts follow straight away:
+Here $P(E)$ is read "the probability of $E$". For a fair die, "at most 2" contains the outcomes 1 and 2, so $P(\text{at most } 2) = \frac{2}{6} = \frac{1}{3}$. Two facts follow straight away:
 
 - Every probability is between 0 (impossible) and 1 (certain).
-- The <Term def="The event 'E does not happen'. Its probability is 1 minus P(E).">complement</Term> "not $E$" contains every outcome outside $E$, so $P(\text{not } E) = 1 - P(E)$. The chance of rolling *less than* 5 is $1 - \frac{1}{3} = \frac{2}{3}$.
+- The <Term def="The event 'E does not happen'. Its probability is 1 minus P(E).">complement</Term> "not $E$" contains every outcome outside $E$, so $P(\text{not } E) = 1 - P(E)$. The chance of rolling *more than* 2 is $1 - \frac{1}{3} = \frac{2}{3}$.
 
 <PastPaperQuestion paper="prelim2026" n={49} />
 
@@ -31,9 +35,10 @@ With two dice you need to be careful about what is equally likely. The totals 2 
 </Mistake>
 
 <QuickCheck
+  id="probability-and-statistics.probability-rules.qc1"
   q="You roll two fair dice. What is the probability of getting at least one 6?"
-  options={['$11/36$', '$1/3$', '$1/36$', '$25/36$']}
-  answer={0}
+  options={['$1/3$', '$11/36$', '$1/36$', '$25/36$']}
+  answer={1}
   explain="Use the complement: P(no 6) $= \frac{5}{6} \times \frac{5}{6} = \frac{25}{36}$, so P(at least one 6) $= 1 - \frac{25}{36} = \frac{11}{36}$. Or count the grid: the row of 6s has 6 cells and the column of 6s has 6 cells, but (6, 6) is in both, so $6 + 6 - 1 = 11$. Answering $\frac{12}{36} = \frac{1}{3}$ counts (6, 6) twice."
 />
 
@@ -88,20 +93,23 @@ This product rule is the *definition* of independence, so never use it for event
 
 Flip a coin and roll a die: $P(\text{heads and } 6) = \frac{1}{2} \times \frac{1}{6} = \frac{1}{12}$. You can check by counting: there are 12 equally likely (coin, die) pairs, and only one of them is (heads, 6).
 
-Now the surprise. Look at what happened in the square when you pulled A and B apart. The overlap became 0, but $P(A) \times P(B)$ did not. **Mutually exclusive events are not independent** (unless one of them has probability 0). If they cannot happen together, then learning that A happened tells you for certain that B did not. That is the opposite of "tells you nothing".
+Now the surprise. Press **Pull them apart** in the square above: the overlap becomes 0, but $P(A) \times P(B)$ does not. **Mutually exclusive events are not independent** (unless one of them has probability 0). If they cannot happen together, then learning that A happened tells you for certain that B did not. That is the opposite of "tells you nothing".
 
 <KeyIdea>
 Mutually exclusive: no overlap, $P(A \cap B) = 0$, so **add** for "or". Independent: no influence, $P(A \cap B) = P(A)\,P(B)$, so **multiply** for "and". The two almost never go together.
 </KeyIdea>
 
-<PastPaperQuestion paper="prelim2026" n={51} />
-
 <QuickCheck
+  id="probability-and-statistics.probability-rules.qc2"
   q="Pick a day at random. A = 'it is Monday', B = 'it is Tuesday'. Which statement is true?"
-  options={['A and B are mutually exclusive, so they are not independent', 'A and B are independent, because one day does not cause the other', 'A and B are both mutually exclusive and independent', 'A and B are neither mutually exclusive nor independent']}
-  answer={0}
+  options={['A and B are independent, because one day does not cause the other', 'A and B are both mutually exclusive and independent', 'A and B are neither mutually exclusive nor independent', 'A and B are mutually exclusive, so they are not independent']}
+  answer={3}
   explain="A day cannot be both Monday and Tuesday, so $P(A \cap B) = 0$: mutually exclusive. But $P(A) \times P(B) = \frac{1}{7} \times \frac{1}{7} \neq 0$, so they are not independent. Knowing it is Monday tells you for sure it is not Tuesday."
 />
+
+Exam questions often test the definition directly, so learn the product rule as *the* meaning of independence, not "they cannot happen together".
+
+<PastPaperQuestion paper="prelim2026" n={51} />
 
 ## Conditional probability: zoom into what you know
 
@@ -138,16 +146,15 @@ $$
 
 If $A$ and $B$ are independent, knowing $B$ changes nothing, so $P(A \mid B) = P(A)$ and the rule shrinks to $P(A)\,P(B)$. That is the cleanest way to say what independence means.
 
-<Steps title="Conditional probability from a table">
-  <Step title="Read the table">
-    A survey of 100 students:
+A survey of 100 students:
 
-    |  | Wears glasses | No glasses | Total |
-    |---|---|---|---|
-    | Sports CCA | 12 | 28 | 40 |
-    | Other CCA | 24 | 36 | 60 |
-    | Total | 36 | 64 | 100 |
-  </Step>
+|  | Wears glasses | No glasses | Total |
+|---|---|---|---|
+| Sports CCA | 12 | 28 | 40 |
+| Other CCA | 24 | 36 | 60 |
+| Total | 36 | 64 | 100 |
+
+<Steps title="Conditional probability from the table">
   <Step title="'Given sports CCA' means: look only at that row">
     The world shrinks to the 40 students in sports CCAs. Of them, 12 wear glasses, so $P(\text{glasses} \mid \text{sports}) = \frac{12}{40} = 0.3$.
   </Step>
@@ -200,9 +207,10 @@ Switch the sweets bag between "eaten" and "put back". If the first sweet is eate
 </KeyIdea>
 
 <QuickCheck
+  id="probability-and-statistics.probability-rules.qc3"
   q="An image classifier labels 3 images independently, and gets each one right with probability 0.9. What is the probability that it makes at least one mistake?"
-  options={['$0.271$', '$0.3$', '$0.729$', '$0.001$']}
-  answer={0}
+  options={['$0.3$', '$0.729$', '$0.271$', '$0.001$']}
+  answer={2}
   explain="P(no mistakes) $= 0.9 \times 0.9 \times 0.9 = 0.729$, so P(at least one mistake) $= 1 - 0.729 = 0.271$. Adding $0.1 + 0.1 + 0.1 = 0.3$ counts the cases with two or three mistakes more than once, and $0.001 = 0.1^3$ is the chance that *all three* are wrong."
 />
 

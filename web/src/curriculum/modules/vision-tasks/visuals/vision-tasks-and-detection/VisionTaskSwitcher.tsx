@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { Figure, Segmented, Readout, Toggle, useNarrow } from '../../../../../kit'
-import { OBJECTS, LABEL_MAP, ROWS, COLS, CELL, SW, SH, StreetPhoto, boxOf, tint, objectAt, THINGS, type ClassName } from './street'
+import { Figure, Segmented, Readout, Toggle, useContainerWidth } from '../../../../../kit'
+import { CLASS_COLOUR } from '../classColours'
+import { OBJECTS, LABEL_MAP, ROWS, COLS, CELL, SW, SH, StreetPhoto, boxOf, objectAt, THINGS, type ClassName } from './street'
 import css from './det.module.css'
 
 /*
@@ -21,24 +22,27 @@ const TASKS: { value: Task; label: string; where: string }[] = [
   { value: 'pan', label: 'Panoptic', where: 'class + object for every pixel' },
 ]
 
+/* Class colours are shared across the module. The pale "stuff" tints are CSS variables (det.module.css, class .vts) so they
+   can be made stronger in dark mode, where light tints vanish into the dark surface. */
 const SEM_COLOUR: Record<ClassName, string> = {
-  sky: tint('var(--viz-1)', 45),
-  building: tint('var(--viz-6)', 65),
-  road: tint('var(--viz-muted)', 75),
-  car: 'var(--viz-2)',
-  person: 'var(--viz-4)',
+  sky: 'var(--sem-sky)',
+  building: 'var(--sem-building)',
+  road: 'var(--sem-road)',
+  car: CLASS_COLOUR.car,
+  person: CLASS_COLOUR.person,
 }
 const PAN_STUFF: Record<string, string> = {
-  sky: tint('var(--viz-1)', 28),
-  building: tint('var(--viz-6)', 40),
-  road: tint('var(--viz-muted)', 55),
+  sky: 'var(--pan-sky)',
+  building: 'var(--pan-building)',
+  road: 'var(--pan-road)',
 }
+/** one clearly different hue per object; the first car and first person keep their class colour */
 const INST_COLOUR: Record<string, string> = {
-  car1: 'var(--viz-2)',
+  car1: CLASS_COLOUR.car,
   car2: 'var(--viz-3)',
-  person1: 'var(--viz-4)',
+  person1: CLASS_COLOUR.person,
   person2: 'var(--viz-1)',
-  person3: 'var(--viz-5)',
+  person3: 'var(--viz-6)',
 }
 /** label positions (centre x, top y) for the three people, whose boxes are too close for on-box labels */
 const CALLOUT: Record<string, [number, number]> = { person1: [98, 31], person2: [122, 23], person3: [144, 31] }
@@ -118,7 +122,10 @@ export default function VisionTaskSwitcher() {
   const [hover, setHover] = useState<{ k: number; r: number; c: number } | null>(null)
   const [photo, setPhoto] = useState(false)
   const svgRef = useRef<SVGSVGElement>(null)
-  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
+  const [wrapRef, width] = useContainerWidth<HTMLDivElement>(640)
+  const narrow = width < 560
+  // keep box labels about 11 px tall on screen however narrow the picture gets
+  const fs = Math.max(4.6, 11 / (Math.min(width, 640) / SW))
 
   const stats = useMemo(
     () => ({
@@ -223,14 +230,20 @@ export default function VisionTaskSwitcher() {
     >
       <Segmented label="Task" value={task} onChange={(t) => (setTask(t), setHover(null))} options={TASKS.map((t) => ({ value: t.value, label: t.label }))} />
       <div className={css.ladder} aria-hidden="true">
-        {TASKS.map((t, i) => (
-          <span key={t.value} className={`${css.rung}${t.value === task ? ` ${css.rungOn}` : ''}`}>
-            {narrow ? i + 1 : t.where}
+        {narrow ? (
+          <span className={`${css.rung} ${css.rungOn}`}>
+            {TASKS.findIndex((t) => t.value === task) + 1} / {TASKS.length} · {TASKS.find((t) => t.value === task)!.where}
           </span>
-        ))}
+        ) : (
+          TASKS.map((t) => (
+            <span key={t.value} className={`${css.rung}${t.value === task ? ` ${css.rungOn}` : ''}`}>
+              {t.where}
+            </span>
+          ))
+        )}
         <span className={css.ladderArrow}>more “where” →</span>
       </div>
-      <div ref={wrapRef} style={{ width: '100%', display: 'grid', justifyItems: 'center' }}>
+      <div ref={wrapRef} className={css.vts} style={{ width: '100%', display: 'grid', justifyItems: 'center' }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SW} ${SH}`}
@@ -261,18 +274,19 @@ export default function VisionTaskSwitcher() {
               const [x1, y1, x2, y2] = boxOf(o)
               const col = o.cls === 'car' ? 'var(--viz-2)' : 'var(--viz-4)'
               const on = hk === k
-              const label = `${o.cls} ${o.score?.toFixed(2)}`
-              const w = label.length * 2.75 + 3
+              const label = narrow ? `${o.cls} ${o.score?.toFixed(2).slice(1)}` : `${o.cls} ${o.score?.toFixed(2)}`
+              const lh = fs * 1.41
+              const w = label.length * fs * 0.6 + 3
               // people stand too close for labels on their boxes: use callouts with leader lines
               const call = CALLOUT[o.id]
-              const lx = call ? call[0] - w / 2 : x1
-              const ly = call ? call[1] : y1 - 6.5
+              const lx = Math.min(SW - w, call ? call[0] - w / 2 : x1)
+              const ly = call ? call[1] + 6.5 - lh : y1 - lh
               return (
                 <g key={o.id} style={{ opacity: hk != null && isThing(hk) && !on ? 0.45 : 1 }}>
                   <rect x={x1} y={y1} width={x2 - x1} height={y2 - y1} style={{ fill: 'none', stroke: col, strokeWidth: on ? 1.8 : 1.2 }} />
-                  {call && <line x1={(x1 + x2) / 2} y1={y1} x2={call[0]} y2={ly + 6.5} style={{ stroke: col, strokeWidth: 0.7 }} />}
-                  <rect x={lx} y={ly} width={w} height={6.5} rx={1} style={{ fill: col }} />
-                  <text x={lx + 1.5} y={ly + 4.8} style={{ fontSize: 4.6, fontWeight: 700, fill: 'var(--surface)' }}>
+                  {call && <line x1={(x1 + x2) / 2} y1={y1} x2={call[0]} y2={ly + lh} style={{ stroke: col, strokeWidth: 0.7 }} />}
+                  <rect x={lx} y={ly} width={w} height={lh} rx={1} style={{ fill: col }} />
+                  <text x={lx + 1.5} y={ly + lh * 0.74} style={{ fontSize: fs, fontWeight: 700, fill: 'var(--surface)' }}>
                     {label}
                   </text>
                 </g>
@@ -281,7 +295,7 @@ export default function VisionTaskSwitcher() {
         </svg>
       </div>
       {showMask && (
-        <div className={css.legend}>
+        <div className={`${css.legend} ${css.vts}`}>
           {task === 'sem' &&
             (Object.keys(SEM_COLOUR) as ClassName[]).map((c) => (
               <span key={c}>

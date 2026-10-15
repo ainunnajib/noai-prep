@@ -3,7 +3,7 @@ import LineSpotter from './visuals/final-mcqs-and-trends/LineSpotter'
 import CodeMCQWalkthrough from './visuals/final-mcqs-and-trends/CodeMCQWalkthrough'
 import TrendHeatmap from './visuals/final-mcqs-and-trends/TrendHeatmap'
 
-In 2025, an NOAI multiple-choice question looked like this: "What is the primary function of pooling layers in a CNN?". In the 2026 Final, a typical one showed 10 to 25 lines of Python and asked which line must change. Same 20 questions, a very different skill. This lesson teaches that skill, walks through five real Final questions line by line, and reads the trend across the three papers so you know what to expect in 2027.
+In 2025, an NOAI multiple-choice question looked like this: "What is the primary function of pooling layers in a CNN?". In the 2026 Final, a typical one showed 8 to 24 lines of Python and asked which line must change. Same 20-question format, a very different skill. This lesson teaches that skill, walks through four real Final questions line by line, gives you a one-line key to all twenty, and reads the trend across the three papers so you know what to expect in 2027.
 
 <Analogy>
 Proofreading an essay. You do not re-read the whole paragraph hoping something feels off. You check each sentence against a rule you know (agreement, spelling, tense) until one breaks it. A code MCQ is a paragraph with one broken sentence, and the rules are formulas you have already learnt.
@@ -11,7 +11,7 @@ Proofreading an essay. You do not re-read the whole paragraph hoping something f
 
 ## What the Final MCQs look like
 
-{FINAL.format} {FINAL.lastYear} The 2026 Section 1 suggested about 30 minutes for its 20 MCQs, roughly 90 seconds each, and 18 of the 20 showed a code <Term def="A short excerpt of a program, here 8 to 24 lines of Python, NumPy, scikit-learn or PyTorch.">snippet</Term>. They come in three shapes:
+The 2027 Final has two sections. {FINAL.format} {FINAL.lastYear} The 2026 Section 1 suggested about 30 minutes for its 20 MCQs, roughly 90 seconds each, and 18 of the 20 showed a code <Term def="A short excerpt of a program, here 8 to 24 lines of Python, NumPy, scikit-learn or PyTorch.">snippet</Term>. They come in three shapes:
 
 - **Which line must change?** ("If you switch to L1 loss, which line(s) must change?")
 - **What is the bug?** ("The model performs poorly. What's wrong?")
@@ -23,11 +23,11 @@ In almost every case one line (occasionally two) decides the answer. Call it the
 
 The 2026 Final bugs fall into six families. Learn the family and you know where to look.
 
-1. **Sign or formula error.** A line contradicts a formula you know: the AdaBoost weight update (Q5), the pseudo-residual of gradient boosting (Q2).
+1. **Sign or formula error.** A line contradicts a formula you know: the AdaBoost weight update, which must raise mistakes by $e^{+\alpha}$ and lower correct points by $e^{-\alpha}$ (Q5), or the pseudo-residual of gradient boosting (Q2).
 2. **Wrong normalisation.** Dividing by the wrong thing, or forgetting to divide: $\sqrt{d_k}$ in attention (Q16), `loss / accumulation_steps` (Q10).
 3. **<Term def="Information from the validation or test data sneaking into training, so the measured score is better than the model really is.">Data leakage</Term>.** Something learns from data it should not see: feature selection outside the cross-validation loop (Q3).
 4. **Wrong function choice.** Softmax where each label needs its own sigmoid (Q6).
-5. **State bugs.** A PyTorch object remembers the wrong thing: an optimiser built before a new layer exists (Q14), BatchNorm running statistics (Q8).
+5. **State bugs.** A PyTorch object remembers the wrong thing: an optimiser built before a new layer exists (Q14's keyed answer, although its printed code has the lines in the safe order; see the table below), BatchNorm running statistics (Q8).
 6. **Unhandled edge cases.** The code works until an input sits on a boundary: IoU when the union is 0 (Q13), truncation that cuts off the end-of-sequence token (Q18).
 
 Practise spotting each one on a short snippet first.
@@ -62,16 +62,16 @@ A code MCQ hinges on **one line read against one formula or rule you already kno
   q="A from-scratch attention layer with $d_k = 256$ produces attention weights that are almost uniform: every position gets about the same weight. What did the code most likely divide the scores by?"
   options={['$d_k = 256$ instead of $\\sqrt{d_k} = 16$', 'Nothing at all: the scaling was left out', '$\\sqrt{d_k} = 16$, as it should', 'The number of attention heads']}
   answer={0}
-  explain="Random dot products of length-256 vectors have a standard deviation of about $\sqrt{256} = 16$. Dividing by 16 gives scores of size about 1, a healthy softmax. Dividing by 256 shrinks them to about $1/16$, so softmax is nearly uniform. Leaving the scaling out does the opposite: scores of size 16 make softmax put almost all weight on one position, which is the symptom in 2026 Final Q16."
+  explain="Random dot products of length-256 vectors have a standard deviation of about $\sqrt{256} = 16$. Dividing by 16 gives scores of size about 1, a healthy softmax. Dividing by 256 shrinks them to about $1/16$, so softmax is nearly uniform. Leaving the scaling out does the opposite: scores of size 16 make softmax put almost all weight on one position."
 />
 
 The real question below has the opposite symptom. Decide which direction the scaling went before you look at the options.
 
 <PastPaperQuestion paper="final2026" n={16} />
 
-## Five Final MCQs, read line by line
+## Four Final MCQs, read line by line
 
-Here are five real 2026 Final questions. Some of them are imperfect, and the walkthrough says so: three carry caveats where a second option is defensible or the example does not quite trigger the bug. That is useful too. In the exam, pick the option that names the textbook rule broken by the decisive line.
+Here are four real 2026 Final questions. Some of them are imperfect, and the walkthrough says so: two carry caveats, where a second option is defensible or the example does not quite trigger the bug. That is useful too. In the exam, pick the option that names the textbook rule broken by the decisive line.
 
 <CodeMCQWalkthrough />
 
@@ -89,13 +89,15 @@ rng = np.random.default_rng(0)
 X = rng.normal(size=(100, 2000))   # 2,000 features of pure noise
 y = rng.integers(0, 2, size=100)   # random labels: true accuracy is 50%
 model = LogisticRegression(max_iter=1000)
-cv = KFold(n_splits=5, shuffle=True, random_state=42)
+cv = KFold(n_splits=5, shuffle=True, random_state=42)   # 5 folds, rows shuffled first
 
 # Approach A: select on ALL rows, then cross-validate
+# SelectKBest keeps the 10 features that best separate the labels
 X_sel = SelectKBest(f_classif, k=10).fit_transform(X, y)
 print("A (selection outside CV):", cross_val_score(model, X_sel, y, cv=cv).mean())
 
-# Approach B: selection inside each fold (a pipeline does it for you)
+# Approach B: selection inside each fold
+# make_pipeline runs selection + model together, refitted inside every fold
 pipe = make_pipeline(SelectKBest(f_classif, k=10), model)
 print("B (selection inside CV): ", cross_val_score(pipe, X, y, cv=cv).mean())`} />
 
@@ -136,12 +138,43 @@ divide=True: [[1.0, 1.0, 1.0]]
 In symbols: with $k$ micro-batches whose mean losses are $L_1, \dots, L_k$, the accumulated gradient without Line A is $\sum_{j=1}^{k} \nabla L_j$, which is $k$ times the full-batch gradient $\frac{1}{k}\sum_{j=1}^{k} \nabla L_j$. Here $\nabla L_j$ means the gradient of micro-batch $j$'s loss with respect to the weights. Dividing each $L_j$ by $k$ turns the sum into that average.
 
 <Mistake title="Reading the options first">
-Code MCQ options are long and confident, and each one names a plausible line. If you read them before the code, you start checking whichever line sounds most technical. In Q5, "the alpha calculation is wrong" draws attention to the scariest-looking line (Line C), which in fact matches the textbook exactly. Find your own line first.
+Code MCQ options are long and confident, and each one names a plausible line. If you read them before the code, you start checking whichever line sounds most technical. In Q18, "Padding tokens should be -100, not 0" sends you to the padding line, which is in fact fine: −100 is a label value that the loss ignores, not an input id. Find your own line first.
 </Mistake>
 
-The edge-case pattern deserves one more real question. Decide what IoU should mean when a class appears in neither the prediction nor the target.
+## All twenty Final MCQs in one table
 
-<PastPaperQuestion paper="final2026" n={13} />
+You have now read four Final questions in depth. The other sixteen follow the same pattern: one concept, one decisive line or clue. Use the table below to check yourself after you try each question on the [2026 Final page](#/papers/final2026).
+
+<Note title="Three answer-key warnings">
+**Q17:** AI Singapore's published key marks "Option B and C are correct; Option A depends on how the mask is used". Running the code shows that all three functions return exactly the same mask, so "All three produce equivalent masks" is correct, and this site marks that one. **Q11** is debatable (the 30° rotation is also a fair answer), and in **Q14** the printed code builds the optimiser *after* the new head, so the keyed bug is not in the code as shown. The [papers page](#/papers/final2026) explains each one.
+</Note>
+
+<Reveal label="Show the one-line key to all 20">
+
+| Q | What it tests, and the clue that decides it | The answer in one line |
+|---|---|---|
+| [1](#/papers/final2026#q1) | Random forest size: training creeps up to 99.8%, validation stays at 87.3% | Diminishing returns: 100 trees were already enough |
+| [2](#/papers/final2026#q2) | Gradient boosting, Line A `residuals = y - F` | For L1 loss the pseudo-residual becomes `sign(y - F)`; only Line A changes |
+| [3](#/papers/final2026#q3) | Leakage: `fit_transform(X, y)` on every row | Approach B's 78% is the honest estimate |
+| [4](#/papers/final2026#q4) | L2 logistic regression: `gradient[1:]` leaves the bias out | Option D: no penalty on the bias, λ scaled by 1/m |
+| [5](#/papers/final2026#q5) | AdaBoost, Line D `np.exp(alpha * incorrect)` | Correct points must also shrink: `np.exp(alpha * (2*incorrect - 1))` |
+| [6](#/papers/final2026#q6) | Multi-label loss, the softmax in Option C | Sigmoid + BCE (A) and BCE-with-logits (B) are equivalent; softmax assumes one label |
+| [7](#/papers/final2026#q7) | Gradient norms: 0.0001 at layer 1, 1.23 at layer 10 | Vanishing gradients: add residual connections |
+| [8](#/papers/final2026#q8) | BatchNorm: `self.running_mean = ...` re-assigns the buffer | Update the running statistics in place (shaky: works on one GPU) |
+| [9](#/papers/final2026#q9) | Cosine schedule at step 50,000: progress ≈ 0.5 | About 5.0e-4, halfway between the peak and the floor |
+| [10](#/papers/final2026#q10) | Gradient accumulation, Line A `loss / accumulation_steps` | Without it the summed gradient is 4× too large |
+| [11](#/papers/final2026#q11) | X-ray augmentation, `ColorJitter(brightness=0.3, contrast=0.3)` | Intensity changes can hide or fake a finding (debatable) |
+| [12](#/papers/final2026#q12) | U-Net, `torch.cat` at Line A | Halving an odd size rounds down (25 → 12 → 24), so the maps no longer match |
+| [13](#/papers/final2026#q13) | IoU, the `union == 0` branch | Skip the class: 0/0 is neither perfect nor zero |
+| [14](#/papers/final2026#q14) | Transfer learning: `fc.weight` never changes | Optimiser built before the head was replaced (flawed: see above) |
+| [15](#/papers/final2026#q15) | Mixed precision, `scaler.unscale_(optimiser)` | Needed before gradient clipping, so clipping sees true-size gradients |
+| [16](#/papers/final2026#q16) | Attention, Line A `Q @ K.transpose(-2, -1)` | Divide the scores by `math.sqrt(self.head_dim)` |
+| [17](#/papers/final2026#q17) | Causal masks: `triu` then `~`, `tril`, and a loop | All three masks are identical (the official key disagrees: see above) |
+| [18](#/papers/final2026#q18) | Tokeniser: BOS and EOS added before `tokens[:max_len]` | Truncation can cut off EOS (the example's 8 words just fit) |
+| [19](#/papers/final2026#q19) | BERT masking, Line A `masked_input[mask_positions] = MASK_TOKEN` | 80% [MASK], 10% random token, 10% unchanged |
+| [20](#/papers/final2026#q20) | BERT fine-tuning: validation loss rises after epoch 1 | Learning rate too high; BERT wants 2e-5 to 5e-5 |
+
+</Reveal>
 
 ## The 2025 paper and the trend across years
 
@@ -155,7 +188,7 @@ NOAI has changed shape every year:
   ))}
 </ul>
 
-The 2025 MCQs were <Hl>definition-level</Hl>: one line of question, four short options, one fact each. They are still excellent recall practice: every 2025 topic except reinforcement learning came back in the 2026 papers.
+The 2025 MCQs were **definition-level**: one line of question, four short options, one fact each. They are still excellent recall practice: every 2025 topic except reinforcement learning came back in the 2026 papers.
 
 <Reveal label="The 20 questions of 2025, one fact each">
 
@@ -204,7 +237,7 @@ Three things stand out:
 />
 
 <ExamTip title="Budgeting the Final">
-The 2027 Final again has two sections. {FINAL.format} In 2026 the MCQs were worth 20 of the 100 marks over a 3-hour paper. About 30 minutes on the MCQs (90 seconds each) leaves about 150 minutes for the 80 programming marks, so do not let one stubborn MCQ eat ten minutes: find the line, answer, flag, move on. The Prelim before it is {PRELIM.questions} questions in {PRELIM.minutes} minutes, the same pace as 2026, so the speed drills still apply.
+The 2027 Final again has two sections: the MCQs first, then the programming tasks. In 2026 the MCQs were worth 20 of the 100 marks over a 3-hour paper. About 30 minutes on the MCQs (90 seconds each) leaves about 150 minutes for the 80 programming marks, so do not let one stubborn MCQ eat ten minutes: find the line, answer, flag, move on. The Prelim before it is {PRELIM.questions} questions in {PRELIM.minutes} minutes, the same pace as 2026, so the speed drills still apply.
 </ExamTip>
 
 <Takeaways>

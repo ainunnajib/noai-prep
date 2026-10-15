@@ -66,7 +66,7 @@ const ITEMS: Item[] = [
     answer: 3,
     key: 'The L1 penalty |w| keeps pushing small weights all the way to exactly 0, so many features drop out.',
     traps: ['opposite', 'filler', 'overclaim', null],
-    notes: ['The opposite: L1 zeroes weights out. Shrinking without zeroing is what L2 does.', 'A penalty on the weights clearly has an effect.', '“Only”, and wrong too: Lasso is a regression method.', ''],
+    notes: ['The opposite: L1 zeroes weights out. Shrinking without zeroing is what L2 does.', 'A penalty on the weights clearly has an effect.', '“Only”, and wrong too: L1 works for regression (Lasso) and classification (L1-penalised logistic regression) alike.', ''],
   },
   {
     n: 155,
@@ -110,8 +110,8 @@ const ITEMS: Item[] = [
     options: ['Same as batch norm', 'Only for CNNs', 'Normalises across features per sample; better for small batches/RNNs', 'Slower than batch norm'],
     answer: 2,
     key: 'LayerNorm normalises each sample over its own features, so it does not care about batch size or sequence length.',
-    traps: ['twin', 'overclaim', null, 'cause'],
-    notes: ['They differ in the axis they average over: BatchNorm across the batch, LayerNorm across one sample’s features.', '“Only”, and backwards: CNNs are BatchNorm’s home; LayerNorm is the Transformer and RNN choice.', '', 'Speed is not the difference that matters, and the question asks when it is preferred.'],
+    traps: ['filler', 'overclaim', null, 'cause'],
+    notes: ['Empty: the question itself asks how they differ. (They average over different axes: BatchNorm across the batch, LayerNorm across one sample’s features.)', '“Only”, and backwards: CNNs are BatchNorm’s home; LayerNorm is the Transformer and RNN choice.', '', 'Speed is not the difference that matters, and the question asks when it is preferred.'],
   },
   {
     n: 213,
@@ -119,8 +119,8 @@ const ITEMS: Item[] = [
     options: ['They are identical', 'BERT is for vision', 'BERT = bidirectional encoder, GPT = autoregressive decoder', 'GPT is older'],
     answer: 2,
     key: 'BERT is an encoder that reads both directions; GPT is a decoder that predicts the next token from the left.',
-    traps: ['filler', 'twin', null, 'true'],
-    notes: ['Their architectures clearly differ.', 'Mixes BERT up with its image cousin, the Vision Transformer.', '', 'True for GPT-1 (June 2018) and BERT (October 2018), but a date is not a difference in how the models work.'],
+    traps: ['filler', 'filler', null, 'true'],
+    notes: ['Empty: their architectures clearly differ.', 'Wrong modality: BERT is a text model. A free elimination.', '', 'True for GPT-1 (June 2018) and BERT (October 2018), but a date is not a difference in how the models work.'],
   },
   {
     n: 235,
@@ -205,7 +205,7 @@ export default function DistractorAnatomy() {
       title="Name the trap"
       caption={
         <>
-          Click a wrong option, say which trap it is, and check. Use the filter to collect all the questions with one kind of trap. Notice how predictable the wrong options are: the chart counts all {TOTAL_WRONG} of them, and confusable twins and opposite effects are the most common deliberate traps, while fillers are free eliminations.
+          Click a wrong option, say which trap it is, and check. Use the filter to collect all the questions with one kind of trap. Notice how predictable the wrong options are: the chart counts all {TOTAL_WRONG} of them, and confusable twins and opposite effects are the most common deliberate traps, while fillers are free eliminations. (Q2 and Q56 come from the maths block, because half-done working needs numbers.)
         </>
       }
     >
@@ -240,13 +240,17 @@ export default function DistractorAnatomy() {
             {list.map(({ it, i }) => (
               <button key={it.n} type="button" className={`${s.navChip}${i === qi ? ` ${s.navOn}` : ''}`} onClick={() => goto(i)} aria-current={i === qi ? 'true' : undefined}>
                 Q{it.n}
+                {it.n < 120 ? ' (maths)' : ''}
               </button>
             ))}
           </div>
         </div>
 
         <div className={s.card}>
-          <span className={s.label}>2026 Prelim · Q{item.n}</span>
+          <span className={s.label}>
+            2026 Prelim · Q{item.n}
+            {item.n < 120 ? ' · from the maths block' : ''}
+          </span>
           <div className={s.qtext}>{item.q}</div>
           <div className={s.opts}>
             {item.options.map((o, k) => {

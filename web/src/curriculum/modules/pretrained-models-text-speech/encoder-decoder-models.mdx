@@ -36,8 +36,15 @@ The encoder **reads the whole input once**. The decoder **writes one token at a 
 Cross-attention is the [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) you already know, with one change: the queries come from one sequence and the keys and values come from another.
 
 $$
-\text{CrossAttn}(H_\text{dec}, H_\text{enc}) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V,
-\qquad Q = H_\text{dec} W_Q,\quad K = H_\text{enc} W_K,\quad V = H_\text{enc} W_V
+\text{CrossAttn}(H_\text{dec}, H_\text{enc}) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+$$
+
+$$
+\begin{aligned}
+Q &= H_\text{dec}\, W_Q \\
+K &= H_\text{enc}\, W_K \\
+V &= H_\text{enc}\, W_V
+\end{aligned}
 $$
 
 - $H_\text{dec}$ holds the decoder's vectors, one per **output** token written so far ($T$ of them). They make the **queries** $Q$: "what do I need to know to write the next word?"

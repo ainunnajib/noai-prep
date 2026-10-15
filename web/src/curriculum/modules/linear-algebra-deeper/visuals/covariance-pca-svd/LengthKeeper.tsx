@@ -222,10 +222,10 @@ function PositiveDefinite() {
             <Axes origin xTicks={4} yTicks={4} xLabel="t" />
             <FnPath f={(t) => l1 * t * t} color="var(--viz-2)" width={2.6} />
             <FnPath f={(t) => l2 * t * t} color="var(--viz-3)" width={2.6} dash="7 4" />
-            <Label x={1.95} y={Math.max(-5.4, Math.min(5.4, l1 * 3.8))} dy={l1 >= 0 ? -6 : 14} anchor="end" color="var(--viz-2)" size={12} weight={700}>
+            <Label x={1.2} y={Math.max(-5.2, Math.min(5.2, l1 * 1.44))} dx={-4} dy={l1 >= 0 ? -8 : 16} anchor="end" color="var(--viz-2)" size={12} weight={700}>
               {`along v₁: λ₁t²`}
             </Label>
-            <Label x={-1.95} y={Math.max(-5.4, Math.min(5.4, l2 * 3.8))} dy={l2 >= 0 ? -6 : 14} color="var(--viz-3)" size={12} weight={700}>
+            <Label x={-1.95} y={Math.max(-5.4, Math.min(5.4, l2 * 3.8))} dx={2} dy={l2 >= 0 ? -8 : 16} color="var(--viz-3)" size={12} weight={700}>
               {`along v₂: λ₂t²`}
             </Label>
           </Plot>
@@ -249,35 +249,40 @@ function PositiveDefinite() {
   )
 }
 
-export default function LengthKeeper() {
-  const [tab, setTab] = useState<Tab>('orth')
+const CAPTIONS: Record<Tab, React.ReactNode> = {
+  orth: (
+    <>
+      Faint dashed arrows are before, solid arrows after. Pick a matrix and compare the lengths in the table. A rotation or a reflection keeps every length
+      (green) and maps the dashed circle onto itself; a shear or a stretch changes lengths (red) and turns the circle into an oval. The test is the matrix
+      QᵀQ: it is the identity exactly when Q is orthogonal. Drag <i>x</i> to try any arrow.
+    </>
+  ),
+  pd: (
+    <>
+      For a symmetric matrix, xᵀAx is a curved surface over the plane, drawn here as a contour map. Along each eigenvector it is simply λt². Make both
+      eigenvalues positive for a bowl (positive definite), drag one below 0 for a saddle, or set one to 0 for a trough (semi-definite). This is the shape of a
+      loss function near a minimum, which is why positive definite Hessians matter in optimisation.
+    </>
+  ),
+}
+
+/** `show` pins the figure to one of its two halves (no tab switcher); without it both are offered as tabs. */
+export default function LengthKeeper({ show }: { show?: Tab }) {
+  const [tabState, setTab] = useState<Tab>(show ?? 'orth')
+  const tab = show ?? tabState
+  const title = show === 'orth' ? 'Orthogonal matrices keep every length' : show === 'pd' ? 'Positive definite: the quadratic form is a bowl' : 'Orthogonal keeps lengths; positive definite makes a bowl'
   return (
-    <Figure
-      title="Orthogonal keeps lengths; positive definite makes a bowl"
-      caption={
-        tab === 'orth' ? (
-          <>
-            Faint dashed arrows are before, solid arrows after. Pick a matrix and compare the lengths in the table. A rotation or a reflection keeps every length
-            (green) and maps the dashed circle onto itself; a shear or a stretch changes lengths (red) and turns the circle into an oval. The test is the matrix
-            QᵀQ: it is the identity exactly when Q is orthogonal. Drag <i>x</i> to try any arrow.
-          </>
-        ) : (
-          <>
-            For a symmetric matrix, xᵀAx is a curved surface over the plane, drawn here as a contour map. Along each eigenvector it is simply λt². Make both
-            eigenvalues positive for a bowl (positive definite), drag one below 0 for a saddle, or set one to 0 for a trough. This is the shape of a loss function
-            near a minimum, which is why positive definite Hessians matter in optimisation.
-          </>
-        )
-      }
-    >
-      <Segmented<Tab>
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: 'orth', label: 'Orthogonal' },
-          { value: 'pd', label: 'Positive definite' },
-        ]}
-      />
+    <Figure title={title} caption={CAPTIONS[tab]}>
+      {!show && (
+        <Segmented<Tab>
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'orth', label: 'Orthogonal' },
+            { value: 'pd', label: 'Positive definite' },
+          ]}
+        />
+      )}
       {tab === 'orth' ? <Orthogonal /> : <PositiveDefinite />}
     </Figure>
   )

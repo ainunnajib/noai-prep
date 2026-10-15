@@ -25,7 +25,7 @@ const WHAT: Record<Op, string> = {
   argmax: 'The POSITION of the largest value. With a tie, the first position wins.',
   argmin: 'The POSITION of the smallest value (the nearest centroid, when a is a row of distances).',
   max: 'The largest VALUE itself, not where it is.',
-  sign: '−1 for negative, 0 for zero, 1 for positive. In gradient boosting with absolute error, np.sign(y − F) is the negative gradient.',
+  sign: '−1 for negative, 0 for zero, 1 for positive. If a holds (true value − guess), +1 says a guess is too low (nudge it up) and −1 says it is too high.',
   where: 'Element-wise choice: keep a where the condition is True, use 0 elsewhere (this one is ReLU).',
   unique: 'The sorted distinct values and how often each appears: class counts, or a majority vote.',
   clip: 'Values below −3 become −3 and values above 3 become 3; the rest are unchanged.',

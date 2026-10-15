@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Both conditions must hold, so combine the masks with `&`, with brackets round each condition. Without brackets, `&` is done before `==` and `<`, so Python computes `4 & df[\'price\']` first and the line raises an error. `and` raises "The truth value of a Series is ambiguous", and `|` would keep flats that pass **either** condition.',
+      'Both conditions must hold, so combine the masks with `&`, with brackets round each condition. Without brackets, `&` is done before `==` and `<`, so Python reads the line as the chained comparison `df[\'rooms\'] == (4 & df[\'price\']) < 500000`, which needs a single True or False and raises `ValueError: The truth value of a Series is ambiguous`. `and` fails with the same error for the same reason, and `|` would keep flats that pass **either** condition.',
     difficulty: 'beginner',
   },
   {

@@ -1,10 +1,39 @@
-import type { ReactNode } from 'react'
-import { usePlot } from '../../../../../kit'
+import type { ComponentProps, KeyboardEvent, ReactNode } from 'react'
+import { DraggablePoint, usePlot } from '../../../../../kit'
 import s from './vectors.module.css'
 
 /** Shared helpers for the "vectors" lesson visuals (not a visual itself). */
 
 export type P = [number, number]
+
+const KEY_DIR: Record<string, P> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
+
+/**
+ * A DraggablePoint for figures that snap to a grid. The kit's arrow-key step (a fiftieth of the
+ * plot) is smaller than our snap, so the snap would round every key press straight back. Here
+ * each arrow key moves exactly one grid step instead; dragging with a mouse or finger is unchanged.
+ */
+export function SnapPoint({ step = 0.5, ...p }: ComponentProps<typeof DraggablePoint> & { step?: number | P }) {
+  const { xs, ys } = usePlot()
+  const [sx, sy] = typeof step === 'number' ? [step, step] : step
+  const onKey = (e: KeyboardEvent<SVGGElement>) => {
+    const d = KEY_DIR[e.key]
+    if (!d) return
+    e.preventDefault()
+    e.stopPropagation() // keep the kit's own (smaller) key step from running as well
+    const [x0, x1] = xs.domain()
+    const [y0, y1] = ys.domain()
+    let nx = p.lockX ? p.x : clamp(p.x + d[0] * sx, Math.min(x0, x1), Math.max(x0, x1))
+    let ny = p.lockY ? p.y : clamp(p.y + d[1] * sy, Math.min(y0, y1), Math.max(y0, y1))
+    if (p.constrain) [nx, ny] = p.constrain(nx, ny)
+    p.onChange(nx, ny)
+  }
+  return (
+    <g onKeyDownCapture={onKey}>
+      <DraggablePoint {...p} />
+    </g>
+  )
+}
 
 /** Format a number for display: integers plain, otherwise up to 2 decimals, with a true minus sign. */
 export function fmt(v: number, dp = 2): string {
@@ -119,17 +148,37 @@ export interface LabelSpec {
   color: string
   /** how far along the arrow (0 = tail, 1 = tip) */
   t?: number
+  /** several positions along the arrow to try (best clearance wins, earlier ones slightly preferred); overrides t */
+  ts?: number[]
   gap?: number
   /** fix the side (1 = right-hand side when walking along the arrow, -1 = left) */
   side?: 1 | -1
+  /** skip the label when the arrow is shorter than this many pixels */
+  minLen?: number
 }
 
 /**
  * Places several arrow labels at once. Each label goes on whichever side of its arrow has more room,
- * keeping clear of the given segments, of `points` (e.g. drag handles) and of labels already placed.
+ * keeping clear of the given segments, of `points` (e.g. drag handles), of the axis tick labels at
+ * `ticks` and of labels already placed.
  */
-export function ArrowLabels({ labels, segments = [], points = [] }: { labels: LabelSpec[]; segments?: [P, P][]; points?: P[] }) {
+export function ArrowLabels({
+  labels,
+  segments = [],
+  points = [],
+  ticks,
+}: {
+  labels: LabelSpec[]
+  segments?: [P, P][]
+  points?: P[]
+  /** tick values drawn by `<Axes origin>`, so labels keep off the tick numbers */
+  ticks?: { x: number[]; y: number[] }
+}) {
   const { xs, ys } = usePlot()
+  // boxes (centre x, centre y, half width, half height) of the tick numbers, as the kit's Axes draws them
+  const tickBoxes: [number, number, number, number][] = ticks
+    ? [...ticks.x.filter((t) => t !== 0).map((t) => [xs(t), ys(0) + 13, 9, 7] as [number, number, number, number]), ...ticks.y.filter((t) => t !== 0).map((t) => [xs(0) - 15, ys(t), 10, 7] as [number, number, number, number])]
+    : []
   const px = (p: P): [number, number] => [xs(p[0]), ys(p[1])]
   const segDist = (p: [number, number], a: [number, number], b: [number, number]) => {
     const L2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
@@ -142,30 +191,42 @@ export function ArrowLabels({ labels, segments = [], points = [] }: { labels: La
     const a = px(l.from)
     const b = px(l.to)
     const len = Math.hypot(b[0] - a[0], b[1] - a[1])
-    if (len < 4) continue
+    if (len < Math.max(4, l.minLen ?? 0)) continue
     const nx = -(b[1] - a[1]) / len
     const ny = (b[0] - a[0]) / len
-    const t = l.t ?? 0.6
     const gap = l.gap ?? 15
-    const mx = a[0] + (b[0] - a[0]) * t
-    const my = a[1] + (b[1] - a[1]) * t
     const w = l.text.length * 7.5 + 6
-    const at = (sd: number): [number, number] => [mx + nx * gap * sd, my + ny * gap * sd]
+    const at = (sd: number, t: number): [number, number] => [a[0] + (b[0] - a[0]) * t + nx * gap * sd, a[1] + (b[1] - a[1]) * t + ny * gap * sd]
+    /** gap between this label's box (centred at p) and a box centred at (qx, qy) with half-sizes hw, hh */
+    const boxGap = (p: [number, number], qx: number, qy: number, hw: number, hh: number) => Math.max(Math.abs(p[0] - qx) - w / 2 - hw, Math.abs(p[1] - qy) - 8 - hh)
     const clearance = (p: [number, number]) => {
       let c = Infinity
       for (const [s0, s1] of segments) {
         if (s0 === l.from && s1 === l.to) continue
         c = Math.min(c, segDist(p, px(s0), px(s1)))
       }
+      // drag handles: treat each as a 14 px disc and measure from the edge of the label's box
       for (const q of points) {
         const [qx, qy] = px(q)
-        c = Math.min(c, Math.hypot(p[0] - qx, p[1] - qy) - 10)
+        c = Math.min(c, boxGap(p, qx, qy, 14, 14) + 6)
       }
+      for (const [qx, qy, hw, hh] of tickBoxes) c = Math.min(c, boxGap(p, qx, qy, hw, hh) + 6)
       for (const q of placed) c = Math.min(c, Math.max(Math.abs(p[0] - q.x) - (q.w + w) / 2, Math.abs(p[1] - q.y) - 14) + 6)
       return c
     }
-    const sd = l.side ?? (clearance(at(1)) >= clearance(at(-1)) ? 1 : -1)
-    const [x, y] = at(sd)
+    let best: [number, number] = at(l.side ?? 1, l.ts?.[0] ?? l.t ?? 0.6)
+    let bestScore = -Infinity
+    ;(l.ts ?? [l.t ?? 0.6]).forEach((t, k) => {
+      for (const sd of l.side ? [l.side] : [1, -1]) {
+        const p = at(sd, t)
+        const score = Math.min(clearance(p), 40) - 3 * k // clearance beyond 40 px is plenty; prefer earlier positions
+        if (score > bestScore) {
+          bestScore = score
+          best = p
+        }
+      }
+    })
+    const [x, y] = best
     placed.push({ x, y, w })
     out.push({ x, y, l })
   }

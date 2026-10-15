@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Toggle, Button, mulberry32, hashString, useNarrow } from '../../../../../kit'
 import css from './modules.module.css'
+import { Num, StepperRow } from './Steppers'
 
 /*
   A model file is just named tensors. Yesterday's trained TinyNet (Linear(4, 8) -> ReLU -> Linear(8, 3),
@@ -52,20 +53,6 @@ function firstValues(seed: string, e: Entry, k = 3, spread = 1): number[] {
 }
 
 const fmt = (v: number) => (v < 0 ? '−' : ' ') + Math.abs(v).toFixed(2)
-
-function Num({ v, set, min, max, label }: { v: number; set: (n: number) => void; min: number; max: number; label: string }) {
-  return (
-    <span className={css.num}>
-      <button type="button" className={css.stepBtn} onClick={() => set(Math.max(min, v - 1))} aria-label={`decrease ${label}`}>
-        ◀
-      </button>
-      <b>{v}</b>
-      <button type="button" className={css.stepBtn} onClick={() => set(Math.min(max, v + 1))} aria-label={`increase ${label}`}>
-        ▶
-      </button>
-    </span>
-  )
-}
 
 type Status = 'match' | 'size' | 'missing'
 
@@ -176,14 +163,14 @@ export default function StateDictViewer() {
       caption={
         <>
           Save yesterday's trained model, then load the file into <code>model2</code>. It works because every key and shape matches. Now change the class
-          code with ◀ ▶ (a different <code>hidden</code> size, more classes) or rename the last layer, and load again: PyTorch names each key that is
-          missing, unexpected or the wrong size. Try <code>strict=False</code> too: it forgives renamed layers but never a size mismatch.
+          code with ◀ ▶ (− and + on a phone), for example a different <code>hidden</code> size or more classes, or rename the last layer, and load again:
+          PyTorch names each key that is missing, unexpected or the wrong size. Try <code>strict=False</code> too: it forgives renamed layers but never a size mismatch.
         </>
       }
     >
       <pre className={`${css.code} ${narrow ? css.codeNarrow : ''}`} aria-label="Today's version of the model class">
         <span className={css.line}>
-          <span className={css.comment}># today's code: edit it with ◀ ▶</span>
+          <span className={css.comment}># today's code: edit it with {narrow ? '− and + below' : '◀ ▶'}</span>
         </span>
         <span className={css.line}>
           <span className={css.kw}>class</span> TinyNet(nn.Module):
@@ -195,9 +182,9 @@ export default function StateDictViewer() {
         <span className={css.line}>{I(2) + 'super().__init__()'}</span>
         <span className={css.line}>
           {I(2) + 'self.fc1 = nn.Linear('}
-          <Num v={cfg.nIn} set={(n) => edit({ nIn: n })} min={1} max={8} label="input features" />
+          <Num v={cfg.nIn} set={(n) => edit({ nIn: n })} min={1} max={8} arrows={!narrow} label="input features" />
           {', '}
-          <Num v={cfg.hidden} set={(n) => edit({ hidden: n })} min={2} max={16} label="hidden size" />)
+          <Num v={cfg.hidden} set={(n) => edit({ hidden: n })} min={2} max={16} arrows={!narrow} label="hidden size" />)
         </span>
         <span className={css.line}>{I(2) + 'self.act = nn.ReLU()'}</span>
         <span className={css.line}>
@@ -206,9 +193,18 @@ export default function StateDictViewer() {
             {cfg.last}
           </button>
           {` = nn.Linear(${cfg.hidden}, `}
-          <Num v={cfg.nOut} set={(n) => edit({ nOut: n })} min={1} max={10} label="number of classes" />)
+          <Num v={cfg.nOut} set={(n) => edit({ nOut: n })} min={1} max={10} arrows={!narrow} label="number of classes" />)
         </span>
       </pre>
+      {narrow && (
+        <StepperRow
+          items={[
+            { label: 'in', v: cfg.nIn, set: (n) => edit({ nIn: n }), min: 1, max: 8 },
+            { label: 'hidden', v: cfg.hidden, set: (n) => edit({ hidden: n }), min: 2, max: 16 },
+            { label: 'classes', v: cfg.nOut, set: (n) => edit({ nOut: n }), min: 1, max: 10 },
+          ]}
+        />
+      )}
 
       <div ref={ref} className={css.panels}>
         <div className={css.panel}>

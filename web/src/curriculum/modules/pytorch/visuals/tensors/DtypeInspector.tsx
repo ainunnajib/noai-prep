@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Segmented } from '../../../../../kit'
+import { Figure, Segmented, useNarrow } from '../../../../../kit'
 import { OPS, ROWS } from './dtypeData'
 import css from './tensors.module.css'
 
@@ -22,7 +22,10 @@ const WHY: string[] = [
 ]
 
 const OP_WHY: { ok: string; bad: string }[] = [
-  { ok: 'Element-wise arithmetic promotes to the wider type: int64 + float32 gives float32, float64 + float32 gives float64.', bad: '' },
+  {
+    ok: 'Element-wise arithmetic promotes: a float type beats an integer type (int64 + float32 gives float32), and the wider float wins (float64 + float32 gives float64).',
+    bad: '',
+  },
   { ok: 'Both sides are float32, so the dot product works.', bad: 'Matrix and dot products do not promote: both sides must have exactly the same dtype.' },
   {
     ok: 'A float32 input meets float32 weights, so the layer runs.',
@@ -42,6 +45,7 @@ const mono = { fontFamily: 'var(--font-mono)' }
 export default function DtypeInspector() {
   const [ci, setCi] = useState(0)
   const [oi, setOi] = useState(2)
+  const [ref, narrow] = useNarrow<HTMLDivElement>(520)
   const row = ROWS[ci]
   const [ok, out] = row.results[oi]
   const dt = row.dtype.replace('torch.', '')
@@ -57,7 +61,12 @@ export default function DtypeInspector() {
         </>
       }
     >
-      <div style={{ width: '100%', display: 'grid', gap: 4 }} role="radiogroup" aria-label="How x is created">
+      <div
+        ref={ref}
+        style={{ width: '100%', minWidth: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4 }}
+        role="radiogroup"
+        aria-label="How x is created"
+      >
         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-2)' }}>
           1. Make a tensor <code>x</code>
         </div>
@@ -77,6 +86,8 @@ export default function DtypeInspector() {
                 alignItems: 'center',
                 gap: 8,
                 width: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
                 textAlign: 'left',
                 padding: '0.3rem 0.6rem',
                 borderRadius: 8,
@@ -87,7 +98,7 @@ export default function DtypeInspector() {
                 font: 'inherit',
               }}
             >
-              <span style={{ ...mono, fontSize: '0.8rem', overflowWrap: 'break-word', minWidth: 0 }}>{r.code}</span>
+              <span style={{ ...mono, fontSize: '0.8rem', overflowWrap: 'anywhere', minWidth: 0, flex: '1 1 auto' }}>{r.code}</span>
               <span style={{ ...mono, fontSize: '0.75rem', fontWeight: 800, color: dtypeColour(d), flex: 'none' }}>{d}</span>
             </button>
           )
@@ -109,7 +120,12 @@ export default function DtypeInspector() {
         <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-2)' }}>
           2. Use it with <code>w = torch.tensor([0.5, -1.0, 2.0])</code> and <code>layer = nn.Linear(3, 1)</code>
         </div>
-        <Segmented label="operation" value={oi} onChange={setOi} options={OPS.map((o, i) => ({ value: i, label: <span style={mono}>{o}</span> }))} />
+        <Segmented
+          label="operation"
+          value={oi}
+          onChange={setOi}
+          options={OPS.map((o, i) => ({ value: i, label: <span style={mono}>{narrow ? SHORT_OPS[i] : o}</span> }))}
+        />
       </div>
       <div className={ok ? css.ok : css.error} style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.82rem' }} aria-live="polite">
         <span style={{ fontWeight: 400, opacity: 0.8 }}>{'>>> '}</span>

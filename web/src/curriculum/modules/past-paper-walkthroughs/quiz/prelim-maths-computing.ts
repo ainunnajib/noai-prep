@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$\\sigma(1 - \\sigma)$ is largest when $\\sigma = 0.5$, giving $0.5 \\times 0.5 = 0.25$. Ten such factors give at most $0.25^{10} \\approx 9.5 \\times 10^{-7}$: vanishing gradients. The tempting $0.5$ is the value of $\\sigma(0)$, not of its slope.',
+      '$\\sigma(1 - \\sigma)$ is largest when $\\sigma = 0.5$, giving $0.5 \\times 0.5 = 0.25$. Ten such factors multiply the gradient by at most $0.25^{10} \\approx 9.5 \\times 10^{-7}$, so unless the weights are large enough to compensate, the gradient vanishes. The tempting $0.5$ is the value of $\\sigma(0)$, not of its slope.',
     difficulty: 'intermediate',
   },
   {
@@ -47,16 +47,21 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'past-paper-walkthroughs.prelim-maths-computing.5',
-    prompt: 'Batch gradient descent, mini-batch gradient descent and stochastic gradient descent (SGD) differ mainly in:',
-    options: [
-      'how many training examples are used to compute each update',
-      'which learning rate is used for each update',
-      'how many epochs are run before training stops',
-      'whether past gradients are averaged together into each new update',
-    ],
+    prompt: 'What do these two lines print?',
+    code: 'import numpy as np\nprint([1, 2] * 2)\nprint(np.array([1, 2]) * 2)',
+    options: ['`[1, 2, 1, 2]` and then `[2 4]`', '`[2, 4]` and then `[2 4]`', '`[1, 2, 1, 2]` and then `[1 2 1 2]`', '`[2, 4]` and then `[1 2 1 2]`'],
     answer: 0,
     explanation:
-      'Batch GD uses all the training data for each update, SGD uses one random example, and mini-batch GD uses a small batch in between (2026 Q67–69). Averaging past gradients is momentum, a separate idea that any of the three can use, which makes it the tempting wrong answer.',
+      'This is the Python-output template. `*` on a Python list repeats the list, so `[1, 2] * 2` is `[1, 2, 1, 2]`. On a NumPy array, `*` works element by element, so every entry is doubled: `[2 4]` (NumPy prints arrays without commas). The tempting `[2, 4]` for the list treats it as if it were already a NumPy array.',
+    difficulty: 'beginner',
+  },
+  {
+    id: 'past-paper-walkthroughs.prelim-maths-computing.6',
+    prompt: 'Two fair six-sided dice are rolled. What is the probability that their total is 7?',
+    options: ['$\\tfrac{1}{6}$', '$\\tfrac{7}{36}$', '$\\tfrac{1}{11}$', '$\\tfrac{1}{12}$'],
+    answer: 0,
+    explanation:
+      'Count outcomes: the two dice give $6 \\times 6 = 36$ equally likely ordered pairs, and six of them total 7: (1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1). So $P = 6/36 = 1/6$. $\\tfrac{1}{11}$ wrongly treats the 11 possible totals (2 to 12) as equally likely, and $\\tfrac{1}{12}$ counts only the 3 unordered pairs.',
     difficulty: 'beginner',
   },
 ]

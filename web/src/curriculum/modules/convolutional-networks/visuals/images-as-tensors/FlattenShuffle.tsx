@@ -116,9 +116,8 @@ export default function FlattenShuffle() {
       title="Flatten the picture: what a dense layer sees"
       caption={
         <>
-          Tap any pixel of the original to follow it (orange outline) into the flattened list and into the changed picture. Pink marks above a list show the
-          entries that differ from the original list. Compare the two changes: one destroys the picture for <i>us</i>, the other destroys it for the <i>dense
-          layer</i>.
+          <b>Try:</b> tap a pixel to follow it into the flattened list, then compare the two changes. <b>Notice:</b> one destroys the picture for <i>us</i>,
+          the other for the <i>dense layer</i> (pink marks show list entries that changed).
         </>
       }
     >

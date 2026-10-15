@@ -134,12 +134,21 @@ function ClusterPanel({ c }: { c: Cluster }) {
   const [score, setScore] = useState(0)
   const [qs, setQs] = useState<Record<number, PaperQuestion>>({})
   const [loading, setLoading] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [seed, setSeed] = useState(1)
   const share = Math.round((c.items.length / CLUSTER_TOTAL) * 100)
 
   const start = async (only?: number) => {
     setLoading(true)
-    const all = await loadPaper('prelim2026')
+    setFailed(false)
+    let all: PaperQuestion[]
+    try {
+      all = await loadPaper('prelim2026')
+    } catch {
+      setLoading(false)
+      setFailed(true)
+      return
+    }
     const byN: Record<number, PaperQuestion> = {}
     for (const q of all) byN[q.n] = q
     setQs(byN)
@@ -199,6 +208,7 @@ function ClusterPanel({ c }: { c: Cluster }) {
           {loading ? 'Loading…' : `Practise ${Math.min(ROUND, c.items.length)} at random`}
         </Button>
       </div>
+      {failed && <span className={s.small}>The questions could not be loaded. Check your connection and press the button again.</span>}
 
       {round && q && (
         <div className={s.wrap}>

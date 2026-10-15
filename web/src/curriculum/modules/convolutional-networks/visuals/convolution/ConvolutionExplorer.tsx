@@ -39,6 +39,17 @@ export default function ConvolutionExplorer() {
   useEffect(() => {
     if (player.playing) setShowAll(false)
   }, [player.playing])
+  // Play from a fully drawn map restarts at the first position, so the map visibly fills in
+  const ctl = {
+    ...player,
+    toggle: () => {
+      if (!player.playing && showAll) {
+        setShowAll(false)
+        player.setStep(0)
+      }
+      player.toggle()
+    },
+  }
   const [ref, W] = useContainerWidth<HTMLDivElement>(600)
   const inputRef = useRef<SVGSVGElement>(null)
   const dragging = useRef(false)
@@ -102,9 +113,8 @@ export default function ConvolutionExplorer() {
       title="Slide the kernel, multiply, add"
       caption={
         <>
-          Drag across the image, tap a cell of the feature map, or press <b>Play</b> to watch the map fill in. The orange window is where the kernel sits: its 9 pixels are multiplied by
-          the kernel's 9 weights, and the 9 products are added to give <b>one</b> number of the feature map. Try each preset and predict where the map will be
-          large before you look; then tap kernel weights to make your own.
+          <b>Try:</b> drag the orange window, tap a feature-map cell or press <b>Play</b>. <b>Notice:</b> each output is the 9 pixels under the window times
+          the 9 weights, added up. Predict where each preset is large, then tap weights to make your own.
         </>
       }
     >
@@ -116,10 +126,11 @@ export default function ConvolutionExplorer() {
               ref={inputRef}
               viewBox={`-2 -2 ${N * c + 4} ${N * c + 4}`}
               width={N * c + 4}
-              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none', cursor: 'crosshair', display: 'block' }}
+              style={{ maxWidth: '100%', height: 'auto', touchAction: 'none', cursor: 'crosshair', display: 'block', userSelect: 'none', WebkitUserSelect: 'none' }}
               role="img"
-              aria-label={`8 by 8 image of the digit 4; the kernel window covers rows ${pi + 1} to ${pi + 3}, columns ${pj + 1} to ${pj + 3}`}
+              aria-label={`8 by 8 image of the digit 4; the kernel window covers rows ${pi} to ${pi + 2}, columns ${pj} to ${pj + 2}, counting from 0`}
               onPointerDown={(e) => {
+                e.preventDefault()
                 dragging.current = true
                 ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
                 fromPointer(e)
@@ -144,7 +155,7 @@ export default function ConvolutionExplorer() {
             </svg>
           </div>
           <div className={s.col}>
-            <span className={s.cap}>Feature map (6 × 6)</span>
+            <span className={s.cap}>Feature map y (6 × 6)</span>
             <svg viewBox={`-2 -2 ${M * c + 4} ${M * c + 4}`} width={M * c + 4} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} role="group" aria-label="Feature map; tap a cell to move the kernel there">
               {out.flatMap((row, i) =>
                 row.map((v, j) => {
@@ -190,15 +201,19 @@ export default function ConvolutionExplorer() {
           <span className={s.capSmall}>patch under window</span>
           {mini(patch, { label: 'the 9 pixels under the window', colour: (v) => (v ? 'rgb(250, 250, 250)' : 'rgb(18, 20, 28)'), ink: (v) => (v ? 'rgb(20, 20, 30)' : 'rgb(170, 175, 190)') })}
         </div>
-        <span className={s.op}>×</span>
-        <div className={s.col}>
-          <span className={s.capSmall}>kernel{kernel.div !== 1 ? ` (then ÷ ${kernel.div})` : ''}</span>
-          {mini(kernel.w, { label: 'kernel weights; tap one to change it', onClick: editWeight, colour: (v) => (v === 0 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 14 + 12 * Math.abs(v))) })}
+        <div className={s.opGroup}>
+          <span className={s.op}>×</span>
+          <div className={s.col}>
+            <span className={s.capSmall}>kernel{kernel.div !== 1 ? ` (then ÷ ${kernel.div})` : ''}</span>
+            {mini(kernel.w, { label: 'kernel weights; tap one to change it', onClick: editWeight, colour: (v) => (v === 0 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 14 + 12 * Math.abs(v))) })}
+          </div>
         </div>
-        <span className={s.op}>=</span>
-        <div className={s.col}>
-          <span className={s.capSmall}>9 products</span>
-          {mini(prods, { label: 'the 9 products', colour: (v) => (v === 0 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 30)) })}
+        <div className={s.opGroup}>
+          <span className={s.op}>=</span>
+          <div className={s.col}>
+            <span className={s.capSmall}>9 products</span>
+            {mini(prods, { label: 'the 9 products', colour: (v) => (v === 0 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 30)) })}
+          </div>
         </div>
       </div>
       <div className={s.sumLine}>
@@ -209,10 +224,10 @@ export default function ConvolutionExplorer() {
             → ÷ {kernel.div} = <b>{fmtNum(sum / kernel.div)}</b>
           </>
         )}{' '}
-        → feature map row {pi + 1}, column {pj + 1}
+        → y({pi}, {pj})
       </div>
 
-      <PlayerControls player={player} label={(st) => `Position ${st + 1} of ${M * M}`} />
+      <PlayerControls player={ctl} label={(st) => `Position ${st + 1} of ${M * M}`} />
       <Controls>
         <Segmented
           label="Kernel"

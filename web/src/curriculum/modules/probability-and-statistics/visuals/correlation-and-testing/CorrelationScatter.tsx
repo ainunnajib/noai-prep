@@ -10,7 +10,8 @@ import { gauss, fmt } from './stats'
     (x − x̄)(y − ȳ) > 0, red when < 0. The covariance is the average signed area.
   - switching hours ↔ minutes multiplies every x by 60: the cloud looks identical, the
     covariance is 60× bigger, the correlation does not change.
-  - the U-shape pattern has r = 0 exactly although y is almost fixed by x.
+  - the hill-shape pattern (too little revision or burnt out from cramming both score low) has
+    r = 0 exactly although y is almost fixed by x.
 */
 
 type Pattern = 'line' | 'curve'
@@ -38,7 +39,7 @@ function makeBase(seed: number) {
     Array.from({ length: N }, () => gauss(r)),
     u,
   )
-  // a symmetric set of x values for the U-shape, so that cov(x, x²) is exactly 0
+  // a symmetric set of x values for the hill shape, so that cov(x, x²) is exactly 0
   const half = Array.from({ length: N / 2 }, () => gauss(r))
   const us = standardise([...half, ...half.map((x) => -x)])
   const noise = orthogonalTo(
@@ -60,7 +61,7 @@ export default function CorrelationScatter() {
   const base = useMemo(() => makeBase(20260219), [])
   const k = unit === 'min' ? 60 : 1
   const pts = useMemo(() => {
-    if (pattern === 'curve') return base.us.map((u, i) => ({ x: (5 + 1.5 * u) * k, y: 50 + 10 * base.vs[i] }))
+    if (pattern === 'curve') return base.us.map((u, i) => ({ x: (5 + 1.5 * u) * k, y: 70 - 12 * base.vs[i] }))
     const c = Math.sqrt(Math.max(0, 1 - target * target))
     return base.u.map((u, i) => ({ x: (5 + 1.5 * u) * k, y: 60 + 12 * (target * u + c * base.w[i]) }))
   }, [base, pattern, target, k])
@@ -86,7 +87,8 @@ export default function CorrelationScatter() {
           Each dot is a student: revision time against quiz score. Slide the correlation from −1 to 1 and watch the cloud tilt and tighten. With{' '}
           <b>products</b> on, each rectangle joins the mean point to a dot: green when <M>{'(x-\\bar x)(y-\\bar y) > 0'}</M>, red when it is negative.
           The covariance is the average signed area. Now switch hours to minutes: the picture is identical, the covariance jumps 60×, and{' '}
-          <M>r</M> stays put. Finally try the U-shape: a perfect pattern, yet <M>{'r = 0'}</M>.
+          <M>r</M> stays put. Finally try the hill shape: a strong pattern, yet <M>{'r = 0'}</M>. The <b>best-fit line</b> is the straight line that follows the
+          cloud most closely; its slope always has the same sign as <M>r</M>.
         </>
       }
     >
@@ -161,7 +163,7 @@ export default function CorrelationScatter() {
           <Slider label="target correlation" value={target} min={-1} max={1} step={0.05} onChange={setTarget} format={(v) => v.toFixed(2)} />
         ) : (
           <div style={{ flex: '1 1 200px', fontSize: '0.85rem', color: 'var(--ink-2)' }}>
-            U-shape: score depends strongly on revision time, but not along a straight line.
+            Hill shape: too little revision and too much (burnt out from cramming) both score low. The score depends strongly on revision time, but not along a straight line.
           </div>
         )}
         <Segmented
@@ -170,7 +172,7 @@ export default function CorrelationScatter() {
           onChange={setPattern}
           options={[
             { value: 'line', label: 'straight line' },
-            { value: 'curve', label: 'U-shape' },
+            { value: 'curve', label: 'hill shape' },
           ]}
         />
         <Segmented

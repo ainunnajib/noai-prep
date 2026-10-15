@@ -66,10 +66,19 @@ export default function MemoryStrip() {
     const h = Math.min(30, 12 + Math.abs(to - from) * 3)
     const cy = up ? y - h : y + h
     const lx = (x1 + x2) / 2
+    const textW = label.length * 6.6
+    // above the strip the dashed link comes down at x1, so put the label beside the arc's END, clear of the link
+    const upX = x2 + 6 + textW <= W - pad ? x2 + 6 : x1 - 6
+    const upAnchor = x2 + 6 + textW <= W - pad ? 'start' : 'end'
     return (
       <g key={key}>
         <path d={`M${x1},${y} Q${lx},${cy} ${x2},${y}`} markerEnd={`url(#${mid}${key})`} style={{ fill: 'none', stroke: colour, strokeWidth: 2 }} />
-        <text x={Math.max(label.length * 3.3 + 2, Math.min(W - label.length * 3.3 - 2, lx))} y={up ? cy + h / 2 - 8 + (h > 20 ? -4 : 0) : cy - h / 2 + 18} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 700, fill: colour, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}>
+        <text
+          x={up ? upX : Math.max(textW / 2 + 2, Math.min(W - textW / 2 - 2, lx))}
+          y={up ? y - 6 : cy - h / 2 + 18}
+          textAnchor={up ? upAnchor : 'middle'}
+          style={{ fontSize: 11.5, fontWeight: 700, fill: colour, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 3 }}
+        >
           {label}
         </text>
       </g>
@@ -110,9 +119,10 @@ export default function MemoryStrip() {
           <text x={gx} y={14} style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
             {v.label}  shape ({R}, {C})
           </text>
-          {/* link from the selected cell to its memory slot */}
+          {/* link from the selected cell's column (below the grid, so it never runs behind other cells) to its memory slot */}
+          <circle cx={cellX(sj) + g / 2} cy={gy + gridH + 5} r={3} style={{ fill: 'var(--viz-2)' }} />
           <path
-            d={`M${cellX(sj) + g / 2},${cellY(si) + g} C${cellX(sj) + g / 2},${sy - 30} ${slotX(selSlot) + sw / 2},${gy + gridH + 20} ${slotX(selSlot) + sw / 2},${sy - 2}`}
+            d={`M${cellX(sj) + g / 2},${gy + gridH + 5} C${cellX(sj) + g / 2},${sy - 30} ${slotX(selSlot) + sw / 2},${gy + gridH + 30} ${slotX(selSlot) + sw / 2},${sy - 2}`}
             style={{ fill: 'none', stroke: 'var(--viz-2)', strokeWidth: 1.5, strokeDasharray: '4 3' }}
           />
           {/* the logical grid */}

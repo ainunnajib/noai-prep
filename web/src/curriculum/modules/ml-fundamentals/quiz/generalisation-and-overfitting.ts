@@ -13,7 +13,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Choosing among 30 settings by their score on S partly picks the setting that got lucky on S, so S has become a validation set and its score is optimistically biased. A separate test set, used once, gives the honest number. "fit() never saw S" is the tempting trap: selection uses the data too. The training error would be even worse for choosing, because it always favours the most flexible option.',
+      'Choosing among 30 settings by their score on S partly picks the setting that got lucky on S, so S has become a validation set and its score is optimistically biased. A separate test set, used once, gives the honest number. "fit() never saw S" is the tempting trap: selection uses the data too. The training error would be even worse for choosing, because it rewards whichever setting fits the training data hardest, noise included, not the one that generalises best.',
     difficulty: 'intermediate',
   },
   {

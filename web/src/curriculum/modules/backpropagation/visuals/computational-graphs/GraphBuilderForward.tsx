@@ -63,6 +63,9 @@ export default function GraphBuilderForward() {
 
   const outName = nodes[graph.out].tex
   const outDone = computed.has(graph.out)
+  // asked for a slope before the node has its input values: say why nothing appears
+  const pickedPending = picked != null && Boolean(nodes[picked]?.op) && !computed.has(picked)
+  const needForward = pickedPending || (showLocal && computed.size === 0)
 
   return (
     <Figure
@@ -114,7 +117,13 @@ export default function GraphBuilderForward() {
             </>
           )}
         </div>
-        {focus && (showLocal || picked) && (
+        {needForward && (
+          <div style={{ marginTop: '0.35rem', color: 'var(--ink-2)' }}>
+            <b>Run the forward pass first</b> (press Next{pickedPending ? ` until the ${nodes[picked!].name} node is computed` : ''}): each local slope
+            depends on the values flowing into the node, so it appears once those values are known.
+          </div>
+        )}
+        {!needForward && focus && (showLocal || picked) && (
           <div style={{ marginTop: '0.35rem', overflowX: 'auto', overflowY: 'hidden', color: 'var(--ink-2)' }}>
             {focus.op ? (
               <>

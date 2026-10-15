@@ -76,7 +76,7 @@ function evaluate(place: Record<Item, Dev>, hasGpu: boolean, n: number): Result 
 const NO_CUDA: Result = {
   tone: 'err',
   text: 'AssertionError: Torch not compiled with CUDA enabled',
-  note: "This machine has no CUDA GPU, so .to('cuda') itself fails. Hard-coding 'cuda' breaks code on laptops; the device-agnostic pattern avoids it.",
+  note: "This laptop has a CPU-only install of PyTorch, so .to('cuda') itself fails (other installs raise a RuntimeError about a missing NVIDIA driver or GPU instead). Hard-coding 'cuda' breaks code on laptops; the device-agnostic pattern avoids it.",
 }
 
 export default function DeviceMismatch() {
@@ -88,7 +88,11 @@ export default function DeviceMismatch() {
   const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const lines = codeLines(place, agnostic)
-  const result = shown === 'run' ? evaluate(place, hasGpu, lines.length) : shown === 'nocuda' ? NO_CUDA : null
+  const ran = shown === 'run' ? evaluate(place, hasGpu, lines.length) : shown === 'nocuda' ? NO_CUDA : null
+  const result: Result | null =
+    ran && agnostic && ran.tone === 'ok'
+      ? { ...ran, note: hasGpu ? "device became 'cuda', and the model and every batch followed it." : "Same code, no GPU: device became 'cpu', and everything still runs." }
+      : ran
 
   const move = (it: Item) => {
     const to: Dev = place[it] === 'cpu' ? 'gpu' : 'cpu'
@@ -171,7 +175,7 @@ export default function DeviceMismatch() {
       caption={
         <>
           Tap a chip to move it between the CPU and the GPU, then press <b>Run</b>. The forward pass needs the model's weights and the inputs on one device; the loss needs the outputs and the
-          targets on one device. Then press <b>Use the device-agnostic pattern</b>, and switch off the GPU to see the same code run on a laptop.
+          targets on one device. Then press <b>Use the device-agnostic pattern</b>, and switch off the GPU: the code does not change, and it still runs on a laptop.
         </>
       }
     >
@@ -191,10 +195,9 @@ export default function DeviceMismatch() {
           onChange={(v) => {
             setHasGpu(v)
             setShown(null)
-            if (!v) {
-              setPlace({ model: 'cpu', inputs: 'cpu', targets: 'cpu' })
-              setAgnostic(false)
-            }
+            // the device-agnostic code needs no change: device simply follows the machine
+            if (agnostic) setPlace({ model: v ? 'gpu' : 'cpu', inputs: v ? 'gpu' : 'cpu', targets: v ? 'gpu' : 'cpu' })
+            else if (!v) setPlace({ model: 'cpu', inputs: 'cpu', targets: 'cpu' })
           }}
         />
       </Controls>

@@ -103,7 +103,7 @@ A positive $m$ climbs from left to right, a negative $m$ falls, and $m = 0$ is f
 
 **Finding a line from two points.** Through $(1, 3)$ and $(3, 7)$: the run is $3 - 1 = 2$ and the rise is $7 - 3 = 4$, so $m = 4 \div 2 = 2$. Then put one point into $y = 2x + c$: $3 = 2 \times 1 + c$, so $c = 1$. The line is $y = 2x + 1$.
 
-<LineParabolaPlot />
+<LineParabolaPlot lock />
 
 In machine learning the same line is usually written $y = wx + b$: $w$ is called the **weight** and $b$ the **bias**. A linear regression model with one input is exactly this line, and training means finding good values for $w$ and $b$.
 
@@ -129,14 +129,18 @@ For example, $y = (x - 3)^2 + 1$ has its vertex at $(3, 1)$. Plugging in $x = 1,
 
 Drag the point along the parabola below and watch its <Term def="The straight line that just touches a curve at one point and points the same way as the curve there. Its slope is the curve's slope at that point.">tangent</Term>, the straight line that just touches the curve at that point. Its slope is how steep the curve is right there.
 
-<LineParabolaPlot start="parabola" />
+<LineParabolaPlot start="parabola" lock />
 
 The slope is negative on the way down, **0 at the vertex**, and positive on the way up. This one fact powers the main training algorithm in AI, **gradient descent**: to find the bottom, check the slope and step downhill until the slope is 0.
 
 **Why loss curves are parabolas.** Suppose a model predicts $w \times x$ and one training example has $x = 2$ and true answer 6. The squared error is
 
 $$
-L(w) = (2w - 6)^2 = \big(2(w - 3)\big)^2 = 4(w - 3)^2
+\begin{aligned}
+L(w) &= (2w - 6)^2 \\
+&= \big(2(w - 3)\big)^2 \\
+&= 4(w - 3)^2
+\end{aligned}
 $$
 
 which is a parabola in $w$ with $a = 4$, $h = 3$, $k = 0$. Its vertex is at $w = 3$, where the prediction $3 \times 2 = 6$ is exactly right and the loss is 0. The bottom of the parabola is the best setting of the knob.
@@ -148,13 +152,13 @@ If a parabola is written expanded, as $y = ax^2 + bx + c$, its vertex is at $x =
 </Tip>
 
 <QuickCheck
-  q="Where is the vertex of $y = 2(x + 1)^2 - 4$?"
+  q="The vertex of $y = 2(x + 1)^2 - 4$ is at which point?"
   options={['$(-1, -4)$', '$(1, -4)$', '$(-1, 4)$', '$(2, -4)$']}
   answer={0}
   explain="Rewrite $(x + 1)$ as $(x - (-1))$, so $h = -1$, and $k = -4$. The tempting $(1, -4)$ forgets the sign flip inside the bracket; the 2 only changes how narrow the U is, not where the vertex sits."
 />
 
-## Kinks and jumps: $|x|$, ReLU and steps
+## Kinks and jumps: ReLU, $|x|$ and steps
 
 Some functions are glued together from pieces, using one rule on one side of a point and a different rule on the other. They are called <Term def="Defined by different rules on different parts of the input range, e.g. one rule for x < 0 and another for x ≥ 0.">piecewise</Term> functions, and three of them are everywhere in AI.
 
@@ -162,11 +166,11 @@ Some functions are glued together from pieces, using one rule on one side of a p
 - **ReLU**, short for <Term def="ReLU(x) = max(0, x). The most widely used activation function in deep learning.">Rectified Linear Unit</Term>, is $\text{ReLU}(x) = \max(0, x)$, where $\max$ picks the larger of the two numbers. So $\text{ReLU}(-2) = \max(0, -2) = 0$ and $\text{ReLU}(3) = 3$. Its graph is flat at 0 for negative inputs and the line $y = x$ (slope 1) for positive ones.
 - A **step** function jumps: it outputs 0 for $x < 0$ and 1 for $x \ge 0$. The perceptron (1958), one of the earliest artificial neurons, used it.
 
-For contrast, the gallery also shows the **sigmoid** $\sigma(x)$, a smooth S-shaped curve that squashes every input into the range 0 to 1. The next lesson explains its formula.
+For contrast, the gallery also shows the **sigmoid** $\sigma(x)$, a smooth S-shaped curve that squashes every input into the range 0 to 1. It has no corners at all, and its slope is never more than 0.25 (the slope at $x = 0$, where it is steepest). The next lesson explains its formula.
 
-<Analogy title="A car-park barrier">
+<Analogy title="Your phone bill's extra-data charge">
 
-Below the threshold nothing moves: the output is 0. Above it, the car moves freely. The behaviour changes suddenly at the threshold, and that sudden change is the kink.
+Say your phone plan includes 10 GB of data a month. Use less than that and the extra charge is \$0, however much less you use. Go over, and every extra megabyte costs the same small amount, so the charge climbs in a straight line. The graph is flat, then a ramp, with a **corner** at 10 GB: the shape of ReLU. Compare a car-park barrier, which is either down or up with nothing in between: that is a **jump**, the shape of the step function.
 
 </Analogy>
 
@@ -177,7 +181,7 @@ There are two different ways for a graph to change suddenly:
 
 <PiecewiseGallery />
 
-This is why calculus books write the slope of $|x|$ as $\text{sign}(x)$: $-1$ for negative $x$, $+1$ for positive $x$, and undefined at exactly 0. Code cannot leave a gap, so libraries simply pick a value at 0 by convention. PyTorch, for example, uses slope 0 at $x = 0$ for both ReLU and $|x|$. It hardly matters in practice, because an input is rarely exactly 0.
+This is why calculus books write the slope of $|x|$ as $\text{sign}(x)$ for $x \neq 0$: $-1$ for negative $x$ and $+1$ for positive $x$. At exactly 0 the slope does not exist. Code cannot leave a gap, so libraries pick a value at 0 by convention. The sign function itself is defined with $\text{sign}(0) = 0$ (in NumPy, `np.sign(0)` gives 0), and that is the value PyTorch uses for the slope of $|x|$ at 0; it also uses 0 for ReLU's slope at 0. It hardly matters in practice, because an input is rarely exactly 0.
 
 <KeyIdea>
 
@@ -185,15 +189,15 @@ A **corner** (as in $|x|$ and ReLU at 0) is where the slope changes suddenly: th
 
 </KeyIdea>
 
-### Why a network needs kinks
+### Why a network needs a non-linear step
 
-Compose two straight lines, say $g(x) = 3x - 1$ and $f(z) = 2z + 5$:
+Compose two straight lines, say $g(x) = 2x + 1$ and $f(z) = 2z - 3$:
 
 $$
-f(g(x)) = 2(3x - 1) + 5 = 6x + 3
+f(g(x)) = 2(2x + 1) - 3 = 4x - 1
 $$
 
-That is just another straight line. However many linear machines you chain, the result is one straight line, so a "deep" network made only of linear layers is no smarter than a single line. Putting a kinked function such as ReLU between the layers fixes this. That in-between function is called an <Term def="A non-linear function, such as ReLU or sigmoid, applied after each linear layer of a neural network so that the network can model curved shapes.">activation function</Term>.
+That is just another straight line. However many linear machines you chain, the result is one straight line, so a "deep" network made only of linear layers is no smarter than a single line. Putting a non-linear function between the layers fixes this, whether it is kinked like ReLU or smooth like the sigmoid. That in-between function is called an <Term def="A non-linear function, such as ReLU or sigmoid, applied after each linear layer of a neural network so that the network can model curved shapes.">activation function</Term>.
 
 <WhyKinks />
 
@@ -219,26 +223,29 @@ def f(x):
 def g(x):
     return x ** 2
 
-print("f(g(2)) =", f(g(2)), "  g(f(2)) =", g(f(2)))
+print("f(g(2)) =", f(g(2)))
+print("g(f(2)) =", g(f(2)))
 
 def relu(x):
     return max(0, x)
 
-print("ReLU of -2, 0, 3:", relu(-2), relu(0), relu(3))
+# ReLU of -2, 0 and 3
+print(relu(-2), relu(0), relu(3))
 
 xs = np.array([-2, -1, 0, 1, 2])
-print("|x|     ", np.abs(xs))
-print("ReLU    ", np.maximum(0, xs))
-print("step    ", (xs >= 0).astype(int))`} />
+print("|x|  ", np.abs(xs))
+print("ReLU ", np.maximum(0, xs))
+print("step ", (xs >= 0).astype(int))`} />
 
 Expected output:
 
 ```text
-f(g(2)) = 13   g(f(2)) = 49
-ReLU of -2, 0, 3: 0 0 3
-|x|      [2 1 0 1 2]
-ReLU     [0 0 0 1 2]
-step     [0 0 1 1 1]
+f(g(2)) = 13
+g(f(2)) = 49
+0 0 3
+|x|   [2 1 0 1 2]
+ReLU  [0 0 0 1 2]
+step  [0 0 1 1 1]
 ```
 
 <Mistake>
@@ -253,6 +260,6 @@ step     [0 0 1 1 1]
 - In $y = mx + c$, the slope $m$ is rise $\div$ run and the intercept $c$ is the value at $x = 0$. A line has the same slope everywhere.
 - $y = a(x - h)^2 + k$ has its vertex at $(h, k)$. The tangent's slope is 0 there, which is the idea behind gradient descent.
 - $|x|$ and $\text{ReLU}(x) = \max(0, x)$ have a corner at 0 (continuous, not differentiable); a step function jumps (not continuous).
-- Lines chained with lines stay lines; kinked activation functions such as ReLU let a network bend.
+- Lines chained with lines stay lines. A non-linear activation function between the layers, kinked like ReLU or smooth like the sigmoid, lets a network bend.
 
 </Takeaways>

@@ -117,6 +117,17 @@ export default function AudioLLMDiagram() {
 
   const used = Math.min(100, (total / CONTEXT) * 100)
 
+  const infoPanel = (
+    <div className={s.panel} aria-live="polite">
+      <p className={s.panelTitle}>{info[part].title}</p>
+      <p className={s.hint}>{info[part].body}</p>
+      <p className={s.small}>
+        Stage {stage === 'align' ? '1 (alignment, on speech–text pairs such as transcripts)' : '2 (instruction tuning, on audio question–answer pairs)'}:{' '}
+        {STATUS[stage][part] === 'none' ? 'no weights here.' : <b>{STATUS[stage][part]}.</b>}
+      </p>
+    </div>
+  )
+
   return (
     <Figure
       title="An audio LLM: a speech encoder, a small adapter and an LLM"
@@ -153,18 +164,13 @@ export default function AudioLLMDiagram() {
                   </span>
                 )}
               </button>
+              {/* on phones the explanation opens right under the tapped block, instead of below the whole flow */}
+              {narrow && part === b.id && <div style={{ marginTop: '0.4rem' }}>{infoPanel}</div>}
             </div>
           ))}
         </div>
         <div className={s.stack}>
-          <div className={s.panel} aria-live="polite">
-            <p className={s.panelTitle}>{info[part].title}</p>
-            <p className={s.hint}>{info[part].body}</p>
-            <p className={s.small}>
-              Stage {stage === 'align' ? '1 (alignment, on speech–text pairs such as transcripts)' : '2 (instruction tuning, on audio question–answer pairs)'}:{' '}
-              {STATUS[stage][part] === 'none' ? 'no weights here.' : <b>{STATUS[stage][part]}.</b>}
-            </p>
-          </div>
+          {!narrow && infoPanel}
           <div className={s.panel}>
             <p className={s.panelTitle}>Context budget (32,768 tokens)</p>
             <div className={s.meter} role="img" aria-label={`${used.toFixed(0)}% of the context used`}>

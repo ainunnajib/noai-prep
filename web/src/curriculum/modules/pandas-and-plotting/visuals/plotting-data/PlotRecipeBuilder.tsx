@@ -47,7 +47,7 @@ export default function PlotRecipeBuilder() {
   const [kind, setKindRaw] = useState<Kind>('scatter')
   const [x, setX] = useState<Spec['x']>('area')
   const [y, setY] = useState<YCol>('price')
-  const [hue, setHue] = useState<CatCol | null>('flat_type')
+  const [hue, setHue] = useState<CatCol | null>(null)
   const [bins, setBins] = useState(12)
   const [lib, setLib] = useState<Lib>('mpl')
   const [labels, setLabels] = useState(true)
@@ -87,6 +87,10 @@ export default function PlotRecipeBuilder() {
   else if (!labels && lib === 'sns')
     note =
       'seaborn labelled the axes with the column names and drew the legend by itself. You still add a title, and friendlier labels with units, using the usual ax methods.'
+  else if (lib === 'mpl' && validHue && kind !== 'box' && kind !== 'bar')
+    note = `With a hue, plain matplotlib needs one plotting call per group: a for loop over df.groupby('${validHue}'), each call with label=name, then ax.legend() to draw the key. Switch the library to seaborn to see the same plot in one call with hue='${validHue}'.`
+  else if (lib === 'mpl' && validHue)
+    note = `Grouped ${kind === 'box' ? 'box plots' : 'bars'} take many lines in plain matplotlib, so the code hands over to ${kind === 'box' ? 'seaborn' : "pandas' own .plot.bar()"} for this one. The figure, axes and labels around it are the same recipe.`
   else if (lib === 'sns')
     note =
       'The seaborn call replaces the plotting step only: the figure, the axes and the labels are the same matplotlib recipe. seaborn takes the whole DataFrame plus column names.'

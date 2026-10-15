@@ -5,44 +5,51 @@ import XorTwoLines from './visuals/perceptron/XorTwoLines'
 
 export const perceptronCode = `import numpy as np
 
-def train_perceptron(X, y, lr=1.0, epochs=10):
-    # one weight per feature, all 0 to start
+def train(X, y, lr=1.0, epochs=10):
+    # one weight per feature, all 0
     w = np.zeros(X.shape[1])
     b = 0.0
     for epoch in range(epochs):
         mistakes = 0
         for xi, yi in zip(X, y):
             # weighted sum, then step
-            y_hat = 1 if xi @ w + b > 0 else 0
+            z = xi @ w + b
+            y_hat = 1 if z > 0 else 0
             # learn only from mistakes
             if y_hat != yi:
-                w += lr * (yi - y_hat) * xi
-                b += lr * (yi - y_hat)
+                err = yi - y_hat
+                w += lr * err * xi
+                b += lr * err
                 mistakes += 1
-        print(f"epoch {epoch + 1}: mistakes = {mistakes}, w = {w}, b = {b}")
+        print(f"epoch {epoch + 1}:",
+              f"mistakes = {mistakes},",
+              f"w = {w}, b = {b}")
         if mistakes == 0:
             break
     return w, b
 
-X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+X = np.array([[0, 0], [0, 1],
+              [1, 0], [1, 1]])
 y_and = np.array([0, 0, 0, 1])
 y_xor = np.array([0, 1, 1, 0])
 
 print("AND gate")
-w, b = train_perceptron(X, y_and)
-print("predictions:", (X @ w + b > 0).astype(int))
+w, b = train(X, y_and)
+print("predictions:",
+      (X @ w + b > 0).astype(int))
 
 print("XOR gate")
-w, b = train_perceptron(X, y_xor)
-print("predictions:", (X @ w + b > 0).astype(int))`
+w, b = train(X, y_xor)
+print("predictions:",
+      (X @ w + b > 0).astype(int))`
 
-Every neural network, from the face unlock on your phone to the chatbots you have used, is built from one tiny part repeated millions of times: an **artificial neuron**. The simplest one, the **perceptron**, was introduced by the American psychologist Frank Rosenblatt in 1958. It adds up weighted evidence, makes a yes/no decision, and learns from its mistakes. Understand this one unit properly and the rest of the module is "connect more of them".
+Every neural network, from your phone's face unlock to a chatbot, is built from one tiny part repeated millions of times: an **artificial neuron**. The simplest, the **perceptron** (Frank Rosenblatt, 1958), adds up weighted evidence, makes a yes/no decision and learns from its mistakes.
 
 <Analogy title="Should I go to the beach on Saturday?">
 
 You weigh up a few yes/no facts. Sunny? That counts **+2** for going. Homework due on Monday? **−3**. Friends going? **+1**. Add up the points for the facts that are true. If the total is positive, you go; otherwise you stay home.
 
-A perceptron decides in exactly this way. The facts are its **inputs**, the points are its **weights**, and "is the total positive?" is its decision rule. Notice how the weights carry your priorities: homework (−3) can outvote sunshine (+2) on its own.
+A perceptron decides in exactly this way: the facts are its **inputs**, the points its **weights**, and "is the total positive?" its decision rule. Homework (−3) can outvote sunshine (+2) on its own.
 
 </Analogy>
 
@@ -54,7 +61,7 @@ A perceptron receives a list of numbers $x_1, x_2, \dots, x_n$, the <Term def="T
 2. **Add** them all up, plus one extra number $b$ called the <Term def="A number added to the weighted sum regardless of the inputs. It shifts how easily the neuron says yes: a large positive bias means it says yes even with little evidence.">bias</Term>. The result is the <Term def="z = w₁x₁ + w₂x₂ + … + wₙxₙ + b: each input times its weight, all added up, plus the bias.">weighted sum</Term> $z$.
 3. **Decide**: output 1 if $z > 0$, otherwise output 0. This all-or-nothing rule is the <Term def="The function that outputs 1 when its input is above 0 and 0 otherwise. Its graph looks like a single stair step.">step function</Term>.
 
-The bias is your default mood. A keen beach-goer has a positive bias and goes even on a so-so day; a reluctant one has a negative bias and needs a lot of convincing. Try both below.
+The bias is your default mood: a keen beach-goer has a positive bias, a reluctant one a negative bias. Try both below.
 
 <WeightedVote />
 
@@ -72,9 +79,9 @@ $$
 $$
 
 - $\mathbf{x} = (x_1, \dots, x_n)$ is the input vector and $\mathbf{w} = (w_1, \dots, w_n)$ is the weight vector. The second line writes the same sum as their **dot product** (multiply matching entries, then add) plus the bias.
-- $b$ is the bias, a single number.
-- $z$ is the weighted sum, which can be any number.
+- $b$ is the bias (one number) and $z$ is the weighted sum (any number).
 - $\hat{y}$ (say "y-hat") is the neuron's prediction, always 0 or 1. The hat means "predicted", to tell it apart from the true answer $y$.
+- Another way to see the bias: it is the weight on an extra input that is always 1. That is the dashed "bias input" node in the diagrams, and it lets you write $z = \tilde{\mathbf{w}}\cdot\tilde{\mathbf{x}}$ with $\tilde{\mathbf{x}} = (1, x_1, \dots, x_n)$ and $\tilde{\mathbf{w}} = (b, w_1, \dots, w_n)$.
 
 For the beach with all three facts true: $z = 2(1) + (-3)(1) + 1(1) + 0 = 0$. Zero is not above zero, so $\hat{y} = 0$: stay home. Under this rule a tie goes to 0.
 
@@ -86,7 +93,7 @@ A perceptron computes a weighted sum of its inputs plus a bias, $z = \mathbf{w}\
 
 <Note title="Why 'neuron'?">
 
-A brain cell adds up signals from other cells, some exciting and some inhibiting, and "fires" if the total passes a threshold. The perceptron is a loose cartoon of this: weights play the connections and the step function plays the threshold. That is where the name comes from; real brains work very differently.
+A brain cell "fires" when the signals reaching it pass a threshold. The perceptron is a loose cartoon of this, hence the name; real brains work very differently.
 
 </Note>
 
@@ -105,9 +112,9 @@ $$
 w_1x_1 + w_2x_2 + b = 0
 $$
 
-That is the equation of a **straight line**, the perceptron's <Term def="The set of points where a classifier changes its answer. For a perceptron it is where z = 0: a line in 2-D, a flat plane in 3-D, a hyperplane in more dimensions.">decision boundary</Term>. Every point on one side gets 1; every point on the other side gets 0. The weight vector $\mathbf{w}$ sits at right angles to the line and points into the "1" side, and the bias slides the line without turning it. With more inputs the boundary is a flat plane (3 inputs) or a "hyperplane" (more), but never a curve. That makes the perceptron a <Term def="A classifier whose decision boundary is a straight line (or flat plane / hyperplane). Perceptrons and logistic regression are both linear classifiers.">linear classifier</Term>.
+That is the equation of a **straight line**, the perceptron's <Term def="The set of points where a classifier changes its answer. For a perceptron it is where z = 0: a line in 2-D, a flat plane in 3-D, a hyperplane in more dimensions.">decision boundary</Term>: every point on one side gets 1, every point on the other gets 0. The weight vector $\mathbf{w}$ points at right angles to the line into the "1" side, and the bias slides the line without turning it. With more inputs the boundary is a flat plane or "hyperplane", never a curve, so the perceptron is a <Term def="A classifier whose decision boundary is a straight line (or flat plane / hyperplane). Perceptrons and logistic regression are both linear classifiers.">linear classifier</Term>.
 
-If you met logistic regression earlier, this should look familiar: the score is the same $\mathbf{w}\cdot\mathbf{x} + b$ and the boundary is the same straight line. The difference is only the last step. Logistic regression squashes $z$ smoothly into a probability with the sigmoid; the perceptron snaps it to a hard 0 or 1.
+If you met logistic regression, this looks familiar: the same score $\mathbf{w}\cdot\mathbf{x} + b$ and the same kind of straight-line boundary. At prediction time, logistic regression squashes $z$ into a probability where the perceptron snaps it to 0 or 1. They are also trained differently (log loss over every example versus updates only on mistakes), so on the same data they usually end up with different lines.
 
 A neat test bed is the <Term def="A tiny circuit that takes 0/1 inputs and gives a 0/1 output, such as AND (1 only if both inputs are 1) or OR (1 if at least one is 1).">logic gate</Term>. With two inputs that are each 0 or 1, there are only four possible inputs, the four corners of a square:
 
@@ -118,7 +125,7 @@ A neat test bed is the <Term def="A tiny circuit that takes 0/1 inputs and gives
 | 1 | 0 | 0 | 1 | 1 |
 | 1 | 1 | 1 | 1 | 0 |
 
-**AND** says 1 only if both inputs are 1. **OR** says 1 if at least one is. **XOR** ("exclusive or") says 1 if exactly one is: "one or the other, but not both". Your challenge: make one perceptron compute each gate.
+**AND** says 1 only if both inputs are 1, **OR** if at least one is, and **XOR** ("exclusive or") if exactly one is. Your challenge: make one perceptron compute each gate.
 
 <PerceptronLine />
 
@@ -160,13 +167,13 @@ Add the middle two: $w_1 + w_2 + 2b > 0$, so $w_1 + w_2 + b > -b$. Since $b \le 
 
 </Reveal>
 
-In 1969 Marvin Minsky and Seymour Papert published a book, *Perceptrons*, that analysed limits like this one with mathematical rigour. It helped cool interest in neural networks for more than a decade, until researchers learned how to train networks with several layers.
+In 1969 Minsky and Papert's book *Perceptrons* analysed limits like this rigorously, and interest in neural networks cooled for over a decade.
 
 <PastPaperQuestion paper="prelim2026" n={161} />
 
 ## The perceptron learning rule
 
-Sliding weights by hand works for four corners, not for a thousand photos. Rosenblatt's real contribution was a rule that lets the perceptron **find** its weights from labelled examples.
+Sliding weights by hand works for four corners, not a thousand photos. Rosenblatt's real contribution was a rule that **finds** the weights from labelled examples.
 
 <Analogy title="A goalkeeper who learns only from goals">
 
@@ -195,7 +202,9 @@ $$
 | 1 | 0 | +1 | missed a 1: **add** $\eta\mathbf{x}$ to $\mathbf{w}$ and $\eta$ to $b$ |
 | 0 | 1 | −1 | false alarm: **subtract** $\eta\mathbf{x}$ from $\mathbf{w}$ and $\eta$ from $b$ |
 
-**Why does adding $\eta\mathbf{x}$ help?** After the update, the same example scores
+<Reveal label="Why does adding ηx always help?">
+
+After the update, the same example scores
 
 $$
 \begin{aligned}
@@ -205,6 +214,8 @@ z_{\text{new}} &= (\mathbf{w} + \eta\mathbf{x})\cdot\mathbf{x} + (b + \eta) \\
 $$
 
 $\mathbf{x}\cdot\mathbf{x}$ is a sum of squares, so the bracket is always positive: $z$ goes **up**, towards the "1" side. Subtracting does the opposite. Each update pushes the line towards fixing the example it just got wrong.
+
+</Reveal>
 
 <Steps title="One update by hand: w = (0.5, −1), b = 0, η = 0.5">
   <Step title="Predict">
@@ -220,11 +231,11 @@ $\mathbf{x}\cdot\mathbf{x}$ is a sum of squares, so the bracket is always positi
     $b \leftarrow 0 + 0.5 \times 1 = 0.5$.
   </Step>
   <Step title="Check">
-    Now $z = 1.5(2) + (-0.5)(1) + 0.5 = 3$, so $\hat y = 1$. ✓ The score rose by exactly $\eta(\mathbf{x}\cdot\mathbf{x} + 1) = 0.5(4 + 1 + 1) = 3$.
+    Now $z = 1.5(2) + (-0.5)(1) + 0.5 = 3$, so $\hat y = 1$. ✓ The score rose by exactly $\eta(\mathbf{x}\cdot\mathbf{x} + 1) = 0.5(4 + 1 + 1) = 3$, as the box above predicts.
   </Step>
 </Steps>
 
-Training means going through the training examples one by one, updating after each mistake. One full pass through all the examples is called an <Term def="One complete pass through every training example. Training usually runs for many epochs.">epoch</Term>. Watch the rule at work:
+Training goes through the examples one by one, updating after each mistake; one full pass is an <Term def="One complete pass through every training example. Training usually runs for many epochs.">epoch</Term>. Watch the rule at work:
 
 <PerceptronLearn />
 
@@ -234,7 +245,7 @@ The perceptron learning rule changes the weights only after a mistake: $\mathbf{
 
 </KeyIdea>
 
-The guarantee promises *a* separating line, not the best one. Any line with zero mistakes ends training, even one that only just scrapes past some points. Support vector machines fix this by choosing the line with the widest gap.
+The guarantee promises *a* separating line, not the best one: training stops at the first line with zero mistakes, even one that only just scrapes past some points. (Support vector machines pick the line with the widest gap instead.)
 
 <QuickCheck
   q="A perceptron has $w = (2, 1)$, $b = 0$ and $\eta = 1$. It sees $x = (1, 1)$ with true label $y = 0$. What are the weights and bias after the update?"
@@ -245,21 +256,23 @@ The guarantee promises *a* separating line, not the best one. Any line with zero
 
 <Mistake>
 
-Three classic slips: (1) updating after a **correct** prediction (the error is 0, so nothing changes); (2) forgetting to update the **bias**; (3) believing that more epochs or a different learning rate will eventually crack XOR. When no separating line exists, training can only go round in circles.
+Three classic slips: updating after a **correct** prediction (the error is 0); forgetting to update the **bias**; and believing that more epochs or a different learning rate will eventually crack XOR, when no separating line exists.
 
 </Mistake>
 
 ## A perceptron in NumPy
 
-Here is the whole algorithm in a few lines. It starts from zero weights with $\eta = 1$, trains on AND, then on XOR. Run it and compare the two.
+Here is the whole algorithm. It starts from zero weights with $\eta = 1$ and trains on AND, then on XOR. Run it and compare the two.
 
 <PyRunner packages={['numpy']} code={perceptronCode} />
 
 AND is learned in 6 epochs (the sixth has no mistakes), ending at $\mathbf{w} = (2, 1)$, $b = -2$: a different line from ours, but it works just as well. XOR goes round in circles: from epoch 3 onwards it makes 4 mistakes every epoch and ends each epoch with the same weights, forever.
 
+Now try `train(X, y_and, lr=0.1)`: the same mistakes, with weights 10 times smaller. From zero weights the learning rate only rescales $\mathbf{w}$ and $b$; it matters only when training starts from non-zero weights (as in the visual above).
+
 ## Two ways to beat XOR
 
-**Fix 1: give the neuron a better input.** Add a third feature $x_3 = x_1 x_2$ (which is 1 only at the corner $(1,1)$). Now one perceptron can do it: $z = x_1 + x_2 - 2x_3 - 0.5$ gives $-0.5, 0.5, 0.5, -0.5$ at the four corners, which is exactly XOR after the step. Adding a feature lifts the points into a third dimension, where a flat plane can split them. Support vector machines use the same idea with kernels: they map data into a higher-dimensional space where it becomes separable, without ever computing the new features explicitly.
+**Fix 1: give the neuron a better input.** Add a third feature $x_3 = x_1 x_2$ (which is 1 only at the corner $(1,1)$). Now one perceptron can do it: $z = x_1 + x_2 - 2x_3 - 0.5$ gives $-0.5, 0.5, 0.5, -0.5$ at the four corners, which is exactly XOR after the step. The new feature lifts the points into a third dimension, where a flat plane can split them (the same idea behind the kernels of support vector machines).
 
 <PastPaperQuestion paper="prelim2026" n={150} />
 
@@ -267,7 +280,7 @@ AND is learned in 6 epochs (the sixth has no mistakes), ending at $\mathbf{w} = 
 
 <XorTwoLines />
 
-The middle neurons are called a <Term def="A layer of neurons between the inputs and the output. Its values are not given in the data; the network computes them.">hidden layer</Term>, and this is the idea behind every multi-layer network in the next lessons. One snag remains: the perceptron learning rule only trains a single neuron, and the step function is flat everywhere except for a jump at 0, so gradient descent gets no slope to follow. Training many layers at once needs a smooth replacement for the step. That is the next lesson: **activation functions**.
+The middle neurons are called a <Term def="A layer of neurons between the inputs and the output. Its values are not given in the data; the network computes them.">hidden layer</Term>, the idea behind every multi-layer network in the next lessons. One snag: the perceptron rule only trains a single neuron, and the step function is flat everywhere except for a jump at 0, so gradient descent gets no slope to follow. Training many layers needs a smooth replacement for the step: the next lesson, **activation functions**.
 
 <ExamTip>
 
@@ -275,8 +288,9 @@ How NOAI asks about the perceptron:
 
 - **Definitions**: a perceptron is a *single-layer linear classifier*: weighted sum, then a threshold.
 - **Which gate can one perceptron not learn?** XOR (and its opposite, XNOR). AND, OR, NAND and NOR are all linearly separable.
-- **Compute the output**: find $z = \mathbf{w}\cdot\mathbf{x} + b$, then check its sign. Read the question's convention: some use $z \ge 0$, and some use labels $-1/+1$ with a sign function instead of 0/1. The idea is identical.
+- **Compute the output**: find $z = \mathbf{w}\cdot\mathbf{x} + b$, then check its sign. Read the question's convention: some use $z \ge 0$, and some use labels $-1/+1$ with a sign function instead of 0/1.
 - **One update step**: only mistakes change anything; add $\eta\mathbf{x}$ for a missed 1, subtract it for a false alarm, and update $b$ too.
+- **±1 labels**: with $y \in \{-1, +1\}$ and $\hat y = \text{sign}(z)$, the rule is usually written: on a mistake, $\mathbf{w} \leftarrow \mathbf{w} + \eta y\mathbf{x}$ and $b \leftarrow b + \eta y$. If a question keeps $\eta(y - \hat y)\mathbf{x}$ with ±1 labels, the error is ±2, so each step is twice as big.
 
 </ExamTip>
 

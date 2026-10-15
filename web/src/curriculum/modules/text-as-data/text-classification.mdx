@@ -59,11 +59,11 @@ A sorting centre does not read your letter. It reads the address (**tokenise**),
 
 Our running example is <Term def="Deciding whether a piece of text expresses a positive or a negative opinion. It is a classic text-classification task.">sentiment analysis</Term> of hawker-centre reviews, with two classes: positive and negative.
 
-1. **Tokenise.** Split the text into tokens, usually after lower-casing. Simple pipelines also drop <Term def="Very common words such as 'the', 'was' and 'and' that carry little meaning on their own. Some pipelines remove them before vectorising.">stop words</Term>. Tokens that are not in the vocabulary are ignored (or mapped to `[UNK]`).
+1. **Tokenise.** Split the text into tokens, usually after lower-casing. Simple pipelines also drop <Term def="Very common words such as 'the', 'was' and 'and' that carry little meaning on their own. Some pipelines remove them before vectorising.">stop words</Term>, and some **normalise** words: <Term def="Chopping word endings off by fixed rules, e.g. running → run, studies → studi. Fast, but the result is not always a real word.">stemming</Term> chops endings by rule (running → run, studies → studi), while <Term def="Mapping a word to its dictionary form using a vocabulary and grammar, e.g. ran → run, better → good.">lemmatisation</Term> maps a word to its dictionary form (ran → run, better → good). Subword tokenisers and pretrained models make both less necessary. Tokens that are not in the vocabulary are ignored (or mapped to `[UNK]`).
 2. **Vectorise.** Turn the tokens into **one vector of fixed length**. This is needed because a classifier such as logistic regression expects the same number of inputs every time, but reviews have different numbers of words.
 3. **Classify.** Feed the vector to a classifier. Here it is logistic regression: a score $z = \mathbf{w}^\top \mathbf{x} + b$, squashed by the sigmoid into a probability $p = \sigma(z)$. Predict "positive" when $p \ge 0.5$.
 
-The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from the bag-of-words lesson, and **averaged word embeddings**, from the embeddings lesson.
+The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from the bag-of-words lesson, and **averaged word embeddings**, from the embeddings lesson. Each figure in this lesson runs its own tiny model (the visuals learn from 48 reviews and the code from 12, and they turn words into numbers in different ways), so the exact probabilities differ from figure to figure; the pattern is what matters.
 
 <TextClassifierPipeline />
 
@@ -83,7 +83,7 @@ Every text classifier is a **vectoriser plus a classifier**: tokenise, turn the 
 
 <Mistake title="Throwing away the word 'not'">
 
-Ready-made stop-word lists often contain "not", "no" and "never". scikit-learn's built-in English list does. For sentiment that deletes the most important word in "not good"! Check the list before you use it, or skip stop-word removal altogether: TF-IDF already gives very common words a low weight.
+Ready-made stop-word lists often contain "not", "no" and "never". scikit-learn's built-in English list does. For sentiment that deletes the most important word in "not good"! Check the list before you use it, or skip stop-word removal altogether: TF-IDF already gives very common words a low weight. (The toy models in this lesson use a short hand-made stop-word list that keeps "not".)
 
 </Mistake>
 
@@ -106,7 +106,7 @@ Because every $x_j$ for a missing word is 0, the sum is simply **the bias plus t
 
 <Steps title="Scoring two reviews by hand (weights rounded to 1 decimal place)">
   <Step title="Tokenise and drop stop words">
-    *the laksa was cold and bland* becomes `laksa`, `cold`, `bland`. *not bad at all* becomes `not`, `bad` ("at" and "all" are stop words).
+    *the laksa was cold and bland* becomes `laksa`, `cold`, `bland`. *not bad at all* becomes `not`, `bad` ("at" and "all" are stop words; our toy list keeps "not").
   </Step>
   <Step title="Look up the weights">
     The bias is $b = 0.1$. The weights are laksa $+0.1$, cold $-1.3$, bland $-1.4$, not $-0.5$ and bad $-1.2$.
@@ -182,7 +182,9 @@ Expect options that test whether you know **bag of words (and TF-IDF) ignores wo
 
 The third approach needs a little more explanation. A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. It puts a special `[CLS]` token at the start of every input, and its final vector for `[CLS]` summarises the whole sentence, word order included. To classify, you add a small **classification head** (one linear layer and a softmax) on top of that vector. Then you <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term>: train the head *and* all of BERT's weights on your labelled examples for a few epochs, with a small learning rate (around $2 \times 10^{-5}$) so the pretrained knowledge is nudged rather than wiped out. Reusing knowledge from one task for another like this is called <Term def="Reusing a model trained on one big task (such as predicting missing words in billions of sentences) as the starting point for a different, smaller task.">transfer learning</Term>.
 
-The averaged-embedding model is short enough to write out in PyTorch. Notice the one line where word order disappears:
+The averaged-embedding model is short enough to write out in PyTorch; open it to see the one line where word order disappears.
+
+<Reveal label="PyTorch version of the averaged-embedding classifier">
 
 ```python
 import torch
@@ -220,6 +222,8 @@ True
 
 The two sentences give identical outputs, even before training: `mean(dim=1)` adds the same six vectors whatever order they come in.
 
+</Reveal>
+
 The TF-IDF + logistic regression baseline takes only a few lines in scikit-learn. `make_pipeline` chains the vectoriser and the classifier, so `fit` and `predict_proba` run all three stages. Run it, then add your own test sentences:
 
 <PyRunner packages={['scikit-learn']} code={sklearnCode} />
@@ -228,29 +232,32 @@ The TF-IDF + logistic regression baseline takes only a few lines in scikit-learn
 
 The deciding factor is usually **how many labelled examples you have**:
 
-- **Tens to a few hundred:** start with TF-IDF + logistic regression. It trains in seconds, it is hard to beat at this size, and it gives you a baseline that every fancier model must beat. Frozen pretrained embeddings plus logistic regression are another good choice here.
-- **Thousands or more:** fine-tune a pretrained encoder. It usually gives the best accuracy because it starts out already knowing the language, and it reads word order.
+- **Always** start with a TF-IDF + logistic regression **baseline**. It trains in seconds and tells you what any fancier model must beat.
+- **Small labelled set (tens to a few hundred):** reuse a pretrained model, which is [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation) again. Either freeze it and train logistic regression on its embeddings, or fine-tune it gently with a small learning rate. Pretrained knowledge is exactly what makes small datasets workable, and it usually beats TF-IDF even here.
+- **Thousands or more:** fully fine-tune a pretrained encoder (BERT) for the best accuracy.
 - **Never** train a big network from scratch on a small labelled set. It has far more parameters than examples, so it memorises the training set (overfits) instead of learning sentiment.
 
 <PastPaperQuestion paper="noai2025" n={17} />
+
+The next question shows the last bullet in action. An LSTM is a sequence model you meet in the next lesson; here all that matters is its 2.4 million parameters against 5,000 reviews.
 
 <PastPaperQuestion paper="prelim2026" n={261} />
 
 ## Evaluating: when accuracy lies
 
-Real text datasets are usually <Term def="A dataset in which some classes have many more examples than others, for example 150 praise messages but only 10 food-safety reports.">imbalanced</Term>. Imagine a food-delivery app that sorts 200 messages into *praise* (150), *late delivery* (40) and *food safety* (10). The rare class is the one that matters most. Accuracy, the fraction of all messages labelled correctly, hardly notices the 10 food-safety messages, so we measure each class separately. For one class $c$, count the true positives (TP: correctly labelled $c$), false positives (FP: wrongly labelled $c$) and false negatives (FN: really $c$, but missed):
+Real text datasets are usually <Term def="A dataset in which some classes have many more examples than others, for example 150 praise messages but only 10 food-safety reports.">imbalanced</Term>. Imagine a food-delivery app that sorts 200 messages into *praise* (150), *late delivery* (40) and *food safety* (10). The rare class is the one that matters most, yet accuracy (the fraction of all messages labelled correctly) hardly notices it. You already have the fix from [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics): score each class $c$ separately with
 
 $$
-\text{precision}_c = \frac{TP}{TP + FP}, \qquad \text{recall}_c = \frac{TP}{TP + FN}, \qquad F1_c = \frac{2\,TP}{2\,TP + FP + FN}
+F1_c = \frac{2\,TP}{2\,TP + FP + FN}
 $$
 
-<Term def="Of all the messages the model labelled as class c, the fraction that really are class c.">Precision</Term> asks "when the model says food safety, is it right?". <Term def="Of all the messages that really are class c, the fraction the model caught.">Recall</Term> asks "of the real food-safety messages, how many did it catch?". <Term def="The harmonic mean of precision and recall, 2PR/(P + R). It is high only when both are high.">F1</Term> combines them; the form $\frac{2TP}{2TP + FP + FN}$ equals the harmonic mean $\frac{2PR}{P + R}$ and is faster by hand. Finally,
+where TP counts messages correctly labelled $c$, FP messages wrongly labelled $c$ and FN real $c$ messages that were missed. This is the harmonic mean of precision and recall, written in the form that is fastest by hand. Then, as in [macro averaging](#/learn/model-evaluation/regression-and-overlap-metrics), take the plain average over the $K$ classes:
 
 $$
 \text{macro-F1} = \frac{1}{K} \sum_{c=1}^{K} F1_c
 $$
 
-the plain average of the $K$ per-class F1 scores. Every class gets an equal vote, however small it is. (**Weighted-F1** averages by class size instead, so big classes dominate it again; for single-label problems **micro-F1** equals accuracy.)
+Every class gets an equal vote, however small it is. (**Weighted-F1** averages by class size instead, so big classes dominate it again; for single-label problems **micro-F1** equals accuracy.)
 
 <MacroF1Explorer />
 
@@ -291,7 +298,7 @@ For "which metric is misleading on imbalanced data?" the answer is **accuracy**:
 - Text classification = **tokenise → vectorise → classify**. The vector must have a fixed length, whatever the length of the text.
 - In a linear bag-of-words model, $z = b + \sum_j w_j x_j$: each word adds its own fixed weight. That makes it easy to inspect, but blind to word order, negation and sarcasm.
 - Bag of words, TF-IDF and averaged embeddings all ignore word order. Fine-tuning a pretrained encoder (BERT's `[CLS]` vector plus a linear head, small learning rate) reads words in context and is usually the most accurate when you have enough labelled data.
-- With little labelled data, start with a TF-IDF + logistic regression baseline; never train a huge model from scratch on a small dataset.
+- Always start with a TF-IDF + logistic regression baseline. With little labelled data, reuse a pretrained model (frozen features or gentle fine-tuning); never train a huge model from scratch on a small dataset.
 - On imbalanced classes, accuracy can look great while the rare class is ignored. Use per-class precision, recall and F1, and **macro-F1** to give every class an equal vote.
 
 </Takeaways>

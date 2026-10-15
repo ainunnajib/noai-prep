@@ -22,10 +22,10 @@ Here $w$ (the weight) and $b$ (the bias) are the knobs the model learns, $x$ is 
 
 | Step | Operation | New value |
 |---|---|---|
-| 1 | multiply the weight by the input | $p = w \times x$ |
-| 2 | add the bias: this is the prediction | $\hat y = p + b$ |
-| 3 | subtract the target: the error | $e = \hat y - y$ |
-| 4 | square the error: the loss | $L = e^2$ |
+| 1 | multiply the weight by the input | $p=wx$ |
+| 2 | add the bias: this is the prediction | $\hat y=p+b$ |
+| 3 | subtract the target: the error | $e=\hat y-y$ |
+| 4 | square the error: the loss | $L=e^2$ |
 
 A <Term def="A diagram of a calculation. Each node is one elementary operation (or an input), and arrows show which values feed into which operation.">computational graph</Term> draws this table as a picture. Every operation becomes a **node** (a circle). Every starting value becomes a **leaf** (a box), and an arrow, called an **edge**, carries each value to the node that uses it. The order comes from the brackets, exactly as in BODMAS: innermost first. In the graphs below, the inputs the model learns ($w$ and $b$, called <Term def="Numbers inside a model that training adjusts, such as weights and biases.">parameters</Term>) have indigo boxes; inputs that come from the data ($x$ and $y$) have grey ones.
 
@@ -33,7 +33,7 @@ A <Term def="A diagram of a calculation. Each node is one elementary operation (
 
 ## The forward pass
 
-Running the graph from left to right is called the <Term def="Evaluating a computational graph from the inputs to the output, computing each node's value in turn.">forward pass</Term>. There is only one rule: a node can be computed once every value flowing into it is known. Listing the nodes so that each one comes after all of its inputs is called a <Term def="An ordering of a graph's nodes in which every node comes after all the nodes that feed into it.">topological order</Term>; for a chain like ours it is simply left to right.
+Running the graph from the inputs towards the output (left to right on a wide screen, top to bottom on a phone) is called the <Term def="Evaluating a computational graph from the inputs to the output, computing each node's value in turn.">forward pass</Term>. There is only one rule: a node can be computed once every value flowing into it is known. Listing the nodes so that each one comes after all of its inputs is called a <Term def="An ordering of a graph's nodes in which every node comes after all the nodes that feed into it.">topological order</Term>; for a chain like ours it is simply the order of the arrows.
 
 <Steps title="Forward pass with $w = 2,\ x = 3,\ b = 1,\ y = 5$">
   <Step title="Multiply">
@@ -56,7 +56,7 @@ The forward pass **keeps** every intermediate value ($p = 6$, $\hat y = 7$, $e =
   q="How many operation nodes (circles) does the computational graph of $(2a + b)^2$ need?"
   options={['3', '2', '4', '6']}
   answer={0}
-  explain="One node per operation: multiply ($2 \times a$), add ($+\,b$) and square. The numbers $2$, $a$ and $b$ are leaves (boxes), not operations, so 6 counts the leaves as well. Answering 2 forgets that $2a$ is itself a multiplication, and the brackets are not an operation."
+  explain="One node per operation: multiply ($2 \times a$), add ($+\,b$) and square. The numbers $2$, $a$ and $b$ are leaves (boxes), not operations, so 6 counts the leaves as well. Answering 4 counts the brackets (or the constant 2) as one more operation, but brackets only set the order. Answering 2 forgets that $2a$ is itself a multiplication."
 />
 
 <PastPaperQuestion paper="prelim2026" n={43} />
@@ -75,7 +75,7 @@ The curly $\partial$ is read "partial": it means only $w$ changes while $x$ stay
 
 <LocalSlopeNudge />
 
-Every node type has its own one-line rule. These seven cover almost every graph you will meet in NOAI:
+Every node type has its own one-line rule. These ten cover almost every graph you will meet in NOAI:
 
 | Node | Output | Local derivative for each input |
 |---|---|---|
@@ -83,11 +83,14 @@ Every node type has its own one-line rule. These seven cover almost every graph 
 | subtract | $a - b$ | $1$ for $a$, $-1$ for $b$ |
 | multiply | $a \times b$ | $b$ for $a$, and $a$ for $b$ (the *other* input) |
 | square | $a^2$ | $2a$ |
-| sigmoid | $\sigma(a) = \dfrac{1}{1 + e^{-a}}$ | $\sigma(a)\,\big(1 - \sigma(a)\big)$ |
+| sigmoid | $\sigma(a)$ | $\sigma(a)\,\big(1 - \sigma(a)\big)$ |
+| tanh | $\tanh(a)$ | $1 - \tanh^2(a)$ |
+| exp | $e^a$ | $e^a$ (the slope equals the output) |
+| log | $\ln a$ | $1/a$ |
 | max | $\max(a, b)$ | $1$ for the larger input, $0$ for the other |
 | ReLU | $\max(0, a)$ | $1$ if $a > 0$, otherwise $0$ |
 
-None of these needs more than a line of school calculus. The sigmoid rule comes from the derivative-rules lesson: if a sigmoid node outputs $0.8$, its local derivative is $0.8 \times 0.2 = 0.16$, and it can never be more than $0.5 \times 0.5 = 0.25$. The local derivative is evaluated at the node's **current** values, which is why the forward pass must come first.
+None of these needs more than a line of school calculus. The sigmoid is $\sigma(a) = \frac{1}{1 + e^{-a}}$, and its rule comes from the derivative-rules lesson: if a sigmoid node outputs $0.8$, its local derivative is $0.8 \times 0.2 = 0.16$, and it can never be more than $0.5 \times 0.5 = 0.25$. The local derivative is evaluated at the node's **current** values, which is why the forward pass must come first.
 
 <KeyIdea>
 
@@ -132,7 +135,7 @@ Square and sigmoid are **scalers**: square multiplies $g$ by $2a$, and sigmoid m
 
 <ExamTip>
 
-With the gate table memorised, local-derivative questions take seconds. Watch for three traps in the options: giving a multiply input its **own** value instead of the other input's, dropping the **minus sign** on a subtracted input, and writing the sigmoid's derivative as $\sigma(x)$ (that "slope equals height" property belongs to $e^x$). Also remember the one-line definition: a computational graph is a graph of operations and their dependencies, which automatic differentiation walks backwards with the chain rule.
+With the gate table memorised, local-derivative questions take seconds. Watch for three traps in the options: giving a multiply input its **own** value instead of the other input's, dropping the **minus sign** on a subtracted input, and writing the sigmoid's derivative as $\sigma(x)$ (that "slope equals height" property belongs to $e^x$). Also remember the one-line definition: a computational graph is a graph of operations and their dependencies, which <Term def="Software that records a calculation as a graph and applies the chain rule to it automatically, as PyTorch does.">automatic differentiation</Term> walks backwards with the chain rule.
 
 </ExamTip>
 
@@ -176,13 +179,13 @@ tensor(4., grad_fn=<PowBackward0>)
 PowBackward0 <- SubBackward0 <- AddBackward0 <- MulBackward0
 ```
 
-Those four names are the four circles you drew, from the loss back to the multiply. Each one stores its operation's local-derivative rule and the input values it needs. PyTorch builds a fresh graph on every forward pass, so the graph can change from one input to the next.
+Those four names are the four circles in the graph above, from the loss back to the multiply. Each one stores its operation's local-derivative rule and the input values it needs. PyTorch builds a fresh graph on every forward pass, so the graph can change from one input to the next.
 
 <Takeaways>
 
 - A computational graph splits a formula into single operations (nodes) joined by arrows (edges) that carry values; the inputs are leaves.
-- The forward pass computes the nodes in order, left to right, and keeps every intermediate value for later.
-- A node's local derivative is the slope of its own tiny operation: add $1$, subtract $\pm 1$, multiply "the other input", square $2a$, sigmoid $\sigma(1-\sigma) \le 0.25$, max $1$ for the winner and $0$ for the loser.
+- The forward pass computes the nodes in order, from the inputs to the output, and keeps every intermediate value for later.
+- A node's local derivative is the slope of its own tiny operation: add $1$, subtract $\pm 1$, multiply "the other input", square $2a$, sigmoid $\sigma(1-\sigma) \le 0.25$, tanh $1 - \tanh^2$, max $1$ for the winner and $0$ for the loser.
 - Gradient into an input = upstream gradient × local derivative (the chain rule). Add distributes, multiply swaps, max routes.
 
 </Takeaways>

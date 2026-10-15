@@ -28,6 +28,8 @@ import { normalPdf, gauss, fmt } from './stats'
   sample means drawn so far, with the normal curve N(μ, σ²/n) predicted by the CLT on top.
   Sample i always uses its own seeded RNG, so moving the n slider re-draws the same experiment
   instantly at the new n: the histogram morphs from the source shape into a narrow bell.
+  Sample means above 10 minutes (only possible for the skewed source with small n) are left out
+  of the histogram rather than piled into the last bin, and the plot says how many were left out.
 */
 
 type Source = 'uniform' | 'skewed' | 'twohump'
@@ -63,6 +65,9 @@ const SOURCES: Record<Source, { label: string; mu: number; sigma: number; pdf: (
   },
 }
 const SRC_CODE: Record<Source, number> = { uniform: 11, skewed: 23, twohump: 37 }
+
+/** histogram bin of a sample mean, or -1 when it is off the 0–10 minute axis */
+const binOf = (v: number) => (v >= 0 && v < 10 ? Math.min(NBINS - 1, Math.floor(v / BIN)) : -1)
 
 /** the n values of sample number i (deterministic) */
 function sampleValues(src: Source, n: number, i: number, seed: number) {
@@ -115,18 +120,20 @@ export default function CLTSampler() {
     if (count >= MAX) setPlaying(false)
   }, [count])
 
-  const counts = useMemo(() => {
+  const { counts, offAxis } = useMemo(() => {
     const c = new Array(NBINS).fill(0)
+    let off = 0
     for (let i = 0; i < count; i++) {
-      const b = Math.min(NBINS - 1, Math.max(0, Math.floor(means[i] / BIN)))
-      c[b]++
+      const b = binOf(means[i])
+      if (b < 0) off++
+      else c[b]++
     }
-    return c
+    return { counts: c, offAxis: off }
   }, [means, count])
 
   const latest = count > 0 ? sampleValues(src, n, count - 1, seed) : []
   const latestMean = count > 0 ? means[count - 1] : NaN
-  const hiBin = count > 0 ? Math.min(NBINS - 1, Math.floor(latestMean / BIN)) : -1
+  const hiBin = count > 0 ? binOf(latestMean) : -1
 
   let sum = 0
   for (let i = 0; i < count; i++) sum += means[i]
@@ -140,6 +147,8 @@ export default function CLTSampler() {
   const yTop = Math.max(5, ...counts, showCurve && count > 0 ? curve(S.mu) : 0) * 1.12
   const srcTop = src === 'skewed' ? 0.56 : src === 'uniform' ? 0.16 : 0.34
 
+  // the sample-mean marker sits above the flat population's line, so the label never crosses it
+  const markY = srcTop * (src === 'uniform' ? 0.82 : 0.62)
   // place the latest sample's dots in a few rows so they do not overlap too much
   const dotRows = latest.map((v, j) => ({ x: Math.min(10, v), y: srcTop * (0.1 + 0.11 * (j % 4)), r: n > 20 ? 3.2 : 4.2, color: 'var(--viz-2)' }))
 
@@ -176,9 +185,9 @@ export default function CLTSampler() {
           {`population: μ = ${fmt(S.mu)}, σ = ${fmt(S.sigma)}`}
         </Label>
         {count > 0 && <Dots points={dotRows} stroke="var(--surface)" />}
-        {count > 0 && <Dots points={[{ x: latestMean, y: srcTop * 0.62, r: 7, shape: 'square', color: 'var(--viz-2)' }]} />}
+        {count > 0 && <Dots points={[{ x: Math.min(10, latestMean), y: markY, r: 7, shape: 'square', color: 'var(--viz-2)' }]} />}
         {count > 0 && (
-          <Label x={latestMean} y={srcTop * 0.62} dx={latestMean > 7.5 ? -11 : 11} dy={4} anchor={latestMean > 7.5 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
+          <Label x={Math.min(10, latestMean)} y={markY} dx={latestMean > 7.5 ? -11 : 11} dy={4} anchor={latestMean > 7.5 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
             {`sample mean ${latestMean.toFixed(2)}`}
           </Label>
         )}
@@ -190,6 +199,11 @@ export default function CLTSampler() {
         <HistBars counts={counts} hiBin={hiBin} />
         {hiBin >= 0 && counts[hiBin] > 0 && <Rect x0={hiBin * BIN + 0.01} x1={(hiBin + 1) * BIN - 0.01} y0={0} y1={counts[hiBin]} fill="var(--viz-2)" />}
         {showCurve && count > 0 && <FnPath f={curve} color="var(--viz-ink)" width={2} dash="6 4" samples={300} />}
+        {offAxis > 0 && (
+          <Label x={10} y={yTop} dy={14} anchor="end" color="var(--ink-2)" size={12}>
+            {`${offAxis} mean${offAxis === 1 ? '' : 's'} above 10 min not shown`}
+          </Label>
+        )}
       </Plot>
 
       <Controls>

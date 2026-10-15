@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
     options: ['$1/6$', '$1/11$', '$7/36$', '$1/12$'],
     answer: 0,
     explanation:
-      'There are $6 \\times 6 = 36$ equally likely ordered pairs, and six of them sum to 7: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). So $P = 6/36 = 1/6$. The answer $1/11$ wrongly treats the 11 possible totals as equally likely, and $1/12$ counts only the 3 unordered pairs.',
+      'There are $6 \\times 6 = 36$ equally likely ordered pairs, and six of them sum to 7: (1,6), (2,5), (3,4), (4,3), (5,2), (6,1). So $P = 6/36 = 1/6$. The answer $1/11$ wrongly treats the 11 possible totals as equally likely, $7/36$ puts the target total 7 on top instead of the 6 ways of making it, and $1/12$ counts only the 3 unordered pairs.',
     difficulty: 'beginner',
   },
   {
@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     options: ['$3/4$', '$3/5$', '$3/20$', '$1/4$'],
     answer: 0,
     explanation:
-      '"Given it contains winner" shrinks the world to those 40 emails, and 30 of them are spam, so $P(\\text{spam} \\mid \\text{winner}) = 30/40 = 3/4$. $3/5 = 30/50$ is the reverse, $P(\\text{winner} \\mid \\text{spam})$. $3/20 = 30/200$ is $P(\\text{spam and winner})$, which uses the whole data set as the denominator.',
+      '"Given it contains winner" shrinks the world to those 40 emails, and 30 of them are spam, so $P(\\text{spam} \\mid \\text{winner}) = 30/40 = 3/4$. $3/5 = 30/50$ is the reverse, $P(\\text{winner} \\mid \\text{spam})$. $3/20 = 30/200$ is $P(\\text{spam and winner})$, which uses the whole data set as the denominator, and $1/4 = 50/200$ is just the base rate $P(\\text{spam})$, ignoring the evidence.',
     difficulty: 'intermediate',
   },
   {

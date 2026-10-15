@@ -21,22 +21,43 @@ const START: Record<Scenario, { d: number; l: number; n: number }> = {
   good: { d: 2, l: 0, n: 0 },
 }
 const Y_TOP = 0.7
+/** --viz-6 alone is too faint for small text on a light surface; mixing in ink keeps the hue and lifts contrast in both themes */
+const UNDER_TEXT = 'color-mix(in srgb, var(--viz-6) 75%, var(--ink))'
 
-const VERDICT: Record<Diagnosis, { title: string; text: string; color: string }> = {
+/**
+ * Learning curves are expensive (hundreds of polynomial fits), so each one is computed once and shared
+ * by the remedy handler and the render. With 640 points, 30 runs per size already give the same
+ * medians to 3 decimals as 60, at half the cost.
+ */
+const CURVES = new Map<string, CurvePoint[]>()
+function curveFor(di: number, li: number, ni: number): CurvePoint[] {
+  const key = `${di}|${li}|${ni}`
+  let c = CURVES.get(key)
+  if (!c) {
+    c = learningCurve(DEGS[di], LAMS[li], NMAX[ni], NMAX[ni] >= 640 ? 30 : 60)
+    CURVES.set(key, c)
+  }
+  return c
+}
+
+const VERDICT: Record<Diagnosis, { title: string; text: string; color: string; textColor: string }> = {
   bias: {
     title: 'High bias (underfitting)',
     text: 'Both errors are high, close together and far above the noise floor: the model cannot even fit its own training data. More data will not help. Use a more flexible model or better features, or regularise less.',
     color: 'var(--viz-6)',
+    textColor: UNDER_TEXT,
   },
   variance: {
     title: 'High variance (overfitting)',
-    text: 'Training error is low (even below the noise floor: it has memorised noise) but validation error is much higher. The big gap says: get more data, regularise more, or use a simpler model.',
+    text: 'Training error is low (often far below the noise floor: it has memorised noise) but validation error is much higher. The big gap says: get more data, regularise more, or use a simpler model.',
     color: 'var(--viz-neg)',
+    textColor: 'var(--viz-neg)',
   },
   good: {
     title: 'Good fit',
-    text: 'Both errors are low, close together and close to the noise floor. There is little left to gain on this data.',
+    text: 'Both errors are low, close together and close to the noise floor. (A training error slightly below the floor is normal: every fit bends a little towards the noise in its own training points.) There is little left to gain on this data.',
     color: 'var(--viz-pos)',
+    textColor: 'var(--viz-pos)',
   },
 }
 
@@ -61,7 +82,7 @@ export default function LearningCurveClinic() {
   const [note, setNote] = useState<{ text: string; tone: 'good' | 'bad' | 'flat' } | null>(null)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
 
-  const curve = useMemo(() => learningCurve(DEGS[di], LAMS[li], NMAX[ni]), [di, li, ni])
+  const curve = useMemo(() => curveFor(di, li, ni), [di, li, ni])
   const last = curve[curve.length - 1]
   const diag = diagnose(curve)
   const v = VERDICT[diag]
@@ -80,7 +101,7 @@ export default function LearningCurveClinic() {
     const nd = next.d ?? di
     const nl = next.l ?? li
     const nn = next.n ?? ni
-    const after = learningCurve(DEGS[nd], LAMS[nl], NMAX[nn])
+    const after = curveFor(nd, nl, nn)
     const a = after[after.length - 1]
     const before = last
     const change = a.val / before.val
@@ -113,8 +134,8 @@ export default function LearningCurveClinic() {
         <>
           Each curve shows the typical training error (blue) and validation error (orange) after training on that many points, from 60 random
           training sets per size. Pick a patient, read the gap, then try the remedies. Notice that <b>more data</b> shrinks a variance gap but does
-          nothing for high bias, while a <b>bigger model</b> rescues high bias but widens a variance gap. Too much regularisation turns high variance
-          into high bias.
+          nothing for high bias, while a <b>bigger model</b> rescues high bias (try it on the Good-fit patient to see it open a variance gap). Too
+          much regularisation turns high variance into high bias.
         </>
       }
     >
@@ -176,7 +197,7 @@ export default function LearningCurveClinic() {
           </span>
         </div>
         <div style={card} aria-live="polite">
-          <b style={{ color: v.color }}>{v.title}.</b> {v.text}
+          <b style={{ color: v.textColor }}>{v.title}.</b> {v.text}
         </div>
         {note && (
           <div
@@ -194,7 +215,7 @@ export default function LearningCurveClinic() {
         )}
       </div>
       <Controls>
-        <Button primary onClick={() => remedy('More data', { n: ni + 1 })} disabled={ni >= NMAX.length - 1}>
+        <Button onClick={() => remedy('More data', { n: ni + 1 })} disabled={ni >= NMAX.length - 1}>
           More data (×4)
         </Button>
         <Button onClick={() => remedy('A bigger model', { d: di + 1 })} disabled={di >= DEGS.length - 1}>

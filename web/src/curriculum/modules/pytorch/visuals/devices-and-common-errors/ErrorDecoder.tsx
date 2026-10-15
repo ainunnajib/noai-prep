@@ -3,9 +3,9 @@ import { Figure, Segmented, Readout } from '../../../../../kit'
 import { PyPanel, MONO } from '../training-loop/PyCode'
 
 /*
-  Seven real PyTorch error messages. For each: read the code and the message, decide which kind of
+  Eight real PyTorch error messages. For each: read the code and the message, decide which kind of
   bug it is (shape, dtype, device or autograd), then see the message decoded piece by piece and the fix.
-  Messages 1-4 and 6 were produced by PyTorch 2.14 (CPU); 5 and 7 need a GPU and use the wording of
+  Messages 1-5 and 7 were produced by PyTorch 2.14 (CPU); 6 and 8 need a GPU and use the wording of
   recent PyTorch versions.
 */
 
@@ -63,6 +63,24 @@ const CASES: Case[] = [
     fix: ['labels = labels.long()'],
   },
   {
+    code: ['conv = nn.Conv2d(3, 8, kernel_size=3)', 'img = torch.from_numpy(np.random.rand(4, 3, 32, 32))', 'out = conv(img)'],
+    msg: 'RuntimeError: Input type (double) and bias type (float) should be the same',
+    family: 'dtype',
+    parts: [
+      { match: 'Input type (double)', note: <>The images are float64: NumPy's default float, and <code>from_numpy</code> keeps it.</> },
+      {
+        match: 'bias type (float)',
+        note: (
+          <>
+            The layer's bias (and weights) are float32. Convolution layers word a clash as <i>Input type … should be the same</i>: two different number
+            types mean a dtype bug, while a <code>cuda</code> in only one of the two names would mean a device bug.
+          </>
+        ),
+      },
+    ],
+    fix: ['img = img.float()   # float64 -> float32'],
+  },
+  {
     code: ["model = Net().to('cuda')", 'x = torch.randn(4, 3)', 'out = model(x)'],
     msg: 'RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cpu, different from other tensors on cuda:0 (when checking argument in method wrapper_CUDA_addmm)',
     family: 'device',
@@ -103,6 +121,7 @@ const FAM: { value: Family; label: string }[] = [
   { value: 'autograd', label: 'autograd' },
 ]
 const HL = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
+const article = (w: string) => (/^[aeiou]/.test(w) ? 'an' : 'a')
 
 function Message({ c, reveal }: { c: Case; reveal: boolean }) {
   // split the message into plain text and numbered highlighted parts
@@ -202,7 +221,7 @@ export default function ErrorDecoder() {
       {reveal && (
         <div style={{ width: '100%', display: 'grid', gap: 8 }}>
           <div style={{ fontSize: 14, lineHeight: 1.5, color: right ? 'var(--ok)' : 'var(--bad)', fontWeight: 700 }}>
-            {right ? `Yes: a ${c.family} error.` : `Not quite: this is a ${c.family} error.`}
+            {right ? `Yes: ${article(c.family)} ${c.family} error.` : `Not quite: this is ${article(c.family)} ${c.family} error.`}
           </div>
           <ol style={{ margin: 0, paddingLeft: '1.3rem', display: 'grid', gap: 4, fontSize: 13.5, lineHeight: 1.5, color: 'var(--ink-2)' }}>
             {c.parts.map((p, i) => (

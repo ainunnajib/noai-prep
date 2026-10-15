@@ -1,12 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Figure, Segmented, Button, useContainerWidth } from '../../../../../kit'
+import { Figure, Segmented, Button, useContainerWidth, mulberry32, shuffled } from '../../../../../kit'
 import s from './ppw.module.css'
 import { Note, LessonLink, cx } from './shared'
 
 /*
   Keyword triggers: twelve phrases from real 2026 scenario stems, wired to the ten diagnoses they point to.
   Explore: click a keyword (or a diagnosis) to light up its links, the first move and the lesson.
-  Quiz: a real stem with three of its phrases; pick the one that decides the question.
+  Quiz: a real stem with three of its phrases, of similar length and shown in a seeded random order;
+  pick the one that decides the question.
 */
 
 type Fam = 'train' | 'res' | 'gen' | 'data' | 'eval'
@@ -111,8 +112,8 @@ const KWS: Kw[] = [
   { id: 'low', label: 'train ≈ validation, both low', to: ['under'], seen: 'Q266' },
   { id: 'chance', label: 'validation at chance (10% on 10 classes)', to: ['bug'], seen: 'Q273' },
   { id: 'time', label: 'trained on 2023, tested on 2025', to: ['drift'], seen: 'Q275, Q300' },
-  { id: 'late', label: 'labels arrive months later', to: ['drift'], seen: 'Q299' },
-  { id: 'rare', label: '1% positives (fraud, rare disease)', to: ['metric'], seen: 'Q263, Q265' },
+  { id: 'late', label: 'outputs shifting while labels arrive months later', to: ['drift'], seen: 'Q299' },
+  { id: 'rare', label: 'rare positives (1–2%: fraud, rare disease)', to: ['metric'], seen: 'Q263, Q265' },
 ]
 
 interface QuizItem {
@@ -132,7 +133,7 @@ const QUIZ: QuizItem[] = [
         oscillating around it. Which learning-rate schedule would most improve final performance?
       </>
     ),
-    chips: ['ResNet-34 on CIFAR-10', 'constant LR 0.1, then oscillation around a plateau', '200 epochs'],
+    chips: ['ResNet-34 trained on CIFAR-10 for 200 epochs', 'constant LR 0.1, oscillating at a plateau', 'loss falls fast for the first 50 epochs'],
     answer: 1,
     kw: 'plat',
     why: <>A constant, large learning rate is great early and too big late: the steps keep overshooting the minimum. Decay it (step decay at epochs 100 and 150).</>,
@@ -140,7 +141,7 @@ const QUIZ: QuizItem[] = [
   {
     q: 273,
     stem: <>Validation accuracy remains at 10% (random baseline for a 10-class problem) while training loss decreases smoothly to 0.01. Which failure mode is most likely?</>,
-    chips: ['training loss decreases smoothly', 'validation stuck at 10% on 10 classes', 'failure mode'],
+    chips: ['training loss falls smoothly to 0.01', 'validation stuck at 10% on 10 classes', 'which failure mode is most likely'],
     answer: 1,
     kw: 'chance',
     why: <>Exactly chance level while training clearly works means the validation labels are scrambled relative to training: a label-mapping bug.</>,
@@ -153,7 +154,7 @@ const QUIZ: QuizItem[] = [
         recall. Whose evaluation is most appropriate?
       </>
     ),
-    chips: ['class weights were added', '9,800 legitimate, 200 fraud', 'three practitioners'],
+    chips: ['class weights were added to the model', '9,800 legitimate and only 200 fraud', 'three practitioners quote three metrics'],
     answer: 1,
     kw: 'rare',
     why: <>2% positives makes accuracy useless (calling everything legitimate scores 98%), so the answer is about precision versus recall.</>,
@@ -166,7 +167,7 @@ const QUIZ: QuizItem[] = [
         warm-up fixes it. What mechanism does warm-up provide?
       </>
     ),
-    chips: ['124M parameters', 'Adam diverges in the first few hundred steps', 'trained from scratch'],
+    chips: ['a 124M-parameter GPT-2-scale model', 'AdamW diverges within the first 500 steps', 'a 2,000-step linear warm-up fixes it'],
     answer: 1,
     kw: 'div',
     why: <>Adam&rsquo;s step sizes are unreliable while its running averages are built from a few noisy gradients; warm-up keeps steps tiny until they settle.</>,
@@ -178,15 +179,15 @@ const QUIZ: QuizItem[] = [
         A 3-layer LSTM (2.4M parameters) classifies 5,000 movie reviews. Training accuracy 98.5%, validation 72.3%, test 71.8%. What is the most likely problem?
       </>
     ),
-    chips: ['3-layer LSTM', 'training 98.5% vs validation 72.3%', 'movie reviews'],
+    chips: ['a 3-layer LSTM with 2.4M parameters', 'training 98.5% against validation 72.3%', 'validation 72.3% and test 71.8% agree'],
     answer: 1,
     kw: 'gap',
-    why: <>A 26-point gap between training and validation is the signature of overfitting; the architecture and topic are scenery.</>,
+    why: <>A 26-point gap between training and validation is the signature of overfitting. Validation and test agreeing only tells you the validation set is a fair judge; the architecture is scenery.</>,
   },
   {
     q: 272,
     stem: <>Training abruptly produces NaN losses at epoch 23 after stable convergence. Which hypothesis-driven debugging approach is most effective?</>,
-    chips: ['epoch 23', 'NaN appears abruptly after stable training', 'debugging approach'],
+    chips: ['the failure happens at epoch 23', 'abrupt NaN after stable convergence', 'a hypothesis-driven debugging approach'],
     answer: 1,
     kw: 'nan',
     why: <>A sudden NaN after stable epochs is a specific event (a bad batch, an overflow): find where it happens before changing anything.</>,
@@ -199,7 +200,7 @@ const QUIZ: QuizItem[] = [
         and accuracy has dropped from 81% to 76%. What is happening?
       </>
     ),
-    chips: ['credit-scoring model', 'trained on 2023 data, applicants in 2024 look different', 'accuracy 81% → 76%'],
+    chips: ['a credit-scoring model deployed in January', 'trained on 2023 data, 2024 applicants differ', 'accuracy has dropped from 81% to 76%'],
     answer: 1,
     kw: 'time',
     why: <>The model learnt 2023 applicants and now sees different 2024 applicants: data drift. The fix is to retrain on recent data.</>,
@@ -207,7 +208,7 @@ const QUIZ: QuizItem[] = [
   {
     q: 269,
     stem: <>Your training loss oscillates wildly. What&rsquo;s likely wrong?</>,
-    chips: ['training loss', 'oscillates wildly', 'likely wrong'],
+    chips: ['your training loss', 'oscillates wildly', 'what is likely wrong'],
     answer: 1,
     kw: 'osc',
     why: <>Each step overshoots the bottom of the valley and lands on the other side: the learning rate is too high.</>,
@@ -328,7 +329,7 @@ function TriggerNetwork({ sel, onSelect }: { sel: Sel; onSelect: (s: Sel) => voi
 
   return (
     <div ref={ref} style={{ width: '100%' }}>
-      <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="img" aria-label="Network linking scenario keywords to the diagnoses they point to" style={{ display: 'block' }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" role="group" aria-label="Network linking scenario keywords to the diagnoses they point to" style={{ display: 'block' }}>
         <text x={0} y={14} className={s.svgHead}>
           keyword in the stem
         </text>
@@ -489,6 +490,8 @@ function Quiz({ onReveal }: { onReveal: (kw: string) => void }) {
   const [picks, setPicks] = useState<(number | null)[]>(() => QUIZ.map(() => null))
   const item = QUIZ[i]
   const pick = picks[i]
+  // show the chips in a fixed, per-item random order, so the deciding phrase is not always in the same place
+  const order = useMemo(() => shuffled(item.chips.map((_, j) => j), mulberry32(item.q * 31)), [item])
   const score = picks.filter((p, j) => p === QUIZ[j].answer).length
   const done = picks.filter((p) => p !== null).length
   const choose = (c: number) => {
@@ -504,15 +507,15 @@ function Quiz({ onReveal }: { onReveal: (kw: string) => void }) {
         <div className={s.chartStem}>{item.stem}</div>
         <div className={s.ask}>Which phrase decides it?</div>
         <div className={s.row}>
-          {item.chips.map((c, j) => (
+          {order.map((j) => (
             <button
-              key={c}
+              key={item.chips[j]}
               type="button"
               className={cx(s.chip, pick !== null && j === item.answer && s.good, pick === j && j !== item.answer && s.bad)}
               disabled={pick !== null}
               onClick={() => choose(j)}
             >
-              {c}
+              {item.chips[j]}
             </button>
           ))}
         </div>

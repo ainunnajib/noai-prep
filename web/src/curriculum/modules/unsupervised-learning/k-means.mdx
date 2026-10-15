@@ -116,12 +116,14 @@ Squared distance from each point to $C_1 = (2, 4)$ and to $C_2 = (2, 8)$:
 
 | point | to $C_1$ | to $C_2$ | nearest |
 |---|---|---|---|
-| (2, 4) | $0$ | $0 + 16 = 16$ | $C_1$ |
-| (2, 8) | $0 + 16 = 16$ | $0$ | $C_2$ |
-| (2, 10) | $0 + 36 = 36$ | $0 + 4 = 4$ | $C_2$ |
-| (10, 2) | $64 + 4 = 68$ | $64 + 36 = 100$ | $C_1$ |
-| (10, 4) | $64 + 0 = 64$ | $64 + 16 = 80$ | $C_1$ |
-| (10, 0) | $64 + 16 = 80$ | $64 + 64 = 128$ | $C_1$ |
+| $(2,4)$ | $0$ | $16$ | $C_1$ |
+| $(2,8)$ | $16$ | $0$ | $C_2$ |
+| $(2,10)$ | $36$ | $4$ | $C_2$ |
+| $(10,2)$ | $68$ | $100$ | $C_1$ |
+| $(10,4)$ | $64$ | $80$ | $C_1$ |
+| $(10,0)$ | $80$ | $128$ | $C_1$ |
+
+For example, $(10,2)$ to $C_1 = (2,4)$: $(10-2)^2 + (2-4)^2 = 64 + 4 = 68$.
 
   </Step>
   <Step title="Round 1, update">
@@ -151,7 +153,7 @@ $$
 P(x) = \frac{D(x)^2}{\sum_{x'} D(x')^2}
 $$
 
-The bottom is the sum of $D^2$ over all points, so the chances add up to 1. A point twice as far away gets four times the chance. Points in groups that have no centroid yet are far from every chosen centroid, so they are the likeliest picks, and the starting centroids spread out across the data. It is still random, so it can occasionally put two centroids in one group; that is why scikit-learn combines k-means++ (its default `init`) with several restarts.
+The bottom is the sum of $D^2$ over all points, so the chances add up to 1. A point twice as far away gets four times the chance. Points in groups that have no centroid yet are far from every chosen centroid, so they are the likeliest picks, and the starting centroids spread out across the data. It is still random, so it can occasionally put two centroids in one group. That is why you should also run several restarts and keep the best: pass `n_init=10` to scikit-learn's `KMeans`. Since version 1.4 its default, `n_init='auto'`, runs k-means++ (its default `init`) only once.
 
 <KMeansPlusPlus />
 
@@ -195,7 +197,13 @@ Look at the drops: about 1630, 640, 340, then only 43, 34 and 32. The big saving
 Why not just pick the $k$ with the smallest inertia? Because inertia **always** falls as $k$ grows: an extra centroid can always sit nearer some points. With $k = n$, every point is its own centroid and the inertia is exactly 0, which is a useless clustering. So instead:
 
 - **Elbow method.** Plot inertia against $k$. The curve drops steeply while each new cluster splits a real group off, then flattens once new clusters only split real groups in two. Choose the $k$ at the bend, the "elbow".
-- **Silhouette score.** For each point, let $a$ be its mean distance to the other points in its own cluster and $b$ its mean distance to the points of the nearest other cluster. Its silhouette is $s = \frac{b - a}{\max(a, b)}$, between $-1$ and $1$: near 1 means "snug in its own cluster, far from the next". Choose the $k$ with the highest average $s$.
+- **Silhouette score.** For each point, let $a$ be its mean distance to the other points in its own cluster and $b$ its mean distance to the points of the nearest other cluster. Its silhouette is
+
+  $$
+  s = \frac{b - a}{\max(a, b)}
+  $$
+
+  which lies between $-1$ and $1$: near 1 means "snug in its own cluster, far from the next". Choose the $k$ with the highest average $s$.
 - **Domain knowledge.** A T-shirt maker that sells sizes S, M and L wants $k = 3$, whatever the curve says.
 
 <ElbowPlot />
@@ -234,7 +242,7 @@ Cluster customers by age (20 to 60 years) and monthly income (2000 to 10000 doll
 
 <ExamTip>
 
-NOAI questions on K-means are usually one of: *which algorithm is unsupervised* (K-means, PCA); *what the update step does* (moves each centroid to the **mean** of its points); *how to choose k* (elbow or silhouette, plus domain knowledge); *why the results change between runs* (random initialisation, so use k-means++ and several restarts); *which method for curved shapes, noise or varying density* (DBSCAN, not K-means). For a by-hand round, compare squared distances: no square roots needed.
+NOAI questions on K-means are usually one of: *which algorithm is unsupervised* (K-means, PCA); *what the update step does* (moves each centroid to the **mean** of its points); *how to choose k* (elbow or silhouette, plus domain knowledge); *why the results change between runs* (random initialisation, so use k-means++ and several restarts); *which method for curved shapes, noise, or dense regions of any shape separated by sparse gaps* (DBSCAN, not K-means). For a by-hand round, compare squared distances: no square roots needed.
 
 </ExamTip>
 

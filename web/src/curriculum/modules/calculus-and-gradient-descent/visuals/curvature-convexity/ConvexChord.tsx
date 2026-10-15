@@ -1,10 +1,11 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Plot, Grid, Axes, FnPath, Path, Rect, DraggablePoint, M, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Toggle, Plot, Grid, Axes, FnPath, Path, Rect, Label, M, useNarrow } from '../../../../../kit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   The chord test for convexity. Two draggable points sit on the curve; the straight line
-  (chord) between them is green where it is on or above the curve and red where it dips
-  below. A function is convex when NO choice of the two points ever makes red.
+  (chord) between them is green where it is on or above the curve and red and dashed (with a ✗ at
+  the deepest dip) where it dips below, so colour is never the only cue. A function is convex when NO choice of the two points ever makes red.
   The optional f'' layer shades where the curve bends downwards (f'' < 0).
 */
 
@@ -71,10 +72,14 @@ export default function ConvexChord() {
   type Run = { bad: boolean; xs: number[] }
   const runs: Run[] = []
   let worst = 0
+  let worstX = lo
   for (let i = 0; i <= n; i++) {
     const x = lo + ((hi - lo) * i) / n
     const gap = chord(x) - f(x)
-    worst = Math.min(worst, gap)
+    if (gap < worst) {
+      worst = gap
+      worstX = x
+    }
     const bad = gap < -tol
     const last = runs[runs.length - 1]
     if (!last || last.bad !== bad) {
@@ -113,8 +118,8 @@ export default function ConvexChord() {
       title="The chord test: can you make the line dip below the curve?"
       caption={
         <>
-          Drag the two orange points along the curve. The straight line between them (the <b>chord</b>) turns red wherever it goes <i>below</i> the
-          curve. A function is <b>convex</b> if no pair of points can ever make red. Try hard on x², |x| and eˣ (you can't), then find red on x⁴ − x²
+          Drag the two orange points along the curve. The straight line between them (the <b>chord</b>) turns red and dashed, with a ✗, wherever it goes{' '}
+          <i>below</i> the curve. A function is <b>convex</b> if no pair of points can ever make red. Try hard on x², |x| and eˣ (you can't), then find red on x⁴ − x²
           and the bumpy loss. Switch on the second-derivative test to see where the curve bends the wrong way.
         </>
       }
@@ -141,11 +146,16 @@ export default function ConvexChord() {
         )}
         {runs.map((r, i) =>
           r.xs.length > 1 ? (
-            <Path key={`ch${i}`} points={r.xs.map((x): [number, number] => [x, chord(x)])} color={r.bad ? 'var(--viz-neg)' : 'var(--viz-pos)'} width={r.bad ? 4.5 : 3.5} />
+            <Path key={`ch${i}`} points={r.xs.map((x): [number, number] => [x, chord(x)])} color={r.bad ? 'var(--viz-neg)' : 'var(--viz-pos)'} width={r.bad ? 4.5 : 3.5} dash={r.bad ? '8 5' : undefined} />
           ) : null,
         )}
-        <DraggablePoint x={a} y={f(a)} constrain={onCurve} onChange={(x) => setPts([x, b])} label="A" />
-        <DraggablePoint x={b} y={f(b)} constrain={onCurve} onChange={(x) => setPts([a, x])} label="B" />
+        {dips && (
+          <Label x={worstX} y={chord(worstX)} dy={-9} anchor="middle" color="var(--viz-neg)" size={16} weight={800}>
+            ✗
+          </Label>
+        )}
+        <Handle x={a} y={f(a)} constrain={onCurve} onChange={(x) => setPts([x, b])} label="A" ariaLabel="chord end A: drag along the curve" />
+        <Handle x={b} y={f(b)} constrain={onCurve} onChange={(x) => setPts([a, x])} label="B" ariaLabel="chord end B: drag along the curve" />
       </Plot>
       </div>
       <div style={verdictStyle(dips)} role="status">

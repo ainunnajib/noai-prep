@@ -12,7 +12,8 @@ print(x[mask])
 print(mask.sum(), mask.mean())
 print(x[(x > 0) & (x < 5)])
 
-x[x < 0] = 0          # set every negative to 0
+# set every negative to 0
+x[x < 0] = 0
 print(x)
 
 # accuracy in one line
@@ -116,6 +117,19 @@ That last move turns any comparison into a metric. Accuracy is the fraction of p
 
 <PyRunner packages={['numpy']} code={MASK_CODE} />
 
+<Reveal label="Show the expected output">
+
+```text
+[ True False  True False  True]
+[3 4 5]
+3 0.6
+[3 4]
+[3 0 4 0 5]
+0.6
+```
+
+</Reveal>
+
 <Mistake title="and, or and missing brackets">
 
 `x > 0 and x < 5` and `x > 0 & x < 5` both crash with `ValueError: The truth value of an array with more than one element is ambiguous`. Python's `and` wants a single True or False, not a whole array, and `&` is evaluated *before* `>`, so without brackets the comparisons get scrambled. Always write `(x > 0) & (x < 5)`.
@@ -124,7 +138,7 @@ That last move turns any comparison into a metric. Accuracy is the fraction of p
 
 <ExamTip title="Masks in the Final">
 
-Segmentation metrics are pure mask arithmetic. The 2026 Final's IoU (intersection over union) question computed `(pred_mask & target_mask).sum()` for the overlap and `(pred_mask | target_mask).sum()` for the union, with masks made by `pred == cls`. If you can read this lesson's masks, you can read that code.
+Segmentation (labelling every pixel of an image with a class) is scored with pure mask arithmetic. The 2026 Final's IoU (intersection over union) question computed `(pred_mask & target_mask).sum()` for the overlap and `(pred_mask | target_mask).sum()` for the union, with masks made by `pred == cls`. If you can read this lesson's masks, you can read that code.
 
 </ExamTip>
 
@@ -134,7 +148,7 @@ When you slice a NumPy array, NumPy does **not** copy the numbers. It gives you 
 
 Not every kind of indexing can be a view. The rules:
 
-- **Basic indexing** (integers and slices, like `a[1]`, `a[:, 2]`, `a[1:3, ::2]`), plus `a.T` and usually `reshape`, give **views**.
+- **Basic indexing** (integers and slices, like `a[1]`, `a[:, 2]`, `a[1:3, ::2]`), plus `a.T` and usually `reshape`, give **views**. (`reshape` quietly makes a copy when the new shape cannot be read from the old strides, as in `a.T.reshape(-1)`.)
 - **Fancy indexing** (a list or array of positions, like `a[[0, 2]]`) and **boolean masks** (`a[a > 6]`) always give **copies**, because an arbitrary choice of positions cannot, in general, be described by one starting point and a fixed step.
 - `.copy()` always gives an independent copy.
 
@@ -149,20 +163,24 @@ A view is a window onto a garden: if someone plants a tree, you see it through t
 ```python
 import numpy as np
 a = np.array([1, 2, 3, 4])
-b = a[1:3]        # basic slice: a view
+# basic slice: a view
+b = a[1:3]
 b[0] = 99
 print(a)
 
-c = a[[1, 2]]     # fancy indexing: a copy
+# fancy indexing: a copy
+c = a[[1, 2]]
 c[0] = -5
 print(a)
-print(np.shares_memory(a, b), np.shares_memory(a, c))
+print(np.shares_memory(a, b))
+print(np.shares_memory(a, c))
 ```
 
 ```text
 [ 1 99  3  4]
 [ 1 99  3  4]
-True False
+True
+False
 ```
 
 <Note title="Lists behave the other way">
@@ -181,7 +199,7 @@ Slicing a Python **list** makes a copy: after `s = lst[1:3]`, changing `s` leave
 
 <Mistake title="Changing your data by accident">
 
-`X_small = X[:100]` followed by `X_small -= X_small.mean()` also changes the first 100 rows of `X`, because `X_small` is a view. If you mean to work on a separate piece, write `X_small = X[:100].copy()`.
+`X_small = X[:100]` followed by `X_small -= X_small.mean()` also changes the first 100 rows of a float array `X`, because `X_small` is a view. (If `X` holds whole numbers, the in-place `-=` stops with a `UFuncTypeError` instead: the float result cannot be stored back into an int array.) If you mean to work on a separate piece, write `X_small = X[:100].copy()`.
 
 </Mistake>
 
@@ -190,7 +208,10 @@ Slicing a Python **list** makes a copy: after `s = lst[1:3]`, changing `s` leave
 The first lesson showed that an array is one strip of memory plus **strides**: how many bytes to jump to move one step along each axis. A 2-D array is stored in row-major order, row 0 first, then row 1, and so on. Every view is just a different way of reading the *same* strip, described by three things: a starting offset, a shape and a pair of strides. For a 2-D view:
 
 $$
-\text{byte of } v[i, j] = \text{offset} + i \times \text{stride}_0 + j \times \text{stride}_1
+\begin{aligned}
+\text{byte of } v[i, j] &= \text{offset} \\
+&\quad + i \times \text{stride}_0 + j \times \text{stride}_1
+\end{aligned}
 $$
 
 Here $i$ and $j$ are the row and column in the view, $\text{offset}$ is where the view starts in the strip, and the two strides are the byte jumps for one step down and one step across.
@@ -220,24 +241,29 @@ A view whose elements sit one after another in row-major order, with no gaps, is
 
 <ExamTip title="Why PyTorch code says .contiguous()">
 
-PyTorch tensors have strides too, and `tensor.view(...)` only works on memory that is laid out contiguously. That is why transformer code, including the self-attention code in the 2026 Final, writes `out.transpose(1, 2).contiguous().view(B, T, C)`. Without `.contiguous()` the view fails:
+PyTorch tensors have strides too, and `tensor.view(...)` needs a new shape that can be read from the existing strides, which in practice means contiguous memory whenever you flatten or merge axes. That is why transformer code, including the self-attention code in the 2026 Final, writes `out.transpose(1, 2).contiguous().view(B, T, C)`. Without `.contiguous()` the view fails (the long error message is wrapped here to fit):
 
 ```python
 import torch
-x = torch.arange(12).reshape(3, 4)
-t = x.T
+x = torch.arange(6)
+t = x.reshape(2, 3).T
 print(t.is_contiguous())
 try:
-    t.view(12)
+    t.view(6)
 except RuntimeError as e:
     print("RuntimeError:", e)
-print(t.contiguous().view(12))
+print(t.contiguous().view(6))
 ```
 
 ```text
 False
-RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
-tensor([ 0,  4,  8,  1,  5,  9,  2,  6, 10,  3,  7, 11])
+RuntimeError: view size is not
+compatible with input tensor's
+size and stride (at least one
+dimension spans across two
+contiguous subspaces). Use
+.reshape(...) instead.
+tensor([0, 3, 1, 4, 2, 5])
 ```
 
 </ExamTip>
@@ -246,7 +272,7 @@ tensor([ 0,  4,  8,  1,  5,  9,  2,  6, 10,  3,  7, 11])
 
 - `arr[i, j]` is row `i`, column `j`; `arr[0]` is the first row and `arr[:, 0]` the first column. Slices `start:stop:step` exclude `stop`; integers drop an axis, slices keep it.
 - A comparison makes a boolean mask of the same shape; `arr[mask]` keeps the True elements, `&`/`|`/`~` combine masks (with brackets), and `mask.mean()` turns a comparison into a metric such as accuracy.
-- Basic slices, `.T` and `reshape` give **views** that share memory, so edits flow back to the original; fancy indexing and masks give **copies**; use `.copy()` for independence.
+- Basic slices, `.T` and (when possible) `reshape` give **views** that share memory, so edits flow back to the original; fancy indexing and masks give **copies**; use `.copy()` for independence.
 - Every view is (offset, shape, strides) over one strip of memory: the transpose just swaps the strides, which is why it costs nothing but is no longer contiguous.
 
 </Takeaways>

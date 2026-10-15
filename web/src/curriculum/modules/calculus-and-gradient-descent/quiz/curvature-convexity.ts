@@ -36,7 +36,7 @@ const questions: QuizQuestion[] = [
     options: ['$1.22$', '$1.2$', '$1.24$', '$1.02$'],
     answer: 0,
     explanation:
-      'All derivatives of $e^x$ equal $1$ at $0$, so $e^{d} \\approx 1 + d + \\tfrac{1}{2}d^2 = 1 + 0.2 + 0.02 = 1.22$ (the true value is $1.2214\\ldots$). $1.2$ is only the first-order (tangent line) estimate, $1.24$ forgets the $\\tfrac{1}{2}$, and $1.02$ keeps only the second-order term.',
+      'All derivatives of $e^x$ equal $1$ at $0$, so $e^{d} \\approx 1 + d + \\tfrac{1}{2}d^2 = 1 + 0.2 + 0.02 = 1.22$ (the true value is $1.2214\\ldots$). $1.2$ is only the first-order (tangent line) estimate, $1.24$ forgets the $\\tfrac{1}{2}$, and $1.02$ forgets the first-order term $d = 0.2$.',
     difficulty: 'beginner',
   },
   {
@@ -59,12 +59,12 @@ const questions: QuizQuestion[] = [
     prompt:
       'You train a logistic regression model (whose cross-entropy loss is convex) twice on the same data, from two different random starting weights, with a suitable learning rate and enough steps. What should you expect?',
     options: [
-      'Both runs reach the same lowest loss value',
       'Each run settles in a different local minimum',
+      'Both runs reach the same lowest loss value',
       'The run that starts closer to the answer ends at a lower loss',
       'Both runs stop at saddle points, where the gradient is zero',
     ],
-    answer: 0,
+    answer: 1,
     explanation:
       'For a convex loss every local minimum is a global minimum, so gradient descent with a suitable learning rate heads to the same lowest loss from any start. Different valleys for different starts happen on non-convex losses, such as those of neural networks. A convex function has no saddle points, and the starting point only changes how many steps it takes.',
     difficulty: 'beginner',

@@ -1,6 +1,28 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Label, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, FnPath, Path, Label, MBlock, useNarrow } from '../../../../../kit'
 import { HeatMap, ContourLines, Clipped, num, par, type Fn2 } from './fieldKit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
+
+/** colour key for the diverging heat map: blue below 0, white at 0, orange above 0 */
+function HeatKey() {
+  const bar: CSSProperties = {
+    height: 10,
+    borderRadius: 5,
+    border: '1px solid var(--viz-grid)',
+    background:
+      'linear-gradient(to right, color-mix(in srgb, var(--viz-1) 46%, var(--surface)), var(--surface), color-mix(in srgb, var(--viz-2) 46%, var(--surface)))',
+  }
+  return (
+    <div style={{ maxWidth: 300, margin: '0.35rem auto 0', fontSize: '0.8rem', color: 'var(--ink-2)', fontWeight: 600 }} aria-hidden="true">
+      <div style={bar} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+        <span>low (below 0)</span>
+        <span>0</span>
+        <span>high (above 0)</span>
+      </div>
+    </div>
+  )
+}
 
 /*
   A partial derivative is an ordinary derivative on a 1-D slice.
@@ -106,7 +128,7 @@ export default function SliceExplorer() {
       >
         <div>
           <div style={panelTitle}>
-            Map from above: colour = height of <span style={{ whiteSpace: 'nowrap' }}>f(x, y)</span>
+            Map from above: colour = height of <span style={{ whiteSpace: 'nowrap' }}>f(x, y)</span>, orange high, blue low
           </div>
           <Plot
             x={[-R, R]}
@@ -134,8 +156,9 @@ export default function SliceExplorer() {
                 {`${frozen} frozen`}
               </Label>
             </Clipped>
-            <DraggablePoint x={x0} y={y0} color={SLICE} constrain={(x, y) => [snap(x), snap(y)]} onChange={(x, y) => setP([x, y])} label="P" />
+            <Handle x={x0} y={y0} color={SLICE} constrain={(x, y) => [snap(x), snap(y)]} onChange={(x, y) => setP([x, y])} label="P" ariaLabel="point P on the map: drag it" />
           </Plot>
+          <HeatKey />
         </div>
         <div>
           <div style={panelTitle}>
@@ -168,11 +191,12 @@ export default function SliceExplorer() {
                 {`slope ${num(slope)}`}
               </Label>
             </Clipped>
-            <DraggablePoint
+            <Handle
               x={t0}
               y={g(t0)}
               color={SLICE}
               r={8}
+              ariaLabel="point P on the slice: drag along the curve"
               constrain={(t) => [snap(t), g(snap(t))]}
               onChange={(t) => setP(mode === 'x' ? [snap(t), y0] : [x0, snap(t)])}
             />

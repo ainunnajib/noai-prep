@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
 import { Figure, Controls, Readout, Slider, Button, Plot, Grid, Axes, Rect, Path, Dots, HLine, usePlot, useContainerWidth, M } from '../../../../../kit'
+import st from './rnn.module.css'
 
 /*
   A one-number LSTM cell. Word 1 ("Cats") writes 0.9 into the cell state; the learner sets the
   forget, input and output gates used for the words after it and sees, step by step,
-  c_t = f·c_{t−1} + i·c̃_t and h_t = o·tanh(c_t). The dashed line is the part of c_t that is
-  still Cats' note: 0.9·f^(t−1).
+  c_t = f·c_{t−1} + i·c̃_t and h_t = o·tanh(c_t). The dashed line is Cats' own contribution to
+  c_t, 0.9·f^(t−1); later words' notes add to it or subtract from it.
 */
 
 const WORDS = ['Cats', 'that', 'the', 'auntie', 'feeds', 'every', 'morning', 'are']
@@ -42,7 +43,7 @@ function run(f: number, i: number, o: number): StepVals[] {
 const sub = (name: string, s: string) => (
   <>
     {name}
-    <tspan baselineShift="sub" style={{ fontSize: '0.75em' }}>
+    <tspan baselineShift="sub" style={{ fontSize: 11 }}>
       {s}
     </tspan>
   </>
@@ -54,8 +55,8 @@ const n2 = (v: number) => (v < 0 && Math.abs(v) >= 0.005 ? '−' : '') + Math.ab
 function CellDiagram({ v, t }: { v: StepVals; t: number }) {
   const [ref, measured] = useContainerWidth<HTMLDivElement>(560)
   const W = Math.max(300, Math.min(640, measured))
-  const Hh = 262
-  const inY = 226 // the line that feeds [h_{t−1}, x_t] into every gate
+  const Hh = 270
+  const inY = 234 // the line that feeds [h_{t−1}, x_t] into every gate
   const beltY = 50
   const gateY = 186
   const xF = 0.3 * W
@@ -67,7 +68,7 @@ function CellDiagram({ v, t }: { v: StepVals; t: number }) {
   const tanhY = 84
   const outY = 128
   const line = { stroke: 'var(--viz-ink)', strokeWidth: 1.6, fill: 'none' }
-  const gateBox = (x: number, sym: string, val: number, kind: 'gate' | 'cand', label: string) => {
+  const gateBox = (x: number, sym: string, val: number, kind: 'gate' | 'cand', label: string, name: string) => {
     const w = 46
     const h = 44
     const frac = kind === 'gate' ? val : Math.abs(val)
@@ -81,6 +82,9 @@ function CellDiagram({ v, t }: { v: StepVals; t: number }) {
         </text>
         <text x={x} y={gateY + 13} textAnchor="middle" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>
           {n2(val)}
+        </text>
+        <text className="plot-label" x={x} y={gateY + h / 2 + 13} textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--ink-2)' }}>
+          {name}
         </text>
       </g>
     )
@@ -119,28 +123,36 @@ function CellDiagram({ v, t }: { v: StepVals; t: number }) {
         {lbl(xA + 8, (mulY + beltY) / 2 + 4, `+${n2(v.i * v.g)}`.replace('+−', '−'), 'start')}
         {op(xA, beltY, '+')}
         {/* output: tanh(c_t) × o → h_t */}
-        <line x1={xO} y1={beltY} x2={xO} y2={tanhY - 12} style={line} />
-        <circle cx={xO} cy={tanhY} r={12} style={{ fill: 'var(--surface)', stroke: 'var(--viz-ink)', strokeWidth: 1.6 }} />
-        <text x={xO} y={tanhY + 4} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--ink)' }}>
+        <line x1={xO} y1={beltY} x2={xO} y2={tanhY - 14} style={line} />
+        <circle cx={xO} cy={tanhY} r={14} style={{ fill: 'var(--surface)', stroke: 'var(--viz-ink)', strokeWidth: 1.6 }} />
+        <text x={xO} y={tanhY + 3.5} textAnchor="middle" style={{ fontSize: 10, fontWeight: 700, fill: 'var(--ink)' }}>
           tanh
         </text>
-        <line x1={xO} y1={tanhY + 12} x2={xO} y2={outY - 11} style={line} />
+        <line x1={xO} y1={tanhY + 14} x2={xO} y2={outY - 11} style={line} />
         <line x1={xO} y1={gateY - 22} x2={xO} y2={outY + 11} style={line} />
         {op(xO, outY, '×')}
         <line x1={xO + 11} y1={outY} x2={W - 12} y2={outY} style={line} />
         <path d={`M${W - 12},${outY - 5}L${W - 4},${outY}L${W - 12},${outY + 5}Z`} style={{ fill: 'var(--viz-ink)' }} />
-        {lbl(W - 6, outY + 25, <>{sub('h', 't')} = {n2(v.h)}</>, 'end', 'var(--viz-3)')}
-        {lbl(xO + 16, tanhY + 4, n2(Math.tanh(v.c)), 'start')}
+        {/* h_t sits above the output arrow, right of the tanh → × line (two lines when narrow) */}
+        {W < 440 ? (
+          <>
+            {lbl(W - 6, outY - 22, <>{sub('h', 't')} =</>, 'end', 'var(--viz-3)')}
+            {lbl(W - 6, outY - 8, n2(v.h), 'end', 'var(--viz-3)')}
+          </>
+        ) : (
+          lbl(W - 6, outY - 9, <>{sub('h', 't')} = {n2(v.h)}</>, 'end', 'var(--viz-3)')
+        )}
+        {lbl(xO + 18, tanhY + 4, n2(Math.tanh(v.c)), 'start')}
         {/* inputs feeding the gates */}
         <line x1={10} y1={inY} x2={xO} y2={inY} style={{ ...line, stroke: 'var(--viz-muted)' }} />
         {[xF, xI, xG, xO].map((x) => (
           <line key={x} x1={x} y1={inY} x2={x} y2={gateY + 22} style={{ ...line, stroke: 'var(--viz-muted)' }} />
         ))}
         {lbl(10, inY + 17, <>from {sub('h', 't−1')} and {sub('x', 't')}</>, 'start', 'var(--ink-2)')}
-        {gateBox(xF, 'f', v.f, 'gate', 'forget gate')}
-        {gateBox(xI, 'i', v.i, 'gate', 'input gate')}
-        {gateBox(xG, 'c̃', v.g, 'cand', 'candidate note')}
-        {gateBox(xO, 'o', v.o, 'gate', 'output gate')}
+        {gateBox(xF, 'f', v.f, 'gate', 'forget gate', 'forget')}
+        {gateBox(xI, 'i', v.i, 'gate', 'input gate', 'input')}
+        {gateBox(xG, 'c̃', v.g, 'cand', 'candidate note', 'new note')}
+        {gateBox(xO, 'o', v.o, 'gate', 'output gate', 'output')}
       </svg>
     </div>
   )
@@ -162,9 +174,10 @@ function WordTicks({ sel, onPick }: { sel: number; onPick: (t: number) => void }
           textAnchor="end"
           role="button"
           tabIndex={0}
+          className={st.word}
           onClick={() => onPick(t)}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onPick(t)}
-          style={{ cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: t === sel ? 800 : 500, fill: t === sel ? 'var(--accent)' : 'var(--ink-2)' }}
+          style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: t === sel ? 800 : 500, fill: t === sel ? 'var(--accent)' : 'var(--ink-2)' }}
         >
           {w}
         </text>
@@ -191,8 +204,10 @@ export default function LSTMGateSliders() {
       title="An LSTM cell: three valves on a conveyor belt"
       caption={
         <>
-          "Cats" writes a note of 0.9 into the cell state <M>c</M>. You set the gates used for every word after it. The bars show <M>{'c_t'}</M>, the dashed line is the part of it that is
-          still Cats' note (<M>{'0.9 \\cdot f^{\\,t-1}'}</M>) and the dots are the output <M>{'h_t'}</M>. Try the buttons: with <b>f = 1, i = 0</b> the note rides the belt untouched to
+          "Cats" writes a note of 0.9 into the cell state <M>c</M>. You set the gates used for every word after it: the <b>forget</b> gate <M>f</M> keeps the old
+          note, the <b>input</b> gate <M>i</M> writes each new word&apos;s note and the <b>output</b> gate <M>o</M> reveals the note. The bars show <M>{'c_t'}</M> and the
+          dots the output <M>{'h_t'}</M>. The dashed line is Cats&apos; own contribution to <M>{'c_t'}</M> (<M>{'0.9 \\cdot f^{\\,t-1}'}</M>); later words&apos; notes add to it
+          or subtract from it, so a bar can sit above or below the line. Try the buttons: with <b>f = 1, i = 0</b> the note rides the belt untouched to
           "are"; with <b>o = 0</b> it is still stored but hidden from the output. Click a word to inspect that step in the diagram.
         </>
       }
@@ -222,6 +237,20 @@ export default function LSTMGateSliders() {
         <Axes yTicks={4} hideXTicks />
         <WordTicks sel={sel} onPick={setSel} />
       </Plot>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 1rem', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--ink-2)' }} aria-hidden="true">
+        <span>
+          <i style={{ display: 'inline-block', width: 10, height: 12, marginRight: 5, verticalAlign: '-1px', borderRadius: 2, background: 'color-mix(in srgb, var(--viz-5) 70%, var(--surface))' }} />
+          bars: cell state c<sub>t</sub>
+        </span>
+        <span>
+          <i style={{ display: 'inline-block', width: 18, height: 0, marginRight: 5, verticalAlign: '3px', borderTop: '2.2px dashed var(--viz-4)' }} />
+          dashed: Cats&apos; note
+        </span>
+        <span>
+          <i style={{ display: 'inline-block', width: 9, height: 9, marginRight: 5, borderRadius: 5, background: 'var(--viz-3)' }} />
+          dots: output h<sub>t</sub>
+        </span>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center' }}>
         <Button onClick={() => preset(1, 0, 1)}>Remember: f = 1, i = 0</Button>
         <Button onClick={() => preset(0, 1, 1)}>Forget: f = 0, i = 1</Button>
@@ -229,9 +258,9 @@ export default function LSTMGateSliders() {
         <Button onClick={() => preset(1, 0, 0)}>Hide: o = 0</Button>
       </div>
       <Controls>
-        <Slider label="forget gate f (keep the old note)" value={f} min={0} max={1} step={0.05} onChange={setF} format={(x) => x.toFixed(2)} />
-        <Slider label="input gate i (write the new note)" value={i} min={0} max={1} step={0.05} onChange={setI} format={(x) => x.toFixed(2)} />
-        <Slider label="output gate o (reveal the note)" value={o} min={0} max={1} step={0.05} onChange={setO} format={(x) => x.toFixed(2)} />
+        <Slider label="forget f" value={f} min={0} max={1} step={0.05} onChange={setF} format={(x) => x.toFixed(2)} />
+        <Slider label="input i" value={i} min={0} max={1} step={0.05} onChange={setI} format={(x) => x.toFixed(2)} />
+        <Slider label="output o" value={o} min={0} max={1} step={0.05} onChange={setO} format={(x) => x.toFixed(2)} />
         <Slider label="inspect word" value={sel + 1} min={1} max={N} step={1} onChange={(x) => setSel(x - 1)} format={(x) => `${x}: “${WORDS[x - 1]}”`} />
         <Readout
           items={[

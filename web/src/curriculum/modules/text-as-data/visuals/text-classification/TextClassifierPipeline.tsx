@@ -66,7 +66,13 @@ function EmbLayer({ toks, mean, pos }: { toks: Tok[]; mean: [number, number]; po
   const my = ys(mean[1])
   const [left, right] = xs.range()
   const bottom = ys(-0.97) - 4
-  const placed: Box[] = [box(xs(0.97), bottom, 'end', 'predicts positive'), box(xs(-0.97), bottom, 'start', 'predicts negative')]
+  // region labels sit in the bottom corners on two short lines, well clear of the boundary
+  const placed: Box[] = [
+    box(xs(0.97), bottom, 'end', 'positive'),
+    box(xs(0.97), bottom - 14, 'end', 'predicts'),
+    box(xs(-0.97), bottom, 'start', 'negative'),
+    box(xs(-0.97), bottom - 14, 'start', 'predicts'),
+  ]
   if (known.length) placed.push(box(mx, my + 25, 'middle', 'average'), { x0: mx - 12, y0: my - 12, x1: mx + 12, y1: my + 12 })
   const labels = groups
     .slice()
@@ -94,11 +100,17 @@ function EmbLayer({ toks, mean, pos }: { toks: Tok[]; mean: [number, number]; po
       <Path points={[[bx(1.1), 1.1], [1.1, 1.1], [1.1, -1.1], [bx(-1.1), -1.1]]} closed fill="color-mix(in srgb, var(--viz-pos) 13%, transparent)" color="none" width={0} />
       <Path points={[[bx(1.1), 1.1], [-1.1, 1.1], [-1.1, -1.1], [bx(-1.1), -1.1]]} closed fill="color-mix(in srgb, var(--viz-neg) 11%, transparent)" color="none" width={0} />
       <Path points={[[bx(1.1), 1.1], [bx(-1.1), -1.1]]} color="var(--viz-ink)" width={1.8} dash="6 4" />
-      <Label x={0.97} y={-0.97} anchor="end" dy={-4} color="var(--viz-pos)" size={12}>
-        predicts positive
+      <Label x={0.97} y={-0.97} anchor="end" dy={-18} color="var(--viz-pos)" size={12}>
+        predicts
       </Label>
-      <Label x={-0.97} y={-0.97} anchor="start" dy={-4} color="var(--viz-neg)" size={12}>
-        predicts negative
+      <Label x={0.97} y={-0.97} anchor="end" dy={-4} color="var(--viz-pos)" size={12} weight={700}>
+        positive
+      </Label>
+      <Label x={-0.97} y={-0.97} anchor="start" dy={-18} color="var(--viz-neg)" size={12}>
+        predicts
+      </Label>
+      <Label x={-0.97} y={-0.97} anchor="start" dy={-4} color="var(--viz-neg)" size={12} weight={700}>
+        negative
       </Label>
       {VOCAB.map((w) => (
         <circle key={w} cx={xs(EMB[w][0])} cy={ys(EMB[w][1])} r={2.4} style={{ fill: 'var(--viz-muted)', opacity: 0.55 }} />
@@ -140,7 +152,7 @@ export default function TextClassifierPipeline() {
       title="From a review to a prediction"
       caption={
         <>
-          Pick an example or type your own hawker review, then switch the vectoriser. Both versions use the same three stages and a logistic regression trained on just{' '}
+          Pick an example or type your own hawker review, then switch the vectoriser. Both versions (a TF-IDF model and an averaged-embedding model) use the same three stages and a logistic regression trained on just{' '}
           {TRAIN_POS.length + TRAIN_NEG.length} toy reviews. Notice how <b>TF-IDF</b> makes a long vector that is almost all zeros, while <b>averaged embeddings</b> squeeze any review into
           one point on the map. Try <i>Not bad at all</i>: both get it wrong, because neither knows what "not" does to the next word.
         </>
@@ -174,7 +186,8 @@ export default function TextClassifierPipeline() {
           <div className={s.stageHead}>
             <span className={s.stageNum}>2</span> Vectorise
           </div>
-          <Segmented
+          <div style={{ width: 'fit-content', maxWidth: '100%' }}>
+            <Segmented
               label="Vectoriser"
               value={mode}
               onChange={setMode}
@@ -183,6 +196,7 @@ export default function TextClassifierPipeline() {
                 { value: 'emb', label: 'Averaged embeddings' },
               ]}
             />
+          </div>
           {mode === 'tfidf' ? (
             <>
               <p className={s.stageNote}>
@@ -208,7 +222,7 @@ export default function TextClassifierPipeline() {
           ) : (
             <>
               <p className={s.stageNote}>
-                Each word is a point (2 numbers). The review becomes the <b>average</b> of its words' points: always 2 numbers, however long the review. Grey dots are the other vocabulary words.
+                Each word is a point (2 numbers). The review becomes the <b>average</b> of its words' points: always 2 numbers, however long the review. Grey dots are the other vocabulary words. (The axes are hand-made toy axes; real embeddings have hundreds of numbers and no named axes.)
               </p>
               <Plot x={[-1.1, 1.1]} y={[-1.1, 1.1]} width={440} height={380} minHeight={340} ariaLabel="Word embeddings in 2-D, the average point of the review and the classifier's boundary">
                 <Grid xTicks={4} yTicks={4} />

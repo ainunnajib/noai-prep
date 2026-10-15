@@ -2,13 +2,15 @@ import MeanIoUCalculator from './visuals/task-mean-iou/MeanIoUCalculator'
 import MIoURunner from './visuals/task-mean-iou/MIoURunner'
 import SelfCheckAudit from './visuals/task-mean-iou/SelfCheckAudit'
 
-The second half of 2026 Task 2 (10 marks) is a metric. The *OrbitalVision* intern also "deleted the evaluation code", so you must re-implement **mean Intersection over Union** (mIoU) using PyTorch alone: scikit-learn and torchmetrics are banned. The function is about a dozen lines, but the notebook adds two rules that cost marks if you ignore them (no loops over pixels or batches; skip a class whose union is 0) and one surprise: one of its own self-check cells expects the wrong number. This lesson builds the function, lets you run a NumPy twin of it right here, and shows how to decide what to do when a test disagrees with the written instructions.
+The second half of 2026 Task 2 (10 marks) is a metric: the *OrbitalVision* intern also "deleted the evaluation code", so you must re-implement **mean Intersection over Union** (mIoU) in PyTorch, with scikit-learn and torchmetrics banned. The function is about a dozen lines, but one of the notebook's own self-check cells expects the wrong number.
 
 <Analogy title="Marking a colouring worksheet one colour at a time">
 
 A teacher marks a colouring worksheet against the answer key, one colour at a time. For red: how much area did *both* the pupil and the key colour red, compared with the area that *either* of them coloured red? Then the same for blue, then green, and the average is the mark. If neither the pupil nor the key used purple anywhere, purple says nothing about the pupil's work, so the teacher leaves it out of the average instead of awarding it full marks or zero.
 
 </Analogy>
+
+The notebook also sets two rules that cost marks if you ignore them: no loops over pixels or batches, and skip a class whose union is 0. This lesson builds the function, lets you run a NumPy twin of it right here, and shows what to do when a test disagrees with the written instructions.
 
 ## The formula on one line
 
@@ -20,7 +22,7 @@ $$
 
 The bars $|\cdot|$ mean "the number of pixels in". The top, the <Term def="The pixels in both sets: predicted as the class AND truly that class.">intersection</Term>, counts pixels where prediction and truth agree on $c$. The bottom, the <Term def="The pixels in at least one of the sets: predicted as the class OR truly that class, or both.">union</Term>, counts every pixel that either of them calls $c$. In confusion-matrix words, for this one class, $TP$ (true positives) are correct $c$ pixels, $FP$ (false positives) are pixels wrongly predicted as $c$, and $FN$ (false negatives) are $c$ pixels the model missed. **Mean IoU** averages $\text{IoU}_c$ over the classes, and the task's rule is to **leave out any class whose union is 0**: a class that appears in neither map has $\text{IoU} = 0/0$, which is undefined.
 
-Why not just count correct pixels? The notebook's own example: on a map that is 90% Forest, a lazy model that always says "Forest" gets **90% pixel accuracy**. Its mIoU is $(0 + 0.90)/2 = 0.45$: Urban has intersection 0 (it never predicts Urban), and Forest has intersection 90 and union 100. Accuracy rewards ignoring the rare class; IoU does not, because it never counts the correctly ignored pixels. (The segmentation-metrics lesson in the vision-tasks module covers IoU, Dice and this trap in more depth.)
+Why not just count correct pixels? The notebook's own example: on a map that is 90% Forest, a lazy model that always says "Forest" gets **90% pixel accuracy**. Its mIoU is $(0 + 0.90)/2 = 0.45$: Urban has intersection 0 (it never predicts Urban), and Forest has intersection 90 and union 100. Accuracy rewards ignoring the rare class; IoU does not, because it never counts the correctly ignored pixels. ([Segmentation metrics](#/learn/vision-tasks/segmentation-metrics) covers IoU, Dice and this trap in more depth.)
 
 <PastPaperQuestion paper="prelim2026" n={263} />
 
@@ -53,9 +55,9 @@ For each class: `p = pred == c`, `t = true == c`, intersection `(p & t).sum()`, 
 
 <QuickCheck
   q="For the class Forest, the prediction marks 5 pixels, the target marks 4 pixels, and 3 pixels are marked in both. What is the IoU for Forest?"
-  options={['0.5', '0.6', '0.75', '0.857']}
+  options={['0.5', '0.6', '0.75', '0.667']}
   answer={0}
-  explain="Union = 5 + 4 − 3 = 6 (adding the two counts counts the 3 shared pixels twice), so IoU = 3/6 = 0.5. 0.6 is 3/5 (only the prediction), 0.75 is 3/4 (only the target), and 0.857 is the Dice score 2 × 3/(5 + 4)."
+  explain="Union = 5 + 4 − 3 = 6 (adding the two counts counts the 3 shared pixels twice), so IoU = 3/6 = 0.5. 0.6 is 3/5 (only the prediction), 0.75 is 3/4 (only the target), and 0.667 is the Dice score 2 × 3/(5 + 4) = 6/9, which is not the IoU."
 />
 
 ## The exam answer in PyTorch
@@ -103,7 +105,7 @@ The first check passes. The second one "fails", and that is not a bug in this fu
 
 ## Rehearse in NumPy, then translate
 
-PyTorch does not run in the browser, but NumPy does, and the logic is identical. Run the twin below with the notebook's test cases plus a batch of two images, then break it on purpose to see each mistake's error message:
+PyTorch does not run in the browser, but NumPy does, and the logic is identical. Run the twin below with the notebook's test cases plus a batch of two images, then break it on purpose: delete the `if union == 0` check and watch test 3 print `nan`, or change `&` to `and` and read the error.
 
 <MIoURunner />
 
@@ -135,7 +137,7 @@ So the comment is wrong: a class that is missing from the **target** but predict
 
 <SelfCheckAudit />
 
-The audit settles it. The precise instruction ("Check if union == 0 BEFORE dividing", "If Union == 0 … skip this class") gives 0.375; the official solution uses that rule and also prints "Missing class handling failed"; and the grader's visible test, a class absent from **both** maps giving 1.0, passes under that rule. The "absent class scores 0" convention would even fail the grader's test (0.5 instead of 1.0).
+The audit settles it. The precise instruction ("Check if union == 0 BEFORE dividing", "If Union == 0 … skip this class") gives 0.375; the official solution uses that rule and also prints "Missing class handling failed"; and the grader's test (stored in the notebook's otter metadata, not shown in any cell), a class absent from **both** maps giving 1.0, passes under that rule. The "absent class scores 0" convention would even fail the grader's test (0.5 instead of 1.0).
 
 <PastPaperQuestion paper="final2026" n={13} />
 

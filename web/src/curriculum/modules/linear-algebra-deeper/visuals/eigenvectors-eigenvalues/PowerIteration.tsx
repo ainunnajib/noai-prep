@@ -44,6 +44,8 @@ export default function PowerIteration() {
   const dom = e.kind === 'two' ? { v: e.v1, l: e.l1 } : null
   const sub = e.kind === 'two' ? { v: e.v2, l: e.l2 } : null
   const gapDeg = dom ? lineGap(angleOf(raw[k]), angleOf(dom.v)) : null
+  // a start exactly on the λ₂ line has no part along v₁, so it can never swing over
+  const onSub = sub !== null && lineGap(start, angleOf(sub.v)) < 0.5
   const growth = k > 0 ? lens[k] / lens[k - 1] : null
 
   const showAll = () => {
@@ -61,6 +63,13 @@ export default function PowerIteration() {
 
   let verdict: React.ReactNode
   if (k === 0) verdict = <>Press <b>Play</b> (or <b>Next</b>) to multiply by <i>A</i> again and again.</>
+  else if (onSub)
+    verdict = (
+      <>
+        v₀ lies exactly on the <b>λ₂ eigen-line</b>, so it has no part along v₁ and never swings over: every step just multiplies it by λ₂ ={' '}
+        {fmt(sub!.l)}. Nudge v₀ off the line by a degree and watch the λ₁ direction take over.
+      </>
+    )
   else if (key === 'turns') verdict = <>No real eigen-line to settle on: each multiplication turns the arrow by about 29°, for ever.</>
   else if (gapDeg !== null && gapDeg < 1.5)
     verdict = (
@@ -78,8 +87,8 @@ export default function PowerIteration() {
       caption={
         <>
           Each step replaces the arrow by <i>A</i> times itself. Watch the trail swing onto the <span className={s.c3}>green</span> eigen-line, the one whose
-          eigenvalue has the biggest size |λ₁|. Drag <i>v₀</i> to start somewhere else: the whole trail redraws, and it still ends on the same line. Press{' '}
-          <b>Play</b> to watch it step by step. Turn off <b>Rescale</b> to see the real
+          eigenvalue has the biggest size |λ₁|. Drag <i>v₀</i> to start somewhere else: the whole trail redraws, and it still ends on the same line (unless you
+          start exactly on the grey λ₂ line). Press <b>Replay</b> (or <b>Restart</b>, then <b>Next</b>) to watch it step by step. Turn off <b>Rescale</b> to see the real
           vectors: with |λ₁| &gt; 1 they explode (the view zooms out), with |λ₁| &lt; 1 they fade to nothing. That is exactly what happens to signals passed through
           many copies of the same layer.
         </>

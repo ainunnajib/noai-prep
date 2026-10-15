@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Figure, Segmented, useNarrow } from '../../../../../kit'
 import s from './df.module.css'
+import { useScrollFade } from './scrollFade'
 
 /*
   The four "first look" commands on the running example, with their REAL pandas 2.2 output
@@ -43,7 +44,7 @@ const TABS: Record<Tab, TabDef> = {
     ],
     hots: [
       { line: 5, text: 'NaN', note: <><strong>NaN</strong> ("Not a Number") is how pandas marks a <strong>missing value</strong>. You were lucky to see it in the first 5 rows; <code>info()</code> counts every one of them.</> },
-      { line: 1, text: '92.0', note: <>The areas are whole numbers, yet they print as <code>92.0</code>: the whole column is stored as decimals (float). The NaN two rows down is the reason, because NaN is itself a float.</> },
+      { line: 1, text: '92.0', note: <>The areas are whole numbers, yet they print as <code>92.0</code>: the whole column is stored as decimals (float). The NaN in row 4 is the reason, because NaN is itself a float.</> },
       { line: 5, text: '4', nth: 0, note: <><code>head()</code> stops after 5 rows (labels 0 to 4). Use <code>df.head(10)</code> for more, or <code>df.tail()</code> for the last 5.</> },
     ],
   },
@@ -149,11 +150,13 @@ function renderLine(text: string, line: number, hots: Hot[], active: number, onP
 }
 
 export default function InspectorTabs() {
-  const [tab, setTab] = useState<Tab>('info')
+  const [tab, setTab] = useState<Tab>('head')
   const [active, setActive] = useState(0)
   const [ref, narrow] = useNarrow<HTMLDivElement>(480)
   const T = TABS[tab]
   const hot = T.hots[active] ?? T.hots[0]
+  const preRef = useRef<HTMLPreElement>(null)
+  const fade = useScrollFade(preRef, `${tab}${narrow}`)
 
   return (
     <Figure
@@ -179,7 +182,7 @@ export default function InspectorTabs() {
         <div className={s.hint} style={{ textAlign: 'left', color: 'var(--ink-2)' }}>
           {T.purpose}
         </div>
-        <pre className={`${s.console}${narrow ? ` ${s.consoleNarrow}` : ''}`} aria-label={`Output of ${T.code}`}>
+        <pre ref={preRef} style={fade} className={`${s.console}${narrow ? ` ${s.consoleNarrow}` : ''}`} aria-label={`Output of ${T.code}`}>
           <span className={s.prompt}>{T.code}</span>
           {'\n'}
           {T.out.map((ln, i) => (

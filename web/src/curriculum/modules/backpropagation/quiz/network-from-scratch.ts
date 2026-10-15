@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
     options: ['`(64, 3)`', '`(32, 3)`', '`(3, 64)`', '`(32, 64)`'],
     answer: 0,
     explanation:
-      '`A1` is `(32, 64)` and `dZ2` is `(32, 3)`, so `A1.T @ dZ2` is `(64, 32) @ (32, 3)`, giving `(64, 3)`: exactly the shape of `W2`, as every gradient must be. `(32, 3)` is the shape of `dZ2` itself, and `(3, 64)` is `W2` transposed.',
+      '`A1` is `(32, 64)` and `dZ2` is `(32, 3)`, so `A1.T @ dZ2` is `(64, 32) @ (32, 3)`, giving `(64, 3)`: exactly the shape of `W2`, as every gradient must be. `(32, 3)` is the shape of `dZ2` itself, `(3, 64)` is `W2` transposed, and `(32, 64)` is the shape of `A1`.',
     difficulty: 'beginner',
   },
   {
@@ -18,7 +18,7 @@ const questions: QuizQuestion[] = [
     options: ['$(0.9,\\ -0.9)$', '$(-0.9,\\ 0.9)$', '$(-0.1,\\ 0.1)$', '$(0.9,\\ 0.1)$'],
     answer: 0,
     explanation:
-      'The gradient is $p - y = (0.9 - 0,\\ 0.1 - 1) = (0.9, -0.9)$. Gradient descent moves against it, so logit 1 goes up and logit 0 goes down, strongly, because the model was confidently wrong. $(-0.9, 0.9)$ is $y - p$, which points uphill; $(-0.1, 0.1)$ is what you would get if the true class were 0.',
+      'The gradient is $p - y = (0.9 - 0,\\ 0.1 - 1) = (0.9, -0.9)$. Gradient descent moves against it, so logit 1 goes up and logit 0 goes down, strongly, because the model was confidently wrong. $(-0.9, 0.9)$ is $y - p$, which points uphill; $(-0.1, 0.1)$ is what you would get if the true class were 0; and $(0.9, 0.1)$ is $p$ itself, which forgets to subtract $y$.',
     difficulty: 'intermediate',
   },
   {
@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The loss needs the predictions from the forward pass; the backward pass needs the loss (it starts from $\\partial L/\\partial L = 1$ and, for softmax with cross-entropy, from $P - Y$); and the update needs the gradients. Updating before the backward pass would use stale or missing gradients.',
+      'The loss needs the predictions from the forward pass; the backward pass starts at the loss (from $\\partial L/\\partial L = 1$, which for softmax with cross-entropy becomes $dZ_2 = (P - Y)/N$ at the logits); and the update needs the gradients. Computing the loss after the backward pass leaves the backward pass nothing to start from, and updating before it would use stale or missing gradients.',
     difficulty: 'beginner',
   },
   {
@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your backward pass gives $0.2500$ for one weight\'s gradient. A central-difference check gives $0.5000$ with $\\varepsilon = 10^{-3}$, and again $0.5000$ with $\\varepsilon = 10^{-5}$ and $10^{-7}$. What is the most likely explanation?',
     options: [
-      'A bug in the backward pass, such as a missing factor of 2: a real bug disagrees at every step size',
+      'A bug in the backward pass, such as a factor of 2 missing from one of its lines',
       'The step size is too large, so truncation error dominates: retry with $\\varepsilon = 10^{-12}$',
       'Floating-point round-off in float64: switch the check to float32 so it is less sensitive',
       'Finite differences are unreliable near ReLU kinks, so the backprop value should be trusted',

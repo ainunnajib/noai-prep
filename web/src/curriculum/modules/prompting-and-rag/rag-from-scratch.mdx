@@ -16,17 +16,15 @@ You met the ideas in [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words
 
 ## Five arrays make a retriever
 
-Our running example is a helpdesk bot for a school handbook with four one-line documents. We number them from 0, as Python does: d0 "The library is open on Friday.", d1 "The canteen is open on Monday and closed on Friday.", d2 "Exam week: the library is open on Friday, and the exam hall is closed." and d3 "The hall is closed on Monday."
+Our running example is a helpdesk bot for a school handbook with four one-line documents. We number them from 0, as Python indexes lists (the last lesson's chunks were numbered from 1, like handbook pages): d0 "The library is open on Friday.", d1 "The canteen is open on Monday and closed on Friday.", d2 "Exam week: the library is open on Friday, and the exam hall is closed." and d3 "The hall is closed on Monday."
 
-| Array | What it holds | Shape here |
-|---|---|---|
-| `vocab` | every distinct word in the documents, sorted | 9 words |
-| `D` | the <Term def="A table with one row per document and one column per vocabulary word; each cell counts how often that word appears in that document.">document-term matrix</Term>: row $i$ counts the words of document $i$ | `(4, 9)` |
-| `q` | the query, counted in the **same** 9 columns | `(9,)` |
-| `scores` | one cosine similarity per document | `(4,)` |
-| `top` | the positions of the $k$ best documents | `(k,)` |
+- `vocab`: every distinct word in the documents, sorted (9 words here).
+- `D`: the <Term def="A table with one row per document and one column per vocabulary word; each cell counts how often that word appears in that document.">document-term matrix</Term>. Row $i$ counts the words of document $i$, so its shape is `(4, 9)`.
+- `q`: the query, counted in the **same** 9 columns, shape `(9,)`.
+- `scores`: one cosine similarity per document, shape `(4,)`.
+- `top`: the positions of the $k$ best documents, shape `(k,)`.
 
-Step through the whole pipeline below. Each step shows the array it builds and the line of NumPy that builds it.
+Step through the pipeline below: each step shows one array and the line of NumPy that builds it.
 
 <RetrievalScoreTable />
 
@@ -40,10 +38,9 @@ $$
 
 - $V$ is the vocabulary size (9 here), and $j$ runs over the columns, one per word.
 - $D_{ij}$ is the count of word $j$ in document $i$; $q_j$ is its count in the query.
-- The top line, the **dot product**, multiplies matching counts and adds them. Only words that appear in both texts contribute.
-- $\lVert D_i \rVert$ and $\lVert q \rVert$ are the **lengths** (L2 norms): the square root of the sum of squares. Dividing by them removes the advantage of simply being long.
+- The top line, the **dot product**, adds up matching counts, so only words in both texts contribute. Dividing by the **lengths** (L2 norms) removes the advantage of simply being long.
 
-NumPy computes all $n$ scores in one line. `D @ q` gives every dot product, `np.linalg.norm(D, axis=1)` gives every row length, and the division happens element by element:
+NumPy computes all the scores, one per document, in one line. `D @ q` gives every dot product, `np.linalg.norm(D, axis=1)` gives every row length, and the division happens element by element:
 
 <KeyIdea>
 
@@ -79,8 +76,6 @@ No calculator? Rank by $\cos^2$ instead of $\cos$. With counts every score is at
 
 </ExamTip>
 
-<PastPaperQuestion paper="prelim2026" n={6} />
-
 <QuickCheck
   q="Query “When is the exam hall closed?” gives $q$ = closed, exam, hall, so $\lVert q \rVert^2 = 3$. Row d2 has dot product 4 with $q$ and $\lVert d_2 \rVert^2 = 10$; row d3 has dot product 2 and $\lVert d_3 \rVert^2 = 3$. Which document ranks higher?"
   options={['d2, because $\\cos^2 = 16/30 \\approx 0.53$ beats $4/9 \\approx 0.44$', 'd3, because its dot product per unit of squared length, $2/3$, beats $4/10$', 'Neither: they tie, because both contain “hall” and “closed”', 'd3, because a shorter document always scores higher']}
@@ -92,19 +87,19 @@ No calculator? Rank by $\cos^2$ instead of $\cos$. With counts every score is at
 
 `D @ q` is a matrix–vector product: it takes the dot product of **every row** of `D` with `q` and returns one number per row, shape `(4,)`. A Python `for` loop over the rows gives the same numbers, but more slowly and with more chances for a typo. Replacing loops with whole-array operations is called <Term def="Writing one operation that acts on a whole array, so NumPy runs the loop in fast compiled code instead of a Python for loop.">vectorisation</Term>.
 
-`D * q` is different. Broadcasting stretches `q` across all 4 rows and multiplies **element by element**, giving a `(4, 9)` matrix of products. You would still have to add along each row, so `(D * q).sum(axis=1)` equals `D @ q` = `[3, 2, 3, 0]`.
+<PastPaperQuestion paper="prelim2026" n={98} />
+
+`np.dot(D, q)` gives exactly the same result as `D @ q` for these arrays. `D * q` is different: broadcasting stretches `q` across all 4 rows and multiplies **element by element**, giving a `(4, 9)` matrix of products. You would still have to add along each row, so `(D * q).sum(axis=1)` equals `D @ q` = `[3, 2, 3, 0]`.
 
 <PastPaperQuestion paper="prelim2026" n={102} />
 
-<Mistake title="Normalising rows without keepdims">
+<Reveal label="Going further: normalising rows, and many queries at once">
 
-To scale every row of `D` to length 1, you need each row divided by **its own** length. `np.linalg.norm(D, axis=1)` has shape `(4,)`, and `D / np.linalg.norm(D, axis=1)` fails with `ValueError: operands could not be broadcast together with shapes (4,9) (4,)`. Write `D / np.linalg.norm(D, axis=1, keepdims=True)`: the norms then have shape `(4, 1)` and broadcast across each row. It is worse when the matrix is square (say 3 documents and 3 words): the wrong line runs **without an error** and quietly divides each column by the wrong number.
+To scale every row of `D` to length 1, divide each row by **its own** length. `np.linalg.norm(D, axis=1)` has shape `(4,)`, so `D / np.linalg.norm(D, axis=1)` fails with `ValueError: operands could not be broadcast together with shapes (4,9) (4,)`. Write `D / np.linalg.norm(D, axis=1, keepdims=True)`: the norms then have shape `(4, 1)` and broadcast across each row. With a square matrix (say 3 documents and 3 words) the wrong line runs **without an error** and quietly divides each column by the wrong number.
 
-</Mistake>
+Once the rows of `D` (call it `Dn`) and the queries are scaled to length 1, cosine is just a dot product. Stack several normalised queries as the rows of `Qn`, and `Qn @ Dn.T` gives every query-document score at once, shape `(n_queries, n_docs)`.
 
-Once the rows of `D` and the query are scaled to length 1, cosine is just a dot product. That makes many queries cheap too: stack them as the rows of `Qn` and `Qn @ Dn.T` gives every query-document score at once, shape `(n_queries, n_docs)`.
-
-<PastPaperQuestion paper="prelim2026" n={98} />
+</Reveal>
 
 ## Ranking: argsort, the right way round
 
@@ -112,7 +107,7 @@ Once the rows of `D` and the query are scaled to length 1, cosine is just a dot 
 
 <ArgsortLab />
 
-The official 2025 solution used `similarities.flatten().argsort()[-2:][::-1]`: take the last two positions of the ascending order (the two largest) and reverse them so the best comes first. All three correct versions give the same documents unless there is a **tie**. Then `np.argsort(-scores, kind="stable")` keeps the lower position first, while reversing an ascending sort puts the higher one first. Pick one and say which in your explanation.
+The official 2025 solution used `similarities.flatten().argsort()[-2:][::-1]`: take the last two positions of the ascending order (the two largest) and reverse them so the best comes first. All three correct versions give the same documents unless there is a **tie**. Then `np.argsort(-scores, kind="stable")` keeps the lower position first, while reversing a stable ascending sort (`kind="stable"`) puts the higher one first; with the default sort, the order of ties is not guaranteed. Pick one and say which in your explanation.
 
 <Mistake title="Values instead of positions">
 
@@ -128,16 +123,18 @@ Here is the complete pipeline as small functions. Run it, then change the query.
 
 The first query prints `scores: [1.    0.516 0.548 0.   ] -> top: [0, 2]`, the same numbers you worked out by hand. The swimming-pool question has no word in the vocabulary, so every score is 0, nothing is returned and the answer is "I don't know".
 
+Recall TF-IDF from [Text as data](#/learn/text-as-data/bag-of-words-and-tfidf): multiply each count by $\text{idf}_j = \ln(N / \text{df}_j)$, where $N$ is the number of documents and $\text{df}_j$ the number of documents that contain word $j$. Rare words get bigger weights.
+
 <TryIt title="Switch to TF-IDF, then rerun the 2025 Final">
 
-1. After the line `D = np.array(...)`, add `idf = np.log(len(documents) / (D > 0).sum(axis=0))` and `D = D * idf`. In `retrieve`, change the first line to `q = vectorise(query) * idf`. Query "Is the canteen open on Monday?": d0 and d3 tie at 0.333 with counts; with TF-IDF the rarer word "monday" separates them.
+1. After the line `D = np.array(...)`, add `idf = np.log(len(documents) / (D > 0).sum(axis=0))` and `D = D * idf`. In `retrieve`, change the first line to `q = vectorise(query) * idf`. Then replace the first query in the `for` loop's list with "Is the canteen open on Monday?" and run it. With counts, d0 and d3 tie at 0.333; with TF-IDF the rarer word "monday" separates them.
 2. Undo that, then replace the four documents with the five from the 2025 Final ("Artificial intelligence is transforming industries.", "Machine learning is a subset of artificial intelligence.", "Deep learning allows machines to solve complex problems.", "Data science involves statistics and machine learning.", "Neural networks are inspired by the human brain.") and ask "How does machine learning work?". You should get `top: [1, 3]`, the two documents the exam expected.
 
 </TryIt>
 
 ## Edge cases that lose marks
 
-Code that works on the example can still fail the marker. In the 2026 Final, the notebooks were marked by an <Term def="A program that runs test cases against your code and awards marks automatically. Hidden tests are cases you cannot see before you submit.">autograder</Term>, and every test for the attention task was hidden. One of the few visible tests checked a deliberately awkward case: a class missing from both the prediction and the true mask. Expect the same treatment for a retriever: empty queries, unknown words, capitals, punctuation.
+Code that works on the example can still fail the marker. In the 2026 Final, the code in the notebooks was marked by an <Term def="A program that runs test cases against your code and awards marks automatically. Hidden tests are cases you cannot see before you submit.">autograder</Term> (the written parts by hand), and most tests were hidden. The few visible ones deliberately used awkward inputs, such as an empty case. Expect the same for a retriever: empty queries, unknown words, capitals, punctuation.
 
 <EdgeCaseTester />
 
@@ -165,17 +162,17 @@ print(scores)`}
 
 ## Augment and generate
 
-Retrieval is only the R of RAG (the whole pipeline is in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline)). In a real system the retrieved documents are pasted into a prompt: "Answer using only the context below; if the answer is not there, say you don't know", followed by the documents and the question, and a large language model writes the answer. The 2025 Final allowed only the Python standard library and NumPy, so there was no language model. The "generator" had to be a rule, such as a template that stitches the retrieved sentences together.
+Retrieval is only the R of RAG. In a full system the retrieved documents go into a prompt ("answer using only the context below…") and a language model writes the answer, as in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline). The 2025 Final allowed only Python and NumPy, so there was no language model: the "generator" had to be a rule, such as a template that stitches the retrieved sentences together.
 
 <AnswerAssembler />
 
 <Note title="Where hallucination creeps in">
 
-The expected response in the 2025 Final was: "Machine learning is a subset of artificial intelligence that <Hl>enables systems to learn from data</Hl>. It involves techniques like statistics and <Hl>algorithms</Hl>, often used in data science." The highlighted parts appear in **none** of the five documents. A language model would add them from its own memory, which reads well but is exactly how unsupported claims enter an answer. The official solution simply returned this sentence whenever the retrieved documents contained "machine" and "science". A template answer is clumsier, but every word is backed by a source.
+The expected response in the 2025 Final was: "Machine learning is a subset of artificial intelligence that <Hl>enables systems to learn from data</Hl>. It involves techniques like statistics and <Hl>algorithms</Hl>, often used in data science." The highlighted parts appear in **none** of the five documents: a language model would add them from memory, which reads well but is exactly how unsupported claims enter an answer. (The official solution simply returned this fixed sentence whenever the retrieved documents contained "machine" and "science".) A template answer is clumsier, but every word is backed by a source.
 
 </Note>
 
-The notebook also fixed the **interface**: a protected cell printed the variables `top_documents` (a list of strings) and `response` (a string), so your code had to create exactly those names. Keep given names and signatures exactly as the notebook states them.
+The notebook also fixed the **interface**: a protected cell printed `top_documents` (a list of strings) and `response` (a string), so your code had to create exactly those names.
 
 ## Explaining your design choices
 

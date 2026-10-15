@@ -37,7 +37,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Broadcasting lines shapes up from the right. $(B, 1, 1, T)$ matches the batch axis, stretches over the $h$ heads and the $T$ query rows, and hides key column $j$ wherever token $j$ is padding. $(B, T, 1, 1)$ would put the token axis where the heads are; $(B, 1, T)$ lines its $B$ up with the head axis, which is wrong whenever $B \\ne h$; and $(1, 1, B, T)$ treats batch items as query rows.',
+      'Broadcasting lines shapes up from the right. $(B, 1, 1, T)$ matches the batch axis, stretches over the $h$ heads and the $T$ query rows, and hides key column $j$ wherever token $j$ is padding. $(B, T, 1, 1)$ would put the token axis where the heads are. $(B, 1, T)$ is read as $(1, B, 1, T)$, so its $B$ lines up with the head axis: it crashes when $B \\ne h$, and when $B = h$ it silently applies sentence $b$\'s mask to head $b$ of every sentence, so it is only right when $B = 1$. $(1, 1, B, T)$ treats batch items as query rows.',
     difficulty: 'intermediate',
   },
   {

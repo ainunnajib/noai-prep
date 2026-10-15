@@ -66,8 +66,8 @@ export default function LinearOnCodes() {
           value={enc}
           onChange={setEnc}
           options={[
-            { value: 'label', label: 'label: price ≈ w·code + b' },
-            { value: 'onehot', label: 'one-hot: one weight per town' },
+            { value: 'label', label: 'label codes' },
+            { value: 'onehot', label: 'one-hot' },
           ]}
         />
         <Button onClick={() => setOrder((o) => (o + 1) % ORDERS.length)}>Renumber the towns</Button>
@@ -87,10 +87,12 @@ export default function LinearOnCodes() {
         <Dots points={dots} />
         {SHORT.map((s, t) => (
           <g key={s}>
-            <Label x={code[t]} y={420} dy={15} anchor="middle" size={12} color="var(--ink-2)">
-              {`code ${code[t]}`}
-            </Label>
-            <Label x={code[t]} y={420} dy={30} anchor="middle" size={12} color={COLOURS[t]} weight={700}>
+            {enc === 'label' && (
+              <Label x={code[t]} y={420} dy={15} anchor="middle" size={12} color="var(--ink-2)">
+                {`code ${code[t]}`}
+              </Label>
+            )}
+            <Label x={code[t]} y={420} dy={enc === 'label' ? 30 : 20} anchor="middle" size={12} color={COLOURS[t]} weight={700}>
               {s}
             </Label>
           </g>
@@ -98,8 +100,8 @@ export default function LinearOnCodes() {
       </Plot>
       <Readout
         items={[
-          ['codes', ORDERS[order].name],
-          ['fit', enc === 'label' ? `price ≈ ${w.toFixed(1)} × code + ${b.toFixed(0)}` : 'each town predicted at its own average'],
+          enc === 'label' ? ['codes', ORDERS[order].name] : ['columns', '5 (one per town, no codes)'],
+          ['fit', enc === 'label' ? `price ≈ ${w.toFixed(1)} × code + ${b.toFixed(0)}` : 'one weight per town: each town at its own average'],
           ['typical error (RMSE)', `$${rmse.toFixed(0)}k`],
         ]}
       />

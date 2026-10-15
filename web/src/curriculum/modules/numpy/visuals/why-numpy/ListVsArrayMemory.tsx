@@ -12,16 +12,15 @@ type DType = 'int8' | 'float32' | 'int64' | 'float64'
 const ITEMSIZE: Record<DType, number> = { int8: 1, float32: 4, int64: 8, float64: 8 }
 const ROW_FILL = ['var(--viz-1)', 'var(--viz-3)']
 
-/* scattered heap positions (fractions of the heap area) and which value lives in each slot */
-const SLOTS: [number, number][] = [
-  [0.04, 0.1],
-  [0.45, 0.0],
-  [0.88, 0.14],
-  [0.22, 0.92],
-  [0.6, 1.0],
-  [1.0, 0.84],
-]
-const VALUE_SLOT = [4, 2, 0, 5, 1, 3] // value k sits in slot VALUE_SLOT[k]
+/*
+  The six number objects sit in six columns of the heap, in a scrambled order and at scattered
+  heights. Each pointer's curve sweeps sideways ABOVE the heap and then drops into its own object,
+  so no curve ever runs through another object (checked numerically for widths 300 to 640 px, 1-D and 2-D).
+*/
+const VALUE_COL = [4, 3, 2, 5, 1, 0] // value k sits in heap column VALUE_COL[k]
+const COL_DROP = [0.1, 0.9, 0.3, 1.0, 0.0, 0.6] // how far down the band each column's object sits
+const BAND = 40
+const OH = 44
 
 const txt = { fontFamily: 'var(--font-body)', fontSize: 12, fill: 'var(--ink-2)' } as const
 const mono = { fontFamily: 'var(--font-mono)', fontSize: 13, fill: 'var(--ink)', fontWeight: 700 } as const
@@ -40,11 +39,11 @@ function ListPanel({ twoD, sel, onSel }: { twoD: boolean; sel: number | null; on
   const top = 22
   const innerTop = twoD ? 84 : 0
   const heapTop = twoD ? 150 : 96
-  const ow = 46
-  const oh = 34
-  const heapH = 124
-  const H = heapTop + heapH + 18
-  const heapW = W - ow - 8
+  const ow = Math.min(50, (W - 28) / 6)
+  const heapH = 6 + BAND + OH + 10
+  const H = heapTop + heapH + 14
+  const span = W - 8 - ow
+  const busY = heapTop - 8
 
   // pointer cells that point at number objects: [x, y, valueIndex]
   const leaf: { x: number; y: number; k: number }[] = []
@@ -57,9 +56,11 @@ function ListPanel({ twoD, sel, onSel }: { twoD: boolean; sel: number | null; on
     for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) leaf.push({ x: starts[r] + c * cw, y: innerTop, k: r * 3 + c })
   }
   const objPos = (k: number) => {
-    const [fx, fy] = SLOTS[VALUE_SLOT[k]]
-    return { x: 4 + fx * (heapW - 4), y: heapTop + fy * (heapH - oh - 8) }
+    const c = VALUE_COL[k]
+    return { x: 4 + (c * span) / 5, y: heapTop + 6 + COL_DROP[c] * BAND }
   }
+  // the selected pointer's curve is drawn last, on top of the others
+  const order = [...leaf].sort((a, b) => (a.k === sel ? 1 : 0) - (b.k === sel ? 1 : 0))
 
   return (
     <div ref={ref} style={{ width: '100%' }}>
@@ -97,14 +98,16 @@ function ListPanel({ twoD, sel, onSel }: { twoD: boolean; sel: number | null; on
           </text>
         )}
 
-        {/* arrows to number objects */}
-        {leaf.map((p) => {
+        {/* arrows to number objects: sideways above the heap, then straight down into the object */}
+        {order.map((p) => {
           const o = objPos(p.k)
           const on = sel === p.k
+          const x1 = p.x + (cw - 3) / 2
+          const x2 = o.x + ow / 2
           return (
             <path
               key={`a${p.k}`}
-              d={curve(p.x + (cw - 3) / 2, p.y + ch / 2, o.x + ow / 2, o.y - 2)}
+              d={`M${x1},${p.y + ch / 2} C${x1},${busY} ${x2},${busY} ${x2},${o.y - 2}`}
               markerEnd={`url(#${mid}${on ? 'b' : 'a'})`}
               style={{ fill: 'none', stroke: on ? 'var(--viz-2)' : 'var(--viz-muted)', strokeWidth: on ? 2.5 : 1.4, opacity: sel == null || on ? 1 : 0.55 }}
             />
@@ -126,12 +129,15 @@ function ListPanel({ twoD, sel, onSel }: { twoD: boolean; sel: number | null; on
           const on = sel === k
           return (
             <g key={`n${k}`} onClick={() => onSel(k)} style={{ cursor: 'pointer' }}>
-              <rect x={o.x} y={o.y} width={ow} height={oh} rx={6} style={{ fill: on ? 'color-mix(in srgb, var(--viz-2) 22%, var(--surface))' : 'var(--surface)', stroke: on ? 'var(--viz-2)' : 'var(--ink-3)', strokeWidth: on ? 2 : 1 }} />
-              <text x={o.x + ow / 2} y={o.y + 15} textAnchor="middle" style={mono}>
+              <rect x={o.x} y={o.y} width={ow} height={OH} rx={6} style={{ fill: on ? 'color-mix(in srgb, var(--viz-2) 22%, var(--surface))' : 'var(--surface)', stroke: on ? 'var(--viz-2)' : 'var(--ink-3)', strokeWidth: on ? 2 : 1 }} />
+              <text x={o.x + ow / 2} y={o.y + 16} textAnchor="middle" style={mono}>
                 {v}
               </text>
-              <text x={o.x + ow / 2} y={o.y + 28} textAnchor="middle" style={{ ...txt, fontSize: 10 }}>
-                int · 28 B
+              <text x={o.x + ow / 2} y={o.y + 29} textAnchor="middle" style={{ ...txt, fontSize: 10.5 }}>
+                int
+              </text>
+              <text x={o.x + ow / 2} y={o.y + 40} textAnchor="middle" style={{ ...txt, fontSize: 10.5 }}>
+                28 B
               </text>
             </g>
           )
@@ -145,32 +151,28 @@ function ArrayPanel({ dtype, twoD, sel, onSel }: { dtype: DType; twoD: boolean; 
   const [ref, w] = useContainerWidth<HTMLDivElement>(520)
   const W = Math.max(300, Math.min(640, w))
   const size = ITEMSIZE[dtype]
-  const perRow = 16
-  const left = 40
-  const cell = Math.min(34, Math.floor((W - left - 6) / perRow))
   const total = VALUES.length * size
-  const rows = Math.ceil(total / perRow)
+  const pad = 8
+  // the width of one byte: the whole block always fits on ONE line, because it is one unbroken block
+  const cell = Math.min(34, (W - 2 * pad) / total)
   const top = 46
   const rh = 34
-  const H = top + rows * (rh + 8) + 6
+  const offY = top + rh + 14
+  const H = twoD ? offY + 44 : offY + 6
   const isFloat = dtype.startsWith('float')
-  const label = (v: number) => (isFloat ? (size >= 4 ? `${v}.0` : `${v}.`) : String(v))
+  const label = (v: number) => (isFloat ? `${v}.` : String(v))
   const strides = twoD ? `(${3 * size}, ${size})` : `(${size},)`
 
-  const blocks = VALUES.map((v, k) => {
-    const start = k * size
-    const r = Math.floor(start / perRow)
-    const c = start % perRow
-    return { v, k, start, x: left + c * cell, y: top + r * (rh + 8), w: size * cell, row: twoD ? Math.floor(k / 3) : 0 }
-  })
-
+  const blocks = VALUES.map((v, k) => ({ v, k, x: pad + k * size * cell, w: size * cell, row: twoD ? Math.floor(k / 3) : 0 }))
   const b0 = blocks[0]
   const b1 = blocks[1]
+  const b3 = blocks[3]
+  const rowColour = ROW_FILL[1]
   return (
     <div ref={ref} style={{ width: '100%' }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`NumPy array memory: ${VALUES.length} values of ${size} byte${size > 1 ? 's' : ''} each, side by side in one block of ${total} bytes. Strides ${strides}.`} style={{ display: 'block', maxWidth: W }}>
-        <text x={left} y={13} style={{ ...txt, fontWeight: 700, fill: 'var(--ink)' }}>
-          one block of {total} bytes, no pointers
+        <text x={pad} y={13} style={{ ...txt, fontWeight: 700, fill: 'var(--ink)' }}>
+          one unbroken block of {total} bytes, no pointers
         </text>
         {/* column-stride arrow over the first two elements */}
         <path
@@ -182,27 +184,7 @@ function ArrayPanel({ dtype, twoD, sel, onSel }: { dtype: DType; twoD: boolean; 
           +{size} B {twoD ? '(next column)' : '(next element)'}
         </text>
 
-        {Array.from({ length: rows }, (_, r) => (
-          <g key={`r${r}`}>
-            <text x={left - 6} y={top + r * (rh + 8) + rh / 2 + 4} textAnchor="end" style={{ ...txt, fontSize: 11, fontFamily: 'var(--font-mono)' }}>
-              +{r * perRow}
-            </text>
-            {Array.from({ length: perRow }, (_, c) => {
-              const byte = r * perRow + c
-              const used = byte < total
-              return (
-                <rect
-                  key={c}
-                  x={left + c * cell}
-                  y={top + r * (rh + 8)}
-                  width={cell}
-                  height={rh}
-                  style={{ fill: used ? 'transparent' : 'var(--surface-2)', stroke: 'var(--rule)', strokeWidth: 1 }}
-                />
-              )
-            })}
-          </g>
-        ))}
+        {/* the block itself: one strip, one cell per byte */}
         {blocks.map((b) => {
           const on = sel === b.k
           const fill = ROW_FILL[b.row]
@@ -210,7 +192,7 @@ function ArrayPanel({ dtype, twoD, sel, onSel }: { dtype: DType; twoD: boolean; 
             <g key={b.k} onClick={() => onSel(b.k)} style={{ cursor: 'pointer' }}>
               <rect
                 x={b.x + 1}
-                y={b.y + 1}
+                y={top + 1}
                 width={b.w - 2}
                 height={rh - 2}
                 rx={4}
@@ -220,15 +202,33 @@ function ArrayPanel({ dtype, twoD, sel, onSel }: { dtype: DType; twoD: boolean; 
                   strokeWidth: on ? 2.5 : 1.2,
                 }}
               />
-              {Array.from({ length: size - 1 }, (_, i) => (
-                <line key={i} x1={b.x + (i + 1) * cell} x2={b.x + (i + 1) * cell} y1={b.y + rh - 7} y2={b.y + rh - 1} style={{ stroke: fill, strokeWidth: 1, opacity: 0.7 }} />
-              ))}
-              <text x={b.x + b.w / 2} y={b.y + rh / 2 + 4.5} textAnchor="middle" style={{ ...mono, fontSize: size === 1 ? 12 : 13 }}>
+              {cell >= 4 &&
+                Array.from({ length: size - 1 }, (_, i) => (
+                  <line key={i} x1={b.x + (i + 1) * cell} x2={b.x + (i + 1) * cell} y1={top + rh - 7} y2={top + rh - 1} style={{ stroke: fill, strokeWidth: 1, opacity: 0.7 }} />
+                ))}
+              <text x={b.x + b.w / 2} y={top + rh / 2 + 4.5} textAnchor="middle" style={{ ...mono, fontSize: size === 1 ? 12 : 13 }}>
                 {label(b.v)}
+              </text>
+              <text x={b.x + 2} y={offY} style={{ ...txt, fontSize: 10.5, fontFamily: 'var(--font-mono)', fill: 'var(--ink-3)' }}>
+                +{b.k * size}
               </text>
             </g>
           )
         })}
+
+        {/* row-stride arrow (2-D): from a[0, 0] to a[1, 0], under the byte offsets */}
+        {twoD && (
+          <g>
+            <path
+              d={`M${b0.x + 2},${offY + 6} Q${(b0.x + b3.x) / 2 + 1},${offY + 26} ${b3.x + 1},${offY + 6}`}
+              style={{ fill: 'none', stroke: rowColour, strokeWidth: 2 }}
+            />
+            <path d={`M${b3.x + 1},${offY + 5} l-5,6 l7,0 z`} style={{ fill: rowColour }} />
+            <text x={(b0.x + b3.x) / 2 + 1} y={offY + 36} textAnchor="middle" style={{ ...txt, fill: rowColour, fontWeight: 700 }}>
+              +{3 * size} B (next row)
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   )
@@ -255,7 +255,7 @@ export default function ListVsArrayMemory() {
         <>
           The same six numbers stored two ways. Click any number to follow it. In the list you chase a pointer to an object somewhere
           else; in the array you just jump a fixed number of bytes from the start. Change the dtype and watch the block shrink or grow and
-          the stride change; switch to 2-D and notice that the bytes in memory do not move at all: only the strides change.
+          the stride change; switch to 2-D and notice that the bytes in memory do not move at all: only the strides change (+8 B to the next column, +24 B to the next row for 8-byte numbers).
         </>
       }
     >
@@ -286,7 +286,7 @@ export default function ListVsArrayMemory() {
       <ListPanel twoD={twoD} sel={sel} onSel={setSel} />
 
       <div style={panelTitle}>NumPy array, dtype={dtype}: what you see</div>
-      <MatrixGrid data={grid} cells={sel == null ? [] : [[i, j]]} cellSize={38} onCellClick={(r, c) => setSel(twoD ? r * 3 + c : c)} ariaLabel="The array as you see it; click a cell" />
+      <MatrixGrid data={grid} format={(v) => (dtype.startsWith('float') ? `${v}.` : String(v))} cells={sel == null ? [] : [[i, j]]} cellSize={38} onCellClick={(r, c) => setSel(twoD ? r * 3 + c : c)} ariaLabel="The array as you see it; click a cell" />
       <div style={panelTitle}>…and what is in memory</div>
       <ArrayPanel dtype={dtype} twoD={twoD} sel={sel} onSel={setSel} />
 

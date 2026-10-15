@@ -45,9 +45,11 @@ export default function Seq2SeqFlow() {
   const yMem = encTop + encH + 22
   const decTop = yMem + 92
   const decH = 46
-  const yIn = decTop + decH + 28
-  const yOut = yIn + 40
-  const H = yOut + 26
+  const yIn = decTop + decH + 30
+  const yOut = yIn + 50
+  const H = yOut + 32
+  // small labels sit on a halo of the figure background so lines behind them never cut through the text
+  const halo = { stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
 
   const inputs = ['<s>', ...OUT.slice(0, -1)]
   const shownIn = training ? nT : step + 1 // decoder input positions visible
@@ -110,9 +112,6 @@ export default function Seq2SeqFlow() {
               <rect x={sx(j) - 8} y={yMem - 8} width={16} height={16} rx={3} style={{ fill: 'var(--viz-1)', opacity: 0.85 }} />
             </g>
           ))}
-          <text x={W - pad} y={yMem + 24} textAnchor="end" style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700 }}>
-            memory: keys and values
-          </text>
 
           {/* cross-attention from the current query position to the memory */}
           {!training &&
@@ -134,6 +133,10 @@ export default function Seq2SeqFlow() {
               )),
             )}
 
+          <text x={W - pad} y={yMem + 26} textAnchor="end" style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700, ...halo }}>
+            memory: keys and values
+          </text>
+
           {/* decoder */}
           <rect x={pad} y={decTop} width={W - 2 * pad} height={decH} rx={10} style={{ fill: 'color-mix(in srgb, var(--viz-5) 13%, var(--surface))', stroke: 'var(--viz-5)', strokeWidth: 1.5 }} />
           <text x={W / 2} y={decTop + 19} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: 13, fontWeight: 800 }}>
@@ -144,21 +147,26 @@ export default function Seq2SeqFlow() {
           </text>
 
           {/* decoder inputs and predictions */}
-          <text x={pad} y={yIn - 20} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700 }}>
-            decoder input
+          <text x={pad} y={yIn + 25} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700, ...halo }}>
+            {training ? '↑ decoder input: the correct output, shifted right' : '↑ decoder input: <s> + everything written so far'}
           </text>
           {inputs.map((w, i) => (i < shownIn ? chip(tx(i), yIn, w, !training && i === step ? 'on' : 'plain') : chip(tx(i), yIn, '·', 'ghost')))}
           {inputs.map((_, i) =>
-            i < shownIn ? <line key={`u${i}`} x1={tx(i)} y1={yIn - 13} x2={tx(i)} y2={decTop + decH} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.2 }} /> : null,
+            i < shownIn ? (
+              <g key={`u${i}`}>
+                <line x1={tx(i)} y1={yIn - 13} x2={tx(i)} y2={decTop + decH + 5} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.2 }} />
+                <path d={`M${tx(i)},${decTop + decH + 1} l-4,6 l8,0 z`} style={{ fill: 'var(--viz-muted)' }} />
+              </g>
+            ) : null,
           )}
-          <text x={pad} y={yOut + 22} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700 }}>
-            {training ? 'targets (one per position)' : 'predicted next token'}
+          <text x={pad} y={yOut + 25} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700, ...halo }}>
+            {training ? 'targets: one per position, all at once' : 'decoder output: predicted next token'}
           </text>
           {OUT.map((w, i) => (i < shownIn ? chip(tx(i), yOut, w, !training && i === step ? 'new' : 'plain') : chip(tx(i), yOut, '?', 'ghost')))}
         </svg>
       </div>
 
-      <PlayerControls player={player} label={(st) => (training ? 'training view' : `writing token ${st + 1} of ${OUT.length}`)} />
+      {!training && <PlayerControls player={player} label={(st) => `writing token ${st + 1} of ${OUT.length}`} />}
       <Controls>
         <Toggle label="training view (teacher forcing)" checked={training} onChange={setTraining} />
         <Readout

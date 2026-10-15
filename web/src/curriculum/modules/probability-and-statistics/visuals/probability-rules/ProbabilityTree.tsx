@@ -121,7 +121,7 @@ export default function ProbabilityTree() {
   }
 
   const symColor = (s: string) => (s === 'H' ? 'var(--viz-1)' : s === 'T' ? 'var(--viz-2)' : s === 'R' ? 'var(--viz-neg)' : 'var(--viz-pos)')
-  const labelUnits = narrow ? 1.25 : L === 3 ? 2.35 : 2.0
+  const labelUnits = narrow ? 1.5 : L === 3 ? 2.35 : 2.0
   const nLeaves = leaves.length
 
   let sumTex = ''
@@ -258,7 +258,8 @@ function Tree({
       edges.push({ from: l.path.slice(0, d), to, label: l.edges[d], sym: l.path[d], hot: inEvent(l) })
     }
   })
-  const hotColor = 'var(--viz-3)'
+  // highlight colour: purple is not used by any H/T/R/G node, so "in the event" never looks like "green sweet"
+  const hotColor = 'var(--viz-5)'
   return (
     <g>
       {edges
@@ -295,11 +296,24 @@ function Tree({
       {showLeafProbs &&
         leaves.map((l, i) => {
           const hot = showEvent && inEvent(l)
-          const y = ys(n - i - 0.5) + 4.5
-          const text = narrow ? `${l.path.join('')}  ${show(l.p)}` : `${l.path.join('')}:  ${l.edges.join(' × ')} = ${show(l.p)}`
+          const yc = ys(n - i - 0.5)
+          const fill = hot ? hotColor : showEvent ? 'var(--ink-3)' : 'var(--viz-ink)'
+          if (narrow) {
+            // phones: two short lines, so the "multiply along the path" product still shows
+            return (
+              <g key={i}>
+                <text x={xs(L) + 16} y={yc - 1} className="plot-label" style={{ fontSize: 12, fill, fontWeight: hot ? 800 : 650 }}>
+                  {`${l.path.join('')} = ${show(l.p)}`}
+                </text>
+                <text x={xs(L) + 16} y={yc + 11} className="plot-label" style={{ fontSize: 10.5, fill: hot ? hotColor : 'var(--ink-3)', fontWeight: 500 }}>
+                  {l.edges.join('·')}
+                </text>
+              </g>
+            )
+          }
           return (
-            <text key={i} x={xs(L) + 18} y={y} className="plot-label" style={{ fontSize: 12.5, fill: hot ? hotColor : showEvent ? 'var(--ink-3)' : 'var(--viz-ink)', fontWeight: hot ? 800 : 600 }}>
-              {text}
+            <text key={i} x={xs(L) + 18} y={yc + 4.5} className="plot-label" style={{ fontSize: 12.5, fill, fontWeight: hot ? 800 : 600 }}>
+              {`${l.path.join('')}:  ${l.edges.join(' × ')} = ${show(l.p)}`}
             </text>
           )
         })}

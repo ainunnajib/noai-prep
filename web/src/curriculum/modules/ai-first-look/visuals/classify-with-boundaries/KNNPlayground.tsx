@@ -1,13 +1,46 @@
-import { useMemo, useState, type CSSProperties } from 'react'
-import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, Path, DraggablePoint, usePlot } from '../../../../../kit'
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Controls, Slider, Toggle, Plot, Grid, Axes, Path, Label, DraggablePoint, usePlot, useNarrow } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { TRAIN, X_RANGE, Y_RANGE, PLOT_W, PLOT_H, PASS_C, FAIL_C, knn, knnPass, regionRuns, dist2, colourOf } from './students'
 import { Regions, StudentMarks, Legend } from './parts'
+import rc from './regions.module.css'
 
 /*
   k-nearest neighbours on last year's class. Click (or drag the big marker) to place a new student; lines
   join them to their k nearest classmates and the dashed circle reaches the k-th nearest. The background shows
   what kNN would predict for a new student at every spot, so you can watch the regions change as k changes.
+  On touch screens only a tap places the student, so a swipe over the map scrolls the page (see TouchFigure) instead of moving it.
 */
+
+/** Places the new student: mouse or pen on press and drag; touch only on a tap (little movement). */
+function PlaceLayer({ onPlace, children }: { onPlace: (x: number, y: number) => void; children: ReactNode }) {
+  const { toData, margin, width, height } = usePlot()
+  const touchStart = useRef<[number, number] | null>(null)
+  const place = (cx: number, cy: number) => {
+    const [x, y] = toData(cx, cy)
+    onPlace(x, y)
+  }
+  return (
+    <g
+      onPointerDown={(e) => {
+        if (e.pointerType === 'touch') touchStart.current = [e.clientX, e.clientY]
+        else place(e.clientX, e.clientY)
+      }}
+      onPointerMove={(e) => {
+        if (e.pointerType !== 'touch' && e.buttons === 1) place(e.clientX, e.clientY)
+      }}
+      onPointerUp={(e) => {
+        const s0 = touchStart.current
+        touchStart.current = null
+        if (e.pointerType === 'touch' && s0 && Math.hypot(e.clientX - s0[0], e.clientY - s0[1]) < 10) place(e.clientX, e.clientY)
+      }}
+      onPointerCancel={() => (touchStart.current = null)}
+    >
+      <rect x={margin.left} y={margin.top} width={width - margin.left - margin.right} height={height - margin.top - margin.bottom} style={{ fill: 'transparent' }} />
+      {children}
+    </g>
+  )
+}
 
 /** circle of radius r (in data units) around (cx, cy); drawn as an ellipse so it is exact even if the axes differ slightly */
 function DataCircle({ cx, cy, r }: { cx: number; cy: number; r: number }) {
@@ -55,6 +88,7 @@ export default function KNNPlayground() {
   const [k, setK] = useState(1)
   const [q, setQ] = useState<[number, number]>([2.7, 5.4])
   const [showRegions, setShowRegions] = useState(true)
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(480)
 
   const runs = useMemo(() => regionRuns((x, y) => knnPass(TRAIN, x, y, k), 100, 70), [k])
   const res = knn(TRAIN, q[0], q[1], k)
@@ -67,13 +101,14 @@ export default function KNNPlayground() {
       title="Ask the neighbours"
       caption={
         <>
-          Click anywhere (or drag the big marker) to place a new student. Lines join them to their <i>k</i> nearest classmates, and the majority vote
+          Click or tap anywhere (or drag the big marker) to place a new student. Lines join them to their <i>k</i> nearest classmates, and the majority vote
           decides the prediction. The background shows the prediction for a new student at every spot. Start at <i>k</i> = 1 near the orange student who
           barely revised, then slide <i>k</i> up to 3, 7 and 15: watch the little orange island vanish and the regions become smoother.
         </>
       }
     >
       <Legend />
+      <div ref={wrapRef} style={{ width: '100%', display: 'grid', justifyItems: 'center' }}>
       <Plot
         x={X_RANGE}
         y={Y_RANGE}
@@ -81,11 +116,8 @@ export default function KNNPlayground() {
         height={PLOT_H}
         maxWidth={640}
         ariaLabel={`k-nearest-neighbour map with k = ${k}. A new student at ${q[0]} hours of revision and ${q[1]} hours of sleep has ${res.passVotes} passing and ${res.failVotes} failing neighbours, so the prediction is ${verdict.toLowerCase()}.`}
-        onPointerDown={(p) => setQ(clampQ(p[0], p[1]))}
-        onPointerMove={(p, e) => {
-          if (e.buttons === 1) setQ(clampQ(p[0], p[1]))
-        }}
       >
+        <PlaceLayer onPlace={(x, y) => setQ(clampQ(x, y))}>
         {showRegions && <Regions runs={runs} />}
         <Grid xTicks={10} yTicks={7} />
         <Axes xLabel="hours of revision" yLabel="hours of sleep" xTicks={10} yTicks={7} />
@@ -95,15 +127,24 @@ export default function KNNPlayground() {
         ))}
         <StudentMarks data={TRAIN} />
         <Rings pts={res.neighbours.map((i) => TRAIN[i])} />
-        <DraggablePoint
-          x={q[0]}
-          y={q[1]}
-          r={10}
-          color={res.pass ? PASS_C : FAIL_C}
-          label={`new student: ${verdict.toLowerCase()}`}
-          onChange={(x, y) => setQ(clampQ(x, y))}
-        />
+        {!narrow && (
+          <Label x={q[0]} y={q[1]} dx={q[0] > 6 ? -15 : 15} dy={-10} anchor={q[0] > 6 ? 'end' : 'start'} color={res.pass ? PASS_C : FAIL_C} weight={700}>
+            {`new student: ${verdict.toLowerCase()}`}
+          </Label>
+        )}
+        <g className={rc.hideDragText}>
+          <DraggablePoint
+            x={q[0]}
+            y={q[1]}
+            r={10}
+            color={res.pass ? PASS_C : FAIL_C}
+            label={`new student, predicted ${verdict.toLowerCase()}`}
+            onChange={(x, y) => setQ(clampQ(x, y))}
+          />
+        </g>
+        </PlaceLayer>
       </Plot>
+      </div>
       <div style={{ width: '100%', display: 'grid', gap: '0.35rem', justifyItems: 'center', textAlign: 'center' }} aria-live="polite">
         <div style={{ fontSize: '0.85rem', color: 'var(--ink-2)', display: 'flex', flexWrap: 'wrap', gap: '0.3rem', justifyContent: 'center', alignItems: 'center' }}>
           <span style={{ fontWeight: 600 }}>distances to the {k} nearest:</span>

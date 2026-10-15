@@ -22,6 +22,8 @@ Almost every classic CNN repeats one pattern:
 
 Why grow the channels while shrinking the maps? As the maps get coarser, each position covers a larger receptive field and describes something more complex, and there are more kinds of complex thing to describe than kinds of edge. More channels keep the information from being squeezed out.
 
+In the visual, each card shows the tensor shape $(C, H, W)$ after one layer, and the small heat maps are 4 of that layer's feature maps, computed live from hand-made filters (a trained network learns its own). With global average pooling, the classifier stops caring about height and width, but it still cares about the number of channels.
+
 <CNNPipeline />
 
 Tracing shapes by hand is the core skill, because the first dense layer must be told its input size, and that number depends on every layer before it.
@@ -88,6 +90,7 @@ parameters: 25578
   q="The same network is given 64 × 64 colour images instead (both convs 3×3 with padding 1, both pools 2×2). How many numbers come out of `Flatten`?"
   options={['8,192', '32,768', '4,096', '6,272']}
   answer={0}
+  id="convolutional-networks.cnn-architectures-and-resnets.qc1"
   explain="Padding 1 keeps each conv's size, so $64 \to 64 \to 32$ (pool) $\to 32 \to 16$ (pool), giving $32 \times 16 \times 16 = 8192$. Forgetting one pool gives $32 \times 32 \times 32 = 32{,}768$; using 16 channels gives 4096; and 6272 $= 32 \times 14 \times 14$ is what you get if the convs had no padding."
 />
 
@@ -97,6 +100,8 @@ For shape questions, write the shape after **every** layer down the margin: conv
 
 </ExamTip>
 
+<PastPaperQuestion paper="prelim2026" n={192} />
+
 ## From edges to objects
 
 What do all those channels detect? When researchers visualised trained networks (Zeiler and Fergus, 2014, is the classic study), they found a clear <Term def="The way a deep CNN's features get more complex with depth: edges and colours in early layers, textures and parts in the middle, whole objects near the end.">feature hierarchy</Term>:
@@ -105,7 +110,7 @@ What do all those channels detect? When researchers visualised trained networks 
 - **Middle layers** combine edges into textures and simple parts: rings, grids, fur, eyes, wheels.
 - **Late layers** combine parts into whole objects: faces, cars, cats.
 
-Nobody programs this. It emerges from training, because building complex detectors out of simpler ones is the most economical way to reduce the loss, and because each layer's receptive field is larger than the one before (a late neuron can see most of the image).
+Nobody programs this. It emerges from training, because building complex detectors out of simpler ones is the most economical way to reduce the loss, and because each layer's receptive field is larger than the one before (a late neuron can see most of the image). The visual below uses hand-drawn patterns, but visualisations of real trained networks show the same progression.
 
 <FeatureHierarchy />
 
@@ -115,7 +120,7 @@ This is also why <Term def="Reusing a network trained on one big task (often Ima
 
 ## Landmark architectures
 
-Four networks mark the milestones. <Term def="A dataset of about 1.2 million training photos in 1000 classes. Its yearly competition (ILSVRC, 2010 to 2017) was the benchmark that showed deep CNNs work.">ImageNet</Term> results are given as <Term def="The percentage of test images whose true class is NOT among the model's five highest-scoring guesses.">top-5 error</Term>.
+Four networks mark the milestones. <Term def="A huge collection of labelled photos. Its best-known subset, about 1.2 million images in 1,000 classes, is used to pretrain most standard vision models; its yearly competition (ILSVRC, 2010 to 2017) was the benchmark that showed deep CNNs work.">ImageNet</Term> results are given as <Term def="The percentage of test images whose true class is NOT among the model's five highest-scoring guesses.">top-5 error</Term>.
 
 <ArchitectureGallery />
 
@@ -124,7 +129,9 @@ Four networks mark the milestones. <Term def="A dataset of about 1.2 million tra
 | LeNet-5 | 1998 | conv → pool → conv → pool → dense; read handwritten digits |
 | AlexNet | 2012 | big CNN on GPUs with ReLU, dropout and augmentation; won ImageNet by a huge margin |
 | VGG-16 | 2014 | only 3×3 convs and 2×2 pools, stacked 16 layers deep |
-| ResNet | 2015 | residual (skip) connections; 152 layers; global average pooling head |
+| ResNet | 2015 | residual (skip) connections; 152 layers; a global average pooling head (as in GoogLeNet) |
+
+GoogLeNet (Inception), the 2014 winner that VGG came second to, popularised two ideas from the earlier Network-in-Network paper: $1 \times 1$ convolutions to squeeze channels, and global average pooling in place of big dense layers.
 
 The trend is clear: smaller kernels, more depth, fewer giant dense layers. VGG-16 has 138 million parameters, and 124 million of them are in its three dense layers; ResNet-50 replaces those with global average pooling and a single dense layer, and has only 25.6 million in total despite being three times deeper. But "just go deeper" hit a wall first.
 
@@ -132,13 +139,13 @@ The trend is clear: smaller kernels, more depth, fewer giant dense layers. VGG-1
 
 Here is a thought experiment. Train a 20-layer network. Now build a 56-layer network by copying those 20 layers and adding 36 layers that do nothing: each one outputs exactly its input (an <Term def="A function that returns its input unchanged: f(x) = x.">identity mapping</Term>). This 56-layer network makes exactly the same predictions as the 20-layer one. So the *best* 56-layer network should be **at least as good** as the 20-layer one, at least on the training data.
 
-Yet when He and colleagues trained plain 20- and 56-layer networks in 2015, the 56-layer one had **higher training error**. They called this the <Term def="Adding more layers to a plain (non-residual) network makes even its TRAINING error worse. It is an optimisation problem, not overfitting.">degradation problem</Term>.
+Yet when He and colleagues trained plain 20- and 56-layer networks in 2015, the 56-layer one had **higher training error**. They called this the <Term def="Adding more layers to a plain (non-residual) network makes even its TRAINING error worse. It is an optimisation problem, not overfitting.">degradation problem</Term>. In the visual, the sudden drops in each curve are where the learning rate is cut.
 
 <DegradationCurves />
 
 <Mistake title="Degradation is not overfitting">
 
-Overfitting means **low** training error but high test error: the model memorised the training set. Here the deeper plain network is worse on the **training** set itself, so it is not memorising anything. The problem is optimisation: gradient descent cannot find the good weights (such as "copy + identity") that we know exist. Part of the reason is the vanishing gradients you met in the backpropagation module; another is that it is surprisingly hard for a stack of conv-ReLU layers to learn to do nothing.
+Overfitting means **low** training error but high test error: the model memorised the training set. Here the deeper plain network is worse on the **training** set itself, so it is not memorising anything. The problem is optimisation: gradient descent cannot find the good weights (such as "copy + identity") that we know exist. Surprisingly, it is not mainly vanishing gradients: the ResNet authors used BatchNorm and checked that the gradients in their plain networks were healthy. The difficulty is the optimisation itself; for example, it is hard for a stack of conv-BN-ReLU layers to learn to do nothing (an identity mapping). Residual connections fix this, and their "+1" gradient path (below) also helps networks where gradients would otherwise vanish.
 
 </Mistake>
 
@@ -154,7 +161,7 @@ Here $x$ is the block's input tensor, $F(x)$ is what the block's layers compute 
 
 <Analogy title="Tracked changes">
 
-Improving an essay with tracked changes is easier than rewriting it from scratch every time: if a paragraph is already fine, you simply make no changes. A residual block works the same way. If the best thing a block can do is nothing, its layers just output $F(x) = 0$ (weights near zero, which is easy), and the block passes $x$ through untouched. Extra blocks can no longer make things worse, which removes the degradation problem.
+Improving an essay with tracked changes is easier than rewriting it from scratch every time: if a paragraph is already fine, you simply make no changes. A residual block works the same way. If the best thing a block can do is nothing, its layers just output $F(x) = 0$ (weights near zero, which is easy), and the block passes $x$ through untouched. Extra blocks can now easily do no harm, which largely removes the degradation problem: in the ResNet paper, deeper residual networks reached lower training error.
 
 </Analogy>
 
@@ -162,6 +169,7 @@ Improving an essay with tracked changes is easier than rewriting it from scratch
   q="For one residual block, the best thing to do turns out to be leaving its input unchanged. What must its layers $F$ learn to output?"
   options={['Zero: $F(x) = 0$, so $y = x$', 'A copy of the input: $F(x) = x$', 'Minus the input: $F(x) = -x$', 'One: $F(x) = 1$, so the gradient is 1']}
   answer={0}
+  id="convolutional-networks.cnn-architectures-and-resnets.qc2"
   explain="The output is $F(x) + x$, so $F(x) = 0$ gives exactly $x$. Copying the input would output $2x$, and $F(x) = -x$ would output zero. Learning zero is easy: weights near zero produce it, which is why residual blocks can 'switch themselves off'."
 />
 
@@ -198,7 +206,7 @@ The $\frac{\partial F}{\partial x}$ term is the gradient through the layers, whi
 
 <Steps title="Two blocks, plain versus residual">
   <Step title="Set up">
-    Suppose each block's layers have local slope $F' = 0.1$ (small, as in a deep network that is struggling).
+    Let $z$ be the output of the second block: $x \to$ block 1 $\to$ block 2 $\to z$. Suppose each block's layers have local slope $F' = 0.1$ (small, as in a deep network that is struggling).
   </Step>
   <Step title="Plain: multiply the slopes">
     Two plain blocks: $\frac{\partial z}{\partial x} = F_2' \times F_1' = 0.1 \times 0.1 = 0.01$. With 10 blocks it would be $0.1^{10}$: the gradient vanishes.
@@ -207,6 +215,8 @@ The $\frac{\partial F}{\partial x}$ term is the gradient through the layers, whi
     $\frac{\partial z}{\partial x} = (1 + F_2')(1 + F_1') = 1 + F_1' + F_2' + F_1'F_2' = 1.21$. Expanding the brackets always leaves a **1**: the path that skips both blocks. However small the $F'$ are, the gradient reaches the early layers.
   </Step>
 </Steps>
+
+<PastPaperQuestion paper="noai2025" n={9} />
 
 <PastPaperQuestion paper="final2026" n={7} />
 
@@ -252,7 +262,7 @@ torch.Size([1, 128, 28, 28])
 RuntimeError: The size of tensor a (28) must match the size of tensor b (56) at non-singleton dimension 3
 ```
 
-The convs have `bias=False` because the <Term def="BatchNorm: a layer that normalises each channel using the batch's mean and standard deviation, then rescales with a learned scale and shift. Covered in the training-deep-networks module.">BatchNorm</Term> right after them adds its own learned shift, so a bias would be wasted. ResNet stacks dozens of these blocks: ResNet-50 ends with maps of shape $(2048, 7, 7)$, a global average pool and one dense layer.
+The convs have `bias=False` because the <Term def="BatchNorm: a layer that normalises each channel using the batch's mean and standard deviation, then rescales with a learned scale and shift. Covered in the training-deep-networks module.">BatchNorm</Term> right after them adds its own learned shift, so a bias would be wasted. ResNet-18 and ResNet-34 stack these "basic" blocks; ResNet-50 and deeper use a cheaper "bottleneck" version (a $1 \times 1$ conv to squeeze the channels, a $3 \times 3$ conv, then a $1 \times 1$ conv to expand them again) and end with maps of shape $(2048, 7, 7)$, a global average pool and one dense layer.
 
 <ExamTip>
 

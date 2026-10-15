@@ -102,6 +102,11 @@ export default function GILTurnstile() {
   if (showGil) rows.forEach((segs, k) => segs.forEach((s) => s.kind === 'py' && gilSegs.push({ a: s.a, b: s.b, k })))
 
   const clipB = (b: number) => Math.min(b, now)
+  // legend: only the kinds of segment that this chart actually draws
+  const kinds = new Set(rows.flatMap((segs) => segs.map((s) => s.kind)))
+  const pyStripes = COLOURS.slice(0, T)
+    .map((c, k) => `${c} ${(k / T) * 100}% ${((k + 1) / T) * 100}%`)
+    .join(', ')
 
   return (
     <Figure
@@ -213,18 +218,22 @@ export default function GILTurnstile() {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 1rem', fontSize: '0.8rem', color: 'var(--ink-2)', width: '100%' }}>
         <span>
-          <span style={{ display: 'inline-block', width: 14, height: 10, borderRadius: 2, background: 'var(--viz-1)', marginRight: 5 }} />
-          running Python bytecode (needs the GIL)
+          <span style={{ display: 'inline-block', width: 18, height: 10, borderRadius: 2, background: `linear-gradient(90deg, ${pyStripes})`, marginRight: 5 }} />
+          solid block: running Python bytecode ({runAs === 'threads' ? 'needs the GIL' : "needs that process's own GIL"})
         </span>
-        <span>
-          <span style={{ display: 'inline-block', width: 14, height: 10, borderRadius: 2, border: '1.2px dashed var(--viz-1)', background: 'color-mix(in srgb, var(--viz-1) 22%, var(--surface))', marginRight: 5 }} />
-          C code or waiting for the network (GIL released)
-        </span>
-        <span>
-          <span style={{ display: 'inline-block', width: 14, borderTop: '2px dotted var(--viz-muted)', marginRight: 5, verticalAlign: 'middle' }} />
-          queuing for the GIL
-        </span>
-        {runAs === 'processes' && (
+        {kinds.has('free') && (
+          <span>
+            <span style={{ display: 'inline-block', width: 18, height: 10, borderRadius: 2, border: '1.2px dashed var(--ink-2)', background: 'var(--surface-2)', marginRight: 5 }} />
+            dashed block: {work === 'io' ? 'waiting for the network' : 'NumPy C code'} (GIL released)
+          </span>
+        )}
+        {kinds.has('wait') && (
+          <span>
+            <span style={{ display: 'inline-block', width: 18, borderTop: '2px dotted var(--viz-muted)', marginRight: 5, verticalAlign: 'middle' }} />
+            queuing for the GIL
+          </span>
+        )}
+        {kinds.has('spawn') && (
           <span>
             <span style={{ display: 'inline-block', width: 14, height: 10, borderRadius: 2, border: '1px solid var(--ink-3)', background: 'var(--surface-3)', marginRight: 5 }} />
             starting a new Python process

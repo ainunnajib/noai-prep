@@ -77,7 +77,12 @@ const SNIPPETS: Snippet[] = [
       8: <>Renormalising so the weights sum to 1: fine.</>,
     },
     fix: '    w = w * np.exp(-alpha * y * pred)',
-    final: <>2026 Final Q5 asks about the same update, written with 0/1 mistakes instead of ±1 labels.</>,
+    final: (
+      <>
+        2026 Final Q5 tests the same rule from another side: its update multiplies mistakes by <M>{'e^{+\\alpha}'}</M> correctly but forgets to shrink correct
+        points by <M>{'e^{-\\alpha}'}</M>. Adding a minus sign there (the option <code>np.exp(-alpha * incorrect)</code>) would make things worse.
+      </>
+    ),
     lesson: { to: 'trees-and-ensembles/boosting-adaboost', label: 'Boosting and AdaBoost' },
   },
   {
@@ -204,7 +209,12 @@ const SNIPPETS: Snippet[] = [
       8: <>Updates only the parameters the optimiser knows about, which excludes the new head.</>,
     },
     fix: 'model.head = nn.Linear(512, 10)  # move this ABOVE the optimiser line',
-    final: <>2026 Final Q14 (optimiser built before the head is replaced) and Q8 (BatchNorm running statistics as buffers) are both state bugs.</>,
+    final: (
+      <>
+        2026 Final Q14&rsquo;s keyed answer is this bug (although its printed code builds the optimiser after the new head), and Q8 (BatchNorm running
+        statistics as buffers) is another state bug.
+      </>
+    ),
     lesson: { to: 'pytorch/modules-and-layers', label: 'nn.Module, layers and saving models' },
   },
   {

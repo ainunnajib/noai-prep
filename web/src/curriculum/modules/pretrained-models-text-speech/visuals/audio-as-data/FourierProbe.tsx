@@ -78,7 +78,7 @@ export default function FourierProbe() {
         <>
           The blue sound secretly mixes a 3 Hz wave and a quieter 7 Hz wave. Slide the orange <b>probe</b> wave through 0 to 12 Hz.
           Multiply sound × probe point by point: when the probe matches a hidden wave, the product stays mostly above zero (green) and
-          its average is large; otherwise green and red cancel. Each probe you try adds a bar to the spectrum. Then shift the 7 Hz
+          its average is large; otherwise green and red cancel. Each probe you try adds a bar to the spectrum (grey stubs are probes not tried yet). Then shift the 7 Hz
           wave: the cosine probe misses it, but the sine probe catches it, which is why the real transform uses both.
         </>
       }
@@ -114,9 +114,10 @@ export default function FourierProbe() {
         <Grid xTicks={12} yTicks={2} />
         {coeffs.map((c, i) =>
           visited.has(i) ? (
-            <Rect key={i} x0={i - 0.32} x1={i + 0.32} y0={0} y1={c.s} fill={i === k ? 'var(--viz-2)' : 'var(--viz-1)'} />
+            // a tested probe that found nothing still gets a short coloured stub, so "tried, empty" differs from "not tried yet"
+            <Rect key={i} x0={i - 0.32} x1={i + 0.32} y0={0} y1={Math.max(c.s, 0.035)} fill={i === k ? 'var(--viz-2)' : 'var(--viz-1)'} />
           ) : (
-            <Rect key={i} x0={i - 0.32} x1={i + 0.32} y0={0} y1={0.04} fill="var(--viz-grid)" />
+            <Rect key={i} x0={i - 0.32} x1={i + 0.32} y0={0} y1={0.035} fill="color-mix(in srgb, var(--viz-muted) 45%, transparent)" />
           ),
         )}
         <Rect x0={k - 0.45} x1={k + 0.45} y0={0} y1={1.1} fill="none" stroke="var(--viz-2)" />

@@ -28,7 +28,8 @@ const SEGS: Seg[] = [
   { kind: 'vowel', dur: 0.1, f: U, word: 0 },
   { kind: 'sil', dur: 0.06, f: A, word: -1 },
 ]
-const UNIT_COLOURS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-5)', 'var(--viz-6)']
+// viz-5 (violet) sits close to viz-1 (blue) in dark mode, so it is used last
+const UNIT_COLOURS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-6)', 'var(--viz-5)']
 const STAGES = ['1 · frames', '2 · k-means units', '3 · mask', '4 · predict']
 
 /** Loudness (dB) and brightness (spectral centre, kHz) of every 20 ms frame. */

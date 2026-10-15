@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Figure, Controls, Segmented, Toggle, useContainerWidth } from '../../../../../kit'
-import { npPrint, nest, shapeStr } from './npFormat'
+import { npPrint, nest, shapeStr, charsThatFit } from './npFormat'
 import css from './reshape.module.css'
 
 /*
@@ -217,7 +217,7 @@ export default function ReshapeAnimator() {
         </div>
       ) : (
         <pre style={pre}>
-          {`a = np.arange(12)\nb = a.reshape(${arg})\nprint(b.shape)   # ${shapeStr(shape)}\nprint(b)\n${npPrint(nest(DATA, shape), false)}`}
+          {`a = np.arange(12)\nb = a.reshape(${arg})\nprint(b.shape)   # ${shapeStr(shape)}\nprint(b)\n${npPrint(nest(DATA, shape), false, charsThatFit(w))}`}
         </pre>
       )}
       {note && !error && <div style={{ width: '100%', fontSize: '0.9rem', fontWeight: 600, color: 'var(--viz-2)' }}>{note}</div>}

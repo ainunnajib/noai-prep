@@ -249,6 +249,8 @@ function YourTurn() {
   const found = (g: string) => marked.some((id) => byId(id)?.group === g)
   const nFound = GROUPS.filter((g) => found(g.id)).length
   const noiseMarked = marked.filter((id) => byId(id)?.role === 'noise').length
+  // tapping any part of the question line (or its key word FIRST) counts as reading it first
+  const readQ = marked.includes('ql') || marked.includes('first')
   const reset = () => {
     setMarked([])
     setChecked(false)
@@ -272,8 +274,9 @@ function YourTurn() {
         <span>
           {checked ? (
             <>
-              You found <b>{nFound} of 3</b> deciding clues{noiseMarked ? <> (and marked {noiseMarked} line of noise)</> : null}. Missed clues have a dashed
-              outline; green marks a useful detail. Now answer the question.
+              You found <b>{nFound} of 3</b> deciding clues{noiseMarked ? <> (and marked {noiseMarked} line of noise)</> : null}
+              {readQ ? <> and started from the question line</> : null}. Missed clues have a dashed outline; green marks a useful detail. Now answer the
+              question.
             </>
           ) : (
             <>
@@ -313,6 +316,11 @@ function YourTurn() {
                 <span>{g.why}</span>
               </div>
             ))}
+            <div className={cx(s.vital, readQ ? s.key : s.vitalMiss)}>
+              <span>{readQ ? '✓ read first' : '✗ not marked'}</span>
+              <b>The question line</b>
+              <span>{readQ ? 'You started where an expert starts.' : 'Tap it first next time.'} Its word FIRST decides which kind of metric can win.</span>
+            </div>
             <div className={cx(s.vital, s.vitalUse)}>
               <span>useful too</span>
               <b>Error rate flat at 0.1%</b>

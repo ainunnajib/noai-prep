@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Figure, Controls, Segmented, Button, Plot, Grid, Axes, Arrow, Path, DraggablePoint, MatrixGrid, M, usePlayer, PlayerControls, useNarrow } from '../../../../../kit'
 import { type V2, dot, norm, scale, fix, fmt, imageOfCircle } from '../eigenvectors-eigenvalues/eig2'
-import { svd, RightAngle } from './la2'
+import { svd, RightAngle, MiniMat, FactorRow } from './la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
 import c from './cps.module.css'
 
@@ -41,23 +41,26 @@ function QRPanel() {
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
 
   const r11 = norm(a1)
-  const q1: V2 = r11 > 1e-9 ? [a1[0] / r11, a1[1] / r11] : [1, 0]
+  const has1 = r11 > 1e-9 // q₁ only exists when a₁ is not the zero vector
+  const q1: V2 = has1 ? [a1[0] / r11, a1[1] / r11] : [0, 0]
   const r12 = dot(q1, a2)
   const shadow = scale(q1, r12)
   const w: V2 = [a2[0] - shadow[0], a2[1] - shadow[1]]
   const r22 = norm(w)
-  const ok = r11 > 1e-9 && r22 > 1e-9
+  const ok = has1 && r22 > 1e-9
   const q2: V2 = ok ? [w[0] / r22, w[1] / r22] : [0, 0]
+  const a2zero = norm(a2) < 1e-9
+  const rank = !has1 && a2zero ? 0 : ok ? 2 : 1
   const L = 3
 
   const qCell = (v: number, known: boolean) => (known ? v : '?')
   const Q = [
-    [qCell(q1[0], k >= 1), qCell(q2[0], k >= 4)],
-    [qCell(q1[1], k >= 1), qCell(q2[1], k >= 4)],
+    [qCell(q1[0], k >= 1 && has1), qCell(q2[0], k >= 4 && ok)],
+    [qCell(q1[1], k >= 1 && has1), qCell(q2[1], k >= 4 && ok)],
   ]
   const R = [
-    [qCell(r11, k >= 1), qCell(r12, k >= 2)],
-    [0, qCell(r22, k >= 4)],
+    [qCell(r11, k >= 1), qCell(r12, k >= 2 && has1)],
+    [0, qCell(r22, k >= 4 && has1)],
   ]
   const A = [
     [a1[0], a2[0]],
@@ -87,19 +90,17 @@ function QRPanel() {
                 {r22 > 0.25 && <RightAngle at={[0, 0]} a={q1} b={q2} size={11} />}
               </>
             )}
-            {k >= 1 && <Arrow from={[0, 0]} to={q1} color="var(--viz-3)" width={4} label="q₁" labelOffset={[2, 16]} />}
+            {k >= 1 && has1 && <Arrow from={[0, 0]} to={q1} color="var(--viz-3)" width={4} label="q₁" labelOffset={[2, 16]} />}
             {k >= 4 && ok && <Arrow from={[0, 0]} to={q2} color="var(--viz-3)" width={4} label="q₂" labelOffset={[-18, -4]} />}
             <DraggablePoint x={a1[0]} y={a1[1]} color="var(--viz-1)" r={7} onChange={(x, y) => setA1([snap(x), snap(y)])} />
             <DraggablePoint x={a2[0]} y={a2[1]} color="var(--viz-2)" r={7} onChange={(x, y) => setA2([snap(x), snap(y)])} />
           </Plot>
         </div>
         <div className={s.panel}>
-          <div className={c.mats}>
-            <MatrixGrid data={A} format={(v) => fmt(v, 2)} label="A = [a₁ a₂]" cellSize={46} ariaLabel="A" />
-            <span className={c.op}>=</span>
-            <MatrixGrid data={Q} format={(v) => fix(v, 2)} label="Q" cellSize={50} ariaLabel="Q" />
-            <MatrixGrid data={R} format={(v) => fix(v, 2)} label="R" cellSize={50} ariaLabel="R" />
-          </div>
+          <FactorRow
+            lhs={<MiniMat rows={A} name="A = [a₁ a₂]" format={(v) => fmt(v, 2)} />}
+            factors={[<MiniMat key="q" rows={Q} name="Q" />, <MiniMat key="r" rows={R} name="R" />]}
+          />
           <div className={s.formula}>
             <div>
               <span className={s.mono}>‖a₁‖ = {fix(r11)}</span>, <span className={s.mono}>q₁·a₂ = {fix(r12)}</span>, <span className={s.mono}>‖w‖ = {fix(r22)}</span>
@@ -107,7 +108,15 @@ function QRPanel() {
             <div className={s.small}>R is upper triangular because a₁ is built from q₁ alone: a₁ = ‖a₁‖ q₁, while a₂ = (q₁·a₂) q₁ + ‖w‖ q₂.</div>
           </div>
           <div className={`${s.status} ${k === 4 && ok ? s.statusGood : ''}`} role="status">
-            {ok ? QR_TEXT[k] : <>The columns are parallel (or zero), so there is no new direction to make q₂ from: A has rank 1.</>}
+            {ok ? (
+              QR_TEXT[k]
+            ) : rank === 0 ? (
+              <>Both columns are zero: A has rank 0, and there is no direction at all to build Q from.</>
+            ) : !has1 ? (
+              <>a₁ is the zero vector, so there is no direction to make q₁ from, and Gram–Schmidt (which needs independent columns) cannot start: A has rank 1.</>
+            ) : (
+              <>a₂ is parallel to a₁ (or zero), so there is no new direction to make q₂ from: A has rank 1.</>
+            )}
           </div>
         </div>
       </div>

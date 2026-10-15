@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented, Button, Bars, Plot, Arrow, usePlot, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Segmented, Button, Bars, Plot, Arrow, Label, usePlot, useNarrow } from '../../../../../kit'
 import { CLUSTERS, WORDS, byWord, nearest } from './embData'
 import s from './emb.module.css'
 
@@ -16,6 +16,12 @@ const PRESETS: [string, string, string][] = [
   ['coffee', 'kopi', 'tea'],
   ['man', 'boy', 'woman'],
 ]
+// plot domain; an analogy star outside it is drawn at the edge
+const XD: [number, number] = [-5.2, 5.0]
+const YD: [number, number] = [-4.9, 4.8]
+const EDGE = 0.35
+const inside = (v: number, [lo, hi]: [number, number]) => Math.min(hi - EDGE, Math.max(lo + EDGE, v))
+const ARROW = 'var(--viz-ink)'
 // label placement tweaks so names do not collide on small screens
 const BELOW = new Set(['prata', 'satay', 'laksa', 'train', 'car', 'france', 'tea', 'teh', 'japan', 'korea'])
 
@@ -100,6 +106,8 @@ export default function EmbeddingSpace2D() {
   const vc = byWord(c)
   const target = vb.vec.map((x, i) => x - va.vec[i] + vc.vec[i])
   const txy: [number, number] = [vb.xy[0] - va.xy[0] + vc.xy[0], vb.xy[1] - va.xy[1] + vc.xy[1]]
+  const sxy: [number, number] = [inside(txy[0], XD), inside(txy[1], YD)]
+  const offMap = sxy[0] !== txy[0] || sxy[1] !== txy[1]
   const ans = nearest(target, [a, b, c], 3)
 
   const pick = (w: string) => {
@@ -132,8 +140,8 @@ export default function EmbeddingSpace2D() {
       caption={
         <>
           24 words from a toy embedding, drawn in 2-D. In <b>neighbours</b> mode, tap a word to see the three words whose vectors have the highest
-          cosine similarity: they come from the same topic. In <b>analogy</b> mode, the orange arrow is <i>b − a</i> (for example man → king,
-          “add royalty”). Adding the same arrow to <i>c</i> lands on the star, and the nearest word to the star is the answer. Try the presets, then
+          cosine similarity: they come from the same topic. In <b>analogy</b> mode, the solid arrow is <i>b − a</i> (for example man → king,
+          “add royalty”). Adding the same arrow to <i>c</i> (dashed) lands on the star, and the nearest word to the star is the answer. Try the presets, then
           pick your own three words (tapping a word sets <i>c</i>). Real embeddings have hundreds of dimensions, and 2-D pictures like this one are
           squashed views of them.
         </>
@@ -160,16 +168,21 @@ export default function EmbeddingSpace2D() {
         )}
       </Controls>
       <div ref={wrapRef} style={{ width: '100%' }}>
-        <Plot x={[-5.2, 5.0]} y={[-4.9, 4.8]} width={620} height={440} maxWidth={680} minHeight={narrow ? 380 : undefined} margin={{ top: 8, right: 8, bottom: 8, left: 8 }} ariaLabel="Map of word embeddings: people top left, places top right, food and drink bottom left, transport bottom right">
+        <Plot x={XD} y={YD} width={620} height={440} maxWidth={680} minHeight={narrow ? 380 : undefined} margin={{ top: 8, right: 8, bottom: 8, left: 8 }} ariaLabel="Map of word embeddings: people top left, places top right, food and drink bottom left, transport bottom right">
           {mode === 'near' && <Lines from={focus} to={nn.map((n) => n.word)} />}
           {mode === 'analogy' && (
             <>
-              <Arrow from={va.xy} to={vb.xy} color="var(--viz-2)" width={3} />
-              <Arrow from={vc.xy} to={txy} color="var(--viz-2)" width={3} dash="6 4" />
+              <Arrow from={va.xy} to={vb.xy} color={ARROW} width={3} />
+              <Arrow from={vc.xy} to={sxy} color={ARROW} width={3} dash="6 4" />
             </>
           )}
           <Points selected={selected} faded={mode === 'analogy'} onPick={pick} small={narrow} />
-          {mode === 'analogy' && <Star x={txy[0]} y={txy[1]} />}
+          {mode === 'analogy' && <Star x={sxy[0]} y={sxy[1]} />}
+          {mode === 'analogy' && offMap && (
+            <Label x={sxy[0]} y={sxy[1]} dy={sxy[1] > 0 ? 24 : -16} anchor={sxy[0] > 0 ? 'end' : 'start'} color="var(--ink)" weight={700}>
+              star is off the map
+            </Label>
+          )}
         </Plot>
         <div className={s.row} style={{ justifyContent: 'center', marginTop: 4 }} aria-hidden="true">
           {CLUSTERS.map((name, i) => (
@@ -195,7 +208,7 @@ export default function EmbeddingSpace2D() {
             {sel(2, 'c')}
           </div>
           <span className={s.equation}>
-            {b} − {a} + {c} = star → nearest word (not counting {a}, {b}, {c}):
+            {b} − {a} + {c} = star → nearest word (not counting {a}, {b}, {c}){offMap ? ' (the star lies off this map, so it is drawn at the edge)' : ''}:
           </span>
           <Bars data={ans.map((n, k) => ({ label: n.word, value: n.cos, strong: k === 0, color: k === 0 ? 'var(--viz-2)' : 'var(--viz-1)' }))} max={1} ariaLabel="Words nearest to the analogy result" />
         </div>

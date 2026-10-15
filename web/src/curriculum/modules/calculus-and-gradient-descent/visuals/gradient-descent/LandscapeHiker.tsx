@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Rect, Label, DraggablePoint, useAnimationFrame, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, FnPath, Path, Rect, Label, useAnimationFrame, useNarrow } from '../../../../../kit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
-  A blindfolded hiker (a ball) on a 1-D loss landscape. Drop or drag the ball, let go,
+  A walker in thick haze (a ball) on a 1-D loss landscape. Drop or drag the ball, let go,
   and it slides downhill (it always moves against the slope) until the ground is flat.
   Valleys it finds are flagged as local or global minima. Optional layers: which valley
-  each start point leads to, and a "blindfold" that hides everything except the ground
-  under the ball.
+  each start point leads to, and "haze" that hides everything except the ground under the
+  ball. The ball settles as soon as the slope changes sign (it has crossed a valley floor),
+  so it stops at any frame rate instead of jittering across the minimum.
 */
 
 type Land = 'bumpy' | 'bowl'
@@ -76,9 +78,17 @@ export default function LandscapeHiker() {
     for (let k = 0; k < sub; k++) {
       const sl = slopeOf(f, nx)
       const speed = Math.max(0.8, Math.min(3.5, 2.2 * Math.abs(sl)))
-      nx -= (Math.sign(sl) * speed * dt) / sub
+      const before = nx
+      nx = Math.max(X0, Math.min(X1, nx - (Math.sign(sl) * speed * dt) / sub))
+      if (sl !== 0 && Math.sign(slopeOf(f, nx)) === -Math.sign(sl)) {
+        // the slope flipped sign: moving downhill, the ball has just crossed a valley floor. Settle there.
+        const i = valleyOf((before + nx) / 2)
+        setRolling(false)
+        setX(minima[i]?.x ?? nx)
+        setFound((fs) => (fs.includes(i) ? fs : [...fs, i]))
+        return
+      }
     }
-    nx = Math.max(X0, Math.min(X1, nx))
     if (Math.abs(slopeOf(f, nx)) < 0.03) {
       setRolling(false)
       if (curvOf(f, nx) > 0) {
@@ -115,7 +125,7 @@ export default function LandscapeHiker() {
         ? 'balanced on a hilltop: flat, but a maximum'
         : 'on a slope: let go to roll'
 
-  // how much ground the blindfolded hiker can "feel" either side of the ball
+  // how much ground the walker in the haze can "feel" either side of the ball
   const feel = 0.35
   const basinBands = minima.map((_, i) => ({ i, left: i === 0 ? X0 : maxima[i - 1].x, right: i === minima.length - 1 ? X1 : maxima[i].x }))
 
@@ -125,8 +135,9 @@ export default function LandscapeHiker() {
       caption={
         <>
           Drag the ball and let go, or tap anywhere on the picture to drop it there. It always moves against the slope and stops where the ground is
-          flat. Start it in different places: there are two <b>local minima</b> and one <b>global minimum</b>, and the start point alone decides which
-          one the ball finds. Switch on the blindfold to see how little the hiker (and a real training algorithm) can feel. Then try the single bowl.
+          flat. Start it in different places: there are three valleys, so three <b>local minima</b>, and the deepest one (near <i>w</i> = 2.2) is the{' '}
+          <b>global minimum</b>. The start point alone decides which one the ball finds. Switch on the haze to see how little the walker (and a real
+          training algorithm) can feel. Then try the single bowl.
         </>
       }
     >
@@ -173,7 +184,7 @@ export default function LandscapeHiker() {
               <g key={`f${i}`}>
                 <Path points={[[m.x, y], [m.x, y + 0.75]]} color={c} width={2} />
                 <Path points={[[m.x, y + 0.75], [m.x + 0.32, y + 0.63], [m.x, y + 0.51]]} color={c} fill={c} closed width={1} />
-                <Label x={m.x} y={y + 0.75} dy={-7} anchor="middle" color={c} weight={700}>
+                <Label x={m.x} y={y + 0.75} dy={-7} anchor="middle" color="var(--ink)" weight={700}>
                   {isGlobal(i) ? 'global min' : 'local min'}
                 </Label>
               </g>
@@ -181,11 +192,12 @@ export default function LandscapeHiker() {
           })}
           {/* the slope the hiker feels underfoot */}
           <Path points={[[x - 0.45, f(x) - 0.45 * s], [x + 0.45, f(x) + 0.45 * s]]} color="var(--viz-2)" width={2} dash="5 4" />
-          <DraggablePoint
+          <Handle
             x={x}
             y={f(x)}
             r={11}
             color="var(--viz-2)"
+            ariaLabel="the ball: drag it, then let go"
             constrain={(nx) => [nx, f(nx)]}
             onChange={(nx) => {
               setRolling(false)
@@ -213,7 +225,7 @@ export default function LandscapeHiker() {
       </Controls>
       <Controls>
         <Toggle label="Colour start points by the valley they lead to" checked={basins} onChange={setBasins} />
-        <Toggle label="Blindfold" checked={blind} onChange={setBlind} />
+        <Toggle label="Thick haze" checked={blind} onChange={setBlind} />
       </Controls>
       <Readout
         items={[

@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'maths-foundations.powers-and-exponentials.5',
     prompt: 'What does this Python code print?',
-    code: 'print(2 ** 10, 0.5 ** 10 < 0.001, 10 ** -2)',
+    code: 'a = 2 ** 10\nb = 0.5 ** 10 < 0.001\nc = 10 ** -2\nprint(a, b, c)',
     options: ['`1024 True 0.01`', '`20 False -20`', '`1024 False 0.01`', '`1024 True -100`'],
     answer: 0,
     explanation:

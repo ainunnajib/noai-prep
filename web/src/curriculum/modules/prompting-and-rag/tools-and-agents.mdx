@@ -31,6 +31,10 @@ A language model can only produce text. To let it use a <Term def="A function yo
 }
 ```
 
+- **description** is what the model reads to decide when to use the tool.
+- **properties** lists the arguments and their types.
+- **required** names the arguments that must always be given.
+
 The schemas are sent to the model along with the conversation. When a tool would help, the model replies not with an answer but with a **tool call**: text in an exact format, such as `{"name": "days_between", "arguments": {"start": "2026-10-14", "end": "2027-02-19"}}`. Your program reads it, checks the arguments, runs the real function and sends the result back as a new message. Then the model carries on. This is called <Term def="Letting a language model request a function by writing a structured call (a name plus arguments) that the surrounding program executes.">function calling</Term>, or tool use.
 
 <FunctionCallAnatomy />
@@ -62,7 +66,7 @@ One tool call answers one sub-question. Harder tasks need several, and each resu
 
 <AgentLoopStepper />
 
-The agent's only memory is that growing transcript. Every thought, call and result is pasted back into the prompt for the next step, which is why one wrong observation can mislead every step after it.
+In this simple loop, the agent's only memory is that growing transcript. Every thought, call and result is pasted back into the prompt for the next step, which is why one wrong observation can mislead every step after it.
 
 <Steps title="Check the agent's arithmetic by hand">
   <Step title="The rest of October">
@@ -82,6 +86,22 @@ The agent's only memory is that growing transcript. Every thought, call and resu
 Here is the loop as real Python. The "LLM" is a rule-based stand-in so that it runs offline, but the loop around it has the same shape as real agent code: ask the model for the next step, run the requested tool, append the observation, and stop at a limit.
 
 <PyRunner code={AGENT_CODE} />
+
+It prints:
+
+```text
+step 1: think: I need the exam date.
+        act:   search({"query": "NOAI 2027 Prelim date"})
+        observation: NOAI 2027 Preliminary Round: Friday 19 February 2027
+step 2: think: Now I need today's date.
+        act:   get_today({})
+        observation: 2026-10-14
+step 3: think: I'll let a tool count the days.
+        act:   days_between({"start": "2026-10-14", "end": "2027-02-19"})
+        observation: 128
+step 4: think: I have everything I need.
+FINAL ANSWER: 128 days until the Prelim.
+```
 
 <TryIt>
 
@@ -119,7 +139,7 @@ The common failure modes, and what guards against each:
 
 When a RAG system or an agent gives a wrong answer, "the AI is bad" is not a diagnosis. You met the two kinds of RAG failure in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline); evaluation turns them into numbers. Split the system and score each part separately:
 
-- **Retrieval**: did the retrieved context contain what was needed? Score it with the <Term def="The fraction of test questions for which at least one relevant document appears among the top k retrieved.">hit rate</Term>, often called recall@k: the fraction of test questions whose relevant document appears in the top $k$.
+- **Retrieval**: did the retrieved context contain what was needed? Score it with the <Term def="The fraction of test questions for which at least one relevant document appears among the top k retrieved.">hit rate</Term> (hit@k): the fraction of test questions with at least one relevant document in the top $k$. When each question has exactly one relevant document, this equals <Term def="The share of a question's relevant documents that appear in the top k retrieved, averaged over the test questions.">recall@k</Term>, the share of relevant documents that were retrieved.
 - **Generation**: given that context, is the answer correct (it matches a reference answer) and <Term def="Every claim in the answer is supported by the retrieved context; nothing is added from elsewhere.">faithful</Term> (supported by the context, with nothing added)?
 - **Agents**: also the task success rate, the number of steps, and whether each tool call used the right tool with valid arguments.
 
@@ -152,7 +172,7 @@ To evaluate fairly, build a test set of questions with reference answers and the
 
 <ExamTip>
 
-For 36-second questions, have these ready. Function calling: the model outputs a structured call, and the application executes it. ReAct: thought, action, observation, repeat. Reliability over $n$ independent steps is $p^n$; know $0.9^2 = 0.81$ and $0.9^3 = 0.729$. Diagnosis: right context but wrong answer is a generation problem; wrong context is a retrieval problem, so fix the retriever first.
+For 36-second questions, have these ready. Function calling: the model outputs a structured call, and the application executes it. ReAct: thought, action, observation, repeat. Reliability over $n$ independent steps is $p^n$; know $0.9^2 = 0.81$ and $0.9^3 = 0.729$. Diagnosis: right context but wrong answer → fix the generator; wrong context → fix the retriever. Fix whichever accounts for more failures first.
 
 </ExamTip>
 
@@ -161,6 +181,6 @@ For 36-second questions, have these ready. Function calling: the model outputs a
 - Function calling: the model writes a structured tool call that matches a schema; your application checks it, runs the function and returns the result as a new message.
 - An agent loops think → act → observe until it can answer. The transcript is its memory, so one bad observation can spoil every later step.
 - Reliability compounds: $n$ independent steps that each succeed with probability $p$ all succeed with probability $p^n$. Use step limits and argument checks, and treat tool output as data, not instructions.
-- Evaluate retrieval (hit rate, recall@k) separately from generation (correct and faithful) to know which part to fix.
+- Evaluate retrieval (hit rate, which equals recall@k when there is one relevant document per question) separately from generation (correct and faithful) to know which part to fix.
 
 </Takeaways>

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Plot, Grid, Axes, Path, Dots, Label, DraggablePoint, useNarrow } from '../../../../../kit'
+import { Figure, Plot, Grid, Axes, Path, Dots, DraggablePoint, useNarrow, usePlot } from '../../../../../kit'
 import { mono } from '../vectorised-ops-and-axes/Cells'
 
 /*
@@ -22,6 +22,44 @@ const X: [number, number][] = [
 const COLS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-4)']
 const K = 3
 const snap = (v: number) => Math.round(v * 2) / 2
+
+/** A distance label beside its line (pushed off it, perpendicular), with a halo so lines never cut through the digits. */
+function DistLabel({ from, to, color, text }: { from: [number, number]; to: [number, number]; color: string; text: string }) {
+  const { xs, ys } = usePlot()
+  const x1 = xs(from[0])
+  const y1 = ys(from[1])
+  const x2 = xs(to[0])
+  const y2 = ys(to[1])
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1
+  let nx = -(y2 - y1) / len
+  let ny = (x2 - x1) / len
+  // steep lines: label on the right; flatter lines: label above
+  const steep = Math.abs(y2 - y1) > Math.abs(x2 - x1)
+  if (steep ? nx < 0 : ny > 0) {
+    nx = -nx
+    ny = -ny
+  }
+  const off = 11
+  const mx = 0.45 * x1 + 0.55 * x2 + nx * off
+  const my = 0.45 * y1 + 0.55 * y2 + ny * off
+  return (
+    <text
+      x={mx}
+      y={my}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      style={{ fill: color, fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}
+    >
+      {text}
+    </text>
+  )
+}
+
+/** A ring around the selected point, so it stays a normal-sized dot (only the centroids are big). */
+function Ring({ x, y }: { x: number; y: number }) {
+  const { xs, ys } = usePlot()
+  return <circle cx={xs(x)} cy={ys(y)} r={10} style={{ fill: 'none', stroke: 'var(--ink)', strokeWidth: 2 }} />
+}
 
 export default function DistanceMatrixHeatmap() {
   const [C, setC] = useState<[number, number][]>([
@@ -47,9 +85,9 @@ export default function DistanceMatrixHeatmap() {
       title="Every point-to-centroid distance in one array"
       caption={
         <>
-          Drag the three centroids (big dots). The table is the distance matrix <code>D</code>: one row per point, one column per centroid, darker
-          meaning closer. Each row's smallest entry is outlined; its column number is <code>D.argmin(axis=1)</code>, the point's cluster. Click a
-          row to draw that point's three distances in the plot.
+          Drag the three centroids (big dots). The table is the distance matrix <code>D</code>: one row per point, one column per centroid; the
+          stronger a cell's colour, the closer that centroid. Each row's smallest entry is outlined; its column number is{' '}
+          <code>D.argmin(axis=1)</code>, the point's cluster. Click a row to draw that point's three distances in the plot (the ringed point).
         </>
       }
       wide
@@ -63,22 +101,15 @@ export default function DistanceMatrixHeatmap() {
             {C.map((c, j) => (
               <Path key={`sel${j}`} points={[X[sel], c]} color={COLS[j]} width={labels[sel] === j ? 2.6 : 1.4} dash={labels[sel] === j ? undefined : '5 4'} />
             ))}
-            {C.map((c, j) => {
-              const mx = 0.4 * X[sel][0] + 0.6 * c[0]
-              const my = 0.4 * X[sel][1] + 0.6 * c[1]
-              return (
-                <Label key={`lab${j}`} x={mx} y={my} dx={4} dy={-4} color={COLS[j]} size={12} weight={700}>
-                  {D[sel][j].toFixed(1)}
-                </Label>
-              )
-            })}
             {/* every other point joined to its nearest centroid */}
             {X.map((p, i) => (i === sel ? null : <Path key={`n${i}`} points={[p, C[labels[i]]]} color={COLS[labels[i]]} width={1.2} opacity={0.45} />))}
-            <Dots
-              points={X.map(([x, y], i) => ({ x, y, color: COLS[labels[i]], r: i === sel ? 8 : 6, label: `p${i}` }))}
-            />
+            <Ring x={X[sel][0]} y={X[sel][1]} />
+            <Dots points={X.map(([x, y], i) => ({ x, y, color: COLS[labels[i]], r: 6, label: `p${i}` }))} />
             {C.map((c, j) => (
               <DraggablePoint key={`c${j}`} x={c[0]} y={c[1]} color={COLS[j]} r={10} label={`c${j}`} onChange={move(j)} />
+            ))}
+            {C.map((c, j) => (
+              <DistLabel key={`lab${j}`} from={X[sel]} to={c} color={COLS[j]} text={D[sel][j].toFixed(1)} />
             ))}
           </Plot>
         </div>

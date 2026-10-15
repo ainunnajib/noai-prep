@@ -60,7 +60,8 @@ export default function MacroF1Explorer() {
       title="Accuracy versus macro-F1"
       caption={
         <>
-          200 messages, but only 10 are about food safety, the class that matters most. Slide <b>caught</b> from 10 down to 0: each missed message costs accuracy just 0.5 percentage points,
+          200 messages, but only 10 are about food safety, the class that matters most. <b>False alarms</b> are praise messages wrongly flagged as food safety. Slide{' '}
+          <b>safety caught</b> from 10 down to 0: each missed message costs accuracy just 0.5 percentage points,
           yet macro-F1 collapses, because the food-safety F1 falls to 0 and it is one of three equal votes. Weighted-F1 barely notices either. Then switch on the lazy model that always says
           "praise": 75% accuracy from a model that has learned nothing.
         </>
@@ -68,10 +69,11 @@ export default function MacroF1Explorer() {
     >
       <div className={s.wrap}>
         <Controls>
-          <Slider label="Food-safety messages caught (of 10)" value={caught} min={0} max={10} step={1} onChange={(v) => { setCaught(v); setLazy(false) }} />
-          <Slider label="False alarms: praise flagged as food safety" value={alarms} min={0} max={20} step={1} onChange={(v) => { setAlarms(v); setLazy(false) }} />
+          <Slider label="safety caught" value={caught} min={0} max={10} step={1} format={(v) => `${v} of 10`} onChange={(v) => { setCaught(v); setLazy(false) }} />
+          <Slider label="false alarms" value={alarms} min={0} max={20} step={1} onChange={(v) => { setAlarms(v); setLazy(false) }} />
           <Toggle label="Lazy model: always predict “praise”" checked={lazy} onChange={setLazy} />
         </Controls>
+        {lazy && <p className={s.verdict}>The lazy model ignores both sliders. Move either slider to switch back to the real classifier.</p>}
         <div className={s.big}>
           <div className={s.bigItem}>
             <small>Accuracy (all 200 messages)</small>

@@ -6,7 +6,8 @@ import StackVsConcat from './visuals/arrays-and-shapes/StackVsConcat'
 export const MAKE_CODE = `import numpy as np
 
 a = np.array([[1, 2, 3], [4, 5, 6]])
-print(a.shape, a.ndim, a.size)
+print(a.shape, a.ndim, a.size,
+      a.dtype)
 
 z = np.zeros((3, 4))
 print(z.shape, z.dtype)
@@ -15,7 +16,7 @@ print(np.arange(0, 10, 2))
 print(np.linspace(0, 1, 5))
 print(np.eye(2))
 
-# change the arguments and predict before you run!`
+# change the arguments, predict, run!`
 
 export const RESHAPE_CODE = `import numpy as np
 
@@ -24,15 +25,21 @@ b = a.reshape(3, -1)
 print(b.shape)
 print(b)
 
-c = b.reshape(-1)        # flatten back to 1-D
+# flatten back to 1-D
+c = b.reshape(-1)
 print(c.shape)
 
 A = np.array([[1, 2, 3], [4, 5, 6]])
-B = np.array([[7, 8, 9], [10, 11, 12]])
-print(np.concatenate([A, B], axis=0).shape)
-print(np.concatenate([A, B], axis=1).shape)
-print(np.stack([A, B], axis=0).shape)
-print(np.stack([A, B], axis=2).shape)`
+B = np.array([[7, 8, 9],
+              [10, 11, 12]])
+c0 = np.concatenate([A, B], axis=0)
+c1 = np.concatenate([A, B], axis=1)
+s0 = np.stack([A, B], axis=0)
+s2 = np.stack([A, B], axis=2)
+print(c0.shape)
+print(c1.shape)
+print(s0.shape)
+print(s2.shape)`
 
 A photo, a spreadsheet of exam marks, a batch of 32 sentences: in AI code each one is a NumPy array, and the first thing to know about any array is its **shape**. Shape mistakes are among the most common bugs in from-scratch code like the NOAI Final's, and shape questions ("what is the shape of `np.zeros((3, 4))`?") are free marks in the Prelim. This lesson teaches you to make arrays, read their shape and type, and predict the shape after every reshape or join without running anything.
 
@@ -115,19 +122,32 @@ They hold the same three numbers but behave differently in maths, and mixing the
 
 The **dtype** is chosen from your data. Whole numbers give `int64` and anything with a decimal point gives `float64`. One decimal is enough to make the whole array float, because an array has only one dtype: `np.array([1, 2, 3.5])` is `float64`. Constructors like `zeros`, `ones`, `linspace` and `eye` give `float64` unless you ask otherwise, and `arr.astype(np.float32)` makes a converted copy. (Deep-learning code usually uses `float32`, which is PyTorch's default.)
 
+<Mistake title="A float into an int array is cut down silently">
+
+Because an array has only one dtype, writing a decimal into an **integer** array does not change the dtype: the decimal part is simply thrown away, with no warning. Below, `a` keeps `int64` and the `.7` vanishes; `b` was made `float64` first, so it keeps 2.7.
+
 ```python
-import numpy as np
+# int64
+a = np.array([1, 2, 3])
+a[0] = 2.7
+print(a)  # [2 2 3]
 
-a = np.array([[1, 2, 3], [4, 5, 6]])
-print(a.shape, a.ndim, a.size, a.dtype)
-
-z = np.zeros((3, 4))
-print(z.shape, z.dtype)
-
-print(np.arange(0, 10, 2))
-print(np.linspace(0, 1, 5))
-print(np.eye(2))
+# float64
+b = np.array([1, 2, 3])
+b = b.astype(float)
+b[0] = 2.7
+print(b)  # [2.7 2.  3. ]
 ```
+
+If an array will later hold averages or other decimals (cluster centres, normalised features), make it a float array first with `.astype(float)`.
+
+</Mistake>
+
+Predict each line, then run it. Change the arguments and run again.
+
+<PyRunner packages={['numpy']} code={MAKE_CODE} />
+
+<Reveal label="Show the expected output">
 
 ```text
 (2, 3) 2 6 int64
@@ -138,7 +158,7 @@ print(np.eye(2))
  [0. 1.]]
 ```
 
-<PyRunner packages={['numpy']} code={MAKE_CODE} />
+</Reveal>
 
 <Note>
 
@@ -176,7 +196,7 @@ If that division is not a whole number, the reshape is impossible and you get an
     $12 \div 5 = 2.4$ is not a whole number, so NumPy raises `ValueError: cannot reshape array of size 12 into shape (5,newaxis)`.
   </Step>
   <Step title="a.reshape(-1)">
-    With only one length to work out, $-1$ means "all of it in one row": shape $(12,)$. This is the standard way to flatten any array back to 1-D.
+    With only one length to work out, $-1$ means "all of it along one axis": shape $(12,)$, a 1-D array (not the $(1, 12)$ row). This is the standard way to flatten any array back to 1-D.
   </Step>
 </Steps>
 
@@ -226,6 +246,22 @@ You often need to glue arrays together: two batches of data into one, or many im
 
 <PyRunner packages={['numpy']} code={RESHAPE_CODE} />
 
+<Reveal label="Show the expected output">
+
+```text
+(3, 4)
+[[ 0  1  2  3]
+ [ 4  5  6  7]
+ [ 8  9 10 11]]
+(12,)
+(4, 3)
+(2, 6)
+(2, 2, 3)
+(2, 3, 2)
+```
+
+</Reveal>
+
 <PastPaperQuestion paper="prelim2026" n={103} />
 
 <ExamTip title="Shape questions in 36 seconds">
@@ -233,7 +269,7 @@ You often need to glue arrays together: two batches of data into one, or many im
 - `np.zeros((3, 4))` has shape `(3, 4)`: rows first. The options will offer `(4, 3)` and `12` as traps.
 - `arange` **excludes** the stop value; `linspace` **includes** it. `np.arange(0, 10, 2)` is `[0 2 4 6 8]`, with no 10.
 - `concatenate` keeps ndim (lengths add up along the axis); `stack` adds a new axis (ndim + 1). `arr1 + arr2` is element-wise addition, not joining.
-- In the Final, write the shape as a comment beside every line, e.g. `X = X.reshape(n, -1)  # (n, 784)`. Most "my code crashes" moments are a shape you did not expect.
+- In the Final, write the shape as a comment beside every line, e.g. `X = X.reshape(n, -1)  # (n, 784)` for $n$ images of $28 \times 28$ pixels, each flattened to $28 \times 28 = 784$ numbers. Most "my code crashes" moments are a shape you did not expect.
 
 </ExamTip>
 

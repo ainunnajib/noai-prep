@@ -6,7 +6,8 @@ import { fmt } from '../computational-graphs/graphCore'
   A 2-3-2 network with squared loss. After the forward pass, a backward "wave" runs from the
   outputs to the inputs: output errors δ, then layer-2 weight gradients (h_j × δ_k), then hidden
   errors (Σ w·δ times the activation's slope), then layer-1 weight gradients (x_i × δ_j).
-  Edge colour = sign of ∂L/∂w (orange +, blue −), thickness = size. Tap an edge for its sum.
+  Edge colour = sign of ∂L/∂w (green +, red −; the module's signed-value colours, so orange can keep meaning
+  "gradient flowing back" in the other figures), thickness = size. Tap an edge for its sum.
 */
 
 type Act = 'relu' | 'sigmoid' | 'tanh'
@@ -56,6 +57,9 @@ function randomParams(seed: number): Params {
 }
 
 const sub = ['₁', '₂', '₃']
+const POS = 'var(--viz-pos)'
+const NEG = 'var(--viz-neg)'
+const signColour = (v: number) => (Math.abs(v) < 1e-9 ? 'var(--viz-muted)' : v > 0 ? POS : NEG)
 const uu = (v: number, dp = 2) => fmt(v, dp).replace('-', '−')
 const pa = (v: number, dp = 2) => (v < 0 ? `(${fmt(v, dp)})` : fmt(v, dp))
 
@@ -109,7 +113,7 @@ export default function NetGradientFlow() {
   const edgeStyle = (g: number, on: boolean, isSel: boolean) => {
     if (!on) return { stroke: 'var(--viz-muted)', strokeWidth: 1.2, opacity: 0.55 }
     if (Math.abs(g) < 1e-9) return { stroke: 'var(--viz-muted)', strokeWidth: 1.4, strokeDasharray: '4 4', opacity: 0.9 }
-    return { stroke: g > 0 ? 'var(--viz-2)' : 'var(--viz-1)', strokeWidth: 1.3 + 6.5 * (Math.abs(g) / gmax), opacity: isSel ? 1 : 0.88 }
+    return { stroke: g > 0 ? POS : NEG, strokeWidth: 1.3 + 6.5 * (Math.abs(g) / gmax), opacity: isSel ? 1 : 0.88 }
   }
 
   const edges: { layer: number; i: number; j: number; x1: number; y1: number; x2: number; y2: number; g: number; on: boolean }[] = []
@@ -119,7 +123,7 @@ export default function NetGradientFlow() {
     for (let k = 0; k < 2; k++) edges.push({ layer: 2, i: j, j: k, x1: colX[1], y1: rowY(1, j), x2: colX[2], y2: rowY(2, k), g: dW2[j][k], on: showG2 })
 
   const pill = (cx: number, cy: number, v: number, key: string) => {
-    const txt = `δ = ${uu(v)}`
+    const txt = narrow ? uu(v) : `δ = ${uu(v)}`
     const w = txt.length * 7 + 10
     return (
       <g key={key}>
@@ -130,8 +134,8 @@ export default function NetGradientFlow() {
           height={19}
           rx={6}
           style={{
-            fill: `color-mix(in srgb, ${Math.abs(v) < 1e-9 ? 'var(--viz-muted)' : v > 0 ? 'var(--viz-2)' : 'var(--viz-1)'} 18%, var(--surface))`,
-            stroke: Math.abs(v) < 1e-9 ? 'var(--viz-muted)' : v > 0 ? 'var(--viz-2)' : 'var(--viz-1)',
+            fill: `color-mix(in srgb, ${signColour(v)} 18%, var(--surface))`,
+            stroke: signColour(v),
             strokeWidth: 1.2,
           }}
         />
@@ -163,7 +167,8 @@ export default function NetGradientFlow() {
     </>,
     <>
       Output errors: <M>{`\\delta_{\\hat y_k} = \\frac{\\partial L}{\\partial \\hat y_k} = 2(\\hat y_k - y_k)`}</M>, giving{' '}
-      <M>{`(${fmt(d2[0], 2)},\\ ${fmt(d2[1], 2)})`}</M>. Orange means the output is too high, blue too low.
+      <M>{`(${fmt(d2[0], 2)},\\ ${fmt(d2[1], 2)})`}</M>. A positive <M>\delta</M> (green) means the output is too high, a negative one (red) too
+      low.
     </>,
     <>
       Layer-2 weights: <M>{`\\frac{\\partial L}{\\partial w_{jk}} = h_j \\times \\delta_{\\hat y_k}`}</M>. A weight gets a big gradient only when the neuron
@@ -186,9 +191,9 @@ export default function NetGradientFlow() {
       title="The backward wave through a 2-3-2 network"
       caption={
         <>
-          Press <b>Play</b> to watch the gradient travel from the outputs back to the inputs. Each weight's colour is the sign of{' '}
-          <M>{'\\partial L / \\partial w'}</M> (orange positive, blue negative) and its thickness the size; tap any connection to see its gradient
-          worked out. Change a target, set an input to 0, or switch to <b>sigmoid</b> and compare the two bars: the layer-1 gradients shrink.
+          Press <b>Play</b> to watch the gradient travel from the outputs back to the inputs. Each connection's colour is the sign of its
+          gradient <M>{'\\partial L / \\partial w'}</M> (green positive, red negative; not the sign of the weight) and its thickness the size;
+          tap any connection to see its gradient worked out. Change a target, set an input to 0, or switch to <b>sigmoid</b> and compare the two bars: the layer-1 gradients shrink.
         </>
       }
     >
@@ -277,7 +282,7 @@ export default function NetGradientFlow() {
               <text x={colX[2] + r + 4} y={rowY(2, k) - r + 8} textAnchor="start" className="plot-label" style={{ fontSize: 12.5 }}>
                 {`ŷ${sub[k]}`}
               </text>
-              <text x={colX[2] + r + 4} y={rowY(2, k) + 10} textAnchor="start" className="tabular plot-label" style={{ fontSize: 11.5, fill: 'var(--ink-3)' }}>
+              <text x={colX[2] + r + 4} y={rowY(2, k) + 11} textAnchor="start" className="tabular plot-label" style={{ fontSize: 12, fill: 'var(--ink-2)' }}>
                 {`y=${uu(y[k], 1)}`}
               </text>
               {showD2 && pill(colX[2], rowY(2, k), d2[k], `d2${k}`)}
@@ -289,6 +294,19 @@ export default function NetGradientFlow() {
             </text>
           ))}
         </svg>
+      </div>
+      <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem', fontSize: '0.84rem', color: 'var(--ink-2)' }}>
+        <span>Line colour = sign of the weight's gradient:</span>
+        <span>
+          <span style={{ display: 'inline-block', width: 18, height: 4, borderRadius: 2, background: POS, verticalAlign: 'middle', marginRight: 5 }} />+ positive
+        </span>
+        <span>
+          <span style={{ display: 'inline-block', width: 18, height: 4, borderRadius: 2, background: NEG, verticalAlign: 'middle', marginRight: 5 }} />− negative
+        </span>
+        <span>
+          <span style={{ display: 'inline-block', width: 18, height: 0, borderTop: '2px dashed var(--viz-muted)', verticalAlign: 'middle', marginRight: 5 }} />grey: 0, or not reached yet
+        </span>
+        <span>thickness = size</span>
       </div>
       <div style={{ width: '100%', minHeight: '5.6em', fontSize: '0.95rem', lineHeight: 1.6 }} aria-live="polite">
         <div style={{ fontWeight: 700, color: 'var(--ink-2)', fontSize: '0.9rem' }}>
@@ -306,10 +324,11 @@ export default function NetGradientFlow() {
         <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--ink-2)', marginBottom: '0.25rem' }}>Average size of the weight gradients</div>
         <Bars
           ariaLabel="Average absolute weight gradient per layer"
-          format={(v) => v.toFixed(3)}
+          format={(v) => (v < 0 ? '–' : v.toFixed(3))}
+          max={Math.max(1e-9, mean(dW2), mean(dW1))}
           data={[
-            { label: 'layer 2 (h → ŷ)', value: mean(dW2), color: 'var(--viz-4)' },
-            { label: 'layer 1 (x → h)', value: mean(dW1), color: 'var(--viz-5)', strong: true },
+            { label: showG2 ? 'layer 2 (h → ŷ)' : 'layer 2 (not reached yet)', value: showG2 ? mean(dW2) : -1e-15, color: 'var(--viz-4)' },
+            { label: showG1 ? 'layer 1 (x → h)' : 'layer 1 (not reached yet)', value: showG1 ? mean(dW1) : -1e-15, color: 'var(--viz-5)', strong: true },
           ]}
         />
       </div>

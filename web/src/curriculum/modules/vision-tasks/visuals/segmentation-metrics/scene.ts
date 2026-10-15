@@ -3,13 +3,16 @@
   per-class intersection/union counts and mean IoU with a choice of rule for classes whose union is 0.
 */
 
+import { CLASS_COLOUR } from '../classColours'
+
 export const N = 12
 
+// class colours are shared across the module (see ../classColours.ts)
 export const CLASSES = [
-  { id: 0, name: 'background', color: 'color-mix(in srgb, var(--viz-muted) 30%, var(--surface))', ink: 'var(--viz-muted)' },
-  { id: 1, name: 'road', color: 'var(--viz-2)', ink: 'var(--viz-2)' },
-  { id: 2, name: 'car', color: 'var(--viz-1)', ink: 'var(--viz-1)' },
-  { id: 3, name: 'bicycle', color: 'var(--viz-4)', ink: 'var(--viz-4)' },
+  { id: 0, name: 'background', color: `color-mix(in srgb, ${CLASS_COLOUR.background} 30%, var(--surface))`, ink: CLASS_COLOUR.background },
+  { id: 1, name: 'road', color: CLASS_COLOUR.road, ink: CLASS_COLOUR.road },
+  { id: 2, name: 'car', color: CLASS_COLOUR.car, ink: CLASS_COLOUR.car },
+  { id: 3, name: 'bicycle', color: CLASS_COLOUR.bicycle, ink: CLASS_COLOUR.bicycle },
 ] as const
 
 export type Grid = number[] // row-major N*N class ids

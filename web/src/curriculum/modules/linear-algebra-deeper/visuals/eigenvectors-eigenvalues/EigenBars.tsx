@@ -47,8 +47,11 @@ export default function EigenBars() {
   }
 
   // ----- bars -----
-  const prod = L ? L[0] * L[1] : D
-  const sum = L ? L[0] + L[1] : T
+  // For a complex pair λ = re ± im·i the product is re² + im² and the sum is 2·re: computed from the
+  // eigenvalues themselves, so the match with det and trace is a genuine check, not a copy.
+  const cpx = e.kind === 'complex' ? e : null
+  const prod = L ? L[0] * L[1] : cpx ? cpx.re * cpx.re + cpx.im * cpx.im : D
+  const sum = L ? L[0] + L[1] : cpx ? 2 * cpx.re : T
   const vals = [L ? L[0] : 0, L ? L[1] : 0, prod, D, sum, T]
   const hiV = Math.max(0, ...vals)
   const loV = Math.min(0, ...vals)
@@ -56,7 +59,7 @@ export default function EigenBars() {
   const Ylo = loV < 0 ? -Math.max(2, niceMax(-loV * 1.2)) : 0
   const xsPos = [0, 1, 2.7, 3.7, 5.4, 6.4]
   const colours = ['var(--viz-1)', 'var(--viz-5)', 'var(--viz-2)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-3)']
-  const names = ['λ₁', 'λ₂', 'λ₁×λ₂', 'det', 'λ₁+λ₂', 'tr']
+  const names = cpx ? ['', '', 're²+im²', 'det', '2·re', 'tr'] : ['λ₁', 'λ₂', 'λ₁×λ₂', 'det', 'λ₁+λ₂', 'tr']
   const hollow = [false, false, false, true, false, true]
 
   // ----- area picture: eigen-parallelogram and its image -----
@@ -185,7 +188,7 @@ export default function EigenBars() {
               </Label>
             )}
             {names.map((n, i) => (
-              <Label key={n} x={xsPos[i]} y={Ylo} dy={18} anchor="middle" color={colours[i]} size={12} weight={750}>
+              <Label key={i} x={xsPos[i]} y={Ylo} dy={18} anchor="middle" color={colours[i]} size={12} weight={750}>
                 {n}
               </Label>
             ))}
@@ -236,7 +239,10 @@ export default function EigenBars() {
             An eigenvalue is 0, so <b>det A = 0</b>: the matrix squashes one direction flat. It is <b>singular</b> and has no inverse.
           </>
         ) : e.kind === 'complex' ? (
-          <>This matrix turns every direction, so its eigenvalues are complex. Their sum is still the trace and their product is still the determinant.</>
+          <>
+            This matrix turns every direction, so its eigenvalues are a complex pair λ = {cpx ? fmt(cpx.re) : ''} ± {cpx ? fmt(cpx.im) : ''}i. Their sum, 2·re ={' '}
+            {fmt(sum)}, is still the trace, and their product, re² + im² = {fmt(prod)}, is still the determinant.
+          </>
         ) : (
           <>
             Product: {fmt(L ? L[0] : 0)} × {fmt(L ? L[1] : 0)} = {fmt(prod)} = det. Sum: {fmt(L ? L[0] : 0)} + {fmt(L ? L[1] : 0)} = {fmt(sum)} = trace.

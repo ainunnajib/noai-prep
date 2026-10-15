@@ -289,7 +289,8 @@ export default function JoinVenn() {
                   {id}
                 </text>
                 {dup && id === 103 && (
-                  <text x={x + 23} y={y + 4} style={{ fontSize: 11, fontWeight: 700, fill: 'var(--viz-2)' }}>
+                  // under the chip, inside the overlap, clear of both circle outlines
+                  <text x={x} y={y + 26} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 800, fill: 'var(--viz-2)' }}>
                     ×2
                   </text>
                 )}

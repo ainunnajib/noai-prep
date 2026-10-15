@@ -2,6 +2,7 @@ import { PRELIM } from '../../../data/facts'
 import PatternCards from './visuals/prelim-maths-computing/PatternCards'
 import MathsComputingWalkthrough from './visuals/prelim-maths-computing/MathsComputingWalkthrough'
 import TimeBank from './visuals/prelim-maths-computing/TimeBank'
+import TemplateDrill from './visuals/prelim-maths-computing/TemplateDrill'
 
 The 2026 Prelim opened with 119 questions on mathematics and computing: Q1–60 were Mathematics and Q61–119 were Computing. On paper that is 119 different questions. In practice it is about two dozen kinds of question, asked again and again with new numbers or new wording, and each kind is decided by one fact you can recall in seconds. This lesson walks through both blocks the way a tutor talks you through a past paper. The 2027 Prelim has {PRELIM.questions} questions in {PRELIM.minutes} minutes, about {PRELIM.secondsPerQuestion} seconds each, so how fast you get through these will matter.
 
@@ -16,7 +17,7 @@ If you have worked through the TYS for an O-level subject, you know the moment: 
 A quick census of the 2026 paper (counted from the official questions):
 
 - **Mathematics, Q1–60:** 25 linear algebra, 14 calculus, 12 probability and statistics, 6 optimisation and 3 on evaluation metrics.
-- **Computing, Q61–119:** 15 Python, 14 PyTorch, 12 NumPy, 8 optimisation (optimisers and schedules), 4 probability, 3 pandas and 3 others.
+- **Computing, Q61–119:** 15 Python, 14 PyTorch, 12 NumPy, 8 optimisation (optimisers and Newton's method), 4 probability, 3 pandas and 3 others (two learning-rate-schedule scenarios and one loss formula).
 - **Style:** 62 of the 119 were plain definitions ("What is the trace of a matrix?"). The 21 maths computations were all short enough to do in your head (a shape, a dot product, a derivative, a mean), and only 9 questions had purely numeric options. The 13 code-reading questions were a few lines at most.
 
 So speed in these blocks comes from **recognising** a question, not from long calculation. To talk about that precisely we need one word. A question <Term def="A question shape that keeps coming back with different numbers or wording, such as 'what shape is this matrix product?'. Each template is decided by one fact.">template</Term> is a shape of question that recurs; once you know its template, you know which single fact decides it, and which wrong answer the setters expect you to fall for.
@@ -33,6 +34,10 @@ For most of Q1–119 the method is the same three moves: **recognise the templat
 
 </KeyIdea>
 
+Now practise the first move under pressure. The drill below deals a fresh variant of a random template and hides its name, so recognising the template is part of the race.
+
+<TemplateDrill />
+
 <ExamTip title="Use the drill like flashcards">
 
 Do five deals a day for a week. If a template keeps beating the 20-second clock, open its "Taught in" lesson. You do not need more practice questions; you need the fact behind them.
@@ -45,7 +50,7 @@ The seven questions below were chosen to cover the main kinds: a shape rule (Q1)
 
 <MathsComputingWalkthrough />
 
-Most of these took under 15 seconds once you knew the fact. Four of the facts are worth understanding rather than memorising, because the same idea is asked in other forms. Let us open them up.
+Most of these took under 15 seconds once you knew the fact. Five of the facts are worth understanding rather than memorising, because the same idea is asked in other forms. Let us open them up.
 
 ### Why a zero eigenvalue means "singular" (Q15)
 
@@ -107,7 +112,7 @@ The <Term def="The S-shaped function σ(x) = 1/(1 + e^(−x)). It squeezes any n
   </Step>
 </Steps>
 
-At $x = 0$, $\sigma(0) = \tfrac12$, so the slope is $\tfrac12 \times \tfrac12 = \tfrac14$. That is the steepest the sigmoid ever gets. In a deep network, backpropagation multiplies one such factor per sigmoid layer, so ten layers shrink the gradient by at least $(\tfrac14)^{10} = \tfrac{1}{1\,048\,576}$, less than a millionth. That is the **vanishing gradient** problem behind Q44.
+At $x = 0$, $\sigma(0) = \tfrac12$, so the slope is $\tfrac12 \times \tfrac12 = \tfrac14$. That is the steepest the sigmoid ever gets. In a deep network, backpropagation multiplies in one such factor per sigmoid layer (together with that layer's weights). Over ten layers the sigmoid factors alone multiply the gradient by at most $(\tfrac14)^{10} = \tfrac{1}{1\,048\,576}$, less than a millionth, so unless the weights are large enough to compensate, the gradient all but vanishes. That is the **vanishing gradient** problem behind Q44.
 
 <Mistake title="σ′ = σ is the rule for eˣ">
 
@@ -133,7 +138,7 @@ Newton's method takes the step $w \leftarrow w - H^{-1} \nabla L$.
 - $H$ is the <Term def="The square table of all second derivatives of the loss, one row and one column per parameter. It describes the curvature of the loss surface.">Hessian</Term>: all the second derivatives, an $n \times n$ table.
 - $H^{-1}$ is its inverse, which Newton uses to scale the step to the curvature.
 
-For the network in Q74, $n = 10{,}000 = 10^4$. The Hessian has $n^2 = 10^8$ entries, about 400 MB in 32-bit floats, and inverting an $n \times n$ matrix takes on the order of $n^3 = 10^{12}$ operations, **at every step**. A forward pass costs roughly one multiply per weight, about $10^4$ per example, and backpropagation a small multiple of that. Adam needs only those. So the one Newton-only operation is the one eating 95% of the time.
+For the network in Q74, $n = 10{,}000 = 10^4$. The Hessian has $n^2 = 10^8$ entries, about 400 MB in 32-bit floats, and inverting an $n \times n$ matrix takes on the order of $n^3 = 10^{12}$ operations, **at every step**. A forward pass costs roughly one multiply per weight, about $10^4$ per example, and backpropagation a small multiple of that. Adam needs only those. Among the four options, only one is Newton-specific: inverting $H$. (Building $H$ is also Newton-only and expensive, roughly $n$ extra backward passes, but it is not offered.) So inverting the Hessian is the operation eating 95% of the time.
 
 <Mistake title="Blaming something both optimisers do">
 
@@ -151,11 +156,12 @@ df = pd.DataFrame({"item": ["kaya toast", "kopi"], "total price": [2.5, 1.8]})
 print(df["total price"].tolist())         # square brackets: works
 print(df.loc[:, "total price"].tolist())  # .loc with rows first: also works
 
+# eval runs a string as Python code; try/except catches the error so the loop carries on
 for attempt in ["df.total price", "df('total price')", "df.loc['total price']"]:
     try:
         eval(attempt)
     except Exception as e:
-        print(f"{attempt:24} -> {type(e).__name__}")`} />
+        print(f"{attempt:24} -> {type(e).__name__}")  # :24 pads the text to 24 characters`} />
 
 The second line shows why the paper's word "ONLY" is a little too strong: `df.loc[:, 'total price']` also works. Among the four options offered, though, square brackets are the only one that runs.
 
@@ -193,8 +199,10 @@ loss.backward()        # the SAME loss tensor again
 ```
 
 ```text
-RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)
+RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed). …
 ```
+
+PyTorch's message goes on to name the fix: `loss.backward(retain_graph=True)` keeps the graph for a second pass.
 
 The key accepts "Gradients accumulate", the intended reading (two training steps without zeroing). Knowing both behaviours means neither reading can surprise you.
 
@@ -204,17 +212,15 @@ In Q115, "Second call overwrites first" and "Only second call's gradients are ke
 
 </ExamTip>
 
-<PastPaperQuestion paper="prelim2026" n={110} />
-
 ## The time you bank
 
-Why care whether Q1 takes 5 seconds or 30? Because the Prelim gives one clock for the whole paper, and in 2026 the last block, Problem Solving, was by far the slowest to read. Every second saved on a one-fact question is a second you can spend on a long scenario.
+Why care whether Q1 takes 5 seconds or 30? Because the Prelim gives one clock for the whole paper, and in 2026 about half of the last block, Problem Solving, was long scenarios that took five times as long to read as anything else. Every second saved on a one-fact question is a second you can spend on a long scenario.
 
 <TimeBank />
 
 <ExamTip title="Two passes, not one">
 
-If a maths or computing question is not falling within about 20 seconds, it is probably one whose fact you have not learnt. Pick your best guess (no marks are deducted for wrong answers), flag it and move on. Come back only if the end of the paper leaves time.
+Aim for about 25 seconds per short question on average and about 90 seconds per long scenario: that plan leaves several minutes spare. If a maths or computing question is not falling within about 20 seconds, it is probably one whose fact you have not learnt. Pick your best guess (no marks are deducted for wrong answers), flag it and move on. Come back only if the end of the paper leaves time.
 
 </ExamTip>
 
@@ -224,6 +230,6 @@ If a maths or computing question is not falling within about 20 seconds, it is p
 - Each template turns on **one fact**: the shape rule, det = product of eigenvalues, $\sigma' = \sigma(1-\sigma)$, $z = (x-\mu)/\sigma$, Newton's $n^3$ cost, `df['col']`, gradients add up.
 - Wrong options are that fact with one step skipped or swapped, so name the trap before you commit.
 - Plug in an easy number to test formula options; cross out twin options.
-- One-fact answers in about 15 seconds bank the minutes the problem-solving scenarios need.
+- One plan for the whole paper: about 25 seconds per short question (most one-fact questions take less) banks the 90 seconds each long scenario needs.
 
 </Takeaways>

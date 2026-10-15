@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     options: ['$\\det = 1$ and $\\operatorname{tr} = 3$', '$\\det = 1$ and $\\operatorname{tr} = 1$', '$\\det = 3$ and $\\operatorname{tr} = 3$', '$\\det = 0$ and $\\operatorname{tr} = 3$'],
     answer: 0,
     explanation:
-      'The identity changes nothing, so it scales volumes by 1: $\\det I_3 = 1$ (for a diagonal matrix, multiply the diagonal: $1 \\times 1 \\times 1$). The trace adds the diagonal: $1 + 1 + 1 = 3$. Mixing up "add the diagonal" (trace) with "multiply the diagonal" (determinant of a diagonal matrix) gives the wrong pairs.',
+      'The identity changes nothing, so it scales areas (in 3-D, volumes) by 1: $\\det I_3 = 1$ (for a diagonal matrix, multiply the diagonal: $1 \\times 1 \\times 1$). The trace adds the diagonal: $1 + 1 + 1 = 3$. Mixing up "add the diagonal" (trace) with "multiply the diagonal" (determinant of a diagonal matrix) gives the wrong pairs.',
     difficulty: 'beginner',
   },
 ]

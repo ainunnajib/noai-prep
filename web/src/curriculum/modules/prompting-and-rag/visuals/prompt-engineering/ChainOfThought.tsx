@@ -4,9 +4,9 @@ import { useStepper } from './useStepper'
 import s from './pe.module.css'
 
 /*
-  Why "think step by step" helps. An LLM writes one token at a time, and each token gets the same
-  fixed amount of computation (one pass through the network). Written-out steps put intermediate
-  results INTO the context, where later tokens can read them.
+  Why "think step by step" helps. An LLM writes one token at a time, and each token gets one pass
+  through a fixed number of layers, so only a limited amount of computation per token. Written-out
+  steps put intermediate results INTO the context, where later tokens can read them.
   Maths: 90 − 50 = 40 min = 2400 s; 150 − 70 = 80 questions; 2400 ÷ 80 = 30 s.
   The tempting shortcut 90 × 60 ÷ 150 = 36 s is the average for the WHOLE paper.
 */
@@ -82,14 +82,15 @@ export default function ChainOfThought() {
       title="Why “Let's think step by step” works"
       caption={
         <>
-          Blue boxes are the numbers the model is reading while it writes the current line; the orange box is the number it produces. In <b>Answer directly</b>, the very first token must
-          already be the answer, so all four operations have to happen inside one pass through the network, and the model grabs a familiar pattern: 90 minutes ÷ 150 questions = 36 s, the average
-          for the <i>whole</i> paper. Switch to <b>Think step by step</b> and press Play: each line does one small operation and writes its result down, so the next line can read it. More tokens means
-          more computation, and the working becomes scratch paper. (A simplified picture; the token count is approximate.)
+          Answering directly, the first token must already be the answer, so four operations are squeezed into one pass and the model grabs a familiar pattern (90 min ÷ 150
+          = 36 s, the average for the <i>whole</i> paper). Step by step, each line writes down one result for the next line to read. A simplified picture; token counts are approximate.
         </>
       }
     >
       <div className={s.wrap}>
+        <p className={s.tryLine}>
+          <b>Try:</b> switch to <b>Think step by step</b>, press <b>Restart</b>, then <b>Next</b> line by line. Blue boxes are numbers being read; the orange box is the number produced.
+        </p>
         <Controls>
           <Segmented
             label="Prompt ending"
@@ -129,10 +130,25 @@ export default function ChainOfThought() {
                 <span
                   key={`${i}-${j}`}
                   className={`${s.tokSq} ${i > step ? s.tokSqLater : ''}`}
-                  style={i === step ? { background: 'var(--viz-2)' } : i === lines.length - 1 && i <= step ? { background: correct ? 'var(--viz-pos)' : 'var(--viz-neg)' } : undefined}
+                  style={i === lines.length - 1 && i <= step ? { background: correct ? 'var(--viz-pos)' : 'var(--viz-neg)' } : i === step ? { background: 'var(--viz-2)' } : undefined}
                 />
               )),
             )}
+          </div>
+          <div className={s.legend} style={{ marginTop: '0.35rem' }} aria-hidden="true">
+            <span>
+              <span className={s.tokKey} style={{ background: 'var(--viz-1)' }} /> working already written
+            </span>
+            <span>
+              <span className={s.tokKey} style={{ background: 'var(--viz-2)' }} /> line being written
+            </span>
+            <span>
+              <span className={s.tokKey} style={{ background: 'var(--viz-pos)' }} />
+              <span className={s.tokKey} style={{ background: 'var(--viz-neg)', marginLeft: 2 }} /> final answer, right or wrong
+            </span>
+            <span>
+              <span className={s.tokKey} style={{ background: 'var(--surface-3)' }} /> not written yet
+            </span>
           </div>
         </div>
         <PlayerControls player={player} label={(st) => `Line ${st + 1} of ${lines.length}: ${lines[Math.min(st, lines.length - 1)].op}`} />

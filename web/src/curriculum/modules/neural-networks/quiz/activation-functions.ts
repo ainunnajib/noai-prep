@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'These are dead ReLUs: $z \\le 0$ for every input, so the output and the slope are both 0, the gradient is exactly 0, and no amount of extra training (at any learning rate) can move them. Leaky ReLU keeps a slope of $\\alpha$ for negative inputs, so gradient still flows, and a smaller learning rate avoids the huge updates that pushed them there. Removing biases does not stop $\\mathbf{w}\\cdot\\mathbf{x}$ itself being negative for every input.',
+      'These are dead ReLUs: $z \\le 0$ for every input, so the output and the slope are both 0 and their own weights get exactly zero gradient. Extra training cannot move their weights at any learning rate, since any step size times 0 is 0 (only changes in earlier layers could ever switch them back on). Leaky ReLU keeps a slope of $\\alpha$ for negative inputs, so gradient still flows, and a smaller learning rate avoids the huge updates that pushed them there. Removing biases does not stop $\\mathbf{w}\\cdot\\mathbf{x}$ itself being negative for every input.',
     difficulty: 'intermediate',
   },
   {

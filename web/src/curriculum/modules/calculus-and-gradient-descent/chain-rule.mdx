@@ -85,9 +85,10 @@ For $(3x + 1)^2$, writing "$2x \times 3 = 6x$" uses the outer slope $2u$ at $u =
 </Mistake>
 
 <QuickCheck
+  id="calculus-and-gradient-descent.chain-rule.qc1"
   q="What is the derivative of $(2x - 5)^3$ at $x = 3$?"
-  options={['6', '3', '54', '1']}
-  answer={0}
+  options={['3', '54', '6', '1']}
+  answer={2}
   explain="Inner $u = 2x - 5 = 1$ at $x = 3$; outer $u^3$ has slope $3u^2 = 3$; inner slope is 2. So $3 \times 2 = 6$. Forgetting the inner 2 gives 3, and using $3x^2$ at $x = 3$ (the outer slope at the wrong place) gives $27 \times 2 = 54$."
 />
 
@@ -112,7 +113,7 @@ $$
 \frac{\partial L}{\partial w} = \underbrace{\frac{\partial L}{\partial a}}_{2(a - y)} \cdot \underbrace{\frac{\partial a}{\partial z}}_{\sigma'(z)} \cdot \underbrace{\frac{\partial z}{\partial w}}_{x}
 $$
 
-The efficient way to compute this is to walk the graph **backwards**, starting from $L$. Each node takes the gradient arriving from the loss side (the **upstream** gradient), multiplies it by its own **local** derivative and passes the result on towards the inputs. Step through it:
+The efficient way to compute this is to walk the graph **backwards**, starting from $L$. Each node receives the slope of the loss with respect to its own value, $\frac{\partial L}{\partial (\text{node})}$, from the loss side. This slope is usually called the <Term def="Here: the derivative of the loss L with respect to one node's value, ∂L/∂(node). The next lesson extends the word to many inputs at once.">gradient</Term>, and the one arriving from the loss side is the **upstream** gradient. Each node multiplies it by its own **local** derivative and passes the result on towards the inputs. Step through it:
 
 <GraphChainStepper />
 
@@ -182,13 +183,13 @@ print("dL/dw =", dL_dw, " dL/db =", dL_db)`} />
 
 ## Many small factors: vanishing gradients
 
-A deep network is a long chain, so the gradient for an early weight is a product with **one factor per layer**. Each sigmoid layer contributes a factor $\sigma'(z)$, and from the previous lesson you know $\sigma'(z) \le 0.25$. Even in the best case, ten sigmoid layers give
+A deep network is a long chain, so the gradient for an early weight is a product with **one factor per layer**. Each sigmoid layer multiplies the gradient by $\sigma'(z)$ times that layer's weight, and from the previous lesson you know $\sigma'(z) \le 0.25$. With weights of moderate size (around 1), ten sigmoid layers shrink the gradient to at most about
 
 $$
 0.25^{10} = \frac{1}{4^{10}} = \frac{1}{2^{20}} \approx \frac{1}{1\,000\,000} = 10^{-6}.
 $$
 
-(Mental-maths trick: $2^{10} = 1024 \approx 10^3$, so $2^{20} \approx 10^6$.) The first layers receive a gradient a million times smaller than the last ones, so they barely change. This is the <Term def="When the gradients reaching the early layers of a deep network become so small that those layers almost stop learning. Caused by multiplying many factors smaller than 1 during backpropagation.">vanishing gradient</Term> problem. Factors bigger than 1 cause the opposite, an <Term def="When gradients grow huge as they are passed back through many layers, making training updates wildly too big and unstable.">exploding gradient</Term>: $1.5^{10} \approx 58$, and $2^{10} = 1024$.
+(Mental-maths trick: $2^{10} = 1024 \approx 10^3$, so $2^{20} \approx 10^6$.) The first layers receive a gradient about a million times smaller than the last ones, so they barely change. This is the <Term def="When the gradients reaching the early layers of a deep network become so small that those layers almost stop learning. Caused by multiplying many factors smaller than 1 during backpropagation.">vanishing gradient</Term> problem. Factors bigger than 1 cause the opposite, an <Term def="When gradients grow huge as they are passed back through many layers, making training updates wildly too big and unstable.">exploding gradient</Term>: $1.5^{10} \approx 58$, and $2^{10} = 1024$. Very large weights can make a layer's factor bigger than 1, which is one way gradients explode.
 
 <Analogy title="A photocopy of a photocopy">
 
@@ -201,9 +202,10 @@ Photocopy a page, then photocopy the copy, and keep going. Each copy loses only 
 This is why modern networks are built the way they are. **ReLU** has slope exactly 1 for positive inputs, so active units pass gradients back without shrinking them. Careful **weight initialisation** keeps each layer's overall factor close to 1. **Residual connections** add a shortcut around each block, giving the gradient a path whose factor is 1. You will meet all three in later modules.
 
 <QuickCheck
-  q="A network has 6 sigmoid layers. If each layer multiplies the gradient by at most 0.25, what is the most the gradient reaching the first layer can be, compared with the output?"
-  options={['$0.25^6 \\approx 0.00024$', '$6 \\times 0.25 = 1.5$', '$0.25$', '$0.25 \\div 6 \\approx 0.04$']}
-  answer={0}
+  id="calculus-and-gradient-descent.chain-rule.qc2"
+  q="A network has 6 sigmoid layers with weights of about 1, so each layer multiplies the gradient by at most 0.25. What is the most the gradient reaching the first layer can be, compared with the output?"
+  options={['$6 \\times 0.25 = 1.5$', '$0.25$', '$0.25 \\div 6 \\approx 0.04$', '$0.25^6 \\approx 0.00024$']}
+  answer={3}
   explain="The chain rule multiplies one factor per layer: $0.25^6 = \frac{1}{4096} \approx 0.00024$. Adding the factors ($1.5$) or dividing by the number of layers ($0.04$) is not what the chain rule does, and $0.25$ would be the answer for a single layer."
 />
 
@@ -211,7 +213,7 @@ This is why modern networks are built the way they are. **ReLU** has slope exact
 
 <ExamTip>
 
-Vanishing-gradient questions come in two flavours. **Why** it happens: backpropagation multiplies many derivatives smaller than 1 (the sigmoid's is at most 0.25), so the product shrinks exponentially with depth. **What fixes it**: ReLU-type activations, good initialisation, residual (skip) connections and normalisation; LSTMs for recurrent networks. Exploding gradients are the same maths with factors above 1, and gradient clipping is the usual fix.
+Vanishing-gradient questions come in two flavours. **Why** it happens: backpropagation multiplies many derivatives smaller than 1 (the sigmoid's is at most 0.25), so the product shrinks exponentially with depth. **What fixes it**: ReLU-type activations, good initialisation, residual (skip) connections and <Term def="Rescaling the values inside a network (for example batch normalisation) so each layer's inputs keep a steady size.">normalisation</Term>; <Term def="Long short-term memory: a recurrent network designed to keep gradients from vanishing over long sequences.">LSTMs</Term> for recurrent networks. Exploding gradients are the same maths with factors above 1, and <Term def="Capping the size of the gradient before each update, so one huge gradient cannot wreck the weights.">gradient clipping</Term> is the usual fix.
 
 </ExamTip>
 
@@ -221,6 +223,6 @@ Vanishing-gradient questions come in two flavours. **Why** it happens: backpropa
 - Evaluate the outer derivative at the inner value, and never forget the inner factor: $\frac{d}{dx}(3x+1)^2 = 6(3x+1)$.
 - On a computational graph, the backward pass gives every node "upstream gradient × local derivative". For one neuron, $\frac{\partial L}{\partial w} = 2(a - y) \cdot \sigma'(z) \cdot x$.
 - Backpropagation is this rule run backwards through the whole network; `loss.backward()` does it in PyTorch.
-- A deep chain multiplies one factor per layer: factors below 1 vanish ($0.25^{10} \approx 10^{-6}$), factors above 1 explode.
+- A deep chain multiplies one factor per layer: factors below 1 vanish (sigmoid layers with weights near 1: $0.25^{10} \approx 10^{-6}$), factors above 1 explode.
 
 </Takeaways>

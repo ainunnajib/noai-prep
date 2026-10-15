@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Plot, usePlot, Grid, Axes, Arrow, DraggablePoint, M } from '../../../../../kit'
+import { SIZE_COLOUR } from './sim'
 
 /*
   Gradient clipping in 2-D. Drag the tip of the gradient g. Clip by norm rescales g onto the circle of radius c
@@ -10,12 +11,35 @@ type Mode = 'norm' | 'value'
 
 function Region({ c, mode }: { c: number; mode: Mode }) {
   const { xs, ys } = usePlot()
-  const r = xs(c) - xs(0)
-  const style = { fill: 'color-mix(in srgb, var(--viz-3) 10%, transparent)', stroke: 'var(--viz-3)', strokeWidth: 2, strokeDasharray: '6 4' }
+  // the x and y scales can differ by a pixel or two per unit, so size each direction with its own scale
+  const rx = xs(c) - xs(0)
+  const ry = ys(0) - ys(c)
+  const style = { fill: 'color-mix(in srgb, var(--viz-axis) 8%, transparent)', stroke: 'var(--viz-axis)', strokeWidth: 2, strokeDasharray: '6 4' }
   return mode === 'norm' ? (
-    <circle cx={xs(0)} cy={ys(0)} r={r} style={style} />
+    <ellipse cx={xs(0)} cy={ys(0)} rx={rx} ry={ry} style={style} />
   ) : (
-    <rect x={xs(-c)} y={ys(c)} width={2 * r} height={2 * r} style={style} />
+    <rect x={xs(-c)} y={ys(c)} width={xs(c) - xs(-c)} height={ys(-c) - ys(c)} style={style} />
+  )
+}
+
+/** "clipped" written beside the middle of the clipped arrow, off to one side so it never sits on g's label */
+function ClippedLabel({ v }: { v: [number, number] }) {
+  const { xs, ys } = usePlot()
+  const x0 = xs(0)
+  const y0 = ys(0)
+  const x1 = xs(v[0])
+  const y1 = ys(v[1])
+  const len = Math.hypot(x1 - x0, y1 - y0)
+  if (len < 30) return null
+  // unit normal, turned clockwise on screen
+  const nx = -(y1 - y0) / len
+  const ny = (x1 - x0) / len
+  const mx = (x0 + x1) / 2 - nx * 16
+  const my = (y0 + y1) / 2 - ny * 16
+  return (
+    <text x={mx} y={my} dy="0.32em" textAnchor="middle" className="plot-label" style={{ fill: SIZE_COLOUR.healthy, fontWeight: 800, fontSize: 12.5 }}>
+      clipped
+    </text>
   )
 }
 
@@ -45,7 +69,7 @@ export default function ClipByNorm() {
       caption={
         <>
           Drag the orange tip to make the gradient <M>g</M> bigger or smaller. With <b>clip by norm</b>, any gradient longer than <M>c</M> is
-          shrunk back onto the circle: the blue arrow points the same way, only shorter. Short gradients are left alone, so clipping can never
+          shrunk back onto the dashed circle: the green arrow points the same way, only shorter. Short gradients are left alone, so clipping can never
           help a gradient that is too <em>small</em>. Switch to <b>clip by value</b>: each component is cut to <M>[-c, c]</M> separately, and for a
           long diagonal gradient the direction turns.
         </>
@@ -62,14 +86,17 @@ export default function ClipByNorm() {
           ]}
         />
       </Controls>
+      <div style={{ width: '100%', display: 'grid', justifyItems: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}>
       <Plot x={[-10, 10]} y={[-10, 10]} width={380} height={380} ariaLabel={`Gradient (${fmt(g[0])}, ${fmt(g[1])}) clipped to (${fmt(clipped[0])}, ${fmt(clipped[1])}).`}>
         <Grid xTicks={10} yTicks={10} />
-        <Axes origin xTicks={5} yTicks={5} />
+        <Axes origin xTicks={2} yTicks={2} />
         <Region c={c} mode={mode} />
         <Arrow from={[0, 0]} to={g} color="var(--viz-2)" width={changed ? 2 : 3} dash={changed ? '5 4' : undefined} />
-        {changed && <Arrow from={[0, 0]} to={clipped} color="var(--viz-1)" width={4} label="clipped" labelOffset={[8, 14]} />}
+        {changed && <Arrow from={[0, 0]} to={clipped} color={SIZE_COLOUR.healthy} width={4} />}
+        {changed && <ClippedLabel v={clipped} />}
         <DraggablePoint x={g[0]} y={g[1]} onChange={(x, y) => setG(snap(x, y))} color="var(--viz-2)" label={changed ? 'g (drag)' : 'g, unchanged (drag)'} />
       </Plot>
+      </div>
       <Controls>
         <Slider label={<>threshold <M>c</M> (max_norm)</>} value={c} min={1} max={9} step={0.5} onChange={setC} format={(v) => v.toFixed(1)} />
         <Readout

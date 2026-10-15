@@ -3,22 +3,17 @@ import DirectionCompass from './visuals/partial-derivatives-gradients/DirectionC
 import GradientField from './visuals/partial-derivatives-gradients/GradientField'
 import VectorGradientCheck from './visuals/partial-derivatives-gradients/VectorGradientCheck'
 
-So far every function in this module had **one** input. A real model has many knobs: a linear regression on HDB prices might have a weight for floor area, one for storey, one for age, and a neural network has millions. Its loss depends on all of them at once, and training needs to know which way to turn **every** knob. This lesson extends the derivative to many inputs. The result is a single arrow, the **gradient**, that points uphill.
+So far every function in this module had **one** input. A real model has many knobs: a linear regression on HDB prices has weights for floor area, storey and age, and a neural network has millions. Training needs to know which way to turn **every** knob, so this lesson extends the derivative to many inputs. The result is one arrow, the **gradient**, that points uphill.
 
 <Analogy title="Standing on Bukit Timah Hill">
 
-You are standing somewhere on the side of the hill. If you walk due east, the path has some slope; if you walk due north, it has a different slope. Each of those is a **partial derivative**: the slope when you move along one direction only. Put the two numbers together and they tell you which way is straight up the hill, and how steep it is.
+On the side of the hill, walking due east has one slope and walking due north another. Each is a **partial derivative**: the slope when you move along one direction only. Together the two numbers tell you which way is straight up the hill, and how steep it is.
 
 </Analogy>
 
 ## Functions with two inputs
 
-A function like $f(x, y) = x^2 y + 3y$ takes two numbers and returns one. For example, $f(1, 2) = 1^2 \times 2 + 3 \times 2 = 8$. Think of $(x, y)$ as a position on a map and $f(x, y)$ as the height of the ground there. You can picture it in two ways:
-
-- as a **surface**, like a landscape seen from the side;
-- as a **map from above**, where colour shows height and each <Term def="A curve on a map joining points that have the same height (the same value of f). Hiking maps use them to show hills.">contour line</Term> joins points of equal height, like the lines on a hiking map.
-
-In machine learning, $x$ and $y$ are parameters (weights) and $f$ is the loss, so the map is a map of how wrong the model is for every choice of weights.
+A function like $f(x, y) = x^2 y + 3y$ takes two numbers and returns one: $f(1, 2) = 1^2 \times 2 + 3 \times 2 = 8$. Think of $(x, y)$ as a position on a map and $f(x, y)$ as the height of the ground there. Picture it as a **surface** seen from the side, or as a **map from above**, where colour shows height and each <Term def="A curve on a map joining points that have the same height (the same value of f). Hiking maps use them to show hills.">contour line</Term> joins points of equal height, like a hiking map. In machine learning, $x$ and $y$ are weights and $f$ is the loss: a map of how wrong the model is for every choice of weights.
 
 ## Partial derivatives: freeze everything else
 
@@ -28,9 +23,8 @@ $$
 \frac{\partial f}{\partial x}(x, y) = \lim_{h \to 0} \frac{f(x + h,\ y) - f(x,\ y)}{h}
 $$
 
-- $\partial$ is a curly "d", read "partial". It warns you that $f$ has other inputs that are being held still.
-- $h$ is a tiny nudge added to $x$ only. Notice that $y$ is the same in both terms.
-- The fraction is "change in height ÷ size of the nudge", exactly the ordinary derivative from earlier in this module, as $h$ shrinks to 0.
+- $\partial$ is a curly "d", read "partial": a warning that $f$ has other inputs being held still.
+- $h$ is a tiny nudge added to $x$ only ($y$ is the same in both terms). As $h$ shrinks to 0, "change in height ÷ size of the nudge" is exactly the ordinary derivative from earlier in this module.
 
 In words: **freeze $y$, and differentiate in $x$ as usual.** Freezing $y$ cuts the surface along a line, leaving an ordinary one-input curve called a **slice**. The partial derivative is just the slope of that slice.
 
@@ -64,9 +58,10 @@ Writing $\frac{\partial}{\partial x}(3y) = 3$. It is $0$: $3y$ has no $x$ in it,
 <PastPaperQuestion paper="prelim2026" n={29} />
 
 <QuickCheck
+  id="calculus-and-gradient-descent.partial-derivatives-gradients.qc1"
   q="For $f(x, y) = x^3 + 4xy^2$, what is $\dfrac{\partial f}{\partial y}$?"
-  options={['$8xy$', '$3x^2 + 4y^2$', '$8y$', '$3x^2 + 8xy$']}
-  answer={0}
+  options={['$3x^2 + 4y^2$', '$8xy$', '$8y$', '$3x^2 + 8xy$']}
+  answer={1}
   explain="Freeze $x$. The term $x^3$ has no $y$, so it vanishes. In $4xy^2$, $4x$ is a coefficient and $y^2$ becomes $2y$, giving $4x \times 2y = 8xy$. $3x^2 + 4y^2$ is $\partial f/\partial x$, the other partial derivative; $8y$ drops the frozen $x$."
 />
 
@@ -110,7 +105,7 @@ The last step is the dot-product rule $a \cdot b = \lVert a \rVert\,\lVert b \rV
     Straight uphill is along $\nabla f$. Its length is $\sqrt{(-4)^2 + 3^2} = \sqrt{25} = 5$, so the unit direction is $[-0.8,\ 0.6]$ and the slope there is $(-4)(-0.8) + 3(0.6) = 5$. No direction beats 5.
   </Step>
   <Step title="Where water flows">
-    Water runs along $-\nabla f$, towards $[0.8,\ -0.6]$: right and down, into the bottom of the bowl.
+    Water runs along $-\nabla f$, towards $[0.8,\ -0.6]$: right and down, straight down the nearest wall of the oval bowl. Notice that this is not straight at the bottom $(0, 0)$, which lies in direction $[0.97,\ -0.24]$ from $P$.
   </Step>
 </Steps>
 
@@ -122,24 +117,25 @@ The gradient $\nabla f$ points in the direction of **steepest ascent**, its leng
 
 <Analogy title="Rain on Bukit Timah">
 
-Rain falling on the hill does not wander along the slope: it runs straight downhill, crossing the contour lines on a hiking map at right angles. That path is $-\nabla f$ at every point.
+Rain on the hill runs straight downhill, crossing the contour lines of a hiking map at right angles. Its path follows $-\nabla f$ at every point.
 
 </Analogy>
 
 <GradientField />
 
-Two things to take from the map. Where contour lines are **packed closely**, the height changes a lot over a short distance, so $\lVert \nabla f \rVert$ is large. And on the long valley, $-\nabla f$ does **not** point at the lowest point: it points across the valley, straight down the nearest wall. That detail will matter in the next lesson.
+Two things to take from the map. Where contour lines (drawn at equal height steps) are **packed closely**, the height changes fast, so $\lVert \nabla f \rVert$ is large. And in the long valley, $-\nabla f$ does **not** point at the lowest point but across the valley, down the nearest wall. That will matter in the next lesson.
 
 <QuickCheck
+  id="calculus-and-gradient-descent.partial-derivatives-gradients.qc2"
   q="At a point on a loss surface, the gradient is $\nabla L = [3, -4]$. What is the steepest slope available there, and in which direction must you walk to go downhill fastest?"
-  options={['Slope 5; walk towards $[-0.6,\\ 0.8]$', 'Slope 5; walk towards $[0.6,\\ -0.8]$', 'Slope 7; walk towards $[-3,\\ 4]$', 'Slope 1; walk towards $[-0.6,\\ 0.8]$']}
-  answer={0}
-  explain="The steepest slope is $\lVert \nabla L \rVert = \sqrt{3^2 + 4^2} = 5$. Fastest downhill is $-\nabla L = [-3, 4]$, whose unit direction is $[-0.6, 0.8]$. $[0.6, -0.8]$ is the uphill direction; 7 adds the entries instead of using Pythagoras."
+  options={['Slope 5; walk towards $[0.6,\\ -0.8]$', 'Slope 7; walk towards $[-3,\\ 4]$', 'Slope 5; walk towards $[-0.6,\\ 0.8]$', 'Slope 1; walk towards $[-0.6,\\ 0.8]$']}
+  answer={2}
+  explain="The steepest slope is $\lVert \nabla L \rVert = \sqrt{3^2 + 4^2} = 5$. Fastest downhill is $-\nabla L = [-3, 4]$, whose unit direction is $[-0.6, 0.8]$. $[0.6, -0.8]$ is the uphill direction. 7 adds the sizes of the entries ($3 + 4$) instead of using Pythagoras, and 1 comes from adding the signed entries, $|3 + (-4)|$: the length of a vector is $\sqrt{3^2 + 4^2} = 5$."
 />
 
 ## Gradients of vector expressions
 
-With many weights we write them as one vector $w = [w_1, w_2, \dots, w_n]$ and take the gradient with respect to the whole vector. Two results come up again and again, and both follow from the "freeze the others" rule.
+With many weights we write them as one vector $w = [w_1, w_2, \dots, w_n]$ and take the gradient with respect to all of it. Two results come up again and again, both from the "freeze the others" rule.
 
 **The dot product.** For a fixed input vector $x$, let $f(w) = w^\top x = w_1 x_1 + w_2 x_2 + \dots + w_n x_n$. ($w^\top x$ is the dot product $w \cdot x$ written as a matrix product.) Differentiate with respect to $w_1$: every term without $w_1$ vanishes, and $w_1 x_1$ becomes $x_1$. The same happens for each weight, so
 
@@ -159,7 +155,11 @@ Its contours are circles around the origin, and $2w$ points straight out from th
 
 <VectorGradientCheck />
 
-The table explains the "Why?": $\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudge estimate overshoots by exactly $h$. For $w^\top x$ the function is a flat, tilted plane, so every nudge gives the exact slope.
+<Reveal label="Answer to the visual's “Why?”">
+
+$\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudge estimate overshoots by exactly $h$. For $w^\top x$ the function is a flat, tilted plane, so every nudge gives the exact slope.
+
+</Reveal>
 
 <PastPaperQuestion paper="prelim2026" n={42} />
 
@@ -190,7 +190,7 @@ In words: **error × input × 2**. Averaging over $n$ examples gives the mean sq
 
 ## In code: trust, but check
 
-A **numerical gradient check** compares a formula with nudge estimates, exactly like the table above. This version nudges each weight both up and down by $h$ (a "central difference"), which is far more accurate than nudging one way only. The first row of `X` is the example you just did by hand; there are now three examples, so the numbers are averages.
+A **numerical gradient check** compares a formula with nudge estimates, like the table above. This version nudges each weight up and down by $h$ (a "central difference"), far more accurate than nudging one way. The first row of `X` is your hand example; with three examples, the numbers are averages.
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
@@ -220,7 +220,9 @@ def grad_numeric(f, w, h=1e-5):
 print("formula:", grad_formula(w))
 print("numeric:", grad_numeric(loss, w))`} />
 
-`X.T @ (X @ w - y)` is the sum $\sum_i (w^\top x_i - y_i)\,x_i$ done in one matrix product. Both lines print the same vector, about $[0.333,\ 5.333]$. In PyTorch you never write the formula at all: <Term def="Automatic differentiation: the library records each operation as it runs, then applies the chain rule backwards to compute every gradient exactly.">autograd</Term> computes it for you when you call `.backward()`. Here is the hand example again:
+`X.T @ (X @ w - y)` is the sum $\sum_i (w^\top x_i - y_i)\,x_i$ in one matrix product. Both lines print about $[0.333,\ 5.333]$. In PyTorch you never write the formula: <Term def="Automatic differentiation: the library records each operation as it runs, then applies the chain rule backwards to compute every gradient exactly.">autograd</Term> computes it for you when you call `.backward()`.
+
+<Reveal label="The hand example in PyTorch">
 
 ```python
 import torch
@@ -243,14 +245,16 @@ tensor([7., 4.])
 
 `w.grad` has the same shape as `w`, and it matches the $[7, 4]$ you computed by hand.
 
+</Reveal>
+
 <ExamTip>
 
 How NOAI asks about this:
 
-- **Compute a partial derivative**: freeze every other letter, treat it like a number, and remember that terms without the variable vanish.
-- **Gradient of a simple function**: list the partials, e.g. $\nabla(x^2 + y^2) = [2x, 2y]$, a vector, not the sum $2x + 2y$.
+- **Partial derivative**: freeze every other letter; terms without the variable vanish.
+- **Gradient**: list the partials, e.g. $\nabla(x^2 + y^2) = [2x, 2y]$, a vector, not the sum $2x + 2y$.
 - **Memorise**: $\nabla_w \lVert w \rVert^2 = 2w$ (not $w$, not $\lVert w \rVert$) and $\nabla_w (w^\top x) = x$.
-- **Direction**: the gradient points to steepest **ascent**; the negative gradient to steepest **descent**. On a contour map the gradient is perpendicular to the contours, and closer contours mean a longer gradient.
+- **Direction**: the gradient points to steepest **ascent**, the negative gradient to steepest **descent**. It is perpendicular to the contours, and closer contours mean a longer gradient.
 
 </ExamTip>
 

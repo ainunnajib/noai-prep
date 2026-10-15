@@ -148,7 +148,7 @@ export default function ElementwiseVsMatmul() {
         <>
           Switch between <code>A * B</code> and <code>A @ B</code>, then click any cell of the result (or press Play) to see which inputs made it. With{' '}
           <code>*</code> each output uses <em>one</em> number from each matrix, in the same position. With <code>@</code> each output uses a whole{' '}
-          <b>row</b> of A and a whole <b>column</b> of B. Change the shapes: <code>*</code> needs equal shapes, <code>@</code> needs A's column count to
+          <b>row</b> of A and a whole <b>column</b> of B. Change the shapes: <code>*</code> needs equal shapes (or broadcastable ones: next lesson), <code>@</code> needs A's column count to
           equal B's row count.
         </>
       }

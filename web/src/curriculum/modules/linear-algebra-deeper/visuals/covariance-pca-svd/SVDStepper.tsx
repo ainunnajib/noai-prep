@@ -1,9 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
-import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Arrow, Path, Dots, Label, MatrixGrid, useAnimationFrame, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Arrow, Path, Dots, Label, useAnimationFrame, useNarrow } from '../../../../../kit'
 import { type M2, type V2, apply, mul, rot, dirV, fmt, fix, imageOfCircle } from '../eigenvectors-eigenvalues/eig2'
-import { svd2 } from './la2'
+import { svd2, MiniMat, FactorRow } from './la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
-import c from './cps.module.css'
 
 /*
   SVD as three moves: Vᵀ turns the circle (so the special input directions v₁, v₂ land on the
@@ -99,12 +98,6 @@ export default function SVDStepper() {
   }
   const go = (to: number) => setTarget(Math.max(0, Math.min(3, to)))
 
-  const mat = (rows: M2, name: string, note: string, on: boolean) => (
-    <div className={`${c.matCard} ${on ? c.matCardOn : ''}`}>
-      <MatrixGrid data={rows} format={(v) => fix(v, 2)} label={name} cellSize={46} ariaLabel={name} />
-      <div className={c.stageNote}>{note}</div>
-    </div>
-  )
 
   return (
     <Figure
@@ -161,21 +154,23 @@ export default function SVDStepper() {
           </div>
         </div>
         <div className={s.panel}>
-          <div className={c.mats}>
-            <MatrixGrid data={A} format={(v) => fmt(v, 2)} label="A" cellSize={46} ariaLabel="the matrix A" />
-            <span className={c.op}>=</span>
-            {mat(d.U, 'U', d.flip < 0 ? `turn ${fmt(d.beta, 0)}° (with a flip)` : `turn ${fmt(d.beta, 0)}°`, active === 2 && t > 2)}
-            {mat(
-              [
-                [d.s1, 0],
-                [0, d.s2],
-              ],
-              'Σ',
-              `stretch ×${fix(d.s1)} and ×${fix(d.s2)}`,
-              active === 1 && t > 1 && t <= 2,
-            )}
-            {mat(d.Vt, 'Vᵀ', `turn ${fmt(-d.alpha, 0)}°`, active === 0 && t > 0 && t <= 1)}
-          </div>
+          <FactorRow
+            lhs={<MiniMat rows={A} name="A" format={(v) => fmt(v, 2)} />}
+            factors={[
+              <MiniMat key="u" rows={d.U} name="U" note={d.flip < 0 ? `turn ${fmt(d.beta, 0)}° and flip` : `turn ${fmt(d.beta, 0)}°`} on={active === 2 && t > 2} />,
+              <MiniMat
+                key="s"
+                rows={[
+                  [d.s1, 0],
+                  [0, d.s2],
+                ]}
+                name="Σ"
+                note={`stretch ×${fix(d.s1)}, ×${fix(d.s2)}`}
+                on={active === 1 && t > 1 && t <= 2}
+              />,
+              <MiniMat key="v" rows={d.Vt} name="Vᵀ" note={`turn ${fmt(-d.alpha, 0)}°`} on={active === 0 && t > 0 && t <= 1} />,
+            ]}
+          />
           <div className={s.formula}>
             Read it right to left: <b>Vᵀ</b> acts first, then <b>Σ</b>, then <b>U</b>.
             <br />

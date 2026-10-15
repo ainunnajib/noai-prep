@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     options: ['$0.6$', '$0.9$', '$0.18$', '$0.27$'],
     answer: 0,
     explanation:
-      'Bayes: $P(\\text{spam} \\mid \\text{free}) = \\dfrac{P(\\text{free} \\mid \\text{spam})\\,P(\\text{spam})}{P(\\text{free})} = \\dfrac{0.9 \\times 0.2}{0.3} = \\dfrac{0.18}{0.3} = 0.6$. $0.9$ confuses $P(\\text{free} \\mid \\text{spam})$ with $P(\\text{spam} \\mid \\text{free})$, and $0.18$ is $P(\\text{spam and free})$ before dividing by $P(\\text{free})$.',
+      'Bayes: $P(\\text{spam} \\mid \\text{free}) = \\dfrac{P(\\text{free} \\mid \\text{spam})\\,P(\\text{spam})}{P(\\text{free})} = \\dfrac{0.9 \\times 0.2}{0.3} = \\dfrac{0.18}{0.3} = 0.6$. $0.9$ confuses $P(\\text{free} \\mid \\text{spam})$ with $P(\\text{spam} \\mid \\text{free})$, $0.18$ is $P(\\text{spam and free})$ before dividing by $P(\\text{free})$, and $0.27 = 0.9 \\times 0.3$ multiplies by $P(\\text{free})$ instead of dividing.',
     difficulty: 'intermediate',
   },
 ]

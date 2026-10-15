@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, Label, VLine, FnPath, M, useNarrow } from '../../../../../kit'
 import { DragDot } from './DragDot'
 import { RIDES, fmt, fix, lineText } from './shared'
@@ -19,6 +19,7 @@ const resid = (s: number) => RIDES.map(([x, y]) => y - (CY + s * (x - CX)))
 const sumR = (s: number) => resid(s).reduce((a, r) => a + r, 0)
 const sumAbs = (s: number) => resid(s).reduce((a, r) => a + Math.abs(r), 0)
 const sumSq = (s: number) => resid(s).reduce((a, r) => a + r * r, 0)
+const small: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center', marginBottom: '0.2rem' }
 
 export default function ResidualSumTrap() {
   const [s, setS] = useState(-0.5)
@@ -33,12 +34,15 @@ export default function ResidualSumTrap() {
       caption={
         <>
           Every line here passes through the centre of the data, the point <M>{'(\\bar x, \\bar y) = (3, 6)'}</M>. Spin it with the slider or the
-          green handle. Green residuals (fare above the line) and red ones (fare below) always cancel exactly, so the plain sum is 0 for every one
-          of these lines, even absurd downhill ones. The sum of squares (orange curve) cannot be fooled: it has one lowest point, at slope 1.5.
+          dark square handle on the line. Green residuals (fare above the line) and red ones (fare below) always cancel exactly, so the plain sum is 0
+          for every one of these lines, even absurd downhill ones. In the scores chart, the sum of squares (orange curve) cannot be fooled: it has one
+          lowest point, at slope 1.5.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
+        <div>
+        <div style={small}>Lines through the centre</div>
         <Plot x={[0, 6]} y={[0, 12]} width={340} height={290} minHeight={250} maxWidth={520} ariaLabel={`Line ${lineText(s, b)} through the centre of the data with residuals summing to zero`}>
           <Grid xTicks={6} yTicks={6} />
           <Axes xLabel="km" yLabel="fare ($)" xTicks={6} yTicks={6} />
@@ -55,14 +59,17 @@ export default function ResidualSumTrap() {
             ) : null,
           )}
           <Dots points={[{ x: CX, y: CY, r: 6, hollow: true, color: 'var(--viz-ink)' }]} />
-          <Label x={CX} y={CY} dx={-9} dy={-10} anchor="end" size={12}>
+          <Label x={CX} y={CY} dx={-9} dy={18} anchor="end" size={12}>
             centre
           </Label>
-          <DragDot x={XH} y={CY + s * (XH - CX)} lockX square color="var(--viz-3)" ariaLabel="Spin the line" onChange={(_, ny) => setSlope((ny - CY) / (XH - CX))} />
+          <DragDot x={XH} y={CY + s * (XH - CX)} lockX square color="var(--viz-ink)" ariaLabel="Spin the line" onChange={(_, ny) => setSlope((ny - CY) / (XH - CX))} />
         </Plot>
-        <Plot x={[S_MIN, S_MAX]} y={[-6, 70]} width={340} height={290} minHeight={250} maxWidth={520} margin={{ left: 36 }} ariaLabel="Three scores plotted against the slope of the line">
+        </div>
+        <div>
+        <div style={small}>Three scores for each slope</div>
+        <Plot x={[S_MIN, S_MAX]} y={[-6, 70]} width={340} height={290} minHeight={250} maxWidth={520} margin={{ left: 40 }} ariaLabel="Three scores plotted against the slope of the line">
           <Grid xTicks={5} yTicks={7} />
-          <Axes xLabel="slope of the line" xTicks={5} yTicks={7} />
+          <Axes xLabel="slope of the line" yLabel="score" xTicks={5} yTicks={7} />
           <FnPath f={sumSq} color="var(--viz-2)" width={2.8} />
           <FnPath f={sumAbs} color="var(--viz-6)" width={2.4} />
           <FnPath f={sumR} color="var(--viz-5)" width={2.4} />
@@ -80,10 +87,11 @@ export default function ResidualSumTrap() {
           <Label x={3.3} y={16} color="var(--viz-6)" weight={700} size={12}>
             Σ |r|
           </Label>
-          <Label x={-0.95} y={0} dy={-7} color="var(--viz-5)" weight={700} size={12}>
+          <Label x={3.95} y={0} dy={-7} anchor="end" color="var(--viz-5)" weight={700} size={12}>
             Σ r (plain sum)
           </Label>
         </Plot>
+        </div>
       </div>
       <Controls>
         <Slider label="slope of the line" value={s} min={S_MIN} max={S_MAX} step={0.1} onChange={setSlope} format={(v) => v.toFixed(1)} />

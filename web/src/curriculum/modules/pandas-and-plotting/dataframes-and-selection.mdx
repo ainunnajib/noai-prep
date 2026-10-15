@@ -38,10 +38,10 @@ Here are the words you just met, in one place:
 - A <Term def="Data type: the single type every value in a column has, such as int64 (whole numbers), float64 (decimals) or object (text).">dtype</Term> is the one data type a whole column has: `int64` for whole numbers, `float64` for decimals and `object` for text (pandas 3 prints `str` instead of `object`).
 - `df.shape` is the size, written `(rows, columns)`. Here it is `(8, 4)`. The index is not counted as a column.
 
-Underneath, each column is a NumPy array, so everything you learnt about NumPy arrays (vectorised maths, boolean masks) carries over.
+Underneath, each numeric column is a NumPy array (text and a few special types use other storage), so everything you learnt about NumPy arrays (vectorised maths, boolean masks) carries over.
 
 <KeyIdea>
-A DataFrame is a set of named columns that share one set of row labels (the index). Each column is a Series, stored as a NumPy array with a single dtype.
+A DataFrame is a set of named columns that share one set of row labels (the index). Each column is a Series with a single dtype; numeric columns are stored as NumPy arrays.
 </KeyIdea>
 
 <QuickCheck
@@ -57,13 +57,11 @@ A DataFrame is a set of named columns that share one set of row labels (the inde
 Before you start cooking, you check the ingredients: what is in the fridge, how much of each, and whether anything has gone off. Before you model data, you do the same with five quick commands.
 </Analogy>
 
-| Command | What it tells you |
-|---|---|
-| `df.head()` | the first 5 rows (`df.head(10)` for 10, `df.tail()` for the last 5) |
-| `df.shape` | `(rows, columns)`; no brackets, because it is an attribute, not a method |
-| `df.info()` | each column's dtype and how many values are **not** missing |
-| `df.describe()` | count, mean, standard deviation, min, quartiles and max of each numeric column |
-| `df['town'].value_counts()` | how many times each category appears, most common first |
+- `df.head()` shows the first 5 rows (`df.head(10)` for 10, `df.tail()` for the last 5).
+- `df.shape` gives `(rows, columns)`. No brackets: it is an attribute, not a method.
+- `df.info()` lists each column's dtype and how many values are **not** missing.
+- `df.describe()` gives the count, mean, standard deviation, min, quartiles and max of each numeric column.
+- `df['town'].value_counts()` counts how many times each category appears, most common first. Its cousins: `df['town'].nunique()` says how many different categories there are (4 here), and `df['town'].unique()` lists them.
 
 <InspectorTabs />
 
@@ -77,7 +75,7 @@ Most of `describe()` is ordinary statistics. The two rows that trip people up ar
     $\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$: add every value $x_i$ and divide by how many there are. $\frac{3 + 5 + 6 + 8 + 13}{5} = \frac{35}{5} = 7$.
   </Step>
   <Step title="25%, 50%, 75% (the quartiles)">
-    Sort the values and count positions from 0. pandas puts the $p$ quantile at position $p \times (n - 1)$. So 50% sits at position $0.5 \times 4 = 2$, which holds **6**: the 50% row is the **median**. 25% sits at position 1 (value **5**) and 75% at position 3 (value **8**). When the position falls between two values, pandas goes the same fraction of the way between them, which is how the `rooms` column got 3.75 above.
+    Sort the values and count positions from 0. pandas puts the $p$ quantile at position $p \times (n - 1)$. So 50% sits at position $0.5 \times 4 = 2$, which holds **6**: the 50% row is the **median**. 25% sits at position 1 (value **5**) and 75% at position 3 (value **8**). When the position falls between two values, pandas goes the same fraction of the way between them. That is how the `rooms` column gets 3.75 in the 25% row of `describe()`: open that tab above and tap `3.750000`.
   </Step>
   <Step title="std (standard deviation)">
     $s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2}$: take each value's distance from the mean, square it, add them up, divide by $n - 1$ and take the square root. The distances are $-4, -2, -1, 1, 6$; their squares add up to $16 + 4 + 1 + 1 + 36 = 58$; $58 / 4 = 14.5$; and $\sqrt{14.5} \approx 3.81$.
@@ -99,6 +97,22 @@ There is also a dot shortcut, `df.price`. It only works when the name is a valid
 
 <PastPaperQuestion paper="prelim2026" n={99} />
 
+### Dropping columns, and a table ready for a model
+
+`df.drop(columns=['price'])` gives a copy of the table **without** the columns you name. Like almost every pandas method, it returns a **new** DataFrame and leaves `df` alone, so keep the result if you want it. You will also see the older spelling `df.drop('price', axis=1)`: `axis=1` (or `columns=`) means columns, while `df.drop(index=[0, 4])` drops rows by their labels.
+
+Splitting a table into the inputs a model learns from (the **features**, called `X`) and the answer it must predict (the **target**, called `y`) is the first step of almost every machine-learning notebook:
+
+```python
+df = pd.read_csv('train.csv')    # a file next to the notebook
+
+X = df.drop(columns=['price'])   # features: all but the target
+y = df['price']                  # target: a Series
+print(X.shape, y.shape)          # (8, 3) (8,) for our flats
+```
+
+scikit-learn accepts `X` and `y` as they are. When you need plain NumPy arrays instead, for example for a model you write yourself in NumPy, use `X.to_numpy()` and `y.to_numpy()`. One catch: a model can only use numbers, so a text column such as `town` must be dropped or turned into numbers first; the [encoding lesson](#/learn/data-and-features/encoding-categories) shows how.
+
 ## Rows by label or by position: loc and iloc
 
 <Analogy>
@@ -107,19 +121,35 @@ On the MRT you can find a friend by name ("where's Wei Ling?") or by seat ("thir
 
 Both take a row part and an optional column part, separated by a comma: `df.loc[rows, columns]` and `df.iloc[rows, columns]`. A colon on its own means "all".
 
-| | `df.loc[...]` | `df.iloc[...]` |
-|---|---|---|
-| selects by | labels: index labels and column names | integer positions, counted from 0 |
-| `[0:2]` | labels 0 **through** 2: the end is **included** | positions 0 and 1: the end is **excluded**, like Python lists |
-| `[-1]` | the row *labelled* −1 (a `KeyError` if there is none) | the last row |
-| columns | names: `'price'` or `'town':'area'` | positions: `3` or `0:2` |
+<Columns min={240}>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**`df.loc[...]`: by label**
+
+- Selects by **labels**: index labels and column names.
+- `[0:2]` means labels 0 **through** 2: the end is **included**.
+- `[-1]` means the row *labelled* −1 (a `KeyError` if there is none).
+- Columns by name: `'price'` or `'town':'area'`.
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**`df.iloc[...]`: by position**
+
+- Selects by **integer positions**, counted from 0.
+- `[0:2]` means positions 0 and 1: the end is **excluded**, like Python lists.
+- `[-1]` means the last row.
+- Columns by position: `3` or `0:2`.
+
+</div>
+</Columns>
 
 With the default index, labels and positions are the same numbers, so the difference hides. It appears the moment you sort or filter, because rows keep their old labels. Try it:
 
 <LocIlocHighlighter />
 
-<Steps title="Sorted by price: why df.loc[0:2] and df.iloc[0:2] differ">
-  <Step title="Sort, and look at the labels">
+<Steps title="Why loc[0:2] ≠ iloc[0:2] after sorting">
+  <Step title="Sort; labels stay">
     `df = df.sort_values('price')` puts the cheapest flat first. Each row keeps its label, so reading down the index now gives 1, 3, 4, 6, 0, 7, 2, 5.
   </Step>
   <Step title="iloc counts seats">
@@ -156,8 +186,7 @@ Comparing a column with a value checks every row at once and gives a Series of T
 df['town'] == 'Tampines'
 ```
 
-```text
-0     True
+<CodeBlock language="text" showLineNumbers={false} code={`0     True
 1    False
 2    False
 3     True
@@ -165,8 +194,7 @@ df['town'] == 'Tampines'
 5     True
 6    False
 7    False
-Name: town, dtype: bool
-```
+Name: town, dtype: bool`} />
 
 Put the mask inside `df[...]` and pandas keeps exactly the rows marked True: `df[df['town'] == 'Tampines']` gives rows 0, 3 and 5. This is the same idea as a NumPy boolean mask, applied to whole rows.
 
@@ -192,6 +220,17 @@ df[df['town'].isin(['Bedok', 'Punggol'])]
 </Mistake>
 
 You can also filter rows and choose columns in one go, because `loc` accepts a mask as its row part: `df.loc[df['price'] > 700000, 'town']` gives the towns of the two flats above 700000 (Punggol and Tampines).
+
+### Changing values
+
+The same `loc[rows, columns]` form also **changes** values. Put the mask and the column name inside **one** pair of brackets:
+
+```python
+df.loc[df['area'].isna(), 'area'] = 90         # rows where area is missing, column area
+df.loc[df['town'] == 'Yishun', 'price'] = 515000
+```
+
+Do not split it into two brackets. `df[df['price'] > 700000]['town'] = 'X'` changes nothing: the first bracket builds a new, temporary table, the second bracket changes that copy, and the copy is thrown away. pandas warns you about this "chained assignment", and from pandas 3 it never works.
 
 Run everything from this lesson yourself, then change it: filter for 4-room flats, or take the three most expensive flats with `df.sort_values('price').iloc[-3:]`.
 
@@ -222,9 +261,9 @@ A "how many rows does this return?" question takes seconds if you remember two r
 </ExamTip>
 
 <Takeaways>
-- A **DataFrame** is a table of **Series** (named columns, each a NumPy array with one dtype) that share an **index** of row labels; `df.shape` is `(rows, columns)`.
+- A **DataFrame** is a table of **Series** (named columns, each with one dtype) that share an **index** of row labels; `df.shape` is `(rows, columns)`.
 - Inspect first: `head()` to see rows, `info()` for dtypes and non-null counts, `describe()` for count, mean, std (divides by $n-1$), quartiles (50% = median), min and max, and `value_counts()` for categories.
-- `df['col']` gives a Series and `df[['a', 'b']]` a DataFrame; use brackets when a name has a space.
+- `df['col']` gives a Series and `df[['a', 'b']]` a DataFrame; use brackets when a name has a space. `X = df.drop(columns=['target'])` and `y = df['target']` split a table for a model.
 - `loc` selects by **label** with an **inclusive** end; `iloc` selects by **position** with an **exclusive** end. They only agree by coincidence.
-- Filter with a boolean mask: `df[(cond1) & (cond2)]`, with `&`, `|`, `~` and brackets round each condition.
+- Filter with a boolean mask: `df[(cond1) & (cond2)]`, with `&`, `|`, `~` and brackets round each condition. Change values with one `loc`: `df.loc[mask, 'col'] = value`.
 </Takeaways>

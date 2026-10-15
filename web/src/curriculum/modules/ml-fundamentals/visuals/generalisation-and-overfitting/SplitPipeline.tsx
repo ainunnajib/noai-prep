@@ -191,8 +191,8 @@ export default function SplitPipeline() {
         <>
           Press <b>Next</b> to walk through fit → tune → report and watch which part of the data each step touches. Then switch on <b>peek</b>, which
           chooses the hyperparameters by their test score. The bottom chart shows how far the reported score sits above the truth, averaged over{' '}
-          {PROJECTS.toLocaleString('en-GB')} simulated projects. Slide the number of settings tried and the size of the test set: peeking gets worse the more you try and the
-          smaller the test set, while the honest route stays on target.
+          {PROJECTS.toLocaleString('en-GB')} simulated projects. Slide the number of settings tried, and shrink the test set (it gets whatever the training and validation sliders leave over): peeking
+          gets worse the more you try and the smaller the test set, while the honest route stays on target.
         </>
       }
     >

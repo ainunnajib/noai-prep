@@ -86,48 +86,50 @@ export default function XorFold() {
       title="A hidden layer moves the points until one line is enough"
       caption={
         <>
-          The four XOR corners (orange = output 1, blue = output 0) cannot be split by one straight line on the left. The two hidden neurons compute{' '}
-          <M>{useRelu ? 'h_1 = \\text{ReLU}(x_1 + x_2)' : 'h_1 = x_1 + x_2'}</M> and <M>{useRelu ? 'h_2 = \\text{ReLU}(x_1 + x_2 - 1)' : 'h_2 = x_1 + x_2 - 1'}</M>, which
-          moves every point to a new place on the right. There, the output neuron <M>{'y = h_1 - 2h_2'}</M> needs only one straight line (<M>{'y = 0.5'}</M>). Drag the
-          purple point and watch where it lands (the purple square on the right): the whole input plane is folded onto the bent grey line, and only the elbow sticks out onto the orange side. Then switch the ReLU
-          off: the bend disappears, the four points end up on one straight line with orange in the middle, and no single line can separate them.
+          The hidden layer moves every point from the left panel to the right one, where the output <M>{'y = h_1 - 2h_2'}</M> needs only one straight line
+          (<M>{'y = 0.5'}</M>). Drag the purple point and watch its purple square: the plane is folded onto the bent grey line. Left, dashed: where each hidden ReLU
+          switches on (its crease), not the decision boundary; the orange band&rsquo;s edges are where <M>{'y = 0.5'}</M>. Then switch the ReLU off.
         </>
       }
     >
       <div ref={wrapRef} className={`${s.panels} ${s.panelsEqual} ${narrow ? s.panelsNarrow : ''}`}>
         <div className={s.panel}>
           <div className={s.panelTitle}>
-            <b>Input space</b> <M>{'(x_1, x_2)'}</M>: shaded by what the whole network predicts
+            <b>Input space</b> <M>{'(x_1, x_2)'}</M>: shaded by what the whole network predicts{useRelu ? '; dashed = creases' : ''}
           </div>
           <Plot x={XR} y={XR} width={panelSize} height={panelSize} margin={{ left: 36, bottom: 32, top: 12, right: 12 }} ariaLabel="Input space with the four XOR corners and the region the network calls orange">
             <Path points={inBox} closed fill="color-mix(in srgb, var(--viz-1) 12%, var(--surface))" color="none" width={0} />
             {orangeIn.length > 2 && <Path points={orangeIn} closed fill="color-mix(in srgb, var(--viz-2) 26%, var(--surface))" color="none" width={0} />}
             <Grid xTicks={4} yTicks={4} />
             <Axes xLabel="x₁" yLabel="x₂" xTicks={4} yTicks={4} />
-            <Path
-              points={[
-                [-0.6, 0.6],
-                [0.6, -0.6],
-              ]}
-              color="var(--viz-4)"
-              width={2}
-              dash="6 4"
-            />
-            <Path
-              points={[
-                [-0.4, 1.4],
-                [1.4, -0.4],
-              ]}
-              color="var(--viz-3)"
-              width={2}
-              dash="6 4"
-            />
-            <Label x={-0.58} y={0.6} dx={2} dy={-6} color="var(--viz-4)" size={12}>
-              h₁ = 0
-            </Label>
-            <Label x={-0.4} y={1.4} dx={6} dy={-4} color="var(--viz-3)" size={12}>
-              h₂ = 0
-            </Label>
+            {useRelu && (
+              <>
+                <Path
+                  points={[
+                    [-0.6, 0.6],
+                    [0.6, -0.6],
+                  ]}
+                  color="var(--viz-4)"
+                  width={2}
+                  dash="6 4"
+                />
+                <Path
+                  points={[
+                    [-0.4, 1.4],
+                    [1.4, -0.4],
+                  ]}
+                  color="var(--viz-3)"
+                  width={2}
+                  dash="6 4"
+                />
+                <Label x={-0.58} y={0.6} dx={2} dy={-6} color="var(--viz-4)" size={12}>
+                  h₁ crease
+                </Label>
+                <Label x={-0.4} y={1.4} dx={6} dy={-4} color="var(--viz-3)" size={12}>
+                  h₂ crease
+                </Label>
+              </>
+            )}
             <Dots points={CORNERS.map((c) => ({ x: c.x[0], y: c.x[1], color: COL(c.label), r: 7 }))} />
             {CORNERS.map((c) => (
               <Label key={c.name} x={c.x[0]} y={c.x[1]} dx={c.name === '(0, 0)' ? -10 : 10} dy={c.name === '(0, 0)' ? 20 : -10} anchor={c.name === '(0, 0)' ? 'end' : 'start'} size={12}>

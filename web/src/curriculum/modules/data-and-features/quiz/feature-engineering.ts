@@ -38,16 +38,16 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.feature-engineering.4',
     prompt:
-      'You are predicting the number of taxi bookings in each hour, and one input column is the booking time stamp. Which feature engineering is most useful?',
+      'You are predicting the number of taxi bookings in each hour, and one input column is the booking timestamp. Which feature engineering is most useful?',
     options: [
       'Extract the hour of day, the day of week and an `is_weekend` flag',
-      'Convert the time stamp to seconds since 1970 and use that one number',
-      'One-hot encode every distinct time stamp value in the data',
-      'Drop the column, since a time stamp is an ID rather than a measurement',
+      'Convert the timestamp to seconds since 1970 and use that one number',
+      'One-hot encode every distinct timestamp value in the data',
+      'Drop the column, since a timestamp is an ID rather than a measurement',
     ],
     answer: 0,
     explanation:
-      'Demand repeats every day and every week, and the date parts expose those cycles (the hour can also go on a circle with sine and cosine). Seconds since 1970 just grow forever, so the model cannot see that every 8 a.m. is alike. One-hot encoding gives each time stamp its own column, used once and never again.',
+      'Demand repeats every day and every week, and the date parts expose those cycles (the hour can also go on a circle with sine and cosine). Seconds since 1970 just grow forever, so the model cannot see that every 8 a.m. is alike. One-hot encoding gives each timestamp its own column, used once and never again.',
     difficulty: 'beginner',
   },
   {

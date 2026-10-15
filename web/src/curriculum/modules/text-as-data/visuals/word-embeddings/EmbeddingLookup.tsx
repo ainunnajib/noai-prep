@@ -17,7 +17,7 @@ const TABLE: number[][] = (() => {
 
 const fmt = (x: number) => (x === 0 ? '0' : x.toFixed(1))
 
-function Matrix({ title, rows, cols, cell, rowLabel, hlRows, selRow, colLabels }: {
+function Matrix({ title, rows, cols, cell, rowLabel, hlRows, selRow, colLabels, faded }: {
   title: string
   rows: number
   cols: number
@@ -26,16 +26,17 @@ function Matrix({ title, rows, cols, cell, rowLabel, hlRows, selRow, colLabels }
   hlRows?: Set<number>
   selRow?: number
   colLabels?: (j: number) => string
+  faded?: boolean
 }) {
   return (
-    <div className={s.mat}>
+    <div className={s.mat} style={faded ? { opacity: 0.35 } : undefined}>
       <span className={s.matTitle}>{title}</span>
       <div className={s.grid} style={{ gridTemplateColumns: `${rowLabel ? 'auto ' : ''}repeat(${cols}, ${cols > 6 ? 22 : 36}px)` }} role="table" aria-label={title}>
         {colLabels && (
           <>
             {rowLabel && <span />}
             {Array.from({ length: cols }, (_, j) => (
-              <span key={j} className={s.head} style={{ fontSize: '0.62rem' }}>
+              <span key={j} className={s.head} style={{ fontSize: '0.7rem' }}>
                 {colLabels(j)}
               </span>
             ))}
@@ -78,6 +79,8 @@ export default function EmbeddingLookup() {
   const T = ids.length
   const t = Math.min(sel, Math.max(0, T - 1))
   const used = new Set(ids)
+  // PyTorch raises an error for the whole lookup: there is no partial output
+  const crashed = bad.length > 0
 
   return (
     <Figure
@@ -105,7 +108,7 @@ export default function EmbeddingLookup() {
       </Controls>
       {bad.length > 0 && (
         <p className={s.err} role="alert">
-          IndexError: index out of range in self (id {bad.join(', ')} ≥ V = {V}; valid ids are 0 to {V - 1})
+          IndexError: index out of range in self ({bad.length > 1 ? 'ids' : 'id'} {bad.join(', ')} {bad.length > 1 ? 'are' : 'is'} outside 0 to {V - 1}, because V = {V})
         </p>
       )}
       <div className={s.scroll} ref={wrapRef}>
@@ -117,10 +120,11 @@ export default function EmbeddingLookup() {
               cols={V}
               colLabels={(j) => String(j)}
               selRow={t}
+              faded={crashed}
               cell={(i, j) => (ids[i] === j ? { text: '1', cls: s.cellOne } : { text: '0', cls: s.cellMuted })}
             />
           ) : (
-            <Matrix title={`token ids (${T})`} rows={T} cols={1} selRow={t} rowLabel={(i) => `t=${i}`} cell={(i) => ({ text: String(ids[i]) })} />
+            <Matrix title={`token ids (${T})`} rows={T} cols={1} selRow={t} faded={crashed} rowLabel={(i) => `t=${i}`} cell={(i) => ({ text: String(ids[i]) })} />
           )}
           <span className={s.op} style={opStyle}>{oneHot ? '×' : narrow ? '↓' : '→'}</span>
           <Matrix
@@ -133,30 +137,39 @@ export default function EmbeddingLookup() {
             cell={(i, j) => ({ text: fmt(TABLE[i][j]) })}
           />
           <span className={s.op} style={opStyle}>=</span>
-          <div className={s.mat}>
-            <span className={s.matTitle}>{`output (${T} × ${d})`}</span>
-            <div className={s.grid} style={{ gridTemplateColumns: `auto repeat(${d}, 36px)` }} role="table" aria-label="output vectors">
-              {ids.map((id, i) => (
-                <Fragment key={i}>
-                  <button type="button" className={s.rowHead} style={{ fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }} onClick={() => setSel(i)}>
-                    {VOCAB[id]}
-                  </button>
-                  {Array.from({ length: d }, (_, j) => (
-                    <button key={j} type="button" className={`${s.cellBtn} ${s.rowHl} ${t === i ? s.cellSel : ''}`} style={{ minHeight: 24 }} onClick={() => setSel(i)} aria-label={`row ${i}: ${VOCAB[id]}`}>
-                      {fmt(TABLE[id][j])}
-                    </button>
-                  ))}
-                </Fragment>
-              ))}
+          {crashed ? (
+            <div className={s.mat}>
+              <span className={s.matTitle}>output</span>
+              <span className={s.err} style={{ width: 'auto', maxWidth: 160, fontFamily: 'var(--font-body)' }}>
+                no output: the lookup crashed
+              </span>
             </div>
-          </div>
+          ) : (
+            <div className={s.mat}>
+              <span className={s.matTitle}>{`output (${T} × ${d})`}</span>
+              <div className={s.grid} style={{ gridTemplateColumns: `auto repeat(${d}, 36px)` }} role="table" aria-label="output vectors">
+                {ids.map((id, i) => (
+                  <Fragment key={i}>
+                    <button type="button" className={s.rowHead} style={{ fontSize: '0.7rem', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }} onClick={() => setSel(i)}>
+                      {VOCAB[id]}
+                    </button>
+                    {Array.from({ length: d }, (_, j) => (
+                      <button key={j} type="button" className={`${s.cellBtn} ${s.rowHl} ${t === i ? s.cellSel : ''}`} style={{ minHeight: 24 }} onClick={() => setSel(i)} aria-label={`row ${i}: ${VOCAB[id]}`}>
+                        {fmt(TABLE[id][j])}
+                      </button>
+                    ))}
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Readout
         items={[
           ['learnable numbers', `V × d = ${V} × ${d} = ${V * d}`],
           ['BERT-base', '30,522 × 768 = 23,440,896'],
-          ['selected', T ? `output row ${t} = table row ${ids[t]} (${VOCAB[ids[t]]})` : '—'],
+          ['selected', crashed ? '— (no output)' : T ? `output row ${t} = table row ${ids[t]} (${VOCAB[ids[t]]})` : '—'],
         ]}
       />
     </Figure>

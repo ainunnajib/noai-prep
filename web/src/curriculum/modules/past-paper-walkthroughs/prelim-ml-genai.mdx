@@ -62,15 +62,17 @@ A convolution layer with a $k \times k$ kernel, $C$ input channels and $C$ outpu
 
 ### Encoder against decoder (Q213)
 
-BERT and GPT are built from the same Transformer blocks. The difference is which tokens each position may look at. Below, row = the token that is looking, column = the token being looked at, and 1 means "allowed".
+BERT and GPT are built from the same Transformer blocks. The difference is which tokens each position may look at. Below, for the four tokens of "I like kaya toast", each row is the token that is looking, each column is the token being looked at, and 1 means "allowed".
 
-<Columns min={200}>
+<Columns min={230}>
 
-<MatrixGrid label="BERT (encoder): every token sees all" data={[[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]} heat={[0, 1]} cellSize={34} ariaLabel="BERT attention pattern: all ones" />
+<MatrixGrid label="BERT (encoder): every token sees all" brackets={false} data={[['', 'I', 'like', 'kaya', 'toast'], ['I', 1, 1, 1, 1], ['like', 1, 1, 1, 1], ['kaya', 1, 1, 1, 1], ['toast', 1, 1, 1, 1]]} heat={[0, 1]} cellSize={44} ariaLabel="BERT attention pattern for I like kaya toast: every token may attend to every token" />
 
-<MatrixGrid label="GPT (decoder): causal mask" data={[[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]} heat={[0, 1]} cellSize={34} ariaLabel="GPT causal mask: lower triangle of ones" />
+<MatrixGrid label="GPT (decoder): causal mask" brackets={false} data={[['', 'I', 'like', 'kaya', 'toast'], ['I', 1, 0, 0, 0], ['like', 1, 1, 0, 0], ['kaya', 1, 1, 1, 0], ['toast', 1, 1, 1, 1]]} heat={[0, 1]} cellSize={44} ariaLabel="GPT causal mask for I like kaya toast: each token may attend only to itself and earlier tokens" />
 
 </Columns>
+
+Read the GPT grid row by row: the row for "like" has 1s only under "I" and "like", so while it processes "like", GPT cannot peek at "kaya" or "toast".
 
 Because BERT sees both sides, it is trained by hiding words and filling them in, and it suits understanding tasks. Because GPT sees only the past, it is trained to predict the next token, which is exactly what generating text needs. That lower-triangular <Term def="A pattern that blocks each token from attending to tokens after it, so a model cannot peek at the word it is supposed to predict.">causal mask</Term> is the subject of another 2026 question:
 
@@ -113,8 +115,9 @@ Here are the pairs the 2026 AI and GenAI questions leaned on. Cover the middle c
 |---|---|---|
 | bagging / boosting | parallel averaging cuts variance; sequential correcting cuts bias | Q151, Q152, Q154, Q155 |
 | L1 / L2 | L1 zeroes weights (sparse); L2 shrinks them all | Q148, Q149 |
-| Xavier / He | built for tanh and sigmoid; built for ReLU, with $\operatorname{Var}(W) = 2/n_{\text{in}}$ | Q176, Q177 |
-| BatchNorm / LayerNorm | average across the batch; across one sample's features | Q170, Q184, Q185 |
+| Xavier / He | built for tanh and sigmoid; built for ReLU, with weight variance 2 ÷ (number of inputs to the layer) | Q176, Q177 |
+| BatchNorm / LayerNorm | average across the batch; across one sample's features | Q170, Q185 |
+| BatchNorm / dropout | needs steady batch statistics; injects random noise, so the two can clash | Q184 |
 | sigmoid / ReLU | range 0 to 1, slope at most ¼; slope 1 for positive inputs | Q163, Q164, Q172 |
 | semantic / instance segmentation | a class per pixel; which object each pixel belongs to | Q199, Q200 |
 | YOLO / R-CNN | one stage, real time; propose regions, then classify | Q197, Q198 |
@@ -149,7 +152,7 @@ A <Term def="A wrong option in a multiple-choice question, written to attract st
   q="2026 Q149 asks: 'L2 regularisation (Ridge) penalises:'. Its options are 'Sum of absolute weights', 'Number of parameters', 'Sum of squared weights' and 'Training loss only'. Which option is the confusable twin?"
   options={['Sum of absolute weights', 'Number of parameters', 'Sum of squared weights', 'Training loss only']}
   answer={0}
-  explain="The sum of absolute weights is what L1 (Lasso), the twin of L2, penalises. 'Sum of squared weights' is the correct answer, not a trap. 'Training loss only' is an overclaim with 'only', and 'Number of parameters' is a wrong idea of what is being penalised."
+  explain="The sum of absolute weights is what L1 (Lasso), the twin of L2, penalises. 'Sum of squared weights' is the correct answer, not a trap. 'Training loss only' is an overclaim with 'only', and 'Number of parameters' is a filler: no part of Ridge counts parameters, so it is a free elimination."
 />
 
 <ExamTip title="Eliminate by trap type, then decide">
@@ -167,7 +170,7 @@ Use these only to break a tie when real elimination has failed. In Q120–237, w
 <Takeaways>
 
 - The AI and GenAI questions of 2026 fall into ten concept clusters; four of them held 79 of 136 questions.
-- Almost every recall question is decided by one **confusable pair**: bagging/boosting, Xavier/He, BERT/GPT, LoRA/full fine-tuning, DDPM/DDIM, self-/cross-attention. Learn pairs, not isolated definitions.
+- Almost every recall question is decided by one **confusable pair**: bagging/boosting, Xavier/He, BERT/GPT, fine-tuning/prompting, forward/reverse diffusion, self-/cross-attention. Learn pairs, not isolated definitions.
 - Wrong options are built from a few traps: twin, opposite, wrong reason, true-but-irrelevant, overclaim, half-done working and filler. Name the trap and the option loses its pull.
 - Cross out fillers and overclaims first, then let the pair decide.
 

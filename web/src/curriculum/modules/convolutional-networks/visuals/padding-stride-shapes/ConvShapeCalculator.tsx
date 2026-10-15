@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Toggle, Button, M, usePlayer, PlayerControls, useContainerWidth, useBump, mulberry32, shuffled } from '../../../../../kit'
 import s from './pss.module.css'
 
 /*
   The output-size formula, made countable. Left: an n×n input (blue) with p rings of zero
-  padding (dashed), the k×k kernel window (orange) and, above the grid, the column positions the
+  padding (hatched), the k×k kernel window (orange) and, above the grid, the column positions the
   window starts at, s apart. Right: the output grid, one cell per window position. Cells the
   window never reaches (because the last jump would overshoot) are shaded red. Challenge mode
   hides the answer until you pick one.
@@ -51,6 +51,7 @@ export default function ConvShapeCalculator() {
   const [seed, bump] = useBump()
   const [picked, setPicked] = useState<number | null>(null)
   const [ref, W] = useContainerWidth<HTMLDivElement>(600)
+  const hatchId = 'pad-hatch-' + useId().replace(/:/g, '')
 
   const c = quiz ? randomCfg(seed + 1) : cfg
   const P = c.n + 2 * c.p
@@ -93,9 +94,8 @@ export default function ConvShapeCalculator() {
       title="Count the positions: the output-size formula"
       caption={
         <>
-          Slide n, k, p and s, then press <b>Play</b> to step the window through every position: each position makes one output cell. The dots above the grid
-          are where the window can start along a row, s apart. Red cells are never reached, because one more jump would push the window past the edge: that is the
-          floor ⌊ ⌋ in the formula. Turn on <b>Challenge me</b> to test yourself on random layers.
+          <b>Try:</b> set n, k, p and s, then press <b>Play</b>: each window position makes one output cell. <b>Notice:</b> red cells are never reached,
+          because one more jump would overshoot the edge: that is the floor ⌊ ⌋.
         </>
       }
     >
@@ -107,6 +107,12 @@ export default function ConvShapeCalculator() {
               {c.p > 0 ? `, padded to ${P} × ${P}` : ''}
             </span>
             <svg viewBox={`-3 -3 ${gridW + 6} ${gridW + top + 6}`} width={gridW + 6} style={{ maxWidth: '100%', height: 'auto', display: 'block' }} role="img" aria-label={`Input of ${c.n} by ${c.n} with padding ${c.p}; kernel ${c.k} by ${c.k}; stride ${c.s}`}>
+              <defs>
+                <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <rect width={6} height={6} style={{ fill: 'var(--surface)' }} />
+                  <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.6, strokeOpacity: 0.45 }} />
+                </pattern>
+              </defs>
               <g transform={`translate(0, ${top})`}>
                 {Array.from({ length: P * P }, (_, idx) => {
                   const r = Math.floor(idx / P)
@@ -122,17 +128,11 @@ export default function ConvShapeCalculator() {
                         height={cs - 2}
                         rx={3}
                         style={{
-                          fill: unreached ? 'color-mix(in srgb, var(--viz-neg) 22%, var(--surface))' : pad ? 'var(--surface)' : 'color-mix(in srgb, var(--viz-1) 16%, var(--surface))',
-                          stroke: pad ? 'var(--viz-muted)' : 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))',
-                          strokeDasharray: pad ? '3 2' : undefined,
+                          fill: unreached ? 'color-mix(in srgb, var(--viz-neg) 22%, var(--surface))' : pad ? `url(#${hatchId})` : 'color-mix(in srgb, var(--viz-1) 16%, var(--surface))',
+                          stroke: pad ? 'color-mix(in srgb, var(--viz-muted) 60%, var(--surface))' : 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))',
                           strokeWidth: 1,
                         }}
                       />
-                      {pad && cs >= 18 && (
-                        <text x={q * cs + cs / 2} y={r * cs + cs / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: 10, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
-                          0
-                        </text>
-                      )}
                     </g>
                   )
                 })}
@@ -168,6 +168,7 @@ export default function ConvShapeCalculator() {
             </svg>
             <span className={s.capSmall}>
               kernel {c.k} × {c.k} (orange), stride {c.s}
+              {c.p > 0 ? `; hatched = zero padding (p = ${c.p})` : ''}
               {valid && revealed && reach < P ? `; ${P - reach} column${P - reach > 1 ? 's' : ''} and row${P - reach > 1 ? 's' : ''} never reached` : ''}
             </span>
           </div>

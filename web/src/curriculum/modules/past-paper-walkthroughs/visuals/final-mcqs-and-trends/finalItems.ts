@@ -1,4 +1,4 @@
-// Verbatim stems, code and options of five 2026 Final MCQs, generated from src/data/papers/final2026_section1.json.
+// Verbatim stems, code and options of four 2026 Final MCQs, generated from src/data/papers/final2026_section1.json.
 export interface FinalItem {
   n: number
   before: string
@@ -73,44 +73,6 @@ export const FINAL_ITEMS: Record<number, FinalItem> = {
       "The alpha calculation is wrong - should be np.log((1 - error) / error) without the 0.5 factor",
       "Weight update should be: weights *= np.exp(alpha * (2*incorrect - 1)), because correctly classified samples should have weights DECREASED (multiplied by exp(-alpha))",
       "Weight update should use: weights *= np.exp(-alpha * incorrect), because incorrect samples should have decreased weights",
-    ],
-    answer: 2,
-  },
-  8: {
-    n: 8,
-    before: "You implement custom batch normalisation:",
-    code: [
-      "class BatchNorm1d(nn.Module):",
-      "    def __init__(self, num_features, eps=1e-5, momentum=0.1):",
-      "        super().__init__()",
-      "        self.gamma = nn.Parameter(torch.ones(num_features))",
-      "        self.beta = nn.Parameter(torch.zeros(num_features))",
-      "        self.register_buffer('running_mean', torch.zeros(num_features))",
-      "        self.register_buffer('running_var', torch.ones(num_features))",
-      "        self.eps = eps",
-      "        self.momentum = momentum",
-      "",
-      "    def forward(self, x):",
-      "        if self.training:",
-      "            mean = x.mean(dim=0)",
-      "            var = x.var(dim=0, unbiased=False)",
-      "",
-      "            # Update running statistics",
-      "            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean",
-      "            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var",
-      "",
-      "            x_norm = (x - mean) / torch.sqrt(var + self.eps)",
-      "        else:",
-      "            x_norm = (x - self.running_mean) / torch.sqrt(self.running_var + self.eps)",
-      "",
-      "        return self.gamma * x_norm + self.beta",
-    ],
-    after: "During training, loss converges well. During evaluation (`model.eval()`), predictions are poor. What's the bug?",
-    options: [
-      "Running statistics update should use .detach() to prevent gradient flow: `self.momentum * mean.detach()`",
-      "Running statistics should be updated with unbiased variance (unbiased=True) to match evaluation behavior",
-      "The running statistics update breaks autograd - should use in-place operations: `self.running_mean.mul_(1-self.momentum).add_(self.momentum * mean)`",
-      "Momentum interpretation is inverted - PyTorch uses running_mean = momentum * running_mean + (1-momentum) * batch_mean",
     ],
     answer: 2,
   },

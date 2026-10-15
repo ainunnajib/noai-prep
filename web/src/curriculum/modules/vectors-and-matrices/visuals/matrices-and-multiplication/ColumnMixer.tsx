@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, Arrow, DraggablePoint, M, usePlot, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, Arrow, M, usePlot, useNarrow } from '../../../../../kit'
+import { SnapPoint } from '../vectors/shared'
 
 /*
   Matrix times vector, two ways. Column picture: Ax = x1·(column 1) + x2·(column 2), drawn tip to tail.
@@ -7,8 +8,13 @@ import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, Arrow, DraggablePoi
 */
 
 const snap = (v: number) => Math.round(v * 2) / 2
-const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1)).replace('-', '−')
-const tex = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1))
+/** Columns and x snap to halves, so products are quarters: show up to 2 decimals, trailing zeros trimmed (−3.25, 0.5, 2). */
+const tex = (v: number) => {
+  const r = Math.round(v * 100) / 100
+  return String(r === 0 ? 0 : r)
+}
+const fmt = (v: number) => tex(v).replace('-', '−')
+const lim = (v: number) => Math.max(-2.5, Math.min(2.5, v))
 const paren = (v: number) => (v < 0 ? `(${tex(v)})` : tex(v))
 
 /** Label at the middle of a segment, pushed sideways (away from `away`) so it never sits on the arrowheads. */
@@ -87,7 +93,7 @@ export default function ColumnMixer() {
       caption={
         <>
           The two coloured arrows are the <b>columns</b> of A; drag their tips. The sliders set the input vector x. The output Ax (green) is reached by walking{' '}
-          x₁ copies of column 1 and then x₂ copies of column 2. Set x = (1, 0): Ax is exactly column 1. Now check that the row picture underneath gives the same
+          x₁ copies of column 1 and then x₂ copies of column 2. Set x = [1, 0]: Ax is exactly column 1. Now check that the row picture underneath gives the same
           numbers every time.
         </>
       }
@@ -112,8 +118,8 @@ export default function ColumnMixer() {
         </Clip>
         {showCols && (
           <>
-            <DraggablePoint x={a1[0]} y={a1[1]} color="var(--viz-1)" r={8} label="col 1" onChange={(px, py) => setA1([snap(px), snap(py)])} constrain={(px, py) => [Math.max(-2.5, Math.min(2.5, px)), Math.max(-2.5, Math.min(2.5, py))]} />
-            <DraggablePoint x={a2[0]} y={a2[1]} color="var(--viz-2)" r={8} label="col 2" onChange={(px, py) => setA2([snap(px), snap(py)])} constrain={(px, py) => [Math.max(-2.5, Math.min(2.5, px)), Math.max(-2.5, Math.min(2.5, py))]} />
+            <SnapPoint x={a1[0]} y={a1[1]} color="var(--viz-1)" r={8} label="col 1" onChange={(px, py) => setA1([snap(px), snap(py)])} constrain={(px, py) => [lim(px), lim(py)]} />
+            <SnapPoint x={a2[0]} y={a2[1]} color="var(--viz-2)" r={8} label="col 2" onChange={(px, py) => setA2([snap(px), snap(py)])} constrain={(px, py) => [lim(px), lim(py)]} />
           </>
         )}
       </Plot>

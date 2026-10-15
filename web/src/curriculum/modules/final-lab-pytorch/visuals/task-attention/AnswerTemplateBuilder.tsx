@@ -68,6 +68,20 @@ function evidence(dk: number): Evidence {
 const TEMPLATE =
   'When d_k is large (e.g., 512), dot products between Q and K become very large in magnitude. This causes softmax to... which leads to... This is problematic for training because...'
 
+/** The template's own words, removed before the keyword check so they earn no points. */
+const TEMPLATE_PARTS = [
+  'When d_k is large (e.g., 512), dot products between Q and K become very large in magnitude.',
+  'This causes softmax to',
+  'which leads to',
+  'This is problematic for training because',
+]
+
+function ownWords(text: string): string {
+  let t = text
+  for (const part of TEMPLATE_PARTS) t = t.split(part).join(' ')
+  return t.replace(/\.\.\./g, ' ')
+}
+
 const WEAK = 'Scaling makes the numbers smaller so the model trains better.'
 
 const MODEL =
@@ -102,7 +116,8 @@ export default function AnswerTemplateBuilder() {
   const [text, setText] = useState(TEMPLATE)
   const [showModel, setShowModel] = useState(false)
   const ev = useMemo(() => evidence(dk), [dk])
-  const hits = POINTS.map((p) => p.test(text))
+  const own = ownWords(text)
+  const hits = POINTS.map((p) => p.test(own))
   const score = hits.filter(Boolean).length
 
   const bars = (w: number[], colour: string) =>
@@ -114,7 +129,8 @@ export default function AnswerTemplateBuilder() {
       caption={
         <>
           First change <M>{'d_k'}</M> and read the evidence: real random vectors, so these are numbers you can quote. Then finish the notebook's template sentence in the box (or
-          load the weak answer to see what it misses). The ticks come from a simple keyword check, not a marker: aim for all four points in two to four sentences.
+          load the weak answer to see what it misses). The ticks come from a simple keyword check of the words you add, not the template's: aim for all four points
+          in two to four sentences.
         </>
       }
     >
@@ -154,7 +170,7 @@ export default function AnswerTemplateBuilder() {
           </Button>
         </div>
         <div className={s.score} aria-live="polite">
-          Points mentioned: {score} of 4
+          Points mentioned: {score} of 4 <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>(the template's own words don't count)</span>
         </div>
         <div className={s.points} role="list">
           {POINTS.map((p, i) => (

@@ -12,12 +12,16 @@ fmap = np.array([[1, 3, 2, 0],
                  [2, 3, 1, 1]])
 
 def pool(x, k=2, s=2, kind="max"):
-    n_out = (x.shape[0] - k) // s + 1      # floor((n - k) / s) + 1
+    # floor((n - k) / s) + 1
+    n_out = (x.shape[0] - k) // s + 1
     out = np.zeros((n_out, n_out))
     for i in range(n_out):
         for j in range(n_out):
             window = x[i*s : i*s + k, j*s : j*s + k]
-            out[i, j] = window.max() if kind == "max" else window.mean()
+            if kind == "max":
+                out[i, j] = window.max()
+            else:
+                out[i, j] = window.mean()
     return out
 
 print(pool(fmap, kind="max"))
@@ -25,17 +29,18 @@ print(pool(fmap, kind="avg"))
 print("global average:", fmap.mean())
 
 def receptive_field(layers):
-    r, jump = 1, 1                  # an input pixel "sees" just itself
-    for k, s in layers:             # (kernel size, stride) of each layer
+    r, jump = 1, 1   # an input pixel "sees" just itself
+    for k, s in layers:   # (kernel size, stride)
         r = r + (k - 1) * jump
         jump = jump * s
     return r
 
-print(receptive_field([(3, 1), (3, 1)]))           # two 3x3 convs
-print(receptive_field([(3, 1), (3, 1), (3, 1)]))   # three 3x3 convs
-print(receptive_field([(3, 1), (2, 2), (3, 1)]))   # conv, 2x2 pool, conv`
+# two 3x3 convs; three 3x3 convs; conv, 2x2 pool, conv
+print(receptive_field([(3, 1), (3, 1)]))
+print(receptive_field([(3, 1), (3, 1), (3, 1)]))
+print(receptive_field([(3, 1), (2, 2), (3, 1)]))`
 
-After a few convolution layers, a network is juggling dozens of <Term def="The grid of numbers a convolution layer outputs for one filter: how strongly that filter's pattern appears at each position.">feature maps</Term>, each almost as large as the image. Two questions follow. How do we shrink them cheaply without losing what the filters found? And how can a neuron that only ever looks at a 3×3 patch end up recognising a whole face? The answers are **pooling** and the **receptive field**, and both turn up regularly in NOAI papers.
+After a few convolution layers, a network is juggling dozens of <Term def="The grid of outputs produced by sliding one filter over its input; it shows how strongly the filter's pattern appears at each position. Also called an activation map.">feature maps</Term>, each almost as large as the image. Two questions follow. How do we shrink them cheaply without losing what the filters found? And how can a neuron that only ever looks at a 3×3 patch end up recognising a whole face? The answers are **pooling** and the **receptive field**, and both turn up regularly in NOAI papers.
 
 <Analogy title="Summarising a seating plan">
 
@@ -93,18 +98,19 @@ Pooling summarises each small window of a feature map with one number: the **max
   q="A feature map has shape (64, 56, 56) in (C, H, W) order. What is its shape after 2×2 max pooling with stride 2?"
   options={['(64, 28, 28)', '(32, 28, 28)', '(64, 55, 55)', '(16, 14, 14)']}
   answer={0}
+  id="convolutional-networks.pooling-and-receptive-field.qc1"
   explain="Pooling acts on each channel separately, so C stays 64, and $\lfloor (56 - 2)/2 \rfloor + 1 = 28$. Halving the channels as well is the classic slip; (64, 55, 55) is what a stride of 1 would give."
 />
 
 <PastPaperQuestion paper="noai2025" n={11} />
 
-Which kind should you use? Max pooling asks "did this feature appear **anywhere** in the window?", which suits detectors: one strong response is what matters. It is the usual choice between convolution blocks (VGG uses it throughout). Average pooling asks "how much of the feature is here **on average**?" and gives smoother maps; the 1998 LeNet used it, and modern networks use one big average pool at the very end, as you will see below.
+Which kind should you use? Max pooling asks "did this feature appear **anywhere** in the window?", which suits detectors: one strong response is what matters. It is the usual choice between convolution blocks (VGG uses it throughout). Average pooling asks "how much of the feature is here **on average**?" and gives smoother maps; the 1998 LeNet used a version of it (its "subsampling" layers averaged each 2×2 window, then applied a learned scale and bias), and modern networks use one big average pool at the very end, as you will see below.
 
 ## Small shifts, same answer
 
-Recall from the convolution lesson that the same filter is used at every position. So if you shift the input image one pixel to the right, every feature map shifts one pixel to the right too. This property is called <Term def="Shift the input and the output shifts by the same amount. Convolution layers have it because the same filter is applied at every position.">translation equivariance</Term>. It is useful (a cat in the corner is detected just like a cat in the middle), but the output still *changes* every time the cat moves.
+Recall from the convolution lesson that the same filter is used at every position. So if you shift the input image one pixel to the right, every feature map shifts one pixel to the right too. This property is called <Term def="A property of an operation: transforming the input (here, shifting it) transforms the output in the same way. Convolution is equivariant to shifts: shift the image and the feature map shifts by the same amount.">translation equivariance</Term>. It is useful (a cat in the corner is detected just like a cat in the middle), but the output still *changes* every time the cat moves.
 
-What we often want for classification is <Term def="The output does not change when the input is shifted. Pooling provides an approximate version of this for small shifts.">translation invariance</Term>: the answer "cat" should not change. Pooling gives a small, approximate dose of it.
+In the visual below, a "corner detector" has fired at four places (every other value is 0, as is typical after ReLU). What we often want for classification is <Term def="The output does not change when the input is shifted. Pooling provides an approximate version of this for small shifts.">translation invariance</Term>: the answer "cat" should not change. Pooling gives a small, approximate dose of it.
 
 <PoolingShift />
 
@@ -112,15 +118,16 @@ After 2×2 pooling, the map only records **which 2×2 block** a detection is in,
 
 <Mistake title="Myth: pooling makes CNNs shift-invariant">
 
-Only approximately, and only for shifts smaller than the pooling window. Convolution on its own is equivariant, not invariant. Networks become robust to *large* shifts mainly because they are trained on many positions, for example with random crops and flips (data augmentation).
+Pooling gives invariance only approximately, and only for shifts smaller than the pooling window. Robustness to *large* shifts comes mainly from the architecture: equivariant convolutions followed by a final global average pool (later in this lesson), which throws away where a feature was. Strides and pooling make this imperfect, so training on shifted copies of the images (random crops) also helps.
 
 </Mistake>
 
 <QuickCheck
-  q="You shift an input image one pixel to the right and pass it through a convolution layer (no pooling). What happens to the layer's feature map?"
-  options={['It shifts one pixel to the right as well', 'It stays exactly the same, because the same filter is used everywhere', 'Only the values in the rightmost column change', 'Every value is scaled down slightly']}
+  q="A feature map's only non-zero value, a 9, moves one pixel right, from column 2 to column 3 of the same row (counting columns from 0). What happens to the output of 2×2 max pooling with stride 2?"
+  options={['Nothing changes', 'The whole pooled map shifts one cell to the right', 'The pooled map shifts half a cell to the right', 'The 9 is split between two windows, so the maximum drops']}
   answer={0}
-  explain="Convolution is translation **equivariant**: the same filter meets the same pixels, just one position later, so the whole map moves one pixel right (apart from edge effects). Using the same filter everywhere is exactly *why* it shifts rather than stays the same; staying the same would be invariance."
+  id="convolutional-networks.pooling-and-receptive-field.qc2"
+  explain="With stride 2 the windows cover columns 0–1, 2–3, 4–5, …, so columns 2 and 3 are in the same window: its maximum is still 9 and every other window is still 0. The pooled map only changes when a detection crosses a window border, and pooled cells cannot move by half a cell. The windows do not overlap, so the 9 is never shared between two of them."
 />
 
 ## Global average pooling: the last pool
@@ -132,7 +139,7 @@ At the end of a CNN the last feature maps must become class scores. In ResNet-50
 
 <GlobalAvgPool />
 
-For 1000 classes, the dense layer after flattening needs $100{,}352 \times 1000 + 1000 = 100{,}353{,}000$ parameters. After GAP it needs $2048 \times 1000 + 1000 = 2{,}049{,}000$, about 49 times fewer. GAP has two more advantages: the network works for **any input size** (a bigger photo just gives bigger maps, which still average to 2048 numbers), and there are far fewer weights to overfit. What it gives up is *where* each feature was, which is fine for "what is in this image?" but not for tasks that need positions, such as detection.
+For 1,000 classes, the dense layer after flattening needs $100{,}352 \times 1{,}000 + 1{,}000 = 100{,}353{,}000$ parameters. After GAP it needs $2048 \times 1{,}000 + 1{,}000 = 2{,}049{,}000$, about 49 times fewer. GAP has two more advantages: the network works for **any input size** (a bigger photo just gives bigger maps, which still average to 2048 numbers), and there are far fewer weights to overfit. What it gives up is *where* each feature was, which is fine for "what is in this image?" but not for tasks that need positions, such as detection.
 
 ## The receptive field
 
@@ -165,7 +172,7 @@ $r_l$ is the receptive field after layer $l$, $k_l$ and $s_l$ are that layer's k
     $r_2 = 3 + (2 - 1) \times 1 = 4$ and $j_2 = 1 \times 2 = 2$: neighbouring pooled neurons are now 2 pixels apart.
   </Step>
   <Step title="Layer 3: conv 3×3, stride 1">
-    $r_3 = 4 + (3 - 1) \times 2 = 8$. Three 3×3 convs without the pool would only reach 7: the pool doubled the reach of every layer after it.
+    $r_3 = 4 + (3 - 1) \times 2 = 8$. Swap the pool for a third 3×3 conv and you reach only 7. The pool's window is just 2, but it doubles the jump, so the conv after it reaches twice as far.
   </Step>
 </Steps>
 

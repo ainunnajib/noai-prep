@@ -196,7 +196,8 @@ export default function WhisperFlow() {
     }
     const ink2 = rgbCss(theme.ink2)
     const axis = rgbCss(theme.axis)
-    const fade = (on: boolean) => (ctx.globalAlpha = on ? 1 : 0.16)
+    // later stages show as a faint preview, so the whole pipeline is visible from the first frame
+    const fade = (on: boolean) => (ctx.globalAlpha = on ? 1 : 0.3)
     ctx.font = `700 11px ${FONT}`
     ctx.textBaseline = 'alphabetic'
 
@@ -296,11 +297,11 @@ export default function WhisperFlow() {
       ctx.stroke()
       ctx.fillStyle = rgbCss(theme.v2)
       ctx.font = `700 11px ${FONT}`
-      ctx.fillText(`cross-attention of "${outputs[tokIdx][0]}" over the 1,500 audio vectors`, L, attY - 6)
+      ctx.fillText(narrow ? `cross-attention of "${outputs[tokIdx][0]}" over the audio` : `cross-attention of "${outputs[tokIdx][0]}" over the 1,500 audio vectors`, L, attY - 6)
     } else {
       ctx.fillStyle = ink2
       ctx.font = `600 11px ${FONT}`
-      ctx.fillText(st >= 4 ? 'done: the decoder wrote <|endoftext|>' : 'cross-attention appears when the decoder writes a word', L, attY - 6)
+      ctx.fillText(st >= 4 ? 'done: the decoder wrote <|endoftext|>' : narrow ? 'cross-attention: shown for each word' : 'cross-attention appears when the decoder writes a word', L, attY - 6)
     }
     ctx.strokeStyle = axis
     ctx.lineWidth = 1

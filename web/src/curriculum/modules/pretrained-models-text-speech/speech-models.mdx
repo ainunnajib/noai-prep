@@ -51,42 +51,45 @@ Only masked frames are scored. A visible frame's unit can be read straight off t
 Here is the heart of HuBERT's training step in PyTorch, with random numbers standing in for real features (a 2-layer Transformer instead of HuBERT's 12):
 
 ```python
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 torch.manual_seed(8)
-T, D, K = 50, 768, 100                 # 50 frames (1 s), vector size, number of units
-feats = torch.randn(1, T, D)           # CNN features: one vector per 20 ms
-units = torch.randint(0, K, (1, T))    # k-means unit of every frame = the targets
+T, D, K = 50, 768, 100               # frames (1 s), vector size, units
+feats = torch.randn(1, T, D)         # CNN features: one vector per 20 ms
+units = torch.randint(0, K, (1, T))  # k-means unit of every frame = targets
 
-starts = torch.rand(1, T) < 0.08       # ~8% of frames start a masked span
+starts = torch.rand(1, T) < 0.08     # ~8% of frames start a masked span
 mask = torch.zeros(1, T, dtype=torch.bool)
 for s in starts.nonzero()[:, 1]:
-    mask[0, s:s + 10] = True           # hide 10 frames from each start
+    mask[0, s:s + 10] = True         # hide 10 frames from each start
 print("masked frames:", mask.sum().item(), "of", T)
 
-mask_emb = nn.Parameter(torch.randn(D))                # learned [MASK] vector
-x = torch.where(mask.unsqueeze(-1), mask_emb, feats)   # swap in [MASK] where hidden
+mask_emb = nn.Parameter(torch.randn(D))               # learned [MASK] vector
+x = torch.where(mask.unsqueeze(-1), mask_emb, feats)  # [MASK] where hidden
 
 layer = nn.TransformerEncoderLayer(D, nhead=12, batch_first=True)
 encoder = nn.TransformerEncoder(layer, num_layers=2)
-head = nn.Linear(D, K)                 # a score for each of the K units
+head = nn.Linear(D, K)               # a score for each of the K units
 logits = head(encoder(x))
 print("logits:", tuple(logits.shape))
-loss = F.cross_entropy(logits[mask], units[mask])      # masked frames only
-print("loss:", round(loss.item(), 2), " ln(100) =", round(torch.log(torch.tensor(100.)).item(), 2))
+loss = F.cross_entropy(logits[mask], units[mask])     # masked frames only
+print("loss:", round(loss.item(), 2))
+print("ln(100):", round(math.log(100), 2))
 ```
 
 ```text
 masked frames: 26 of 50
 logits: (1, 50, 100)
-loss: 4.55  ln(100) = 4.61
+loss: 4.55
+ln(100): 4.61
 ```
 
 `logits[mask]` keeps only the 26 hidden frames, so the loss ignores the rest. An untrained model guesses evenly among 100 units, and $-\ln(1/100) = \ln 100 \approx 4.61$, which is why the first loss sits near 4.6. Training pushes it down.
 
-**Using HuBERT afterwards.** Throw away the unit-prediction head and keep the encoder. For a label per clip (emotion, speaker, keyword), average the frame vectors into one clip vector and train a small linear layer on top. For speech recognition, add a layer that predicts a letter for every frame and fine-tune with a <Term def="Connectionist temporal classification: a loss that lets a model output a letter or a 'blank' for every frame and then merges repeats, so it can learn from transcripts without knowing exactly when each letter was spoken.">CTC loss</Term>. Its cousin **wav2vec 2.0** (2020, from the same lab) is used in exactly the same ways; it differs only in how its pretraining targets are made.
+**Using HuBERT afterwards.** Throw away the unit-prediction head and keep the encoder. For a label per clip (emotion, speaker, keyword), average the frame vectors into one clip vector and train a small linear layer on top. For speech recognition, add a layer that predicts a letter for every frame and fine-tune with a <Term def="Connectionist temporal classification: a loss that lets a model output a letter or a 'blank' for every frame and then merges repeats, so it can learn from transcripts without knowing exactly when each letter was spoken.">CTC loss</Term>. Its cousin **wav2vec 2.0** (2020, from the same lab) is used in exactly the same ways. It also hides spans of frames, but instead of fixed k-means units it learns its own targets during training and must pick the right one out of a line-up of distractors (a <Term def="A loss that rewards the model for scoring the true answer higher than a set of wrong 'distractor' answers, rather than predicting a class number directly.">contrastive loss</Term>).
 
 <QuickCheck
   q="Why does HuBERT compute its loss only on the masked frames?"
@@ -107,7 +110,7 @@ A stenographer listens to a recording and types it out. Before starting, they ar
 
 1. Cut or pad the audio to a **30-second** chunk at 16 kHz: 480,000 samples.
 2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in the last lesson.
-3. **Encoder:** two 1-D convolutions (width 3; the second has stride 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms.
+3. **Encoder:** two 1-D convolutions (width 3; the second has <Term def="How many positions a convolution's filter jumps each time it moves. Stride 2 visits every other position, so the output is about half as long as the input.">stride</Term> 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms.
 4. **Decoder:** generates text tokens one at a time. Each block has causal self-attention over the tokens so far, plus **cross-attention**, whose queries come from the text and whose keys and values come from the 1,500 audio vectors.
 5. **Special tokens** start every output: `<|startoftranscript|>`, a language token such as `<|ms|>`, a task token (`<|transcribe|>` or `<|translate|>`) and `<|notimestamps|>`. The output ends with `<|endoftext|>`.
 
@@ -128,8 +131,6 @@ V &= H_\text{audio}\, W_V
 $$
 
 $H_\text{text}$ holds one vector per text token so far, and $H_\text{audio}$ holds the 1,500 encoder vectors. Each text token gets a row of 1,500 attention weights that add up to 1, saying which moments of audio to read. Whisper's word-level timestamps are worked out from these weights.
-
-<PastPaperQuestion paper="prelim2026" n={254} />
 
 <Steps title="Shapes through Whisper (tiny model, width 384)">
   <Step title="Audio">
@@ -154,7 +155,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-mel = torch.randn(1, 80, 3000)          # (batch, mel bands, frames): 30 s of audio
+mel = torch.randn(1, 80, 3000)          # (batch, mel bands, frames) = 30 s
 conv1 = nn.Conv1d(80, 384, kernel_size=3, padding=1)
 conv2 = nn.Conv1d(384, 384, kernel_size=3, stride=2, padding=1)
 x = F.gelu(conv2(F.gelu(conv1(mel))))
@@ -167,6 +168,8 @@ print(x.shape)
 torch.Size([1, 384, 1500])
 torch.Size([1, 1500, 384])
 ```
+
+<PastPaperQuestion paper="prelim2026" n={190} />
 
 Whisper comes in five sizes, all with the same design: tiny (39M parameters, width 384), base (74M, 512), small (244M, 768), medium (769M, 1,024) and large (1.55B, 1,280).
 

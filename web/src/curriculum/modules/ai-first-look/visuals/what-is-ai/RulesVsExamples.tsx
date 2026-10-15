@@ -1,49 +1,93 @@
 import { useMemo, useState } from 'react'
-import { Figure, Bars, Button, usePlayer } from '../../../../../kit'
-import { SMS, SMS_TOKENS, scoresAfter, messageScore } from './smsData'
+import { Figure, Bars, Button, usePlayer, useNarrow } from '../../../../../kit'
+import { SMS, SMS_TOKENS, NEW_SMS, NEW_TOKENS, scoresAfter, messageScore, tokensScore, type Sms } from './smsData'
 import r from './rules.module.css'
 
 /*
   Left: the learner writes keyword rules ("spam if it contains any of …").
   Right: a tiny learner reads the 20 labelled messages one by one and keeps a score per word
-  (+1 for each spam message it appears in, −1 for each normal one). Both are checked on the same 20 messages.
+  (+1 for each spam message it appears in, −1 for each normal one). Both are scored on the same 20 messages,
+  where either can reach 20/20, and then (the fair test) on 8 new messages that neither has learned from.
 */
 
 const PALETTE = ['free', 'win', 'prize', 'claim', '$', 'urgent', 'call', 'now', 'txt', 'cash', 'offer', '.com']
 const N = SMS.length
+const N_NEW = NEW_SMS.length
 
-function Meter({ label, correct, color }: { label: string; correct: number; color: string }) {
+function Meter({ label, correct, total, color }: { label: string; correct: number; total: number; color: string }) {
   return (
     <div className={r.meter}>
       <div className={r.meterText}>
         <span>{label}</span>
         <span>
-          {correct} / {N} correct ({Math.round((100 * correct) / N)}%)
+          {correct} / {total} correct ({Math.round((100 * correct) / total)}%)
         </span>
       </div>
-      <div className={r.meterTrack} role="meter" aria-valuemin={0} aria-valuemax={N} aria-valuenow={correct} aria-label={`${label}: ${correct} of ${N} correct`}>
-        <div className={r.meterFill} style={{ width: `${(100 * correct) / N}%`, background: color }} />
+      <div className={r.meterTrack} role="meter" aria-valuemin={0} aria-valuemax={total} aria-valuenow={correct} aria-label={`${label}: ${correct} of ${total} ${total === N ? 'training' : 'new'} messages correct`}>
+        <div className={r.meterFill} style={{ width: `${(100 * correct) / total}%`, background: color }} />
         <div className={r.meterHalf} title="50%: no better than a coin toss" />
       </div>
     </div>
   )
 }
 
-const signed = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0')
+function MessageTable({ msgs, rulePred, learnPred, reading, label }: { msgs: { m: Sms; i: number }[]; rulePred: number[]; learnPred: number[]; reading: number; label: string }) {
+  return (
+    <div className={r.table} role="table" aria-label={label}>
+      <div className={`${r.row} ${r.head}`} role="row">
+        <span role="columnheader">Message (true label)</span>
+        <span role="columnheader" className={r.colHead}>
+          Rules
+        </span>
+        <span role="columnheader" className={r.colHead}>
+          Learned
+        </span>
+      </div>
+      {msgs.map(({ m, i }) => (
+        <div key={i} className={`${r.row}${i === reading ? ` ${r.reading}` : ''}`} role="row">
+          <span className={r.msg} role="cell">
+            <span className={`${r.truth} ${m.spam ? r.truthSpam : r.truthOk}`}>{m.spam ? 'spam' : 'normal'}</span>
+            {m.text}
+          </span>
+          <span role="cell" className={`${r.verdict} ${rulePred[i] === m.spam ? r.right : r.wrong}`}>
+            {rulePred[i] === m.spam ? '✓ ' : '✗ '}
+            {rulePred[i] ? 'spam' : 'normal'}
+          </span>
+          <span role="cell" className={`${r.verdict} ${learnPred[i] === m.spam ? r.right : r.wrong}`}>
+            {learnPred[i] === m.spam ? '✓ ' : '✗ '}
+            {learnPred[i] ? 'spam' : 'normal'}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** 1 (spam) if the message contains any switched-on keyword, else 0 (normal). */
+const ruleSays = (rules: string[], text: string) => (rules.some((k) => text.toLowerCase().includes(k.toLowerCase())) ? 1 : 0)
+const countRight = (pred: number[], msgs: Sms[]) => pred.reduce<number>((a, p, i) => a + (p === msgs[i].spam ? 1 : 0), 0)
 
 export default function RulesVsExamples() {
   const [palette, setPalette] = useState(PALETTE)
   const [rules, setRules] = useState<string[]>(['free', 'win', 'prize'])
   const [draft, setDraft] = useState('')
+  const [tested, setTested] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
   const player = usePlayer({ steps: N + 1, interval: 520 })
   const read = player.step // number of messages read so far
 
-  const rulePred = useMemo(() => SMS.map((m) => (rules.some((k) => m.text.toLowerCase().includes(k.toLowerCase())) ? 1 : 0)), [rules])
-  const ruleCorrect = rulePred.reduce<number>((a, p, i) => a + (p === SMS[i].spam ? 1 : 0), 0)
+  const rulePred = useMemo(() => SMS.map((m) => ruleSays(rules, m.text)), [rules])
+  const ruleNewPred = useMemo(() => NEW_SMS.map((m) => ruleSays(rules, m.text)), [rules])
 
   const scores = useMemo(() => scoresAfter(read), [read])
   const learnPred = useMemo(() => SMS.map((_, i) => (messageScore(i, scores) > 0 ? 1 : 0)), [scores])
-  const learnCorrect = learnPred.reduce<number>((a, p, i) => a + (p === SMS[i].spam ? 1 : 0), 0)
+  const learnNewPred = useMemo(() => NEW_TOKENS.map((t) => (tokensScore(t, scores) > 0 ? 1 : 0)), [scores])
+
+  const ruleCorrect = countRight(rulePred, SMS)
+  const learnCorrect = countRight(learnPred, SMS)
+  const ruleNew = countRight(ruleNewPred, NEW_SMS)
+  const learnNew = countRight(learnNewPred, NEW_SMS)
 
   const ranked = useMemo(() => [...scores.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])), [scores])
   const spamClues = ranked.filter(([, v]) => v > 0).slice(0, 5)
@@ -64,19 +108,25 @@ export default function RulesVsExamples() {
   const last = read > 0 ? read - 1 : -1
   const ruleWords = rules.filter((k) => /^[a-z]+$/.test(k) || k === '$')
 
+  // The 20 training messages: a short window that follows the message being read, or all of them.
+  const WINDOW = narrow ? 5 : 8
+  const start = showAll ? 0 : Math.max(0, Math.min(N - WINDOW, last - Math.floor(WINDOW / 2)))
+  const shown = SMS.map((m, i) => ({ m, i })).slice(start, showAll ? N : start + WINDOW)
+
   return (
     <Figure
       title="Write rules, or learn from examples?"
       caption={
         <>
-          Try to beat the learner with your own keywords, then press <strong>Learn</strong> and watch each labelled message nudge the word scores. It ends up
-          trusting <code>your</code>, <code>$</code> and web links, while <code>free</code> becomes a <em>normal</em>-message clue (friends ask “free for
-          lunch?”). Some clues, like <code>a</code>, are flukes of having only 20 messages: real filters learn from millions, and are judged on <em>new</em>{' '}
-          messages, an idea you will meet later in this module.
+          Try to beat the learner with your own keywords, then press <strong>Learn</strong> and watch each labelled message nudge the word scores. Both
+          methods can reach 20/20 on these 20 messages, so that score proves little: the fair test is <em>new</em> messages that neither has learned from.
+          When your rules are as good as you can make them, press <strong>Test on new messages</strong>. Notice that nobody gave the learner its clues: it
+          found <code>your</code>, <code>$</code> and web links by itself, and turned <code>free</code> into a <em>normal</em>-message clue (friends ask
+          “free for lunch?”). Some clues, like <code>a</code>, are flukes of having only 20 messages; real filters learn from millions.
         </>
       }
     >
-      <div className={r.wrap}>
+      <div className={r.wrap} ref={wrapRef}>
         <div className={r.panels}>
           <section className={r.panel} aria-label="Your keyword rules">
             <div className={r.panelTitle}>1. You write the rules</div>
@@ -100,7 +150,7 @@ export default function RulesVsExamples() {
                 Add
               </button>
             </form>
-            <Meter label="Your rules" correct={ruleCorrect} color="var(--viz-2)" />
+            <Meter label="Your rules" correct={ruleCorrect} total={N} color="var(--viz-2)" />
           </section>
 
           <section className={r.panel} aria-label="Learning from labelled examples">
@@ -131,7 +181,7 @@ export default function RulesVsExamples() {
                 </>
               )}
             </div>
-            <Meter label="Learned scores" correct={learnCorrect} color="var(--viz-1)" />
+            <Meter label="Learned scores" correct={learnCorrect} total={N} color="var(--viz-1)" />
           </section>
         </div>
 
@@ -165,34 +215,53 @@ export default function RulesVsExamples() {
           </div>
         )}
 
-        <div className={r.table} role="table" aria-label="The 20 messages with each method's verdict">
-          <div className={`${r.row} ${r.head}`} role="row">
-            <span role="columnheader">Message (true label)</span>
-            <span role="columnheader" className={r.colHead}>
-              Rules
-            </span>
-            <span role="columnheader" className={r.colHead}>
-              Learned
-            </span>
-          </div>
-          {SMS.map((m, i) => (
-            <div key={i} className={`${r.row}${i === last ? ` ${r.reading}` : ''}`} role="row">
-              <span className={r.msg} role="cell">
-                <span className={`${r.truth} ${m.spam ? r.truthSpam : r.truthOk}`}>{m.spam ? 'spam' : 'normal'}</span>
-                {m.text}
+        <section className={r.test} aria-label="The fair test: new messages">
+          <div className={r.panelTitle}>3. The fair test: {N_NEW} new messages</div>
+          {!tested ? (
+            <div className={r.btnRow} style={{ alignItems: 'center' }}>
+              <span className={r.panelText} style={{ flex: '1 1 16rem' }}>
+                Neither method has learned from these. Tune your rules and let the computer learn first, then test both.
               </span>
-              <span role="cell" className={`${r.verdict} ${rulePred[i] === m.spam ? r.right : r.wrong}`}>
-                {rulePred[i] === m.spam ? '✓ ' : '✗ '}
-                {rulePred[i] ? 'spam' : 'normal'}
-              </span>
-              <span role="cell" className={`${r.verdict} ${learnPred[i] === m.spam ? r.right : r.wrong}`}>
-                {learnPred[i] === m.spam ? '✓ ' : '✗ '}
-                {learnPred[i] ? 'spam' : 'normal'}
-              </span>
+              <Button primary onClick={() => setTested(true)}>
+                Test on new messages
+              </Button>
             </div>
-          ))}
+          ) : (
+            <>
+              <div className={r.panels}>
+                <Meter label="Your rules" correct={ruleNew} total={N_NEW} color="var(--viz-2)" />
+                <Meter label="Learned scores" correct={learnNew} total={N_NEW} color="var(--viz-1)" />
+              </div>
+              <div className={r.panelText} aria-live="polite">
+                {read < N
+                  ? `The learner has read only ${read} of the ${N} training messages so far. Press Learn to finish, and watch its score on the new messages change.`
+                  : learnNew > ruleNew
+                    ? `Keyword rules miss scams that avoid the chosen words, and trip on normal messages that happen to use them (“free”, “call”, “cash”, “prize”). The learner weighs many clues at once, so it copes better, though it is not perfect: it learned that “your” is a spam clue, so it flags the lost water bottle.`
+                    : `Your rules held up well here. Did you borrow the clues the learner found (such as “your”)? Either way, the learner found its clues without anyone writing a single rule.`}
+              </div>
+              <MessageTable
+                msgs={NEW_SMS.map((m, i) => ({ m, i }))}
+                rulePred={ruleNewPred}
+                learnPred={learnNewPred}
+                reading={-1}
+                label={`The ${N_NEW} new messages with each method's verdict`}
+              />
+            </>
+          )}
+        </section>
+
+        <div className={r.listHead}>
+          <span className={r.clueTitle} style={{ margin: 0 }}>
+            The {N} training messages{showAll ? '' : `: ${start + 1} to ${start + shown.length}`}
+          </span>
+          <Button onClick={() => setShowAll((v) => !v)}>{showAll ? 'Show fewer' : `Show all ${N}`}</Button>
         </div>
+        <MessageTable msgs={shown} rulePred={rulePred} learnPred={learnPred} reading={last} label={`The ${N} training messages with each method's verdict`} />
       </div>
     </Figure>
   )
+}
+
+function signed(v: number) {
+  return v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0'
 }

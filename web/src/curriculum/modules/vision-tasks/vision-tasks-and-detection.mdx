@@ -22,19 +22,21 @@ Two more words help. Countable objects such as cars and people are called <Term 
 
 <VisionTaskSwitcher />
 
-| Task | Answers | Output for an $H \times W$ image with $N$ objects | Typical model |
-|---|---|---|---|
-| classification | What is in the image? | one label (the top score out of $K$ classes) | ResNet |
-| detection | What objects, and roughly where? | $N$ rows of (box, class, score) | YOLO, SSD, Faster R-CNN, DETR |
-| semantic segmentation | Which class is each pixel? | an $H \times W$ map of class ids | U-Net (next lesson) |
-| instance segmentation | Which object is each pixel? | $N$ masks of size $H \times W$, each with a class | Mask R-CNN |
-| panoptic segmentation | Both, for every pixel | an $H \times W$ map of class ids plus instance ids | Panoptic FPN |
+| Task | Output for an $H \times W$ image with $N$ objects | Typical model |
+|---|---|---|
+| classification | one label (the top score out of $K$ classes) | ResNet |
+| detection | $N$ rows of (box, class, score) | YOLO, SSD, Faster R-CNN, DETR |
+| semantic segmentation | an $H \times W$ map of class ids | U-Net (next lesson) |
+| instance segmentation | $N$ masks of size $H \times W$, each with a class | Mask R-CNN |
+| panoptic segmentation | an $H \times W$ map of class ids plus instance ids | Mask R-CNN-style models with an extra "stuff" branch |
 
 <KeyIdea>
 
 The vision tasks differ in how much "where" information they produce: none (classification), a box per object (detection), a class per pixel (semantic), a mask per object (instance), or class and object for every pixel (panoptic).
 
 </KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={196} />
 
 <QuickCheck
   q="A farm wants to count every cow in drone photos and measure the outline of each one, even when cows stand touching each other. Which task fits best?"
@@ -85,6 +87,12 @@ A detector does not output one neat box per object. It scores thousands of candi
 3. Take the top box and **keep** it.
 4. **Suppress** (delete) every remaining box of the same class whose IoU with it is **above** the threshold (e.g. 0.5).
 5. Repeat from step 3 with whatever is left, until no boxes remain.
+
+<KeyIdea>
+
+NMS: keep the best box, delete same-class boxes that overlap it by more than the IoU threshold, repeat. Only kept boxes delete, and a lower threshold deletes more.
+
+</KeyIdea>
 
 "Non-maximum suppression" says what it does: every box that is not the local maximum of its cluster gets suppressed. NMS is run separately for each class, so a person box never deletes a car box.
 
@@ -169,9 +177,21 @@ NMS questions usually give you scores and a table of IoUs. Work in score order, 
 
 </ExamTip>
 
+## Scoring a detector: AP and mAP
+
+How do you score a detector's final boxes? First decide which predictions are correct. Go through them from the highest score down. A prediction is a **true positive** if its IoU with a ground-truth box of the same class that has not been matched yet is at least a threshold, usually 0.5. Otherwise it is a **false positive** (a duplicate, the wrong class, or a box in the wrong place). Every ground-truth box left unmatched is a **false negative**: a missed object.
+
+Lowering the confidence cut-off lets more boxes in, so recall rises while precision usually falls. Sweep the cut-off and plot precision against recall: the <Term def="Average precision: the area under a detector's precision-recall curve for one class, from 0 (useless) to 1 (perfect).">average precision</Term> (AP) is the area under that curve. **mAP** (mean average precision) averages AP over the classes. "mAP@0.5" uses an IoU threshold of 0.5. The COCO benchmark's "mAP@[.5:.95]" also averages over the IoU thresholds 0.5, 0.55, …, 0.95, so it rewards tight boxes.
+
 ## How detectors find boxes
 
-Every modern detector starts with a CNN backbone, often pretrained on ImageNet as in the previous lesson. They differ in how they turn its features into boxes.
+Most detectors start with a pretrained backbone, usually a CNN as in the previous lesson (Transformer backbones such as Swin or ViT are also used). They differ in how they turn its features into boxes.
+
+<Analogy title="Two checkpoints or one smart gate">
+
+At an airport you might queue for a security check, then queue again at passport control: two stages, each doing one careful job. Changi's automated gates scan your passport and face in a single step and are much faster. Two-stage detectors are the two checkpoints; one-stage detectors are the single smart gate.
+
+</Analogy>
 
 **Two-stage detectors: the R-CNN family.** First propose regions that might contain an object, then classify each one.
 
@@ -180,15 +200,11 @@ Every modern detector starts with a CNN backbone, often pretrained on ImageNet a
 - **Faster R-CNN** replaced selective search with a learned **region proposal network** (RPN). At every position of the feature map sit a few <Term def="Preset reference boxes of several sizes and shapes placed at every position of a feature map. The network predicts a score for each and small adjustments that turn it into a tighter box.">anchor boxes</Term>; the RPN scores each anchor for "is there an object?" and nudges its coordinates.
 - **Mask R-CNN** adds a third output to Faster R-CNN's second stage: a small pixel mask for each detected box. That makes it the classic model for **instance segmentation**.
 
-**One-stage detectors: YOLO and SSD.** Skip the proposal step and predict all boxes and classes in **one forward pass**. YOLO ("You Only Look Once") divides the image into an $S \times S$ grid. The cell that contains an object's centre is responsible for it, predicting $B$ boxes, each with $(x, y, w, h)$ and a confidence, plus $C$ class probabilities. SSD (Single Shot MultiBox Detector) does the same from several feature maps of different sizes, with preset default boxes, so it catches small and large objects. One pass makes them fast enough for real-time video.
+**One-stage detectors: YOLO and SSD.** Skip the proposal step and predict every box and class in **one forward pass** over a grid of cells, which makes them fast enough for real-time video. YOLO stands for "You Only Look Once"; SSD (Single Shot MultiBox Detector) predicts from several feature maps of different sizes to catch small and large objects.
 
-**Set prediction: DETR.** The DEtection TRansformer feeds the CNN features into a Transformer. A fixed number of learned *object queries* (e.g. 100) each output either a box with a class or "no object". During training each real object is matched to exactly one prediction, so duplicates are punished. That is why DETR needs **no anchors and no NMS**.
+**Set prediction: DETR.** The DEtection TRansformer passes the CNN features through a <Term def="A kind of network layer that lets every part of the input look at every other part (attention). Taught in the attention-and-transformers module.">Transformer</Term> and fills a fixed number of slots, called *object queries* (e.g. 100), each with either a box and class or "no object". In training, each real object is matched to exactly one slot, so duplicate boxes are penalised. That is why DETR needs **no anchors and no NMS**. (Transformers come in a later module; for now remember: a fixed set of slots, one per object, no NMS.)
 
-<Analogy title="Two checkpoints or one smart gate">
-
-At an airport you might queue for a security check, then queue again at passport control: two stages, each doing one careful job. Changi's automated gates scan your passport and face in a single step and are much faster. Two-stage detectors are the two checkpoints; one-stage detectors are the single smart gate.
-
-</Analogy>
+Click through each pipeline to see what every stage takes in and gives out.
 
 <DetectorPipelines />
 
@@ -201,6 +217,10 @@ At an airport you might queue for a security check, then queue again at passport
 
 <PastPaperQuestion paper="prelim2026" n={198} />
 
+<PastPaperQuestion paper="noai2025" n={13} />
+
+<PastPaperQuestion paper="noai2025" n={15} />
+
 ### How big is YOLO's output?
 
 Each grid cell predicts $B$ boxes with 5 numbers each, $(x, y, w, h, \text{confidence})$, plus $C$ class probabilities, so $5B + C$ numbers per cell. With $S \times S$ cells the output has
@@ -211,25 +231,27 @@ $$
 
 numbers. The original YOLO used $S = 7$, $B = 2$ and $C = 20$: $5 \times 2 + 20 = 30$ numbers per cell, and $7 \times 7 = 49$ cells, so $49 \times 30 = 1470$ numbers for the whole image.
 
+Later versions (YOLOv2 and v3) and SSD give every anchor box its own class scores instead, so the count becomes $S \times S \times B \times (5 + C)$. Read which layout a question uses.
+
 <QuickCheck
-  q="A YOLO-style head uses a 5 × 5 grid, B = 2 boxes per cell and C = 3 classes. How many numbers does it output?"
+  q="An original-YOLO (v1) head, where each cell shares one set of C class probabilities, uses a 5 × 5 grid, B = 2 boxes per cell and C = 3 classes. How many numbers does it output?"
   options={['325', '400', '275', '75']}
   answer={0}
-  explain="Per cell: $5 \times 2 + 3 = 13$. Cells: $5 \times 5 = 25$. Total $25 \times 13 = 325$. 275 forgets the confidence (4 numbers per box), 400 gives every box its own class probabilities, and 75 counts only the class probabilities."
+  explain="Per cell: $5 \times 2 + 3 = 13$. Cells: $5 \times 5 = 25$. Total $25 \times 13 = 325$. 400 is $S \times S \times B \times (5 + C)$, the YOLOv2/v3 and SSD layout where every box has its own class scores, so read which convention a question uses. 275 forgets the confidence (4 numbers per box), and 75 counts only the class probabilities."
 />
 
-<PastPaperQuestion paper="prelim2026" n={257} />
+<PastPaperQuestion paper="noai2025" n={12} />
 
 <ExamTip>
 
-Keyword map. "Region proposals", "selective search", "two-stage" → R-CNN family. "Region proposal network", "anchors" → Faster R-CNN. "Single pass", "grid", "real time" → YOLO (and SSD). "Mask branch", "instance segmentation" → Mask R-CNN. "Transformer", "object queries", "no NMS" → DETR. "Semantic segmentation", "skip connections" → U-Net.
+Keyword map. "Region proposals", "selective search", "two-stage" → R-CNN family. "Region proposal network", "anchors" → Faster R-CNN. "Single pass", "grid", "real time" → YOLO (and SSD). "Mask branch", "instance segmentation" → Mask R-CNN. "Transformer", "object queries", "no NMS" → DETR. "Semantic segmentation", "skip connections" → U-Net. "mAP@0.5" → a box is a hit when IoU ≥ 0.5.
 
 </ExamTip>
 
 <Takeaways>
 
 - Classification gives one label; detection gives a box, class and score per object; semantic segmentation a class per pixel; instance segmentation a mask per object; panoptic both for every pixel.
-- IoU = overlap area ÷ union area, and the union is area(A) + area(B) − overlap.
+- IoU = overlap area ÷ union area, and the union is area(A) + area(B) − overlap. For mAP@0.5, a box only counts as a hit if its IoU with a true box is at least 0.5.
 - NMS: sort by score, keep the top box, delete same-class boxes with IoU above the threshold, repeat. A lower threshold deletes more.
 - Two-stage detectors (R-CNN, Fast/Faster R-CNN) propose regions and then classify them: accurate but slower. One-stage detectors (YOLO, SSD) predict everything in one pass: real-time.
 - Mask R-CNN = Faster R-CNN + a mask per box, for instance segmentation. DETR predicts a set of boxes with a Transformer and needs no anchors or NMS.

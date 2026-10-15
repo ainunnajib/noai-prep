@@ -3,8 +3,9 @@ import { Figure, Controls, Slider, Button } from '../../../../../kit'
 
 /*
   Build a word-level vocabulary step by step. Tokenise = lowercase, then split into runs of
-  letters/digits. Ids 0 and 1 are reserved for [PAD] and [UNK]. A word gets the next free id
-  the moment it has been seen `minFreq` times. A test sentence is then encoded with the
+  letters/digits. Ids 0 and 1 are reserved for [PAD] and [UNK]. A word joins the vocabulary
+  once it has been seen `minFreq` times, and (exactly like the lesson's Python code) the words
+  that qualify are numbered in order of first appearance. A test sentence is then encoded with the
   vocabulary built so far, unknown words become [UNK] (id 1), and the result is padded with
   [PAD] (id 0) or cut to a fixed length.
 */
@@ -39,11 +40,10 @@ function build(tokens: string[], upto: number, minFreq: number) {
     const w = tokens[i]
     const c = (count.get(w) ?? 0) + 1
     count.set(w, c)
-    if (!ids.has(w) && c >= minFreq) {
-      ids.set(w, ids.size)
-      last = { word: w, event: 'id' }
-    } else last = { word: w, event: c === 1 ? 'new' : 'count' }
+    last = { word: w, event: c === minFreq ? 'id' : c === 1 ? 'new' : 'count' }
   }
+  // a Map keeps insertion order, i.e. order of first appearance, like Python's Counter
+  for (const [w, c] of count) if (c >= minFreq) ids.set(w, ids.size)
   return { count, ids, last }
 }
 
@@ -82,10 +82,21 @@ export default function VocabBuilder() {
   const cut = Math.max(0, encoded.length - maxLen)
 
   let message = 'Press Play or Next to add the training words one at a time.'
-  if (step >= tokens.length && tokens.length) message = `Done: ${vocab.length} entries (${vocab.length - 2} words + [PAD] + [UNK]).`
+  const nWords = vocab.length - 2
+  if (step >= tokens.length && tokens.length) message = `Done: ${vocab.length} entries (${nWords} word${nWords === 1 ? '' : 's'} + [PAD] + [UNK]).`
   if (last && step < tokens.length && step > 0) {
     const c = count.get(last.word) ?? 0
-    if (last.event === 'id') message = `“${last.word}” has now been seen ${c} time${c > 1 ? 's' : ''}, so it gets the next id: ${ids.get(last.word)}.`
+    if (last.event === 'id') {
+      const myId = ids.get(last.word) ?? 0
+      const shifted = vocab.filter(([w, id]) => id > myId && !w.startsWith('[')).map(([w]) => `“${w}”`)
+      message =
+        minFreq === 1
+          ? `“${last.word}” is new, so it gets the next free id: ${myId}.`
+          : `“${last.word}” has now been seen ${c} times, so it joins the vocabulary with id ${myId}.` +
+            (shifted.length
+              ? ` Ids follow first appearance (as in the code below), and “${last.word}” appeared before ${shifted.join(', ')}, so ${shifted.length === 1 ? 'that word moves' : 'those words move'} up by one.`
+              : '')
+    }
     else if (last.event === 'new') message = `“${last.word}” is new, but needs ${minFreq} sightings before it gets an id.`
     else message = ids.has(last.word) ? `“${last.word}” is already in the vocabulary (id ${ids.get(last.word)}), so only its count goes up to ${c}.` : `“${last.word}” seen ${c} time${c > 1 ? 's' : ''}: still below the minimum of ${minFreq}.`
   }
@@ -101,7 +112,8 @@ export default function VocabBuilder() {
         <>
           Step through the training sentences: each new word is added to the vocabulary with the next free id. Then look at the test sentence: a word
           the vocabulary has never seen becomes <code>[UNK]</code> (id 1), and short sentences are padded with <code>[PAD]</code> (id 0) to a fixed
-          length. Edit the sentences, or raise the minimum frequency so rare words are left out.
+          length. Edit the sentences, or raise the minimum frequency so rare words are left out (the words that qualify are numbered in order of
+          first appearance, exactly as in the Python code below).
         </>
       }
     >

@@ -91,7 +91,7 @@ button.cell:focus-visible {
   display: grid;
   justify-items: center;
   align-content: center;
-  width: 46px;
+  width: 50px;
   padding: 2px 0;
   transition: background-color 0.25s;
 }
@@ -108,18 +108,20 @@ button.cell:focus-visible {
 .step {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 22px;
+  width: 40px;
+  height: 32px;
   padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--ink-2);
-  font-size: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 7px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
 }
 .step:hover:not(:disabled) {
-  background: var(--surface-3);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-3));
   color: var(--ink);
 }
 .step:disabled {
@@ -329,4 +331,23 @@ button.cell:focus-visible {
 }
 .monoText {
   font-family: var(--font-mono);
+}
+
+/* the raw error message, folded away under a plain-English reason */
+.errDetails {
+  margin-top: 0.3rem;
+  color: var(--ink-2);
+}
+.errDetails summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.errDetails code {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }

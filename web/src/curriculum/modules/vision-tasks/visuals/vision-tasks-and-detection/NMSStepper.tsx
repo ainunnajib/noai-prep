@@ -95,11 +95,16 @@ function runNMS(thr: number, conf: number) {
   return { frames, kept }
 }
 
-function verdict(kept: Box[], thr: number) {
+function verdict(kept: Box[], thr: number, conf: number) {
   const n = (o: Box['obj']) => kept.filter((k) => k.obj === o).length
   const issues: string[] = []
   const aB = iou(BOXES[0].b, BOXES[3].b)
-  if (n('B') === 0 && n('A') >= 1) issues.push(`Person B has vanished: the people overlap (their best boxes have IoU ${aB.toFixed(2)}), so with a threshold of ${thr.toFixed(2)} person A's box suppressed person B's. Raise the threshold.`)
+  // did any of person B's boxes get past the confidence cut-off and into NMS at all?
+  const bEntered = BOXES.some((b) => b.obj === 'B' && b.score >= conf)
+  if (n('B') === 0 && !bEntered)
+    issues.push(`Person B has vanished because all its boxes score below the confidence cut-off of ${conf.toFixed(2)}, so they never reach NMS. Lower the cut-off.`)
+  else if (n('B') === 0 && n('A') >= 1)
+    issues.push(`Person B has vanished: the people overlap (their best boxes have IoU ${aB.toFixed(2)}), so with a threshold of ${thr.toFixed(2)} person A's box suppressed person B's. Raise the threshold.`)
   const dups = (['A', 'B', 'car'] as const).filter((o) => n(o) > 1)
   if (dups.length) issues.push(`Duplicates: ${dups.map((o) => (o === 'car' ? 'the car' : `person ${o}`)).join(' and ')} reported more than once. The threshold is too high to remove near-copies.`)
   if (n('bush') > 0) issues.push('The bush (score 0.31) survives as a false “person”. NMS cannot remove it because nothing overlaps it: raise the confidence cut-off.')
@@ -115,7 +120,7 @@ export default function NMSStepper() {
   const player = usePlayer({ steps: frames.length, interval: 1600 })
   const f = frames[Math.min(player.step, frames.length - 1)]
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(620)
-  const issues = verdict(kept, thr)
+  const issues = verdict(kept, thr, conf)
   const sorted = [...BOXES].sort((a, b) => b.score - a.score)
 
   return (

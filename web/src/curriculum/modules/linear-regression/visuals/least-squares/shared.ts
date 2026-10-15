@@ -90,3 +90,29 @@ export function mseForm(pts: Pt[]) {
   const mxx = pts.reduce((s, p) => s + p[0] * p[0], 0) / n
   return { a: mxx, h: mx, d: 1 }
 }
+
+/**
+ * Where to draw the two handles of a line ŷ = w x + b that the learner drags. Normally they sit
+ * at x = xl and x = xr; if the line leaves the y-range there, the handle slides along the line to
+ * where it meets the top or bottom edge (inset by `pad`), so it stays on the line and on the plot.
+ */
+export function lineHandles(w: number, b: number, xl: number, xr: number, [y0, y1]: [number, number], pad = 0.3): [Pt, Pt] {
+  const lo = y0 + pad
+  const hi = y1 - pad
+  const place = (xe: number): Pt => {
+    const ye = w * xe + b
+    if (ye >= lo && ye <= hi) return [xe, ye]
+    const yc = ye > hi ? hi : lo
+    const xc = Math.abs(w) > 1e-9 ? (yc - b) / w : xe
+    const x = Math.max(xl, Math.min(xr, xc))
+    return [x, Math.max(lo, Math.min(hi, w * x + b))]
+  }
+  return [place(xl), place(xr)]
+}
+
+/** The line through two points (falls back to a flat line through p if they share an x). */
+export function lineThrough(p: Pt, q: Pt): { w: number; b: number } {
+  const dx = q[0] - p[0]
+  const w = Math.abs(dx) > 1e-9 ? (q[1] - p[1]) / dx : 0
+  return { w, b: p[1] - w * p[0] }
+}

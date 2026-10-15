@@ -27,6 +27,16 @@ export const DACT: Record<Act, (z: number) => number> = {
 
 export const ACT_LABEL: Record<Act, string> = { sigmoid: 'sigmoid', tanh: 'tanh', relu: 'ReLU' }
 
+/**
+ * One colour key for gradient SIZE across this lesson's figures. Orange stays reserved for "a gradient
+ * flowing back" (as in the other lessons), so it is not used for a size.
+ */
+export const SIZE_COLOUR = {
+  vanishing: 'var(--viz-1)',
+  healthy: 'var(--viz-3)',
+  exploding: 'var(--viz-neg)',
+} as const
+
 /** Standard normal sample (Box–Muller) from a uniform rng. */
 export function gaussian(rng: () => number): number {
   let u = 0
@@ -45,15 +55,30 @@ export function pow10Label(e: number): string {
   return '10' + String(r).split('').map((c) => SUP[c] ?? c).join('')
 }
 
+/** Mantissa and exponent with the mantissa already rounded (so 9.96e-5 becomes 1.0 and -4, not 10.0 and -5). */
+function splitSci(x: number, digits: number): [string, number] {
+  const [m, e] = x.toExponential(digits - 1).split('e')
+  return [m, Number(e)]
+}
+
 /** Compact scientific format for readouts: 0.00032 -> "3.2 × 10⁻⁴", 0.84 -> "0.84". */
 export function sci(x: number, digits = 2): string {
   if (!Number.isFinite(x)) return x > 0 ? '∞' : 'NaN'
   if (x === 0) return '0'
   const a = Math.abs(x)
   if (a >= 0.01 && a < 1000) return String(Number(x.toPrecision(digits)))
-  const e = Math.floor(Math.log10(a))
-  const m = x / 10 ** e
-  return `${m.toFixed(digits - 1)} × ${pow10Label(e)}`
+  const [m, e] = splitSci(x, digits)
+  return `${m} × ${pow10Label(e)}`
+}
+
+/** The same format as TeX, for <M>: 0.00032 -> "3.2 \\times 10^{-4}". */
+export function sciTex(x: number, digits = 2): string {
+  if (!Number.isFinite(x)) return x > 0 ? '\\infty' : '\\text{NaN}'
+  if (x === 0) return '0'
+  const a = Math.abs(x)
+  if (a >= 0.01 && a < 1000) return String(Number(x.toPrecision(digits)))
+  const [m, e] = splitSci(x, digits)
+  return `${m} \\times 10^{${e}}`
 }
 
 /* ---------------- a deep MLP at initialisation ---------------- */

@@ -15,9 +15,10 @@ Here is the set-up we will use for the whole first half of the lesson.
 Make a guess before reading on.
 
 <QuickCheck
+  id="probability-and-statistics.bayes-theorem.qc1"
   q="Someone tests positive. Roughly how likely is it that they really have the condition?"
-  options={['About 15%', 'About 90%', 'About 95%', 'About 50%']}
-  answer={0}
+  options={['About 90%', 'About 95%', 'About 15%', 'About 50%']}
+  answer={2}
   explain="Healthy people outnumber sick people 99 to 1, so the 5% of healthy people who are wrongly flagged outnumber the sick people who are correctly flagged. The counting below shows it is about 9 true positives for every 50 false positives, roughly 15%. If you guessed 90%, you confused P(positive | condition) with P(condition | positive), which is exactly the trap this lesson is about."
 />
 
@@ -78,10 +79,10 @@ Each piece has a name. In the medical test, $A$ is "has the condition" and $B$ i
 
 | Symbol | Name | Meaning | In our example |
 |---|---|---|---|
-| $P(A)$ | <Term def="Your belief in the hypothesis BEFORE you see the evidence.">prior</Term> | belief before the evidence | $0.01$ |
-| $P(B \mid A)$ | <Term def="How probable the evidence is IF the hypothesis is true. Not a probability of the hypothesis.">likelihood</Term> | how probable the evidence is if $A$ is true | $0.9$ |
-| $P(B)$ | evidence | how probable the evidence is overall | $0.0585$ |
-| $P(A \mid B)$ | <Term def="Your updated belief in the hypothesis AFTER seeing the evidence.">posterior</Term> | belief after the evidence | $\approx 0.154$ |
+| ${P(A)}$ | <Term def="Your belief in the hypothesis BEFORE you see the evidence.">prior</Term> | belief before the evidence | $0.01$ |
+| ${P(B \mid A)}$ | <Term def="How probable the evidence is IF the hypothesis is true. Not a probability of the hypothesis.">likelihood</Term> | how probable the evidence is if $A$ is true | $0.9$ |
+| ${P(B)}$ | evidence | how probable the evidence is overall | $0.0585$ |
+| ${P(A \mid B)}$ | <Term def="Your updated belief in the hypothesis AFTER seeing the evidence.">posterior</Term> | belief after the evidence | $\approx 0.154$ |
 
 The denominator $P(B)$ counts **every way** to test positive: true positives plus false positives. This is called the *law of total probability*:
 
@@ -106,16 +107,17 @@ $$
 
 <PastPaperQuestion paper="prelim2026" n={52} />
 
-<QuickCheck
-  q="$P(A) = 0.2$, $P(B \mid A) = 0.5$ and $P(B) = 0.25$. What is $P(A \mid B)$?"
-  options={['$0.4$', '$0.1$', '$0.5$', '$0.625$']}
-  answer={0}
-  explain="$P(A \mid B) = \frac{0.5 \times 0.2}{0.25} = \frac{0.1}{0.25} = 0.4$. The value 0.1 is $P(A \cap B)$, the numerator before you divide by $P(B)$. Answering 0.5 just copies $P(B \mid A)$, the classic confusion of the two directions."
-/>
-
 <Mistake>
 Treating $P(B \mid A)$ as if it were $P(A \mid B)$. "90% of people with the condition test positive" does **not** mean "90% of people who test positive have the condition". To turn one into the other you always need the prior $P(A)$.
 </Mistake>
+
+<QuickCheck
+  id="probability-and-statistics.bayes-theorem.qc2"
+  q="$P(A) = 0.2$, $P(B \mid A) = 0.5$ and $P(B) = 0.25$. What is $P(A \mid B)$?"
+  options={['$0.1$', '$0.5$', '$0.625$', '$0.4$']}
+  answer={3}
+  explain="$P(A \mid B) = \frac{0.5 \times 0.2}{0.25} = \frac{0.1}{0.25} = 0.4$. The value 0.1 is $P(A \cap B)$, the numerator before you divide by $P(B)$. Answering 0.5 just copies $P(B \mid A)$, the classic confusion of the two directions, and $0.625 = 0.5 \times 0.25 \div 0.2$ swaps the roles of $P(A)$ and $P(B)$."
+/>
 
 <ExamTip>
 Without a calculator, don't push decimals through the formula. Imagine 1000 (or 10,000) people, fill in the four counts (true positives, false negatives, false positives, true negatives), then compute **true positives ÷ all positives**. For definition questions: Bayes' theorem computes $P(A \mid B)$ from $P(B \mid A)$; the prior is $P(A)$; the posterior is $P(A \mid B)$.
@@ -162,24 +164,27 @@ The symbol $\propto$ means "is proportional to": multiply prior by likelihood fo
     No idea where they are: $\frac{1}{3}$ each for hawker centre, library and home.
   </Step>
   <Step title="Likelihoods of the clue">
-    They send a photo of kopi. That is quite likely at a hawker centre (0.6), unlikely in a library where drinks are banned (0.1), possible at home (0.3).
+    They send a photo of kopi. That is quite likely at a hawker centre (0.6), unlikely in a library where drinks are banned (0.1), and fairly likely at home too (0.5). These three numbers add to 1.2, and that is fine: each one answers a separate "if they were here, how likely is this photo?" question.
   </Step>
   <Step title="Multiply">
-    $\frac{1}{3} \times 0.6 = 0.2$, $\quad \frac{1}{3} \times 0.1 \approx 0.033$, $\quad \frac{1}{3} \times 0.3 = 0.1$. These add to $\frac{1}{3}$, not 1.
+    $\frac{1}{3} \times 0.6 = 0.2$, $\quad \frac{1}{3} \times 0.1 \approx 0.033$, $\quad \frac{1}{3} \times 0.5 \approx 0.167$. These add to $0.4$, not 1.
   </Step>
   <Step title="Normalise">
-    Divide each by $\frac{1}{3}$: the posterior is $0.6, 0.1, 0.3$. With an even prior, the posterior has the same shape as the likelihoods.
+    Divide each by $0.4$: the posterior is $0.5$, $\approx 0.083$ and $\approx 0.417$. These add to 1. With an even prior, the posterior has the same shape as the likelihoods, rescaled.
   </Step>
   <Step title="Repeat">
-    The posterior $0.6, 0.1, 0.3$ becomes the prior for clue 2, and so on. Today's posterior is tomorrow's prior.
+    The posterior $0.5, 0.083, 0.417$ becomes the prior for clue 2, and so on. Today's posterior is tomorrow's prior.
   </Step>
 </Steps>
 
+Likelihoods are about the evidence, one "if" question per hypothesis, so across hypotheses they need not add to 1. That is exactly why the last step normalises: only the posterior is a probability distribution over the places.
+
 <QuickCheck
-  q="Two hypotheses start at $P(H_1) = P(H_2) = 0.5$. A clue has $P(E \mid H_1) = 0.8$ and $P(E \mid H_2) = 0.2$. What is $P(H_1 \mid E)$?"
-  options={['$0.8$', '$0.4$', '$0.5$', '$0.6$']}
-  answer={0}
-  explain="Multiply: $0.5 \times 0.8 = 0.4$ and $0.5 \times 0.2 = 0.1$. Normalise by the total $0.5$: $0.4 / 0.5 = 0.8$. The value 0.4 is the unnormalised product; you must still divide by the total."
+  id="probability-and-statistics.bayes-theorem.qc3"
+  q="Two hypotheses start at $P(H_1) = P(H_2) = 0.5$. A clue has $P(E \mid H_1) = 0.6$ and $P(E \mid H_2) = 0.2$. What is $P(H_1 \mid E)$?"
+  options={['$0.6$', '$0.3$', '$0.75$', '$0.5$']}
+  answer={2}
+  explain="Multiply: $0.5 \times 0.6 = 0.3$ and $0.5 \times 0.2 = 0.1$. Normalise by the total $0.4$: $0.3 / 0.4 = 0.75$. The value 0.3 is the unnormalised product; you must still divide by the total. Answering 0.6 copies the likelihood, which only works when the likelihoods happen to add to 1."
 />
 
 ### Naive Bayes: the spam filter
@@ -222,13 +227,15 @@ p1 = posterior(0.01, 0.90, 0.05)
 p2 = posterior(p1, 0.90, 0.05)
 print("After two positive tests:", round(p2, 4))`} />
 
-The output is:
+<Reveal label="Show the expected output">
 
 ```text
 Bayes formula: 0.1538
 Simulation:    0.1539
 After two positive tests: 0.766
 ```
+
+</Reveal>
 
 `sick[positive]` keeps only the people who tested positive, so its mean is the fraction of them who are really sick. The simulation is the counting picture from the start of the lesson, done a million times.
 

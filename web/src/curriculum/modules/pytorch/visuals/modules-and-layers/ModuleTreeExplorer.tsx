@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Figure, Controls, Segmented, Toggle, Readout, useNarrow } from '../../../../../kit'
 import css from './modules.module.css'
+import { Num, StepperRow } from './Steppers'
 
 /*
   TinyNet: Linear -> ReLU -> Linear, as a real nn.Module. Edit the four layer sizes in the code,
@@ -20,20 +21,6 @@ interface Sizes {
   o1: number
   i2: number
   o2: number
-}
-
-function Num({ v, set, min = 1, max = 16, label }: { v: number; set: (n: number) => void; min?: number; max?: number; label: string }) {
-  return (
-    <span className={css.num}>
-      <button type="button" className={css.stepBtn} onClick={() => set(Math.max(min, v - 1))} aria-label={`decrease ${label}`}>
-        ◀
-      </button>
-      <b>{v}</b>
-      <button type="button" className={css.stepBtn} onClick={() => set(Math.min(max, v + 1))} aria-label={`increase ${label}`}>
-        ▶
-      </button>
-    </span>
-  )
 }
 
 export default function ModuleTreeExplorer() {
@@ -101,7 +88,8 @@ export default function ModuleTreeExplorer() {
   const linCode = (a: keyof Sizes, b: keyof Sizes, which: string) => (
     <>
       nn.Linear(
-      <Num v={sz[a]} set={set(a)} label={`${which} in_features`} />, <Num v={sz[b]} set={set(b)} label={`${which} out_features`} />)
+      <Num v={sz[a]} set={set(a)} min={1} max={16} arrows={!narrow} label={`${which} in_features`} />,{' '}
+      <Num v={sz[b]} set={set(b)} min={1} max={16} arrows={!narrow} label={`${which} out_features`} />)
     </>
   )
 
@@ -140,7 +128,7 @@ export default function ModuleTreeExplorer() {
       title="Inside an nn.Module: what gets registered"
       caption={
         <>
-          Click a node in the tree to see its parameters. Change the layer sizes with ◀ ▶ inside the code: the weight shapes and the forward trace follow, and a
+          Click a node in the tree to see its parameters. Change the layer sizes with ◀ ▶ inside the code (on a phone, with − and + under it): the weight shapes and the forward trace follow, and a
           size that does not match the incoming data stops the forward pass. Then switch the storage to a plain Python list (the layers still run, but{' '}
           <code>model.parameters()</code> is empty, so nothing would be trained) and switch off <code>super().__init__()</code>.
         </>
@@ -186,6 +174,18 @@ export default function ModuleTreeExplorer() {
         )}
         {fwdLines}
       </pre>
+      {narrow && (
+        <StepperRow
+          items={(
+            [
+              ['i1', `${storage === 'attr' ? 'fc1' : 'layer 0'} in`],
+              ['o1', `${storage === 'attr' ? 'fc1' : 'layer 0'} out`],
+              ['i2', `${storage === 'attr' ? 'fc2' : 'layer 2'} in`],
+              ['o2', `${storage === 'attr' ? 'fc2' : 'layer 2'} out`],
+            ] as [keyof Sizes, string][]
+          ).map(([key, label]) => ({ label, v: sz[key], set: set(key), min: 1, max: 16 }))}
+        />
+      )}
       </div>
 
       {!withSuper ? (

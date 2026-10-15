@@ -4,7 +4,8 @@ import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes,
 /*
   Where does a curve bend up, and where does it bend down?
     f(x) = x⁴/4 + a·x²/2 + b·x,   f'(x) = x³ + a·x + b,   f''(x) = 3x² + a.
-  Green = f'' > 0 (bends up, like a bowl), red = f'' < 0 (bends down, like a cap).
+  Green = f'' > 0 (bends up, like a bowl), red and dashed = f'' < 0 (bends down, like a cap); each
+  stretch is also marked ∪ or ∩, so the colour is never the only cue.
   Critical points (f' = 0) are classified by the sign of f''. "Drop marbles" releases eight
   marbles that follow gradient descent: on a convex curve they all meet in one valley.
 */
@@ -94,11 +95,13 @@ export default function CurvatureExplorer() {
   const allFlat = marbles != null && marbles.every((x) => Math.abs(d1(x)) < 2e-3)
   const rolling = marbles != null && t < 6 && !allFlat
   useAnimationFrame((dt) => {
+    // 12 small steps per 1/60 s, scaled by the real frame time so marbles roll at the same speed on any screen
+    const n = Math.max(1, Math.round(12 * dt * 60))
     setMarbles((ms) => {
       if (!ms) return ms
       const out = ms.map((x) => {
         let v = x
-        for (let k = 0; k < 12; k++) v = Math.max(X0, Math.min(X1, v - 0.012 * d1(v)))
+        for (let k = 0; k < n; k++) v = Math.max(X0, Math.min(X1, v - 0.012 * d1(v)))
         return v
       })
       return out
@@ -139,11 +142,11 @@ export default function CurvatureExplorer() {
 
   return (
     <Figure
-      title="Green bends up, red bends down"
+      title="Green bends up (∪), red bends down (∩)"
       caption={
         <>
-          The curve is green where <M>{"f''(x) > 0"}</M> (it bends upwards, like a bowl) and red where <M>{"f''(x) < 0"}</M> (it bends downwards,
-          like a cap). Flat points are marked: a valley bottom never sits on red, and a hilltop never sits on green. Press <b>Drop marbles</b> to release eight
+          The curve is green and solid where <M>{"f''(x) > 0"}</M> (it bends upwards, like a bowl ∪) and red and dashed where <M>{"f''(x) < 0"}</M> (it
+          bends downwards, like a cap ∩). Flat points are marked: a valley bottom never sits on red, and a hilltop never sits on green. Press <b>Drop marbles</b> to release eight
           marbles that roll downhill. Then drag <b>a</b> above 0: the red part vanishes, the curve becomes convex, and every marble ends in the same
           valley.
         </>
@@ -164,7 +167,7 @@ export default function CurvatureExplorer() {
           <Grid xTicks={8} yTicks={5} />
           <Axes xLabel="x" yLabel="f(x)" xTicks={narrow ? 6 : 8} yTicks={5} />
           {segs.map((s, i) => (
-            <FnPath key={i} f={f} domain={[s.from, s.to]} color={s.up ? UP : DOWN} width={3.5} />
+            <FnPath key={i} f={f} domain={[s.from, s.to]} color={s.up ? UP : DOWN} width={3.5} dash={s.up ? undefined : '9 5'} />
           ))}
           {crit.map((x, i) => {
             const k = kinds[i]
@@ -196,8 +199,15 @@ export default function CurvatureExplorer() {
           <Axes xTicks={narrow ? 6 : 8} yTicks={3} />
           <HLine y={0} color="var(--viz-axis)" dash="" width={1.2} />
           {segs.map((s, i) => (
-            <FnPath key={i} f={d2} domain={[s.from, s.to]} color={s.up ? UP : DOWN} width={2.5} />
+            <FnPath key={i} f={d2} domain={[s.from, s.to]} color={s.up ? UP : DOWN} width={2.5} dash={s.up ? undefined : '7 4'} />
           ))}
+          {segs.map((s, i) =>
+            s.to - s.from > 0.3 ? (
+              <Label key={`g${i}`} x={(s.from + s.to) / 2} y={y2[1]} dy={17} anchor="middle" color="var(--ink-2)" size={14} weight={700}>
+                {s.up ? '∪ up' : '∩ down'}
+              </Label>
+            ) : null,
+          )}
         </Plot>
       </div>
       <Controls>

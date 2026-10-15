@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, Path, Dots, DraggablePoint, useContainerWidth, type DotDatum } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Plot, Grid, Axes, Path, Dots, Label, DraggablePoint, usePlot, useContainerWidth, type DotDatum } from '../../../../../kit'
 
 /*
   k-NN (k = 3) on two features measured in very different units: age (years) and monthly
@@ -34,6 +34,40 @@ const COL_NO = 'var(--viz-1)'
 const COL_Q = 'var(--viz-5)'
 
 const fmtInc = (v: number) => `$${(v / 1000).toLocaleString('en-GB', { maximumFractionDigits: 1 })}k`
+
+const RING = 11
+
+/** Connector lines from the query to each neighbour, stopping at the neighbour's ring. */
+function NeighbourLinks({ q, nn }: { q: [number, number]; nn: number[] }) {
+  const { xs, ys } = usePlot()
+  const qx = xs(q[0])
+  const qy = ys(q[1])
+  return (
+    <g aria-hidden="true">
+      {nn.map((k) => {
+        const dx = xs(AGE[k]) - qx
+        const dy = ys(INC[k]) - qy
+        const L = Math.hypot(dx, dy)
+        const t = L > RING ? (L - RING) / L : 0
+        return <line key={k} x1={qx} y1={qy} x2={qx + dx * t} y2={qy + dy * t} style={{ stroke: COL_Q, strokeWidth: 1.8 }} />
+      })}
+    </g>
+  )
+}
+
+/** Rings around the neighbours that leave the marker (and so its class) visible. */
+function NeighbourRings({ nn }: { nn: number[] }) {
+  const { xs, ys } = usePlot()
+  return (
+    <g aria-hidden="true">
+      {nn.map((k) => (
+        <circle key={k} cx={xs(AGE[k])} cy={ys(INC[k])} r={RING} style={{ fill: 'none', stroke: COL_Q, strokeWidth: 2.5 }} />
+      ))}
+    </g>
+  )
+}
+
+const tri = (x: number, y: number, r: number) => `M${x},${y - r * 1.2}L${x + r * 1.1},${y + r * 0.8}L${x - r * 1.1},${y + r * 0.8}Z`
 
 function ToScale({ mode, q, nn, radius }: { mode: Mode; q: [number, number]; nn: number[]; radius: number }) {
   const [ref, measured] = useContainerWidth<HTMLDivElement>(320)
@@ -72,8 +106,15 @@ function ToScale({ mode, q, nn, radius }: { mode: Mode; q: [number, number]; nn:
         {nn.map((k) => (
           <line key={`l${k}`} x1={X(qq[0])} y1={Y(qq[1])} x2={X(pts[k][0])} y2={Y(pts[k][1])} style={{ stroke: COL_Q, strokeWidth: 1.5 }} />
         ))}
-        {pts.map(([u, v], k) => (
-          <circle key={k} cx={X(u)} cy={Y(v)} r={4} style={{ fill: GLASSES[k] ? COL_YES : COL_NO, stroke: nn.includes(k) ? COL_Q : 'var(--surface)', strokeWidth: nn.includes(k) ? 2.5 : 1 }} />
+        {pts.map(([u, v], k) =>
+          GLASSES[k] ? (
+            <path key={k} d={tri(X(u), Y(v), 4)} style={{ fill: COL_YES, stroke: 'var(--surface)', strokeWidth: 1 }} />
+          ) : (
+            <circle key={k} cx={X(u)} cy={Y(v)} r={4} style={{ fill: COL_NO, stroke: 'var(--surface)', strokeWidth: 1 }} />
+          ),
+        )}
+        {nn.map((k) => (
+          <circle key={`r${k}`} cx={X(pts[k][0])} cy={Y(pts[k][1])} r={7.5} style={{ fill: 'none', stroke: COL_Q, strokeWidth: 2 }} />
         ))}
         <circle cx={X(qq[0])} cy={Y(qq[1])} r={6} style={{ fill: COL_Q, stroke: 'var(--surface)', strokeWidth: 2 }} />
         <text x={W / 2} y={H - 20} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 11 }}>
@@ -93,6 +134,7 @@ function ToScale({ mode, q, nn, radius }: { mode: Mode; q: [number, number]; nn:
 export default function ScaleChangesNeighbours() {
   const [mode, setMode] = useState<Mode>('raw')
   const [q, setQ] = useState<[number, number]>([58, 5200])
+  const [moved, setMoved] = useState(false)
 
   const P = params(mode)
   const d2 = AGE.map((a, k) => {
@@ -113,7 +155,6 @@ export default function ScaleChangesNeighbours() {
   })
 
   const dots: DotDatum[] = AGE.map((a, k) => ({ x: a, y: INC[k], color: GLASSES[k] ? COL_YES : COL_NO, shape: GLASSES[k] ? 'triangle' : 'circle', r: 5.5 }))
-  const rings: DotDatum[] = nn.map((k) => ({ x: AGE[k], y: INC[k], r: 11, color: COL_Q, hollow: true }))
 
   return (
     <Figure
@@ -124,7 +165,7 @@ export default function ScaleChangesNeighbours() {
           Each point is a person; orange triangles need reading glasses, blue circles do not. k-NN predicts for the purple point (drag it) by a vote of
           its 3 nearest neighbours. With <b>no scaling</b>, the neighbourhood is a thin horizontal band: only income matters, because income differences
           are hundreds of times bigger numbers than age differences. Switch to <b>min-max</b> or <b>standardise</b> and watch the neighbours, and the
-          prediction, change. The right panel draws the points to scale in the units the distance really uses.
+          prediction, change. The second panel draws the same points to scale in the units the distance really uses.
         </>
       }
     >
@@ -145,18 +186,22 @@ export default function ScaleChangesNeighbours() {
           <Grid xTicks={6} yTicks={5} />
           <Path points={ellipse} closed fill="color-mix(in srgb, var(--viz-5) 12%, transparent)" color={COL_Q} width={1.5} />
           <Axes xLabel="age (years)" yLabel="monthly income" xTicks={6} yTicks={5} tickFormat={(v) => (v >= 1000 ? fmtInc(v) : String(v))} />
-          {nn.map((k) => (
-            <Path key={k} points={[q, [AGE[k], INC[k]]]} color={COL_Q} width={1.8} />
-          ))}
+          <NeighbourLinks q={q} nn={nn} />
           <Dots points={dots} />
-          <Dots points={rings} />
+          <NeighbourRings nn={nn} />
+          {/* label level with the point, so it never sits on the neighbourhood's edge lines */}
+          <Label x={q[0]} y={q[1]} dx={15} dy={4} color={COL_Q} weight={700} size={12.5}>
+            {moved ? 'you' : 'you (drag me)'}
+          </Label>
           <DraggablePoint
             x={q[0]}
             y={q[1]}
             color={COL_Q}
-            label="you"
             constrain={(x, y) => [Math.round(Math.max(18, Math.min(72, x))), Math.round(Math.max(1500, Math.min(11500, y)) / 100) * 100]}
-            onChange={(x, y) => setQ([x, y])}
+            onChange={(x, y) => {
+              setMoved(true)
+              setQ([x, y])
+            }}
           />
         </Plot>
         <ToScale mode={mode} q={q} nn={nn} radius={radius} />
@@ -164,9 +209,21 @@ export default function ScaleChangesNeighbours() {
       <Readout
         items={[
           ['you', `age ${q[0]}, ${fmtInc(q[1])}`],
-          ['3 nearest', nn.map((k) => `${AGE[k]} y, ${fmtInc(INC[k])}`).join(' · ')],
+          [
+            <span key="k" style={{ whiteSpace: 'nowrap' }}>nearest 3</span>,
+            <span key="nn" style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.1rem 0.7rem' }}>
+              {nn.map((k) => (
+                <span key={k} style={{ whiteSpace: 'nowrap' }}>
+                  <span aria-hidden="true" style={{ color: GLASSES[k] ? COL_YES : COL_NO }}>
+                    {GLASSES[k] ? '▲ ' : '● '}
+                  </span>
+                  {`${AGE[k]} y, ${fmtInc(INC[k])}`}
+                </span>
+              ))}
+            </span>,
+          ],
           ['vote', `${votes} of 3 need glasses → predict ${votes >= 2 ? 'glasses' : 'no glasses'}`],
-          ['income’s share of the squared distance', `${(incShare * 100).toFixed(1)}%`],
+          ['income’s share of distance²', `${(incShare * 100).toFixed(1)}%`],
         ]}
       />
     </Figure>

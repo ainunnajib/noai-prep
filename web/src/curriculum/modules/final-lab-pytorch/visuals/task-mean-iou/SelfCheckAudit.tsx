@@ -64,7 +64,7 @@ export default function SelfCheckAudit() {
               type="button"
               className={`${m.cell} ${(which === 'pred' ? truth : pred)[i][j] !== v ? m.cellDiff : ''}`}
               style={{ width: cell, height: cell, fontSize: 17, background: `color-mix(in srgb, ${CLASS_COLOURS[v]} 55%, var(--surface))` }}
-              aria-label={`${label} row ${i}, column ${j}: class ${v}. Click to flip.`}
+              aria-label={`${label}, row ${i} column ${j}: ${CLASS_NAMES[v]} (class ${v}). Click to flip.`}
               onClick={() => flip(which, i, j)}
             >
               {v}

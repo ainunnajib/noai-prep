@@ -9,13 +9,17 @@ x = np.array([1., 2., 3., 4., 5.])
 y = np.array([3., 4., 7., 7., 9.])
 n = len(x)
 
-w, b = 0.0, 0.0   # flat line at 0
-lr = 0.05  # also try 0.08 and 0.09
+# start from the flat line at 0
+w, b = 0.0, 0.0
+# also try 0.08 and 0.09
+lr = 0.05
 history = []
 
 for step in range(1000):
-    y_hat = w * x + b   # 1. predict
-    e = y_hat - y       # 2. errors
+    # 1. predict
+    y_hat = w * x + b
+    # 2. errors
+    e = y_hat - y
     # 3. record the loss
     history.append(np.mean(e ** 2))
     # 4. gradients
@@ -55,9 +59,9 @@ print(linear_regression_gradient_descent(
 
 In the last lesson a formula gave the best line in one shot. That formula only exists for linear regression; neural networks have nothing like it, and are trained by walking downhill instead. Linear regression is the perfect place to learn that walk, because you can check every number by hand. It is also a real exam task: **Question 1 of the 2025 NOAI Final** asked for exactly this, from scratch in NumPy, with the answer rounded to 4 decimal places. This lesson builds it piece by piece and shows the three traps that cost marks.
 
-<Analogy title="Turning the knobs on a sound desk">
+<Analogy title="Practising free throws">
 
-A concert hall gets complaints that the sound is wrong. The sound engineer does not twist knobs at random: each knob is turned by **how wrong the sound was × how much that knob contributed to it**. Gradient descent tunes $w$ and $b$ the same way. The slope's knob is turned by (error × distance) and the intercept's knob by (error × 1), averaged over all the rides.
+Each attempt, you see how you missed (short and to the left) and adjust a little: more power if you were short, aim right if you were left. Your misses shrink quickly at first, then more slowly as you get close. Gradient descent is the same loop for $w$ and $b$: predict, measure the miss, adjust each parameter by how much it was to blame, repeat.
 
 </Analogy>
 
@@ -103,7 +107,7 @@ Each parameter's gradient is the **average of (error × that parameter's input)*
 
 <PastPaperQuestion paper="prelim2026" n={35} />
 
-Read the gradient's sign as an instruction. If the line is too high where $x$ is large (positive errors at big $x$), then $\sum e_i x_i > 0$, so $\partial L/\partial w > 0$ and the update *lowers* $w$: the line gets flatter. Replay the computation column by column, then change $w$ and $b$ and watch the signs flip:
+Read the gradient's sign as an instruction. If the errors are positive (the line is too high), especially where $x$ is large, then $\sum e_i x_i > 0$, so $\partial L/\partial w > 0$ and the update *lowers* $w$: the line gets flatter. Replay the computation column by column, then change $w$ and $b$ and watch the signs flip:
 
 <GradientPieces />
 
@@ -137,14 +141,20 @@ Read the gradient's sign as an instruction. If the line is too high where $x$ is
 Real data has many features. Put the examples in the rows of a matrix $X$ of shape `(n, d)`: $n$ examples, $d$ features, and one weight per feature in the vector $\mathbf{w}$ of shape `(d,)`. Then all the predictions are one matrix product, and the sum $\sum_i e_i x_{ij}$ for every weight $j$ at once is $X^\top \mathbf{e}$ ($X^\top$, "X transpose", is $X$ with rows and columns swapped):
 
 $$
-\mathbf{e} = X\mathbf{w} + b - \mathbf{y}, \qquad \nabla_{\mathbf{w}} L = \frac{2}{n}\,X^\top \mathbf{e}, \qquad \frac{\partial L}{\partial b} = \frac{2}{n}\sum_i e_i.
+\begin{aligned}
+\mathbf{e} &= X\mathbf{w} + b - \mathbf{y} \\
+\nabla_{\mathbf{w}} L &= \frac{2}{n}\,X^\top \mathbf{e} \\
+\frac{\partial L}{\partial b} &= \frac{2}{n}\sum_i e_i
+\end{aligned}
 $$
 
 Here $\nabla_{\mathbf{w}} L$ ("grad L") is the vector of all the partial derivatives $\partial L/\partial w_j$. Check the shapes: $X^\top$ is `(d, n)` and $\mathbf{e}$ is `(n,)`, so $X^\top\mathbf{e}$ is `(d,)`: one gradient per weight, exactly what the update needs. Writing whole-array operations like this instead of Python loops is called <Term def="Writing one NumPy operation on whole arrays instead of a Python loop over elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>.
 
 Here is the full training loop for the rides (one feature, so `np.sum(e * x)` plays the role of $X^\top\mathbf{e}$). Run it, then try `lr = 0.08` and `lr = 0.09`:
 
-<PyRunner packages={['numpy']} code={loopCode} rows={28} />
+<PyRunner packages={['numpy']} code={loopCode} rows={33} />
+
+<Reveal label="Expected output (press Run first)">
 
 ```text
 step  loss
@@ -156,6 +166,8 @@ step  loss
  999  0.3000
 w = 1.5000, b = 1.5000
 ```
+
+</Reveal>
 
 Gradient descent lands on $w = 1.5$, $b = 1.5$, the same line the formula gave in the last lesson. With any number of features the loop is the same few lines:
 
@@ -171,17 +183,13 @@ def fit_linear_gd(X, y, lr=0.05, iterations=1000):
     return w, b
 ```
 
-Called as `fit_linear_gd(x.reshape(-1, 1), y)` (the reshape turns `x` into a 2-D array of shape `(5, 1)`), it returns `[1.5]` and `1.5`.
+Called as `fit_linear_gd(x.reshape(-1, 1), y)` (the reshape turns `x` into a 2-D array of shape `(5, 1)`), it returns approximately `[1.5]` and `1.5`. Printing the raw values shows `[1.50000001] 1.4999999603075997`: after 1000 steps gradient descent is extremely close but not exact, so round before comparing.
 
 <PastPaperQuestion paper="prelim2026" n={98} />
 
 ## Watching the line learn
 
-<Analogy title="Practising free throws">
-
-Each attempt, you see how you missed (short and to the left) and adjust a little. Your misses shrink quickly at first, then more slowly as you get close. Gradient descent is the same loop: predict, measure the miss, adjust, repeat.
-
-</Analogy>
+Here is the whole loop running on the rides, from the flat line $\hat{y} = 0$:
 
 <GDLineFitLive />
 
@@ -190,7 +198,7 @@ The bottom chart, the <Term def="The list of loss values recorded after every it
 - **It should go down every iteration.** For full-batch gradient descent on the MSE with a sensible learning rate, the loss falls at every single step.
 - **Flattening out means converged.** A common stopping rule is a fixed number of iterations, or stopping once the loss improves by less than a small tolerance.
 - **Fast drop, then a slow crawl** is the long valley from the last lesson. The first few steps fix the slope; then the dot creeps along the valley floor, adjusting $w$ and $b$ together.
-- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the curvature of the bowl in its steepest direction is about $23.66$ (it comes from the bowl's Hessian, covered in the curvature lesson), so by the rule from the calculus module gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. Run the code with `lr = 0.09` to see the loss explode.
+- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see the lesson *Curvature* in the calculus module), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
 
 <Mistake title="More iterations will not rescue a diverging run">
 
@@ -222,7 +230,7 @@ The symbols are new, but the idea is identical to ours:
 
 Three details decide whether you get the official answer `[0.003, 0.9987]`:
 
-1. **The intercept column is already in $X$.** The first column (all 2s) plays the role of $b$, so $\theta_0$ *is* the bias. Do not add a separate $b$ or another column of 1s: that gives three numbers, `[0.0005, 0.0011, 0.9994]`.
+1. **The intercept column is already in $X$.** The first column (all 2s) is a constant column, so $\theta_0 \times 2$ is the intercept: $\theta$ already contains the bias. Do not add a separate $b$ or another column of 1s: that gives three numbers, `[0.0005, 0.0011, 0.9994]`.
 2. **1/m, not 2/m.** The task's rule uses $\frac{1}{m}$, which is the gradient of the cost $J(\theta) = \frac{1}{2m}\sum_i (h_\theta(x^{(i)}) - y^{(i)})^2$ that many textbooks use: half the MSE. The $\frac{1}{2}$ is there so the 2 from differentiating the square cancels, leaving $\frac{1}{m}X^\top(X\theta - y)$. Using our plain-MSE $\frac{2}{m}$ is the same as doubling $\alpha$: the walk is faster, and after exactly 1000 steps it rounds to `[0.0, 1.0]` instead. Both head for the same bottom, $\theta = (0, 1)$, but the task asks for the value after exactly 1000 steps.
 3. **Update all θⱼ at the same time.** Compute every gradient from the *same* old $\theta$, then change them all.
 
@@ -256,11 +264,9 @@ The vectorised line `theta -= alpha * X.T @ (X @ theta - y) / m` does all of thi
 
 <PyRunner packages={['numpy']} code={finalCode} rows={22} />
 
-```text
-[0.003  0.9987]
-```
+It prints the official answer. Why not exactly $(0, 1)$? The bowl for this data is a very long valley (its two curvatures differ by a factor of about 46), so after 1000 small steps the walk along the valley floor is not quite finished. The answer depends on the exact $\alpha$, number of iterations and starting point, which is why you must use the task's.
 
-Why not exactly $(0, 1)$? The bowl for this data is a very long valley (its two curvatures differ by a factor of about 46), so after 1000 small steps the walk along the valley floor is not quite finished. The answer depends on the exact $\alpha$, number of iterations and starting point, which is why you must use the task's.
+<Reveal label="A shape trap in Final tasks: mixing 1-D and 2-D arrays">
 
 <Mistake title="Mixing 1-D and 2-D arrays">
 
@@ -268,7 +274,9 @@ If `theta` has shape `(2, 1)` but `y` has shape `(3,)`, then `X @ theta - y` is 
 
 </Mistake>
 
-## The same thing in PyTorch
+</Reveal>
+
+<Reveal label="Going further: the same thing in PyTorch">
 
 PyTorch can compute the gradient for you with <Term def="PyTorch's automatic differentiation: it records the operations you do on tensors and computes their gradients when you call .backward().">autograd</Term>. It confirms the hand calculation, $\partial L/\partial w = 8$ and $\partial L/\partial b = 2$ at $w = 2$, $b = 1$, and its built-in optimiser reproduces the NumPy training loop:
 
@@ -303,6 +311,8 @@ w = 1.5000, b = 1.5000, loss = 0.3000
 ```
 
 `torch.optim.SGD` with the whole dataset in every step is exactly our update, and it updates `w` and `b` simultaneously.
+
+</Reveal>
 
 <ExamTip>
 

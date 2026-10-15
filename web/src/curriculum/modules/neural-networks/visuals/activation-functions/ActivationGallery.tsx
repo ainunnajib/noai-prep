@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label, HLine, VLine, Rect, DraggablePoint, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Path, Dots, Label, HLine, VLine, Rect, DraggablePoint, usePlot, M } from '../../../../../kit'
 import { ACTS, GALLERY_ALPHA, flatZones, type ActName } from './acts'
 
 /*
@@ -21,6 +21,47 @@ function sci(v: number) {
   const m = v / 10 ** e
   return `${m.toFixed(1)} \\times 10^{${e}}`
 }
+/**
+ * The drag point's label, placed in whichever of four spots around the point is clear of the curve,
+ * the dashed asymptotes and the plot edges (so it is never struck through by a line).
+ */
+function PointLabel({ x, y, f, asymptotes, text }: { x: number; y: number; f: (z: number) => number; asymptotes: number[]; text: string }) {
+  const { xs, ys } = usePlot()
+  const [X0, X1] = xs.range()
+  const [Yb, Yt] = ys.range()
+  const px = xs(x)
+  const py = ys(y)
+  const w = text.length * 7.4
+  const spots: { dx: number; dy: number; anchor: 'start' | 'end' }[] = [
+    { dx: -14, dy: -14, anchor: 'end' },
+    { dx: 14, dy: -14, anchor: 'start' },
+    { dx: 14, dy: 24, anchor: 'start' },
+    { dx: -14, dy: 24, anchor: 'end' },
+  ]
+  const clear = (s: (typeof spots)[number]) => {
+    const left = s.anchor === 'end' ? px + s.dx - w : px + s.dx
+    const right = left + w
+    const top = py + s.dy - 13
+    const bottom = py + s.dy + 4
+    if (left < Math.min(X0, X1) || right > Math.max(X0, X1) || top < Math.min(Yb, Yt) || bottom > Math.max(Yb, Yt)) return false
+    for (const a of asymptotes) {
+      const ay = ys(a)
+      if (ay > top - 3 && ay < bottom + 3) return false
+    }
+    for (let k = 0; k <= 12; k++) {
+      const cy = ys(f(xs.invert(left + (k / 12) * w)))
+      if (cy > top - 4 && cy < bottom + 4) return false
+    }
+    return true
+  }
+  const s = spots.find(clear) ?? spots[0]
+  return (
+    <text className="plot-label" x={px + s.dx} y={py + s.dy} textAnchor={s.anchor} style={{ fill: 'var(--viz-4)', fontSize: 12.5, strokeWidth: 4 }}>
+      {text}
+    </text>
+  )
+}
+
 const f3 = (v: number) => {
   const r = Math.round(v * 1000) / 1000
   return (r === 0 ? 0 : r).toFixed(3).replace('-', '−')
@@ -29,6 +70,7 @@ const f3 = (v: number) => {
 export default function ActivationGallery() {
   const [name, setName] = useState<ActName>('sigmoid')
   const [z, setZ] = useState(2)
+  const [touched, setTouched] = useState(false)
   const A = ACTS[name]
   const fz = A.f(z)
   const atKink = A.kink && Math.abs(z) < 1e-9
@@ -46,10 +88,9 @@ export default function ActivationGallery() {
       title="The activation gallery: each function and its slope"
       caption={
         <>
-          Top: the activation <i>f</i>(<i>z</i>). Bottom: its slope <i>f</i>′(<i>z</i>), which is what training multiplies the gradient by when it passes
-          backwards through this neuron. Shaded bands mark where the slope is almost 0 (saturated): a neuron sitting there barely learns. Drag the pink point
-          (or the slider) into a shaded band on <b>sigmoid</b> and watch the "10 layers" number collapse. Compare <b>tanh</b> (slope 1 at the centre),{' '}
-          <b>ReLU</b> (slope exactly 1 for any positive input, exactly 0 for negatives), <b>Leaky ReLU</b> (never exactly 0) and <b>GELU</b> (a smooth ReLU).
+          Top: the activation <i>f</i>(<i>z</i>). Bottom: its slope <i>f</i>′(<i>z</i>), the factor training multiplies the gradient by at this neuron; shaded bands
+          are where it is almost 0 (saturated). Drag the pink point into a band on <b>sigmoid</b> and watch the &ldquo;10 layers&rdquo; number collapse, then
+          compare the other four. (Leaky ReLU&rsquo;s α is drawn as 0.1, bigger than the usual 0.01, so you can see it.)
         </>
       }
     >
@@ -95,7 +136,18 @@ export default function ActivationGallery() {
               dash="5 3"
             />
           )}
-          <DraggablePoint x={z} y={fz} color="var(--viz-4)" label={`z = ${z.toFixed(2)}`} onChange={(x) => setZ(snap(x))} constrain={(x) => [x, A.f(snap(x))]} lockY />
+          <DraggablePoint
+            x={z}
+            y={fz}
+            color="var(--viz-4)"
+            onChange={(x) => {
+              setZ(snap(x))
+              setTouched(true)
+            }}
+            constrain={(x) => [x, A.f(snap(x))]}
+            lockY
+          />
+          <PointLabel x={z} y={fz} f={A.f} asymptotes={A.asymptotes} text={`${touched ? '' : 'drag me · '}z = ${z.toFixed(2).replace('-', '−')}`} />
         </Plot>
         <Plot x={ZR} y={[-0.25, 1.25]} width={520} height={150} minHeight={130} margin={MARGIN} ariaLabel={`Slope of ${A.label}: ${atKink ? 'undefined at the kink' : dz.toFixed(3)} at z = ${z.toFixed(2)}`}>
           {zones.map(([a, b], i) => (
@@ -122,7 +174,7 @@ export default function ActivationGallery() {
       <Readout
         items={[
           ['f(z)', f3(fz)],
-          ['slope f′(z)', atKink ? `undefined at the kink (PyTorch uses ${lowLeft})` : f3(dz)],
+          ['slope f′(z)', atKink ? `undefined at the kink (PyTorch uses the left slope, ${lowLeft === 0 ? '0' : 'α'})` : f3(dz)],
           ['10 layers like this: f′(z)¹⁰', atKink ? '—' : <M key="p">{sci(pow10)}</M>],
         ]}
       />

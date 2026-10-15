@@ -104,8 +104,8 @@ export default function PlotChooser() {
       title="Which plot answers the question?"
       caption={
         <>
-          All five thumbnails show the <i>same</i> 144 flats. Read the question, then tap the plot that answers it. Notice that the question decides the plot:
-          relationship → scatter, distribution → histogram (or box plot), change over time → line, comparing categories → bar.
+          All five thumbnails show the <i>same</i> 144 flats. Read the question, then tap the plot you would draw; the feedback explains why it does or does
+          not fit. Notice that it is the question, not the data, that decides the plot.
         </>
       }
     >

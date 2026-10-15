@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Figure, Controls, Slider, Toggle, Button, Plot, Grid, Axes, Arrow, Dots, DraggablePoint, useAnimationFrame, useNarrow } from '../../../../../kit'
-import { type M2, type V2, I2, apply, col, det, describe, fmt, fromCols, lerpM, ColMat, Vec, Smiley, WarpedGrid, Clip, KeyStep } from './la'
+import { type M2, type V2, I2, apply, col, det, describe, fmt, fromCols, morphM, ColMat, Vec, Smiley, WarpedGrid, Clip, KeyStep, TipLabel } from './la'
 import s from './lt.module.css'
 
 /*
@@ -64,7 +64,8 @@ const snapHalf = (v: number) => Math.round(v * 2) / 2
 
 export default function GridWarper() {
   const [target, setTarget] = useState<M2>(START)
-  const [t, setT] = useState(1)
+  // how far through the move we are (0 = identity, 1 = A); the slider shows this same number
+  const [frac, setFrac] = useState(1)
   const [playing, setPlaying] = useState(false)
   const [probe, setProbe] = useState<V2>([2, 1])
   const [showProbe, setShowProbe] = useState(true)
@@ -74,18 +75,22 @@ export default function GridWarper() {
   const reach = narrow ? 3 : 3.5
   const clampV = (v: number) => Math.max(-reach, Math.min(reach, v))
 
-  const tRef = useRef(t)
-  tRef.current = t
+  // Play: time runs from 0 to 1 and is eased, so the motion starts and ends gently
+  const tauRef = useRef(1)
   useAnimationFrame((dt) => {
-    const nt = Math.min(1, tRef.current + dt / 1.8)
-    tRef.current = nt
-    setT(nt)
+    const nt = Math.min(1, tauRef.current + dt / 1.8)
+    tauRef.current = nt
+    setFrac(nt * nt * (3 - 2 * nt))
     if (nt >= 1) setPlaying(false)
   }, playing)
+  const play = () => {
+    tauRef.current = 0
+    setFrac(0)
+    setPlaying(true)
+  }
 
-  // ease the morph so the motion starts and ends gently
-  const e = t * t * (3 - 2 * t)
-  const m = lerpM(I2, target, e)
+  const m = frac >= 1 ? target : morphM(target, frac)
+  const moving = frac < 1
   const c1 = col(m, 0)
   const c2 = col(m, 1)
   const out = apply(m, probe)
@@ -96,7 +101,7 @@ export default function GridWarper() {
   const setCol = (j: 0 | 1, x: number, y: number) => {
     const v: V2 = [clampV(snapHalf(x)), clampV(snapHalf(y))]
     setPlaying(false)
-    setT(1)
+    setFrac(1)
     const cur = target
     setTarget(j === 0 ? fromCols(v, col(cur, 1)) : fromCols(col(cur, 0), v))
   }
@@ -109,7 +114,9 @@ export default function GridWarper() {
           The faint square grid is the plane before the move; the violet grid is the plane after multiplying every point by <i>A</i>. Drag the tips of the{' '}
           <span className={s.c1}>blue</span> and <span className={s.c2}>orange</span> arrows: they are the two columns of <i>A</i>, the new homes of (1, 0) and
           (0, 1). Grid lines always stay straight, parallel and evenly spaced. The green probe shows the recipe: <i>p</i> = (x, y) lands at x steps of column 1
-          followed by y steps of column 2. Try the presets, then press <b>Play the move</b> to watch the plane slide from where it started.
+          followed by y steps of column 2. Try the presets, then press <b>Play the move</b> to watch the plane slide from where it started. Rotations turn
+          through the angle; other moves blend the entries, so the in-between frames are not themselves the final kind of move. Watch <b>Reflect</b>: halfway
+          the plane is squashed flat, because in 2-D you cannot flip a picture over without passing through det = 0.
         </>
       }
     >
@@ -153,20 +160,28 @@ export default function GridWarper() {
               <DraggablePoint x={probe[0]} y={probe[1]} r={7} color="var(--viz-3)" label="p" onChange={moveProbe} />
             </KeyStep>
           )}
-          <KeyStep x={c1[0]} y={c1[1]} onChange={(x, y) => setCol(0, x, y)}>
-            <DraggablePoint x={c1[0]} y={c1[1]} color="var(--viz-1)" label="col 1" onChange={(x, y) => setCol(0, x, y)} />
-          </KeyStep>
-          <KeyStep x={c2[0]} y={c2[1]} onChange={(x, y) => setCol(1, x, y)}>
-            <DraggablePoint x={c2[0]} y={c2[1]} color="var(--viz-2)" label="col 2" onChange={(x, y) => setCol(1, x, y)} />
-          </KeyStep>
+          <TipLabel tip={c1} away={c2} text="col 1" color="var(--viz-1)" />
+          <TipLabel tip={c2} away={c1} text="col 2" color="var(--viz-2)" />
+          <g className={s.noDragText}>
+            <KeyStep x={c1[0]} y={c1[1]} onChange={(x, y) => setCol(0, x, y)}>
+              <DraggablePoint x={c1[0]} y={c1[1]} color="var(--viz-1)" label="col 1" onChange={(x, y) => setCol(0, x, y)} />
+            </KeyStep>
+            <KeyStep x={c2[0]} y={c2[1]} onChange={(x, y) => setCol(1, x, y)}>
+              <DraggablePoint x={c2[0]} y={c2[1]} color="var(--viz-2)" label="col 2" onChange={(x, y) => setCol(1, x, y)} />
+            </KeyStep>
+          </g>
         </Plot>
       </div>
 
       <div className={s.info} aria-live="polite">
         <div className={s.row}>
-          <ColMat rows={m} name={t < 1 ? `A (${Math.round(t * 100)}% of the way)` : 'A'} ariaLabel="the matrix A" />
+          <ColMat rows={m} name={moving ? `${Math.round(frac * 100)}% of the way from I to A` : 'A'} ariaLabel="the matrix A" />
           <div style={{ display: 'grid', gap: '0.35rem', justifyItems: 'center' }}>
-            <span className={`${s.badge} ${Math.abs(D) < 1e-9 ? s.badgeBad : ''}`}>{describe(m)}</span>
+            {moving ? (
+              <span className={`${s.badge} ${s.badgeNeutral}`}>on the way to A: {describe(target)}</span>
+            ) : (
+              <span className={`${s.badge} ${Math.abs(D) < 1e-9 ? s.badgeBad : ''}`}>{describe(m)}</span>
+            )}
             <span>
               det A = {fmt(D)}{' '}
               <span className={s.muted}>
@@ -202,8 +217,7 @@ export default function GridWarper() {
             key={p.name}
             onClick={() => {
               setTarget(p.m)
-              setT(0)
-              setPlaying(true)
+              play()
             }}
           >
             {p.name}
@@ -213,20 +227,14 @@ export default function GridWarper() {
       <Controls>
         <Slider
           label="Morph from the identity to A"
-          value={t}
+          value={frac}
           min={0}
           max={1}
           step={0.01}
-          onChange={(v) => (setPlaying(false), setT(v))}
+          onChange={(v) => (setPlaying(false), setFrac(v))}
           format={(v) => `${Math.round(v * 100)}%`}
         />
-        <Button
-          primary
-          onClick={() => {
-            setT(0)
-            setPlaying(true)
-          }}
-        >
+        <Button primary onClick={play}>
           Play the move
         </Button>
         <Toggle label="Follow a point p" checked={showProbe} onChange={setShowProbe} />

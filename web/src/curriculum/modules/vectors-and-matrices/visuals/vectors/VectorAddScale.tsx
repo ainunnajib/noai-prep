@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Plot, Grid, Axes, Arrow, Dots, Label, DraggablePoint, Segmented, Slider, Toggle, usePlot } from '../../../../../kit'
-import { ArrowLabels, fmt, snap, clamp, type P } from './shared'
+import { Figure, Controls, Plot, Grid, Axes, Arrow, Dots, Label, Segmented, Slider, Toggle, usePlot } from '../../../../../kit'
+import { ArrowLabels, SnapPoint, fmt, snap, clamp, type P } from './shared'
 import s from './vectors.module.css'
 
 type Op = 'add' | 'sub' | 'scale'
@@ -16,6 +16,9 @@ const AXES: [P, P][] = [
   [[-6, 0], [6, 0]],
   [[0, -6], [0, 6]],
 ]
+const TICKS = { x: [-6, -4, -2, 2, 4, 6], y: [-6, -4, -2, 2, 4, 6] }
+/** a number inside a sum: negatives get brackets, e.g. 2 + (−1) */
+const pf = (v: number) => (v < 0 ? `(${fmt(v)})` : fmt(v))
 
 interface ArrowSpec {
   from: P
@@ -27,10 +30,14 @@ interface ArrowSpec {
   label?: string
   t?: number
   gap?: number
+  /** positions along the arrow to try for the label */
+  ts?: number[]
   /** fixed side for the label; when unset the label avoids the other arrows */
   side?: 1 | -1
   /** labels with a lower number are placed first and get the best spot */
   prio?: number
+  /** hide the label when the arrow is shorter than this (px) */
+  minLen?: number
 }
 
 /** The whole line through the origin in the direction of u (every multiple c·u lies on it). */
@@ -62,7 +69,7 @@ const L = ({ v, c }: { v: P; c: string }) => (
 /** Drag u and v to add or subtract them tip-to-tail; slide c to stretch, shrink, vanish or flip c·u. */
 export default function VectorAddScale() {
   const [op, setOp] = useState<Op>('add')
-  const [u, setU] = useState<P>([2, 1])
+  const [u, setU] = useState<P>([3, 1])
   const [v, setV] = useState<P>([1, 3])
   const [c, setC] = useState(2)
   const [otherRoute, setOtherRoute] = useState(false)
@@ -75,13 +82,13 @@ export default function VectorAddScale() {
   const O: P = [0, 0]
   const arrows: ArrowSpec[] = []
   if (op === 'add') {
-    if (otherRoute) arrows.push({ from: v, to: add, color: U, width: 2.5, dash: '6 5', label: 'u' })
-    arrows.push({ from: u, to: add, color: V, width: 2.5, dash: '6 5', label: 'v' })
-    arrows.push({ from: O, to: add, color: SUM, width: 4.5, label: 'u + v', t: 0.62, gap: 24, prio: 2 })
+    if (otherRoute) arrows.push({ from: v, to: add, color: U, width: 2.5, dash: '6 5', label: 'u', minLen: 50, ts: [0.5, 0.3, 0.7] })
+    arrows.push({ from: u, to: add, color: V, width: 2.5, dash: '6 5', label: 'v', minLen: 50, ts: [0.5, 0.3, 0.7] })
+    arrows.push({ from: O, to: add, color: SUM, width: 4.5, label: 'u + v', ts: [0.7, 0.85, 0.55, 0.95], gap: 24, prio: 2 })
   } else if (op === 'sub') {
     arrows.push({ from: v, to: u, color: DIFF, width: 2, dash: '3 5' })
-    arrows.push({ from: u, to: sub, color: V, width: 2.5, dash: '6 5', label: '−v' })
-    arrows.push({ from: O, to: sub, color: DIFF, width: 4.5, label: 'u − v', t: 0.62, gap: 24, prio: 2 })
+    arrows.push({ from: u, to: sub, color: V, width: 2.5, dash: '6 5', label: '−v', minLen: 50, ts: [0.5, 0.3, 0.7] })
+    arrows.push({ from: O, to: sub, color: DIFF, width: 4.5, label: 'u − v', ts: [0.7, 0.85, 0.55, 0.95], gap: 24, prio: 2 })
   } else if (c !== 0) {
     arrows.push({ from: O, to: cu, color: SCALED, width: 7, head: 14, label: `${fmt(c)}u`, t: c > 0 ? 0.85 : 0.6, gap: 20, side: -1, prio: 2 })
   }
@@ -149,12 +156,13 @@ export default function VectorAddScale() {
             <Arrow key={`a${i}`} from={a.from} to={a.to} color={a.color} width={a.width} dash={a.dash} head={a.head} />
           ))}
           <ArrowLabels
-            labels={[...arrows].sort((p, q) => (p.prio ?? 3) - (q.prio ?? 3)).filter((a) => a.label).map((a) => ({ from: a.from, to: a.to, text: a.label!, color: a.color, t: a.t ?? 0.55, gap: a.gap ?? 15, side: a.side }))}
+            labels={[...arrows].sort((p, q) => (p.prio ?? 3) - (q.prio ?? 3)).filter((a) => a.label).map((a) => ({ from: a.from, to: a.to, text: a.label!, color: a.color, t: a.t ?? 0.55, ts: a.ts, gap: a.gap ?? 15, side: a.side, minLen: a.minLen }))}
             segments={[...AXES, ...arrows.map((b) => [b.from, b.to] as [P, P])]}
             points={op === 'scale' ? [u] : [u, v]}
+            ticks={TICKS}
           />
-          {op !== 'scale' && <DraggablePoint x={v[0]} y={v[1]} color={V} onChange={drag(setV)} />}
-          <DraggablePoint x={u[0]} y={u[1]} color={U} onChange={drag(setU)} />
+          {op !== 'scale' && <SnapPoint x={v[0]} y={v[1]} color={V} onChange={drag(setV)} />}
+          <SnapPoint x={u[0]} y={u[1]} color={U} onChange={drag(setU)} />
         </Plot>
       </div>
       {op === 'scale' && (
@@ -173,7 +181,7 @@ export default function VectorAddScale() {
             </span>
             <span className={s.eqOp}>=</span>
             <span>
-              [{fmt(u[0])} + {fmt(v[0])}, {fmt(u[1])} + {fmt(v[1])}]
+              [{fmt(u[0])} + {pf(v[0])}, {fmt(u[1])} + {pf(v[1])}]
             </span>
             <span className={s.eqOp}>=</span>
             <span>
@@ -191,7 +199,7 @@ export default function VectorAddScale() {
             </span>
             <span className={s.eqOp}>=</span>
             <span>
-              [{fmt(u[0])} − {v[0] < 0 ? `(${fmt(v[0])})` : fmt(v[0])}, {fmt(u[1])} − {v[1] < 0 ? `(${fmt(v[1])})` : fmt(v[1])}]
+              [{fmt(u[0])} − {pf(v[0])}, {fmt(u[1])} − {pf(v[1])}]
             </span>
             <span className={s.eqOp}>=</span>
             <span>
@@ -206,7 +214,7 @@ export default function VectorAddScale() {
             </span>
             <span className={s.eqOp}>=</span>
             <span>
-              [{fmt(c)} × {fmt(u[0])}, {fmt(c)} × {fmt(u[1])}]
+              [{fmt(c)} × {pf(u[0])}, {fmt(c)} × {pf(u[1])}]
             </span>
             <span className={s.eqOp}>=</span>
             <span>

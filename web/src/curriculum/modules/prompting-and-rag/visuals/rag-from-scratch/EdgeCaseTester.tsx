@@ -6,7 +6,9 @@ import s from './rag.module.css'
 /*
   A test bench for the retriever. Five fixes can be switched on/off; the tokeniser, vocabulary,
   matrix and scores are rebuilt with exactly those choices (like re-running the notebook), and
-  seven "hidden tests" compare the output with the fully fixed pipeline.
+  seven "hidden tests" compare the output with the fully fixed pipeline. A test only passes if every
+  returned document really scored above 0 (so "Friday?" cannot pass by the luck of the sort order
+  when nothing matched).
 
   Cross-checked with Python (numpy): all fixes off -> 2/7 pass; turning fixes on in order
   (lower, punctuation, stop words, epsilon, skip zeros) -> 3, 4, 4, 4, 7 passes.
@@ -90,7 +92,8 @@ export default function EdgeCaseTester() {
   const sys = useMemo(() => build(fx), [fx])
   const results = TESTS.map((t, i) => {
     const r = sys.retrieve(t.q)
-    const pass = !r.scores.some(Number.isNaN) && r.top.join() === EXPECTED[i].join()
+    // a real answer must come from real matches: a score of 0 can only "pass" by luck of the sort order
+    const pass = !r.scores.some(Number.isNaN) && r.top.join() === EXPECTED[i].join() && r.top.every((j) => r.scores[j] > 0)
     return { ...r, pass }
   })
   const nPass = results.filter((r) => r.pass).length
@@ -106,18 +109,28 @@ export default function EdgeCaseTester() {
       sel === 6
         ? 'Passes. Repeating a word makes q three times longer but keeps its direction, so every cosine score is unchanged.'
         : 'Passes: the output matches the expected answer.'
+  } else if (cur.qn === 0 && EXPECTED[sel].length && unmatched.length) {
+    // root cause first: the query SHOULD match, but capitals or punctuation stop it
+    const w = unmatched.find((x) => x !== x.toLowerCase() || /[^A-Za-z]/.test(x))
+    const after = cur.scores.some(Number.isNaN)
+      ? ' Because q is all zeros you also get nan; an epsilon would only hide that.'
+      : ' Every score is 0, so the documents returned are simply the first ones in the list.'
+    if (!w) why = `No query word matched the vocabulary.${after}`
+    else {
+      const caps = w !== w.toLowerCase()
+      const punct = /[^A-Za-z]/.test(w)
+      const cause =
+        caps && punct
+          ? 'without lower-casing and stripping punctuation, the capitals and the glued-on punctuation make a different word'
+          : caps
+            ? 'without lower-casing, capital letters make a different word'
+            : 'splitting on spaces leaves punctuation glued to the word, which makes it a different word'
+      why = `“${w}” is not the same string as “${w.toLowerCase().replace(/[^a-z]/g, '')}”: ${cause}, so nothing matches.${after}`
+    }
   } else if (cur.scores.some(Number.isNaN)) {
     why = 'No query word matched the vocabulary, so q is all zeros and ‖q‖ = 0. Every score is 0 ÷ 0 = nan (NumPy prints “RuntimeWarning: invalid value encountered in divide”), and argsort then returns d0, d1 for no reason. Fix: add a tiny epsilon to the denominator.'
   } else if (cur.top.some((i) => cur.scores[i] <= 0)) {
     why = 'Some returned documents score 0: they share no word with the query, but [:k] always returns k documents. Fix: skip documents whose score is 0 and answer “I don’t know” if none are left.'
-  } else if (cur.qn === 0 && EXPECTED[sel].length) {
-    const caps = unmatched.find((w) => w !== w.toLowerCase())
-    const punct = unmatched.find((w) => /[^A-Za-z]/.test(w))
-    why = caps
-      ? `“${caps}” is not the same string as “${caps.toLowerCase().replace(/[^a-z]/g, '')}”: without lower-casing, capital letters make a different word, so nothing matches.`
-      : punct
-        ? `“${punct}” is not the same string as “${punct.toLowerCase().replace(/[^a-z]/g, '')}”: splitting on spaces leaves punctuation glued to the word, so nothing matches.`
-        : 'No query word matched the vocabulary.'
   } else if (!fx.stop && cur.tokens.some((w) => STOP.has(w.toLowerCase()))) {
     why = 'Stop words such as “the” and “is” appear in almost every document, so they match everywhere and drown out the one real keyword. Fix: remove stop words (from documents and query alike).'
   } else if (!fx.strip) {
@@ -151,12 +164,14 @@ export default function EdgeCaseTester() {
       title="Hidden-test bench: does your retriever survive the boring cases?"
       caption={
         <>
-          The tests start against a first-attempt retriever that splits on spaces and divides with no safety net: 2 of 7 pass. Switch the fixes on one at a
-          time and click a test to see <i>why</i> it fails. Notice that some fixes only help together: the empty query needs both the epsilon (no nan) and
-          skipping zero scores (no made-up answers). The last test always passes, because cosine ignores how long the query vector is.
+          The tests start against a first attempt that splits on spaces and divides with no safety net: 2 of 7 pass. Some fixes only help together: the empty query needs
+          both the epsilon (no nan) and skipping zero scores (no made-up answers). A test passes only if its documents really matched (score above 0).
         </>
       }
     >
+      <p className={s.tryLine}>
+        <b>Try:</b> switch the fixes on one at a time, and click a failing test to see <i>why</i> it fails.
+      </p>
       <div className={s.fixes} role="group" aria-label="Fixes">
         <Toggle label="lower-case" checked={fx.lower} onChange={set('lower')} />
         <Toggle label="strip punctuation" checked={fx.strip} onChange={set('strip')} />

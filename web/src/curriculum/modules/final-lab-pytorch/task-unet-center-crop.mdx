@@ -2,7 +2,7 @@ import ShapeShrinkTable from './visuals/task-unet-center-crop/ShapeShrinkTable'
 import CenterCropVisual from './visuals/task-unet-center-crop/CenterCropVisual'
 import SkipAlignOptions from './visuals/task-unet-center-crop/SkipAlignOptions'
 
-Task 2 of the 2026 Final, "The Segmentation Fracture", feels like a real job. You are the lead engineer at *OrbitalVision*, a start-up that labels every pixel of satellite photos as Urban (class 0) or Forest (class 1). An intern removed the padding from every convolution "to save compute", and now the network crashes with `RuntimeError: Sizes of tensors must match`. Part 1 (10 marks) asks you to write a function called `center_crop`, use it in one line of `forward`, and explain the trade-offs in two or three sentences (Q2.1b). Part 2, mean IoU, is the next lesson. If U-Nets are new to you, work through the U-Net lesson in the vision-tasks module first; this lesson is about solving the exam task quickly and without losing marks.
+Task 2 of the 2026 Final, "The Segmentation Fracture", feels like a real job: you are the lead engineer at *OrbitalVision*, a start-up that labels every pixel of satellite photos as Urban (class 0) or Forest (class 1). An intern removed the padding from every convolution "to save compute", and now the network crashes with `RuntimeError: Sizes of tensors must match`.
 
 <Analogy title="A big photo, a smaller frame">
 
@@ -11,6 +11,8 @@ You want to put a 6R photo into a slightly smaller frame. The sensible fix is to
 </Analogy>
 
 ## What the notebook gives you
+
+Part 1 (10 marks) asks you to write a function called `center_crop`, use it in one line of `forward`, and explain the trade-offs in two or three sentences (Q2.1b). Part 2, mean IoU, is the next lesson. If U-Nets are new to you, work through [the U-Net lesson](#/learn/vision-tasks/u-net-segmentation) first; this lesson is about solving the exam task quickly and without losing marks.
 
 The notebook hands you a class with every layer already built. All you see of the crop is a docstring and four TODO comments, and `forward` contains a placeholder that crashes on purpose. Here is the relevant part, trimmed:
 
@@ -145,14 +147,20 @@ Here is the complete answer for Q2.1: the four TODO steps, then the one-line fix
 ```python
 # inside class BrokenUNet
 def center_crop(self, layer, target_shape):
-    _, _, h_layer, w_layer = layer.shape                  # step 1: (B, C, H, W) of the big map
-    target_h, target_w = target_shape[2], target_shape[3] # step 2: H, W of the small map
-    off_h = (h_layer - target_h) // 2                     # step 3: offsets
+    # step 1: H, W of the big map (B, C, H, W)
+    _, _, h_layer, w_layer = layer.shape
+    # step 2: H, W of the small map
+    target_h, target_w = target_shape[2], target_shape[3]
+    # step 3: offsets
+    off_h = (h_layer - target_h) // 2
     off_w = (w_layer - target_w) // 2
-    return layer[:, :, off_h:off_h + target_h, off_w:off_w + target_w]   # step 4
+    # step 4: slice dims 2 and 3 only
+    return layer[:, :, off_h:off_h + target_h,
+                       off_w:off_w + target_w]
 
 # in forward(), replacing the placeholder line:
-x2_cropped = self.center_crop(x2, d1.shape)               # (1, 128, 114, 114)
+# x2_cropped: (1, 128, 114, 114)
+x2_cropped = self.center_crop(x2, d1.shape)
 ```
 
 The task also says "verify that the channel dimensions align". After the crop, `x2_cropped` and `d1` are both $(1, 128, 114, 114)$; `torch.cat` on `dim=1` adds the channels, $128 + 128 = 256$, giving $(1, 256, 114, 114)$, and `dec1_1` was built as `nn.Conv2d(256, 128, …)`, so it expects exactly 256 input channels. The self-check cell now prints, and the 128 test passes too:
@@ -195,8 +203,8 @@ torch.Size([1, 2, 46, 46])
 
 The written part asks: what are the **trade-offs** of centre cropping, could a different solution work (zero-padding, interpolation), and why does the original U-Net paper use padding=1? A human marks it, and two or three sentences are enough if each one makes a clear point. There are three ways to make the two maps the same size:
 
-1. **Crop the skip map** (what you just did). Everything that reaches the decoder is real and lined up, but the outer ring of every skip map is thrown away, and the output is smaller than the input.
-2. **Use "same" padding** (padding=1) in every $3 \times 3$ convolution, so no map shrinks. The maps line up without any crop and no border is lost, but the outermost pixels are computed partly from padded zeros, and the bigger maps cost a little more compute and memory.
+1. **Crop the skip map** (what you just did). Everything that reaches the decoder is real and lined up, but the outer ring of every skip map is thrown away. Together with the valid convolutions, that leaves the output covering less of the image: $110 \times 110$ for a $256 \times 256$ input, against $128 \times 128$ with same padding (this cut-down network pools twice but upsamples once, so it outputs at half resolution either way). Border pixels get no prediction, and large images must be processed as overlapping tiles.
+2. **Use "same" padding** (padding=1) in every $3 \times 3$ convolution, so no convolution shrinks a map. The maps line up without any crop and no border is lost, but the outermost pixels are computed partly from padded zeros, and the bigger maps cost a little more compute and memory.
 3. **Resize the decoder map** with `F.interpolate` (stretching it) or `F.pad` (adding zeros). One line, but the values are invented, and stretching also shifts features out of line with the skip map.
 
 <SkipAlignOptions />
@@ -222,6 +230,6 @@ Task 2 was 20 of the 80 programming marks, so give it about 30 minutes and Part 
 - With `padding=0`, every $3 \times 3$ convolution shrinks a map by 2; pooling halves (rounding down) and the transposed convolution doubles. In this network the skip map `x2` always ends up 8 or 9 pixels bigger than `d1` (122 vs 114 for a 256 input).
 - `center_crop(layer, target_shape)`: read `H, W` from `layer.shape` and `h, w` from `target_shape[2], target_shape[3]`, compute `off_h = (H - h) // 2` and `off_w = (W - w) // 2`, and return `layer[:, :, off_h:off_h + h, off_w:off_w + w]`. Call it as `self.center_crop(x2, d1.shape)`.
 - Never hard-code the slice, never use `d:-d`, crop only dims 2 and 3, join on `dim=1`: $128 + 128 = 256$ channels for `dec1_1`.
-- Q2.1b in three sentences: cropping discards border information and makes the output smaller (tiles needed); same padding keeps sizes aligned at a small compute cost with zero-padded edges; interpolating or padding the decoder map invents or stretches values.
+- Q2.1b in three sentences: valid convolutions plus cropping discard border information, so the output covers less of the image (110 × 110 here against 128 × 128 with same padding) and large images need tiles; same padding stops the convolutions shrinking the maps, so sizes line up at a small compute cost with zero-padded edges; interpolating or padding the decoder map invents or stretches values.
 
 </Takeaways>

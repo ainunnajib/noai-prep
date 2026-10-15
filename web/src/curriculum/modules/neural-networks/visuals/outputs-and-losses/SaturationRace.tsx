@@ -58,7 +58,12 @@ export default function SaturationRace() {
   const pM = sig(mse[tt])
   const gB = pB - 1
   const gM = 2 * (pM - 1) * pM * (1 - pM)
-  const fmtP = (p: number) => (p < 0.001 ? p.toExponential(1) : p.toFixed(3))
+  // plain decimals for a 15-year-old: 0.00034 rather than 3.4e-4 (two significant figures when small)
+  const fmtP = (p: number) => {
+    if (p === 0 || Math.abs(p) >= 0.001) return p.toFixed(3).replace('-', '−')
+    const d = Math.min(8, 1 - Math.floor(Math.log10(Math.abs(p))))
+    return Number(p.toPrecision(2)).toFixed(d).replace('-', '−')
+  }
   const stride = Math.max(1, Math.floor(xMax / 400))
   const curve = (zs: number[]) => zs.filter((_, i) => i % stride === 0 || i === zs.length - 1).map((z, i, arr) => [i === arr.length - 1 ? zs.length - 1 : i * stride, sig(z)] as [number, number])
 
@@ -67,10 +72,9 @@ export default function SaturationRace() {
       title="Confidently wrong: which loss escapes faster?"
       caption={
         <>
-          One sigmoid output, one example whose true label is 1, and a model that starts out confidently wrong (logit <M>{'z_0'}</M>, so <M>{'p = \\sigma(z_0)'}</M> is
-          tiny). Each step of gradient descent moves the logit by <M>{'-\\partial L/\\partial z'}</M>. With binary cross-entropy that push is <M>{'p - 1 \\approx -1'}</M>, so the
-          model escapes in a few steps. With squared error the push is multiplied by <M>{"\\sigma'(z) = p(1-p) \\approx 0"}</M>, so it crawls. Make the start more
-          confidently wrong and watch the gap explode, then press <b>Play</b>.
+          One example with true label 1, and a model that starts confidently wrong (logit <M>{'z_0'}</M>, so <M>{'p = \\sigma(z_0)'}</M> is tiny). Binary
+          cross-entropy pushes the logit with <M>{'p - 1 \\approx -1'}</M> and escapes in a few steps; squared error&rsquo;s push is multiplied by{' '}
+          <M>{"\\sigma'(z) \\approx 0"}</M>, so it crawls. Make the start more confidently wrong, then press <b>Play</b>.
         </>
       }
     >
@@ -132,9 +136,9 @@ export default function SaturationRace() {
         <Readout
           items={[
             ['BCE: p', fmtP(pB)],
-            ['BCE push', gB.toFixed(3).replace('-', '−')],
+            ['BCE push', fmtP(gB)],
             ['MSE: p', fmtP(pM)],
-            ['MSE push', gM.toFixed(3).replace('-', '−')],
+            ['MSE push', fmtP(gM)],
           ]}
         />
       </Controls>

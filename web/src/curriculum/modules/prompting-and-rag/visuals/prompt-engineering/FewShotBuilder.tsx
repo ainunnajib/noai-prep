@@ -216,28 +216,29 @@ export default function FewShotBuilder() {
       title="Teach by example, inside the prompt"
       caption={
         <>
-          The test review is sarcastic, and the instruction never says what the answer should look like. Start at zero-shot: the model is unsure of the label and usually chats instead of
-          answering in one word. Add the two <b>sarcasm</b> examples and watch the right one-word answer take over. Now add the <b>mislabelled</b> example last, then move it to the top: a wrong
-          example close to the test case does real damage, and the last example counts most. Finally press <b>New chat</b>: everything resets, because the weights never changed. The probabilities
-          come from a small toy model that mimics how real LLMs respond to examples; they are not from a real LLM.
+          Zero-shot, the model is unsure of the label and often chats. Relevant examples fix both the label and the format. A wrong example close to the new review does real damage,
+          and its position changes how much (this toy model, like many real ones, leans on the last example). Probabilities come from a small toy model, not a real LLM.
         </>
       }
     >
       <div ref={ref} className={s.wrap}>
+        <p className={s.tryLine}>
+          <b>Try:</b> add the two <b>sarcasm</b> examples, then the <b>mislabelled</b> one, and move it up and down. Finish with <b>New chat</b>.
+        </p>
         {narrow ? (
           <div className={s.stack}>
+            {promptPanel}
             {bankPanel}
             {outputPanel}
-            {promptPanel}
           </div>
         ) : (
-          <div className={s.cols}>
-            <div className={s.stack}>{promptPanel}</div>
-            <div className={s.stack}>
-              {outputPanel}
-              {bankPanel}
+          <>
+            <div className={s.cols}>
+              <div className={s.stack}>{promptPanel}</div>
+              <div className={s.stack}>{outputPanel}</div>
             </div>
-          </div>
+            {bankPanel}
+          </>
         )}
         <Controls>
           <Readout

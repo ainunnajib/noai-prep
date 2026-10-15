@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Readout, Segmented, Slider, useNarrow } from '../../../../../kit'
-import { npPrint } from '../arrays-and-shapes/npFormat'
+import { Figure, Controls, Readout, Segmented, Slider, useNarrow, useContainerWidth } from '../../../../../kit'
+import { npPrint, charsThatFit } from '../arrays-and-shapes/npFormat'
 
 /*
   Two uses of boolean masks.
@@ -31,7 +31,9 @@ const cellBase: CSSProperties = {
   borderRadius: 6,
   fontFamily: 'var(--font-mono)',
   fontWeight: 700,
-  border: '1.5px solid transparent',
+  borderWidth: 1.5,
+  borderStyle: 'solid',
+  borderColor: 'transparent',
 }
 
 function Grid({ data, render, size, label }: { data: number[][]; render: (v: number, i: number, j: number) => { text: string; style: CSSProperties }; size: number; label: string }) {
@@ -70,7 +72,7 @@ const pre: CSSProperties = {
 }
 
 const T = { background: 'color-mix(in srgb, var(--viz-pos) 26%, var(--surface))', borderColor: 'var(--viz-pos)', color: 'var(--ink)' }
-const F = { background: 'var(--surface-2)', color: 'var(--ink-3)' }
+const F = { background: 'var(--surface-2)', borderColor: 'transparent', color: 'var(--ink-3)' }
 
 function FilterMode() {
   const [cond, setCond] = useState<Cond>('ge')
@@ -83,6 +85,11 @@ function FilterMode() {
   const count = kept.length
   const code = cond === 'ge' ? `marks >= ${a}` : cond === 'and' ? `(marks >= ${a}) & (marks <= ${b})` : `(marks < ${a}) | (marks > ${b})`
   const size = narrow ? 40 : 48
+  const [outRef, outW] = useContainerWidth<HTMLDivElement>(520)
+  const fit = charsThatFit(outW)
+  // On a phone, a long two-part test goes over two lines (still valid Python) instead of scrolling.
+  const parts = code.split(/ ([&|]) /)
+  const maskLine = `mask = ${code}`.length <= fit || parts.length !== 3 ? `mask = ${code}` : `mask = (${parts[0]}\n        ${parts[1]} ${parts[2]})`
 
   return (
     <>
@@ -100,19 +107,19 @@ function FilterMode() {
         <Slider label={cond === 'ge' ? 'pass mark a' : 'a'} value={a} min={0} max={100} step={5} onChange={setA} />
         {cond !== 'ge' && <Slider label="b" value={b} min={0} max={100} step={5} onChange={setB} />}
       </Controls>
-      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>{`mask = ${code}\nkept = marks[mask]`}</pre>
+      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>{`${maskLine}\nkept = marks[mask]`}</pre>
       <div ref={ref} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1rem', width: '100%' }}>
         <Grid
           label="marks"
           data={MARKS}
           size={size}
-          render={(v) => ({ text: String(v), style: test(v) ? { color: 'var(--ink)', background: 'var(--surface-2)', borderColor: 'var(--viz-pos)' } : { color: 'var(--ink-3)', background: 'var(--surface-2)' } })}
+          render={(v) => ({ text: String(v), style: test(v) ? { color: 'var(--ink)', background: 'var(--surface-2)', borderColor: 'var(--viz-pos)' } : { color: 'var(--ink-3)', background: 'var(--surface-2)', borderColor: 'transparent' } })}
         />
         <Grid label="mask" data={mask} size={size} render={(m) => ({ text: m ? 'True' : 'False', style: m ? T : F })} />
       </div>
-      <div style={{ width: '100%' }}>
+      <div ref={outRef} style={{ width: '100%' }}>
         <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-3)', marginBottom: '0.2rem' }}>print(kept) shows (the True cells, read row by row)</div>
-        <pre style={pre}>{npPrint(kept, false)}</pre>
+        <pre style={pre}>{npPrint(kept, false, fit)}</pre>
       </div>
       <Readout
         items={[
@@ -131,12 +138,13 @@ function AccuracyMode() {
   const eq: number[] = pred.map((p, i) => (p === Y_TRUE[i] ? 1 : 0))
   const k = eq.reduce((s, x) => s + x, 0)
   const n = pred.length
-  const [ref, narrow] = useNarrow<HTMLDivElement>(480)
-  const size = narrow ? 24 : 38
+  // wide cells must fit the word "False" (5 monospace characters)
+  const [ref, narrow] = useNarrow<HTMLDivElement>(600)
+  const size = narrow ? 24 : 48
   const label = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)', textAlign: 'right' as const, paddingRight: 6 }
   const rowCells = (vals: number[], kind: 'y' | 'p' | 'm') =>
     vals.map((v, i) => {
-      const style: CSSProperties = { ...cellBase, height: size, fontSize: size < 30 ? '0.66rem' : '0.82rem' }
+      const style: CSSProperties = { ...cellBase, height: size, fontSize: size < 30 ? '0.66rem' : '0.74rem' }
       if (kind === 'm') Object.assign(style, v ? T : { ...F, background: 'color-mix(in srgb, var(--viz-neg) 18%, var(--surface))', borderColor: 'var(--viz-neg)', color: 'var(--ink)' })
       else Object.assign(style, { background: 'var(--surface-2)', color: 'var(--ink)' })
       const text = kind === 'm' ? (v ? (narrow ? 'T' : 'True') : narrow ? 'F' : 'False') : String(v)
@@ -171,6 +179,7 @@ function AccuracyMode() {
           <div style={label}>{narrow ? '==' : 'pred == y'}</div>
           {rowCells(eq, 'm')}
         </div>
+        {narrow && <div style={{ marginTop: '0.3rem', fontSize: '0.78rem', color: 'var(--ink-3)', textAlign: 'center' }}>T = True, F = False</div>}
       </div>
       <Readout
         items={[

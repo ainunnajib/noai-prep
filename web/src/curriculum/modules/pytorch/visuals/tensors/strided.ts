@@ -138,7 +138,7 @@ export interface OpResult {
   note?: string
 }
 
-const shapeArgs: number[][] = [[-1], [1, -1], [3, -1], [-1, 3], [4, 5, 3]]
+const shapeArgs: number[][] = [[-1], [1, -1], [3, -1], [-1, 3], [4, 5, 3], [3, 4, 5], [1, 3, 4, 5]]
 
 function permutations(n: number): number[][] {
   if (n === 1) return [[0]]
@@ -194,7 +194,12 @@ function viewLike(t: TState, target: number[], copyIfNeeded: boolean, opName = '
   const st = computeViewStrides(t.shape, t.strides, shape)
   const names = mergedNames(t.shape, t.names, shape)
   const axisIds = shape.map(() => freshAxisId())
-  if (st) return { state: { ...t, shape, strides: st, names, axisIds } }
+  if (st) {
+    const note = isContiguous(t.shape, t.strides)
+      ? undefined
+      : `x is not contiguous, but the axes this ${opName} splits, keeps or merges are still evenly spaced in memory, so it can relabel the strip without copying.`
+    return { state: { ...t, shape, strides: st, names, axisIds }, note }
+  }
   if (!copyIfNeeded) return { error: VIEW_ERROR }
   const m = materialise(t)
   return { state: { ...m, shape, strides: contiguousStrides(shape), names, axisIds }, note: `The numbers were not stored in reading order, so ${opName} could not just relabel the memory: it quietly made a contiguous copy first.` }
@@ -240,7 +245,7 @@ export function applyOp(t: TState, op: Op, dims: number[]): OpResult {
       return r
     }
     case 'view':
-      return viewLike(t, dims, false)
+      return viewLike(t, dims, false, 'view')
     case 'reshape':
       return viewLike(t, dims, true)
     case 'contiguous': {

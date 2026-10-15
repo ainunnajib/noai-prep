@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented, Toggle, Plot, Grid, Axes, Rect, Label, Path, Bars, usePlot } from '../../../../../kit'
+import { Figure, Controls, Segmented, Toggle, Plot, Grid, Axes, Rect, Label, Path, Bars, VLine, usePlot, useNarrow } from '../../../../../kit'
 
 /*
   36 students: weekly revision hours (x) and test score (y). Ten students left "hours" blank,
@@ -55,8 +55,18 @@ const INTERCEPT = mean(OBS_X) - SLOPE * mean(OBS_Y)
 const regFill = (score: number) => INTERCEPT + SLOPE * score
 
 const TRUE = { n: HOURS.length, mean: mean(HOURS), std: std(HOURS), r: corr(HOURS, SCORE) }
-const X: [number, number] = [-3.4, 22]
+const X_WIDE: [number, number] = [-3.4, 22]
+// on phones the axis stops at 12.6 h so the other 35 students get room; the 21-hour student is drawn at the edge
+const X_NARROW: [number, number] = [-3.4, 12.6]
 const STRIP_X = -2.35
+// spread the blank students sideways inside the strip (in score order) so close scores do not stack
+const STRIP_OFFSET: number[] = (() => {
+  const off = HOURS.map(() => 0)
+  const blanks = HOURS.map((_, i) => i).filter((i) => BLANK[i]).sort((a, b) => SCORE[a] - SCORE[b])
+  blanks.forEach((i, k) => (off[i] = [-0.5, 0, 0.5][k % 3]))
+  return off
+})()
+const stripX = (i: number) => STRIP_X + STRIP_OFFSET[i]
 
 function filled(method: Method): (number | null)[] {
   return HOURS.map((h, i) => {
@@ -69,11 +79,12 @@ function filled(method: Method): (number | null)[] {
 }
 
 /** a dot that glides to its new position */
-function MovingDot({ x, y, color, ring, faded }: { x: number; y: number; color: string; ring?: boolean; faded?: boolean }) {
+function MovingDot({ x, y, color, ring, warn, faded }: { x: number; y: number; color: string; ring?: boolean; warn?: boolean; faded?: boolean }) {
   const { xs, ys } = usePlot()
   return (
     <g style={{ transform: `translate(${xs(x)}px, ${ys(y)}px)`, transition: 'transform 0.6s ease', opacity: faded ? 0.3 : 1 }}>
       {ring && <circle r={9} style={{ fill: 'none', stroke: 'var(--viz-4)', strokeWidth: 2 }} />}
+      {warn && <circle r={12} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2 }} />}
       <circle r={5} style={{ fill: color, stroke: 'var(--surface)', strokeWidth: 1.5 }} />
     </g>
   )
@@ -106,6 +117,10 @@ function Delta({ v, ref0, digits = 2 }: { v: number; ref0: number; digits?: numb
 export default function ImputationVisualizer() {
   const [method, setMethod] = useState<Method>('mean')
   const [indicator, setIndicator] = useState(false)
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
+  const X = narrow ? X_NARROW : X_WIDE
+  const edge = X[1] - 0.45
+  const maxBin = narrow ? 11 : 21
 
   const xsFilled = filled(method)
   const used = xsFilled.map((v, i) => (v == null ? null : ([v, SCORE[i]] as [number, number]))).filter((p): p is [number, number] => p != null)
@@ -113,23 +128,25 @@ export default function ImputationVisualizer() {
   const uy = used.map((p) => p[1])
   const now = { n: used.length, mean: mean(ux), std: std(ux), r: corr(ux, uy) }
 
-  // histogram of hours (bins of width 1), stacked: observed then imputed
-  const bins = Array.from({ length: 22 }, (_, k) => ({ k, obs: 0, imp: 0 }))
+  // histogram of hours (bins of width 1, plus one bin for impossible negative values), stacked: observed then imputed
+  const bins = Array.from({ length: maxBin + 2 }, (_, j) => ({ k: j - 1, obs: 0, imp: 0 }))
   xsFilled.forEach((v, i) => {
     if (v == null) return
-    const k = Math.min(21, Math.max(0, Math.floor(v)))
-    if (BLANK[i]) bins[k].imp++
-    else bins[k].obs++
+    const k = Math.min(maxBin, Math.max(-1, Math.floor(v)))
+    if (BLANK[i]) bins[k + 1].imp++
+    else bins[k + 1].obs++
   })
   const hMax = Math.max(...bins.map((b) => b.obs + b.imp))
+  const negBin = bins[0].obs + bins[0].imp
+  const negFill = xsFilled.find((v, i) => BLANK[i] && v != null && v < 0)
 
   const blankScores = SCORE.filter((_, i) => BLANK[i])
   const presentScores = SCORE.filter((_, i) => !BLANK[i])
 
   const methodNote: Record<Method, string> = {
     drop: 'Dropping the 10 incomplete rows leaves 26. They are mostly the keen students, so the average is now too high.',
-    mean: `All 10 blanks become ${fmt(mean(OBS_X), 2)} h: a spike in the histogram, a smaller spread, and a weaker correlation.`,
-    median: `All 10 blanks become the median, ${fmt(median(OBS_X), 1)} h. Less pulled by the 21-hour student than the mean, but still a spike.`,
+    mean: `All 10 blanks become ${fmt(mean(OBS_X), 2)} h, the mean of the observed hours: a spike in the histogram, a smaller spread and a weaker correlation. The mean is still too high (true: ${fmt(TRUE.mean)} h) because the students who skipped the question revise less, so the observed mean was biased before anything was filled in.`,
+    median: `All 10 blanks become the median, ${fmt(median(OBS_X), 1)} h. Less pulled by the 21-hour student than the mean, but still a spike, and still too high, because the blanks come mostly from students who revise little.`,
     regression: 'Each blank is predicted from that student\u2019s score (dashed line, fitted on the complete rows). The mean and spread look right, but the filled points sit exactly on the line, so the correlation comes out too strong, and one student is even given a negative number of hours.',
   }
 
@@ -157,33 +174,58 @@ export default function ImputationVisualizer() {
           ]}
         />
       </Controls>
-      <Plot x={X} y={[25, 102]} width={520} height={290} minHeight={250} margin={{ left: 40, bottom: 34 }} ariaLabel={`Scatter of revision hours against test score with ten blanks handled by ${method}`}>
+      <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.5rem' }}>
+      <Plot x={X} y={[25, 102]} width={520} height={290} minHeight={narrow ? 300 : 250} margin={{ left: 40, bottom: 34 }} ariaLabel={`Scatter of revision hours against test score with ten blanks handled by ${method}`}>
         <Grid xTicks={5} yTicks={4} />
         <Rect x0={X[0]} x1={-1.3} y0={25} y1={102} fill="color-mix(in srgb, var(--viz-2) 10%, transparent)" />
-        <Label x={STRIP_X} y={25} dy={-6} anchor="middle" size={11} color="var(--viz-2)">
+        <Label x={STRIP_X} y={25} dy={15} anchor="middle" size={11} weight={700} color="var(--viz-2)">
           blank
         </Label>
+        <VLine x={0} color="var(--viz-axis)" dash="2 3" width={1} />
         <Axes xLabel="revision hours per week" yLabel="score" xTicks={5} yTicks={4} tickFormat={(v) => (v < 0 ? '' : String(v))} />
         {method === 'regression' && <Path points={[[regFill(25), 25], [regFill(102), 102]]} color="var(--viz-2)" width={1.5} dash="5 4" />}
-        {HOURS.map((_, i) => (BLANK[i] ? <Hollow key={`h${i}`} x={STRIP_X} y={SCORE[i]} crossed={method === 'drop'} /> : null))}
+        {HOURS.map((_, i) => (BLANK[i] ? <Hollow key={`h${i}`} x={stripX(i)} y={SCORE[i]} crossed={method === 'drop'} /> : null))}
         {HOURS.map((h, i) => {
-          if (!BLANK[i]) return <MovingDot key={i} x={h} y={SCORE[i]} color="var(--viz-1)" />
+          if (!BLANK[i]) return <MovingDot key={i} x={Math.min(h, edge)} y={SCORE[i]} color="var(--viz-1)" />
           const v = xsFilled[i]
-          return <MovingDot key={i} x={v ?? STRIP_X} y={SCORE[i]} color="var(--viz-2)" ring={indicator && v != null} faded={v == null} />
+          return <MovingDot key={i} x={v ?? stripX(i)} y={SCORE[i]} color="var(--viz-2)" ring={indicator && v != null} warn={method === 'regression' && v != null && v < 0} faded={v == null} />
         })}
+        {HOURS.map((h, i) =>
+          !BLANK[i] && h > edge ? (
+            <Label key={`edge${i}`} x={edge} y={SCORE[i]} dx={-10} dy={4} anchor="end" size={11} color="var(--ink-2)">
+              {`${h} h →`}
+            </Label>
+          ) : null,
+        )}
+        {method === 'regression' && negFill != null && (
+          <Label x={negFill} y={SCORE[xsFilled.indexOf(negFill)]} dx={17} dy={-8} size={12} weight={700} color="var(--viz-neg)">
+            {`${negFill.toFixed(1).replace('-', '−')} h?!`}
+          </Label>
+        )}
       </Plot>
       <Plot x={X} y={[0, hMax + 1]} width={520} height={120} minHeight={110} margin={{ left: 40, bottom: 26, top: 8 }} ariaLabel="Histogram of revision hours, observed values in blue and filled values in orange">
         {bins.map((b) => (
           <g key={b.k}>
             {b.obs > 0 && <Rect x0={b.k + 0.06} x1={b.k + 0.94} y0={0} y1={b.obs} fill="color-mix(in srgb, var(--viz-1) 70%, var(--surface))" />}
-            {b.imp > 0 && <Rect x0={b.k + 0.06} x1={b.k + 0.94} y0={b.obs} y1={b.obs + b.imp} fill="var(--viz-2)" />}
+            {b.imp > 0 && <Rect x0={b.k + 0.06} x1={b.k + 0.94} y0={b.obs} y1={b.obs + b.imp} fill={b.k < 0 ? 'var(--viz-neg)' : 'var(--viz-2)'} />}
           </g>
         ))}
         <Axes xTicks={5} yTicks={2} tickFormat={(v) => (v < 0 ? '' : String(v))} />
-        <Label x={21.8} y={hMax + 1} dy={12} anchor="end" size={11} color="var(--ink-2)">
+        {negBin > 0 && (
+          <Label x={-0.5} y={negBin} dy={-4} anchor="middle" size={11} weight={700} color="var(--viz-neg)">
+            {'< 0'}
+          </Label>
+        )}
+        {narrow && (
+          <Label x={maxBin + 0.5} y={bins[maxBin + 1].obs + bins[maxBin + 1].imp} dy={-4} anchor="middle" size={10} color="var(--ink-2)">
+            {'21 h'}
+          </Label>
+        )}
+        <Label x={X[1] - 0.2} y={hMax + 1} dy={12} anchor="end" size={11} color="var(--ink-2)">
           histogram of hours
         </Label>
       </Plot>
+      </div>
       <p style={{ margin: 0, width: '100%', fontSize: 'var(--step--1)', color: 'var(--ink-2)' }}>{methodNote[method]}</p>
       <div className="table-wrap" style={{ width: '100%' }}>
         <table style={{ width: '100%', fontSize: 'var(--step--1)' }}>

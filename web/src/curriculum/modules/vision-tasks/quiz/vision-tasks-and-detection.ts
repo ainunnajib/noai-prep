@@ -42,7 +42,7 @@ const questions: QuizQuestion[] = [
     options: ['Mask R-CNN', 'U-Net', 'YOLO', 'ResNet-50 classifier'],
     answer: 0,
     explanation:
-      'Separate outlines for overlapping people is **instance segmentation**, and Mask R-CNN (Faster R-CNN plus a mask for each detected box) is the classic model for it. U-Net does semantic segmentation, which would merge overlapping people into one region; YOLO gives boxes, not outlines; a classifier gives one label per image.',
+      'Separate outlines for overlapping people is **instance segmentation**, and Mask R-CNN (Faster R-CNN plus a mask for each detected box) is the classic model for it. U-Net does semantic segmentation, which would merge overlapping people into one region; classic YOLO gives boxes, not outlines (newer -seg versions add masks, but Mask R-CNN is the textbook instance-segmentation model); a classifier gives one label per image.',
     difficulty: 'intermediate',
   },
   {
@@ -58,6 +58,21 @@ const questions: QuizQuestion[] = [
     answer: 0,
     explanation:
       'Boxes of two neighbouring people overlap, and with a threshold of 0.3 the higher-scoring one deletes the other. Raising the threshold means only near-identical boxes count as duplicates. Lowering it would delete even more neighbours, a higher confidence cut-off removes boxes rather than recovering them, and class-agnostic NMS only adds suppression.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'vision-tasks.vision-tasks-and-detection.6',
+    prompt:
+      'A detector draws one box on a dog, and that box has IoU 0.45 with the true dog box. No other box overlaps the dog. When **mAP@0.5** is computed, how is this prediction counted?',
+    options: [
+      'As a false positive, so the dog also counts as missed',
+      'As a true positive, because any overlap with an object of the right class counts',
+      'As 0.45 of a true positive, because AP weights every box by its IoU',
+      'Not at all, because NMS deletes boxes whose IoU is below 0.5',
+    ],
+    answer: 0,
+    explanation:
+      'For mAP@0.5 a prediction is a true positive only when its IoU with an unmatched true box of the same class is **at least 0.5**. Here 0.45 falls short, so the box is a false positive and the dog stays unmatched (a false negative). AP counts hits and misses; it does not give partial credit by IoU. NMS compares predicted boxes with each other, not with the ground truth, and removes boxes whose IoU is *above* its threshold.',
     difficulty: 'intermediate',
   },
 ]

@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     options: ['$-2$', '$-8$', '$-4$', '$-4.5$'],
     answer: 0,
     explanation:
-      'The output neuron computes $z = \\dots + h\\,w + \\dots$, and a multiply node sends each input the upstream gradient times the other input: $\\partial L/\\partial w = h \\times \\delta = 0.5 \\times (-4) = -2$. $-8$ divides by $0.5$ instead of multiplying, $-4$ forgets the input activation, and $-4.5$ adds instead of multiplying.',
+      'The output neuron computes $z = \\dots + h\\,w + \\dots$, and a multiply node sends each input the upstream gradient times the other input: $\\partial L/\\partial w = h \\times \\delta = 0.5 \\times (-4) = -2$. $-8$ divides by $0.5$ instead of multiplying, $-4$ forgets the input activation, and $-4.5$ subtracts $h$ from $\\delta$ ($-4 - 0.5$) instead of multiplying.',
     difficulty: 'intermediate',
   },
   {
@@ -47,7 +47,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'For $z < 0$, ReLU outputs $0$ and is flat, so its local derivative is $0$: $\\delta = (\\text{upstream}) \\times 0 = 0$, and every incoming weight gradient $x_i \\times \\delta$ is $0$. ReLU is undefined only at exactly $z = 0$, not for all negative $z$; and the sign of $z$ does not set the sign of the gradient.',
+      'For $z < 0$, ReLU outputs $0$ and is flat, so its local derivative is $0$: $\\delta = (\\text{upstream}) \\times 0 = 0$, and every incoming weight gradient $x_i \\times \\delta$ is $0$. ReLU\'s derivative is undefined only at exactly $z = 0$ (PyTorch uses 0 there); for every negative $z$ it is simply $0$, not undefined. And the sign of $z$ does not set the sign of the gradient.',
     difficulty: 'intermediate',
   },
   {
@@ -57,7 +57,7 @@ const questions: QuizQuestion[] = [
     options: ['`4.0 2.0`', '`2.0 2.0`', '`6.0 2.0`', '`4.0 4.0`'],
     answer: 0,
     explanation:
-      'Forward: $\\hat y = 3 \\times 2 - 4 = 2$, so $L = (2 - 1)^2 = 1$. Backward: `d_yhat` $= 2(2 - 1) = 2$; the weight gets upstream × input $= 2 \\times 2 = 4$ and the bias gets the upstream gradient unchanged, $2$. `2.0 2.0` forgets the factor $x$, and `6.0 2.0` multiplies by $w$ instead of $x$.',
+      'Forward: $\\hat y = 3 \\times 2 - 4 = 2$, so $L = (2 - 1)^2 = 1$. Backward: `d_yhat` $= 2(2 - 1) = 2$; the weight gets upstream × input $= 2 \\times 2 = 4$ and the bias gets the upstream gradient unchanged, $2$. `2.0 2.0` forgets the factor $x$, and `6.0 2.0` multiplies by $w$ instead of $x$. `4.0 4.0` multiplies the bias gradient by $x$ too, but the bias is simply added, so its local derivative is 1.',
     difficulty: 'beginner',
   },
 ]

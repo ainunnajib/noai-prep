@@ -29,14 +29,14 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.classify-with-boundaries.3',
     prompt: 'Compared with a kNN classifier that uses $k = 15$, the same classifier with $k = 1$:',
     options: [
-      'follows every training point, giving a jagged boundary and 100% training accuracy',
+      'bends its boundary around every training point and scores (almost) 100% in training',
       'averages over more neighbours, giving a smoother boundary that ignores odd points',
       'always scores higher on new data, because it uses the single closest example',
       'needs a much longer training phase before it is able to make any predictions',
     ],
     answer: 0,
     explanation:
-      'With $k = 1$ every prediction copies the single nearest training point, so the boundary bends around every point, including unusual ones, and each training point is classified by itself (100% training accuracy). That jaggedness usually makes it worse, not better, on new data. Smoothing comes from a larger $k$, and kNN has no training phase at all: it just stores the examples.',
+      'With $k = 1$ every prediction copies the single nearest training point, so the boundary bends around every point, including unusual ones, and each training point is classified by itself (100% training accuracy, unless two training points share a spot but have different labels). That jaggedness usually makes it worse, not better, on new data. Smoothing comes from a larger $k$, and kNN has no training phase at all: it just stores the examples.',
     difficulty: 'beginner',
   },
   {

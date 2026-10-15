@@ -5,7 +5,8 @@ import { makeXray } from './images'
 import s from './it.module.css'
 
 /*
-  Three synthetic chest X-rays whose lungs differ in density (A clear, C hazy and dense).
+  Three synthetic chest X-rays that differ in density (A clear, C hazy and dense: a whitish haze
+  that lifts the whole picture and lowers its contrast).
   Pick a normalisation; see the pictures, the pixel-value histograms, each image's mean
   ("density") and the signs of one first-layer neuron's weight gradients dL/dw_i = δ·x_i.
   Pictures are always displayed with ONE fixed grey scale per method, so a transform that
@@ -88,20 +89,21 @@ export default function ImageNormaliser() {
     ),
     minmax: (
       <>
-        Divided by 255, so every value is in [0, 1]. Better scaled, but still <b>all positive</b>: all of this neuron's weight gradients share one sign, so in one
-        update its weights can only all go up or all go down together.
+        Divided by 255, so every value is in [0, 1]. Better scaled, but still <b>all positive</b>: for one training image, all of this neuron's weight
+        gradients share one sign, so its weights can only all go up or all go down together.
       </>
     ),
     dataset: (
       <>
-        Subtract the training set's mean ({mu.toFixed(0)}) and divide by its standard deviation ({sd.toFixed(0)}). Inputs now <b>straddle zero</b>, gradient
-        signs are mixed, and because every image got the same transform, C still looks denser than A: the diagnostic difference survives.
+        Subtract the training set's mean ({(mu / 255).toFixed(2)}) and divide by its standard deviation ({(sd / 255).toFixed(2)}), both measured after ÷ 255.
+        Inputs now <b>straddle zero</b>, gradient signs are mixed, and because every image got the same transform, C still looks hazier than A: the
+        diagnostic difference survives.
       </>
     ),
     perimage: (
       <>
         Each image uses <b>its own</b> mean and standard deviation, so every image ends up with mean 0 and spread 1. The signs are mixed, but look at the
-        pictures and the means: <b>C now looks as clear as A</b>. The density difference a doctor would use has been erased.
+        pictures: the haze has gone and <b>C now looks almost exactly like A</b>. The density difference a doctor would use has been erased.
       </>
     ),
   }
@@ -111,9 +113,8 @@ export default function ImageNormaliser() {
       title="Three ways to normalise an X-ray"
       caption={
         <>
-          Switch the method and watch three things: where the pixel values sit compared with zero (each box holds the middle half of an image's values, the
-          whiskers the middle 90%, the dot is the mean), whether A, B and C still differ, and the gradient signs. Pictures are drawn with one fixed grey scale per method, so a transform that treats every image identically leaves them looking
-          the same.
+          <b>Try:</b> switch between the four methods. <b>Notice:</b> where the values sit compared with zero, whether A, B and C still look different,
+          and the gradient signs. Only the dataset z-score gives both mixed signs and a visible difference.
         </>
       }
     >
@@ -164,6 +165,26 @@ export default function ImageNormaliser() {
           </g>
         ))}
       </Plot>
+      <div className={s.boxKey} aria-hidden="true">
+        <span>
+          <svg width="22" height="12">
+            <rect x="1" y="1" width="20" height="10" rx="2" style={{ fill: 'color-mix(in srgb, var(--viz-muted) 30%, var(--surface))', stroke: 'var(--viz-muted)' }} />
+          </svg>
+          middle half of an image's values
+        </span>
+        <span>
+          <svg width="22" height="12">
+            <line x1="1" y1="6" x2="21" y2="6" style={{ stroke: 'var(--viz-muted)', strokeWidth: 2 }} />
+          </svg>
+          middle 90%
+        </span>
+        <span>
+          <svg width="12" height="12">
+            <circle cx="6" cy="6" r="4.5" style={{ fill: 'var(--viz-muted)', stroke: 'var(--viz-ink)' }} />
+          </svg>
+          mean
+        </span>
+      </div>
       <div className={s.stack} style={{ gap: '0.35rem' }}>
         <span className={s.capSmall}>
           Signs of one first-layer neuron's gradients, ∂L/∂w = δ · x, for 16 pixels of image B (with δ positive here; a negative δ flips them all)

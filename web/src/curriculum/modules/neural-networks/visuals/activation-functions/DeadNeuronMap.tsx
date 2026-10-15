@@ -6,8 +6,9 @@ import { BOX, DATA, LEAK, NET0, N_HIDDEN, stats, train, type Net } from './deadS
 /*
   Sixteen hidden neurons of a small network (2 → 16 → 1) as tiles. Each tile is the square of training
   inputs; the orange part is where that neuron is switched on (z > 0), so its area is roughly the share of
-  inputs that activate it. "moved" is how far the neuron's weights travelled during the last 100 steps:
+  inputs that activate it. "moved" is how far the neuron's weights travelled during the last training press:
   a dead ReLU neuron (switched on for no input at all) gets exactly zero gradient, so it never moves again.
+  The "latest run" table keeps the latest result of each activation, so the two runs can be compared.
 */
 
 const LRS = [0.01, 0.03, 0.1, 0.3, 1, 3]
@@ -18,6 +19,12 @@ interface LogItem {
   lr: number
   leaky: boolean
   dead: number
+  loss: number
+}
+
+interface Latest {
+  steps: number
+  off: number
   loss: number
 }
 
@@ -77,19 +84,22 @@ export default function DeadNeuronMap() {
   const [prev, setPrev] = useState<Net | null>(null)
   const [steps, setSteps] = useState(0)
   const [log, setLog] = useState<LogItem[]>([])
+  const [latest, setLatest] = useState<{ relu: Latest | null; leaky: Latest | null }>({ relu: null, leaky: null })
   const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const lr = LRS[lrIdx]
   const st = stats(net, data, leaky)
   const zeroCount = st.frac.filter((f) => f === 0).length
 
-  const doTrain = () => {
-    const next = train(net, data, lr, leaky, 100)
+  const doTrain = (n: number) => {
+    const next = train(net, data, lr, leaky, n)
     const s = stats(next, data, leaky)
+    const off = s.frac.filter((f) => f === 0).length
     setPrev(net)
     setNet(next)
-    setLog((old) => [...old, { from: steps + 1, to: steps + 100, lr, leaky, dead: s.frac.filter((f) => f === 0).length, loss: s.loss }].slice(-4))
-    setSteps(steps + 100)
+    setLog((old) => [...old, { from: steps + 1, to: steps + n, lr, leaky, dead: off, loss: s.loss }].slice(-4))
+    setLatest((old) => ({ ...old, [leaky ? 'leaky' : 'relu']: { steps: steps + n, off, loss: s.loss } }))
+    setSteps(steps + n)
   }
   const reset = () => {
     setNet(net0)
@@ -104,12 +114,9 @@ export default function DeadNeuronMap() {
       title="Watching ReLU neurons die"
       caption={
         <>
-          A small network (2 inputs, 16 hidden neurons, 1 output) learns to fit a wavy surface from 120 training points. Each tile is one hidden neuron:
-          the square is where the training inputs live, and the orange part is where this neuron is switched on (<i>z</i> &gt; 0). <b>1.</b> Press{' '}
-          <b>Train 100 steps</b> a few times at η = 0.1: every neuron stays alive. <b>2.</b> Press <b>Reset</b>, set η to 1 and train: big jumps shove many
-          neurons' orange region right off the square. They are <b>dead</b>: off for every input, so their gradient is exactly 0 and "moved" stays 0 however
-          long you train, even if you lower η afterwards. <b>3.</b> Turn on <b>Leaky ReLU</b> (this restarts training) and train at η = 1 again: neurons
-          still get knocked off, but they keep moving and find their way back. (Gradients are clipped to length 3 so the numbers never overflow.)
+          A 2-16-1 network learns a wavy surface from 120 points. Each tile is one hidden neuron: the square is where the training inputs live, the orange part is
+          where the neuron is switched on (<i>z</i> &gt; 0), and &ldquo;moved&rdquo; is how far its weights changed in the last press. A huge η shoves orange regions
+          right off the square, and those neurons are <b>dead</b>. (Leaky ReLU&rsquo;s α is 0.1 here, ten times the usual 0.01, so its effect shows quickly.)
         </>
       }
     >
@@ -137,11 +144,38 @@ export default function DeadNeuronMap() {
         />
       </Controls>
       <Controls>
-        <Button primary onClick={doTrain}>
+        <Button primary onClick={() => doTrain(100)}>
           Train 100 steps
         </Button>
+        <Button onClick={() => doTrain(500)}>Train 500 steps</Button>
         <Button onClick={reset}>Reset</Button>
       </Controls>
+      {(latest.relu || latest.leaky) && (
+        <table style={{ borderCollapse: 'collapse', fontSize: '0.84rem', fontVariantNumeric: 'tabular-nums', color: 'var(--ink)' }} aria-label="Latest result for ReLU and for Leaky ReLU">
+          <thead>
+            <tr style={{ color: 'var(--ink-3)' }}>
+              {['latest run', 'steps', 'neurons off', 'loss'].map((h) => (
+                <th key={h} style={{ padding: '2px 8px', fontWeight: 700, textAlign: h === 'latest run' ? 'left' : 'right', borderBottom: '1.5px solid var(--rule)' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(['relu', 'leaky'] as const).map((k) => {
+              const r = latest[k]
+              return (
+                <tr key={k} style={{ fontWeight: (k === 'leaky') === leaky ? 700 : 400 }}>
+                  <td style={{ padding: '2px 8px' }}>{k === 'relu' ? 'ReLU' : 'Leaky ReLU'}</td>
+                  <td style={{ padding: '2px 8px', textAlign: 'right' }}>{r ? r.steps.toLocaleString('en-GB') : '–'}</td>
+                  <td style={{ padding: '2px 8px', textAlign: 'right' }}>{r ? `${r.off} of ${N_HIDDEN}` : '–'}</td>
+                  <td style={{ padding: '2px 8px', textAlign: 'right' }}>{r ? r.loss.toFixed(3) : '–'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
       {log.length > 0 && (
         <div style={{ width: '100%', fontSize: '0.84rem', color: 'var(--ink-2)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.6 }}>
           {log.map((l, i) => (

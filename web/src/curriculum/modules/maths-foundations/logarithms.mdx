@@ -42,15 +42,27 @@ Four facts can be read straight off the mirror:
 - **Numbers between 0 and 1 have negative logs**: $\log_2 0.5 = -1$ and $\log_{10} 0.01 = -2$. Probabilities live between 0 and 1, so their logs are negative. Hold on to that.
 - **$\log 0$ does not exist.** No power of 2 equals 0: $2^y$ gets closer and closer to 0 as $y$ becomes very negative, but never reaches it. So the log curve plunges towards $-\infty$ as $x$ approaches 0, and negative numbers have no log at all. This is why ML code often writes `np.log(p + 1e-8)`: a predicted probability of exactly 0 would otherwise give `-inf` and wreck the loss. The tiny added number is called <Term def="A tiny positive number such as 1e-8 (0.00000001), added to avoid dividing by zero or taking the log of zero.">epsilon (ε)</Term>.
 
+You will use the first fact again when you work with text. TF-IDF, a classic way to score how important a word is in a document, in its basic form multiplies by $\log \dfrac{N}{\text{df}}$, where $N$ is the number of documents and df is the number of them that contain the word. A word found in every document, such as "the", scores $\log 1 = 0$ and so counts for nothing.
+
 ### Three bases you will meet
 
-| Log | Where it appears | Python |
+| Log | Base | Where it appears |
 |---|---|---|
-| $\ln x$, base $e \approx 2.718$ | ML maths: losses, likelihoods, softmax. Papers often write plain "log" and mean ln. | `np.log(x)` |
-| $\log_2 x$, base 2 | computing: bits, binary search, $O(\log n)$ | `np.log2(x)` |
-| $\log_{10} x$, base 10 | counting digits, orders of magnitude | `np.log10(x)` |
+| $\ln x$ | $e$ | ML maths: losses, likelihoods, softmax |
+| $\log_2 x$ | 2 | computing: bits, binary search, $O(\log n)$ |
+| $\log_{10} x$ | 10 | counting digits, orders of magnitude |
 
-$\ln$ is the <Term def="The logarithm with base e ≈ 2.718, written ln. It is the default log in maths and machine learning.">natural log</Term>, the one that undoes $e^x$ from the last lesson. The bases differ only by a constant factor: $\log_2 x = \dfrac{\ln x}{\ln 2}$, about $1.44 \times \ln x$. So every log curve has the same shape, just stretched, and that is why Big-O notation never bothers to say which base: $O(\log_2 n)$ and $O(\ln n)$ are the same class.
+In NumPy the three are `np.log` (that is ln), `np.log2` and `np.log10`. ML papers often write plain "log" and mean ln.
+
+$\ln$ is the <Term def="The logarithm with base e ≈ 2.718, written ln. It is the default log in maths and machine learning.">natural log</Term>, the one that undoes $e^x$ from the last lesson. The bases differ only by a constant factor: $\log_2 x = \dfrac{\ln x}{\ln 2}$, about $1.44 \times \ln x$. In general, to change from one base to another, divide by the log of the base:
+
+$$
+\log_b x = \frac{\ln x}{\ln b}
+$$
+
+For example $\log_4 8 = \dfrac{\ln 8}{\ln 4} = \dfrac{3 \ln 2}{2 \ln 2} = 1.5$, and $\log_2 10 = \dfrac{\ln 10}{\ln 2} \approx \dfrac{2.303}{0.693} \approx 3.32$. (Any base works on top and bottom, as long as both use the same one: $\log_b x = \dfrac{\log_{10} x}{\log_{10} b}$ too.)
+
+So every log curve has the same shape, just stretched. That is why computer scientists, who describe how the number of steps grows using <Term def="A way of saying how the number of steps an algorithm takes grows as its input gets bigger, ignoring constant factors. O(log n) means the steps grow like log n.">Big-O notation</Term>, never bother to say which base: they just write $O(\log n)$.
 
 <Mistake title="`np.log` is ln, not log base 10">
 
@@ -92,7 +104,7 @@ $\log_b x$ is the power you raise $b$ to in order to get $x$. A log undoes an ex
 
 ## Counting halvings: where $\log_2 n$ comes from
 
-Run the folding backwards. Start with $n$ and keep halving until you reach 1. The number of halvings is $\log_2 n$ (rounded up when $n$ is not a power of 2): $8 \to 4 \to 2 \to 1$ takes 3 halvings, and $\log_2 8 = 3$.
+Run the folding backwards. Start with $n$ and keep halving until you reach 1 or less. The number of halvings is $\log_2 n$ (rounded up when $n$ is not a power of 2): $8 \to 4 \to 2 \to 1$ takes 3 halvings, and $\log_2 8 = 3$.
 
 <HalvingCounter />
 
@@ -119,6 +131,8 @@ $$
 They hold in any base, as long as every log in the equation uses the same one. In words: **multiplying inside the log is adding outside; dividing inside is subtracting outside; a power inside comes out in front as a multiplier.**
 
 <LogRuler />
+
+This is also why plots of learning rates and loss curves often use a **log axis**: on it, $10^{-1}$, $10^{-2}$ and $10^{-3}$ are equally spaced, so a sweep over learning rates from 0.0001 to 1 fits neatly on one chart.
 
 <Steps title="Using the rules">
   <Step title="Product rule">
@@ -171,7 +185,7 @@ Take logs and the product becomes a sum:
 $$
 \begin{aligned}
 \ln\left(0.9^{1000}\right) &= 1000 \times \ln 0.9 \\
-&\approx 1000 \times (-0.105) = -105.4
+&\approx 1000 \times (-0.1054) \approx -105.4
 \end{aligned}
 $$
 
@@ -192,9 +206,12 @@ Here is the underflow in PyTorch. (PyTorch cannot run in your browser, so this i
 ```python
 import torch
 
-p = torch.full((1000,), 0.9)   # 1000 independent events, each with probability 0.9
-print(p.prod())                # multiply them all
-print(p.log().sum())           # add their logs instead
+# 1000 independent events, each 0.9
+p = torch.full((1000,), 0.9)
+# multiply them all
+print(p.prod())
+# add their logs instead
+print(p.log().sum())
 ```
 
 ```text
@@ -206,27 +223,26 @@ Plain Python uses 64-bit floats (float64), which reach down to about $10^{-308}$
 
 <PyRunner code={`import math
 
-print(0.9 ** 1000)              # float64 can still hold this...
-print(0.9 ** 10000)             # ...but not this: it underflows to 0.0
-print(10000 * math.log(0.9))    # the log-likelihood is a normal number`} />
+# float64 can still hold this...
+print(0.9 ** 1000)
+# ...but this underflows to 0.0
+print(0.9 ** 10000)
+# the log-likelihood is fine
+print(10000 * math.log(0.9))`} />
+
+Expected output:
+
+```text
+1.7478712517226947e-46
+0.0
+-1053.6051565782627
+```
 
 ## Anchor values and the cost $-\ln p$
 
-With no calculator, a handful of memorised values go a long way. The rules then stretch them to many more.
+With no calculator, a handful of memorised values go a long way. Two are worth learning by heart: $\ln 2 \approx 0.693$ ("about 0.7") and $\ln 10 \approx 2.303$ ("about 2.3"). Add $\ln 1 = 0$, $\ln e = 1$, $\log_{10} 2 \approx 0.301$ and $\log_2 10 \approx 3.32$ (because $2^{10} \approx 10^3$, so $\log_2 10 \approx \tfrac{10}{3}$), and the rules stretch them to many more: $\ln 4 = 2 \ln 2 \approx 1.386$, $\ln 5 = \ln 10 - \ln 2 \approx 1.609$, $\ln 100 = 2 \ln 10 \approx 4.605$ and $\ln 0.5 = -\ln 2 \approx -0.693$.
 
-| Value | Approximately | Why or how |
-|---|---|---|
-| $\ln 1$ | 0 | $e^0 = 1$ |
-| $\ln 2$ | 0.693 | memorise ("about 0.7") |
-| $\ln e$ | 1 | $e^1 = e$ |
-| $\ln 10$ | 2.303 | memorise ("about 2.3") |
-| $\log_2 10$ | 3.32 | $2^{10} \approx 10^3$, so $\log_2 10 \approx \tfrac{10}{3}$ |
-| $\log_{10} 2$ | 0.301 | the same fact the other way round |
-| $\ln \tfrac{1}{K}$ | $-\ln K$ | quotient rule |
-
-From these: $\ln 4 = 2 \ln 2 \approx 1.386$, $\ln 5 = \ln 10 - \ln 2 \approx 1.609$, $\ln 100 = 2 \ln 10 \approx 4.605$ and $\ln 0.5 = -\ln 2 \approx -0.693$.
-
-The most important log in ML is $-\ln p$. When a classifier gives the **correct** answer probability $p$, the <Term def="The standard classification loss. For one example it is −ln(probability the model gave to the correct class).">cross-entropy loss</Term> for that example is $-\ln p$. The minus sign is there because $\ln p$ is negative for $0 < p < 1$; flipping it makes the cost positive.
+The figure below collects the anchors (with a quiz mode to test yourself). The most important log in ML is $-\ln p$. When a classifier gives the **correct** answer probability $p$, the <Term def="The standard classification loss. For one example it is −ln(probability the model gave to the correct class).">cross-entropy loss</Term> for that example is $-\ln p$. The minus sign is there because $\ln p$ is negative for $0 < p < 1$; flipping it makes the cost positive.
 
 <NegLogCost />
 
@@ -263,7 +279,7 @@ $$
 
 <ExamTip>
 
-"Initial loss" questions are free marks: a uniform guess over $K$ classes has cross-entropy $\ln K$ (2.303 for 10 classes, 0.693 for 2). Also watch the base. The entropy of a fair coin is 1 **bit** with $\log_2$ but $\ln 2 \approx 0.693$ with $\ln$, so if the options contain both 1 and 0.693, check which log the question uses.
+"Initial loss" questions are free marks: a uniform guess over $K$ classes has cross-entropy $\ln K$ (2.303 for 10 classes, 0.693 for 2). Also watch the base. The <Term def="A measure of how unpredictable an outcome is. Measured in bits when you use log₂ (a fair coin flip is 1 bit).">entropy</Term> of a fair coin is 1 **bit** with $\log_2$ but $\ln 2 \approx 0.693$ with $\ln$, so if the options contain both 1 and 0.693, check which log the question uses.
 
 </ExamTip>
 

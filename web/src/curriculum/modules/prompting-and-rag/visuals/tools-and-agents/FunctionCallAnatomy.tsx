@@ -200,13 +200,15 @@ export default function FunctionCallAnatomy() {
       title="Function calling: the model asks, your code acts"
       caption={
         <>
-          Pick a request and press <b>Restart</b>, then <b>Next</b>, to follow each message. Watch the highlighted pair: the LLM only ever <i>writes</i> (blue
-          means sender, orange means receiver), while your app is the one that runs the function. Switch on <b>bad arguments</b> to see why tools come with a
-          schema, and try the haiku, where no tool is needed.
+          In the actor row, blue marks the sender and orange the receiver. The LLM only ever <i>writes</i>; your app is the one that runs the function. Bad arguments show
+          why tools come with a schema, and the haiku needs no tool at all.
         </>
       }
     >
       <div className={s.stack}>
+        <p className={s.tryLine}>
+          <b>Try:</b> pick a request, press <b>Restart</b>, then <b>Next</b> to follow each message. Then switch on <b>bad arguments</b>.
+        </p>
         <div className={s.chips} role="radiogroup" aria-label="Request">
           {SCENARIOS.map((x) => (
             <button key={x.key} type="button" role="radio" aria-checked={key === x.key} className={`${s.chip} ${key === x.key ? s.chipOn : ''}`} onClick={() => choose(x.key)}>
@@ -215,13 +217,17 @@ export default function FunctionCallAnatomy() {
           ))}
         </div>
         <Controls>
-          <Toggle label="the model writes bad arguments first" checked={badArgs && !!sc.tool} onChange={toggleBad} />
+          {sc.tool ? (
+            <Toggle label="the model writes bad arguments first" checked={badArgs} onChange={toggleBad} />
+          ) : (
+            <span className={s.note}>No tool call for a haiku, so there are no arguments to get wrong.</span>
+          )}
         </Controls>
         <div className={s.actors} aria-label="Who is talking">
           {(['user', 'app', 'model', 'tool'] as Actor[]).map((a) => (
             <div key={a} className={`${s.actor} ${cur.from === a ? s.actorFrom : ''} ${cur.to === a ? s.actorTo : ''}`}>
               <span>{NAMES[a]}</span>
-              <span style={{ fontWeight: 500, fontSize: '0.7rem' }}>{ROLES[a]}</span>
+              <span style={{ fontWeight: 500, fontSize: '0.74rem' }}>{ROLES[a]}</span>
             </div>
           ))}
         </div>

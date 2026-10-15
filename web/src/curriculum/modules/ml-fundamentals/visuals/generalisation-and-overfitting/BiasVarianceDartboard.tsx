@@ -25,9 +25,10 @@ import { truth, NOISE_FLOOR, makeRng, sample, fitPoly, predict } from './polyfit
   Bias and variance made visible. The same kind of model (a polynomial of the chosen degree) is
   fitted to 20 different training sets drawn from the same hidden curve.
   - Left: the 20 fitted curves (faint), their average (bold) and the truth (dashed).
-  - Right: a dartboard. Each fitted model is one dart: its error at x = 0.2 (across) and at x = 0.6
+  - Right: a dartboard. Each fitted model is one dart: its error at x = 0.1 (across) and at x = 0.9
     (up). The bullseye is "no error". The average dart's distance from the bullseye is bias; the
-    scatter of the darts is variance.
+    scatter of the darts is variance. The two inputs sit near the ends of the range on purpose: that is
+    where a flexible polynomial's variance is largest, so the scatter at degree 10 is easy to see.
   - Bottom: bias², variance and noise for every degree (averaged over 300 refits), whose sum is the
     expected error on new data.
   Aha: simple models miss consistently (bias); flexible models miss differently every time (variance).
@@ -37,8 +38,8 @@ const N = 15
 const MAX_DEG = 10
 const SHOWN = 20
 const STAT_FITS = 300
-const XA = 0.2
-const XB = 0.45
+const XA = 0.1
+const XB = 0.9
 const GRID = Array.from({ length: 49 }, (_, i) => 0.02 + (0.96 * i) / 48)
 const BOARD = 1.25
 
@@ -97,9 +98,9 @@ function Board() {
 }
 
 const PRESETS = [
-  { value: 1, label: 'too simple (1)' },
-  { value: 5, label: 'about right (5)' },
-  { value: 10, label: 'too flexible (10)' },
+  { value: 1, label: 'too simple (1)', short: '1 simple' },
+  { value: 5, label: 'about right (5)', short: '5 right' },
+  { value: 10, label: 'too flexible (10)', short: '10 flexible' },
 ]
 
 export default function BiasVarianceDartboard() {
@@ -148,7 +149,7 @@ export default function BiasVarianceDartboard() {
             <VLine x={XA} color="var(--viz-2)" dash="3 3" width={1.2} />
             <VLine x={XB} color="var(--viz-2)" dash="3 3" width={1.2} />
             <Label x={XA} y={-2} dx={4} dy={-6} size={11} color="var(--viz-2)">{`x = ${XA}`}</Label>
-            <Label x={XB} y={-2} dx={4} dy={-6} size={11} color="var(--viz-2)">{`x = ${XB}`}</Label>
+            <Label x={XB} y={-2} dx={-4} dy={-6} anchor="end" size={11} color="var(--viz-2)">{`x = ${XB}`}</Label>
           </Plot>
           <div style={{ display: 'flex', gap: '0.9rem', fontSize: '0.8rem', color: 'var(--ink-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>
@@ -164,14 +165,15 @@ export default function BiasVarianceDartboard() {
         </div>
         <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
           <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ink-2)' }}>The dartboard: one dart per refit</div>
-          <Plot x={[-BOARD, BOARD]} y={[-BOARD, BOARD]} width={280} height={280} maxWidth={320} margin={{ left: 34, right: 10, top: 10, bottom: 34 }} ariaLabel={`Dartboard of errors. Average dart at ${mean[0].toFixed(2)}, ${mean[1].toFixed(2)}.`}>
+          <Plot x={[-BOARD, BOARD]} y={[-BOARD, BOARD]} width={280} height={294} maxWidth={320} margin={{ left: 34, right: 10, top: 24, bottom: 34 }} ariaLabel={`Dartboard of errors. Average dart at ${mean[0].toFixed(2)}, ${mean[1].toFixed(2)}.`}>
             <Board />
-            <Axes xTicks={4} yTicks={4} />
+            <Axes xTicks={4} yTicks={4} xLabel={`error at x = ${XA}`} yLabel={`error at x = ${XB}`} />
             <Dots points={darts.map(([a, b]) => ({ x: clampB(a), y: clampB(b), r: 4.5, color: 'var(--viz-5)' }))} />
             {Math.hypot(mean[0], mean[1]) > 0.06 && <Path points={[[0, 0], mean]} color="var(--viz-2)" width={2.5} />}
             <Dots points={[{ x: clampB(mean[0]), y: clampB(mean[1]), r: 7, color: 'var(--viz-2)', shape: 'cross' }]} />
-            <Label x={clampB(mean[0])} y={clampB(mean[1])} dx={mean[0] > 0.5 ? -10 : 10} dy={22} anchor={mean[0] > 0.5 ? 'end' : 'start'} size={12} color="var(--viz-2)" weight={700}>
-              average dart
+            {/* a fixed key in the corner (darts almost never reach it), so the label never sits on top of the darts */}
+            <Label x={-BOARD} y={BOARD} dx={6} dy={14} size={12} color="var(--viz-2)" weight={700}>
+              ✕ average dart
             </Label>
           </Plot>
           <div style={{ fontSize: '0.8rem', color: 'var(--ink-2)', textAlign: 'center', maxWidth: 320 }}>
@@ -222,7 +224,7 @@ export default function BiasVarianceDartboard() {
 
       <Controls>
         <Slider label="model flexibility (degree)" value={deg} min={1} max={MAX_DEG} step={1} onChange={setDeg} />
-        <Segmented label="Presets" value={deg} onChange={setDeg} options={PRESETS} />
+        <Segmented label="Presets" value={deg} onChange={setDeg} options={PRESETS.map((p) => ({ value: p.value, label: narrow ? p.short : p.label }))} />
         <Button onClick={bump}>Resample 20 training sets</Button>
       </Controls>
       <Readout

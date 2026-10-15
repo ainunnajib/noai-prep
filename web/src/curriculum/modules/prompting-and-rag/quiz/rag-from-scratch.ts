@@ -26,10 +26,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A retriever computes `scores = D @ q / (np.linalg.norm(D, axis=1) * np.linalg.norm(q))`. For the query "Quantum?" it prints `[nan nan nan nan]`. What is the most likely cause?',
     options: [
-      'No query word is in the vocabulary, so $q$ is all zeros and every score is $0/0$',
+      'No query word is in the vocabulary, so $q = 0$ and every score is $0/0$',
       'The query is shorter than every document, so the cosine is undefined for it',
       'Stop words were not removed, so the dot products became too large to store',
-      'Two documents have the same score, and `np.linalg.norm` returns nan for ties',
+      'Two documents tie, and `np.linalg.norm` returns nan for ties',
     ],
     answer: 0,
     explanation:

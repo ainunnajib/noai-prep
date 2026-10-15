@@ -16,7 +16,16 @@ const PRESETS: { id: string; label: string; sizes: number[] }[] = [
 const MAX = 4096
 const fmt = (v: number) => v.toLocaleString('en-GB')
 
-/** A number box that lets you clear it and type freely; it only commits whole numbers from 1 to MAX. */
+const valid = (t: string) => {
+  const v = Number(t)
+  return t.trim() !== '' && Number.isInteger(v) && v >= 1 && v <= MAX
+}
+
+/**
+ * A number box that lets you clear it and type freely; it only commits whole numbers from 1 to MAX.
+ * While the text is not a valid size it is outlined in red with a "1 to 4,096" hint, so what is shown
+ * never silently disagrees with the count.
+ */
 function NumField({ value, onCommit, label }: { value: number; onCommit: (v: number) => void; label: string }) {
   const [text, setText] = useState(String(value))
   const [shown, setShown] = useState(value)
@@ -24,25 +33,30 @@ function NumField({ value, onCommit, label }: { value: number; onCommit: (v: num
     setShown(value)
     setText(String(value))
   }
+  const bad = !valid(text)
   return (
-    <input
-      className={s.numInput}
-      type="number"
-      inputMode="numeric"
-      min={1}
-      max={MAX}
-      value={text}
-      aria-label={label}
-      onChange={(e) => {
-        setText(e.target.value)
-        const v = Math.round(Number(e.target.value))
-        if (e.target.value !== '' && Number.isFinite(v) && v >= 1 && v <= MAX) {
-          setShown(v)
-          onCommit(v)
-        }
-      }}
-      onBlur={() => setText(String(value))}
-    />
+    <>
+      <input
+        className={s.numInput}
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={MAX}
+        value={text}
+        aria-label={label}
+        aria-invalid={bad}
+        onChange={(e) => {
+          setText(e.target.value)
+          if (valid(e.target.value)) {
+            const v = Number(e.target.value)
+            setShown(v)
+            onCommit(v)
+          }
+        }}
+        onBlur={() => setText(String(value))}
+      />
+      {bad && <span className={s.rangeHint}>{`whole number, 1 to ${fmt(MAX)} (still counting ${fmt(value)})`}</span>}
+    </>
   )
 }
 

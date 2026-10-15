@@ -83,9 +83,8 @@ export default function XorTwoLines() {
       title="Beating XOR with three neurons"
       caption={
         <>
-          Neuron <M>{'h_1'}</M> draws the lower line and says 1 above it (that is OR). Neuron <M>{'h_2'}</M> draws the upper line and says 1 below it (that is
-          NAND, "not both"). The output neuron says 1 only when <i>both</i> say 1 (that is AND), which keeps exactly the orange band between the lines. Click a
-          corner to push it through the network; switch a line off and the shading shows what the other hidden neuron says on its own: one straight cut, which always gets some corner wrong.
+          <M>{'h_1'}</M> says 1 above the lower line (OR); <M>{'h_2'}</M> says 1 below the upper line (NAND, &ldquo;not both&rdquo;); the output says 1 only when both do
+          (AND), which keeps exactly the orange band. Click a corner to push it through, or switch a line off to see that one straight cut always gets a corner wrong.
         </>
       }
     >

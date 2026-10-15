@@ -1,22 +1,29 @@
 import { useState, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, Rect, Path, Label, VLine, DraggablePoint, Arrow, usePlot, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, Rect, Path, Label, VLine, DraggablePoint, Arrow, usePlot, useNarrow, M } from '../../../../../kit'
 
 /*
   Box plot + dot plot of nine commute times (minutes). Every dot can be dragged left/right.
-  Quartiles use NumPy's default rule (sorted data, position (n − 1)·q, linear in between);
-  for these nine values every common textbook rule gives the same Q1 = 15 and Q3 = 21.
+  Quartiles use the method the lesson teaches for exams: Q1 and Q3 are the medians of the
+  lower and upper halves of the sorted data, leaving the median itself out of both halves
+  when n is odd. For the starting nine values every common rule gives Q1 = 15 and Q3 = 21.
   Fences: Q1 − 1.5·IQR and Q3 + 1.5·IQR. Optional: cap (winsorise) at the fences, and compare
   with the "mean ± 3 standard deviations" rule, which can never fire with only 9 values.
 */
 
 const START = [12, 15, 15, 17, 18, 20, 21, 21, 41]
-const X: [number, number] = [0, 80]
+const X_WIDE: [number, number] = [0, 80]
+const X_NARROW: [number, number] = [0, 60]
 
-function quantile(sorted: number[], q: number) {
-  const pos = (sorted.length - 1) * q
-  const lo = Math.floor(pos)
-  const hi = Math.ceil(pos)
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo)
+/** median of an already sorted list */
+function median(sorted: number[]) {
+  const n = sorted.length
+  const mid = Math.floor(n / 2)
+  return n % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+/** Q1 and Q3 as medians of the lower and upper halves (the median is left out when n is odd) */
+function quartiles(sorted: number[]): [number, number] {
+  const n = sorted.length
+  return [median(sorted.slice(0, Math.floor(n / 2))), median(sorted.slice(Math.ceil(n / 2)))]
 }
 const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length
 const std = (a: number[]) => {
@@ -45,11 +52,13 @@ export default function BoxPlotIQR() {
   const [vals, setVals] = useState<number[]>(START)
   const [cap, setCap] = useState(false)
   const [sigma, setSigma] = useState(false)
+  const [dragged, setDragged] = useState(false)
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
+  const X = narrow ? X_NARROW : X_WIDE
 
   const sorted = [...vals].sort((a, b) => a - b)
-  const q1 = quantile(sorted, 0.25)
-  const med = quantile(sorted, 0.5)
-  const q3 = quantile(sorted, 0.75)
+  const [q1, q3] = quartiles(sorted)
+  const med = median(sorted)
   const iqr = q3 - q1
   const lo = q1 - 1.5 * iqr
   const hi = q3 + 1.5 * iqr
@@ -81,9 +90,10 @@ export default function BoxPlotIQR() {
         </>
       }
     >
-      <Plot x={X} y={[0, 10.6]} width={520} height={260} minHeight={230} margin={{ left: 14, right: 14, top: 8, bottom: 36 }} ariaLabel={`Box plot with Q1 ${fmt(q1)}, median ${fmt(med)}, Q3 ${fmt(q3)} and fences at ${fmt(lo)} and ${fmt(hi)} minutes, above a draggable dot plot`}>
-        <Grid xTicks={8} yTicks={0} />
-        <Axes xLabel="minutes" xTicks={8} hideYTicks />
+      <div ref={wrapRef} style={{ width: '100%' }}>
+      <Plot x={X} y={[0, 10.6]} width={520} height={260} minHeight={narrow ? 290 : 230} margin={{ left: 14, right: 14, top: 8, bottom: 36 }} ariaLabel={`Box plot with Q1 ${fmt(q1)}, median ${fmt(med)}, Q3 ${fmt(q3)} and fences at ${fmt(lo)} and ${fmt(hi)} minutes, above a draggable dot plot`}>
+        <Grid xTicks={narrow ? 6 : 8} yTicks={0} />
+        <Axes xLabel="minutes" xTicks={narrow ? 6 : 8} hideYTicks />
         {/* outlier zones beyond the fences */}
         <Rect x0={X[0]} x1={Math.max(X[0], lo)} y0={0} y1={10.6} fill="color-mix(in srgb, var(--viz-neg) 9%, transparent)" />
         <Rect x0={Math.min(X[1], hi)} x1={X[1]} y0={0} y1={10.6} fill="color-mix(in srgb, var(--viz-neg) 9%, transparent)" />
@@ -107,10 +117,10 @@ export default function BoxPlotIQR() {
         <Rect x0={q1} x1={q3} y0={BOX_Y0} y1={BOX_Y1} fill="color-mix(in srgb, var(--viz-1) 22%, var(--surface))" stroke="var(--viz-1)" />
         <Path points={[[med, BOX_Y0], [med, BOX_Y1]]} color="var(--viz-1)" width={3} />
         <Brace x0={q1} x1={q3} y={BOX_Y1 + 0.55} label={`IQR = ${fmt(iqr)}`} />
-        <Label x={q1} y={BOX_Y0} dy={14} anchor="middle" size={11} color="var(--ink-2)">
+        <Label x={q1} y={BOX_Y0} dx={2} dy={14} anchor="end" size={11} color="var(--ink-2)">
           Q1
         </Label>
-        <Label x={q3} y={BOX_Y0} dy={14} anchor="middle" size={11} color="var(--ink-2)">
+        <Label x={q3} y={BOX_Y0} dx={-2} dy={14} anchor="start" size={11} color="var(--ink-2)">
           Q3
         </Label>
         {/* mean ± 3σ, always computed from the original values */}
@@ -120,13 +130,25 @@ export default function BoxPlotIQR() {
             {sm + 3 * ssd < X[1] && <Path points={[[sm + 3 * ssd, 0.25], [sm + 3 * ssd, 0.95]]} color="var(--viz-5)" width={2} />}
             {sm - 3 * ssd > X[0] && <Path points={[[sm - 3 * ssd, 0.25], [sm - 3 * ssd, 0.95]]} color="var(--viz-5)" width={2} />}
             <Path points={[[sm, 0.2], [sm, 1.0]]} color="var(--viz-5)" width={3} />
-            <Label x={Math.min(X[1], sm + 3 * ssd)} y={0.6} dx={-4} dy={-6} anchor="end" color="var(--viz-5)" size={12}>
+            <Label x={Math.max(X[0], sm - 3 * ssd)} y={0.6} dx={4} dy={-6} anchor="start" color="var(--viz-5)" size={12}>
               {`mean ± 3σ`}
             </Label>
           </>
         )}
-        <DotLayer vals={vals} isOut={isOut} cap={cap} capped={capped} onMove={(i, x) => setVals((old) => old.map((o, j) => (j === i ? x : o)))} />
+        <DotLayer
+          vals={vals}
+          isOut={isOut}
+          cap={cap}
+          capped={capped}
+          minR={narrow ? 7 : 5}
+          hint={dragged ? null : START.length - 1}
+          onMove={(i, x) => {
+            setDragged(true)
+            setVals((old) => old.map((o, j) => (j === i ? x : o)))
+          }}
+        />
       </Plot>
+      </div>
       <Controls>
         <Toggle label="cap at the fences (winsorise)" checked={cap} onChange={setCap} />
         <Toggle label="mean ± 3σ rule" checked={sigma} onChange={setSigma} />
@@ -157,10 +179,27 @@ function CappedDot({ x, y, r }: { x: number; y: number; r: number }) {
 }
 
 /** The draggable dot plot. Dots that would overlap on screen are stacked (a simple beeswarm). */
-function DotLayer({ vals, isOut, cap, capped, onMove }: { vals: number[]; isOut: (v: number) => boolean; cap: boolean; capped: number[]; onMove: (i: number, x: number) => void }) {
+function DotLayer({
+  vals,
+  isOut,
+  cap,
+  capped,
+  minR,
+  hint,
+  onMove,
+}: {
+  vals: number[]
+  isOut: (v: number) => boolean
+  cap: boolean
+  capped: number[]
+  minR: number
+  /** index of the dot that carries a "drag" hint, or null */
+  hint: number | null
+  onMove: (i: number, x: number) => void
+}) {
   const { xs } = usePlot()
   const pxPerUnit = Math.abs(xs(1) - xs(0))
-  const r = Math.max(5, Math.min(7, pxPerUnit * 0.9))
+  const r = Math.max(minR, Math.min(7, pxPerUnit * 0.9))
   const order = vals.map((v, i) => [v, i] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1])
   const levels: number[][] = []
   const levelOf: number[] = []
@@ -190,6 +229,11 @@ function DotLayer({ vals, isOut, cap, capped, onMove }: { vals: number[]; isOut:
               onChange={(x) => onMove(i, x)}
             />
             {cap && out && <CappedDot x={shown} y={y} r={r} />}
+            {hint === i && !(cap && out) && (
+              <Label x={v} y={y} dx={r + 5} dy={4} size={12} color="var(--ink-2)">
+                ↔ drag
+              </Label>
+            )}
           </g>
         )
       })}

@@ -250,6 +250,37 @@
   color: var(--ink);
 }
 
+.numInput[aria-invalid='true'] {
+  border-color: var(--viz-neg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-neg) 30%, transparent);
+}
+
+.rangeHint {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--viz-neg);
+}
+
+.editHint {
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+/* clickable matrix cells: a dashed outline says "tap me" */
+.editable :global(.matrix-cell.is-clickable:not(.is-hl)) {
+  border-style: dashed;
+  border-color: var(--viz-muted);
+}
+
+.editable :global(.matrix-cell.is-clickable:hover),
+.editable :global(.matrix-cell.is-clickable:focus-visible) {
+  border-style: solid;
+  border-color: var(--accent);
+  outline: none;
+}
+
 .numInput:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 1px;

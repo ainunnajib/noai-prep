@@ -77,12 +77,6 @@ const CARDS: Card[] = [
   },
 ]
 
-const QUESTION: Record<Bin, string> = {
-  sup: 'Is it given the right answer for each example?',
-  unsup: 'Does it have to find groups or patterns with no answers at all?',
-  rl: 'Does it get points or penalties after taking actions?',
-}
-
 export default function LearningTypesSorter() {
   const [placed, setPlaced] = useState<Record<string, Bin>>({})
   const [slips, setSlips] = useState(0)
@@ -113,7 +107,8 @@ export default function LearningTypesSorter() {
         kind: 'bad',
         text: (
           <>
-            Not quite, it bounced back. Ask: {QUESTION[card.bin]} Read the card again for that clue.
+            Not quite, it bounced back. Ask three questions: does it get the right answer for each example, no answers at all, or rewards after its actions?
+            Read the card again for the clue.
           </>
         ),
       })
@@ -137,8 +132,8 @@ export default function LearningTypesSorter() {
       title="Supervised, unsupervised or reinforcement?"
       caption={
         <>
-          Sort all nine. You never need to know the algorithm: the type of learning is decided by <strong>what the data gives you</strong>. Right answers (labels)
-          mean supervised, no answers mean unsupervised, and rewards after actions mean reinforcement.
+          Sort all nine. For these scenarios you don't need the algorithm's name: the type of learning is decided by <strong>what the data gives you</strong>.
+          Right answers (labels) mean supervised, no answers mean unsupervised, and rewards after actions mean reinforcement.
         </>
       }
     >

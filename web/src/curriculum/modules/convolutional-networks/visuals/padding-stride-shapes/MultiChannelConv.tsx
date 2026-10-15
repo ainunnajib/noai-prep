@@ -134,8 +134,8 @@ export default function MultiChannelConv() {
       title="A kernel spans every input channel"
       caption={
         <>
-          Press <b>Next</b> (or Play) to step through one output value, and tap any output cell to move the window. Then use the sliders below to size a whole
-          layer: its parameter count is (k × k × C<sub>in</sub> + 1) × C<sub>out</sub>, and notice that the image size appears nowhere in it.
+          <b>Try:</b> press <b>Next</b> to build one output value, tap an output cell to move the window, then size a whole layer with the sliders.
+          <b> Notice:</b> the parameter count (k × k × C<sub>in</sub> + 1) × C<sub>out</sub> never mentions the image size.
         </>
       }
     >

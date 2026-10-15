@@ -41,7 +41,8 @@ export default function PoolingExplorer() {
   const labelH = 22
   const inW = N * cs
   const outW = outN * os
-  const svgW = narrow ? Math.max(inW, outW) : inW + 56 + outW
+  // leave room for the centred title above a small pooled map ("Average-pooled 2 × 2" is about 150 px wide)
+  const svgW = narrow ? Math.max(inW, outW, 160) : Math.max(inW + 56 + outW, inW + 56 + outW / 2 + 80)
   const inX = narrow ? (svgW - inW) / 2 : 0
   const inY = labelH
   const outX = narrow ? (svgW - outW) / 2 : inW + 56
@@ -79,14 +80,13 @@ export default function PoolingExplorer() {
       title="Pooling: one number per window"
       caption={
         <>
-          Click any cell of the pooled map (or press <b>Play</b>) and the orange box shows the window it summarises. <b>Max</b> keeps the largest value; <b>average</b>{' '}
-          keeps the mean. Notice that the diagonal "edge" survives max pooling at half the size, and that pooling has nothing to learn: it is a fixed rule. Try a 3×3
-          window with stride 3, or a 2×2 window with stride 3: grey cells are never looked at.
+          <b>Try:</b> click a cell of the pooled map (or press <b>Play</b>), then a 3×3 window with stride 3. <b>Notice:</b> the diagonal edge survives max
+          pooling at half the size, nothing is learned, and hatched grey cells are never looked at.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
-        <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW} height={svgH} style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }} role="img" aria-label={`An 8 by 8 feature map pooled with a ${k} by ${k} window and stride ${s} into a ${outN} by ${outN} map`}>
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW} height={svgH} style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto', userSelect: 'none', WebkitUserSelect: 'none' }} role="img" aria-label={`An 8 by 8 feature map pooled with a ${k} by ${k} window and stride ${s} into a ${outN} by ${outN} map`}>
           <defs>
             <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
               <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.5 }} />
@@ -164,7 +164,7 @@ export default function PoolingExplorer() {
         </svg>
       </div>
       <div style={{ fontSize: 'var(--step--1)', color: 'var(--ink-2)', textAlign: 'center' }}>
-        Output cell ({si + 1}, {sj + 1}): <M>{arithmetic}</M>
+        Output <code>out[{si}, {sj}]</code>: <M>{arithmetic}</M>
         <br />
         Output size: <M>{`\\lfloor (8 - ${k}) / ${s} \\rfloor + 1 = ${outN}`}</M>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import css from './gates.module.css'
 import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Path, Label, DraggablePoint, M } from '../../../../../kit'
 import { fmt, sig } from './graphCore'
 
@@ -30,7 +31,12 @@ const GATES: Record<
     d: (a, b) => (a >= b ? 1 : 0),
     y: [-3.5, 3.5],
     tex: '\\max(a, b)',
-    dtex: (a, b) => (a >= b ? '1 \\text{ (a is the larger, so it passes straight through)}' : '0 \\text{ (b is larger, so a has no effect)}'),
+    dtex: (a, b) =>
+      a === b
+        ? '1 \\text{ (a tie: the slope is 1 to the right and 0 to the left; frameworks pick one input, here a)}'
+        : a > b
+          ? '1 \\text{ (a is the larger, so it passes straight through)}'
+          : '0 \\text{ (b is larger, so a has no effect)}',
     two: true,
   },
 }
@@ -56,6 +62,9 @@ export default function LocalSlopeNudge() {
     [s0 + run, T(s0 + run)],
   ]
   const snap = (v: number) => Math.max(-3, Math.min(3, Math.round(v * 4) / 4))
+  // the point sits at one end of the triangle: the start of the run leg, or the top/bottom of the rise leg
+  const pointAtRise = s0 !== a
+  const sig3 = (v: number) => (Math.abs(v) < 1e-12 ? '0' : String(Number(v.toPrecision(3))))
 
   return (
     <Figure
@@ -64,7 +73,8 @@ export default function LocalSlopeNudge() {
         <>
           Drag the orange point to change the input <M>a</M>; the line touching the curve has the local slope. Try <b>multiply</b> and move the{' '}
           <M>b</M> slider: the slope with respect to <M>a</M> is <M>b</M>, the <i>other</i> input. Try <b>sigmoid</b>: the slope is never more than
-          0.25. Try <b>max</b>: the slope is 1 while <M>a</M> is the larger input and 0 once it is not.
+          0.25. Try <b>max</b>: the slope is 1 while <M>a</M> is the larger input and 0 once it is not. (For add and multiply the curve is
+          already a straight line, so the dashed tangent lies right on top of it.)
         </>
       }
     >
@@ -98,16 +108,22 @@ export default function LocalSlopeNudge() {
         {/* rise-over-run triangle */}
         {Math.abs(slope) > 1e-9 && (
           <>
-            <Path points={tri} color="var(--viz-2)" width={2} />
-            <Label x={s0 + run / 2} y={T(s0)} dy={slope >= 0 ? 16 : -8} anchor="middle" color="var(--viz-2)" size={12}>
+            <Path points={tri} color="var(--viz-5)" width={2} />
+            <Label x={s0 + run / 2} y={T(s0)} dy={slope >= 0 ? 16 : -8} anchor="middle" color="var(--viz-5)" size={12}>
               {`run ${run}`}
             </Label>
-            <Label x={s0 + run} y={T(s0) + (slope * run) / 2} dx={6} anchor="start" color="var(--viz-2)" size={12}>
+            <Label x={s0 + run} y={T(s0) + (slope * run) / 2} dx={pointAtRise ? 16 : 6} dy={4} anchor="start" color="var(--viz-5)" size={12}>
               {`rise ${fmt(slope * run)}`}
             </Label>
           </>
         )}
-        <DraggablePoint x={a} y={out} onChange={(nx) => setA(snap(nx))} constrain={(nx) => [snap(nx), G.f(snap(nx), b)]} label="a" />
+        {/* the kit draws a point's label up and to the right, where the triangle's labels go; draw our own up and to the left */}
+        <g className={css.noLabel}>
+          <DraggablePoint x={a} y={out} onChange={(nx) => setA(snap(nx))} constrain={(nx) => [snap(nx), G.f(snap(nx), b)]} label="input a (drag)" />
+        </g>
+        <Label x={a} y={out} dx={-14} dy={-10} anchor="end" color="color-mix(in srgb, var(--viz-2) 70%, var(--ink))" size={13} weight={700}>
+          a
+        </Label>
       </Plot>
       <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden', fontSize: '0.95rem', lineHeight: 1.7 }}>
         <div>
@@ -115,7 +131,7 @@ export default function LocalSlopeNudge() {
         </div>
         <div style={{ color: 'var(--ink-2)' }}>
           Nudge check: moving <M>a</M> from <M>{fmt(a)}</M> to <M>{fmt(a + eps, 2)}</M> changes out by <M>{fmt(change, 5)}</M>, and{' '}
-          <M>{`${fmt(change, 5)} \\div 0.01 \\approx ${fmt(change / eps, 2)}`}</M>
+          <M>{`${fmt(change, 5)} \\div 0.01 \\approx ${sig3(change / eps)}`}</M>
         </div>
       </div>
       <Controls>

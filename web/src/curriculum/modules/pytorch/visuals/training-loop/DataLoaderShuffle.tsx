@@ -50,8 +50,8 @@ export default function DataLoaderShuffle() {
       title="A DataLoader deals the dataset into batches"
       caption={
         <>
-          The dataset is stored sorted by label (all cats, then all dogs). Press <b>Next epoch</b> a few times with shuffle on, then turn shuffle off: every batch becomes the same, and most are all one
-          class, so the model would see 'cats, cats, then dogs' every epoch. Try a batch size that does not divide 12, and switch on <code>drop_last</code>.
+          The dataset is stored sorted by label (all cats, then all dogs). Press <b>Next epoch</b> a few times with shuffle on, then turn shuffle off: every epoch deals exactly the same batches, and
+          most of them are all one class, so the model would see 'cats, cats, then dogs' every epoch. Try a batch size that does not divide 12, and switch on <code>drop_last</code>.
         </>
       }
     >

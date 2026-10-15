@@ -1,13 +1,18 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Toggle, Plot, Axes, Path, Arrow, Dots, Label, DraggablePoint, useNarrow, usePlot } from '../../../../../kit'
-import { HeatMap, ContourLines, Clipped, contourSegments, num, type Fn2 } from './fieldKit'
+import { Figure, Controls, Readout, Segmented, Toggle, Plot, Axes, Path, Arrow, Dots, Label, useNarrow, usePlot } from '../../../../../kit'
+import { HeatMap, ContourLines, Clipped, chainSegments, contourSegments, num, type Fn2 } from './fieldKit'
+import { Handle } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   The gradient at every point of a contour map. Drag P: the orange arrow is ∇f (straight uphill),
   the green arrow is −∇f (straight downhill), and both cross the contour line through P at a right
   angle. Optional layers: a field of small downhill arrows everywhere, and the path water would take
-  if it always flowed along −∇f.
+  if it always flowed along −∇f. Contour levels are equally spaced in height, so packed contours
+  really do mean steep ground (the rule the lesson teaches).
 */
+
+/** levels from a to b in equal steps */
+const steps = (a: number, b: number, d: number) => Array.from({ length: Math.round((b - a) / d) + 1 }, (_, i) => Math.round((a + i * d) * 1000) / 1000)
 
 type Key = 'bowl' | 'valley' | 'two'
 interface Fn {
@@ -30,7 +35,7 @@ const FNS: Record<Key, Fn> = {
     g: (x, y) => [2 * x, 2 * y],
     gText: '[2x, 2y]',
     range: [0, 13],
-    levels: [0.5, 1.5, 3, 4.5, 6.5, 9, 12],
+    levels: steps(1, 12, 1),
     scale: 0.28,
     start: [1.5, 1],
   },
@@ -41,7 +46,7 @@ const FNS: Record<Key, Fn> = {
     g: (x, y) => [0.5 * x, 4 * y],
     gText: '[0.5x, 4y]',
     range: [0, 10],
-    levels: [0.25, 0.75, 1.5, 2.5, 3.75, 5.25, 7],
+    levels: steps(0.5, 7, 0.5),
     scale: 0.28,
     start: [-2.2, 0.8],
   },
@@ -52,7 +57,7 @@ const FNS: Record<Key, Fn> = {
     g: (x, y) => [2 * x * (x * x - 1.5) + 0.3, 2 * y],
     gText: '[2x(x² − 1.5) + 0.3, 2y]',
     range: [-0.4, 9],
-    levels: [-0.3, 0, 0.3, 0.7, 1.2, 1.9, 2.8, 4, 5.5, 7.5],
+    levels: steps(-0.3, 8.7, 0.5),
     scale: 0.22,
     start: [0.3, 1.4],
   },
@@ -138,7 +143,7 @@ export default function GradientField() {
   const gLen = Math.hypot(gx, gy)
   const k = F.scale
   const level = F.f(px, py)
-  const contour = useMemo(() => contourSegments(F.f, X, Y, 120, 80, level), [F, level])
+  const contour = useMemo(() => chainSegments(contourSegments(F.f, X, Y, 120, 80, level)), [F, level])
   const path = useMemo(() => (water ? flowPath(F, p) : []), [water, F, p])
 
   // tangent to the contour at P (perpendicular to the gradient) and a right-angle marker
@@ -159,8 +164,9 @@ export default function GradientField() {
       title="The gradient points straight uphill, across the contours"
       caption={
         <>
-          Drag the point P around the map. The orange arrow is the gradient ∇f (straight uphill) and the green arrow is −∇f (straight downhill). Both
-          cross the dashed contour through P at a right angle, and both get longer where the contour lines are packed closely together (steep ground).
+          Drag the point P around the map. The orange arrow is the gradient ∇f (straight uphill) and the green arrow is −∇f (straight downhill); these
+          two colours mean the same in every map of this module. Both cross the dashed contour through P at a right angle. Contour lines are drawn at
+          equal steps of height, so where they are packed closely together the ground is steep, and both arrows get longer.
           Switch on <b>Water&apos;s path</b> and drop P in different places on the two-valley map: which valley the water ends in depends on where it
           starts. Arrows are drawn at {Math.round(k * 100)}% of their true length.
         </>
@@ -181,8 +187,8 @@ export default function GradientField() {
           {field && <FlowField F={F} sparse={narrow} />}
           <Axes xLabel="x" yLabel="y" xTicks={6} yTicks={4} />
           <Clipped>
-            {contour.map(([a, b], i) => (
-              <Path key={i} points={[a, b]} color="var(--viz-ink)" width={2.2} dash="5 4" />
+            {contour.map((line, i) => (
+              <Path key={i} points={line} color="var(--viz-ink)" width={2.2} dash="6 4" />
             ))}
             {water && <Path points={path} color="var(--viz-1)" width={3.5} />}
             {water && path.length > 1 && <Dots points={[{ x: path[path.length - 1][0], y: path[path.length - 1][1], r: 5, color: 'var(--viz-1)', shape: 'square' }]} />}
@@ -198,7 +204,7 @@ export default function GradientField() {
           <Label x={px} y={py} dx={(-tx - ux) * 15} dy={(ty + uy) * 15 + 4} anchor="middle" color="var(--viz-ink)" weight={700}>
             P
           </Label>
-          <DraggablePoint x={px} y={py} r={8} color="var(--viz-ink)" constrain={(x, y) => [Math.max(-2.9, Math.min(2.9, snap(x))), Math.max(-1.9, Math.min(1.9, snap(y)))]} onChange={(x, y) => setP([x, y])} />
+          <Handle x={px} y={py} r={8} color="var(--viz-ink)" ariaLabel="point P: drag it around the map" constrain={(x, y) => [Math.max(-2.9, Math.min(2.9, snap(x))), Math.max(-1.9, Math.min(1.9, snap(y)))]} onChange={(x, y) => setP([x, y])} />
         </Plot>
       </div>
       <Controls>

@@ -95,7 +95,7 @@ const CASES: Case[] = [
         with 2% fraud, accuracy is misleading. The quoted 98.7% is also wrong: <M>{'(180+9506)/10000 = 96.86\\%'}</M>, below the 98% of a model that calls
         everything legitimate.
       </>,
-      'false alarms cost a manual review; a missed fraud costs real money. About 1.6 alerts per real fraud is a workable load.',
+      'false alarms cost a manual review; a missed fraud costs real money. About 1.6 false alarms per fraud caught (294/180), or 474 alerts in total, is a workable review load.',
       'the costly error here is a missed fraud (FN), so recall is the metric that matters most, and 90% is good.',
       'F1 weighs precision and recall equally, ignoring that the two errors cost very different amounts; ROC-AUC flatters heavily imbalanced data.',
     ],
@@ -186,7 +186,7 @@ const CASES: Case[] = [
     ],
     answer: 0,
     why: [
-      'four micro-batches of 32 add up their gradients before one optimiser step, so each update still averages 128 samples while only 32 sit in memory; checkpointing saves more memory for about one extra forward pass of compute.',
+      'four micro-batches of 32 add up their gradients before one optimiser step, so each update still averages 128 samples while only 32 sit in memory (ResNet-50’s BatchNorm layers still compute their statistics over 32); checkpointing saves more memory for about one extra forward pass of compute.',
       'a strong technique and often combined with the keyed answer, but on its own it only roughly halves activation memory.',
       'it changes the optimisation itself: each update now averages 32 samples, not 128, so the tuned learning rate no longer matches.',
       'empty_cache() only hands cached blocks back to the driver; the model still needs exactly the same memory.',
@@ -323,7 +323,7 @@ export default function CaseStudyStepper() {
           <div className={s.ask}>{c.ask}</div>
         </div>
         <OptionList options={c.options} answer={c.answer} picked={pick} onPick={choose} reveal={revealed} why={c.why} ariaLabel={`Options of Q${c.q}`} />
-        {!revealed && <div className={s.muted}>Pick the diagnosis you would bubble in. The evidence appears after you commit.</div>}
+        {!revealed && <div className={s.muted}>Pick the diagnosis you would choose. The evidence appears after you commit.</div>}
         {revealed && (
           <Note tone={pick === c.answer ? 'good' : 'bad'}>
             <b>{pick === c.answer ? 'Correct.' : 'Added to your error log.'}</b> Diagnosis: <b>{c.diagnosis}</b>. Trigger: <i>{c.trigger}</i>. First move:{' '}

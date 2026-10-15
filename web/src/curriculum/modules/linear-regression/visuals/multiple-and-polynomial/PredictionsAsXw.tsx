@@ -84,8 +84,9 @@ export default function PredictionsAsXw() {
   const best = mse(matvec(X, BEST), FARE)
   // one cell size for every column so that row i lines up across X, ŷ, y and the errors.
   // On phones the "= ŷ, y, error" group wraps onto its own line.
-  const cx = narrow ? 46 : 52
+  const cx = narrow ? 50 : 52
   const cw = cx
+  const cwW = narrow ? 56 : 58 // the w column shows 3 decimals, so it needs a little more room
   const fp = (v: number) => (Math.abs(v) < 0.005 ? '0.00' : v.toFixed(2))
   const set = (k: number) => (v: number) => setW((old) => old.map((o, i) => (i === k ? v : o)) as [number, number, number])
   const r = X[row]
@@ -123,8 +124,8 @@ export default function PredictionsAsXw() {
             <MatrixGrid data={X} rows={[row]} cellSize={cx} onCellClick={(i) => setRow(i)} ariaLabel="Feature matrix X: click a row" />
           </Block>
           <Op>×</Op>
-          <Block title="w (3×1)" header={<Header labels={['']} cell={narrow ? 50 : 56} />}>
-            <MatrixGrid data={w.map((v, k) => [WF[k](v)])} cols={[0]} cellSize={narrow ? 50 : 56} ariaLabel="Weight vector w" />
+          <Block title="w (3×1)" header={<Header labels={['']} cell={cwW} />}>
+            <MatrixGrid data={w.map((v, k) => [WF[k](v)])} cols={[0]} cellSize={cwW} ariaLabel="Weight vector w" />
           </Block>
           {narrow && <div style={{ flexBasis: '100%', height: 0 }} aria-hidden="true" />}
           <Op>=</Op>
@@ -149,7 +150,7 @@ export default function PredictionsAsXw() {
                 ariaLabel="Actual fares"
               />
             </Block>
-            <Block title="error y − ŷ" header={<Header labels={['$']} cell={cw} />}>
+            <Block title="residual y − ŷ" header={<Header labels={['$']} cell={cw} />}>
               <MatrixGrid
                 data={err.map((v) => [v])}
                 format={fp}
@@ -159,7 +160,7 @@ export default function PredictionsAsXw() {
                 cellSize={cw}
                 brackets={false}
                 onCellClick={(i) => setRow(i)}
-                ariaLabel="Errors"
+                ariaLabel="Residuals, y minus y-hat"
               />
             </Block>
           </div>

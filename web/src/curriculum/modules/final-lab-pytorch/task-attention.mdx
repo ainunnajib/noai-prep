@@ -3,17 +3,17 @@ import AttentionCodeStepper from './visuals/task-attention/AttentionCodeStepper'
 import MHAModuleShapes from './visuals/task-attention/MHAModuleShapes'
 import AnswerTemplateBuilder from './visuals/task-attention/AnswerTemplateBuilder'
 
-Task 3 of the 2026 Final, "The Attention Mechanism", was the biggest programming task: 35 of the 80 programming marks. Its first two parts, worth 20 marks, asked for two pieces of code and one short written answer: the attention function (Q3.1, 8 marks), why it divides by $\sqrt{d_k}$ (Q3.2, 2 marks) and a multi-head attention module (Q3.3 and Q3.4, 5 marks each). This lesson rebuilds all of it exactly as the notebook asked, line by line, with the notebook's real test output. Even if the Final on {FINAL.dateLabel} sets a different task, every Transformer question is built from these same few lines.
+Task 3 of the 2026 Final, "The Attention Mechanism", was the biggest programming task: 35 of the 80 programming marks. Its first two parts (20 marks) asked for the attention function (Q3.1, 8 marks), a short written answer on why it divides by $\sqrt{d_k}$ (Q3.2, 2 marks) and a multi-head attention module (Q3.3 and Q3.4, 5 marks each). Even if the Final on {FINAL.dateLabel} sets a different task, every Transformer question is built from these same few lines.
 
-If attention itself is new to you, work through [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition) and [Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) first. Here the focus is on typing it correctly, against the clock, so that hidden tests pass.
+<Analogy title="Asking your CCA group chat">
 
-<Analogy title="A search engine that blends its results">
-
-The notebook itself explains attention as a database lookup. Your **query** is what you are looking for ("bank"); every entry has a **key**, its label ("river", "money"), and a **value**, its content. A normal database returns the one entry whose key matches exactly. Attention is softer: it scores how well your query matches **every** key, turns the scores into shares that add up to 100%, and hands you a blend of all the values in those shares. It is like asking your whole CCA group chat for advice and weighing each reply by how much that person knows about your question.
+You post a question in your CCA group chat: "Which hawker centre near school has the best chicken rice?" Your question is the **query**. Each friend has a **key**, what they know about (food, football, chemistry homework), and a **value**, the reply they would actually give. Attention scores how well your query matches **every** friend's key, turns the scores into shares that add up to 100%, and hands you a blend of all the replies in those shares: mostly the food expert's answer, with a little of everyone else's.
 
 </Analogy>
 
 ## What the notebook gives you
+
+This lesson rebuilds Parts 1 and 2 exactly as the notebook asked, line by line, with the notebook's real test output. If attention itself is new to you, work through [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition) and [Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) first; here the focus is on typing it correctly, against the clock, so that hidden tests pass.
 
 Every tensor in Task 3 has four axes, and the docstrings name them. We use short capital letters, as in [PyTorch patterns for the Final](#/learn/final-lab-pytorch/torch-exam-patterns):
 
@@ -136,7 +136,9 @@ tensor([[0.7311, 0.2689],
         [0.5000, 0.5000]])
 ```
 
-Pasted into the notebook, it passes the test cell for 3.1 (real output, PyTorch 2.14):
+Pasted into the notebook, it passes the test cell for 3.1, which checks the shapes, that each row sums to 1 and that masked positions get exactly 0.
+
+<Reveal label="Show what the 3.1 test cell printed (PyTorch 2.14)">
 
 ```text
 Test variables initialized:
@@ -156,6 +158,8 @@ Testing Attention with Mask...
   ✓ Masked attention working!
 ```
 
+</Reveal>
+
 <Mistake title="Five slips, and which ones the visible test catches">
 
 - **Forgetting `/ math.sqrt(d_k)`** (or dividing by `d_k`): every visible check still passes, because they test shapes, row sums and zeros. Only the hidden value tests notice.
@@ -166,7 +170,9 @@ Testing Attention with Mask...
 
 </Mistake>
 
-Why does the notebook insist on `-1e9` rather than `float('-inf')`? Both give exactly 0 for a hidden key, as long as at least one key in the row is visible. The difference shows up when **every** key in a row is hidden, which happens to padding queries when a mask has shape `(B, 1, T, T)`:
+Why does the notebook insist on `-1e9` rather than `float('-inf')`? Both give exactly 0 for a hidden key, as long as at least one key in the row is visible. The difference shows up when **every** key in a row is hidden, which happens to padding queries when a mask has shape `(B, 1, T, T)`: with $-\infty$ the softmax computes $0/0$, which is `nan` ("not a number"), and one `nan` spreads into every later number. With $-10^9$ the row just becomes uniform and harmless.
+
+<Reveal label="Show the two masks side by side">
 
 ```python
 scores = torch.tensor([[0.5, 1.0, -0.2],
@@ -184,7 +190,7 @@ tensor([[0.3775, 0.6225, 0.0000],
         [   nan,    nan,    nan]])
 ```
 
-With $-\infty$ the softmax computes $0/0$, which is `nan` ("not a number"), and one `nan` spreads into every later number. With $-10^9$ the row just becomes uniform and harmless.
+</Reveal>
 
 The notebook has a second, "numerical correctness" test. It sets `Q_test` and `K_test` to all ones, shape `(1, 1, 3, 4)`, and `V_test = torch.arange(12).reshape(1, 1, 3, 4).float()`, whose three rows are `[0, 1, 2, 3]`, `[4, 5, 6, 7]` and `[8, 9, 10, 11]`.
 
@@ -316,7 +322,7 @@ Testing Multi-Head Attention...
   ✓ Multi-Head Attention working!
 ```
 
-As an extra check, we copied the same weights into PyTorch's built-in `nn.MultiheadAttention` (with `batch_first=True`): the outputs agreed exactly, with a largest difference of 0.0.
+As an extra check, we copied the same weights into PyTorch's built-in `nn.MultiheadAttention` (with `batch_first=True`). With both modules in eval mode, which switches dropout off, the outputs agreed to about $10^{-7}$: the same answer up to rounding.
 
 <QuickCheck
   q="In a `MultiHeadAttention` with `d_model = 256` and `num_heads = 8`, the input has shape (4, 20, 256), meaning (B, T, d_model). What is the shape of `Q` after `.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)`?"
@@ -328,13 +334,15 @@ As an extra check, we copied the same weights into PyTorch's built-in `nn.Multih
 <Mistake title="The reshape slips">
 
 - **Skipping the transpose.** `Q.view(batch_size, self.num_heads, -1, self.d_k)` has the right shape, so the test cell prints a tick, but `view` only re-cuts memory in order: head 0's second row holds token 0's *next* $d_k$ numbers instead of the start of token 1. Right shape, wrong numbers, and the hidden tests compare numbers.
-- **`.view` straight after `.transpose`.** `transpose` only changes the order in which memory is read, so `view` refuses with the error below. Add `.contiguous()` first, or use `.reshape`.
+- **`.view` straight after `.transpose`.** `transpose` only changes the order in which memory is read, so `view` refuses with a `RuntimeError` (the check below shows it). A tensor is *contiguous* when its numbers sit in memory in the order its shape says; `.contiguous()` makes a copy laid out that way, so add it first, or use `.reshape`, which copies when it has to.
 - **Creating layers inside `forward`.** A layer built there gets new random weights on every call, never trains, and does not exist as `self.W_q` for the tests.
 - **Hard-coding 512, 8 or 64.** Read sizes from the arguments (`self.d_k`, `self.d_model`, `query.size(0)`): hidden tests use other sizes.
 
 </Mistake>
 
-Both reshape slips, checked with sizes that are all different ($B = 2$, $T = 5$, $h = 3$, $d_k = 4$):
+Both reshape slips can be checked in a few lines, with sizes that are all different ($B = 2$, $T = 5$, $h = 3$, $d_k = 4$).
+
+<Reveal label="Show the check">
 
 ```python
 torch.manual_seed(0)
@@ -358,6 +366,8 @@ RuntimeError: view size is not compatible with input tensor's size and stride (a
 torch.Size([2, 5, 12])
 ```
 
+</Reveal>
+
 The attention weights have shape `(B, h, T, T)`: every token scores every other token, so one head of one sentence needs $T \times T$ numbers. Doubling the sentence length quadruples that table, a fact the Prelim likes to test.
 
 <PastPaperQuestion paper="prelim2026" n={219} />
@@ -366,7 +376,7 @@ The attention weights have shape `(B, h, T, T)`: every token scores every other 
 
 - **Budget about 35 minutes** for these 20 marks if Task 3 gets an hour. Write Q3.1 and run its test cell before you start on the module, because Q3.4 calls your Q3.1 function.
 - **Keep every given name:** `output`, `attention_weights`, `self.W_q`, `self.W_k`, `self.W_v`, `self.W_o`, `self.dropout`. In 2026 every graded Task 3 test was **hidden**, and hidden tests look things up by name.
-- **Test values, not only shapes.** In a scratch cell, compare your function with PyTorch's built-in `F.scaled_dot_product_attention(Q, K, V, attn_mask=mask.bool())` using `torch.allclose`; we ran exactly this check and it printed `True`. Delete the scratch cell afterwards.
+- **Test values, not only shapes.** In a scratch cell, compare your output with PyTorch's built-in version (which returns only the output, not the weights): `torch.allclose(out, F.scaled_dot_product_attention(Q, K, V, attn_mask=mask.bool()), atol=1e-6)`. On the notebook's test tensors this prints `True`. Keep the `atol=1e-6`: the built-in adds the numbers in a different order, so the two differ by about $4 \times 10^{-7}$ and the default tolerance prints `False` even for a correct function. Delete the scratch cell afterwards.
 - Leave Q3.2 until the code runs: it is only 2 marks, but do not leave it blank.
 
 </ExamTip>

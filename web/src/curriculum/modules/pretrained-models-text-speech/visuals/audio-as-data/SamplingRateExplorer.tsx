@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, VLine, Arrow, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, Rect, VLine, Arrow, M, useNarrow } from '../../../../../kit'
 
 /*
   Sample a sine wave at a chosen rate and rebuild the smoothest wave through the samples.
@@ -30,6 +30,7 @@ export default function SamplingRateExplorer() {
   const [f, setF] = useState(3)
   const [fs, setFs] = useState(20)
   const [mix, setMix] = useState(false)
+  const [ref, narrow] = useNarrow<HTMLDivElement>(480)
 
   const signal = (t: number) => Math.sin(TWO_PI * f * t) + (mix ? LOW_A * Math.sin(TWO_PI * LOW_F * t) : 0)
   const rHigh = rebuilt(f, fs, 1)
@@ -63,6 +64,7 @@ export default function SamplingRateExplorer() {
         </>
       }
     >
+      <div ref={ref} style={{ width: '100%' }}>
       <Plot x={[0, 1]} y={[-yMax, yMax]} width={520} height={250} minHeight={210} margin={{ left: 34, right: 12, bottom: 32 }} ariaLabel={`A ${f} Hz sine wave sampled ${fs} times per second, with the wave rebuilt from the samples`}>
         <Grid xTicks={10} yTicks={4} />
         <Axes xLabel="time (s)" xTicks={5} yTicks={4} />
@@ -76,7 +78,7 @@ export default function SamplingRateExplorer() {
 
       <Plot x={[0, fMaxAxis]} y={[0, 1]} width={520} height={104} minHeight={104} margin={{ left: 34, right: 12, top: 26, bottom: 42 }} ariaLabel="Frequency line showing which frequencies this sampling rate can capture">
         <Rect x0={0} x1={Math.min(nyq, fMaxAxis)} y0={0} y1={1} fill="color-mix(in srgb, var(--viz-pos) 18%, transparent)" />
-        <Axes xLabel="frequency (Hz)" xTicks={10} hideYTicks />
+        <Axes xLabel="frequency (Hz)" xTicks={narrow ? 5 : 10} hideYTicks />
         {nyq <= fMaxAxis && <VLine x={nyq} color="var(--viz-pos)" dash="5 3" width={2} />}
         {nyq <= fMaxAxis && (
           <Label x={nyq} y={1} dy={-8} anchor={nyq > fMaxAxis * 0.7 ? 'end' : 'start'} color="var(--viz-pos)" size={11} weight={700}>
@@ -102,6 +104,7 @@ export default function SamplingRateExplorer() {
           </Label>
         )}
       </Plot>
+      </div>
 
       <Controls>
         <Slider label="wave frequency" value={f} min={1} max={15} step={0.5} onChange={setF} format={(v) => `${v} Hz`} />
@@ -119,7 +122,21 @@ export default function SamplingRateExplorer() {
         {mix && <span style={{ color: 'var(--ink-2)', fontWeight: 400 }}> · the slow {LOW_F} Hz tone {LOW_F < nyq ? 'survives' : 'is lost too'}</span>}
       </p>
       <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--ink-2)' }}>
-        Fake frequency = distance from <M>f</M> to the nearest whole multiple of the rate: <M>{`|${f} - ${Math.round(f / fs)} \\times ${fs}| = ${+seen.toFixed(2)}`}</M> Hz.
+        {ok ? (
+          <>
+            Below the limit, the nearest whole multiple of the rate is 0, so the wave stays where it is:{' '}
+            <M>{`|${f} - 0 \\times ${fs}| = ${f}`}</M> Hz.
+          </>
+        ) : atLimit ? (
+          <>
+            At exactly half the rate, <M>f</M> sits halfway between 0 and the rate, and a sine's samples all land on zero crossings.
+          </>
+        ) : (
+          <>
+            Fake frequency = distance from <M>f</M> to the nearest whole multiple of the rate:{' '}
+            <M>{`|${f} - ${Math.round(f / fs)} \\times ${fs}| = ${+seen.toFixed(2)}`}</M> Hz.
+          </>
+        )}
       </p>
     </Figure>
   )

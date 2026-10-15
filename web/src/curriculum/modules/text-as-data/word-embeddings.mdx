@@ -5,24 +5,24 @@ import EmbeddingLookup from './visuals/word-embeddings/EmbeddingLookup'
 
 To TF-IDF, "chilli" and "spicy" are two unrelated columns: a search for one will never find the other. **Word embeddings** fix this by giving every word a short list of numbers chosen so that words with similar meanings get similar lists. This one idea sits inside every modern language model, from search engines to ChatGPT, and the same trick works for images and sounds too.
 
-## One-hot vectors: every word equally different
-
-The simplest way to turn a word into numbers is the <Term def="A vector as long as the vocabulary with a single 1 in the position of the word and 0 everywhere else.">one-hot vector</Term> you met in [Encoding categories](#/learn/data-and-features/encoding-categories): as long as the vocabulary, with a single 1 at the word's id. It has two problems:
-
-- **It is huge.** With a 50,000-word vocabulary, every word is 50,000 numbers, all but one of them 0.
-- **It knows nothing about meaning.** Two different one-hot vectors never have a 1 in the same place, so their dot product is 0. Every pair of different words has cosine similarity 0 and distance $\sqrt{2}$: "king" is exactly as unlike "queen" as it is unlike "bus".
-
-<OneHotVsDense />
-
-## Embeddings: short, dense and learned
-
-An <Term def="A short, dense list of real numbers that represents a word (or a token, image, sound...). The numbers are learned so that similar things get similar vectors.">embedding</Term> gives each word a **dense** vector: every entry is a real number, usually not 0. It is also **short**, typically 50 to 1,000 numbers whatever the vocabulary size (the well-known Google News Word2Vec vectors have 300), and its numbers are **learned** from data so that words used in similar ways end up with similar vectors.
-
 <Analogy title="A map of hawker dishes">
 
 Imagine placing every hawker dish on a map. Noodle dishes end up in one corner and rice dishes in another, and moving "east" always means "soup version of the same dish". You never wrote any rules: the positions came from which dishes people order together. An embedding is such a map, but with hundreds of directions instead of two.
 
 </Analogy>
+
+## One-hot vectors: every word equally different
+
+The simplest way to turn a word into numbers is the <Term def="A vector as long as the vocabulary with a single 1 in the position of the word and 0 everywhere else.">one-hot vector</Term> you met in [Encoding categories](#/learn/data-and-features/encoding-categories): as long as the vocabulary, with a single 1 at the word's id. It has two problems:
+
+- **It is huge.** With a 50,000-word vocabulary, every word is 50,000 numbers, all but one of them 0.
+- **It knows nothing about meaning.** Two different one-hot vectors never have a 1 in the same place, so their dot product is 0 (vectors with dot product 0 are called *orthogonal*, as in [Dot product and norms](#/learn/vectors-and-matrices/dot-product-and-norms)). Every pair of different words has cosine similarity 0 and distance $\sqrt{2}$: "king" is exactly as unlike "queen" as it is unlike "bus".
+
+<OneHotVsDense />
+
+## Embeddings: short, dense and learned
+
+An <Term def="A short, dense list of real numbers that represents a word (or a token, image, sound...). The numbers are learned so that similar things get similar vectors.">embedding</Term> gives each word a **dense** vector: every entry is a real number, usually not 0. It is also **short**, typically 50 to 1,000 numbers whatever the vocabulary size (the well-known Google News Word2Vec vectors have 300), and its numbers are **learned** from data so that words used in similar ways end up with similar vectors: exactly the hawker-dish map, with many more directions.
 
 <EmbeddingSpace2D />
 
@@ -87,7 +87,11 @@ The labels come from the text itself, so no human annotation is needed: this is 
 
 The model is a tiny network with **no activation function** in the middle. The centre word goes in as a one-hot vector, a weight matrix turns it into a $d$-number vector (its embedding), and a second matrix gives a score for every word in the vocabulary:
 
-<NeuralNet layers={[6, 3, 6]} layerLabels={['one-hot in (V)', 'embedding (d)', 'scores (V)']} ariaLabel="Word2Vec skip-gram network: a one-hot input of size V, a hidden layer of size d, and V output scores" />
+<Figure title="The Word2Vec network" caption={<>The input is the one-hot vector of the centre word (here the third word of a 6-word vocabulary, shaded). The weights from the inputs to the middle layer form a matrix <i>W</i> of shape <i>V</i> × <i>d</i>. Only one input is 1, so the middle layer is simply <b>that word's row of <i>W</i></b>, which is its embedding. The weights from the middle layer to the outputs form a second matrix <i>W′</i> of shape <i>d</i> × <i>V</i>, which turns the embedding into one score per vocabulary word.</>}>
+
+<NeuralNet layers={[6, 3, 6]} layerLabels={['one-hot in (V)', 'embedding (d)', 'scores (V)']} nodeLabels={[['0', '0', '1', '0', '0', '0']]} activations={[[0, 0, 1, 0, 0, 0]]} ariaLabel="Word2Vec skip-gram network: a one-hot input of size V with the third word switched on, a hidden layer of size d, and V output scores" />
+
+</Figure>
 
 For a centre word $c$ with vector $\mathbf{v}_c$, the probability that word $o$ appears in its context is a softmax over dot products:
 

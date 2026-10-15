@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, DraggablePoint, MBlock, usePlot, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, HLine, MBlock, usePlot, useNarrow } from '../../../../../kit'
+import { Handle, Verdict } from '../derivatives-as-slopes/plotHelpers'
 
 /*
   Gradient descent on L(w) = w². The learner sets the learning rate, presses Step or Play,
@@ -91,6 +92,7 @@ export default function GradientDescentBall() {
   const base = Math.max(1, L(w0))
   const lossTop = Math.max(base * 1.25, Math.min(Math.max(...forecast.map(L)), base * 6))
   const reg = regime(eta)
+  const offChart = Math.abs(w) > W_RANGE[1] || L(w) > Y_TOP
   const tan = 0.9
 
   return (
@@ -127,16 +129,16 @@ export default function GradientDescentBall() {
             </>
           )}
           {Math.abs(w) <= W_RANGE[1] && L(w) <= Y_TOP && <Dots points={[{ x: w, y: L(w), r: 10, color: 'var(--viz-2)' }]} />}
-          {(Math.abs(w) > W_RANGE[1] || L(w) > Y_TOP) && (
-            <Label x={0} y={Y_TOP - 4} anchor="middle" color="var(--viz-neg)" weight={700}>
-              {narrow ? 'flown off the chart!' : `the ball has flown off the chart (w = ${f2(w)})`}
-            </Label>
+          {offChart && (
+            // a small marker on the edge the ball left by; the words go in the readout below
+            <Dots points={[{ x: w > 0 ? W_RANGE[1] - 0.15 : W_RANGE[0] + 0.15, y: Y_TOP - 1, r: 7, color: 'var(--viz-neg)', shape: 'triangle' }]} stroke="none" />
           )}
-          <DraggablePoint
+          <Handle
             x={w0}
             y={L(w0)}
             r={6}
             color="var(--viz-5)"
+            ariaLabel="start point: drag along the curve"
             constrain={(x) => {
               const s = Math.round(x * 10) / 10
               return [s, L(s)]
@@ -200,7 +202,7 @@ w_{\\text{new}} &= ${f2(w)} - ${paren(step)} = ${f2(wNext)}
           ['w', f2(w)],
           ['loss', f2(L(w))],
           ['each step multiplies w by', (1 - 2 * eta).toFixed(2)],
-          ['verdict', <span key="v" style={{ color: reg.colour }}>{reg.name}</span>],
+          ['verdict', <Verdict key="v" tone={reg.colour}>{offChart ? `the ball has flown off the chart (w = ${f2(w)}): ${reg.name}` : reg.name}</Verdict>],
         ]}
       />
     </Figure>

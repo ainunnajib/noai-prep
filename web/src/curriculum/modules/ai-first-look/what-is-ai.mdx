@@ -46,7 +46,7 @@ In ordinary programming, a person writes the rules and the computer applies them
 Nobody can write a rulebook for picking a ripe durian. Instead, you follow an uncle at the stall for a season. He picks one up, sniffs, shakes it, then tells you "this one good" or "this one not yet". After a few hundred durians, your nose has learned what no rulebook could describe. Machine learning works like that: lots of examples, each with the right answer.
 </Analogy>
 
-Spam messages are a perfect test. Try writing rules yourself first. Then let the computer learn from 20 messages that a person has already marked as spam or normal.
+Spam messages are a perfect test. Try writing rules yourself first. Then let the computer learn from 20 messages that a person has already marked as spam or normal. Finally, test both methods on 8 new messages that neither has seen.
 
 <RulesVsExamples />
 
@@ -58,7 +58,7 @@ The finished product is a <Term def="A function with learned numbers inside: you
 A **model** is a function with adjustable numbers inside, called **parameters**. **Training** means adjusting those numbers using labelled examples until the model's answers match the labels as well as possible.
 </KeyIdea>
 
-Why go to this trouble? Because hand-written rules break on messy real data. "Free" also appears in "free for lunch?", and tomorrow's scam will use words that aren't on your list. For photos or speech it is far worse: try writing rules that say which pixel values make a photo "a cat". With learning, you fix mistakes by adding more examples, not by writing more rules.
+Why go to this trouble? The new messages showed it: hand-written rules break on messy real data. "Free" also appears in "free for lunch?", and tomorrow's scam will use words that aren't on your list. Scoring well on the examples you tuned your rules on proves little; what counts is how a method does on messages it has never seen, an idea you will meet again at the end of this module. For photos or speech it is far worse: try writing rules that say which pixel values make a photo "a cat". With learning, you fix mistakes by adding more examples, not by writing more rules.
 
 <QuickCheck
   q="A school's homework portal uses one line of code: 'if submitted after 11:59 pm, mark as late'. Is this machine learning?"
@@ -100,10 +100,10 @@ Ask one question about the data. Does every example come with the right answer? 
 <PastPaperQuestion paper="prelim2026" n={136} />
 
 <ExamTip>
-NOAI often names an algorithm instead of describing the data, so learn which family each belongs to. **Supervised:** linear regression, logistic regression, decision trees, k-nearest neighbours (kNN), support vector machines (SVM). **Unsupervised:** k-means clustering, PCA (which shrinks data to fewer columns). **Reinforcement:** anything with an agent, environment, reward or penalty. Keyword spotting is fast: "labelled" means supervised, "clusters" or "groups" with no labels means unsupervised, "reward" means RL.
+NOAI often names an algorithm instead of describing the data. You will meet these algorithms later in the course; for now, just remember which family each name belongs to. **Supervised:** linear regression, logistic regression, decision trees, k-nearest neighbours (kNN), support vector machines (SVM). **Unsupervised:** k-means clustering, PCA (which shrinks data to fewer columns). **Reinforcement:** anything with an agent, environment, reward or penalty. Keyword spotting is fast: "labelled" means supervised, "clusters" or "groups" with no labels means unsupervised, "reward" means RL.
 </ExamTip>
 
-<PastPaperQuestion paper="prelim2026" n={137} />
+<PastPaperQuestion paper="noai2025" n={1} />
 
 <PastPaperQuestion paper="noai2025" n={3} />
 
@@ -112,11 +112,11 @@ Reinforcement learning is not "supervised learning with a score". In supervised 
 </Mistake>
 
 <Note title="Where do chatbots fit?">
-Chatbots such as ChatGPT are first trained to predict the next word in a huge amount of text. The "answer" (the next word) comes from the text itself, so no person has to label anything; this is called *self-supervised* learning. They are then polished using human ratings and ideas from reinforcement learning (often called RLHF). You will meet both in the Generative AI part of this course.
+Chatbots such as ChatGPT are first trained to predict the next word (strictly, the next *token*, a word or piece of a word) in a huge amount of text. The "answer" (the next word) comes from the text itself, so no person has to label anything; this is called *self-supervised* learning. They are then fine-tuned on example conversations written by people, which is ordinary supervised learning, and finally polished using human ratings and ideas from reinforcement learning (often called RLHF). You will meet both in the Generative AI part of this course.
 </Note>
 
 <Takeaways>
-- **AI** is the goal (machines doing things that seem intelligent), **ML** is AI that learns from data, and **DL** is ML with many-layered neural networks: DL ⊂ ML ⊂ AI. Not all AI learns.
+- **AI** is the goal (machines doing things that seem intelligent), **ML** is AI that learns from data, and **DL** is ML with many-layered neural networks: DL ⊂ ML ⊂ AI, where ⊂ means "sits inside". Not all AI learns.
 - ML flips ordinary programming: give it data plus answers, and it produces the rules as a **model**.
 - A model is a function with adjustable numbers (**parameters**); **training** adjusts them using examples.
 - **Supervised** = learns from labels; **unsupervised** = no labels, finds structure such as clusters; **reinforcement** = learns from rewards for its actions.

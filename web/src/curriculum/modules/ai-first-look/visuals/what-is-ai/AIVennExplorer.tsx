@@ -9,7 +9,7 @@ type ZoneId = 'none' | 'ai' | 'ml' | 'dl'
 
 const ZONES: { id: ZoneId; title: string; blurb: string; color: string }[] = [
   { id: 'none', title: 'All computer programs', blurb: 'Most just follow exact steps that people wrote.', color: 'var(--viz-axis)' },
-  { id: 'ai', title: 'Artificial intelligence (AI)', blurb: 'Does tasks that seem to need intelligence.', color: 'var(--viz-5)' },
+  { id: 'ai', title: 'Artificial intelligence (AI)', blurb: 'Does tasks that seem to need intelligence.', color: 'var(--viz-6)' },
   { id: 'ml', title: 'Machine learning (ML)', blurb: 'AI that learns patterns from data.', color: 'var(--viz-1)' },
   { id: 'dl', title: 'Deep learning (DL)', blurb: 'ML using neural networks with many layers.', color: 'var(--viz-3)' },
 ]

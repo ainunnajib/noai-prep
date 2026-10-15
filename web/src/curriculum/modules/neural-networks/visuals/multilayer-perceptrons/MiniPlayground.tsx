@@ -16,7 +16,7 @@ const MAX_EPOCHS = 2000
 const PRETRAIN = 120
 const MAX_LAYERS = 3
 const MAX_NEURONS = 8
-const LRS = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3]
+const LRS = [0.001, 0.01, 0.03, 0.1, 0.3]
 const COLOR_NAMES = ['--viz-1', '--viz-2', '--surface', '--viz-ink', '--viz-muted', '--accent'] as const
 type Colors = Record<(typeof COLOR_NAMES)[number], RGB>
 
@@ -266,7 +266,7 @@ function LossChart({ hist }: { hist: HistPoint[] }) {
     <Plot x={[0, xMax]} y={[0, yMax]} width={520} height={160} minHeight={170} margin={{ left: 42, bottom: 30, top: 24, right: 12 }} ariaLabel="Training and test loss against epoch">
       <Grid xTicks={5} yTicks={4} />
       <Axes xLabel="epoch" yLabel="loss" xTicks={5} yTicks={4} />
-      <HLine y={Math.LN2} label="ln 2: a coin-flip guess" />
+      <HLine y={Math.LN2} label="coin-flip guess (0.693; why? next lesson)" />
       <Path points={pick.map((h) => [h.e, h.te] as [number, number])} color="var(--viz-4)" width={2} dash="5 4" />
       <Path points={pick.map((h) => [h.e, h.tr] as [number, number])} color="var(--viz-3)" width={2.2} />
     </Plot>
@@ -363,11 +363,9 @@ export default function MiniPlayground() {
       title="A mini neural-network playground"
       caption={
         <>
-          Each small square in the network is one neuron, drawn as a map of its output over the whole input square (orange = positive, blue = negative, blank = zero). Edges are
-          orange for positive weights and blue for negative ones; thicker means bigger. <b>Tap any neuron</b> to see its map full size. This network has already trained for{' '}
-          {PRETRAIN} epochs on the circle: each first-layer ReLU neuron draws one straight fold, and the output neuron adds them up into a closed region. Try: remove neurons until
-          the circle fails; switch to the <b>spiral</b> and compare 1 layer of 2 neurons with 2 layers of 8; set the activation to <b>none</b> and watch the boundary stay straight
-          however many layers you add.
+          Each small square is one neuron, drawn as a map of its output over the input square (orange = positive, blue = negative, blank = zero); edges are orange
+          for positive weights, blue for negative, thicker for bigger. <b>Tap any neuron</b> to see its map full size. The network has already trained for {PRETRAIN}{' '}
+          epochs on the circle: each first-layer ReLU neuron draws one straight fold, and the output combines them into a closed region.
         </>
       }
     >
@@ -428,19 +426,6 @@ export default function MiniPlayground() {
             </div>
           </div>
         </div>
-        <div className={s.panel}>
-          <div className={s.legend}>
-            <span>
-              <span className={s.swatchLine} style={{ borderColor: 'var(--viz-3)' }} />
-              training loss {last.tr.toFixed(3)} (accuracy {Math.round(last.trAcc * 100)}%)
-            </span>
-            <span>
-              <span className={s.swatchLine} style={{ borderColor: 'var(--viz-4)', borderTopStyle: 'dashed' }} />
-              test loss {last.te.toFixed(3)} (accuracy {Math.round(last.teAcc * 100)}%)
-            </span>
-          </div>
-          <LossChart hist={run.hist} />
-        </div>
         <div className={s.row}>
           <Segmented
             label="data"
@@ -470,6 +455,19 @@ export default function MiniPlayground() {
               { value: 'linear', label: 'none' },
             ]}
           />
+        </div>
+        <div className={s.panel}>
+          <div className={s.legend}>
+            <span>
+              <span className={s.swatchLine} style={{ borderColor: 'var(--viz-3)' }} />
+              training loss {last.tr.toFixed(3)} (accuracy {Math.round(last.trAcc * 100)}%)
+            </span>
+            <span>
+              <span className={s.swatchLine} style={{ borderColor: 'var(--viz-4)', borderTopStyle: 'dashed' }} />
+              test loss {last.te.toFixed(3)} (accuracy {Math.round(last.teAcc * 100)}%)
+            </span>
+          </div>
+          <LossChart hist={run.hist} />
         </div>
         <div className={s.row}>
           <Segmented label="learning rate" value={lr} onChange={(v) => setLr(v)} options={LRS.map((v) => ({ value: v, label: String(v) }))} />

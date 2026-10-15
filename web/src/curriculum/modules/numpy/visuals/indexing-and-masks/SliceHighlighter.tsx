@@ -10,7 +10,7 @@ import { evaluate, R, C } from './sliceEval'
 */
 
 const val = (r: number, c: number) => r * C + c
-const PRESETS = ['arr[2, 3]', 'arr[0]', 'arr[:, 0]', 'arr[1:3, ::2]', 'arr[-1]', 'arr[:, -2:]', 'arr[1:4, 2]', 'arr[0:1]', 'arr[::-1, 0]', 'arr[5, 0]']
+const PRESETS = ['arr[2, 3]', 'arr[0]', 'arr[:, 0]', 'arr[:][0]', 'arr[1:3, ::2]', 'arr[-1]', 'arr[:, -2:]', 'arr[1:4, 2]', 'arr[0:1]', 'arr[::-1, 0]', 'arr[5, 0]']
 
 const chip = (on: boolean): CSSProperties => ({
   fontFamily: 'var(--font-mono)',
@@ -77,7 +77,7 @@ export default function SliceHighlighter() {
         <>
           The grid is <code>arr = np.arange(30).reshape(5, 6)</code>. Tap a preset or type your own expression. The first index chooses
           rows (axis 0), the second chooses columns (axis 1), and <code>:</code> means "all of them". Compare <code>arr[0]</code> with{' '}
-          <code>arr[0:1]</code>: same cells, but an integer drops the axis while a slice keeps it.
+          <code>arr[0:1]</code>: same cells, but an integer drops the axis while a slice keeps it. Then try <code>arr[:][0]</code>.
         </>
       }
     >

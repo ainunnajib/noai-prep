@@ -146,7 +146,7 @@ export default function UNetShapeTracer() {
       caption={
         <>
           Each block shows <b>channels × height × width</b>; the thin bar under it shows the height compared with the input. Start with 128 and
-          same padding: every skip map matches. Now set the input to <b>100</b>: pooling floors 25 to 12, the decoder doubles it to 24, and
+          same padding: every skip map matches. Now press <b>100, same</b>: pooling floors 25 to 12, the decoder doubles it to 24, and
           concatenating with the 25×25 skip map crashes. Turn on <b>centre crop</b> to fix it. Then try <b>valid</b> padding, where every
           level needs a crop, or load the original paper's 572 → 388.
         </>

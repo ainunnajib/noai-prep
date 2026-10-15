@@ -1,5 +1,5 @@
-import { useState, type CSSProperties } from 'react'
-import { Figure, Controls, Segmented, Toggle } from '../../../../../kit'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Figure, Controls, Segmented, Toggle, mulberry32 } from '../../../../../kit'
 import { mono } from './Cells'
 
 /*
@@ -26,12 +26,103 @@ const REMOVED: Record<AxisChoice, number[]> = {
 }
 
 const MEANING: Record<AxisChoice, string> = {
-  '0': 'The average image: every pixel position averaged over all 100 images (it looks like a blurry "average digit").',
+  '0': 'The average image: every pixel position averaged over all 100 images, which looks like a blurry "average digit".',
   '1': 'For each image, every pixel column averaged down its 28 rows.',
   '2': 'For each image, every pixel row averaged across its 28 columns.',
   '-1': 'axis=-1 means "the last axis", which here is axis 2: each pixel row averaged across its columns.',
   '(1, 2)': "One number per image: that image's average brightness. Naming two axes erases both.",
   none: 'One number for the whole dataset: the average brightness of all 78,400 pixels.',
+}
+
+/*
+  100 small synthetic "digits" (a 0, a 1 or a 7, each shifted and thickened at random by a fixed
+  seed), so that the preview can SHOW what each reduction gives: the average image, one strip of 28
+  numbers per image, or one brightness per image.
+*/
+const N_IMG = 100
+const P = 28
+const IMGS: Float64Array[] = (() => {
+  const rand = mulberry32(7)
+  const out: Float64Array[] = []
+  for (let k = 0; k < N_IMG; k++) {
+    const img = new Float64Array(P * P)
+    const kind = k % 3
+    const cx = 13.5 + (rand() - 0.5) * 4
+    const cy = 13.5 + (rand() - 0.5) * 4
+    const s = 1.1 + rand() * 0.6
+    const R = 6 + rand() * 2
+    const g = (d: number) => Math.exp(-(d * d) / (2 * s * s))
+    for (let y = 0; y < P; y++)
+      for (let x = 0; x < P; x++) {
+        let v: number
+        if (kind === 0) v = g(Math.hypot((x - cx) * 1.25, y - cy) - R) // a "0": an oval ring
+        else if (kind === 1) v = Math.abs(y - cy) < 9 ? g(x - cx) : 0 // a "1": a vertical stroke
+        else {
+          // a "7": a top bar and a slanted stroke
+          const bar = Math.abs(x - cx) < 6 ? g(y - (cy - 8)) : 0
+          const [ax, ay, bx, by] = [cx + 6, cy - 8, cx - 3, cy + 9]
+          const t = Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2)))
+          v = Math.max(bar, g(Math.hypot(x - (ax + t * (bx - ax)), y - (ay + t * (by - ay)))))
+        }
+        img[y * P + x] = v
+      }
+    out.push(img)
+  }
+  return out
+})()
+const MEAN_IMG = Array.from({ length: P * P }, (_, p) => IMGS.reduce((acc, im) => acc + im[p], 0) / N_IMG)
+const COL_MEANS = IMGS.slice(0, 8).map((im) => Array.from({ length: P }, (_, x) => im.reduce((acc, v, p) => acc + (p % P === x ? v : 0), 0) / P))
+const ROW_MEANS = IMGS.slice(0, 8).map((im) => Array.from({ length: P }, (_, y) => im.slice(y * P, (y + 1) * P).reduce((acc, v) => acc + v, 0) / P))
+const IMG_MEANS = IMGS.map((im) => im.reduce((acc, v) => acc + v, 0) / (P * P))
+const ALL_MEAN = IMG_MEANS.reduce((acc, v) => acc + v, 0) / N_IMG
+
+/** A grey-level heat map drawn from a flat list of values (row by row). */
+function Heat({ values, cols, cell, cellH = cell, gap = 0, label }: { values: number[]; cols: number; cell: number; cellH?: number; gap?: number; label: string }) {
+  const max = Math.max(...values, 1e-9)
+  const rows = values.length / cols
+  return (
+    <svg viewBox={`0 0 ${cols * cell} ${rows * cellH}`} width={cols * cell} height={rows * cellH} role="img" aria-label={label} style={{ display: 'block', maxWidth: '100%', height: 'auto', background: 'var(--surface)', border: '1px solid var(--rule)' }}>
+      {values.map((v, i) => (v / max < 0.03 ? null : <rect key={i} x={(i % cols) * cell} y={Math.floor(i / cols) * cellH + gap / 2} width={cell} height={cellH - gap} style={{ fill: 'var(--ink)', fillOpacity: v / max }} />))}
+      {gap > 0 && Array.from({ length: rows - 1 }, (_, r) => <line key={`g${r}`} x1={0} x2={cols * cell} y1={(r + 1) * cellH} y2={(r + 1) * cellH} style={{ stroke: 'var(--rule)', strokeWidth: 1 }} />)}
+    </svg>
+  )
+}
+
+/** What the result of the chosen reduction looks like. */
+function Preview({ ax }: { ax: AxisChoice }) {
+  const note = { fontSize: '0.78rem', color: 'var(--ink-3)', textAlign: 'center' as const, maxWidth: 230 }
+  let body: ReactNode
+  let text: string
+  if (ax === '0') {
+    body = <Heat values={MEAN_IMG} cols={P} cell={4} label="The average of all 100 images: a blurry blend of a 0, a 1 and a 7" />
+    text = 'the result, drawn as an image: a blurry "average digit"'
+  } else if (ax === '1') {
+    body = <Heat values={COL_MEANS.flat()} cols={P} cell={4} cellH={10} gap={3} label="Eight images, each squashed down its rows into 28 column averages" />
+    text = 'first 8 of the 100 rows: each image is now 28 column averages (a "1" gives one bright spot)'
+  } else if (ax === '2' || ax === '-1') {
+    body = <Heat values={ROW_MEANS.flat()} cols={P} cell={4} cellH={10} gap={3} label="Eight images, each squashed across its columns into 28 row averages" />
+    text = 'first 8 of the 100 rows: each image is now 28 row averages, top to bottom'
+  } else if (ax === '(1, 2)') {
+    const max = Math.max(...IMG_MEANS.slice(0, 12))
+    body = (
+      <svg viewBox="0 0 120 64" width={120} height={64} role="img" aria-label="Average brightness of the first 12 images, one bar each" style={{ display: 'block' }}>
+        {IMG_MEANS.slice(0, 12).map((v, i) => (
+          <rect key={i} x={i * 10 + 1} y={62 - (v / max) * 58} width={8} height={(v / max) * 58} rx={1.5} style={{ fill: 'var(--viz-3)' }} />
+        ))}
+        <line x1={0} x2={120} y1={62.5} y2={62.5} style={{ stroke: 'var(--viz-axis)' }} />
+      </svg>
+    )
+    text = 'first 12 of the 100 numbers: one average brightness per image'
+  } else {
+    body = <div style={{ ...mono, fontSize: '1.3rem', fontWeight: 700, color: 'var(--viz-3)' }}>{ALL_MEAN.toFixed(4)}</div>
+    text = 'one number: the average of all 78,400 pixels'
+  }
+  return (
+    <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
+      {body}
+      <div style={note}>{text}</div>
+    </div>
+  )
 }
 
 /** A stack of images with arrows along the axes being averaged. */
@@ -135,7 +226,7 @@ export default function ShapeEraser() {
       caption={
         <>
           <code>imgs</code> holds 100 greyscale images of 28 × 28 pixels, so its shape is (100, 28, 28). Pick the axis to average over and watch that entry
-          get crossed out of the shape. Negative numbers count from the end, so <code>axis=-1</code> is always the last axis. Turn on{' '}
+          get crossed out of the shape; the small picture shows what the result looks like. Negative numbers count from the end, so <code>axis=-1</code> is always the last axis. Turn on{' '}
           <code>keepdims</code> and the crossed-out entries stay as 1s instead of vanishing.
         </>
       }
@@ -164,6 +255,7 @@ export default function ShapeEraser() {
           <div style={{ ...mono, fontSize: '1.15rem', fontWeight: 700, textAlign: 'center' }} aria-live="polite">
             (100, 28, 28) → <span style={{ color: 'var(--viz-3)' }}>{shapeStr}</span>
           </div>
+          <Preview ax={ax} />
         </div>
       </div>
       <div style={{ fontSize: '0.92rem', color: 'var(--ink-2)', textAlign: 'center', maxWidth: 540 }}>{MEANING[ax]}</div>

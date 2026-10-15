@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Figure, useNarrow } from '../../../../../kit'
 import s from './df.module.css'
 import { cellStyle } from './outline'
+import { useScrollFade } from './scrollFade'
 import { ARRAY_OUT, CELL_OUT, COLS, COLUMNS_OUT, DTYPES, DTYPES_OUT, FLATS, INDEX_OUT, ROW_OUT, SERIES_OUT, SHAPE_OUT, fmtCell } from './data'
 
 /*
@@ -34,6 +35,7 @@ export default function DataFrameAnatomy() {
   const [ref, narrow] = useNarrow<HTMLDivElement>(420)
   const [ref2, tiny] = useNarrow<HTMLDivElement>(330)
   const col = COLS[c]
+  const fade = useScrollFade(ref2)
 
   const inPrimary = (i: number, j: number): boolean => {
     switch (part) {
@@ -75,8 +77,9 @@ export default function DataFrameAnatomy() {
       title: 'Underneath: a NumPy array',
       body: (
         <>
-          Strip away the labels and each column is a plain NumPy array. That is why the NumPy ideas you already know
-          (vectorised maths, boolean masks) work on columns too.
+          Strip away the labels and <code>.to_numpy()</code> gives a plain NumPy array. Numeric columns are stored this way
+          already, which is why the NumPy ideas you know (vectorised maths, boolean masks) work on them; a text column comes
+          out as an array of Python strings with <code>dtype=object</code>.
         </>
       ),
       code: `df['${col}'].to_numpy()`,
@@ -86,8 +89,8 @@ export default function DataFrameAnatomy() {
       title: 'The index: row labels',
       body: (
         <>
-          The bold labels down the left. Every column shares them, so position 3 in <code>town</code> lines up with position 3
-          in <code>price</code>. By default they are 0, 1, 2, …, but they can be dates, IDs or names.
+          The bold labels down the left. Every column shares them, so the row labelled 3 in <code>town</code> lines up with the
+          row labelled 3 in <code>price</code>. By default they are 0, 1, 2, …, but they can be dates, IDs or names.
         </>
       ),
       code: 'df.index',
@@ -183,7 +186,7 @@ export default function DataFrameAnatomy() {
         ))}
       </div>
       <div style={twoUp} ref={ref}>
-        <div className={s.scroll} ref={ref2}>
+        <div className={s.scroll} ref={ref2} style={fade}>
           <table className={`${s.table}${narrow ? ` ${s.compact}` : ''}${tiny ? ` ${s.tiny}` : ''}`} aria-label="The DataFrame df: 8 HDB resale flats">
             <thead>
               <tr>

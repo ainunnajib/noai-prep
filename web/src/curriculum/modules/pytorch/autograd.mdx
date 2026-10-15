@@ -2,7 +2,7 @@ import AutogradTape from './visuals/autograd/AutogradTape'
 import GradAccumulationCounter from './visuals/autograd/GradAccumulationCounter'
 import GraphCutToggle from './visuals/autograd/GraphCutToggle'
 
-In the backpropagation module you pushed gradients backwards through a computational graph by hand: multiply the local derivatives, one node at a time. A real network has millions of weights, and nobody does that by hand. PyTorch's **autograd** does it for you: you write only the forward pass, call `loss.backward()`, and the gradient of the loss with respect to every weight appears in that weight's `.grad`. This lesson shows what autograd records, why its gradients pile up unless you clear them, and how to switch the recording off when you do not need it.
+In the backpropagation module you pushed gradients backwards through a computational graph by hand, one node at a time. PyTorch's **autograd** does it for you: you write only the forward pass, call `loss.backward()`, and the gradient of the loss with respect to every weight appears in that weight's `.grad`. This lesson shows what autograd records, why its gradients pile up unless you clear them, and how to switch the recording off.
 
 <Analogy title="CCTV for a parcel">
 
@@ -77,7 +77,7 @@ Each factor is the local derivative of one recorded node; $e$ and $x$ are the va
 
 <KeyIdea>
 
-`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the optimiser's job (`optimizer.step()`).
+`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the job of the <Term def="The object that updates the weights. For plain gradient descent it does w -= lr * w.grad for every weight. You will build one in the training-loop lesson.">optimiser</Term>, with `optimizer.step()` (PyTorch spells it the American way, `optimizer`, in code).
 
 </KeyIdea>
 
@@ -124,7 +124,9 @@ print(w.grad, b.grad)
 tensor(0.) None
 ```
 
-Accumulation is deliberate. It makes some things easy: a weight used in two places of a network gets the sum of both contributions, and you can add up the gradients of several small batches before taking one step (*gradient accumulation*, in the next lesson). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`.
+Accumulation across `backward()` calls is deliberate: it lets you add up the gradients of several small batches before taking one step (*gradient accumulation*, in the training-loop lesson). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`. (Separately, within one backward pass a weight used in two places already gets the sum of both contributions, by the chain rule.)
+
+<PastPaperQuestion paper="prelim2026" n={115} />
 
 <GradAccumulationCounter />
 
@@ -134,7 +136,7 @@ Without zeroing, step 10 updates the weights with the sum of the gradients from 
 
 </Mistake>
 
-There is one case where a repeated `backward()` *does* raise an error: calling it twice on the **same** loss, without a new forward pass. The first `backward()` frees the values the graph saved, so the second one fails with `RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)…`. Passing `retain_graph=True` to the first call keeps them, but you will rarely need that.
+There is one case where a repeated `backward()` usually *does* raise an error: calling it twice on the **same** loss, without a new forward pass. The first `backward()` frees the values the graph saved (any multiplication or power saves some), so the second one fails with `RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)…`. Passing `retain_graph=True` to the first call keeps them, but you will rarely need that.
 
 <PastPaperQuestion paper="prelim2026" n={110} />
 

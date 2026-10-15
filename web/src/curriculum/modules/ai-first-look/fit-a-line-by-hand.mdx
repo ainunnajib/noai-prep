@@ -3,7 +3,7 @@ import SquaredErrorPreview from './visuals/fit-a-line-by-hand/SquaredErrorPrevie
 import MSECalculator from './visuals/fit-a-line-by-hand/MSECalculator'
 import LossBowl from './visuals/fit-a-line-by-hand/LossBowl'
 
-A property agent can glance at a flat's size and guess its price. In this lesson you will build a model that does the same, using nothing but a straight line, and you will learn the one number that tells you how wrong a model is. These two ideas, **a model with knobs** and **a loss that scores it**, sit under every machine learning system, from this humble line to ChatGPT.
+A property agent can glance at a flat's size and guess its price. In this lesson you will build a model that does the same, using nothing but a straight line, and you will learn the one number that tells you how wrong a model is. These two ideas, **a model with knobs** and **a loss that scores it**, sit under most machine learning systems, from this humble line to ChatGPT.
 
 ## The data: 30 HDB flats
 
@@ -26,7 +26,7 @@ Read it symbol by symbol:
 - $w$ is the **slope**: how many thousand dollars each extra square metre adds. ML calls it a <Term def="A number inside a model that multiplies an input. For a straight line it is the slope.">weight</Term>.
 - $b$ is the **intercept**: the height of the line where $x = 0$. ML calls it a <Term def="A number inside a model that is added on at the end, shifting every prediction up or down. For a straight line it is the intercept.">bias</Term>. It slides the whole line up or down.
 
-This is the $y = mx + c$ from school maths with new names: $w$ plays the part of $m$, and $b$ plays the part of $c$.
+This is the $y = mx + c$ from school maths with new names: $w$ plays the part of $m$, and $b$ plays the part of $c$. Predicting a number with a straight line like this has its own name: <Term def="Regression with a straight-line model, ŷ = wx + b (with more inputs, one weight per input). It predicts a number, such as a price.">linear regression</Term>, one of the first models in every ML course.
 
 <Analogy>
 Making kopi has two knobs: how much sugar and how much milk. You taste, adjust, and taste again until it is just right. Our model also has two knobs, $w$ and $b$. "Training" means turning them until the line fits the data.
@@ -43,7 +43,7 @@ A model is a function with adjustable knobs called **parameters**. For a line, $
 </KeyIdea>
 
 <Mistake>
-Don't read $b$ as "the price of a 0 m² flat". No flat has zero area, and the line is only trustworthy near the data (about 45 to 150 m²). Think of $b$ simply as the knob that moves the line up and down.
+$b$ is the line's prediction for a 0 m² flat, but no flat has zero area, and the line is only trustworthy near the data (about 45 to 150 m²). So don't treat $b$ as a real price. Think of it as the knob that moves the line up and down.
 </Mistake>
 
 <PastPaperQuestion paper="prelim2026" n={138} />
@@ -167,21 +167,21 @@ To keep it to one knob, fix the intercept at $b = 100$ and try different slopes 
 Plot those pairs and they trace a U-shaped curve: the <Term def="A graph of the loss against a parameter. The lowest point marks the best parameter value.">loss curve</Term>.
 
 <Analogy>
-Imagine walking in a valley in thick fog. You can't see the bottom, but you can feel whether the ground under your feet slopes down. Finding the best model is finding the lowest point of this valley.
+Imagine walking in a valley in thick fog. You can't see the bottom, but you can feel whether the ground under your feet slopes down. Finding the best fit is finding the lowest point of this valley.
 </Analogy>
 
 <LossBowl />
 
-The best slope is $w \approx 5$, at the very bottom of the curve, and that is exactly the line that runs through the middle of the cloud. "Best model" and "lowest point of the loss" are the same thing. That idea drives all of machine learning.
+The best slope is $w \approx 5$, at the very bottom of the curve, and that is exactly the line that runs through the middle of the cloud. "Best fit to the training data" and "lowest point of the loss" are the same thing. That idea drives most of machine learning.
 
 Notice that the bottom is **not** zero. The lowest MSE is about 1,650, a typical miss of about $\sqrt{1650} \approx 41$, or S\$41k. No straight line passes through all 30 flats, because price depends on more than size: town, floor level, age of the lease.
 
 <KeyIdea>
-Every choice of parameters gives one value of the loss. The best model is the one at the **lowest point of the loss**, so training a model means searching for the bottom of a valley.
+Every choice of parameters gives one value of the loss. The best fit is the one at the **lowest point of the loss**, so training a model means searching for the bottom of a valley. (This is the lowest loss on the *training* data; in the last lesson of this module you will see why we must also check the model on new data.)
 </KeyIdea>
 
 <QuickCheck
-  q="With $b$ fixed, a student tries five slopes and gets these MSE values: $w = 1$: 90, $w = 2$: 40, $w = 3$: 10, $w = 4$: 30, $w = 5$: 85. Which slope should she keep?"
+  q="With $b$ fixed, a student tries five slopes and gets these MSE values: $w = 1$: 82, $w = 2$: 26, $w = 3$: 10, $w = 4$: 34, $w = 5$: 98. Which slope should she keep?"
   options={['$w = 3$', '$w = 5$', '$w = 1$', '$w = 4$']}
   answer={0}
   explain="Lower loss means a better fit, so pick the lowest MSE: 10 at $w = 3$, the bottom of the U. $w = 5$ has the highest MSE, and $w = 4$ is past the bottom, on the side where the loss is climbing again."
@@ -193,5 +193,5 @@ With two knobs, $w$ and $b$, the loss becomes a bowl-shaped surface instead of a
 - A **model** is a function with **parameters** (knobs). For a line $\hat{y} = wx + b$, the parameters are the slope $w$ and the intercept $b$; the data stays fixed.
 - A **residual** is actual minus predicted, $y - \hat{y}$.
 - **MSE** $= \frac{1}{n}\sum (y_i - \hat{y}_i)^2$: square every miss, then average. Squaring stops misses cancelling and punishes big misses (outliers) heavily. It is the standard loss for regression.
-- Plotting the loss against a parameter gives a valley: the **best model sits at the lowest point of the loss**, which is not usually zero.
+- Plotting the loss against a parameter gives a valley: the **best fit to the training data sits at the lowest point of the loss**, which is not usually zero.
 </Takeaways>

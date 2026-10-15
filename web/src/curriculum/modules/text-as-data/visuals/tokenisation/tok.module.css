@@ -100,7 +100,7 @@
   white-space: pre;
 }
 .chipSub {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--ink-3);
   line-height: 1.1;
 }
@@ -238,11 +238,17 @@
   color: var(--ink-3);
 }
 .cellPad {
-  background: var(--surface-3);
+  /* hatched, so padding stands out from real tokens in both light and dark mode */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-3) 0 4px,
+    color-mix(in srgb, var(--rule) 80%, var(--surface-3)) 4px 6px
+  );
   color: var(--ink-3);
 }
 .cellSpecial {
   background: color-mix(in srgb, var(--viz-5) 24%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-5) 65%, var(--surface));
 }
 .cellCut {
   background: transparent;
@@ -267,6 +273,13 @@
 }
 .cellMissing {
   border: 2px solid var(--viz-neg);
+}
+.scrollHint {
+  margin: -0.3rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: right;
 }
 .legend {
   display: flex;

@@ -14,16 +14,16 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.missing-data-and-outliers.2',
     prompt:
-      'A column of house prices is strongly right-skewed (a few mansions cost ten times the typical price), and 20% of its values are missing. The blanks come mostly from one agency that rarely lists cheap flats. Which treatment is most appropriate before training a linear regression?',
+      'A bank predicts loan default with logistic regression. One feature, household income, is strongly right-skewed (a few customers earn ten times the typical income), and 20% of its values are missing. The blanks come mostly from one branch whose customers are usually high earners. Which treatment of this feature is most appropriate?',
     options: [
       'Fill the blanks with the median and add an `is_missing` indicator column',
       'Fill the blanks with the mean, because that keeps the column’s average unchanged',
-      'Fill the blanks with 0, because zero adds no information to a linear model',
-      'Forward-fill each blank from the previous row of the table',
+      'Fill the blanks with 0, because zero adds no information to a logistic model',
+      'Forward-fill each blank from the previous customer in the table',
     ],
     answer: 0,
     explanation:
-      'The median is not dragged up by the mansions, and the indicator lets the model learn that “missing” is linked to the agency and hence to price. The mean does keep the average, but here that average is inflated by a few extreme values. Zero is a real (and absurd) price, and the previous row is an unrelated house, not a neighbour in time.',
+      'The median is not dragged up by the few very high earners, and because the blanks are not random, the indicator lets the model learn that “missing” usually means a high earner from that branch. The mean does keep the observed average, but that average is inflated by a few extreme incomes. Zero is a real (and absurd) income, and the previous row is an unrelated customer, not a neighbour in time.',
     difficulty: 'intermediate',
   },
   {

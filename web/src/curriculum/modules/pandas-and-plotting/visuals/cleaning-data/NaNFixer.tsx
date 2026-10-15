@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Figure, useNarrow } from '../../../../../kit'
 import s from './clean.module.css'
+import { useScrollFade } from '../dataframes-and-selection/scrollFade'
 import { W_COLS, W_DATA, W_DAYS, fmtFloatColumn, type WCol } from './data'
 
 /*
@@ -10,12 +11,13 @@ import { W_COLS, W_DATA, W_DAYS, fmtFloatColumn, type WCol } from './data'
   or invented data (fillna, ffill, interpolate). Every number matches pandas 2.2 exactly.
 */
 
-type Method = 'dropna' | 'dropna1' | 'fill0' | 'fillmed' | 'ffill' | 'interp'
+type Method = 'dropna' | 'dropcol' | 'dropna1' | 'fill0' | 'fillmed' | 'ffill' | 'interp'
 type Col = (number | null)[]
 type Frame = Record<WCol, Col>
 
 const METHODS: { id: Method; code: string }[] = [
   { id: 'dropna', code: 'df.dropna()' },
+  { id: 'dropcol', code: "df.drop(columns=['uv'])" },
   { id: 'dropna1', code: 'df.dropna(axis=1)' },
   { id: 'fill0', code: 'df.fillna(0)' },
   { id: 'fillmed', code: 'df.fillna(df.median())' },
@@ -64,6 +66,7 @@ function apply(m: Method): Result {
   for (const c of W_COLS) frame[c] = [...W_DATA[c]]
   if (m === 'dropna') W_DAYS.forEach((_, i) => (keepRows[i] = W_COLS.every((c) => W_DATA[c][i] !== null)))
   if (m === 'dropna1') for (const c of W_COLS) keepCols[c] = W_DATA[c].every((x) => x !== null)
+  if (m === 'dropcol') keepCols.uv = false
   for (const c of W_COLS) {
     if (m === 'fill0') frame[c] = W_DATA[c].map((x) => (x === null ? 0 : x))
     if (m === 'fillmed') {
@@ -79,6 +82,8 @@ function apply(m: Method): Result {
 const fmt2 = (v: number | null) => (v === null ? '—' : v.toFixed(2))
 
 function WTable({ title, frame, keepRows, keepCols, before }: { title: string; frame: Frame; keepRows: boolean[]; keepCols: Record<WCol, boolean>; before?: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const fade = useScrollFade(scrollRef, title)
   // format each column like pandas would print the surviving values
   const shown = {} as Record<WCol, string[]>
   for (const c of W_COLS) {
@@ -90,7 +95,7 @@ function WTable({ title, frame, keepRows, keepCols, before }: { title: string; f
   return (
     <div style={{ minWidth: 0 }}>
       <div className={s.tableTitle}>{title}</div>
-      <div className={s.scroll}>
+      <div className={s.scroll} ref={scrollRef} style={fade}>
         <table className={`${s.table} ${s.compact}`} aria-label={title}>
           <thead>
             <tr>
@@ -136,6 +141,8 @@ export default function NaNFixer() {
   const invented = W_COLS.reduce((n, c) => n + W_DATA[c].filter((x, i) => x === null && r.frame[c][i] !== null && r.keepRows[i] && r.keepCols[c]).length, 0)
   const stillNaN = W_COLS.reduce((n, c) => n + (r.keepCols[c] ? r.frame[c].filter((x, i) => x === null && r.keepRows[i]).length : 0), 0)
   const meanAfter = (c: WCol) => (r.keepCols[c] && rowsKept ? nanMean(r.frame[c].filter((_, i) => r.keepRows[i])) : null)
+  // after dropping uv, how many rows would a following dropna() keep?
+  const completeNoUv = W_DAYS.filter((_, i) => W_COLS.filter((c) => c !== 'uv').every((c) => W_DATA[c][i] !== null)).length
   const tBefore = nanMean(W_DATA.temp) as number
   const tAfter = meanAfter('temp')
 
@@ -144,6 +151,12 @@ export default function NaNFixer() {
       <>
         Complete-case analysis: nothing is invented, but every row with <em>any</em> gap is thrown away. The patchy UV sensor
         alone takes out most of the week, leaving {rowsKept} of 7 rows.
+      </>
+    ),
+    dropcol: (
+      <>
+        Only the patchy <code>uv</code> column goes (4 of its 7 readings are missing); every day survives. The gaps in <code>temp</code> and{' '}
+        <code>humid</code> remain, but now a <code>dropna()</code> afterwards would keep {completeNoUv} rows instead of 1.
       </>
     ),
     dropna1: (
@@ -173,7 +186,8 @@ export default function NaNFixer() {
     interp: (
       <>
         Each gap sits on a straight line between its neighbours: Fri and Sat become 31.5 and 31.0, between Thu's 32.0 and
-        Sun's 30.5. Usually the best guess for smooth time series; a gap at the very start still stays NaN.
+        Sun's 30.5. A gap at the end has no right-hand neighbour, so pandas just repeats the last value (<code>uv</code> on Sat and Sun = 11.0), and a gap
+        at the very start (Mon's <code>uv</code>) stays NaN. Usually the best guess for smooth time series.
       </>
     ),
   }
@@ -226,13 +240,13 @@ export default function NaNFixer() {
               const b = nanMean(W_DATA[c]) as number
               const a = meanAfter(c)
               const d = a === null ? null : a - b
-              const big = d !== null && Math.abs(d) > 0.05 * Math.abs(b) + 0.05
+              const big = d !== null && Math.abs(d) > 0.05 * Math.abs(b)
               return (
                 <tr key={c}>
                   <td>{c}</td>
                   <td>{b.toFixed(2)}</td>
                   <td>{a === null ? 'dropped' : a.toFixed(2)}</td>
-                  <td className={big ? s.bad : undefined} style={{ fontWeight: big ? 800 : 400 }}>
+                  <td style={{ fontWeight: big ? 800 : 400, color: big ? 'var(--ink)' : 'var(--ink-2)' }}>
                     {d === null ? '—' : `${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(2)}`}
                   </td>
                 </tr>
@@ -240,6 +254,9 @@ export default function NaNFixer() {
             })}
           </tbody>
         </table>
+        <div className={s.hint} style={{ marginTop: '-0.3rem' }}>
+          bold: the mean moved by more than 5%
+        </div>
         <div className={s.note}>{story[m]}</div>
       </div>
     </Figure>

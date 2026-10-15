@@ -266,7 +266,7 @@ export default function GraphChainStepper() {
                 <text x={cx} y={cy - 6} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: narrow ? 12 : 12.5, fontWeight: 700 }}>
                   {label[id]}
                 </text>
-                <text x={cx} y={cy + 13} textAnchor="middle" className="tabular" style={{ fill: v == null ? 'var(--viz-muted)' : 'var(--viz-ink)', fontSize: 14, fontWeight: 800 }}>
+                <text x={cx} y={cy + 13} textAnchor="middle" className="tabular" style={{ fill: v == null ? 'var(--ink-3)' : 'var(--viz-ink)', fontSize: 14, fontWeight: 800 }}>
                   {v ?? '?'}
                 </text>
                 {g && g.on && (
@@ -288,6 +288,13 @@ export default function GraphChainStepper() {
             )
           })}
         </svg>
+        {narrow && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.2rem 1.4rem', fontSize: '0.9rem', color: 'var(--ink-2)', marginTop: '0.2rem' }}>
+            <M>{'z = wx + b'}</M>
+            <M>{'a = \\sigma(z)'}</M>
+            <M>{'L = (a - y)^2'}</M>
+          </div>
+        )}
       </div>
       <div style={{ width: '100%', minHeight: '4.6em' }}>
         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink-2)', marginBottom: '0.2rem' }}>

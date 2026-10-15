@@ -62,8 +62,8 @@ const POINTS: { id: string; label: string; hint: string; test: (t: string) => bo
   },
   {
     id: 'size',
-    label: 'The output is smaller than the input',
-    hint: 'Mention that the output (110 × 110 for a 256 × 256 input) is smaller than the input, so large images need overlapping tiles.',
+    label: 'The output covers less of the image',
+    hint: 'Mention that the output shrinks (110 × 110 here, against 128 × 128 with same padding), so border pixels get no prediction and large images need overlapping tiles.',
     test: (t) => /(smaller|shrink|110|tile|output size|fewer pixels|not the same size)/.test(t),
   },
   {
@@ -131,8 +131,10 @@ export default function SkipAlignOptions() {
             good: false,
             text: (
               <>
-                The output ({valid.out} × {valid.out}) is smaller than the input, so the border pixels get no prediction; a large image must be processed as
-                overlapping tiles, which costs extra compute.
+                The valid convolutions shrink every map, so the output is {valid.out} × {valid.out}
+                {same.out != null && same.x2 === same.d1 ? <> instead of the {same.out} × {same.out} that same padding gives</> : null} (this cut-down network
+                outputs at half resolution either way). The border pixels get no prediction, so a large image must be processed as overlapping tiles, which costs
+                extra compute.
               </>
             ),
           },
@@ -328,11 +330,12 @@ export default function SkipAlignOptions() {
           )}
           {showModel && (
             <div className={u.model}>
-              <b>Model answer.</b> Cropping throws away the outer ring of every skip feature map, so detail near the image border never reaches the decoder, and the
-              output (110 × 110 for a 256 × 256 input) is smaller than the input, so large images have to be processed as overlapping tiles. Using padding=1
-              ("same" convolutions) instead keeps every map the same size, so the skip and decoder maps line up without cropping, at the cost of a little more compute
-              and less reliable predictions at the zero-padded border. Interpolating or padding the decoder map also makes the shapes match, but it invents or
-              stretches values instead of keeping only real ones.
+              <b>Model answer.</b> Valid convolutions plus cropping throw away the outer ring of every skip feature map, so detail near the image border never
+              reaches the decoder, and the output shrinks to 110 × 110 instead of the 128 × 128 that same padding gives (this cut-down network outputs at half
+              resolution either way), so border pixels get no prediction and large images have to be processed as overlapping tiles. Using padding=1 ("same"
+              convolutions) instead stops each 3 × 3 convolution shrinking its map, so the skip and decoder maps line up without cropping, at the cost of a little
+              more compute and less reliable predictions at the zero-padded border. Interpolating or padding the decoder map also makes the shapes match, but it
+              invents or stretches values instead of keeping only real ones.
               <div style={{ marginTop: '0.45rem', color: 'var(--ink-2)' }}>
                 Bonus point: the question says the original U-Net used padding=1, but the 2015 paper actually used unpadded convolutions and cropping (a 572 × 572
                 input gave a 388 × 388 output); padding=1 is the common modern variant.

@@ -5,7 +5,9 @@ import s from './agents.module.css'
 /*
   Eight logged RAG answers. The learner classifies each one into a 2x2 grid:
   retrieval right/wrong (did the retrieved context contain what was needed?) x answer right/wrong
-  (correct AND supported by the context). Each quadrant suggests what to fix.
+  (it matches the reference answer and adds no claims found in neither the reference nor the context).
+  Grounding is judged by the columns: case 4 is a right answer that the context does not support.
+  Each quadrant suggests what to fix.
   Ground truth: R+A+ {1,5}, R+A- {2,6,8}, R-A+ {4}, R-A- {3,7} -> retrieval hit rate 5/8,
   answer accuracy 3/8, accuracy when retrieval was right 2/5.
 */
@@ -60,7 +62,7 @@ const CASES: Case[] = [
     ref: 'Central processing unit',
     retrieval: false,
     correct: true,
-    why: 'The context is irrelevant, yet the answer is right: the model knew it from training. Fine this time, but nothing in the system guarantees it.',
+    why: 'The answer matches the reference, but nothing in the context supports it: the model answered from memory. Right this time, but not grounded, and nothing in the system guarantees it.',
   },
   {
     id: 5,
@@ -90,7 +92,7 @@ const CASES: Case[] = [
     ref: '5 March 2027',
     retrieval: false,
     correct: false,
-    why: 'The retriever fetched the Prelim chunk instead of the Final one, and the model answered from it. The generator was misled, so fix retrieval.',
+    why: 'The retriever fetched the Prelim chunk instead of the Final one, and the model answered from it. Fix retrieval first; a stricter prompt (“if the context does not answer the question, say you don’t know”) would also have stopped the wrong date.',
   },
   {
     id: 8,
@@ -100,7 +102,7 @@ const CASES: Case[] = [
     ref: 'Yes.',
     retrieval: true,
     correct: false,
-    why: 'Retrieval was right, but the opening hours appear nowhere in the context. An answer with unsupported details is unfaithful, so it counts as wrong.',
+    why: 'Retrieval was right, but the answer adds opening hours that are in neither the context nor the reference. Invented details count as wrong.',
   },
 ]
 
@@ -142,7 +144,7 @@ export default function RAGEvalMatrix() {
             : 'Look again at the context: could anyone answer the question from it alone?'
           : c.correct
             ? 'Compare the answer with the reference answer: does it match?'
-            : 'Compare the answer with the reference, and check every detail is in the context.'
+            : 'Compare the answer with the reference: does it get the fact wrong, or add details that appear in neither the reference nor the context?'
       setFeedback({ ok: false, text: `Not quite. ${hint}` })
     }
   }
@@ -198,13 +200,15 @@ export default function RAGEvalMatrix() {
       title="Retriever or generator? Sort the failures"
       caption={
         <>
-          Each case is a logged question with the context the retriever found, the model’s answer and the reference answer. Decide whether retrieval was right
-          (did the context contain what was needed?) and whether the answer was right (correct <b>and</b> supported by the context), then click that square.
-          Notice that the overall accuracy (3 of 8) hides two different problems that need two different fixes.
+          <b>Retrieval right</b>: the context holds what the reference answer needs. <b>Answer right</b>: it matches the reference and adds no claims that are in neither the
+          reference nor the context. Whether it was grounded is what the columns show. Notice that one overall accuracy hides two problems with two different fixes.
         </>
       }
     >
       <div className={s.stack}>
+        <p className={s.tryLine}>
+          <b>Try:</b> read each logged case (question, retrieved context, answer, reference), then click the square it belongs in.
+        </p>
         <div className={s.cases} aria-label="Cases">
           {CASES.map((x) => (
             <button key={x.id} type="button" className={`${s.caseBtn} ${sel === x.id ? s.caseOn : ''} ${placed[x.id] ? s.caseDone : ''}`} onClick={() => choose(x.id)} aria-pressed={sel === x.id}>
@@ -242,6 +246,9 @@ export default function RAGEvalMatrix() {
             </div>
           )}
           {!feedback && placed[c.id] && <div className={`${s.feedback} ${s.fbOk}`}>{c.why}</div>}
+        </div>
+        <div className={s.quadHint} aria-hidden="true">
+          {placed[c.id] ? `Case ${c.id} is sorted.${nextId !== undefined ? ' Pick another case above.' : ''}` : `Where does case ${c.id} go? Click a square.`}
         </div>
         <div className={s.matrix} role="group" aria-label="Retrieval right or wrong, by answer right or wrong">
           <span />

@@ -22,17 +22,17 @@ interface Scenario {
 const SCEN: Record<OpKey, Scenario> = {
   softmax: {
     names: ['batch', 'query', 'key'],
-    story: 'x holds attention scores: 2 sentences, 3 queries, 4 keys. Each query needs weights over the keys that sum to 1.',
+    story: 'x holds scores for 2 sentences: in each, 3 words (queries) give a score to each of 4 words (keys). Each query needs 4 weights that sum to 1. This is the attention of module 27.',
     right: 2,
     verdict: [
       'Runs, but normalises across the 2 sentences in the batch: each pair of numbers sums to 1, mixing unrelated sentences.',
-      'Runs, but normalises down each column (across queries), so the keys compete for queries instead of the other way round.',
+      "Runs, but normalises down each column (across queries): for each key the queries compete, instead of each query's keys competing for its attention.",
       "Right: each query's 4 weights over the keys sum to 1. This is softmax(scores, dim=-1) in attention.",
     ],
   },
   mean: {
     names: ['batch', 'token', 'feature'],
-    story: 'x holds token embeddings: 2 sentences, 3 tokens each, 4 numbers per token. We want one vector per sentence.',
+    story: 'x holds 2 sentences of 3 words (tokens), each word stored as 4 numbers. We want one 4-number vector per sentence.',
     right: 1,
     verdict: [
       'Runs, but averages the same token position across 2 different sentences.',
@@ -42,7 +42,7 @@ const SCEN: Record<OpKey, Scenario> = {
   },
   argmax: {
     names: ['image', 'class', 'pixel'],
-    story: 'x holds segmentation scores: 2 images, 3 classes, 4 pixels. We want the predicted class of every pixel.',
+    story: 'x holds class scores for 2 images, 3 classes and 4 pixels: every pixel gets its own score for each class. We want the predicted class of every pixel.',
     right: 1,
     verdict: [
       'Runs, but asks which image scores higher, which is not a class at all.',
@@ -52,11 +52,11 @@ const SCEN: Record<OpKey, Scenario> = {
   },
   cat: {
     names: ['image', 'channel', 'position'],
-    story: 'x holds feature maps (2 images, 3 channels, 4 positions); skip is a matching map from earlier in a U-Net. Join them.',
+    story: 'x holds 2 images with 3 channels (layers of numbers, like R, G and B) of 4 positions each; skip holds 3 matching channels saved from an earlier layer. Join them so each image has 6 channels.',
     right: 1,
     verdict: [
       'Runs, but stacks the skip maps as if they were 2 more images: the batch becomes 4.',
-      'Right: joins along channels, 3 + 3 = 6 channels per image. This is a U-Net skip connection.',
+      'Right: joins along channels, 3 + 3 = 6 channels per image. This is how a U-Net (module 25) joins a skip connection.',
       'Runs, but glues the maps end to end, so positions 4 to 7 are not real positions.',
     ],
   },
@@ -157,6 +157,7 @@ export default function DimPicker() {
   const [keepdim, setKeepdim] = useState(false)
   const [focus, setFocus] = useState(0)
   const [wrapRef, wrap] = useContainerWidth<HTMLDivElement>(520)
+  const narrow = wrap < 420
   const sc = SCEN[op]
   const res = compute(op, dim, keepdim)
   const f = Math.min(focus, res.values.length - 1)
@@ -164,13 +165,18 @@ export default function DimPicker() {
   const ok = dim === sc.right
 
   const avail = Math.max(260, Math.min(560, wrap))
-  const lx = layoutTensor(SHAPE, op === 'cat' ? Math.min(avail, 460) : avail, { maxCell: 32, minCell: 22, sheetLabel: (_, j) => `${sc.names[0]} ${j}` })
-  const ly = layoutTensor(SHAPE, Math.min(avail, 460), { maxCell: 32, minCell: 22, sheetLabel: (_, j) => `${sc.names[0]} ${j}` })
-  const lr = layoutTensor(res.shape, avail, {
-    maxCell: 38,
-    minCell: 22,
-    sheetLabel: (_, j) => (res.shape.length === 3 ? `[${j}]` : ''),
-  })
+  // with cat, x and skip share the row: each gets half the room (flex-wrap stacks them if they still do not fit)
+  const inAvail = op === 'cat' ? Math.floor((avail - 12) / 2) : avail
+  const inOpts = { maxCell: 32, minCell: op === 'cat' ? 16 : 22, sheetLabel: (_: number, j: number) => `${sc.names[0]} ${j}` }
+  const lx = tight(layoutTensor(SHAPE, inAvail, inOpts))
+  const ly = tight(layoutTensor(SHAPE, inAvail, inOpts))
+  const lr = tight(
+    layoutTensor(res.shape, avail, {
+      maxCell: 38,
+      minCell: 22,
+      sheetLabel: (_, j) => (res.shape.length === 3 ? `[${j}]` : ''),
+    }),
+  )
 
   const call =
     op === 'cat'
@@ -209,19 +215,21 @@ export default function DimPicker() {
           onChange={changeOp}
           options={(['softmax', 'mean', 'argmax', 'cat'] as OpKey[]).map((o) => ({ value: o, label: <span className={css.mono}>{o}</span> }))}
         />
-        <Segmented
-          label="dim"
-          value={dim}
-          onChange={changeDim}
-          options={[0, 1, 2].map((d) => ({
-            value: d,
-            label: (
-              <span className={css.mono}>
-                {d === 2 ? '2 (= -1)' : d}: {sc.names[d]}
-              </span>
-            ),
-          }))}
-        />
+        <div className={css.segGrid}>
+          <Segmented
+            label="dim"
+            value={dim}
+            onChange={changeDim}
+            options={[0, 1, 2].map((d) => ({
+              value: d,
+              label: (
+                <span className={css.mono}>
+                  {d === 2 ? (narrow ? '2/-1' : '2 (= -1)') : d}: {sc.names[d]}
+                </span>
+              ),
+            }))}
+          />
+        </div>
         {(op === 'mean' || op === 'argmax') && <Toggle label="keepdim=True" checked={keepdim} onChange={setKeepdim} />}
       </Controls>
       <div className={css.note}>{sc.story}</div>
@@ -230,7 +238,7 @@ export default function DimPicker() {
         ref={wrapRef}
         style={{ width: '100%', display: 'grid', gap: 10, justifyItems: 'center' }}
       >
-        <div className={css.chips}>
+        <div className={css.chips} style={{ flexWrap: 'nowrap' }}>
           <span className={css.mono} style={{ fontWeight: 700, color: 'var(--ink-2)', marginRight: 2, fontSize: '0.85rem' }}>
             x.shape =
           </span>
@@ -239,9 +247,9 @@ export default function DimPicker() {
             <span key={i} className={css.chip} style={{ color: i === dim ? 'var(--accent)' : 'var(--viz-muted)' }}>
               <span className={css.chipNum}>{s}</span>
               <span className={css.chipName}>{sc.names[i]}</span>
-              <span className={css.chipName} style={{ opacity: 0.8 }}>
+              <span className={css.chipName} style={{ opacity: 0.8, whiteSpace: 'nowrap' }}>
                 dim {i}
-                {i === 2 ? ' / -1' : ''}
+                {i === 2 && !narrow ? ' / -1' : ''}
               </span>
             </span>
           ))}
@@ -282,6 +290,20 @@ export default function DimPicker() {
       </div>
     </Figure>
   )
+}
+
+/** Shift a layout so its cells start at x = 0, and measure its real width (layoutTensor centres content inside `avail`). */
+function tight(lay: TensorLayout): TensorLayout {
+  const xs = [...lay.cells.map((b) => b.x), ...lay.sheetLabels.map((l) => l.x), ...lay.frames.map((f) => f.x)]
+  const x0 = xs.length ? Math.min(...xs) : 0
+  const right = Math.max(...lay.cells.map((b) => b.x + b.w), ...lay.frames.map((f) => f.x + f.w), 10)
+  return {
+    ...lay,
+    width: right - x0,
+    cells: lay.cells.map((b) => ({ ...b, x: b.x - x0 })),
+    sheetLabels: lay.sheetLabels.map((l) => ({ ...l, x: l.x - x0 })),
+    frames: lay.frames.map((f) => ({ ...f, x: f.x - x0 })),
+  }
 }
 
 function Grid({

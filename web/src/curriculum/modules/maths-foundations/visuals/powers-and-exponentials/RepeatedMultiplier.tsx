@@ -4,7 +4,7 @@ import { Figure, Controls, Readout, Slider, Segmented, Toggle, Button, Plot, Gri
 /*
   Multiply by the same factor again and again. Bars show factor^n for n = 1..30 on a log axis
   (where repeated multiplication becomes a straight staircase) or a linear one (where growth
-  explodes and decay vanishes). Play grows n one step at a time. The table compares the five
+  explodes and decay vanishes). Play grows n one step at a time. The table compares the six
   classic factors 0.25, 0.5, 0.9, 1, 1.1 and 2 after the same number of steps.
 */
 
@@ -21,6 +21,13 @@ function sci(v: number): string {
   }
   if (a >= 1000) return Math.round(v).toLocaleString('en-GB') // e.g. 2^13 = 8,192 exactly
   return String(Number(v.toPrecision(3)))
+}
+
+/** y-axis labels on the linear axis: 80,000 written out, 2e5 and up in the lesson's e-notation */
+function linTick(v: number) {
+  if (Math.abs(v) < 1e5) return v.toLocaleString('en-GB', { maximumFractionDigits: 2 })
+  const [m, e] = v.toExponential().split('e')
+  return `${Number(Number(m).toPrecision(3))}e${Number(e)}`
 }
 
 /** y-axis labels on the log axis: the value 10^t written plainly when short */
@@ -76,7 +83,7 @@ export default function RepeatedMultiplier() {
       title="Multiply by the same factor again and again"
       caption={
         <>
-          Pick a factor and press <b>Play</b> to multiply by it once per step. Above 1 the bars climb, below 1 they sink, and exactly 1 stays put. On the log axis each
+          Pick a factor and press <b>Replay</b> to multiply by it once per step. Above 1 the bars climb, below 1 they sink, and exactly 1 stays put. On the log axis each
           step moves the same distance, so the bars form a straight staircase; switch the log axis off to see the same numbers explode or vanish. Try{' '}
           <b>0.9</b> and <b>1.1</b>: factors that look harmless become <M>{'0.9^{30} \\approx 0.04'}</M> and <M>{'1.1^{30} \\approx 17'}</M>.
         </>
@@ -94,7 +101,7 @@ export default function RepeatedMultiplier() {
       >
         <Grid xTicks={6} yTicks={6} />
         {/* two Axes so the log-style labels apply to the y-axis only */}
-        <Axes hideXTicks yTicks={6} tickFormat={logAxis ? logTick : undefined} />
+        <Axes hideXTicks yTicks={6} tickFormat={logAxis ? logTick : linTick} yLabel={logAxis ? 'rⁿ (log scale)' : 'rⁿ'} />
         <Axes xLabel="n (number of multiplications)" xTicks={6} hideYTicks />
         <HLine y={logAxis ? 0 : 1} color="var(--viz-ink)" dash="5 4" width={1.2} />
         {(logAxis || r <= 1) && (
@@ -138,7 +145,7 @@ export default function RepeatedMultiplier() {
         />
       </Controls>
 
-      <div style={{ width: '100%', display: 'grid', gap: 4 }} role="table" aria-label={`Five factors after ${n} steps`}>
+      <div style={{ width: '100%', display: 'grid', gap: 4 }} role="table" aria-label={`${PRESETS.length} factors after ${n} steps`}>
         <div role="row" style={{ display: 'grid', gridTemplateColumns: '3.2rem minmax(0, 1fr) 5.4rem', gap: 8, fontSize: '0.78rem', fontWeight: 700, color: 'var(--ink-3)' }}>
           <span role="columnheader">factor</span>
           <span role="columnheader" style={{ textAlign: 'center' }}>

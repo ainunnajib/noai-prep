@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Label, NeuralNet, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, NeuralNet, M } from '../../../../../kit'
 
 /*
   A 1-input network with one hidden layer of three neurons:
@@ -53,7 +53,7 @@ export default function LinearCollapse() {
   const formula = `y = ${tfmt(v[0])}\\,${term(0)} ${tsigned(v[1])}\\,${term(1)} ${tsigned(v[2])}\\,${term(2)}`
 
   let status: string
-  if (act === 'none') status = 'Always a straight line, whatever the weights.'
+  if (act === 'none') status = slope === 0 && icpt === 0 ? 'Flat at 0 for these weights: the output line lies on the x-axis.' : 'Always a straight line, whatever the weights.'
   else if (mse < 0.002) status = 'Exact match with the target tent.'
   else if (mse < 0.02) status = 'Close to the target.'
   else status = 'Bent, but not the target yet.'
@@ -63,11 +63,9 @@ export default function LinearCollapse() {
       title="Stack layers without an activation and they collapse"
       caption={
         <>
-          One input <i>x</i>, three hidden neurons and one output. Each hidden neuron computes <M>{'h_i = f(x + c_i)'}</M> with <M>{'c = (1, 0, -1)'}</M>, and the
-          output adds them up with the weights <M>{'v_1, v_2, v_3'}</M> (thin coloured curves: each neuron's share <M>{'v_ih_i'}</M>; thick blue: the output). With{' '}
-          <b>no activation</b> every share is a straight line, so their sum is a straight line too: move the sliders and it only tilts and shifts. The readout
-          shows the single layer it collapses to. Now switch to <b>ReLU</b> without touching the weights: the same three neurons now bend at −1, 0 and 1
-          and build the dashed target tent exactly. Then try <b>tanh</b>: smooth bends instead of sharp kinks.
+          Hidden neuron <i>i</i> computes <M>{'h_i = f(x + c_i)'}</M> with <M>{'c = (1, 0, -1)'}</M>, and the output adds them up with weights <M>{'v_i'}</M>. With{' '}
+          <b>no activation</b>, move the sliders: the output only tilts and shifts. Then switch to <b>ReLU</b> without touching the weights and the same neurons build the
+          target tent exactly.
         </>
       }
     >
@@ -89,10 +87,21 @@ export default function LinearCollapse() {
           <FnPath key={i} f={(x) => vi * f(x + C[i])} color={COLS[i]} width={1.75} dash="2 4" opacity={0.95} />
         ))}
         <FnPath f={y} color="var(--viz-1)" width={3.25} />
-        <Label x={2.95} y={-2.3} anchor="end" color="var(--ink-3)" size={12}>
-          dashed grey: target tent
-        </Label>
       </Plot>
+      <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.2rem 1.1rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
+        <span>
+          <span style={{ display: 'inline-block', width: 22, verticalAlign: 'middle', borderTop: '3.25px solid var(--viz-1)', marginRight: 6 }} />
+          output <i>y</i>
+        </span>
+        <span>
+          <span style={{ display: 'inline-block', width: 22, verticalAlign: 'middle', borderTop: '2.5px dashed var(--viz-muted)', marginRight: 6 }} />
+          target tent
+        </span>
+        <span>
+          <span style={{ display: 'inline-block', width: 22, verticalAlign: 'middle', borderTop: '2px dotted var(--viz-3)', marginRight: 6 }} />
+          each neuron&rsquo;s share <M>{'v_ih_i'}</M>
+        </span>
+      </div>
       <div style={{ width: '100%', maxWidth: 360 }}>
         <NeuralNet
           layers={[1, 3, 1]}

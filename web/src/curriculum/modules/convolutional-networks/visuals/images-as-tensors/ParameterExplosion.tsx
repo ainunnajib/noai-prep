@@ -83,9 +83,8 @@ export default function ParameterExplosion() {
       title="How many weights does the first layer need?"
       caption={
         <>
-          Slide the image size and the number of neurons. The dense layer needs one weight for <b>every pair</b> (input number, neuron), so its count is the
-          product of the two and explodes. The convolutional layer reuses 64 small 3 × 3 filters at every position, so its count does not depend on the image
-          size at all. The bars use a log scale: each gridline is 1,000 times the one before.
+          <b>Try:</b> slide the image size and the neuron count. <b>Notice:</b> the dense layer needs inputs × neurons weights, which explodes; the conv
+          layer's 64 small 3 × 3 filters cost the same at any size. (Log scale: each gridline is 1,000×.)
         </>
       }
     >

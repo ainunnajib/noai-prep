@@ -142,12 +142,13 @@ export default function L1L2Constraint() {
           <Path points={[c, w]} color="var(--viz-muted)" width={1.5} dash="4 4" />
           {!inside && <Dots points={[{ x: w[0], y: w[1], r: 7, color: 'var(--viz-4)' }]} />}
           {!inside && (
+            // label towards the origin horizontally, and on the far side from ŵ vertically: clear of the touching oval
             <Label
               x={w[0]}
               y={w[1]}
-              dx={w[0] > 1.6 ? -10 : 10}
-              dy={w[1] > 2.6 ? 20 : -12}
-              anchor={w[0] > 1.6 ? 'end' : 'start'}
+              dx={w[0] >= 0 ? -10 : 10}
+              dy={c[1] >= w[1] ? 20 : -12}
+              anchor={w[0] >= 0 ? 'end' : 'start'}
               color="var(--viz-4)"
               weight={700}
             >

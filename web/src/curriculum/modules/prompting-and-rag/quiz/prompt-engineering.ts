@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'prompting-and-rag.prompt-engineering.1',
     prompt: 'A student sends this prompt to an LLM. What kind of prompt is it?',
     code: 'Translate English to Malay.\nGood morning -> Selamat pagi\nThank you ->',
-    codeLang: 'text',
+    codeLang: 'prompt',
     options: ['One-shot', 'Zero-shot', 'Few-shot', 'Fine-tuning'],
     answer: 0,
     explanation:
@@ -16,10 +16,10 @@ const questions: QuizQuestion[] = [
     id: 'prompting-and-rag.prompt-engineering.2',
     prompt: 'Which statement correctly compares few-shot prompting with fine-tuning?',
     options: [
-      'Few-shot prompting puts examples in the input and leaves the weights unchanged; fine-tuning updates the weights by further training.',
+      'Few-shot puts examples in the input and leaves the weights alone; fine-tuning updates the weights by training.',
       'Few-shot prompting nudges the weights a little for each example; fine-tuning nudges them a lot using many examples.',
       'Few-shot prompting needs thousands of labelled examples; fine-tuning needs only two or three examples placed in the prompt.',
-      'Both change the weights permanently, but few-shot prompting is faster because it uses a much smaller learning rate.',
+      'Both change the weights for good, but few-shot is faster because it uses a smaller learning rate.',
     ],
     answer: 0,
     explanation:
@@ -30,14 +30,14 @@ const questions: QuizQuestion[] = [
     id: 'prompting-and-rag.prompt-engineering.3',
     prompt: 'Why does adding "Let\'s think step by step" often make an LLM more accurate on multi-step maths word problems?',
     options: [
-      'The written steps put intermediate results into the context, so later tokens can build on them instead of doing everything in one step.',
+      'The written steps store intermediate results in the context, so later tokens can build on them one step at a time.',
       'The phrase starts a short fine-tuning run on maths problems, so the weights are better suited to the question before it answers.',
       'The phrase raises the sampling temperature, so the model tries out more possible answers before choosing the final one.',
       'The phrase enlarges the context window, so the model can see more of the question at once while it is answering.',
     ],
     answer: 0,
     explanation:
-      'This is chain-of-thought prompting. Each token gets one fixed-size pass through the network, so answering immediately squeezes every step into one pass; writing the working gives the model scratch paper it can read back. The phrase changes neither the weights, the temperature nor the context window size.',
+      'This is chain-of-thought prompting. Each token gets one pass through a fixed number of layers, so answering immediately squeezes every step into the computation for a single token; writing the working gives the model scratch paper it can read back. The phrase changes neither the weights, the temperature nor the context window size.',
     difficulty: 'intermediate',
   },
   {
@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A Python script must read an LLM\'s grade for each essay, but the replies vary: "Grade: B", "I\'d give this a B+ because…", "B". Which change to the prompt fixes this best?',
     options: [
-      'Specify the exact output, e.g. JSON with one key "grade", and show one example reply',
+      'Ask for JSON with a single key "grade", and show one example reply',
       'Add the role "You are a strict and very experienced English teacher"',
       'Raise the sampling temperature so that the model sounds more decisive',
       'Add "Let\'s think step by step" so the model explains every grade',

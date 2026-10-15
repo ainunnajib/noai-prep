@@ -206,10 +206,9 @@ export default function PerceptronLearn() {
       title="The perceptron learning rule, one example at a time"
       caption={
         <>
-          Press <b>Play</b> or step with <b>Next</b>. Each step checks one point (black ring). A correct prediction changes nothing; a mistake nudges the line
-          towards fixing that point: the pink weight arrow turns towards the direction of a missed orange point, or away from a wrongly accepted blue one. Watch the
-          mistakes per pass shrink to 0. Then change <i>η</i> (bigger jumps or smaller nudges), and switch to <b>two rebels</b>: one orange point planted
-          among the blues and one blue among the oranges. No line can be perfect any more, and the rule never stops correcting.
+          Press <b>Play</b> or <b>Next</b>: each step checks one point (black ring), and only a mistake moves the line, turning the pink arrow <i>w</i> towards a
+          missed orange point or away from a wrongly accepted blue one. Watch the mistakes per pass fall to 0, then switch to <b>two rebels</b> (one point of each
+          colour planted on the wrong side): no line is perfect any more, so the rule never stops correcting.
         </>
       }
     >

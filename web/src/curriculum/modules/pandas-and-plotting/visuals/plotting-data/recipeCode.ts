@@ -54,7 +54,7 @@ export function genCode(spec: Spec, lib: Lib, labels: boolean, layout: Layout, s
     }
     if (kind === 'hist') {
       if (hue) {
-        L.push({ t: `edges = np.histogram_bin_edges(df['${x}'], bins=${spec.bins})`, p: 'data' })
+        L.push({ t: `edges = np.histogram_bin_edges(df['${x}'], bins=${spec.bins})   # shared bins`, p: 'data' })
         L.push({ t: `for name, grp in df.groupby('${hue}'):`, p: 'marks' })
         L.push({ t: `    ${A}.hist(grp['${x}'], bins=edges, alpha=0.5, label=name)`, p: 'marks' })
       } else L.push({ t: `${A}.hist(df['${x}'], bins=${spec.bins})`, p: 'marks' })
@@ -76,10 +76,11 @@ export function genCode(spec: Spec, lib: Lib, labels: boolean, layout: Layout, s
         L.push({ t: '# grouped box plots take many lines in plain matplotlib, so:', p: 'note' })
         L.push({ t: `sns.boxplot(data=df, x='${x}', y='${y}', hue='${hue}', ax=${A})`, p: 'marks' })
       } else {
-        L.push({ t: `names = sorted(df['${x}'].unique())`, p: 'data' })
-        L.push({ t: `groups = [df.loc[df['${x}'] == n, '${y}'] for n in names]`, p: 'data' })
+        const names = x === 'town' ? "['Bishan', 'Tampines', 'Woodlands']" : "['3-room', '4-room', '5-room']"
+        L.push({ t: `names = ${names}`, p: 'data' })
+        L.push({ t: `groups = [df.loc[df['${x}'] == n, '${y}'] for n in names]   # one list of ${y}s per ${x === 'town' ? 'town' : 'flat type'}`, p: 'data' })
         L.push({ t: `${A}.boxplot(groups)`, p: 'marks' })
-        L.push({ t: `${A}.set_xticks(range(1, len(names) + 1), names)`, p: 'marks' })
+        L.push({ t: `${A}.set_xticks([1, 2, 3], names)   # boxes sit at x = 1, 2, 3`, p: 'marks' })
       }
     }
   }

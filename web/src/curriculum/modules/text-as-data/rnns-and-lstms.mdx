@@ -32,7 +32,7 @@ The key design choice is that $W_x$, $W_h$ and $b$ are **the same at every step*
 
 <RNNUnroller />
 
-The pink bars in the visual measure how much the first word can still change the current state. In the plain RNN they shrink step after step: everything must fit in one small vector, and every new word partly overwrites it.
+The bars in the bottom row of the visual (influence) measure how much the first word can still change the current state. In the plain RNN they shrink step after step: everything must fit in one small vector, and every new word partly overwrites it.
 
 <Steps title="A one-number RNN by hand ($w_x = 1$, $w_h = 0.5$, $b = 0$)">
   <Step title="Step 1: read $x_1 = 2$">
@@ -56,6 +56,10 @@ How do you use the states? To classify a whole sentence (sentiment, spam), feed 
 An RNN reads a sequence one step at a time and updates a hidden state with $h_t = \tanh(W_x x_t + W_h h_{t-1} + b)$, using **the same weights at every step**. The hidden state is a fixed-size memory of everything so far, so information from early tokens fades as more tokens arrive.
 
 </KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={208} />
+
+<Reveal label="PyTorch version: nn.RNN and nn.LSTM shapes and parameter counts">
 
 In PyTorch, `nn.RNN` runs the whole loop for you. With `batch_first=True` the input has shape `(batch, seq_len, input_size)`, here 2 sentences of 5 words with 8 numbers per word:
 
@@ -88,7 +92,9 @@ torch.Size([2, 5, 16]) torch.Size([1, 2, 16]) torch.Size([1, 2, 16])
 416 1664
 ```
 
-`out` holds all 5 hidden states; `h_n` holds only the last one (its first dimension, 1, is the number of stacked layers). The RNN has $16 \times 8 + 16 \times 16 + 16 + 16 = 416$ parameters ($W_x$, $W_h$ and PyTorch's two bias vectors), whatever the sentence length. The LSTM below has exactly 4 times as many, for a reason you will see shortly.
+`out` holds all 5 hidden states; `h_n` holds only the last one (its first dimension, 1, is the number of stacked layers). The RNN has $16 \times 8 + 16 \times 16 + 16 + 16 = 416$ parameters ($W_x$, $W_h$ and PyTorch's two bias vectors), whatever the sentence length. The LSTM in the same code has exactly 4 times as many ($1664 = 4 \times 416$), for a reason you will see shortly.
+
+</Reveal>
 
 <QuickCheck
   q="An RNN has input size 3 and hidden size 4, with one bias vector. How many parameters does it have, and how does that change for sentences twice as long?"
@@ -154,9 +160,9 @@ $$
 - $o_t$, the **output gate**: how much of the memory to reveal as the output $h_t$.
 - $c_t$: keep part of the old note **plus** write part of the new one. $h_t$: a gated, squashed read-out of the memory, passed to the next step as before.
 
-Think of a notebook with three rules: what to cross out (forget gate), what new notes to add (input gate) and what to read aloud right now (output gate). Unlike the sticky note, nothing is rewritten from scratch: old notes stay unless the forget gate crosses them out.
+Unlike the sticky note, nothing on the belt is rewritten from scratch: the three gates are valves that decide what to remove, what to add and what to show, and an old note stays unless the forget gate removes it.
 
-The gates use $\sigma$ because they must be between 0 and 1; the candidate uses $\tanh$ because a note can be positive or negative. There are **four** weight blocks ($W_f, W_i, W_c, W_o$) where a plain RNN has one, which is why the PyTorch LSTM above had exactly 4 times the parameters.
+The gates use $\sigma$ because they must be between 0 and 1; the candidate uses $\tanh$ because a note can be positive or negative. There are **four** weight blocks ($W_f, W_i, W_c, W_o$) where a plain RNN has one, which is why an LSTM has exactly 4 times the parameters of a plain RNN of the same size (1,664 against 416 in the PyTorch version above).
 
 <LSTMGateSliders />
 
@@ -172,7 +178,7 @@ The gates use $\sigma$ because they must be between 0 and 1; the candidate uses 
   </Step>
 </Steps>
 
-Why does this cure vanishing gradients? Follow the belt: $c_t = f_t \odot c_{t-1} + \dots$, so going back one step along it multiplies the gradient by just the forget gate $f_t$, with no $W_h$ and no $\tanh$ slope in between. When the network learns to hold $f_t$ close to 1 (it can, and often does), the gradient travels many steps almost unchanged: $0.95^{20} \approx 0.36$, compared with $0.5^{20} \approx 0.000001$. The cell state is updated **mostly by adding**, and addition passes gradients straight through.
+Why does this cure vanishing gradients? Follow the belt: $c_t = f_t \odot c_{t-1} + \dots$, so along this direct path (the "gradient highway") going back one step multiplies the gradient by just the forget gate $f_t$, with no $W_h$ and no $\tanh$ slope in between. Other paths, through the gates, still exist, but this one keeps the signal alive. When the network learns to hold $f_t$ close to 1 (it can, and often does), the gradient travels many steps almost unchanged: $0.95^{20} \approx 0.36$, compared with $0.5^{20} \approx 0.000001$. The cell state is updated **mostly by adding**, and addition passes gradients straight through.
 
 A popular lighter variant is the <Term def="Gated recurrent unit: a simpler gated RNN with two gates (update and reset) and no separate cell state. It has 3 weight blocks instead of the LSTM's 4.">GRU (gated recurrent unit)</Term>. It merges the forget and input gates into one **update gate**, adds a **reset gate**, and drops the separate cell state, so it has 3 weight blocks instead of 4. GRUs and LSTMs usually perform about equally well.
 
@@ -186,20 +192,22 @@ Know the gate jobs cold: **forget** = what to erase from the cell state, **input
 
 ## Encoder–decoder models and the bottleneck
 
-Translation turns one sequence into another of a different length: *I like chicken rice* (4 words) becomes *Saya suka nasi ayam* (4 words), but many sentences change length. Early neural translators (2014) used two RNNs, a <Term def="Sequence-to-sequence: a model that maps an input sequence to an output sequence of possibly different length, usually with an encoder and a decoder.">sequence-to-sequence (seq2seq)</Term> **encoder–decoder**:
+Translation turns one sequence into another, often of a different length: *How are you?* (3 words) becomes *Apa khabar?* (2 words). Early neural translators (2014) used two RNNs, a <Term def="Sequence-to-sequence: a model that maps an input sequence to an output sequence of possibly different length, usually with an encoder and a decoder.">sequence-to-sequence (seq2seq)</Term> **encoder–decoder**:
 
 1. The **encoder** RNN reads the whole source sentence. Its final hidden state is the <Term def="In an encoder–decoder RNN, the single fixed-size vector (the encoder's final state) that is supposed to summarise the whole input sentence for the decoder.">context vector</Term>.
 2. The **decoder** RNN starts from the context vector and writes the translation one token at a time, feeding each word it outputs back in as its next input, until it outputs an end-of-sentence token.
 
 Everything the decoder knows about the source sentence must squeeze through that one fixed-size vector, whether the sentence has 5 words or 50. That is the **bottleneck**: like summarising a whole lecture into one tweet and then writing your full lecture notes from the tweet alone. In 2014 Bahdanau, Cho and Bengio removed it with <Term def="A mechanism that lets a model, at each output step, compute a relevance weight for every input position and take a weighted average of their states, instead of relying on one fixed summary vector.">attention</Term>: at every output step the decoder looks back at **all** the encoder's hidden states, gives each a relevance weight (a softmax over scores), and uses their weighted average as a fresh context made for that step.
 
-We trained small GRU encoder–decoders on a toy translation task (write out a sequence of 4 to 40 random "words" from a 20-word vocabulary) with and without attention, and measured how many output words were right on new sentences:
+We trained small GRU encoder–decoders on a toy stand-in for translation (copy a random sequence of 4 to 40 "words" from a 20-word vocabulary) with and without attention, and measured how many output words were right on new sentences:
 
 <Seq2SeqBottleneck />
 
-The Transformer (2017) took the last step: if attention can reach every position directly, why keep the recurrence at all? A Transformer drops the RNN, so all positions are processed **in parallel** (much faster training on GPUs) and any two words are one attention step apart, however far apart they are in the sentence. That is the subject of the attention and Transformers module.
+The Transformer (2017) took the last step: if attention can reach every position directly, why keep the recurrence at all? A Transformer drops the RNN, so all positions are processed **in parallel** (much faster training on GPUs) and any two words are one attention step apart, however far apart they are in the sentence. That is the subject of the [Attention and Transformers](#/learn/attention-and-transformers/attention-intuition) module.
 
 <PastPaperQuestion paper="noai2025" n={16} />
+
+<PastPaperQuestion paper="prelim2026" n={267} />
 
 <ExamTip>
 

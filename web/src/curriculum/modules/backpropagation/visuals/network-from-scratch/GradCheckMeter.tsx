@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Segmented, Plot, usePlot, Path, M } from '../../../../../kit'
+import { Figure, Controls, Slider, Segmented, Plot, usePlot, Path, M, useNarrow } from '../../../../../kit'
 import { makeProblem, forward, backward, gradsOf, numericalGrad, relError, getEntry, type Bug, type ParamName } from './net'
 
 /*
@@ -45,21 +45,21 @@ function UCurve({ curves, logEps }: { curves: { central: [number, number][]; for
       {[-12, -9, -6, -3, 0].map((t) => (
         <g key={t}>
           <line x1={x0} x2={x1} y1={ys(t)} y2={ys(t)} style={{ stroke: t === -6 ? 'var(--viz-neg)' : 'var(--viz-grid)', strokeDasharray: t === -6 ? '5 4' : undefined }} />
-          <text x={x0 - 5} y={ys(t)} dy="0.32em" textAnchor="end" style={{ fill: 'var(--viz-axis)', fontSize: 10 }}>
+          <text x={x0 - 5} y={ys(t)} dy="0.32em" textAnchor="end" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
             {pow10(t)}
           </text>
         </g>
       ))}
       {[-10, -8, -6, -4, -2].map((t) => (
-        <text key={t} x={xs(t)} y={ys(LOG_MIN) + 14} textAnchor="middle" style={{ fill: 'var(--viz-axis)', fontSize: 10 }}>
+        <text key={t} x={xs(t)} y={ys(LOG_MIN) + 15} textAnchor="middle" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
           {pow10(t)}
         </text>
       ))}
-      <text x={x1} y={ys(LOG_MIN) + 27} textAnchor="end" style={{ fill: 'var(--viz-axis)', fontSize: 10 }}>
+      <text x={x1} y={ys(LOG_MIN) + 29} textAnchor="end" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
         step size ε →
       </text>
       <line x1={xs(logEps)} x2={xs(logEps)} y1={ys(LOG_MIN)} y2={ys(0.5)} style={{ stroke: 'var(--accent)', strokeWidth: 1.5 }} />
-      <Path points={curves.forward} color="var(--viz-2)" width={2} dash="5 4" />
+      <Path points={curves.forward} color="var(--viz-5)" width={2} dash="5 4" />
       <Path points={curves.central} color="var(--viz-1)" width={2.5} />
       {cur && <circle cx={xs(cur[0])} cy={ys(cur[1])} r={5} style={{ fill: 'var(--viz-1)', stroke: 'var(--surface)', strokeWidth: 2 }} />}
     </g>
@@ -71,6 +71,9 @@ export default function GradCheckMeter() {
   const [central, setCentral] = useState(true)
   const [bug, setBug] = useState<Bug>('none')
   const prob = useMemo(() => makeProblem(8, 5, 3, 4, 3), [])
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
+  // on phones each row shows only its error; tap a row to see a and n as well
+  const [openRow, setOpenRow] = useState<number | null>(null)
   const analytic = useMemo(() => {
     const f = forward(prob.X, prob.Y, prob.p)
     return gradsOf(backward(prob.X, prob.Y, prob.p, f, bug))
@@ -103,9 +106,10 @@ export default function GradCheckMeter() {
       title="Gradient check: backprop versus a finite difference"
       caption={
         <>
-          Each row compares the gradient from backprop with <M>{'\\frac{L(w+\\varepsilon) - L(w-\\varepsilon)}{2\\varepsilon}'}</M> for one weight, and
-          the bar shows their relative error (log scale; shorter is better). Slide <M>\varepsilon</M> to the left: the error first falls, then rises
-          again below about <M>{'10^{-6}'}</M> because the two losses become so close that rounding dominates. The curve below summarises all eight
+          Each row compares the gradient from backprop with <M>{'\\frac{L(w+\\varepsilon) - L(w-\\varepsilon)}{2\\varepsilon}'}</M> for one
+          parameter (a weight or a bias), and the bar shows their relative error (log scale; shorter is better). Slide <M>\varepsilon</M> to the
+          left: the error first falls, then rises again below about <M>{'10^{-5}'}</M> because the two losses become so close that rounding
+          dominates. The curve below summarises all eight
           rows. Switch to one-sided differences and the best possible error is far worse. Then inject a bug: the bad rows fail at every{' '}
           <M>\varepsilon</M>, which is how you tell a real bug from a badly chosen step size.
         </>
@@ -123,12 +127,29 @@ export default function GradCheckMeter() {
           ]}
         />
       </Controls>
-      <div style={{ width: '100%', display: 'grid', gap: '0.3rem' }}>
-        {rows.map(({ name, idx, a, n, r }) => {
+      <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.3rem' }}>
+        {rows.map(({ name, idx, a, n, r }, ri) => {
           const ok = r < THRESH
           const w = ((clampLog(r) - LOG_MIN) / (0 - LOG_MIN)) * 100
           return (
-            <div key={label(name, idx)} style={{ display: 'grid', gridTemplateColumns: 'minmax(4.6em, auto) minmax(0, 1fr) 1.4em', gap: '0.15rem 0.6rem', alignItems: 'center', fontSize: '0.8125rem' }}>
+            <div
+              key={label(name, idx)}
+              role={narrow ? 'button' : undefined}
+              tabIndex={narrow ? 0 : undefined}
+              aria-expanded={narrow ? openRow === ri : undefined}
+              onClick={narrow ? () => setOpenRow(openRow === ri ? null : ri) : undefined}
+              onKeyDown={
+                narrow
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setOpenRow(openRow === ri ? null : ri)
+                      }
+                    }
+                  : undefined
+              }
+              style={{ display: 'grid', gridTemplateColumns: 'minmax(4.6em, auto) minmax(0, 1fr) 1.4em', gap: '0.15rem 0.6rem', alignItems: 'center', fontSize: '0.8125rem', cursor: narrow ? 'pointer' : undefined }}
+            >
               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--ink)' }}>{label(name, idx)}</span>
               <span style={{ position: 'relative', height: 14, borderRadius: 4, background: 'var(--surface-2)', overflow: 'hidden' }} aria-hidden="true">
                 <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.max(1, Math.min(100, w))}%`, background: ok ? 'var(--viz-3)' : 'var(--viz-neg)', opacity: 0.85 }} />
@@ -139,14 +160,14 @@ export default function GradCheckMeter() {
               </span>
               <span />
               <span className="tabular" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--ink-2)', overflowWrap: 'anywhere' }}>
-                a = {a.toFixed(6)} · n = {n.toFixed(6)} · error {r === 0 ? '0' : r.toExponential(1)}
+                {narrow && openRow !== ri ? '' : `a = ${a.toFixed(6)} · n = ${n.toFixed(6)} · `}error {r === 0 ? '0' : r.toExponential(1)}
               </span>
               <span />
             </div>
           )
         })}
         <div style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>
-          <M>a</M> = backprop, <M>n</M> = numerical. Bars: relative error <M>{'|a - n| / \\max(|a|, |n|)'}</M> from <M>{'10^{-14}'}</M> (left) to 1 (right); the black tick marks the pass line <M>{'10^{-6}'}</M>.{' '}
+          <M>a</M> = backprop, <M>n</M> = numerical{narrow ? ' (tap a row to see them)' : ''}. Bars: relative error <M>{'|a - n| / \\max(|a|, |n|)'}</M> from <M>{'10^{-14}'}</M> (left) to 1 (right); the black tick marks the pass line <M>{'10^{-6}'}</M>.{' '}
           <b style={{ color: passed === rows.length ? 'var(--ok)' : 'var(--bad)' }}>
             {passed} of {rows.length} pass.
           </b>
@@ -161,7 +182,7 @@ export default function GradCheckMeter() {
           central difference (median of the 8 rows)
         </span>
         <span>
-          <span style={{ display: 'inline-block', width: 18, height: 0, borderTop: '3px dashed var(--viz-2)', verticalAlign: 'middle', marginRight: 6 }} />
+          <span style={{ display: 'inline-block', width: 18, height: 0, borderTop: '3px dashed var(--viz-5)', verticalAlign: 'middle', marginRight: 6 }} />
           one-sided difference
         </span>
         <span>

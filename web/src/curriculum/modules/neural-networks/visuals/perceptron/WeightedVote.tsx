@@ -52,9 +52,8 @@ export default function WeightedVote() {
       title="One neuron deciding: beach or not?"
       caption={
         <>
-          Each input is 1 (yes) or 0 (no). The neuron multiplies each input by its weight, adds the bias <i>b</i>, and outputs 1 only if the total <i>z</i> is
-          above 0. Try: sunny with friends going, then switch on <b>homework due</b>: the −3 exactly cancels both, and a tie (<i>z</i> = 0) means stay home. Now slide the bias up: a keen beach-goer (big <i>b</i>)
-          goes on more of the 8 possible days, a reluctant one (very negative <i>b</i>) on fewer. Inputs that are 0 fade out: they cast no vote at all.
+          Each input is 1 (yes) or 0 (no); the neuron outputs 1 only if <i>z</i> = weighted sum + <i>b</i> is above 0. Switch on sunny and friends, then{' '}
+          <b>homework due</b>: the −3 cancels both, and a tie (<i>z</i> = 0) means stay home. Then slide the bias and count how many of the 8 possible days say &ldquo;go&rdquo;.
         </>
       }
     >

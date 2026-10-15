@@ -1,11 +1,12 @@
 import { useState, type ReactElement } from 'react'
-import { Figure, Controls, Button, useContainerWidth, M } from '../../../../../kit'
+import { Figure, Controls, Button, Segmented, Slider, useContainerWidth, M } from '../../../../../kit'
 import { outLen } from './common'
 
 /*
   Side view of a stack of layers over one row of input pixels (no padding, so each layer is a
   little shorter). Every neuron is drawn above the centre of the input pixels it can see, so the
-  "cone" under a neuron is exactly its receptive field. Click any neuron to see its cone.
+  "cone" under a neuron is exactly its receptive field. Click any neuron to see its cone, or pick
+  one with the layer and position controls (stride-1 rows are too dense to tap precisely on a phone).
   Receptive field: r_l = r_{l-1} + (k_l - 1) j_{l-1}, jump: j_l = j_{l-1} s_l (r_0 = j_0 = 1).
 */
 
@@ -64,6 +65,13 @@ export default function ReceptiveFieldTower() {
   const rf = geo[sl].r
   const rfStart = si * geo[sl].j
 
+  // moving to another layer keeps the selection above (roughly) the same input pixels
+  const centre = (l: number, i: number) => i * geo[l].j + (geo[l].r - 1) / 2
+  const pickLayer = (l: number) => {
+    const i = Math.round((centre(sl, si) - (geo[l].r - 1) / 2) / geo[l].j)
+    setSel([l, Math.max(0, Math.min(geo[l].len - 1, i))])
+  }
+
   // layout
   const padX = 10
   const unit = (Math.min(width, 640) - 2 * padX) / N
@@ -94,9 +102,9 @@ export default function ReceptiveFieldTower() {
       title="Receptive field: how much of the image can one neuron see?"
       caption={
         <>
-          A side view: the bottom row is one row of input pixels, and each row above is a layer (no padding, so layers get shorter). <b>Click any neuron</b>: the orange
-          cone shows every neuron and input pixel that can influence it. With three 3×3 convs the top neuron sees 7 pixels. Now add a pool or a stride-2 conv and watch
-          the neurons above it spread out, so every later layer's view grows twice as fast.
+          <b>Try:</b> tap any neuron (or pick one with the layer and position controls) to see its orange cone of inputs, then add a pool or a stride-2
+          conv. <b>Notice:</b> three 3×3 convs see 7 pixels; after
+          a pool or stride, every later layer's view grows twice as fast.
         </>
       }
     >
@@ -116,7 +124,8 @@ export default function ReceptiveFieldTower() {
                 const cx = xOf(l, i)
                 return (
                   <g key={i} onClick={() => setSel([l, i])} style={{ cursor: 'pointer' }}>
-                    <rect x={cx - unit / 2} y={yOf(l) - 14} width={unit} height={28} style={{ fill: 'transparent' }} />
+                    {/* tap target: the whole gap to the neighbouring neurons, so a tap anywhere on the row picks the nearest one */}
+                    <rect x={cx - (g.j * unit) / 2} y={yOf(l) - 20} width={g.j * unit} height={40} style={{ fill: 'transparent' }} />
                     {l === 0 ? (
                       <rect x={cx - rad} y={yOf(l) - rad} width={2 * rad} height={2 * rad} rx={2} style={{ fill: on ? 'var(--viz-2)' : 'var(--surface-3)', stroke: on ? 'var(--viz-2)' : 'var(--viz-muted)', strokeWidth: 1 }} />
                     ) : (
@@ -176,6 +185,22 @@ export default function ReceptiveFieldTower() {
           Layer {sl}: <M>{`r = ${geo[sl - 1].r} + (${geo[sl].k} - 1) \\times ${geo[sl - 1].j} = ${geo[sl].r}`}</M>
         </div>
       )}
+      <Controls>
+        <Segmented
+          label="selected layer"
+          options={geo.map((_, l) => ({ value: l, label: l === 0 ? 'input' : String(l) }))}
+          value={sl}
+          onChange={pickLayer}
+        />
+        <Slider
+          label="position in layer"
+          value={si + 1}
+          min={1}
+          max={geo[sl].len}
+          onChange={(v) => setSel([sl, v - 1])}
+          format={(v) => `${v} of ${geo[sl].len}`}
+        />
+      </Controls>
       <Controls>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {(Object.keys(SPEC) as LayerType[]).map((t) => (

@@ -18,6 +18,11 @@ const pct = (v: number) => {
   return `${x >= 10 ? x.toFixed(0) : x >= 1 ? x.toFixed(1) : x.toFixed(2)}%`
 }
 const COLORS = ['var(--viz-4)', 'var(--viz-5)', 'var(--viz-3)']
+const CURVE_NAMES = ['1 positive test', '2 in a row', '3 in a row']
+
+function Swatch({ color, dashed }: { color: string; dashed?: boolean }) {
+  return <span aria-hidden="true" style={{ display: 'inline-block', width: 18, height: 0, borderTop: `3px ${dashed ? 'dashed' : 'solid'} ${color}`, marginRight: 6, verticalAlign: 'middle' }} />
+}
 
 export default function BaseRateCurve() {
   const [lp, setLp] = useState(-2) // log10 of prevalence
@@ -27,6 +32,10 @@ export default function BaseRateCurve() {
   const [ref, narrow] = useNarrow<HTMLDivElement>()
   const p = Math.pow(10, lp)
   const posts = [1, 2, 3].map((n) => post(p, sens, fpr, n))
+  const py = posts[k - 1]
+  // keep the point's label clear of the y-axis title (top left) and the right edge
+  const labelBelow = py > 0.85
+  const labelLeft = lp > -0.5
 
   return (
     <Figure
@@ -41,7 +50,7 @@ export default function BaseRateCurve() {
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
-        <Plot x={[-3, 0]} y={[0, 1]} width={540} height={320} minHeight={260} margin={{ left: 46, right: 14, top: 28, bottom: 38 }} ariaLabel={`Posterior after a positive test versus prevalence; at prevalence ${pct(p)} the posterior is ${pct(posts[0])}`}>
+        <Plot x={[-3, 0]} y={[0, 1]} width={540} height={320} minHeight={260} margin={{ left: 46, right: 20, top: 28, bottom: 38 }} ariaLabel={`Posterior after a positive test versus prevalence; at prevalence ${pct(p)} the posterior is ${pct(posts[0])}`}>
           <Grid xTicks={3} yTicks={4} />
           <Axes xLabel="prevalence (log scale)" xTicks={3} hideYTicks tickFormat={(v) => `${+(Math.pow(10, v) * 100).toPrecision(2)}%`} />
           <Axes yLabel="P(condition | +)" yTicks={4} hideXTicks tickFormat={(v) => `${Math.round(v * 100)}%`} />
@@ -52,13 +61,23 @@ export default function BaseRateCurve() {
               <FnPath key={n} f={(x) => post(Math.pow(10, x), sens, fpr, n)} color={COLORS[n - 1]} width={n === k ? 3.2 : 2} opacity={n === k ? 1 : 0.55} />
             ))}
           <VLine x={lp} color="var(--viz-axis)" dash="3 4" width={1.2} />
-          {!narrow && (
-            <Label x={-0.95} y={0.12} anchor="middle" color="var(--viz-muted)" size={12}>
-              no test: posterior = prior
-            </Label>
-          )}
-          <DraggablePoint x={lp} y={posts[k - 1]} color={COLORS[k - 1]} label={pct(posts[k - 1])} constrain={(x) => [Math.round(x * 20) / 20, post(Math.pow(10, Math.round(x * 20) / 20), sens, fpr, k)]} onChange={(x) => setLp(x)} />
+          <DraggablePoint x={lp} y={py} color={COLORS[k - 1]} constrain={(x) => [Math.round(x * 20) / 20, post(Math.pow(10, Math.round(x * 20) / 20), sens, fpr, k)]} onChange={(x) => setLp(x)} />
+          <Label x={lp} y={py} dx={labelLeft ? -14 : 14} dy={labelBelow ? 22 : -10} anchor={labelLeft ? 'end' : 'start'} color={COLORS[k - 1]} weight={700}>
+            {pct(py)}
+          </Label>
         </Plot>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 1rem', justifyContent: 'center', fontSize: '0.82rem', color: 'var(--ink-2)' }}>
+        {CURVE_NAMES.slice(0, k).map((name, i) => (
+          <span key={name} style={{ fontWeight: i === k - 1 ? 700 : 500 }}>
+            <Swatch color={COLORS[i]} />
+            {name}
+          </span>
+        ))}
+        <span>
+          <Swatch color="var(--viz-muted)" dashed />
+          {narrow ? 'no test' : 'no test: posterior = prior'}
+        </span>
       </div>
       <Controls>
         <Segmented

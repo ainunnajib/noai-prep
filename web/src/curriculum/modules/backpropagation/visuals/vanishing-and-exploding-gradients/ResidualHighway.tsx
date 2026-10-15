@@ -1,13 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Button, M, useAnimationFrame, useContainerWidth } from '../../../../../kit'
-import { makeBlocks, highwayNorms } from './highway'
-import { sci } from './sim'
+import { highwayNorms } from './highway'
+import { sci, SIZE_COLOUR } from './sim'
 
 /*
-  Two stacks built from the SAME blocks. Top: plain (y = F(x)). Bottom: residual (y = x + F(x)), with a skip arc
-  over every block. A pulse of gradient travels from the loss (right) back to the input (left); each block lights up
-  with the size of the gradient that reaches it. Blue and fading = vanishing, green = healthy, orange = growing.
+  Two stacks built from the SAME blocks, each with its own derivative F′ = s. Top: plain (y = F(x)), so every
+  block multiplies the gradient by s. Bottom: residual (y = x + F(x)), with a skip arc over every block, so every
+  block multiplies it by 1 + s. A pulse of gradient travels from the loss (right) back to the input (left); each
+  block lights up with the size of the gradient that reaches it, in the module's size colours: indigo and fading =
+  vanishing, green = healthy (within ×10), red = exploding.
 */
+
+const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
+const sup = (n: number) => String(n).split('').map((c) => SUP[c] ?? c).join('')
 
 const DURATION = 2.6 // seconds for the pulse to cross the stack
 
@@ -15,10 +20,14 @@ function shade(g: number): { fill: string; stroke: string; lg: number } {
   const lg = Math.log10(Math.max(1e-300, g))
   if (lg < -1) {
     const t = Math.max(0, Math.min(1, (lg + 10) / 9))
-    return { fill: `color-mix(in srgb, var(--viz-1) ${Math.round(4 + t * 62)}%, var(--surface))`, stroke: `color-mix(in srgb, var(--viz-1) ${Math.round(25 + t * 60)}%, var(--surface))`, lg }
+    return {
+      fill: `color-mix(in srgb, ${SIZE_COLOUR.vanishing} ${Math.round(4 + t * 62)}%, var(--surface))`,
+      stroke: `color-mix(in srgb, ${SIZE_COLOUR.vanishing} ${Math.round(25 + t * 60)}%, var(--surface))`,
+      lg,
+    }
   }
-  if (lg > 1) return { fill: 'color-mix(in srgb, var(--viz-2) 70%, var(--surface))', stroke: 'var(--viz-2)', lg }
-  return { fill: 'color-mix(in srgb, var(--viz-3) 66%, var(--surface))', stroke: 'var(--viz-3)', lg }
+  if (lg > 1) return { fill: `color-mix(in srgb, ${SIZE_COLOUR.exploding} 70%, var(--surface))`, stroke: SIZE_COLOUR.exploding, lg }
+  return { fill: `color-mix(in srgb, ${SIZE_COLOUR.healthy} 66%, var(--surface))`, stroke: SIZE_COLOUR.healthy, lg }
 }
 
 function Row({
@@ -30,6 +39,7 @@ function Row({
   residual,
   front,
   title,
+  formula,
 }: {
   W: number
   y: number
@@ -37,6 +47,8 @@ function Row({
   at: number[]
   atInput: number
   residual: boolean
+  /** how the arrival size is computed, e.g. "1.10²⁰" */
+  formula: string
   /** pulse position in block units: depth + 1 = at the loss, 0 = at the input */
   front: number
   title: string
@@ -104,7 +116,7 @@ function Row({
       <text x={cx(0)} y={y + bh / 2 + 15} textAnchor="middle" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
         input
       </text>
-      <rect x={cx(depth + 1) - 9} y={y - 9} width={18} height={18} rx={3} style={{ fill: 'color-mix(in srgb, var(--viz-3) 66%, var(--surface))', stroke: 'var(--viz-ink)', strokeWidth: 1.5 }} />
+      <rect x={cx(depth + 1) - 9} y={y - 9} width={18} height={18} rx={3} style={{ fill: `color-mix(in srgb, ${SIZE_COLOUR.healthy} 66%, var(--surface))`, stroke: 'var(--viz-ink)', strokeWidth: 1.5 }} />
       <text x={cx(depth + 1)} y={y + bh / 2 + 15} textAnchor="middle" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
         loss
       </text>
@@ -114,6 +126,7 @@ function Row({
       )}
       <text x={cx(0) - 10} y={y + bh / 2 + 32} style={{ fill: 'var(--viz-ink)', fontSize: 12 }}>
         <tspan style={{ fontWeight: 700 }}>reaches the input at ×{reached(0) ? sci(atInput) : '…'}</tspan>
+        {reached(0) && <tspan style={{ fill: 'var(--ink-2)' }}>{`  = ${formula}`}</tspan>}
       </text>
     </g>
   )
@@ -121,14 +134,13 @@ function Row({
 
 export default function ResidualHighway() {
   const [depth, setDepth] = useState(20)
-  const [s, setS] = useState(0.3)
+  const [s, setS] = useState(0.1)
   const [front, setFront] = useState(0) // 0 = pulse has reached the input (complete at rest)
   const [playing, setPlaying] = useState(false)
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(600)
   const W = Math.max(280, Math.min(720, measured))
-  const blocks = useMemo(() => makeBlocks(2024), [])
-  const plain = useMemo(() => highwayNorms(blocks, depth, s, false), [blocks, depth, s])
-  const res = useMemo(() => highwayNorms(blocks, depth, s, true), [blocks, depth, s])
+  const plain = useMemo(() => highwayNorms(depth, s, false), [depth, s])
+  const res = useMemo(() => highwayNorms(depth, s, true), [depth, s])
 
   useAnimationFrame((dt) => {
     setFront((f) => {
@@ -153,18 +165,18 @@ export default function ResidualHighway() {
       title={`The same ${depth} blocks, with and without skip connections`}
       caption={
         <>
-          Press <b>Send the gradient back</b> and follow the pulse from the loss to the input. Both stacks use exactly the same blocks; on its own,
-          each block shrinks the gradient to about <M>s</M> of its size. In the plain stack those factors multiply and the pulse fades to almost
-          nothing. In the residual stack every block computes <M>{'y = x + F(x)'}</M>, so the gradient also flows along each arc unchanged and
-          the pulse arrives at full strength (with a large <M>s</M> it even grows a little, which is why real ResNets also use BatchNorm). Add
-          blocks: the plain stack gets dimmer and dimmer, the residual one does not.
+          Press <b>Send the gradient back</b> and follow the pulse from the loss to the input. Both stacks use exactly the same blocks, each with
+          its own derivative <M>{"F' = s"}</M>. The plain stack multiplies by <M>s</M> at every block, so after <M>D</M> blocks the pulse is{' '}
+          <M>{'s^D'}</M>: almost nothing. In the residual stack every block computes <M>{'y = x + F(x)'}</M>, so it multiplies by{' '}
+          <M>{'1 + s'}</M> and the pulse arrives at <M>{'(1 + s)^D'}</M>, never weaker than it started. With a large <M>s</M> or many blocks it
+          grows (try <M>s = 0.3</M> with 30 blocks), one reason real ResNets also use BatchNorm.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Plain stack: gradient reaches the input at ${sci(plain.atInput)}. Residual stack: ${sci(res.atInput)}.`} style={{ display: 'block', maxWidth: W }}>
-          <Row W={W} y={64} depth={depth} at={plain.at} atInput={plain.atInput} residual={false} front={front} title="Plain: y = F(x)" />
-          <Row W={W} y={64 + rowGap} depth={depth} at={res.at} atInput={res.atInput} residual front={front} title="Residual: y = x + F(x)" />
+          <Row W={W} y={64} depth={depth} at={plain.at} atInput={plain.atInput} residual={false} front={front} title="Plain: y = F(x)" formula={`${s.toFixed(2)}${sup(depth)}`} />
+          <Row W={W} y={64 + rowGap} depth={depth} at={res.at} atInput={res.atInput} residual front={front} title="Residual: y = x + F(x)" formula={`${(1 + s).toFixed(2)}${sup(depth)}`} />
         </svg>
       </div>
       <Controls>
@@ -172,7 +184,7 @@ export default function ResidualHighway() {
           {playing ? 'Sending…' : 'Send the gradient back'}
         </Button>
         <Slider label="number of blocks" value={depth} min={4} max={30} step={1} onChange={(v) => { setDepth(v); setPlaying(false); setFront(0) }} />
-        <Slider label={<>each block's own factor <M>s</M></>} value={s} min={0.1} max={0.6} step={0.05} onChange={(v) => { setS(v); setPlaying(false); setFront(0) }} format={(v) => v.toFixed(2)} />
+        <Slider label={<>each block's own derivative <M>{"F' = s"}</M></>} value={s} min={0.02} max={0.3} step={0.02} onChange={(v) => { setS(v); setPlaying(false); setFront(0) }} format={(v) => v.toFixed(2)} />
       </Controls>
     </Figure>
   )

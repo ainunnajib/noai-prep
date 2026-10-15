@@ -189,7 +189,7 @@ Whisper always works on 30-second chunks of 16 kHz audio with a 25 ms window, a 
     Window: $0.025 \times 16{,}000 = 400$ samples. Hop: $0.010 \times 16{,}000 = 160$ samples.
   </Step>
   <Step title="Count the frames">
-    $480{,}000 / 160 = 3{,}000$ frames, one every 10 ms. (Whisper pads the edges, so it is exactly 3,000. Without padding, $1 + \lfloor 479{,}600 / 160 \rfloor = 2{,}998$.)
+    $480{,}000 / 160 = 3{,}000$ frames, one every 10 ms. (Whisper pads both ends of the clip, which gives 3,001 frames, and drops the last one, so it is exactly 3,000. Without padding, $1 + \lfloor 479{,}600 / 160 \rfloor = 2{,}998$.)
   </Step>
   <Step title="Count the frequency rows">
     Each 400-sample window gives $400/2 + 1 = 201$ bins, spaced $16{,}000/400 = 40$ Hz apart. The mel filters shrink these to 80 rows.

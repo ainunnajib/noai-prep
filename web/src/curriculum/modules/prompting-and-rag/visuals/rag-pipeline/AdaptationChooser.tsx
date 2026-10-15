@@ -133,13 +133,15 @@ export default function AdaptationChooser() {
       title="Prompting, RAG or fine-tuning?"
       caption={
         <>
-          Pick a scenario, read the brief, and answer the questions in the flowchart with <b>Yes</b> or <b>No</b>. Your path lights up; when you reach a box, the recommended answers and choice get a dashed
-          green outline and the reasons appear. Most problems follow the same rule of thumb: try <b>prompting</b> first, use <b>RAG</b> when the model lacks knowledge, and <b>fine-tune</b> when it lacks a
-          behaviour. Real projects often combine them.
+          When you reach a box, the recommended answers and choice get a dashed green outline and the reasons appear. The rule of thumb: try <b>prompting</b> first, use <b>RAG</b> when
+          the model lacks knowledge, and <b>fine-tune</b> when it lacks a behaviour. Real projects often combine them.
         </>
       }
     >
       <div className={s.wrap}>
+        <p className={s.tryLine}>
+          <b>Try:</b> pick a scenario, read the brief, then answer the flowchart's questions with <b>Yes</b> or <b>No</b>.
+        </p>
         <div className={s.cards} role="group" aria-label="Scenarios">
           {SCENARIOS.map((x) => (
             <button key={x.id} type="button" className={`${s.card} ${x.id === sid ? s.cardOn : ''}`} aria-pressed={x.id === sid} onClick={() => pick(x.id)}>

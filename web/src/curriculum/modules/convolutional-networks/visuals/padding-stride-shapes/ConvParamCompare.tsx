@@ -72,9 +72,8 @@ export default function ConvParamCompare() {
       title="Standard vs depthwise separable convolution"
       caption={
         <>
-          Slide k, C<sub>in</sub> and C<sub>out</sub>. A standard layer has C<sub>out</sub> kernels that each span k × k × C<sub>in</sub>. A depthwise
-          separable layer splits the job: one k × k filter per input channel (spatial filtering only), then a 1 × 1 convolution that mixes the channels. For wide
-          layers the saving approaches k<sup>2</sup> (about 9× for 3 × 3). With k = 1 there is nothing to split, so the saving vanishes. Biases are ignored.
+          <b>Try:</b> slide k, C<sub>in</sub> and C<sub>out</sub>. <b>Notice:</b> a depthwise k × k step plus a 1 × 1 mixing step saves
+          nearly k<sup>2</sup> (about 9× for 3 × 3) on wide layers, and nothing when k = 1. Biases are ignored.
         </>
       }
     >

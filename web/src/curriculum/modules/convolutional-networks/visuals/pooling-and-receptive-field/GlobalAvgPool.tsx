@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented, Slider, Readout, Bars, useContainerWidth, M } from '../../../../../kit'
+import { Figure, Controls, Segmented, Slider, Readout, Bars, useContainerWidth } from '../../../../../kit'
 import { heat } from './common'
+
+/** Heat fill with a visible floor, so a map with almost no activation still reads as a map (dark mode too). */
+const mapFill = (v: number) => `color-mix(in srgb, var(--viz-1) ${Math.round(12 + 73 * Math.max(0, Math.min(1, v)))}%, var(--surface))`
 
 /*
   Global average pooling versus flatten, at the end of a CNN. Four final feature maps (one per
@@ -50,7 +53,8 @@ function MiniMap({ m, size, label, avg, showAvg }: { m: number[][]; size: number
   return (
     <div style={{ display: 'grid', justifyItems: 'center', gap: 2, minWidth: 0 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${label} feature map, ${n} by ${n}`} style={{ display: 'block' }}>
-        {m.map((row, i) => row.map((v, j) => <rect key={`${i}-${j}`} x={j * c + 0.5} y={i * c + 0.5} width={c - 1} height={c - 1} rx={Math.min(3, c / 5)} style={{ fill: heat(v, 0, 1, 85) }} />))}
+        {m.map((row, i) => row.map((v, j) => <rect key={`${i}-${j}`} x={j * c + 0.5} y={i * c + 0.5} width={c - 1} height={c - 1} rx={Math.min(3, c / 5)} style={{ fill: mapFill(v) }} />))}
+        <rect x={0.5} y={0.5} width={size - 1} height={size - 1} rx={3} style={{ fill: 'none', stroke: 'var(--viz-grid)', strokeWidth: 1 }} />
       </svg>
       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center', lineHeight: 1.2 }}>{label}</span>
       {showAvg && <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink)' }}>mean {avg.toFixed(2)}</span>}
@@ -99,10 +103,8 @@ export default function GlobalAvgPool() {
       title="Global average pooling: one number per feature map"
       caption={
         <>
-          These are the last four feature maps of a (toy) network, one per detector, for a {photo} photo. <b>Flatten</b> lines up all{' '}
-          <M>{`4 \\times ${n} \\times ${n} = ${4 * n * n}`}</M> numbers; <b>global average pooling</b> keeps just the mean of each map, which says <i>how strongly</i> each
-          feature appears, wherever it is. Slide the image size: the classifier after Flatten was built for 224 × 224 images and breaks at any other size, while the GAP
-          head works at every size with far fewer weights.
+          <b>Try:</b> switch heads, then slide the image size. <b>Notice:</b> global average pooling keeps one number per map (how strongly that feature
+          appears, wherever it is), so it works at every size; the Flatten head breaks at any size but 224.
         </>
       }
     >
@@ -124,7 +126,7 @@ export default function GlobalAvgPool() {
         {head === 'flatten' ? (
           <svg width={stripW} height={stripH} viewBox={`0 0 ${stripW} ${stripH}`} style={{ display: 'block', margin: '0 auto', maxWidth: '100%' }} role="img" aria-label={`Flattened vector of ${4 * n * n} numbers`}>
             {cellsPos.map((p, i) => (
-              <rect key={i} x={p.x} y={p.y} width={cell - 1} height={cell - 1} style={{ fill: heat(p.v, 0, 1, 85) }} />
+              <rect key={i} x={p.x} y={p.y} width={cell - 1} height={cell - 1} style={{ fill: mapFill(p.v) }} />
             ))}
           </svg>
         ) : (

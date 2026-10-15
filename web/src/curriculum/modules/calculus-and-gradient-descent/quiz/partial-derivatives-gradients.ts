@@ -22,16 +22,16 @@ const questions: QuizQuestion[] = [
   {
     id: 'calculus-and-gradient-descent.partial-derivatives-gradients.3',
     prompt:
-      'On the contour map of a loss $L(w_1, w_2)$, the contour lines are packed tightly together around point A and spread far apart around point B. Which statement is correct?',
+      'On the contour map of a loss $L(w_1, w_2)$, drawn at equal steps of loss, the contour lines are packed tightly together around point P and spread far apart around point Q. Which statement is correct?',
     options: [
-      '$\\lVert \\nabla L \\rVert$ is larger at A, and at both points $\\nabla L$ crosses the contour lines at right angles',
-      '$\\lVert \\nabla L \\rVert$ is larger at B, and at both points $\\nabla L$ crosses the contour lines at right angles',
-      '$\\lVert \\nabla L \\rVert$ is larger at A, and at both points $\\nabla L$ runs along the contour line',
-      '$\\lVert \\nabla L \\rVert$ is the same at A and B, because both lie on contour lines',
+      '$\\lVert \\nabla L \\rVert$ is larger at P, and at both points $\\nabla L$ crosses the contour lines at right angles',
+      '$\\lVert \\nabla L \\rVert$ is larger at Q, and at both points $\\nabla L$ crosses the contour lines at right angles',
+      '$\\lVert \\nabla L \\rVert$ is larger at P, and at both points $\\nabla L$ runs along the contour line',
+      '$\\lVert \\nabla L \\rVert$ is the same at P and Q, because both lie on contour lines',
     ],
     answer: 0,
     explanation:
-      'Tightly packed contours mean the height changes a lot over a short distance, so the ground is steep and the gradient is long at A. Walking along a contour does not change the height (slope $= \\nabla L \\cdot u = 0$), so the gradient is always perpendicular to the contour, not along it. Spread-out contours (B) mean gentle ground and a short gradient.',
+      'Tightly packed contours mean the height changes a lot over a short distance, so the ground is steep and the gradient is long at P. Walking along a contour does not change the height (slope $= \\nabla L \\cdot u = 0$), so the gradient is always perpendicular to the contour, not along it. Spread-out contours (at Q) mean gentle ground and a short gradient.',
     difficulty: 'intermediate',
   },
   {

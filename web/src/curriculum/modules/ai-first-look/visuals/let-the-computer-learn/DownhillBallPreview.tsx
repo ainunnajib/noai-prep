@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Figure, Controls, Readout, Button, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
+import { Controls, Readout, Button, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
+import Figure from '../TouchFigure'
 import { loss, slope, fixed, fmt, prefersReducedMotion } from './flats'
 
 /*
@@ -74,11 +75,19 @@ export default function DownhillBallPreview() {
   const riseRight = d > 0
   const showTriangle = Math.abs(s) >= 1.5 && !done
   const sStr = fixed(s, 2)
-  const direction = flat
-    ? 'Slope ≈ 0: the ground is flat, so this is the bottom of the valley.'
-    : s < 0
-      ? 'Slope is negative: the loss goes DOWN as w goes up, so step right (make w bigger).'
-      : 'Slope is positive: the loss goes UP as w goes up, so step left (make w smaller).'
+  const direction = flat ? (
+    <>Slope ≈ 0: the ground is flat, and on this single valley that means the bottom.</>
+  ) : s < 0 ? (
+    <>
+      Slope is negative: the loss goes <em>down</em> as w goes up, so step right (make w bigger).
+    </>
+  ) : (
+    <>
+      Slope is positive: the loss goes <em>up</em> as w goes up, so step left (make w smaller).
+    </>
+  )
+  // the rise/run text only fits beside the triangle while the triangle is reasonably big
+  const showTriLabels = Math.abs(s) >= 3
 
   const sTex = s < 0 ? `(${sStr})` : sStr
   // "=" when the rounded numbers shown add up exactly, "≈" otherwise
@@ -99,7 +108,8 @@ w_{\\text{new}} = w - \\eta \\times \\text{slope} = ${fixed(w, 2)} - 0.1 \\times
       title="Rolling downhill on the loss valley"
       caption={
         <>
-          Press <b>Step</b> a few times, then <b>Play</b>. The dashed line is the slope the ball feels; the green arrow is the step it takes (here η = 0.1).
+          Press <b>Step</b> a few times, then <b>Play</b>. The dashed line is the slope the ball feels; the green arrow is the step it takes. Its size is set
+          by η = 0.1, the <i>learning rate</i>, which the next section explains.
           Drag the ball to a new start on either side and run it again. Then switch on <b>Hide the valley</b>: the computer never sees the curve, only the
           slope where it has stood, and that is enough to reach the bottom at w = 6 ($6,000 per m²).
         </>
@@ -134,14 +144,16 @@ w_{\\text{new}} = w - \\eta \\times \\text{slope} = ${fixed(w, 2)} - 0.1 \\times
           {showTriangle && (
             <>
               <Path points={tri} color="var(--viz-5)" width={2} />
-              {!narrow && (
+              {!narrow && showTriLabels && (
                 <Label x={runX} y={runY} dy={-7} anchor="middle" color="var(--viz-5)" size={12}>
                   run 1
                 </Label>
               )}
-              <Label x={riseX} y={riseY} dx={riseRight ? 7 : -7} dy={4} anchor={riseRight ? 'start' : 'end'} color="var(--viz-5)" size={12}>
-                {`${narrow ? 'slope' : 'rise'} ${s < 0 ? '−' : '+'}${fmt(Math.abs(s), 1)}`}
-              </Label>
+              {showTriLabels && (
+                <Label x={riseX} y={riseY} dx={riseRight ? 7 : -7} dy={4} anchor={riseRight ? 'start' : 'end'} color="var(--viz-5)" size={12}>
+                  {`${narrow ? 'slope' : 'rise'} ${s < 0 ? '−' : '+'}${fmt(Math.abs(s), 1)}`}
+                </Label>
+              )}
             </>
           )}
           {!done && Math.abs(step) > 0.02 && (
@@ -155,7 +167,7 @@ w_{\\text{new}} = w - \\eta \\times \\text{slope} = ${fixed(w, 2)} - 0.1 \\times
             </>
           )}
           {k === 0 && (
-            <Label x={w} y={L0} dx={-15} dy={4} anchor="end" color="var(--viz-2)" size={12}>
+            <Label x={w} y={L0} dx={0} dy={-17} anchor="middle" color="var(--viz-2)" size={12} weight={700}>
               drag me
             </Label>
           )}

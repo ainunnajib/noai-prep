@@ -57,7 +57,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      "Income's huge values make the loss very steep along its weight, and the steepest direction caps the learning rate ($\\eta < 2/c$), so progress along age's gentle direction crawls. Standardising gives both features a similar spread, so the curvatures become similar, the contours become rounder and a larger learning rate is safe in every direction. The loss of a linear model with MSE was already convex, so convexity is not what changed.",
+      "Income's huge values make the loss very sharply curved along its weight, and the largest curvature caps the learning rate ($\\eta < 2/c$), so progress along age's gently curved direction crawls. Standardising gives both features a similar spread, so the curvatures become similar, the contours become rounder and a larger learning rate is safe in every direction. The loss of a linear model with MSE was already convex, so convexity is not what changed.",
     difficulty: 'intermediate',
   },
 ]

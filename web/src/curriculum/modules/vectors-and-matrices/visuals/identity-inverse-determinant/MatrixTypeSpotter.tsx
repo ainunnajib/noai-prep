@@ -19,7 +19,12 @@ const SUB = ['₁', '₂', '₃']
 
 const det3 = (A: M3) =>
   A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0])
-const paren = (v: number) => (v < 0 ? `(${v})` : String(v))
+/** Round away floating-point dust (0.1 + 0.2 and friends) before showing a number: at most 4 decimals, no −0. */
+const num = (v: number) => {
+  const r = +v.toFixed(4)
+  return String(r === 0 ? 0 : r)
+}
+const paren = (v: number) => (v < 0 ? `(${num(v)})` : num(v))
 
 export default function MatrixTypeSpotter() {
   const [text, setText] = useState<string[][]>(PRESETS[2].A.map((r) => r.map(String)))
@@ -34,7 +39,7 @@ export default function MatrixTypeSpotter() {
   const isIdentity = offZero && A.every((r, i) => r[i] === 1)
   const isSym = A.every((r, i) => r.every((v, j) => v === A[j][i]))
   const det = det3(A)
-  const singular = det === 0
+  const singular = Math.abs(det) < 1e-9 // decimals can leave a tiny non-zero remainder, e.g. 1.4e-17
   const tr = A[0][0] + A[1][1] + A[2][2]
 
   const [fi, fj] = focus
@@ -119,9 +124,18 @@ export default function MatrixTypeSpotter() {
           </div>
         </div>
         <div className={`${s.info} ${s.big}`} style={{ width: 'auto', justifyItems: 'start', textAlign: 'left' }}>
-          <M>{`\\operatorname{tr}(A) = ${A[0][0]} + ${paren(A[1][1])} + ${paren(A[2][2])} = ${tr}`}</M>
-          <M>{`\\det A = ${det}`}</M>
-          {offZero && <M>{`\\det A = ${A[0][0]}\\times ${paren(A[1][1])}\\times ${paren(A[2][2])}\\ \\text{(diagonal: just multiply)}`}</M>}
+          <M>{`\\operatorname{tr}(A) = ${num(A[0][0])} + ${paren(A[1][1])} + ${paren(A[2][2])} = ${num(tr)}`}</M>
+          {offZero ? (
+            <div>
+              <M>{`\\det A = ${num(A[0][0])}\\times ${paren(A[1][1])}\\times ${paren(A[2][2])} = ${singular ? 0 : num(det)}`}</M>
+              <div className={s.note}>(diagonal: just multiply the diagonal)</div>
+            </div>
+          ) : (
+            <div>
+              <M>{`\\det A = ${singular ? 0 : num(det)}`}</M>
+              <div className={s.note}>(3×3 determinant worked out for you; NOAI only asks for 2×2 by hand)</div>
+            </div>
+          )}
         </div>
       </div>
 

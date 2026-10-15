@@ -8,6 +8,7 @@ import {
   X_NEW,
   trainStep,
   evaluate,
+  EMPTY_OPT_ERROR,
   saveAndReload,
   stateDictKeys,
   type Name,
@@ -86,6 +87,8 @@ export default function ParamBufferInspector() {
 
   const [listRef, narrow] = useNarrow<HTMLDivElement>(600)
   const broken = kinds.num_batches === 'param'
+  // with no Parameter at all, building the optimiser fails, so there is nothing to train with
+  const noOpt = !broken && !NAMES.some((n) => kinds[n] === 'param')
   const dev = (n: Name) => (kinds[n] === 'plain' ? 'cpu' : gpu ? 'cuda:0' : 'cpu')
   const sdKeys = stateDictKeys(kinds)
   const paramNames = NAMES.filter((n) => kinds[n] === 'param')
@@ -103,7 +106,9 @@ export default function ParamBufferInspector() {
             result: 'RuntimeError: Only Tensors of floating point and complex dtype can require gradients',
             error: true,
           }
-        : { code: 'model = MyNorm(3)      # new class, new model\noptimizer = torch.optim.SGD(model.parameters(), lr=0.3)', result: 'Built a fresh model.' },
+        : !NAMES.some((n) => next[n] === 'param')
+          ? { code: 'model = MyNorm(3)      # new class, new model\noptimizer = torch.optim.SGD(model.parameters(), lr=0.3)', result: EMPTY_OPT_ERROR, error: true }
+          : { code: 'model = MyNorm(3)      # new class, new model\noptimizer = torch.optim.SGD(model.parameters(), lr=0.3)', result: 'Built a fresh model.' },
     )
   }
 
@@ -122,7 +127,11 @@ export default function ParamBufferInspector() {
         error: true,
         result:
           r.error +
-          (r.partial ? `\n(${r.partial}.mul_(0.9) had already run on the CPU before .add_() met the GPU batch statistics, so ${r.partial} was scaled but not updated.)` : ''),
+          (r.partial
+            ? `\n(${r.partial}.mul_(0.9) had already run on the CPU before .add_() met the GPU batch statistics, so ${r.partial} was scaled but not updated.)`
+            : r.error.includes('grad_fn')
+              ? '\n(forward() ran and updated the statistics, but neither gamma nor beta is a Parameter, so the loss does not depend on anything that requires grad.)'
+              : ''),
       })
     else
       setLog({
@@ -243,7 +252,7 @@ export default function ParamBufferInspector() {
       </div>
 
       <Controls>
-        <Button primary disabled={broken} onClick={doTrain}>
+        <Button primary disabled={broken || noOpt} onClick={doTrain}>
           train one step
         </Button>
         <Button disabled={broken} onClick={doDevice}>

@@ -16,19 +16,19 @@ const ARROW_X = 1.0
 const MID = (RAIL_L + RAIL_R) / 2
 
 const ML: Record<number, { short: string; long: string }> = {
-  [-8]: { short: 'ε = 1e-8 (Adam)', long: 'ε = 1e-8: the tiny number Adam adds to a denominator so it never divides by zero' },
-  [-5]: { short: 'ε = 1e-5 in norm layers', long: 'ε = 1e-5: the default safety constant inside PyTorch’s BatchNorm and LayerNorm' },
-  [-4]: { short: 'learning rate 3e-4', long: '3e-4: a popular learning rate for the Adam optimiser' },
-  [-3]: { short: 'Adam’s default lr', long: '1e-3 = 0.001: Adam’s default learning rate in PyTorch' },
-  [-2]: { short: 'weight decay 0.01', long: '0.01: AdamW’s default weight decay in PyTorch' },
-  [-1]: { short: 'SGD learning rate 0.1', long: '0.1: a common starting learning rate for plain SGD' },
-  [0]: { short: '1', long: '10⁰ = 1: any number to the power 0 is 1' },
-  [1]: { short: '10 digit classes', long: '10: the number of classes in MNIST (the digits 0 to 9)' },
-  [3]: { short: '1000 ImageNet classes', long: '1000: the number of classes in ImageNet-1k' },
-  [4]: { short: 'MNIST test set', long: '10,000: the number of images in the MNIST test set' },
-  [6]: { short: 'ImageNet training set', long: 'about 1.3 million (1.3e6): ImageNet-1k training images; a small CNN also has around 1e6 parameters' },
-  [8]: { short: 'GPT-2 small', long: 'about 1.24e8: the number of parameters in GPT-2 small' },
-  [9]: { short: 'a “small” LLM', long: 'about 1e9: the parameter count of a small modern language model' },
+  [-8]: { short: 'ε = 1e-8 (tiny safety)', long: 'ε = 1e-8: the tiny number the Adam optimiser adds to a denominator so it never divides by zero' },
+  [-5]: { short: 'ε = 1e-5 (tiny safety)', long: 'ε = 1e-5: the default safety constant inside PyTorch’s BatchNorm and LayerNorm layers' },
+  [-4]: { short: 'learning rate 3e-4', long: '3e-4: a popular learning rate (step size) for the Adam optimiser' },
+  [-3]: { short: 'a default step size', long: '1e-3 = 0.001: the Adam optimiser’s default learning rate in PyTorch' },
+  [-2]: { short: 'a penalty setting 0.01', long: '0.01: AdamW’s default weight decay in PyTorch, a small penalty that keeps weights small' },
+  [-1]: { short: 'a big step size 0.1', long: '0.1: a common starting learning rate for plain SGD (stochastic gradient descent)' },
+  [0]: { short: '1', long: '10⁰ = 1: any non-zero number to the power 0 is 1' },
+  [1]: { short: '10 digit classes', long: '10: the number of classes in MNIST (the handwritten digits 0 to 9)' },
+  [3]: { short: '1000 image classes', long: '1000: the number of classes in ImageNet-1k, a famous photo dataset' },
+  [4]: { short: 'a 10,000-image test set', long: '10,000: the number of images in the MNIST test set' },
+  [6]: { short: 'about a million photos', long: 'about 1.3 million (1.3e6): ImageNet-1k training images; a small CNN also has around 1e6 parameters' },
+  [8]: { short: 'an early GPT’s size', long: 'about 1.24e8: the number of parameters (learned numbers) in GPT-2 small' },
+  [9]: { short: 'a small chatbot’s size', long: 'about 1e9: the parameter count of a small modern language model' },
 }
 
 const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
@@ -90,7 +90,7 @@ export default function PowerLadder() {
           <>
             Drag the orange marker up and down the ladder, and change the number in front. Each rung is ten times the one below it. Notice that{' '}
             <M>{'3 \\times 10^{-4}'}</M>, <code>3e-4</code> and <M>{'0.0003'}</M> are the same number written three ways, and that the exponent counts how many
-            places the decimal point moves.
+            places the decimal point moves. (Don’t worry about the ML names on the rungs; you will meet them later in the course.)
           </>
         ) : (
           <>

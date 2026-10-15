@@ -71,6 +71,21 @@ const questions: QuizQuestion[] = [
       '`vecs` has shape `(batch, seq_len, dim)`, and averaging over `dim=1` (the positions) gives `(batch, dim)`. An average does not care about order, so any shuffle of the same words gives the same `avg` and the same logits. `fc` therefore has `dim` inputs, not one per vocabulary word, and averaging works for any sentence length.',
     difficulty: 'intermediate',
   },
+  {
+    id: 'text-as-data.text-classification.6',
+    prompt:
+      'A hawker association has only 300 labelled reviews (positive or negative) and wants the most accurate sentiment classifier it can get. Which plan is most likely to reach the highest accuracy?',
+    options: [
+      'Reuse a pretrained encoder, either as frozen features for logistic regression or fine-tuned gently',
+      'Train a 3-layer LSTM from random weights, because only a sequence model can understand word order',
+      'Use TF-IDF with logistic regression only, because pretrained models need thousands of labelled reviews',
+      'Cluster the reviews into two groups with k-means, because 300 labels are too few for supervised learning',
+    ],
+    answer: 0,
+    explanation:
+      'Pretrained knowledge is what makes small datasets workable: the encoder already knows that "tasty" and "delicious" are similar and reads words in context, so 300 labels are enough to train a small head on its embeddings or to nudge its weights with a small learning rate. TF-IDF + logistic regression is the right first baseline, but it usually loses to a pretrained encoder even at this size; "pretrained models need thousands of labels" is a myth. A from-scratch LSTM has far more parameters than 300 examples and overfits, and k-means throws away the labels you have.',
+    difficulty: 'intermediate',
+  },
 ]
 
 export default questions

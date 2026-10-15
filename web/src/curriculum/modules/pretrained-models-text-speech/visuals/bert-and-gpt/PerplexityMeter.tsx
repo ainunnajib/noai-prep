@@ -49,6 +49,22 @@ function SurpriseBars({ nll, tokens, sel, onSel }: { nll: number[]; tokens: stri
   )
 }
 
+/** The average-surprise label, in its own column to the right of the last bar so it never collides with bar labels. */
+function AvgLabel({ x, y, value }: { x: number; y: number; value: number }) {
+  const { xs, ys } = usePlot()
+  const st = { fill: 'var(--viz-4)', fontSize: 11, fontWeight: 800, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' as const }
+  return (
+    <g>
+      <text x={xs(x)} y={ys(y) - 18} textAnchor="middle" style={st}>
+        avg
+      </text>
+      <text x={xs(x)} y={ys(y) - 5} textAnchor="middle" style={st}>
+        {value.toFixed(2)}
+      </text>
+    </g>
+  )
+}
+
 export default function PerplexityMeter() {
   const [k, setK] = useState(0)
   const [selRaw, setSel] = useState(8)
@@ -68,7 +84,7 @@ export default function PerplexityMeter() {
       caption={
         <>
           Real probabilities from GPT-2 (124 million parameters). Each bar is one token's <b>surprise</b>, <code>−ln P</code>: 0 means "certain", and every
-          extra unit means the probability fell by another factor of <i>e</i> ≈ 2.7. Perplexity is <i>e</i> raised to the average surprise. Compare the
+          extra unit means the probability fell by another factor of <i>e</i> ≈ 2.7. Perplexity is <i>e</i> raised to the average surprise (the dashed line). Compare the
           fluent sentence with the one where a single word is odd, then with the scrambled one (same words, nonsense order). Tap a bar to see that token's
           probability. GPT-2 splits "MRT" into <code>␣M</code> + <code>RT</code>; ␣ marks a leading space.
         </>
@@ -81,11 +97,12 @@ export default function PerplexityMeter() {
         "{d.text}"
       </p>
       <div ref={ref} style={{ width: '100%' }}>
-        <Plot x={[0, N]} y={[0, YMAX]} width={560} height={300} minHeight={260} margin={{ bottom: 62, left: 40, top: 18 }} ariaLabel="Surprise of each token, in nats">
+        <Plot x={[0, N + 1.4]} y={[0, YMAX]} width={560} height={300} minHeight={260} margin={{ bottom: 62, left: 40, top: 18 }} ariaLabel="Surprise of each token, in nats">
           <Grid xTicks={0} yTicks={8} />
           <Axes yLabel={narrow ? '−ln P' : 'surprise −ln P'} hideXTicks yTicks={8} />
           <SurpriseBars nll={nll} tokens={d.tokens} sel={sel} onSel={setSel} />
-          <HLine y={avg} color="var(--viz-4)" width={2} label={`average ${avg.toFixed(2)}`} />
+          <HLine y={avg} color="var(--viz-4)" width={2} />
+          <AvgLabel x={N + 0.7} y={avg} value={avg} />
         </Plot>
       </div>
       <div className={s.status} role="status">

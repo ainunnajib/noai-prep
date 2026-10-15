@@ -1,6 +1,6 @@
 import { useState, type CSSProperties } from 'react'
 import { Figure, Controls, Readout, Segmented, Slider, Toggle, Button, MatrixGrid, useContainerWidth } from '../../../../../kit'
-import { npPrint, shapeOf, flat, nest, shapeStr, type Nested } from './npFormat'
+import { npPrint, shapeOf, flat, nest, shapeStr, charsThatFit, wrapCall, type Nested } from './npFormat'
 
 /*
   Pick a constructor, set its arguments, and see the array NumPy would make: the grid, exactly what
@@ -32,8 +32,9 @@ const pre: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-const short = (dp: number) => (v: number) => {
-  if (Number.isInteger(v)) return String(v)
+/** Grid cell text. A whole number in a float array keeps its point ("0.", "1."), as NumPy prints it. */
+const short = (dp: number, isFloat: boolean) => (v: number) => {
+  if (Number.isInteger(v)) return isFloat ? `${v}.` : String(v)
   const s = v.toFixed(dp).replace(/0+$/, '')
   return Math.abs(v - Number(s)) > 1e-12 ? s + '…' : s
 }
@@ -106,7 +107,8 @@ export default function ArrayBuilder() {
     fn()
     setRevealed(false)
   }
-  const printed = npPrint(nest(flat(value), shape), isFloat)
+  const fit = charsThatFit(gw)
+  const printed = npPrint(nest(flat(value), shape), isFloat, fit)
   const nCols = ndim === 1 ? size : shape[1]
   const cellSize = Math.max(26, Math.min(ndim === 1 && size > 6 ? 46 : 52, Math.floor((gw - 36) / Math.max(1, nCols)) - 3))
   const dp = cellSize >= 50 ? 3 : cellSize >= 40 ? 2 : 1
@@ -182,7 +184,7 @@ export default function ArrayBuilder() {
         />
       </Controls>
       <Controls>{argControls()}</Controls>
-      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>a = {code}</pre>
+      <pre style={{ ...pre, fontWeight: 700, color: 'var(--accent)' }}>{wrapCall(`a = ${code}`, fit)}</pre>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '0.6rem', justifyItems: 'center', width: '100%', ...blur }} aria-hidden={hidden}>
         <div ref={gridRef} style={{ width: '100%', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', justifyItems: 'center', overflow: 'hidden' }}>
           {size === 0 ? (
@@ -190,7 +192,7 @@ export default function ArrayBuilder() {
           ) : (
             <MatrixGrid
               data={grid}
-              format={short(dp)}
+              format={short(dp, isFloat)}
               cellSize={cellSize}
               label={ndim === 1 ? `1-D: one row of ${size} number${size === 1 ? '' : 's'}` : `2-D: ${shape[0]} rows × ${shape[1]} columns`}
             />
