@@ -113,7 +113,8 @@ export default function KernelStateTimeline() {
       <NbCell
         key={c}
         prompt={r ? `In [${r.count}]:` : 'In [ ]:'}
-        tags={changed ? [...tags, { text: 'changed since run', tone: 'warn' }] : tags}
+        // 'cell n' is the position on the page; In [n] is the run order, which changes every time a cell is run
+        tags={[{ text: `cell ${c}`, tone: 'plain' as const }, ...tags, ...(changed ? [{ text: 'changed since run', tone: 'warn' as const }] : [])]}
         locked={c === 2}
         active={st.log[st.log.length - 1] === c}
         headExtra={
@@ -183,7 +184,7 @@ export default function KernelStateTimeline() {
       title="The page order is not the run order"
       caption={
         <>
-          Try the four challenges in any order. Real Jupyter shows only the <code>In [n]</code> numbers; the "changed since run" tag and the memory panel are what it does{' '}
+          Try the four challenges in any order. <b>cell n</b> is the cell's position on the page; <code>In [n]</code> is the order cells were run in. Real Jupyter shows only the <code>In [n]</code> numbers; the "changed since run" tag and the memory panel are what it does{' '}
           <em>not</em> show you. Notice that only <strong>Restart &amp; Run All</strong> proves the notebook works from top to bottom.
         </>
       }

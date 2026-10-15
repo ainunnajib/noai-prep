@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Toggle, Button, Plot, Grid, Axes, Path, Dots, VLine, useAnimationFrame } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Toggle, Button, Plot, Grid, Axes, Path, Dots, VLine, Label, useAnimationFrame } from '../../../../../kit'
 import { CURVES, LRS } from './esCurves'
 import { earlyStop } from './gb'
 import { Py } from './code'
@@ -34,6 +34,7 @@ export default function EarlyStopRunner() {
   const [patience, setPatience] = useState(1)
   const [op, setOp] = useState<Op>('>=')
   const [showTest, setShowTest] = useState(false)
+  const [zoom, setZoom] = useState(false)
   const c = CURVES[String(lr)]
   const { stoppedAfter, bestN } = earlyStop(c.val, patience, op)
   const [drawn, setDrawn] = useState(stoppedAfter)
@@ -61,6 +62,10 @@ export default function EarlyStopRunner() {
   const done = shown >= stoppedAfter
   const counter = counterAt(c.val, shown)
   const testAtBest = bestN > 0 ? c.test[bestN - 1] : c.f0[2]
+  // zoomed view: a 500-wide window just above the lowest validation MSE, so a small rise after the best tree is visible
+  const vMin = Math.min(...c.val)
+  const yLo = zoom ? Math.max(0, Math.floor((vMin - 100) / 100) * 100) : 0
+  const yHi = zoom ? yLo + 500 : Y_MAX
 
   return (
     <Figure
@@ -71,12 +76,13 @@ export default function EarlyStopRunner() {
           The model adds one tree at a time and checks the <b>validation</b> MSE after each. It remembers the best so far and stops once{' '}
           <code>patience</code> trees in a row have failed to beat it; then it keeps only the first <code>best_n_estimators</code> trees. The
           default settings reproduce the notebook&apos;s test with scikit-learn 1.9 (patience = 1: stop after 125 trees, keep 124; other versions stop elsewhere). Raise the patience: one unlucky
-          tree no longer ends training, and the kept model is better on unseen test data. Try learning_rate 0.5: the validation loss bottoms out after
-          about 90 trees and then creeps back up while the training loss falls to zero (overfitting); early stopping keeps the best point. Faded lines show what would have happened if training had continued.
+          tree no longer ends training, and the kept model is better on unseen test data. Try learning_rate 0.5 with patience 30 and switch on <b>Zoom on validation</b>:
+          the validation loss bottoms out near tree 91 and then creeps up slightly while the training loss keeps falling (mild overfitting); early stopping keeps the best
+          point. Faded lines show what would have happened if training had continued.
         </>
       }
     >
-      <Plot x={[0, 500]} y={[0, Y_MAX]} width={680} height={300} minHeight={230} margin={{ left: 52 }} ariaLabel="Training and validation MSE against the number of trees, with the early-stopping point marked">
+      <Plot x={[0, 500]} y={[yLo, yHi]} width={680} height={300} minHeight={230} margin={{ left: 52 }} ariaLabel="Training and validation MSE against the number of trees, with the early-stopping point marked">
         <Grid xTicks={10} yTicks={8} />
         <Axes xLabel="number of trees" yLabel="MSE" xTicks={5} yTicks={4} tickFormat={(v) => v.toLocaleString('en-GB')} />
         {/* what would have happened (faded) */}
@@ -96,7 +102,15 @@ export default function EarlyStopRunner() {
             <Dots points={[{ x: bestN, y: c.val[bestN - 1], color: 'var(--viz-4)' }]} r={6} />
           </>
         )}
-        {done && stoppedAfter < 500 && stoppedAfter - bestN > 25 && <VLine x={stoppedAfter} color="var(--viz-neg)" label={`stopped ${stoppedAfter}`} />}
+        {done && stoppedAfter < 500 && stoppedAfter - bestN > 25 && (
+          <>
+            <VLine x={stoppedAfter} color="var(--viz-neg)" />
+            {/* a second row, so it never runs into the "kept" label when the two lines are close */}
+            <Label x={stoppedAfter} y={yHi} dx={5} dy={30} color="var(--viz-neg)" size={12} weight={700}>
+              {`stopped ${stoppedAfter}`}
+            </Label>
+          </>
+        )}
       </Plot>
       <div className={s.legend}>
         <span className={s.key}>
@@ -132,6 +146,7 @@ export default function EarlyStopRunner() {
           ]}
         />
         <Toggle label="show test MSE" checked={showTest} onChange={setShowTest} />
+        <Toggle label="Zoom on validation" checked={zoom} onChange={setZoom} />
         <Button
           primary
           onClick={() => {

@@ -3,6 +3,77 @@ import TFIDFTableBuilder from './visuals/task-rag-tfidf/TFIDFTableBuilder'
 import RetrievalScoreboard from './visuals/task-rag-tfidf/RetrievalScoreboard'
 import RAGRunner from './visuals/task-rag-tfidf/RAGRunner'
 
+export const ragCode = `import re
+import numpy as np
+
+documents = [
+    "Artificial intelligence is transforming industries.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning allows machines to solve complex problems.",
+    "Data science involves statistics and machine learning.",
+    "Neural networks are inspired by the human brain."
+]
+query = "How does machine learning work?"
+
+# ---------- your code here ----------
+STOP_WORDS = {"a", "an", "the", "is", "are", "of", "and", "to", "by", "how", "does",
+              "do", "what", "why", "in", "on", "for", "it", "this", "that", "with", "as"}
+
+def tokenise(text):
+    # lower-case, keep runs of letters ("learning." -> "learning"), drop stop words
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in STOP_WORDS]
+
+# 1. vocabulary: every distinct document token gets a column number
+doc_tokens = [tokenise(d) for d in documents]
+vocab = sorted({w for toks in doc_tokens for w in toks})
+word_to_index = {w: j for j, w in enumerate(vocab)}
+N, V = len(documents), len(vocab)
+
+# 2. term frequency: raw counts, shape (N, V)
+tf = np.zeros((N, V))
+for i, toks in enumerate(doc_tokens):
+    for w in toks:
+        tf[i, word_to_index[w]] += 1
+
+# 3. smoothed IDF, shape (V,)
+df = (tf > 0).sum(axis=0)              # documents containing each word
+idf = np.log((1 + N) / (1 + df)) + 1
+doc_vectors = tf * idf                 # TF-IDF, shape (N, V)
+
+# 4. the query in the SAME space (same vocabulary, same idf)
+def vectorise(text):
+    v = np.zeros(V)
+    for w in tokenise(text):
+        if w in word_to_index:         # words in no document are ignored
+            v[word_to_index[w]] += 1
+    return v * idf
+
+q = vectorise(query)
+
+# 5. cosine similarity with every document, then the top k
+scores = doc_vectors @ q / (np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(q) + 1e-10)
+k = 2
+order = np.argsort(-scores, kind="stable")     # best first; ties keep document order
+top_indices = [i for i in order[:k] if scores[i] > 0]
+top_documents = [documents[i] for i in top_indices]
+
+# 6. generate: an extractive template (no LLM allowed in the exam)
+def generate(docs):
+    if not docs:
+        return "I don't know based on the given documents."
+    return "According to the documents: " + " ".join(docs)
+
+response = generate(top_documents)
+print("scores:", np.round(scores, 4))
+
+# ---------- the protected print cell ----------
+print("Query:", query)
+print("\\nRetrieved Documents:")
+for doc in top_documents:
+    print("-", doc)
+print("\\nGenerated Response:")
+print(response)`
+
 Question 3 of the 2025 Final was worth **40 of the 80 programming marks**, half of Section 2, and it was the only task with no function to fill in. You got five sentences, one question and a print cell waiting for two variables. In this lesson you rebuild it from an empty cell using only NumPy and the standard library. You will check your printout against the notebook's expected output and write the "thought process" answer the notebook asks for. If TF-IDF or RAG are new to you, read [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf) first; here we focus on doing the whole task under exam conditions.
 
 <Analogy title="The index at the back of your textbook">
@@ -181,76 +252,7 @@ Retrieval does the heavy lifting. Once the right documents are in `top_documents
 
 This is everything that goes in the empty cell, about 40 lines. It uses only `re` from the standard library and NumPy. Run it, then change `query` or `k`.
 
-<PyRunner packages={['numpy']} rows={22} code={`import re
-import numpy as np
-
-documents = [
-    "Artificial intelligence is transforming industries.",
-    "Machine learning is a subset of artificial intelligence.",
-    "Deep learning allows machines to solve complex problems.",
-    "Data science involves statistics and machine learning.",
-    "Neural networks are inspired by the human brain."
-]
-query = "How does machine learning work?"
-
-# ---------- your code here ----------
-STOP_WORDS = {"a", "an", "the", "is", "are", "of", "and", "to", "by", "how", "does",
-              "do", "what", "why", "in", "on", "for", "it", "this", "that", "with", "as"}
-
-def tokenise(text):
-    # lower-case, keep runs of letters ("learning." -> "learning"), drop stop words
-    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in STOP_WORDS]
-
-# 1. vocabulary: every distinct document token gets a column number
-doc_tokens = [tokenise(d) for d in documents]
-vocab = sorted({w for toks in doc_tokens for w in toks})
-word_to_index = {w: j for j, w in enumerate(vocab)}
-N, V = len(documents), len(vocab)
-
-# 2. term frequency: raw counts, shape (N, V)
-tf = np.zeros((N, V))
-for i, toks in enumerate(doc_tokens):
-    for w in toks:
-        tf[i, word_to_index[w]] += 1
-
-# 3. smoothed IDF, shape (V,)
-df = (tf > 0).sum(axis=0)              # documents containing each word
-idf = np.log((1 + N) / (1 + df)) + 1
-doc_vectors = tf * idf                 # TF-IDF, shape (N, V)
-
-# 4. the query in the SAME space (same vocabulary, same idf)
-def vectorise(text):
-    v = np.zeros(V)
-    for w in tokenise(text):
-        if w in word_to_index:         # words in no document are ignored
-            v[word_to_index[w]] += 1
-    return v * idf
-
-q = vectorise(query)
-
-# 5. cosine similarity with every document, then the top k
-scores = doc_vectors @ q / (np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(q) + 1e-10)
-k = 2
-order = np.argsort(-scores, kind="stable")     # best first; ties keep document order
-top_indices = [i for i in order[:k] if scores[i] > 0]
-top_documents = [documents[i] for i in top_indices]
-
-# 6. generate: an extractive template (no LLM allowed in the exam)
-def generate(docs):
-    if not docs:
-        return "I don't know based on the given documents."
-    return "According to the documents: " + " ".join(docs)
-
-response = generate(top_documents)
-print("scores:", np.round(scores, 4))
-
-# ---------- the protected print cell ----------
-print("Query:", query)
-print("\\nRetrieved Documents:")
-for doc in top_documents:
-    print("-", doc)
-print("\\nGenerated Response:")
-print(response)`} />
+<PyRunner packages={['numpy']} rows={22} code={ragCode} />
 
 It prints:
 
