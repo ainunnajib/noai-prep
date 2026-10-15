@@ -204,8 +204,6 @@ A few names to know:
 
 The same pattern works for any input the encoder can read. For image captioning, a vision encoder (such as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers)) turns the picture into a sequence of patch vectors, and a text decoder cross-attends to them. The decoder does not care whether its memory came from words, image patches or slices of audio.
 
-<PastPaperQuestion paper="prelim2026" n={254} />
-
 <ModelFamilyMap />
 
 One modern twist: today's large decoder-only LLMs can also translate and summarise. They put the input and the output in **one** stream ("English: I like durian. Malay: ...") and use causal self-attention over all of it, so the "cross-attention" happens inside ordinary self-attention. Encoder-decoders remain popular when the task is a fixed mapping and the model must be small and fast, as in Whisper or on-device translation.

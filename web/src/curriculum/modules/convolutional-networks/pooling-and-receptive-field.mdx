@@ -59,7 +59,7 @@ The standard setting is a 2×2 window with stride 2, so the windows sit side by 
 
 <PoolingExplorer />
 
-How big is the output? Exactly the same counting as for a convolution (you met it in the padding lesson):
+How big is the output? Exactly the same counting as for a convolution (you met it in [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes)):
 
 $$
 n_{\text{out}} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
@@ -108,7 +108,7 @@ Which kind should you use? Max pooling asks "did this feature appear **anywhere*
 
 ## Small shifts, same answer
 
-Recall from the convolution lesson that the same filter is used at every position. So if you shift the input image one pixel to the right, every feature map shifts one pixel to the right too. This property is called <Term def="A property of an operation: transforming the input (here, shifting it) transforms the output in the same way. Convolution is equivariant to shifts: shift the image and the feature map shifts by the same amount.">translation equivariance</Term>. It is useful (a cat in the corner is detected just like a cat in the middle), but the output still *changes* every time the cat moves.
+Recall from [The convolution operation](#/learn/convolutional-networks/convolution) that the same filter is used at every position. So if you shift the input image one pixel to the right, every feature map shifts one pixel to the right too. This property is called <Term def="A property of an operation: transforming the input (here, shifting it) transforms the output in the same way. Convolution is equivariant to shifts: shift the image and the feature map shifts by the same amount.">translation equivariance</Term>. It is useful (a cat in the corner is detected just like a cat in the middle), but the output still *changes* every time the cat moves.
 
 In the visual below, a "corner detector" has fired at four places (every other value is 0, as is typical after ReLU). What we often want for classification is <Term def="The output does not change when the input is shifted. Pooling provides an approximate version of this for small shifts.">translation invariance</Term>: the answer "cat" should not change. Pooling gives a small, approximate dose of it.
 
@@ -197,7 +197,7 @@ With $C = 64$: $18 \times 4096 = 73{,}728$ weights against $25 \times 4096 = 102
 
 <StackVsBig />
 
-This is the design idea of **VGG** (Oxford, 2014): use *only* 3×3 convolutions and 2×2 max-pools, and get large receptive fields from depth. Almost every CNN since has followed it, which raises the next lesson's question: what goes wrong when you make networks very deep?
+This is the design idea of **VGG** (Oxford, 2014): use *only* 3×3 convolutions and 2×2 max-pools, and get large receptive fields from depth. Almost every CNN since has followed it, which raises the question of the next lesson, [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets): what goes wrong when you make networks very deep?
 
 <PastPaperQuestion paper="prelim2026" n={204} />
 

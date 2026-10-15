@@ -107,7 +107,7 @@ A stenographer listens to a recording and types it out. Before starting, they ar
 **Whisper** (OpenAI, 2022) is an [encoder-decoder Transformer](#/learn/pretrained-models-text-speech/encoder-decoder-models), like a translation model whose "source sentence" is a spectrogram. The original Whisper was trained on **680,000 hours** of audio paired with transcripts collected from the internet (large-v3 later used about 5 million hours). Those labels are plentiful but imperfect, which is called <Term def="Learning from labels that are plentiful but imperfect, such as subtitles found on the web, instead of a small set of carefully checked labels.">weak supervision</Term>. So unlike HuBERT, Whisper does learn from transcripts. The pipeline:
 
 1. Cut or pad the audio to a **30-second** chunk at 16 kHz: 480,000 samples.
-2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in the last lesson; large-v3 and large-v3-turbo use 128 mel rows instead of 80.
+2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in [Sound as data: waveforms and spectrograms](#/learn/pretrained-models-text-speech/audio-as-data); large-v3 and large-v3-turbo use 128 mel rows instead of 80.
 3. **Encoder:** two 1-D convolutions (width 3; the second has [stride](#/learn/convolutional-networks/padding-stride-shapes) 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms. A **1-D convolution** is the [convolution](#/learn/convolutional-networks/convolution) you know from images, but its filter slides along one axis only: time. The 80 mel bands play the role of an image's colour channels, so each filter covers all 80 bands across 3 neighbouring frames.
 4. **Decoder:** generates text tokens one at a time. Each block has causal self-attention over the tokens so far, plus **cross-attention**, whose queries come from the text and whose keys and values come from the 1,500 audio vectors.
 5. **Special tokens** start every output: `<|startoftranscript|>`, a language token such as `<|ms|>`, a task token (`<|transcribe|>` or `<|translate|>`) and `<|notimestamps|>`. The output ends with `<|endoftext|>`.
@@ -166,8 +166,6 @@ print(x.shape)
 torch.Size([1, 384, 1500])
 torch.Size([1, 1500, 384])
 ```
-
-<PastPaperQuestion paper="prelim2026" n={190} />
 
 Whisper comes in five sizes, all with the same design: tiny (39M parameters, width 384), base (74M, 512), small (244M, 768), medium (769M, 1,024) and large (1.55B, 1,280). Since 2024 there is also **large-v3-turbo** (809M): a large encoder with only 4 decoder layers, for faster transcription.
 

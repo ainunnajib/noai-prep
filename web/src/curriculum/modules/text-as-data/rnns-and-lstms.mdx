@@ -47,7 +47,7 @@ The key design choice is that $W_x$, $W_h$ and $b$ are **the same at every step*
   </Step>
 </Steps>
 
-How do you use the states? To classify a sentence (sentiment, spam), feed the **final** state $h_T$ to a linear layer, like the vector in the text-classification lesson but built in word order. To label every word (say, tagging place names), put a linear layer on **every** $h_t$. And to predict the next word, which is <Term def="Predicting the next token from the tokens before it. It is how text generators such as GPT are trained.">language modelling</Term>, the output at step $t$ predicts $x_{t+1}$.
+How do you use the states? To classify a sentence (sentiment, spam), feed the **final** state $h_T$ to a linear layer, like the vector in [Text classification](#/learn/text-as-data/text-classification) but built in word order. To label every word (say, tagging place names), put a linear layer on **every** $h_t$. And to predict the next word, which is <Term def="Predicting the next token from the tokens before it. It is how text generators such as GPT are trained.">language modelling</Term>, the output at step $t$ predicts $x_{t+1}$.
 
 <KeyIdea>
 
@@ -127,8 +127,6 @@ The two problems have different fixes. **Exploding** gradients are tamed with th
 Vanishing gradients become **tiny** (not exactly zero), so early steps learn extremely slowly; exploding gradients become **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem, the same disease you met in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients): an unrolled RNN *is* a very deep network, one layer per word.
 
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={222} />
 
 <QuickCheck
   q="In a plain RNN each step back in time multiplies the gradient by about 0.5. Roughly how much of the gradient from word 11 reaches word 1?"

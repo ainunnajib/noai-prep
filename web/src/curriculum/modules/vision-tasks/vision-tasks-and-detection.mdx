@@ -217,7 +217,7 @@ That sum is the area under the precision-recall curve: the <Term def="Average pr
 
 ## How detectors find boxes
 
-Most detectors start with a pretrained backbone, usually a CNN such as ResNet (Transformer backbones are also used, such as ViT, which you met in the previous lesson, or its variant Swin). They differ in how they turn its features into boxes.
+Most detectors start with a pretrained backbone, usually a CNN such as ResNet (Transformer backbones are also used, such as ViT, which you met in [Transfer learning and image augmentation](#/learn/vision-tasks/transfer-learning-and-augmentation), or its variant Swin). They differ in how they turn its features into boxes.
 
 <Analogy title="Two checkpoints or one smart gate">
 
@@ -234,7 +234,7 @@ At an airport you might queue for a security check, then queue again at passport
 
 **One-stage detectors: YOLO and SSD.** Skip the proposal step and predict every box and class in **one forward pass** over a grid of cells, which makes them fast enough for real-time video. YOLO stands for "You Only Look Once"; SSD (Single Shot MultiBox Detector) predicts from several feature maps of different sizes to catch small and large objects.
 
-**Set prediction: DETR.** The DEtection TRansformer passes the CNN features through a <Term def="A kind of network layer that lets every part of the input look at every other part (attention). Taught in the attention-and-transformers module.">Transformer</Term> and fills a fixed number of slots, called *object queries* (e.g. 100), each with either a box and class or "no object". In training, each real object is matched to exactly one slot and duplicate boxes are penalised, which is why DETR needs **no NMS**. And because each query predicts its box directly, not as an adjustment of a preset box, it needs **no anchors** either. (Transformers come in a later module; for now remember: a fixed set of slots, one per object, no NMS.)
+**Set prediction: DETR.** The DEtection TRansformer passes the CNN features through a <Term def="A kind of network layer that lets every part of the input look at every other part (attention). Taught in the attention-and-transformers module.">Transformer</Term> and fills a fixed number of slots, called *object queries* (e.g. 100), each with either a box and class or "no object". In training, each real object is matched to exactly one slot and duplicate boxes are penalised, which is why DETR needs **no NMS**. And because each query predicts its box directly, not as an adjustment of a preset box, it needs **no anchors** either. (You will build the Transformer itself in [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks); for now remember: a fixed set of slots, one per object, no NMS.)
 
 Click through each pipeline to see what every stage takes in and gives out.
 

@@ -7,7 +7,7 @@ One attention layer gives every word one row of weights: one way of looking at t
 
 ## One head, one way of looking
 
-Recall the previous lesson: a query is compared with every key, softmax turns the scores into weights, and the output is the weighted average of the values,
+Recall the previous lesson, [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention): a query is compared with every key, softmax turns the scores into weights, and the output is the weighted average of the values,
 
 $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V .
@@ -108,7 +108,7 @@ Why the `transpose`? Matrix multiplication with `@` works on the **last two** ax
 
 ## In PyTorch
 
-This is the layer as NOAI's scaffold names it (`W_q`, `W_k`, `W_v`, `W_o`). The `forward` takes `query`, `key` and `value` separately: for **self-attention** you pass the same `x` three times; the next lesson uses different inputs for cross-attention.
+This is the layer as NOAI's scaffold names it (`W_q`, `W_k`, `W_v`, `W_o`). The `forward` takes `query`, `key` and `value` separately: for **self-attention** you pass the same `x` three times; the next lesson, [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks), uses different inputs for cross-attention.
 
 ```python
 import math
@@ -186,7 +186,7 @@ The fix is `out.transpose(1, 2).contiguous().view(B, T, d_model)` (or `.reshape(
 
 </Mistake>
 
-Here is a real Final question with a complete multi-head implementation. Read it line by line: you can now follow every reshape, and the missing piece comes from the previous lesson.
+Here is a real Final question with a complete multi-head implementation. Read it line by line: you can now follow every reshape, and the missing piece comes from [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention).
 
 <PastPaperQuestion paper="final2026" n={16} />
 

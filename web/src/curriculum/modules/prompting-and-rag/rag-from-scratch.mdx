@@ -16,7 +16,7 @@ You met the ideas (count vectors, IDF and cosine similarity), and ran a complete
 
 ## Five arrays make a retriever
 
-Our running example is a helpdesk bot for a school handbook with four one-line documents. We number them from 0, as Python indexes lists (the last lesson's chunks were numbered from 1, like handbook pages): d0 "The library is open on Friday.", d1 "The canteen is open on Monday and closed on Friday.", d2 "Exam week: the library is open on Friday, and the exam hall is closed." and d3 "The hall is closed on Monday."
+Our running example is a helpdesk bot for a school handbook with four one-line documents. We number them from 0, as Python indexes lists (the chunks in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline) were numbered from 1, like handbook pages): d0 "The library is open on Friday.", d1 "The canteen is open on Monday and closed on Friday.", d2 "Exam week: the library is open on Friday, and the exam hall is closed." and d3 "The hall is closed on Monday."
 
 - `vocab`: every distinct word in the documents, sorted (9 words here).
 - `D`: the <Term def="A table with one row per document and one column per vocabulary word; each cell counts how often that word appears in that document.">document-term matrix</Term>. Row $i$ counts the words of document $i$, so its shape is `(4, 9)`.
@@ -86,8 +86,6 @@ No calculator? Rank by $\cos^2$ instead of $\cos$. With counts every score is at
 ## Why `D @ q` and not a loop
 
 `D @ q` is a matrix–vector product: it takes the dot product of **every row** of `D` with `q` and returns one number per row, shape `(4,)`. A Python `for` loop over the rows gives the same numbers, but more slowly and with more chances for a typo. Replacing loops with whole-array operations is called <Term def="Writing one operation that acts on a whole array, so NumPy runs the loop in fast compiled code instead of a Python for loop.">vectorisation</Term>.
-
-<PastPaperQuestion paper="prelim2026" n={98} />
 
 `np.dot(D, q)` gives exactly the same result as `D @ q` for these arrays. `D * q` is different: broadcasting stretches `q` across all 4 rows and multiplies **element by element**, giving a `(4, 9)` matrix of products. You would still have to add along each row, so `(D * q).sum(axis=1)` equals `D @ q` = `[3, 2, 3, 0]`.
 

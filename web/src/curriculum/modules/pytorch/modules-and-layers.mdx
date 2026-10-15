@@ -3,7 +3,7 @@ import LinearShapeMatcher from './visuals/modules-and-layers/LinearShapeMatcher'
 import StateDictViewer from './visuals/modules-and-layers/StateDictViewer'
 import ParamBufferInspector from './visuals/modules-and-layers/ParamBufferInspector'
 
-In the autograd lesson you trained two loose tensors, `w` and `b`, by hand. A real model has dozens of weight tensors in layers, and `nn.Module` is the tidy way to build them, hand them all to the optimiser, move them to a GPU and save them. Every PyTorch model, from a two-layer network to GPT, is an `nn.Module`, and almost every NOAI Final task that says "implement this model in PyTorch" starts with the ten-line pattern you will learn here.
+In [Autograd: automatic gradients](#/learn/pytorch/autograd) you trained two loose tensors, `w` and `b`, by hand. A real model has dozens of weight tensors in layers, and `nn.Module` is the tidy way to build them, hand them all to the optimiser, move them to a GPU and save them. Every PyTorch model, from a two-layer network to GPT, is an `nn.Module`, and almost every NOAI Final task that says "implement this model in PyTorch" starts with the ten-line pattern you will learn here.
 
 <Analogy title="Setting up a hawker stall">
 
@@ -297,7 +297,7 @@ tensor([ 0.1941, -0.0446,  0.0135])
 True
 ```
 
-It is like saving your game progress rather than copying the whole game installer: the save file is small, but it only makes sense inside the game. The file holds numbers only, so loading always takes two steps: **rebuild** the model from its class (the code says how the numbers are used), then **fill** it with `load_state_dict`. Finish with `model.eval()` before making predictions (the training-loop lesson explains why).
+It is like saving your game progress rather than copying the whole game installer: the save file is small, but it only makes sense inside the game. The file holds numbers only, so loading always takes two steps: **rebuild** the model from its class (the code says how the numbers are used), then **fill** it with `load_state_dict`. Finish with `model.eval()` before making predictions ([The training loop](#/learn/pytorch/training-loop) explains why).
 
 <StateDictViewer />
 
@@ -345,7 +345,7 @@ Not every tensor a model keeps should be trained. A module can hold a tensor in 
 - saved: **yes**
 - moved: **yes**
 - requires grad: **no**
-- use: running statistics, masks, positional encodings (fixed patterns that tell a Transformer each token's position, module 27)
+- use: running statistics, masks, positional encodings (fixed patterns that tell a Transformer each token's position; see [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks))
 
 </div>
 <div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
@@ -363,7 +363,7 @@ Not every tensor a model keeps should be trained. A module can hold a tensor in 
 </div>
 </Columns>
 
-A <Term def="A tensor registered with self.register_buffer: it is part of the module's state, so it is saved in the state_dict and moved by model.to(device), but it is not a parameter and the optimiser never changes it.">buffer</Term> is state that is not learned. The classic example is batch normalisation, which you will meet properly in the next module. For now you only need its outline: it rescales each feature using a mean and a variance. During training it uses the current batch's statistics and also keeps a **running average** of them, so that at test time it can normalise a single example. Those running averages must be saved and moved with the model, but no gradient should ever change them:
+A <Term def="A tensor registered with self.register_buffer: it is part of the module's state, so it is saved in the state_dict and moved by model.to(device), but it is not a parameter and the optimiser never changes it.">buffer</Term> is state that is not learned. The classic example is batch normalisation, which you will meet properly in the next module, in [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation). For now you only need its outline: it rescales each feature using a mean and a variance. During training it uses the current batch's statistics and also keeps a **running average** of them, so that at test time it can normalise a single example. Those running averages must be saved and moved with the model, but no gradient should ever change them:
 
 ```python
 import torch
@@ -447,7 +447,7 @@ Ask two questions about every tensor a module keeps. Should the optimiser change
 
 <Mistake title="A plain tensor attribute stays behind on the CPU">
 
-Attention code (module 27) often builds a *causal mask* once, a grid with 1s on and below the diagonal and 0s above it that stops each word looking at the words after it: `self.mask = torch.tril(torch.ones(T, T))` (`tril` keeps the lower triangle). As a plain attribute it is not moved by `model.to('cuda')`, so the first forward pass on the GPU stops with `Expected all tensors to be on the same device`. Writing `self.register_buffer('mask', torch.tril(torch.ones(T, T)))` fixes it, and the mask is saved with the model as well.
+Attention code (see [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention)) often builds a *causal mask* once, a grid with 1s on and below the diagonal and 0s above it that stops each word looking at the words after it: `self.mask = torch.tril(torch.ones(T, T))` (`tril` keeps the lower triangle). As a plain attribute it is not moved by `model.to('cuda')`, so the first forward pass on the GPU stops with `Expected all tensors to be on the same device`. Writing `self.register_buffer('mask', torch.tril(torch.ones(T, T)))` fixes it, and the mask is saved with the model as well.
 
 </Mistake>
 

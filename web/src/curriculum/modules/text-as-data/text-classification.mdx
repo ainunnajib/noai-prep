@@ -53,7 +53,7 @@ Our running example is <Term def="Deciding whether a piece of text expresses a p
 2. **Vectorise.** Turn the tokens into **one vector of fixed length**, because a classifier such as logistic regression expects the same number of inputs every time, but reviews have different numbers of words.
 3. **Classify.** Feed the vector to a classifier. Here it is logistic regression: a score $z = \mathbf{w} \cdot \mathbf{x} + b$, squashed by the sigmoid into a probability $p = \sigma(z)$. Predict "positive" when $p \ge 0.5$.
 
-The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from the bag-of-words lesson, and **averaged word embeddings**, from the embeddings lesson.
+The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from [Bag of words, TF-IDF and cosine retrieval](#/learn/text-as-data/bag-of-words-and-tfidf), and **averaged word embeddings**. The second takes the word vectors from [Word embeddings](#/learn/text-as-data/word-embeddings) and averages them.
 
 <TextClassifierPipeline />
 
@@ -124,7 +124,7 @@ The weights also show the model's blind spots:
 - **Negation and sarcasm** depend on how words combine, which a sum of separate votes cannot express. It is like judging a movie review by counting happy and sad words without ever noticing the word "not".
 - **Small data learns accidents.** `mee` has a large positive weight only because 3 of our 4 training reviews containing it were positive.
 
-A partial fix is to add <Term def="Sequences of n neighbouring tokens. Bigrams are word pairs such as 'not bad'; adding them as extra features lets a bag-of-words model see a little local order.">n-grams</Term>: word pairs such as "not bad" become extra vocabulary entries. That helps, but the vocabulary explodes and each pair needs its own training examples. The real fix is a model that reads words *in order*: a recurrent network (next lesson) or a Transformer.
+A partial fix is to add <Term def="Sequences of n neighbouring tokens. Bigrams are word pairs such as 'not bad'; adding them as extra features lets a bag-of-words model see a little local order.">n-grams</Term>: word pairs such as "not bad" become extra vocabulary entries. That helps, but the vocabulary explodes and each pair needs its own training examples. The real fix is a model that reads words *in order*: a recurrent network (the next lesson, [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms)) or a Transformer.
 
 <ExamTip>
 
@@ -217,10 +217,6 @@ The deciding factor is usually **how many labelled examples you have**:
 - **Never** train a big network from scratch on a small labelled set: with far more parameters than examples, it memorises the training set (overfits).
 
 <PastPaperQuestion paper="noai2025" n={17} />
-
-The next question shows the last bullet in action. An LSTM is a sequence model you meet in the next lesson; here all that matters is its 2.4 million parameters against 5,000 reviews.
-
-<PastPaperQuestion paper="prelim2026" n={261} />
 
 ## Evaluating: when accuracy lies
 

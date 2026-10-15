@@ -157,15 +157,9 @@ Older code, including the 2026 Final paper, writes `pretrained=True` instead of 
 
 An optimiser keeps references to the exact parameter tensors it was given when it was created. If you create it first and *then* replace `model.fc`, the optimiser is still holding the old head's weights. The new head gets gradients but is never updated, so it stays at its random starting values and accuracy stays poor. Always change the model first (freeze, replace the head, unfreeze), then build the optimiser.
 
+Handing the optimiser all of `model.parameters()` instead of `model.fc.parameters()` is not this bug: frozen weights get no gradient, so Adam simply skips them.
+
 </Mistake>
-
-<Note title="Before you try the next question">
-
-As printed, the question's optimiser line comes *after* `model.fc` is replaced, which would train normally. The question means the version from the Mistake above, where the optimiser was built first. Passing `model.parameters()` is not the bug: frozen weights get no gradient, so Adam simply skips them.
-
-</Note>
-
-<PastPaperQuestion paper="final2026" n={14} />
 
 <ExamTip>
 
@@ -190,7 +184,7 @@ Each augmentation teaches the model to ignore one kind of change it will meet in
 | noise or blur | cheap, grainy or shaky cameras<br />`GaussianBlur`, or add noise yourself |
 | cutout (random erasing) | something standing in front of the object<br />`RandomErasing` |
 
-As in that lesson, this is regularisation: over 40 epochs, 500 photos become $500 \times 40 = 20\,000$ slightly different pictures, too many to memorise, so the model has to learn features that survive the changes.
+As in [Dropout, weight decay, early stopping and augmentation](#/learn/training-deep-networks/regularising-deep-networks), this is regularisation: over 40 epochs, 500 photos become $500 \times 40 = 20\,000$ slightly different pictures, too many to memorise, so the model has to learn features that survive the changes.
 
 In torchvision you build two pipelines with `transforms.Compose`, which applies a list of transforms in order: a random one for training, and a fixed one for validation and test images (augmentation is for the training set only), so every evaluation sees exactly the same images:
 

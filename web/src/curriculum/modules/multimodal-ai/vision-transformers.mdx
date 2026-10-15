@@ -2,7 +2,7 @@ import Patchifier from './visuals/vision-transformers/Patchifier'
 import PositionShuffle from './visuals/vision-transformers/PositionShuffle'
 import PatchAttentionMap from './visuals/vision-transformers/PatchAttentionMap'
 
-In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere: it is the image encoder inside CLIP and inside most models that chat about pictures (the CLIP and vision-language-model lessons later in this module), and IOAI tasks name ViTs directly (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). You met the name in [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation); here is how it works. The whole trick is to turn an image into a sentence.
+In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere. It is the image encoder inside CLIP, which you will meet in [CLIP: one space for images and words](#/learn/multimodal-ai/clip-and-zero-shot). It also sits inside most models that chat about pictures, covered in [Vision-language models](#/learn/multimodal-ai/vision-language-models). IOAI tasks name ViTs directly too (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). You met the name in [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation); here is how it works. The whole trick is to turn an image into a sentence.
 
 <Analogy title="A jigsaw with numbered pieces">
 
@@ -48,8 +48,6 @@ Two consequences are worth remembering. First, $P$ appears twice in the formula,
 
 In Big-O notation (see [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o)), the cost of attention is $O(n^2)$ in the number of tokens $n$: double the tokens and you do four times the work.
 
-<PastPaperQuestion paper="prelim2026" n={219} />
-
 ## From patch to token: the patch embedding
 
 A patch is a small $P \times P$ block of pixels with $C$ colour channels. To become a token it goes through two steps.
@@ -57,7 +55,7 @@ A patch is a small $P \times P$ block of pixels with $C$ colour channels. To bec
 1. **Flatten** it into one long list of $P \cdot P \cdot C$ numbers. For a $16 \times 16$ RGB patch that is $16 \times 16 \times 3 = 768$ numbers.
 2. **Project** it: multiply by a learned weight matrix $\mathbf{E}$ of size $(P^2 C) \times D$ and add a bias, giving a vector of $D$ numbers. This is an ordinary linear layer, and the **same** $\mathbf{E}$ is used for every patch, much as a CNN slides the same kernel everywhere.
 
-The result is the <Term def="The vector a patch becomes after flattening and multiplying by the learned matrix E. It is the patch's 'word vector'.">patch embedding</Term>. A neat fact links this to the CNN module: a linear layer applied to each non-overlapping $16 \times 16$ patch is *exactly* a convolution with kernel size 16 and stride 16. Real ViT code is written that way, and the conv output-size formula gives $\lfloor (224 - 16)/16 \rfloor + 1 = 14$ positions per side, the same 14 as before.
+The result is the <Term def="The vector a patch becomes after flattening and multiplying by the learned matrix E. It is the patch's 'word vector'.">patch embedding</Term>. A neat fact links this to the CNN lesson [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes): a linear layer applied to each non-overlapping $16 \times 16$ patch is *exactly* a convolution with kernel size 16 and stride 16. Real ViT code is written that way, and the conv output-size formula gives $\lfloor (224 - 16)/16 \rfloor + 1 = 14$ positions per side, the same 14 as before.
 
 <Steps title="ViT-B/16 on a 224 × 224 RGB photo, by hand">
   <Step title="Count the patches">
@@ -110,8 +108,6 @@ $$
 Read it piece by piece: $\mathbf{x}_i$ is patch $i$ flattened, $\mathbf{x}_i\mathbf{E}$ is its patch embedding, $\mathbf{x}_{\text{cls}}$ is the learned [CLS] vector, the square brackets stack the $N + 1$ vectors into a table, and $\mathbf{E}_{\text{pos}}$ (an $(N+1) \times D$ table of learned numbers) adds one position vector to each row. (We leave out the bias of the projection to keep it short.)
 
 ViT simply numbers the positions 0 to 196 in a line and learns one vector for each; nothing tells it which patches share a row or a column. Yet after training, the position vectors of patches that are close in the *image* become similar: the model learns the 2-D layout by itself. The sine-and-cosine encodings from the [text Transformer](#/learn/attention-and-transformers/positional-encoding-and-blocks) would also work.
-
-<PastPaperQuestion paper="prelim2026" n={214} />
 
 ## In PyTorch
 
@@ -204,7 +200,7 @@ For natural photos these assumptions are almost always right, so a CNN starts wi
 | pretrained on a huge dataset | very good | as good or better, and scales further |
 | cost as image resolution grows | grows with the number of pixels | attention grows with $N^2$ |
 
-The original ViT paper showed this directly. Trained only on ImageNet's 1.3 million images, ViTs did worse than comparable ResNets. Pretrained on 14 million images (ImageNet-21k) or 300 million (Google's internal JFT-300M), they matched or beat them. Later work (DeiT) made ViTs competitive on ImageNet alone, using heavy augmentation and regularisation. In practice you rarely train a ViT from scratch: you download a **pretrained** one and fine-tune it, or train it with self-supervision, which is the next lesson.
+The original ViT paper showed this directly. Trained only on ImageNet's 1.3 million images, ViTs did worse than comparable ResNets. Pretrained on 14 million images (ImageNet-21k) or 300 million (Google's internal JFT-300M), they matched or beat them. Later work (DeiT) made ViTs competitive on ImageNet alone, using heavy augmentation and regularisation. In practice you rarely train a ViT from scratch: you download a **pretrained** one and fine-tune it, or train it with self-supervision, the topic of the next lesson, [Self-supervised learning for vision](#/learn/multimodal-ai/self-supervised-vision).
 
 <QuickCheck
   q="A student trains a ViT from scratch on 5,000 labelled leaf photos, and a ResNet of similar size reaches higher test accuracy. What is the most likely reason?"

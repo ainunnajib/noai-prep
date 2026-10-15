@@ -96,8 +96,6 @@ The toy vectors above have readable entries, but real embedding dimensions do no
 
 </Mistake>
 
-<PastPaperQuestion paper="prelim2026" n={206} />
-
 ## Where the numbers come from: Word2Vec
 
 Nobody types in embeddings. They are learned from plain text using the <Term def="The idea that words appearing in similar contexts tend to have similar meanings.">distributional hypothesis</Term>: words that appear in similar contexts have similar meanings. As the linguist J. R. Firth put it, "you shall know a word by the company it keeps". If you always see someone at the basketball court, they probably play basketball; if "laksa" and "mee siam" keep appearing next to "spicy", "bowl" and "hawker", they are probably similar things.
@@ -154,7 +152,7 @@ This is exactly the same as multiplying one-hot vectors by $E$. If $\mathbf{x}$ 
 
 <EmbeddingLookup />
 
-The rows start as random numbers and are **learned by backpropagation** like any other weights: only the rows of tokens that appear in a batch get a non-zero gradient. You can also start from pretrained vectors (Word2Vec, GloVe) and fine-tune them. The table is often big: BERT-base's token-embedding table is $30{,}522 \times 768 \approx 23.4$ million numbers. Setting `padding_idx=0` starts the `[PAD]` row (id 0 in the tokenisation lesson) at zero and leaves it out of the gradient updates, so it stays zero.
+The rows start as random numbers and are **learned by backpropagation** like any other weights: only the rows of tokens that appear in a batch get a non-zero gradient. You can also start from pretrained vectors (Word2Vec, GloVe) and fine-tune them. The table is often big: BERT-base's token-embedding table is $30{,}522 \times 768 \approx 23.4$ million numbers. Setting `padding_idx=0` starts the `[PAD]` row (id 0 in [Tokenisation, vocabularies and padding](#/learn/text-as-data/tokenisation)) at zero and leaves it out of the gradient updates, so it stays zero.
 
 ```python
 import torch
@@ -191,7 +189,7 @@ True
 ## Beyond single words
 
 - **Static vs contextual.** Word2Vec gives "bank" one vector, whether it is a river bank or a bank account. Models like BERT and GPT produce a **contextual** embedding: a different vector for each occurrence, computed from the whole sentence. You will meet these with Transformers.
-- **Anything can be embedded.** Sentences, images and audio clips can all be mapped to vectors so that similar items are close. CLIP puts images and their captions in the same space, so a photo of chicken rice lands near the words "chicken rice". Semantic search and RAG compare such embeddings with cosine similarity, exactly like the TF-IDF search in the previous lesson but able to match "chilli" with "spicy".
+- **Anything can be embedded.** Sentences, images and audio clips can all be mapped to vectors so that similar items are close. CLIP puts images and their captions in the same space, so a photo of chicken rice lands near the words "chicken rice". Semantic search and RAG compare such embeddings with cosine similarity, exactly like the TF-IDF search in [Bag of words, TF-IDF and cosine retrieval](#/learn/text-as-data/bag-of-words-and-tfidf) but able to match "chilli" with "spicy".
 
 <ExamTip>
 

@@ -3,7 +3,7 @@ import DataLoaderShuffle from './visuals/training-loop/DataLoaderShuffle'
 import TrainEvalToggle from './visuals/training-loop/TrainEvalToggle'
 import GradAccumulation from './visuals/training-loop/GradAccumulation'
 
-Every PyTorch model, from a two-weight toy to a large language model, learns inside the same five-line loop, and the **order** of those lines decides whether it learns, learns badly, or crashes. You already wrote this loop by hand in NumPy in [a neural network from scratch](#/learn/backpropagation/network-from-scratch): forward, loss, backward, update. PyTorch adds one more line, `zero_grad()`, because its gradients accumulate, as you saw in the autograd lesson. The NOAI Final's programming tasks run in Jupyter with no internet, so you need this loop in your head, and the MCQs ask what goes wrong when a line is missing or out of place.
+Every PyTorch model, from a two-weight toy to a large language model, learns inside the same five-line loop, and the **order** of those lines decides whether it learns, learns badly, or crashes. You already wrote this loop by hand in NumPy in [a neural network from scratch](#/learn/backpropagation/network-from-scratch): forward, loss, backward, update. PyTorch adds one more line, `zero_grad()`, because its gradients accumulate, as you saw in [Autograd: automatic gradients](#/learn/pytorch/autograd). The NOAI Final's programming tasks run in Jupyter with no internet, so you need this loop in your head, and the MCQs ask what goes wrong when a line is missing or out of place.
 
 <Analogy title="A practice-paper routine">
 
@@ -196,7 +196,7 @@ batches per epoch: 3
 1 (2, 1, 28, 28) [8, 3]
 ```
 
-Each example has shape `(1, 28, 28)`; the DataLoader stacks 5 of them into a batch of shape `(5, 1, 28, 28)`, the $(N, C, H, W)$ layout from the tensors lesson. Twelve does not divide by 5, so the last batch has only 2 examples. Every example is used exactly once per epoch, in a new order each time.
+Each example has shape `(1, 28, 28)`; the DataLoader stacks 5 of them into a batch of shape `(5, 1, 28, 28)`, the $(N, C, H, W)$ layout from [Tensors and shape surgery](#/learn/pytorch/tensors). Twelve does not divide by 5, so the last batch has only 2 examples. Every example is used exactly once per epoch, in a new order each time.
 
 <DataLoaderShuffle />
 

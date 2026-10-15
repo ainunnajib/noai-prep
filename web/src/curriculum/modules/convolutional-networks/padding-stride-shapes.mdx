@@ -25,7 +25,7 @@ for k, p, s, c_out in layers:
     c, n = c_out, conv_out(n, k, p, s)
     print(f"-> ({c}, {n}, {n})  params {params}")`
 
-In the last lesson an $8 \times 8$ image came out of a $3 \times 3$ convolution as a $6 \times 6$ feature map. Real networks need control over that: sometimes you want to keep the size, sometimes you want to halve it on purpose. They also stack layers with dozens or hundreds of channels, and the exam loves two questions about them: **what shape comes out**, and **how many parameters** does the layer have? This lesson gives you the two formulas that answer both, and shows exactly where each part comes from.
+In the last lesson, [The convolution operation](#/learn/convolutional-networks/convolution), an $8 \times 8$ image came out of a $3 \times 3$ convolution as a $6 \times 6$ feature map. Real networks need control over that: sometimes you want to keep the size, sometimes you want to halve it on purpose. They also stack layers with dozens or hundreds of channels, and the exam loves two questions about them: **what shape comes out**, and **how many parameters** does the layer have? This lesson gives you the two formulas that answer both, and shows exactly where each part comes from.
 
 <Analogy title="A bench along a row of chairs">
 
@@ -260,8 +260,6 @@ torch.Size([1, 128, 16, 16]) torch.Size([1, 128, 16, 16])
 ```
 
 Both produce the same output shape; the separable pair just gets there with about an eighth of the weights.
-
-<PastPaperQuestion paper="noai2025" n={14} />
 
 <ExamTip>
 

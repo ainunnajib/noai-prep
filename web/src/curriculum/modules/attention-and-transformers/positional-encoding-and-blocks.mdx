@@ -190,7 +190,7 @@ The block comes in three flavours, and NOAI likes to ask which is which:
 
 <PastPaperQuestion paper="prelim2026" n={213} />
 
-In <Term def="Attention where the queries come from one sequence and the keys and values come from another. In an encoder-decoder Transformer, the decoder's tokens (queries) look at the encoder's output (keys and values).">cross-attention</Term> the **queries** come from the decoder's own tokens, while the **keys and values** come from the encoder's output. The `MultiHeadAttention` class from the previous lesson already handles this: call it as `mha(dec_x, enc_out, enc_out)`. The weight table then has shape $(B, h, T_\text{tgt}, T_\text{src})$: one row per target word, one column per source word.
+In <Term def="Attention where the queries come from one sequence and the keys and values come from another. In an encoder-decoder Transformer, the decoder's tokens (queries) look at the encoder's output (keys and values).">cross-attention</Term> the **queries** come from the decoder's own tokens, while the **keys and values** come from the encoder's output. The `MultiHeadAttention` class from [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention) already handles this: call it as `mha(dec_x, enc_out, enc_out)`. The weight table then has shape $(B, h, T_\text{tgt}, T_\text{src})$: one row per target word, one column per source word.
 
 <Mistake title="Mixing up cross-attention">
 
@@ -215,7 +215,7 @@ It is **Q from the decoder, K and V from the encoder**, not the other way round:
 
 <PastPaperQuestion paper="prelim2026" n={174} />
 
-Here is a complete block in PyTorch, reusing `MultiHeadAttention` from the previous lesson. Dropout is applied to each sub-layer's output before it is added, as in the original paper; `.eval()` switches it off for this demonstration.
+Here is a complete block in PyTorch, reusing the `MultiHeadAttention` class you built in [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention). Dropout is applied to each sub-layer's output before it is added, as in the original paper; `.eval()` switches it off for this demonstration.
 
 ```python
 import torch

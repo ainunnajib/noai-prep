@@ -88,7 +88,7 @@ A misalignment that stays **fixed** (labels shuffled once, or every label shifte
 
 <Note title="One test cannot catch everything">
 
-With plain SGD instead of Adam, a missing `zero_grad()` can fit a single batch even *faster*: the piled-up gradients act like a very strong momentum, and on one fixed batch they all point the same way. The damage shows on the full dataset, where stale gradients from old batches push in the wrong direction. So read the training loop as well; the next lesson has a bug hunt for exactly that.
+With plain SGD instead of Adam, a missing `zero_grad()` can fit a single batch even *faster*: the piled-up gradients act like a very strong momentum, and on one fixed batch they all point the same way. The damage shows on the full dataset, where stale gradients from old batches push in the wrong direction. So read the training loop as well; the next lesson, [PyTorch gotchas and debugging tools](#/learn/debugging-and-diagnosis/pytorch-gotchas), has a bug hunt for exactly that.
 
 </Note>
 
@@ -214,7 +214,7 @@ tensor(2.1250) tensor(0.1250)
 
 Errors cannot catch these bugs, so you need **sanity checks**: quick tests of something you know must be true.
 
-- Print `.shape` after every step you are unsure about, or `assert` it (the next lesson shows how).
+- Print `.shape` after every step you are unsure about, or `assert` it ([PyTorch gotchas and debugging tools](#/learn/debugging-and-diagnosis/pytorch-gotchas) shows how).
 - Probabilities: `probs.sum(dim=1)` should be all ones.
 - Compute one value by hand on a tiny input and compare.
 - Plot an input *after* preprocessing, exactly as the model sees it.

@@ -26,7 +26,7 @@ vertical_edge = np.array([[1, 0, -1],
                           [1, 0, -1]])
 print(conv2d(image, vertical_edge))`
 
-In the last lesson a dense layer treated an image as one long list: millions of weights, and no idea which pixels are neighbours. The **convolution** fixes both problems with one simple move: take a tiny grid of weights, slide it across the image, and at every spot ask "how much does this patch look like my pattern?" That one operation is the heart of every convolutional neural network (CNN).
+In the last lesson, [Images as tensors](#/learn/convolutional-networks/images-as-tensors), a dense layer treated an image as one long list: millions of weights, and no idea which pixels are neighbours. The **convolution** fixes both problems with one simple move: take a tiny grid of weights, slide it across the image, and at every spot ask "how much does this patch look like my pattern?" That one operation is the heart of every convolutional neural network (CNN).
 
 <Analogy title="A magnifying glass over a newspaper">
 
@@ -91,7 +91,7 @@ Now slide the kernel one pixel at a time, left to right and top to bottom, compu
 
 Two things to notice:
 
-- The feature map is **smaller** than the image: a $3 \times 3$ kernel fits in only $8 - 3 + 1 = 6$ positions across, so $8 \times 8$ becomes $6 \times 6$. The next lesson shows how padding and stride control this size.
+- The feature map is **smaller** than the image: a $3 \times 3$ kernel fits in only $8 - 3 + 1 = 6$ positions across, so $8 \times 8$ becomes $6 \times 6$. The next lesson, [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes), shows how padding and stride control this size.
 - The vertical-edge kernel lights up along the two upright strokes of the 4 (orange on one side of a stroke, blue on the other) and is 0 on the flat black background.
 
 The readout names each output $y(i, j)$ with rows and columns counted from 0, exactly as in the formula and in Python.
@@ -157,7 +157,7 @@ $$
 \text{conv}(\text{shift}(x)) = \text{shift}(\text{conv}(x))
 $$
 
-It follows directly from weight sharing: the same filter is applied at every position, so a pattern produces the same response wherever it is, just in a different place. (Strictly, this holds away from the image borders, where pixels fall off the edge, and for a stride-1 convolution; with the next lesson's stride 2 it holds only for shifts of an even number of pixels.) Note the word: **equi**variant, the output moves with the input. It is not **in**variant, which would mean the output does not change at all. Pooling, in a later lesson, adds a little invariance.
+It follows directly from weight sharing: the same filter is applied at every position, so a pattern produces the same response wherever it is, just in a different place. (Strictly, this holds away from the image borders, where pixels fall off the edge, and for a stride-1 convolution. With stride 2, which [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes) introduces, it holds only for shifts of an even number of pixels.) Note the word: **equi**variant, the output moves with the input. It is not **in**variant, which would mean the output does not change at all. Pooling, in [Pooling and receptive fields](#/learn/convolutional-networks/pooling-and-receptive-field), adds a little invariance.
 
 <QuickCheck
   q="A picture is shifted 2 pixels to the right and fed through the same convolutional filter (stride 1). Ignoring the borders, what happens to the feature map?"
@@ -171,7 +171,7 @@ It follows directly from weight sharing: the same filter is applied at every pos
 
 ## Learned, not hand-designed
 
-The edge, blur and sharpen kernels above were designed by people. In a CNN, nobody types in the weights: they are **parameters**, initialised randomly and learned by gradient descent like any other weight, so the network discovers whichever patterns help it reduce the loss. Remarkably, the first-layer filters of trained image networks (those of <Term def="The CNN that won the 2012 ImageNet image-classification competition by a large margin and started the deep-learning boom in computer vision.">AlexNet</Term>, famously) end up looking like edge detectors at various angles and colour blobs, much like the hand-made ones. Deeper layers then combine these simple features into textures, parts and whole objects, which you will see in the architectures lesson.
+The edge, blur and sharpen kernels above were designed by people. In a CNN, nobody types in the weights: they are **parameters**, initialised randomly and learned by gradient descent like any other weight, so the network discovers whichever patterns help it reduce the loss. Remarkably, the first-layer filters of trained image networks (those of <Term def="The CNN that won the 2012 ImageNet image-classification competition by a large margin and started the deep-learning boom in computer vision.">AlexNet</Term>, famously) end up looking like edge detectors at various angles and colour blobs, much like the hand-made ones. Deeper layers then combine these simple features into textures, parts and whole objects, which you will see in [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets).
 
 <PastPaperQuestion paper="prelim2026" n={187} />
 
@@ -185,7 +185,7 @@ A convolution from scratch is two loops over positions and one `np.sum(patch * k
 
 The $-3$s mark where the image goes from dark (left) to bright (right): the left column of the patch is darker than the right, so "left minus right" is negative. Where the patch is entirely bright, the output is 0.
 
-PyTorch gives the same numbers. Its conv functions want a batch and channels, so the image becomes $(N, C, H, W) = (1, 1, 4, 5)$ and the kernel $(C_\text{out}, C_\text{in}, k, k) = (1, 1, 3, 3)$, meaning one output channel, one input channel and a 3 × 3 grid (the next lesson explains the two channel counts):
+PyTorch gives the same numbers. Its conv functions want a batch and channels, so the image becomes $(N, C, H, W) = (1, 1, 4, 5)$ and the kernel $(C_\text{out}, C_\text{in}, k, k) = (1, 1, 3, 3)$, meaning one output channel, one input channel and a 3 × 3 grid ([Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes) explains the two channel counts):
 
 ```python
 import torch

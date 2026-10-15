@@ -2,7 +2,7 @@ import AttentionMatrixStepper from './visuals/scaled-dot-product-attention/Atten
 import SqrtDScaling from './visuals/scaled-dot-product-attention/SqrtDScaling'
 import CausalMaskGrid from './visuals/scaled-dot-product-attention/CausalMaskGrid'
 
-In the last lesson one query looked up one answer. A Transformer does that for **every** token of a sentence at the same time, with two matrix multiplications and a softmax. That one line of maths, $\operatorname{softmax}(QK^T/\sqrt{d_k})\,V$, is called **scaled dot-product attention**. In the 2026 NOAI Final, Task 3 asked students to code it (8 marks), to explain the $\sqrt{d_k}$ in it (2 marks) and to build a causal mask (5 bonus marks). By the end of this lesson you can do all three.
+In the last lesson, [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition), one query looked up one answer. A Transformer does that for **every** token of a sentence at the same time, with two matrix multiplications and a softmax. That one line of maths, $\operatorname{softmax}(QK^T/\sqrt{d_k})\,V$, is called **scaled dot-product attention**. In the 2026 NOAI Final, Task 3 asked students to code it (8 marks), to explain the $\sqrt{d_k}$ in it (2 marks) and to build a causal mask (5 bonus marks). By the end of this lesson you can do all three.
 
 ## Every query at once
 
@@ -41,7 +41,7 @@ Read it from the inside out:
 - $QK^T$ is the $(T, T)$ table of <Term def="The raw dot products q·k between queries and keys, before softmax. Also called logits.">attention scores</Term>.
 - $\sqrt{d_k}$ is the square root of the key dimension. Dividing every score by it keeps the scores at a sensible size; the section below shows why this matters.
 - $\operatorname{softmax}$ is applied to **each row on its own** (in code, `dim=-1`, the last dimension). Row $i$ becomes token $i$'s attention weights: all positive, adding up to 1. Call this weight matrix $A$.
-- Multiplying by $V$ blends the values: row $i$ of $AV$ is $\sum_j A_{ij}\, v_j$, the weighted average of the value rows. That is exactly the soft lookup from the last lesson, done for query $i$.
+- Multiplying by $V$ blends the values: row $i$ of $AV$ is $\sum_j A_{ij}\, v_j$, the weighted average of the value rows. That is exactly what the single query did in [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition), now done for query $i$.
 
 <AttentionMatrixStepper />
 
@@ -70,7 +70,7 @@ Three things to notice:
 - The output has **one row per token**, as long as a value vector.
 - $K$ and $V$ must have the same number of rows (one value per key), but $d_k$ and $d_v$ are free to differ.
 
-In PyTorch the tokens come in a <Term def="A group of examples processed together. Its size B is the first dimension of the tensor.">batch</Term> of $B$ sentences, so every tensor gets an extra dimension in front: $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$. The `@` operator treats every dimension except the last two as "batch" and multiplies the last two as matrices. That is why code transposes keys with `key.transpose(-2, -1)` (swap the last two dimensions) and not with `.T`, which reverses *all* the dimensions (and on tensors with more than 2 dimensions, PyTorch now warns that this use of `.T` is deprecated). In the next lesson a head dimension joins the front too: $(B, h, T, d_k)$.
+In PyTorch the tokens come in a <Term def="A group of examples processed together. Its size B is the first dimension of the tensor.">batch</Term> of $B$ sentences, so every tensor gets an extra dimension in front: $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$. The `@` operator treats every dimension except the last two as "batch" and multiplies the last two as matrices. That is why code transposes keys with `key.transpose(-2, -1)` (swap the last two dimensions) and not with `.T`, which reverses *all* the dimensions (and on tensors with more than 2 dimensions, PyTorch now warns that this use of `.T` is deprecated). In the next lesson, [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention), a head dimension joins the front too: $(B, h, T, d_k)$.
 
 <QuickCheck
   q="In a batch, `Q` and `K` have shape `(32, 10, 64)` and `V` has shape `(32, 10, 16)`. What are the shapes of the attention weights and of the output?"
@@ -159,7 +159,7 @@ $$
 
 So the standard deviation, the typical size of a score, is $\sqrt{d_k}$: about 2 when $d_k = 4$, 8 when $d_k = 64$ and 22.6 when $d_k = 512$.
 
-**Big scores break softmax.** Softmax only cares about differences between scores, and it exaggerates them exponentially. Take a row of scaled scores $[2, 1, 0]$: the weights are $[0.665, 0.245, 0.090]$, a nice soft blend. With $d_k = 64$ and no scaling, the same row is 8 times bigger, $[16, 8, 0]$, and the weights become $[0.9997, 0.0003, 0.0000]$. Attention has collapsed into a hard lookup, the very thing the last lesson replaced. Softmax is now <Term def="Pushed so far into its flat region that its output barely changes when the input changes, so its gradient is almost zero.">saturated</Term>.
+**Big scores break softmax.** Softmax only cares about differences between scores, and it exaggerates them exponentially. Take a row of scaled scores $[2, 1, 0]$: the weights are $[0.665, 0.245, 0.090]$, a nice soft blend. With $d_k = 64$ and no scaling, the same row is 8 times bigger, $[16, 8, 0]$, and the weights become $[0.9997, 0.0003, 0.0000]$. Attention has collapsed into a hard lookup, the very thing [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition) replaced. Softmax is now <Term def="Pushed so far into its flat region that its output barely changes when the input changes, so its gradient is almost zero.">saturated</Term>.
 
 **Saturated softmax stops learning.** The slope of a softmax weight $p$ with respect to its own score is $p(1 - p)$. For $p = 0.665$ that is $0.665 \times 0.335 \approx 0.22$; for $p = 0.9997$ it is about $0.0003$, hundreds of times smaller. The gradients that should train $W_Q$ and $W_K$ shrink towards zero: the [vanishing gradient](#/learn/backpropagation/vanishing-and-exploding-gradients) problem, inside attention.
 
@@ -327,7 +327,7 @@ Every query row of sentence 2, its three `[PAD]` rows included, shares its weigh
 
 <Reveal label="Mask shapes the Final expects">
 
-For scores of shape $(B, T, T)$, a causal mask $(T, T)$ is shared by the whole batch, and the padding mask $(B, 1, T)$ above marks which **keys** are real, copied down every query row. With attention heads (next lesson) the scores become $(B, h, T, T)$, and the masks become $(1, 1, T, T)$ and $(B, 1, 1, T)$, the shapes the Final's tests expected. For the padding mask that is `pad.unsqueeze(1).unsqueeze(2)`.
+For scores of shape $(B, T, T)$, a causal mask $(T, T)$ is shared by the whole batch, and the padding mask $(B, 1, T)$ above marks which **keys** are real, copied down every query row. With attention heads (see [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)) the scores become $(B, h, T, T)$, and the masks become $(1, 1, T, T)$ and $(B, 1, 1, T)$, the shapes the Final's tests expected. For the padding mask that is `pad.unsqueeze(1).unsqueeze(2)`.
 
 </Reveal>
 

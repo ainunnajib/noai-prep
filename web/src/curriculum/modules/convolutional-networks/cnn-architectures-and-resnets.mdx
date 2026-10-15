@@ -20,7 +20,7 @@ Almost every classic CNN repeats one pattern:
 2. **Pooling** (or a stride-2 conv): halve the height and width.
 3. At the end, **flatten** (or global average pool) and use a **dense** (fully connected) layer to produce one score per class, turned into probabilities by softmax.
 
-This whole pipeline does <Term def="Giving one label to a whole image, such as 'cat' or 'car'. Compare detection (find where each object is, with boxes) and segmentation (label every pixel).">image classification</Term>: **one label for the whole image**. Drawing boxes round the objects is *detection*, and labelling every pixel is *segmentation*; both are in the vision-tasks module.
+This whole pipeline does <Term def="Giving one label to a whole image, such as 'cat' or 'car'. Compare detection (find where each object is, with boxes) and segmentation (label every pixel).">image classification</Term>: **one label for the whole image**. Drawing boxes round the objects is *detection*, and labelling every pixel is *segmentation*; both are covered in the next module, from [Vision tasks and object detection](#/learn/vision-tasks/vision-tasks-and-detection) onwards.
 
 Why grow the channels while shrinking the maps? As the maps get coarser, each position covers a larger receptive field and describes something more complex, and there are more kinds of complex thing to describe than kinds of edge. More channels keep the information from being squeezed out.
 
@@ -107,7 +107,7 @@ For shape questions, write the shape after **every** layer down the margin: conv
 
 What do all those channels detect? When researchers visualised trained networks (Zeiler and Fergus, 2014, is the classic study), they found a clear <Term def="The way a deep CNN's features get more complex with depth: edges and colours in early layers, textures and parts in the middle, whole objects near the end.">feature hierarchy</Term>:
 
-- **Early layers** respond to edges at different angles and to blobs of colour, the same kind of filters you designed by hand in the convolution lesson.
+- **Early layers** respond to edges at different angles and to blobs of colour, the same kind of filters you designed by hand in [The convolution operation](#/learn/convolutional-networks/convolution).
 - **Middle layers** combine edges into textures and simple parts: rings, grids, fur, eyes, wheels.
 - **Late layers** combine parts into whole objects: faces, cars, cats.
 

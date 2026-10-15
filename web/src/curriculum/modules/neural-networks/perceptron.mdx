@@ -277,13 +277,11 @@ Try `train(X, y_and, lr=0.1)`: the same mistakes, with weights 10 times smaller.
 
 This is the lift-to-a-higher-dimension idea you met in the [support vector machines lesson](#/learn/classification/support-vector-machines). An SVM kernel does the lift **implicitly**: it computes the dot products in the bigger space straight from the original inputs, without ever building the new features (the "kernel trick").
 
-<PastPaperQuestion paper="prelim2026" n={150} />
-
 **Fix 2: use more neurons.** Feed the inputs into two perceptrons, then feed *their* outputs into a third. Each of the first two draws its own line, and the third combines their answers:
 
 <XorTwoLines />
 
-The middle neurons are called a <Term def="A layer of neurons between the inputs and the output. Its values are not given in the data; the network computes them.">hidden layer</Term>, the idea behind every multi-layer network in the next lessons. One snag: the perceptron rule only trains a single neuron, and the step function is flat everywhere except for a jump at 0, so gradient descent gets no slope to follow. Training many layers needs a smooth replacement for the step: the next lesson, **activation functions**.
+The middle neurons are called a <Term def="A layer of neurons between the inputs and the output. Its values are not given in the data; the network computes them.">hidden layer</Term>, the idea behind every multi-layer network from [Multi-layer perceptrons](#/learn/neural-networks/multilayer-perceptrons) onwards. One snag: the perceptron rule only trains a single neuron, and the step function is flat everywhere except for a jump at 0, so gradient descent gets no slope to follow. Training many layers needs a smooth replacement for the step: the next lesson, [Activation functions and non-linearity](#/learn/neural-networks/activation-functions).
 
 <ExamTip>
 

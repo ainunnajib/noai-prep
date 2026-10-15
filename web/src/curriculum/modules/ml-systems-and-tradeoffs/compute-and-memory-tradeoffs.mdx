@@ -297,7 +297,7 @@ With several GPUs, the most common approach is <Term def="Training with several 
 
 This is not the same as **model parallelism**, which splits the *model* itself across GPUs because it is too big for one.
 
-The catch is the batch size. With 8 GPUs the <Term def="The number of examples whose gradients are averaged into one update: GPUs × examples per GPU × accumulation steps.">effective batch</Term> is 8 times bigger, so each <Term def="One full pass through the whole training set.">epoch</Term> has 8 times fewer updates. If each update stays the same size, the model moves 8 times less per epoch. The common remedy is the [linear scaling rule](#/learn/training-deep-networks/stability-and-scale) from the stability lesson: when the batch grows by a factor $k$, multiply the learning rate $\eta$ by $k$,
+The catch is the batch size. With 8 GPUs the <Term def="The number of examples whose gradients are averaged into one update: GPUs × examples per GPU × accumulation steps.">effective batch</Term> is 8 times bigger, so each <Term def="One full pass through the whole training set.">epoch</Term> has 8 times fewer updates. If each update stays the same size, the model moves 8 times less per epoch. The common remedy is the linear scaling rule from [Gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale): when the batch grows by a factor $k$, multiply the learning rate $\eta$ by $k$,
 
 $$
 \eta_\text{new} = \eta_\text{base} \times \frac{B_\text{new}}{B_\text{base}},

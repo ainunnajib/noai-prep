@@ -2,7 +2,7 @@ import AutogradTape from './visuals/autograd/AutogradTape'
 import GradAccumulationCounter from './visuals/autograd/GradAccumulationCounter'
 import GraphCutToggle from './visuals/autograd/GraphCutToggle'
 
-In the backpropagation module you pushed gradients backwards through a computational graph by hand, one node at a time. PyTorch's **autograd** does it for you: you write only the forward pass, call `loss.backward()`, and the gradient of the loss with respect to every weight appears in that weight's `.grad`. This lesson shows what autograd records, why its gradients pile up unless you clear them, and how to switch the recording off.
+In [Computational graphs](#/learn/backpropagation/computational-graphs) you pushed gradients backwards through a graph by hand, one node at a time. PyTorch's **autograd** does it for you: you write only the forward pass, call `loss.backward()`, and the gradient of the loss with respect to every weight appears in that weight's `.grad`. This lesson shows what autograd records, why its gradients pile up unless you clear them, and how to switch the recording off.
 
 <Analogy title="CCTV for a parcel">
 
@@ -50,7 +50,7 @@ Here is the same calculation one line at a time. Watch the graph grow during the
 
 <AutogradTape />
 
-`backward()` is the chain rule from the backpropagation module, applied automatically. With $e = wx + b - y$ and $L = e^2$:
+`backward()` is the chain rule from [Backprop step by step](#/learn/backpropagation/backprop-step-by-step), applied automatically. With $e = wx + b - y$ and $L = e^2$:
 
 $$
 \frac{\partial L}{\partial w} = \underbrace{2e}_{\text{square}} \times \underbrace{1}_{\text{subtract}} \times \underbrace{1}_{\text{add}} \times \underbrace{x}_{\text{multiply}}
@@ -87,8 +87,6 @@ Each factor is the local derivative of one recorded node; $e$ and $x$ are the va
 
 </Mistake>
 
-<PastPaperQuestion paper="prelim2026" n={109} />
-
 <QuickCheck
   q="`w = torch.tensor(1.0, requires_grad=True)`, then `L = (3 * w) ** 2` and `L.backward()`. What is `w.grad`?"
   options={['tensor(18.)', 'tensor(9.)', 'tensor(6.)', '`None`: `backward()` fills only `L.grad`']}
@@ -124,7 +122,7 @@ print(w.grad, b.grad)
 tensor(0.) None
 ```
 
-Accumulation across `backward()` calls is deliberate: it lets you add up the gradients of several small batches before taking one step (*gradient accumulation*, in the training-loop lesson). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`. (Separately, within one backward pass a weight used in two places already gets the sum of both contributions, by the chain rule.)
+Accumulation across `backward()` calls is deliberate: it lets you add up the gradients of several small batches before taking one step (*gradient accumulation*, covered in [The training loop](#/learn/pytorch/training-loop)). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`. (Separately, within one backward pass a weight used in two places already gets the sum of both contributions, by the chain rule.)
 
 <GradAccumulationCounter />
 

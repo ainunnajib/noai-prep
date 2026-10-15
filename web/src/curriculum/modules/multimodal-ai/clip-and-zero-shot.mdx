@@ -2,7 +2,7 @@ import CLIPSimilarityMatrix from './visuals/clip-and-zero-shot/CLIPSimilarityMat
 import JointEmbeddingSpace from './visuals/clip-and-zero-shot/JointEmbeddingSpace'
 import ZeroShotPrompts from './visuals/clip-and-zero-shot/ZeroShotPrompts'
 
-In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. It applies the contrastive learning of the last lesson to pictures and their captions. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (next lesson). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
+In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. It applies the contrastive learning of the last lesson, [Self-supervised learning for vision](#/learn/multimodal-ai/self-supervised-vision), to pictures and their captions. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (the next lesson, [Vision-language models](#/learn/multimodal-ai/vision-language-models)). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
 
 <Analogy title="A matching game at CCA orientation">
 
@@ -14,7 +14,7 @@ Six students arrive wearing name tags, and six friends each wrote a one-line des
 
 CLIP has two separate networks, called <Term def="A network that turns an input (a picture or a sentence) into a single vector of numbers that captures its meaning.">encoders</Term>:
 
-- an **image encoder** (a ViT from the Vision Transformers lesson, or a ResNet) that turns a picture into a vector;
+- an **image encoder** (a ViT from [Vision Transformers](#/learn/multimodal-ai/vision-transformers), or a ResNet) that turns a picture into a vector;
 - a **text encoder** (a Transformer, like the ones inside language models) that turns a sentence into a vector.
 
 Each encoder ends with a small linear layer that makes both vectors the **same size**, for example 512 numbers each in CLIP ViT-B/32. These vectors are <Term def="A vector that represents something (a word, a sentence, a picture) so that things with similar meanings get similar vectors.">embeddings</Term>. Finally, every embedding is divided by its own length, so it becomes a <Term def="A vector of length 1. Dividing any non-zero vector by its length (its L2 norm) gives a unit vector pointing the same way.">unit vector</Term>. This step is called L2 normalisation.
@@ -151,7 +151,7 @@ After training, the two encoders agree on a shared map of meaning. A photo of a 
 Once pictures and words share a space, many jobs become "embed, then rank by cosine similarity", and CLIP's pretrained encoders can be reused for them without training from scratch:
 
 - **Search** in either direction: text to photos ("beach at sunset" in your camera roll), photo to captions or tags, or photo to similar photos (IOAI 2025's restroom-icon task used CLIP ViT-B/32 this way).
-- **A part inside bigger models**: Stable Diffusion v1 reads your prompt with CLIP's text encoder, and many chatbots that can see (such as LLaVA, next lesson) use a CLIP image encoder as their eyes.
+- **A part inside bigger models**: Stable Diffusion v1 reads your prompt with CLIP's text encoder, and many chatbots that can see (such as LLaVA, covered in the next lesson, [Vision-language models](#/learn/multimodal-ai/vision-language-models)) use a CLIP image encoder as their eyes.
 
 <PastPaperQuestion paper="prelim2026" n={251} />
 

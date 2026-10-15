@@ -76,7 +76,7 @@ We describe a network by its layer sizes: the picture shows a **2-3-1 network** 
 
 ## Why a hidden layer helps: XOR, solved
 
-In the perceptron lesson you beat XOR with two step-function perceptrons feeding a third. Here is the same idea with ReLU neurons (from the textbook *Deep Learning* by Goodfellow, Bengio and Courville), plus a new way to see **why** it works:
+In [The perceptron](#/learn/neural-networks/perceptron) you beat XOR with two step-function perceptrons feeding a third. Here is the same idea with ReLU neurons (from the textbook *Deep Learning* by Goodfellow, Bengio and Courville), plus a new way to see **why** it works:
 
 $$
 \begin{aligned}
@@ -144,7 +144,7 @@ where $\hat{y}$ ("y-hat") is the prediction. Step through it:
     Row $(1, 2)$, bias $-1$: $z_3 = 1 \cdot 2 + 2 \cdot 1 - 1 = 3$, so $h_3 = 3$. The hidden layer has turned $(2, 1)$ into $\mathbf{h} = (1, 0, 3)$.
   </Step>
   <Step title="Output neuron">
-    Weights $(2, -1, 1)$, bias $-1$: $\hat{y} = 2 \cdot 1 + (-1) \cdot 0 + 1 \cdot 3 - 1 = 4$. No activation here: the output layer's activation depends on the task (next lesson).
+    Weights $(2, -1, 1)$, bias $-1$: $\hat{y} = 2 \cdot 1 + (-1) \cdot 0 + 1 \cdot 3 - 1 = 4$. No activation here: the output layer's activation depends on the task (see the next lesson, [Output layers and loss functions](#/learn/neural-networks/outputs-and-losses)).
   </Step>
 </Steps>
 
@@ -155,8 +155,6 @@ A neural network is just **multiply, add, squash**, repeated layer after layer: 
 </KeyIdea>
 
 **Shapes must line up.** $W^{(1)}$ is $3 \times 2$ and $\mathbf{x}$ is $2 \times 1$; the inner numbers (2 and 2) match, and the answer is $3 \times 1$, one value per hidden neuron. The same rule tells you how big every weight matrix must be: a layer from $n_\text{in}$ to $n_\text{out}$ needs an $n_\text{out} \times n_\text{in}$ matrix.
-
-<PastPaperQuestion paper="prelim2026" n={9} />
 
 In real code a whole **batch** of examples goes through at once, stacked as the rows of a matrix $X$. Then a layer computes $f(XW^T + \mathbf{b})$, one row of outputs per example; $W^T$ ("W transpose") is $W$ with its rows and columns swapped, and `nn.Linear` computes $XW^T + \mathbf{b}$ in exactly this way. Run it, then change `x` or a weight and run again:
 
@@ -204,7 +202,7 @@ parameters, and the whole network's count is the sum over its layers. Activation
 
 </Mistake>
 
-In PyTorch the same network is two `nn.Linear` layers (PyTorch gets its own module later; read `nn.Linear(784, 128)` as "a dense layer from 784 inputs to 128 neurons"):
+In PyTorch the same network is two `nn.Linear` layers (PyTorch gets its own module later, where [nn.Module, layers and saving models](#/learn/pytorch/modules-and-layers) covers `nn.Linear` in full; read `nn.Linear(784, 128)` as "a dense layer from 784 inputs to 128 neurons"):
 
 ```python
 import torch.nn as nn
@@ -247,7 +245,7 @@ Parameter counting is a fast, reliable mark: for each layer write "in × out + o
 
 ## Watch a network learn shapes
 
-Time to train one. The network sees each point's two coordinates and must decide orange or blue. After each batch of 10 points, every weight and bias takes a small step that lowers the loss, using **Adam**, a souped-up gradient descent that the training module covers later. (How it finds those directions, *backpropagation*, is the next module.)
+Time to train one. The network sees each point's two coordinates and must decide orange or blue. After each batch of 10 points, every weight and bias takes a small step that lowers the loss, using **Adam**, a souped-up gradient descent that [Momentum, RMSProp and Adam](#/learn/training-deep-networks/momentum-and-adam) covers later. (How it finds those directions, *backpropagation*, is the subject of the next module, starting with [Computational graphs](#/learn/backpropagation/computational-graphs).)
 
 <MiniPlayground />
 
@@ -277,8 +275,6 @@ The <Term def="The theorem that a network with one hidden layer and a suitable n
 - "Enough neurons" can mean an enormous number; deeper networks usually need far fewer, one reason modern networks are deep.
 
 More parameters are not automatically better: a network with far more parameters than training examples can fit the noise, so training loss keeps falling while test loss rises. That is **overfitting**.
-
-<PastPaperQuestion paper="prelim2026" n={261} />
 
 <KeyIdea>
 

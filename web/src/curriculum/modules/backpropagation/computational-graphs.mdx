@@ -113,8 +113,6 @@ For $p = w \times x$, the local derivative with respect to $w$ is $x$, **not** $
   explain="For a product, the slope with respect to one input is the other input: $\frac{\partial p}{\partial w} = x = -2$. Check with a nudge: $4.1 \times (-2) = -8.2$, which is $-0.2$ away from $-8$, that is $-2$ times the nudge of $0.1$. The value $4$ is $w$ itself, and $-8$ is the node's output, not its slope."
 />
 
-<PastPaperQuestion paper="prelim2026" n={34} />
-
 ## Sending a gradient back through one node
 
 Here is how local derivatives get used. Suppose a node is told how much the final loss $L$ changes per unit change in the node's **output**. That number is called the <Term def="∂L/∂(this node's output): how much the final loss changes per unit change in this node's output. During the backward pass it arrives from the node that comes after.">upstream gradient</Term>, written $g$. With one multiplication, the node can then work out how much $L$ changes per unit change in each of its **inputs**:
@@ -133,7 +131,7 @@ Three patterns cover most of backpropagation:
 - **Multiply swaps.** Each input receives $g$ times the **other** input's value. A big input makes the *other* input's gradient big.
 - **Max routes.** The larger input receives all of $g$; the smaller one receives $0$, because nudging it does not change the output at all. ReLU is a max with 0, so it passes $g$ through when its input is positive and blocks it otherwise.
 
-Square and sigmoid are **scalers**: square multiplies $g$ by $2a$, and sigmoid multiplies it by $\sigma(1 - \sigma)$, which is at most $0.25$. That last fact is why gradients fade in deep sigmoid networks, a story for the vanishing-gradients lesson.
+Square and sigmoid are **scalers**: square multiplies $g$ by $2a$, and sigmoid multiplies it by $\sigma(1 - \sigma)$, which is at most $0.25$. That last fact is why gradients fade in deep sigmoid networks, a story for [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients).
 
 <ExamTip>
 
@@ -152,7 +150,7 @@ $$
 \end{aligned}
 $$
 
-Check it with a nudge. With $w = 2.01$ instead of $2$, the forward pass gives $\hat y = 7.03$, $e = 2.03$ and $L = 2.03^2 = 4.1209$. The loss rose by $0.1209$, almost exactly $12 \times 0.01 = 0.12$. So increasing $w$ increases the loss, and gradient descent will turn $w$ down. The next lesson does this systematically, one edge at a time, getting the gradient for every input in a single backward sweep.
+Check it with a nudge. With $w = 2.01$ instead of $2$, the forward pass gives $\hat y = 7.03$, $e = 2.03$ and $L = 2.03^2 = 4.1209$. The loss rose by $0.1209$, almost exactly $12 \times 0.01 = 0.12$. So increasing $w$ increases the loss, and gradient descent will turn $w$ down. The next lesson, [Backprop step by step](#/learn/backpropagation/backprop-step-by-step), does this systematically, one edge at a time, getting the gradient for every input in a single backward sweep.
 
 ## PyTorch draws the graph for you
 

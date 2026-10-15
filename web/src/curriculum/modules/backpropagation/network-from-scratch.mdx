@@ -123,15 +123,11 @@ You do not need to memorise these. Three rules write them for you:
 
 <BackwardShapeTrace />
 
-<PastPaperQuestion paper="prelim2026" n={1} />
-
 <Mistake title="@ and * are different operations">
 
 `dA1 * (Z1 > 0)` multiplies **element by element**: both arrays are $(N, H)$ and so is the answer. `X.T @ dZ1` is a **matrix product**: inner sizes must match and they disappear. Writing `*` where you need `@` either crashes with a broadcasting error or, when the shapes happen to fit, silently computes nonsense. When a line confuses you, write the shapes next to it as a comment, as above.
 
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={102} />
 
 <QuickCheck
   q="`X` has shape `(64, 10)` and the hidden layer has 32 units. What is the shape of `dW1 = X.T @ dZ1`?"
@@ -150,7 +146,7 @@ Here is everything together: 200 points in two moon-shaped classes (100 each), 1
 
 Two details are worth copying into your own code. The softmax subtracts each row's maximum before `np.exp`: the probabilities are unchanged (the factor $e^{-\max}$ cancels top and bottom) but `exp` can no longer overflow to `inf`. And there is no "zero the gradients" step, because every gradient is recomputed from scratch each loop. PyTorch is different: it *adds* new gradients into `.grad`, which is why a PyTorch loop starts with `optimiser.zero_grad()`.
 
-Here is how each stage of our NumPy loop maps onto PyTorch. You will meet these names properly in the next module; for now, just recognise them.
+Here is how each stage of our NumPy loop maps onto PyTorch. You will meet these names properly in the next module, in [The training loop](#/learn/pytorch/training-loop); for now, just recognise them.
 
 - **Forward + loss** (`Z1 = X @ W1 + b1` … `loss = …`) becomes `loss = F.cross_entropy(model(X), y)`. Here `model(X)` must return the **logits** `Z2`, with no softmax at the end, because `F.cross_entropy` applies the softmax itself (as log-softmax plus negative log-likelihood). Its targets are usually the class indices `y` (integers, shape `(N,)`). It also accepts float class probabilities of shape `(N, K)`, such as the one-hot `Y`, but indices are the standard form.
 - **Backward** (our seven lines) becomes `loss.backward()`.

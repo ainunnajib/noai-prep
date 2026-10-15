@@ -14,7 +14,7 @@ Your Project Work group's report is late, and the leader traces the delay backwa
 
 ## One rule, applied over and over
 
-For every node $v$ in the graph, backprop answers one question: if $v$ changed a little, how much would the loss change? That rate is $\frac{\partial L}{\partial v}$, called the <Term def="∂L/∂v: how much the loss L changes per unit change in v. Its sign says which way to move v to lower the loss, and its size says how strongly v matters right now.">gradient</Term> of the loss with respect to $v$. Every gradient comes from the rule you met in the last lesson:
+For every node $v$ in the graph, backprop answers one question: if $v$ changed a little, how much would the loss change? That rate is $\frac{\partial L}{\partial v}$, called the <Term def="∂L/∂v: how much the loss L changes per unit change in v. Its sign says which way to move v to lower the loss, and its size says how strongly v matters right now.">gradient</Term> of the loss with respect to $v$. Every gradient comes from the rule you met in the last lesson, [Computational graphs](#/learn/backpropagation/computational-graphs):
 
 $$
 \underbrace{\frac{\partial L}{\partial\, \text{input}}}_{\text{wanted}} = \underbrace{\frac{\partial L}{\partial\, \text{output}}}_{\text{upstream}} \times \underbrace{\frac{\partial\, \text{output}}{\partial\, \text{input}}}_{\text{local}}
@@ -77,11 +77,9 @@ Backprop is the chain rule applied mechanically, one edge at a time: gradient in
   explain="Forward: $q = x + y = 3$ and $f = qz = -12$. Backward: the multiply node sends $q$ the other input, $\frac{\partial f}{\partial q} = z = -4$. The add node passes it unchanged, so $\frac{\partial f}{\partial x} = -4 \times 1 = -4$. The answer $3$ is $\frac{\partial f}{\partial z} = q$, $-12$ is $f$ itself, and $1$ is only the add node's local derivative."
 />
 
-<PastPaperQuestion paper="prelim2026" n={35} />
-
 <ExamTip>
 
-Questions like this one are a Prelim favourite. Multiply the local derivatives along the path from $L$ to the weight, and nothing else. The trap options stop one node early (leaving out the last local derivative), drop the $2$ from the square, or use the weight itself where the multiply node should give the *other* input.
+Chain-rule questions on a squared-error loss are a Prelim favourite. Multiply the local derivatives along the path from $L$ to the weight, and nothing else: for $L = (wx + b - y)^2$ above, that is $2e \times 1 \times 1 \times x$. The trap options stop one node early (leaving out the last local derivative, here $x$), drop the $2$ from the square, or use the weight itself where the multiply node should give the *other* input.
 
 </ExamTip>
 
@@ -105,8 +103,8 @@ Branches are everywhere in real networks:
 
 - an input feeds every neuron in the first layer;
 - a hidden neuron feeds every neuron in the next layer;
-- in a <Term def="Convolutional neural network: an image model that slides one small grid of weights (a filter) across the picture, reusing the same weights at every position. You build them in the convolutional-networks module.">CNN</Term> (convolutional neural network), the same filter weights are reused at every position of the image, so a shared weight's gradient is the sum over all positions;
-- a residual connection $y = x + F(x)$ sends $x$ along two paths (more on this in the next lesson).
+- in a <Term def="Convolutional neural network: an image model that slides one small grid of weights (a filter) across the picture, reusing the same weights at every position. You build them in the Convolutional neural networks module.">CNN</Term> (convolutional neural network), the same filter weights are reused at every position of the image, so a shared weight's gradient is the sum over all positions;
+- a residual connection $y = x + F(x)$ sends $x$ along two paths (more on this in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients)).
 
 <Mistake title="Overwriting instead of adding">
 
@@ -128,7 +126,7 @@ $$
 
 Note the index order: here $w_{jk}$ runs *from* neuron $j$ *to* neuron $k$. In [the multilayer-perceptrons lesson](#/learn/neural-networks/multilayer-perceptrons), $W$ had one row per receiving neuron, so this same weight sits at row $k$, column $j$ of that $W$.
 
-The number $\delta_k$ is the gradient at neuron $k$'s weighted sum, called that neuron's <Term def="δ = ∂L/∂z, the gradient of the loss with respect to a neuron's weighted sum z (before the activation). Weight gradients are built from it. Some books call it the error signal.">delta</Term>. Careful: a delta is not the error $e = \hat y - y$ from the last lesson. For squared error at an output with no activation, $\delta = 2e$. The bias $b_k$ is simply added into $z_k$, so add distributes and $\frac{\partial L}{\partial b_k} = \delta_k$.
+The number $\delta_k$ is the gradient at neuron $k$'s weighted sum, called that neuron's <Term def="δ = ∂L/∂z, the gradient of the loss with respect to a neuron's weighted sum z (before the activation). Weight gradients are built from it. Some books call it the error signal.">delta</Term>. Careful: a delta is not the error $e = \hat y - y$ from [Computational graphs](#/learn/backpropagation/computational-graphs). For squared error at an output with no activation, $\delta = 2e$. The bias $b_k$ is simply added into $z_k$, so add distributes and $\frac{\partial L}{\partial b_k} = \delta_k$.
 
 **2. Deltas flow back along the same weights.** Hidden neuron $j$ feeds every neuron $k$ of the next layer: a branch. Its gradients therefore add, and its activation node then scales the total by the activation's slope:
 
@@ -144,7 +142,7 @@ Three things to notice in the visual:
 
 - A weight whose input activation is $0$ gets **zero** gradient: it had no effect on this example, so there is nothing to correct.
 - A ReLU neuron that is "off" ($z \le 0$) has slope $0$ and **blocks** the gradient to every weight feeding into it.
-- With sigmoid, the activation's slope contributes a factor of **at most** $0.25$ per layer. Over ten layers the slopes alone multiply to at most $0.25^{10} \approx 10^{-6}$, and usually to much less (a saturated neuron's slope is close to 0), unless large weights make up for it. That is the **vanishing-gradient** problem, the subject of the next lesson.
+- With sigmoid, the activation's slope contributes a factor of **at most** $0.25$ per layer. Over ten layers the slopes alone multiply to at most $0.25^{10} \approx 10^{-6}$, and usually to much less (a saturated neuron's slope is close to 0), unless large weights make up for it. That is the **vanishing-gradient** problem, the subject of the next lesson, [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients).
 
 <Reveal label="Preview: the same rules as matrices (optional)">
 
@@ -154,7 +152,7 @@ $$
 \frac{\partial L}{\partial W} = a^T\delta, \qquad \frac{\partial L}{\partial b} = \delta, \qquad \frac{\partial L}{\partial a} = \delta\, W^T.
 $$
 
-Entry $(j, k)$ of $a^T\delta$ is $a_j \delta_k$, which is pattern 1, and $\delta W^T$ adds up $w_{jk}\delta_k$ over $k$, which is pattern 2. Each gradient has the **same shape** as the thing it is the gradient of, a handy check. The network-from-scratch lesson uses exactly these lines for a whole batch.
+Entry $(j, k)$ of $a^T\delta$ is $a_j \delta_k$, which is pattern 1, and $\delta W^T$ adds up $w_{jk}\delta_k$ over $k$, which is pattern 2. Each gradient has the **same shape** as the thing it is the gradient of, a handy check. [A neural network from scratch in NumPy](#/learn/backpropagation/network-from-scratch) uses exactly these lines for a whole batch.
 
 </Reveal>
 
@@ -278,7 +276,7 @@ The numbers match the hand calculation exactly. Note that `L.backward()` only **
 
 ## Why go backwards at all?
 
-You could find each gradient by nudging each weight separately and re-running the forward pass, as in the nudge check in the last lesson. For a network with a million weights, that is about a million extra forward passes (two million with the more accurate central difference) for a single training step. Backprop gets **all** the gradients in one backward sweep, which costs only a small multiple (roughly two to three times) of one forward pass, because each upstream gradient is computed once and then shared by everything below it. This trick is called <Term def="Computing derivatives by recording the computation as a graph and sweeping it once from the output back to the inputs, reusing each upstream gradient. Backpropagation is reverse-mode automatic differentiation applied to a neural network's loss.">reverse-mode automatic differentiation</Term>, and it is what makes training large networks possible.
+You could find each gradient by nudging each weight separately and re-running the forward pass, as in the nudge check in [Computational graphs](#/learn/backpropagation/computational-graphs). For a network with a million weights, that is about a million extra forward passes (two million with the more accurate central difference) for a single training step. Backprop gets **all** the gradients in one backward sweep, which costs only a small multiple (roughly two to three times) of one forward pass, because each upstream gradient is computed once and then shared by everything below it. This trick is called <Term def="Computing derivatives by recording the computation as a graph and sweeping it once from the output back to the inputs, reusing each upstream gradient. Backpropagation is reverse-mode automatic differentiation applied to a neural network's loss.">reverse-mode automatic differentiation</Term>, and it is what makes training large networks possible.
 
 Automatic differentiation also has a **forward mode**, which carries derivatives along with the values from the inputs to the output and needs one sweep per input. Both modes give exact derivatives; only the cost differs. Reverse mode needs one sweep per output, and training has one output (the loss) but millions of inputs (the weights), so reverse mode wins by a factor of millions.
 

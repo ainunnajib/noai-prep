@@ -22,7 +22,7 @@ z_k = w_k \, a_{k-1}, \qquad a_k = \varphi(z_k)
 $$
 
 - $a_{k-1}$ is the output of the layer before, and $w_k$ is layer $k$'s weight.
-- $z_k$ is the <Term def="The weighted input of a neuron, before the activation function is applied.">pre-activation</Term>, and $\varphi$ (phi) is the activation function (sigmoid, tanh, ReLU): the same $f$ as in earlier lessons, renamed so that $f$ is free for the per-layer factor below. $\varphi'(z_k)$ is its slope at $z_k$.
+- $z_k$ is the <Term def="The weighted input of a neuron, before the activation function is applied.">pre-activation</Term>, and $\varphi$ (phi) is the activation function (sigmoid, tanh, ReLU): the same $f$ as in earlier lessons such as [Backprop step by step](#/learn/backpropagation/backprop-step-by-step), renamed so that $f$ is free for the per-layer factor below. $\varphi'(z_k)$ is its slope at $z_k$.
 
 Backpropagation walks back one edge at a time, multiplying by each local derivative. Stepping back through layer $k$ means multiplying by $\frac{\partial a_k}{\partial a_{k-1}} = w_k \, \varphi'(z_k)$. So the gradient that reaches the first layer is
 
@@ -100,7 +100,7 @@ Each of the standard fixes attacks one cause:
 4. **Residual connections**, next.
 5. **Gradient clipping**, for the explosions that still happen.
 
-Initialisation and normalisation get a full lesson in the module on training deep networks; here the point is *why* they work. Good initialisation starts the per-layer factor near 1, and normalisation stops it depending on the size of the weights.
+Initialisation and normalisation get a full lesson of their own later, [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation); here the point is *why* they work. Good initialisation starts the per-layer factor near 1, and normalisation stops it depending on the size of the weights.
 
 <Reveal label="Going further: BatchNorm's limits, and recurrent networks">
 

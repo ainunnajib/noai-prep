@@ -15,7 +15,7 @@ At a hawker centre, soup goes in a bowl with a lid, satay in a paper bag and a d
 
 The output layer is an ordinary fully connected layer: it computes $\mathbf{z} = W\mathbf{h} + \mathbf{b}$ from the last hidden layer $\mathbf{h}$. Its raw outputs are called <Term def="The raw, unsquashed scores produced by a network's last layer, before any sigmoid or softmax. They can be any real number.">logits</Term>: any real numbers, positive or negative, with no particular range. The output layer together with whatever we do to its logits is often called the network's <Term def="The final part of a network that turns features into the answer for a particular task: the output layer and its activation (trained with a matching loss).">head</Term>.
 
-To turn logits into an answer we may squash them with one of two functions you met in the classification module:
+To turn logits into an answer we may squash them with one of two functions you met in the classification module, from [Logistic regression](#/learn/classification/logistic-regression) onwards:
 
 - The **sigmoid** $\sigma(z) = \dfrac{1}{1 + e^{-z}}$ turns **one** logit into a probability between 0 and 1. Big positive $z$ gives nearly 1, big negative $z$ nearly 0, and $\sigma(0) = 0.5$.
 - The **softmax** turns **K** logits $z_1, \dots, z_K$ into $K$ probabilities that are all positive and add up to 1:
@@ -52,8 +52,6 @@ $$
 
 The <Term def="Mean squared error: the average of the squared differences between predictions and true values. The standard regression loss.">MSE</Term> averages the squared errors; the <Term def="Mean absolute error: the average of the absolute (unsigned) differences between predictions and true values.">MAE</Term> averages the plain sizes of the errors. Predict $3$ and $5$ when the truth is $2$ and $9$: the errors are $1$ and $4$, so $\text{MSE} = (1 + 16)/2 = 8.5$ but $\text{MAE} = (1 + 4)/2 = 2.5$. The single big miss supplies 16 of the 17 squared units: MSE punishes large errors much harder, while MAE is less thrown by a few outliers.
 
-<PastPaperQuestion paper="prelim2026" n={171} />
-
 ### Binary classification: one logit and a sigmoid
 
 One yes/no question needs one logit $z$. The probability of "yes" is $p = \sigma(z)$, and the loss is <Term def="The loss for a yes/no prediction: L = −[y ln p + (1 − y) ln(1 − p)], where y is 1 or 0 and p is the predicted probability of 1.">binary cross-entropy</Term>:
@@ -84,7 +82,7 @@ Exactly one of $K$ classes is correct, so the head has $K$ logits and a softmax 
 
 ### Multi-label classification: K logits, K separate sigmoids
 
-As in the softmax lesson, when several labels can be true at once (a food photo can show chicken rice **and** satay), each of the $K$ logits gets its **own** sigmoid and its own binary cross-entropy, and the loss is their average. The target is a list of 0s and 1s, such as $(1, 1, 0, 0, 0)$, and the probabilities need **not** add up to 1: a softmax would force chicken rice and satay to share one 100%.
+As in [Softmax, cross-entropy and multi-class problems](#/learn/classification/softmax-and-multiclass), when several labels can be true at once (a food photo can show chicken rice **and** satay), each of the $K$ logits gets its **own** sigmoid and its own binary cross-entropy, and the loss is their average. The target is a list of 0s and 1s, such as $(1, 1, 0, 0, 0)$, and the probabilities need **not** add up to 1: a softmax would force chicken rice and satay to share one 100%.
 
 <HeadLossMatcher />
 
@@ -146,7 +144,7 @@ $$
 
 When you **do** want probabilities, for example to show "93% spam", apply `torch.sigmoid` or `torch.softmax` to the logits after the model. To pick the predicted class you do not even need that: softmax never changes which logit is largest, so `logits.argmax(dim=1)` gives the same answer.
 
-The classic way to get this wrong, which you met in the softmax lesson, is to add your own softmax at the end of the model and then use `nn.CrossEntropyLoss`, which applies another one. Below, "push" means $\partial L / \partial z_\text{true}$, the slope that gradient descent follows: the more negative, the harder the true class's logit is pushed up.
+The classic way to get this wrong, which you met in [Softmax, cross-entropy and multi-class problems](#/learn/classification/softmax-and-multiclass), is to add your own softmax at the end of the model and then use `nn.CrossEntropyLoss`, which applies another one. Below, "push" means $\partial L / \partial z_\text{true}$, the slope that gradient descent follows: the more negative, the harder the true class's logit is pushed up.
 
 <DoubleSoftmax />
 
@@ -193,7 +191,7 @@ You may also meet **hinge loss**, $\max(0, 1 - yz)$ with labels $\pm 1$: the mar
 
 ## The starting loss tells you something
 
-Recall the sanity check from the softmax lesson: before training, the weights are small random numbers, so the logits are all close to 0, softmax gives every class about $1/K$, and the first loss is about $-\ln\frac{1}{K} = \ln K$. For 2 classes that is $\ln 2 \approx 0.693$ (the coin-flip line in the playground of the previous lesson); for 10 classes it is $\ln 10 \approx 2.303$.
+Recall the sanity check from [Softmax, cross-entropy and multi-class problems](#/learn/classification/softmax-and-multiclass): before training, the weights are small random numbers, so the logits are all close to 0, softmax gives every class about $1/K$, and the first loss is about $-\ln\frac{1}{K} = \ln K$. For 2 classes that is $\ln 2 \approx 0.693$ (the coin-flip line in the playground of the previous lesson, [Multi-layer perceptrons](#/learn/neural-networks/multilayer-perceptrons)); for 10 classes it is $\ln 10 \approx 2.303$.
 
 <BaselineLossCheck />
 

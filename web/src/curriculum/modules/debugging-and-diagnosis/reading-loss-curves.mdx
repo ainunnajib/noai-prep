@@ -60,7 +60,7 @@ Here is what you just saw, as a table you can revise from:
 
 (Overfitting, underfitting and early stopping were introduced in [generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting) and [regularising deep networks](#/learn/training-deep-networks/regularising-deep-networks).)
 
-NaN means "not a number": the result of an impossible calculation such as $\infty - \infty$ or $0 \times \infty$. Once one weight becomes NaN, every later calculation that touches it is NaN too, so a NaN loss never recovers on its own. The lesson on numerical issues later in this module shows where NaNs come from.
+NaN means "not a number": the result of an impossible calculation such as $\infty - \infty$ or $0 \times \infty$. Once one weight becomes NaN, every later calculation that touches it is NaN too, so a NaN loss never recovers on its own. A later lesson in this module, [NaNs, numerical issues and gradient diagnostics](#/learn/debugging-and-diagnosis/nan-and-numerical-issues), shows where NaNs come from.
 
 <Mistake title="Two tempting wrong fixes">
 
@@ -167,7 +167,7 @@ There is one more shape worth knowing. With a constant learning rate, the loss o
 With about 36 seconds per Prelim question, match the key phrase to its cause:
 
 - "oscillates wildly", "unstable", "jumps around" → **learning rate too high** (or batch too small) → lower it
-- "decreases very slowly", "barely changes" → **learning rate too low** → raise it (unless the loss is *exactly* flat from step 0, which smells of a bug; see the next lesson)
+- "decreases very slowly", "barely changes" → **learning rate too low** → raise it (unless the loss is *exactly* flat from step 0, which smells of a bug; see [Systematic debugging and shape bugs](#/learn/debugging-and-diagnosis/systematic-debugging))
 - "training loss decreases, validation loss increases", "large train–validation gap" → **overfitting** → early stopping, regularisation, more data or augmentation
 - "both training and validation error are high" → **underfitting** → more capacity, better features, less regularisation
 - "suddenly becomes NaN / infinity" → **numerical instability or exploding gradients** → lower the learning rate, clip gradients, check for log 0 and division by 0

@@ -88,7 +88,7 @@ $$
 \mathbf{h} = f(W_1\mathbf{x} + \mathbf{b}_1), \qquad \mathbf{y} = W_2\mathbf{h} + \mathbf{b}_2
 $$
 
-$f$ is the <Term def="A fixed non-linear function applied to each neuron's weighted sum z, giving the neuron's output a = f(z). Examples: ReLU, sigmoid, tanh.">activation function</Term>. It acts on each number separately (<Term def="Applied to every entry of a vector on its own, e.g. ReLU([−1, 2]) = [0, 2].">element-wise</Term>). <Term def="Not of the form Wx + b; in one dimension, a graph that is not a straight line.">Non-linear</Term> simply means its graph is not a straight line, so the substitution trick above no longer simplifies anything. Now each layer can bend, and layers of bends can build complicated shapes. That is exactly how the hidden layer beat XOR in the last lesson.
+$f$ is the <Term def="A fixed non-linear function applied to each neuron's weighted sum z, giving the neuron's output a = f(z). Examples: ReLU, sigmoid, tanh.">activation function</Term>. It acts on each number separately (<Term def="Applied to every entry of a vector on its own, e.g. ReLU([−1, 2]) = [0, 2].">element-wise</Term>). <Term def="Not of the form Wx + b; in one dimension, a graph that is not a straight line.">Non-linear</Term> simply means its graph is not a straight line, so the substitution trick above no longer simplifies anything. Now each layer can bend, and layers of bends can build complicated shapes. That is exactly how the hidden layer beat XOR at the end of the last lesson, [The perceptron](#/learn/neural-networks/perceptron).
 
 <KeyIdea>
 
@@ -112,7 +112,7 @@ The perceptron's step function is non-linear, so why not use it? Because of how 
 - The step function's slope is 0 everywhere except at the jump, where it is undefined, so every factor is 0 and no weight ever gets a useful signal.
 - Good activations are non-linear **and** have useful slopes over the inputs they actually see.
 
-When a neuron sits where its activation is almost flat, $f'(z) \approx 0$, it is <Term def="Sitting in a flat part of its activation function, where the slope is nearly 0, so changes to its weights barely change its output and it learns very slowly.">saturated</Term>: its weights barely change. If many layers each multiply the signal by a small slope, it shrinks towards nothing by the time it reaches the first layers. That is the <Term def="When gradients get multiplied by many small factors on their way back through a deep network, so the early layers receive almost no learning signal.">vanishing gradient</Term> problem, which you will study properly in the backpropagation module.
+When a neuron sits where its activation is almost flat, $f'(z) \approx 0$, it is <Term def="Sitting in a flat part of its activation function, where the slope is nearly 0, so changes to its weights barely change its output and it learns very slowly.">saturated</Term>: its weights barely change. If many layers each multiply the signal by a small slope, it shrinks towards nothing by the time it reaches the first layers. That is the <Term def="When gradients get multiplied by many small factors on their way back through a deep network, so the early layers receive almost no learning signal.">vanishing gradient</Term> problem, which you will study properly in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients).
 
 ## The activation gallery
 
@@ -197,7 +197,7 @@ This is a <Term def="A ReLU neuron whose weighted sum is negative for every trai
 
 <Reveal label="Check the zero gradient in PyTorch">
 
-You will learn PyTorch properly in its own module. All you need here: `requires_grad=True` asks PyTorch to track `w` and `b`, `.backward()` computes the gradient of the loss with respect to each of them, and `.grad` holds the result. One neuron's bias has been pushed to $-6$, so $z$ is negative for all three inputs; the "loss" is a stand-in that adds up the outputs.
+You will learn PyTorch properly in its own module, where [Autograd: automatic gradients](#/learn/pytorch/autograd) covers these tools in full. All you need here: `requires_grad=True` asks PyTorch to track `w` and `b`, `.backward()` computes the gradient of the loss with respect to each of them, and `.grad` holds the result. One neuron's bias has been pushed to $-6$, so $z$ is negative for all three inputs; the "loss" is a stand-in that adds up the outputs.
 
 ```python
 import torch

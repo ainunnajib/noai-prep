@@ -159,7 +159,7 @@ $$
 - $k$, the **key**, says "this is what I advertise": the label that queries are matched against. For "animal": *I'm a noun, and a living thing*.
 - $v$, the **value**, is "what I pass on if you pick me": the information about "animal" that gets copied into "it".
 - $W_Q$, $W_K$ and $W_V$ are matrices of numbers learned during training. The same three matrices are used for every word in every sentence.
-- $x$ is a **row** vector, so the matrix comes second: the row-vector convention from [Backprop step by step](#/learn/backpropagation/backprop-step-by-step). The RNN lesson wrote $W_x\, x_t$ with column vectors: the same idea with the matrix transposed.
+- $x$ is a **row** vector, so the matrix comes second: the row-vector convention from [Backprop step by step](#/learn/backpropagation/backprop-step-by-step). The RNN lesson, [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms), wrote $W_x\, x_t$ with column vectors: the same idea with the matrix transposed.
 
 Why three different vectors instead of using $x$ for everything? Because what a word is looking for is not the same as what it advertises, and neither is the same as what it should hand over. Separate matrices let the network learn each role on its own.
 
@@ -194,8 +194,6 @@ The attention weights are **not** stored in the model. Training learns $W_Q$, $W
 ## Self-attention and cross-attention
 
 In self-attention, the queries, keys and values all come from one sequence. In <Term def="Attention in which the queries come from one sequence and the keys and values come from another, so one sequence can look things up in the other.">cross-attention</Term>, the queries come from one sequence and the keys and values from another. A translation model writing French uses cross-attention so that each French word it writes can look back at the English sentence. An image-captioning model lets each word it writes look at patches of the image. The maths is identical; only the source of the vectors changes.
-
-<PastPaperQuestion paper="prelim2026" n={254} />
 
 <ExamTip>
 

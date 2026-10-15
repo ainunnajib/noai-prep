@@ -43,7 +43,7 @@ torch.float32 cpu
 tensor(6.) tensor([1., 4.])
 ```
 
-`torch.Size([2, 3])` behaves like the tuple `(2, 3)`. Indexing and slicing (`x[1, 2]`, `x[:, 0]`), arithmetic and broadcasting all follow the NumPy rules you already know (`dim=` plays the part of NumPy's `axis=`). Tensors add two powers you will use in the next lessons: they can live on a GPU, and they can record the operations done to them so that gradients can be computed automatically.
+`torch.Size([2, 3])` behaves like the tuple `(2, 3)`. Indexing and slicing (`x[1, 2]`, `x[:, 0]`), arithmetic and broadcasting all follow the NumPy rules you already know (`dim=` plays the part of NumPy's `axis=`). Tensors add two powers you will use in the next lessons. They can record the operations done to them so that gradients can be computed automatically, the subject of [Autograd: automatic gradients](#/learn/pytorch/autograd). They can also live on a GPU, as [GPUs, devices and common PyTorch errors](#/learn/pytorch/devices-and-common-errors) shows.
 
 ## Creating tensors and predicting the dtype
 
@@ -226,7 +226,7 @@ The case you will meet most often is attention, the core of the <Term def="The n
 
 <Note title="A preview of attention">
 
-You will build attention properly in module 27. For now, `Q` (queries) and `K` (keys) are just two stacks of <Term def="A word or piece of a word. A model turns each token into a vector of numbers.">token</Term> vectors with shape $(B, h, T, d)$: $B$ sentences in the batch, $h$ <Term def="Attention runs several independent copies side by side, called heads, each with its own smaller vectors. Here they are just one more batch dim.">heads</Term>, $T$ tokens per sentence and $d$ numbers per token. The job is to compare every token in `Q` with every token in `K`.
+You will build attention properly in [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention). For now, `Q` (queries) and `K` (keys) are just two stacks of <Term def="A word or piece of a word. A model turns each token into a vector of numbers.">token</Term> vectors with shape $(B, h, T, d)$: $B$ sentences in the batch, $h$ <Term def="Attention runs several independent copies side by side, called heads, each with its own smaller vectors. Here they are just one more batch dim.">heads</Term>, $T$ tokens per sentence and $d$ numbers per token. The job is to compare every token in `Q` with every token in `K`.
 
 </Note>
 
