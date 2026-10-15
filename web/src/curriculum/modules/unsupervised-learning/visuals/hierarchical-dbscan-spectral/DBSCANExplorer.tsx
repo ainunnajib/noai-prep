@@ -4,8 +4,8 @@ import { blobs, moons, dbscan, sqDist, clusterColour, tint, type Pt, type Datase
 import { DataCircle, DragHandle, Note } from '../k-means/parts'
 
 /*
-  DBSCAN, live. Core points are filled discs (with their eps-circle drawn faintly, so the union of
-  circles shows the dense region); border points are hollow rings; noise points are crosses.
+  DBSCAN, live. Core points are filled discs (with their eps-circle drawn faintly; two core points are
+  connected only when one lies inside the other's circle, not when their circles merely overlap); border points are hollow rings; noise points are crosses.
   Two orange probe points can be dragged anywhere and are clustered like every other point.
   Tap any point to inspect it: its eps-circle and neighbours are highlighted and the read-out says
   why it is core, border or noise. Conventions follow scikit-learn: min_samples counts the point itself.
@@ -148,8 +148,9 @@ export default function DBSCANExplorer() {
       caption={
         <>
           Filled discs are <b>core</b> points (at least min_samples points within eps, counting themselves), rings are <b>border</b> points (not core,
-          but within eps of a core point) and crosses are <b>noise</b>. The shaded discs are the eps-circles of the core points: a cluster is everything
-          those circles connect. Slide eps down until the moons shatter, then up until they fuse. Drag the two orange probe points into a gap and into a
+          but within eps of a core point) and crosses are <b>noise</b>. The shaded discs are the eps-circles of the core points. A cluster grows from core
+          point to core point whenever one lies <i>inside</i> another's circle (distance ≤ eps), and a non-core point inside a core point's circle joins as a
+          border point. Circles that merely overlap do not join clusters: look where the two moons' shading touches but their colours differ. Slide eps down until the moons shatter, then up until they fuse. Drag the two orange probe points into a gap and into a
           moon. On <b>Mixed density</b>, try to find one eps that keeps the two tight blobs apart <i>and</i> the spread-out blob in one piece.
         </>
       }

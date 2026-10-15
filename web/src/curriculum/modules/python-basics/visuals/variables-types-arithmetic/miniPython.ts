@@ -213,6 +213,10 @@ function tokenize(src: string): Tok[] {
       const m = /^[A-Za-z_]\w*/.exec(rest)!
       if (/^["']/.test(src.slice(i + m[0].length)) && /^[rRbBuUfF]{1,2}$/.test(m[0]))
         throw new Unsupported('String prefixes like f"…" are not supported in this box (you will meet f-strings in the strings lesson).')
+      if (['and', 'or', 'not', 'in', 'is', 'if', 'else', 'lambda'].includes(m[0]))
+        throw new Unsupported(
+          `${m[0]} is real Python, but this box only does arithmetic and types. You will use and, or, not and if/else in the decisions lesson.`,
+        )
       toks.push({ k: 'name', s: m[0], pos: i })
       i += m[0].length
       continue

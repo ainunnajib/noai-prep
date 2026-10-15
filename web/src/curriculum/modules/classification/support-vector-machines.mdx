@@ -188,7 +188,7 @@ For two points at distance 1 (so $\lVert x - z \rVert^2 = 1$): with $\gamma = 0.
 
 <RBFGamma />
 
-On this data, $\gamma = 0.01$ is too smooth (82.9% on the training data, 85.3% on new data); $\gamma = 0.1$ follows the moons (94.3% and 92.8%); $\gamma = 31.6$ draws an island around nearly every point: 100% on the training data but only 64.3% on new data, with all 70 points as support vectors. A support-vector count close to the size of the training set is itself a warning sign of overfitting.
+On this data, $\gamma = 0.01$ is too smooth (82.9% on the training data, 85.3% on new data); $\gamma = 0.1$ follows the moons (94.3% and 92.8%); $\gamma = 31.6$ draws an island around nearly every point: 100% on the training data but only 64.3% on new data, with all 70 points as support vectors. Here that is a symptom of an RBF model memorising points. Be careful with the rule, though: a very small $C$ also makes most points support vectors (many points sit inside a wide street), so the count alone does not prove overfitting. Compare training and validation accuracy.
 
 <KeyIdea>
 

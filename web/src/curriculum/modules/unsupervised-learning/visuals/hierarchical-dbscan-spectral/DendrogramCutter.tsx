@@ -24,11 +24,11 @@ const P: Pt[] = [
   [8.2, 6.4],
   [7.3, 5.7],
   [8.85, 7.5],
-  [4.45, 2.7],
-  [5.1, 1.75],
-  [6.05, 2.75],
-  [4.7, 3.4],
-  [3.45, 4.6],
+  [5.75, 2.7],
+  [6.4, 1.75],
+  [7.35, 2.75],
+  [6.0, 3.4],
+  [3.9, 4.2],
 ]
 const N = P.length
 const NAMES = 'ABCDEFGHIJKLMNO'.split('')
@@ -200,8 +200,9 @@ export default function DendrogramCutter() {
       caption={
         <>
           Drag the round handle on the <b>cut</b> line (or use the merge buttons). Every vertical line the cut crosses is one cluster, coloured the same in
-          both views. Lower the cut all the way to see the first merges (the closest pairs), raise it to see groups join. Then switch the linkage:
-          single linkage chains the bridge point O into a long cluster, complete linkage keeps clusters compact. One run of the algorithm gives
+          both views. Lower the cut all the way to see the first merges (the closest pairs), raise it to see groups join. Then cut at 2 clusters and
+          switch the linkage: single linkage chains the left and bottom groups together through the bridge point O, while complete and average linkage
+          join the bottom group to the right group instead and keep clusters compact. One run of the algorithm gives
           every possible number of clusters; the cut only chooses among them.
         </>
       }

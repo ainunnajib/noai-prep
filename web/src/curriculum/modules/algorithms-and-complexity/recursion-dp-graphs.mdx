@@ -212,7 +212,7 @@ If a recursive solution solves the same subproblem more than once, store each an
 
 ## Dynamic programming: fill a table in the right order
 
-Memoisation works **top-down**: start from the big problem and cache on the way. <Term def="Solving a problem by answering all its smaller subproblems first, in an order where each answer only needs answers already found, and storing them in a table.">Dynamic programming</Term> (DP) usually works **bottom-up**: answer the smallest subproblems first and fill a table in an order where every entry only needs entries already filled. For Fibonacci the table is a single row: $F(0), F(1), F(2), \dots$, each the sum of the two to its left.
+<Term def="Solving a problem by answering its smaller subproblems, storing each answer, and building bigger answers from stored ones.">Dynamic programming</Term> (DP) works when a problem has two properties: **optimal substructure** (the best answer is built from the best answers to smaller subproblems) and **overlapping subproblems** (the same subproblems come up again and again). Memoisation is **top-down** DP: start from the big problem and cache on the way. The other style is **bottom-up** DP, also called tabulation: answer the smallest subproblems first and fill a table in an order where every entry only needs entries already filled. Both give the same complexity, but bottom-up never runs into Python's recursion limit (a memoised `fib(2000)` raises `RecursionError`). For Fibonacci the table is a single row: $F(0), F(1), F(2), \dots$, each the sum of the two to its left.
 
 <Analogy title="Cheapest MRT fares, station by station">
 
@@ -303,7 +303,7 @@ You can search floor by floor: check every shop on level 1, then every shop on l
   </Step>
 </Steps>
 
-Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so both take $O(V + E)$ time for $V$ nodes and $E$ edges. The code differs in one line: `queue.popleft()` versus taking the newest item (here, a recursive call).
+Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so both take $O(V + E)$ time for $V$ nodes and $E$ edges. The essential difference is which end of the frontier you take from: the oldest item (a queue, BFS) or the newest (a stack, DFS). In code there is one more detail: a stack-based DFS must mark a node as visited when it is **popped**, not when it is pushed, so just swapping `popleft()` for `pop()` in `bfs_path` does not give a true DFS. A recursive DFS gets this right automatically.
 
 <PyRunner code={graphCode} />
 

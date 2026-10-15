@@ -177,6 +177,8 @@ Long Prelim scenario questions compare these remedies. The 2026 Prelim had one o
 
 </ExamTip>
 
+<PastPaperQuestion paper="prelim2026" n={264} />
+
 ## Choosing the metric by cost
 
 <Analogy title="A smoke alarm">
@@ -198,7 +200,7 @@ $$
 
 Flag every payment with $p > t^*$. When misses are expensive ($c_{FN}$ large), $t^*$ is small: you flag almost anything suspicious.
 
-<Steps title="A bank: a phone check costs 10 dollars, a missed fraud 90 dollars">
+<Steps title="A bank: a false alarm (phoning about a genuine payment) costs 10 dollars, a missed fraud 90 dollars">
   <Step title="Best threshold">
     $t^* = \frac{10}{10 + 90} = 0.1$. Flag anything the model rates above a 10% chance of fraud.
   </Step>
@@ -209,6 +211,10 @@ Flag every payment with $p > t^*$. When misses are expensive ($c_{FN}$ large), $
     Flag: $0.95 \times 10 = \$9.50$. Let through: $0.05 \times 90 = \$4.50$. Let it through ($0.05 < 0.1$).
   </Step>
 </Steps>
+
+<Note title="Read the cost carefully">
+The formula charges $c_{FP}$ only when a flagged payment turns out to be genuine. If instead a check costs $c$ on **every** flagged payment, fraud or not, flagging always costs $c$, so you flag when $c < p\,c_{FN}$: the threshold is $c / c_{FN}$ (here $10/90 \approx 0.11$). In general, with a cost for each of the four outcomes, $t^* = \dfrac{C_{FP} - C_{TN}}{(C_{FP} - C_{TN}) + (C_{FN} - C_{TP})}$.
+</Note>
 
 <CostMatrixSlider />
 
@@ -225,6 +231,10 @@ Match the metric to the cost of mistakes. When misses are expensive (fraud, dise
 | card fraud (fraud) | recall, with a minimum precision | a miss loses money; too many alarms swamp investigators |
 | rare-disease screening (disease) | recall | a missed patient goes untreated; a false alarm costs a follow-up test |
 | confirming a diagnosis before surgery (disease) | precision | a false positive means an unnecessary operation |
+
+When a miss costs far more than a false alarm, and alarms can be reviewed, recall (with a floor on precision) is the main metric. F1 weighs precision and recall equally, so it is not automatically the safe answer, and ROC-AUC can look flattering when positives are rare.
+
+<PastPaperQuestion paper="prelim2026" n={265} />
 
 ## In code
 

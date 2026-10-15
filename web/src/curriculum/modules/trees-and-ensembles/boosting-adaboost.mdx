@@ -141,7 +141,7 @@ Notice the pattern in the last column: $e^{\alpha} = \sqrt{\frac{1-\varepsilon}{
 
 <ExamTip>
 
-With no calculator, look for a ratio $\frac{1-\varepsilon}{\varepsilon}$ that is a perfect square: $\varepsilon = 0.2$ gives 4, so $\alpha = \ln 2$; $\varepsilon = 0.1$ gives 9, so $\alpha = \ln 3$. Know the three anchor facts cold: $\varepsilon = 0.5 \Rightarrow \alpha = 0$; smaller $\varepsilon$ means bigger $\alpha$; $\varepsilon > 0.5 \Rightarrow \alpha < 0$. Some books and libraries drop the $\frac12$ and write $\alpha = \ln \frac{1-\varepsilon}{\varepsilon}$. That doubles every $\alpha$, which never changes the sign of the vote, so the predictions are the same; use whichever form the question uses.
+With no calculator, look for a ratio $\frac{1-\varepsilon}{\varepsilon}$ that is a perfect square: $\varepsilon = 0.2$ gives 4, so $\alpha = \ln 2$; $\varepsilon = 0.1$ gives 9, so $\alpha = \ln 3$. Know the three anchor facts cold: $\varepsilon = 0.5 \Rightarrow \alpha = 0$; smaller $\varepsilon$ means bigger $\alpha$; $\varepsilon > 0.5 \Rightarrow \alpha < 0$. Some books and scikit-learn drop the $\frac12$, write $\alpha = \ln \frac{1-\varepsilon}{\varepsilon}$, **and** update only the mistakes: $w \leftarrow w\,e^{\alpha}$. That pairing re-weights exactly like this lesson's (the mistakes-to-correct ratio is $\frac{1-\varepsilon}{\varepsilon}$ either way), and doubling every $\alpha$ never changes the sign of the vote, so the predictions are identical. Do not mix the two forms: the doubled $\alpha$ inside this lesson's update $e^{-\alpha y h}$ over-weights the mistakes and breaks the algorithm.
 
 </ExamTip>
 
@@ -193,11 +193,13 @@ weights /= weights.sum()                         # normalise
 
 Three bugs appear again and again in AdaBoost code (and in exam options that ask you to find the bug):
 
-- **Only boosting the mistakes**: `weights *= np.exp(alpha * incorrect)` multiplies the mistakes by $e^{\alpha}$ but leaves the correct examples at $\times 1$. The re-weighting becomes only half as strong as the $\alpha$ assumes; the textbook update also **shrinks** the correct ones by $e^{-\alpha}$.
+- **$\alpha$ and the update must match.** With the $\frac12$ in $\alpha$ (this lesson's form), `weights *= np.exp(alpha * incorrect)` multiplies only the mistakes by $e^{\alpha}$, which is half the intended strength (the mistakes-to-correct ratio becomes $e^{\alpha}$ instead of $e^{2\alpha}$). The fix is the symmetric update `np.exp(alpha * (2 * incorrect - 1))`, which also **shrinks** the correct ones. The NOAI 2026 Final expected exactly this fix. With $\alpha = \ln \frac{1-\varepsilon}{\varepsilon}$ (no $\frac12$), the mistakes-only line is the standard AdaBoost.M1 update and is correct.
 - **The wrong sign**: `np.exp(-alpha * incorrect)` *shrinks* the mistakes, so later learners ignore exactly the examples they should focus on.
 - **Labels 0 and 1**: the formula $e^{-\alpha y h}$ only works with labels $\pm 1$. With 0/1 labels, $y \cdot h$ is 0 for many examples and the update breaks. Convert first with `y = 2 * y01 - 1`.
 
 </Mistake>
+
+<PastPaperQuestion paper="final2026" n={5} />
 
 ## Why boosting reduces bias, and when it overfits
 
@@ -221,7 +223,7 @@ Here is AdaBoost from scratch on the 36 points from the stepper. It uses scikit-
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={adaCode} />
 
-Every line prints "its mistakes now hold 0.50 of the weight", which is the halving rule in action. One stump alone gets 75% of the training points right; ten stumps voting get 100%. The stumps differ slightly from the stepper's because scikit-learn chooses each stump's question by weighted **Gini impurity** (from the decision-trees lesson) rather than by weighted error; both are perfectly good weak learners. In recent versions of scikit-learn, `AdaBoostClassifier(n_estimators=10)` runs this same algorithm with stumps by default. It writes $\alpha = \ln \frac{1-\varepsilon}{\varepsilon}$, without the $\frac12$, which doubles every $\alpha$ and gives exactly the same predictions.
+Every line prints "its mistakes now hold 0.50 of the weight", which is the halving rule in action. One stump alone gets 75% of the training points right; ten stumps voting get 100%. The stumps differ slightly from the stepper's because scikit-learn chooses each stump's question by weighted **Gini impurity** (from the decision-trees lesson) rather than by weighted error; both are perfectly good weak learners. In recent versions of scikit-learn, `AdaBoostClassifier(n_estimators=10)` runs this same algorithm with stumps by default. It writes $\alpha = \ln \frac{1-\varepsilon}{\varepsilon}$, without the $\frac12$, and multiplies only the misclassified weights by $e^{\alpha}$, so it re-weights like this lesson and gives exactly the same predictions.
 
 <QuickCheck
   q="Ten examples each have weight 0.1. A stump misclassifies 1 of them. After AdaBoost re-weights and normalises, what is the weight of that misclassified example?"

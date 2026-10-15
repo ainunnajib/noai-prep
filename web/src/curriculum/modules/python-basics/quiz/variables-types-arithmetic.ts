@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      "`'5' * 5` repeats the text and gives `'55555'`, not 25: Python never converts types for you. With `+`, a string and a number could mean adding (10) or joining (`'55'`), so Python raises a `TypeError` instead of guessing. `+` does work on two strings (`'5' + '5'` is `'55'`), while `'5' * '5'` is an error.",
+      "`'5' * 5` repeats the text and gives `'55555'`, not 25: Python never turns a string into a number for you. With `+`, a string and a number could mean adding (10) or joining (`'55'`), so Python raises a `TypeError` instead of guessing. `+` does work on two strings (`'5' + '5'` is `'55'`), while `'5' * '5'` is an error.",
     difficulty: 'intermediate',
   },
   {

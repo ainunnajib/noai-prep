@@ -4,10 +4,12 @@ import s from '../big-o/algo.module.css'
 import d from './dp.module.css'
 
 /*
-  BFS and DFS on a small made-up neighbourhood map. The ONLY difference in the code is the data
-  structure holding the frontier: a queue (first in, first out) for BFS, a stack (last in, first
-  out) for DFS. Neighbours are always tried in the same fixed order. A node counts as "visited" when
-  it is taken off the frontier; the search stops when the goal is visited.
+  BFS and DFS on a small made-up neighbourhood map. The key difference is the data structure holding
+  the frontier: a queue (first in, first out) for BFS, a stack (last in, first out) for DFS. One more
+  detail differs: BFS marks a node as seen when it is added to the queue (like the lesson's bfs_path),
+  while this stack-based DFS marks a node when it is popped and pushes neighbours in reverse, so it
+  visits nodes in the same order as a recursive DFS. Swapping popleft() for pop() alone would not.
+  The search stops when the goal is taken off the frontier.
 */
 
 const NODES: Record<string, [number, number]> = {

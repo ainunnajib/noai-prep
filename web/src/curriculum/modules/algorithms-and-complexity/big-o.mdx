@@ -139,6 +139,8 @@ In words: **from some size onwards, $f$ grows no faster than a constant multiple
 1. **Drop constant factors.** $5n$, $n/2$ and $100n$ are all $O(n)$, because the constant can be absorbed into $c$.
 2. **Keep only the dominant term.** In a sum, the fastest-growing term wins for large $n$, so $3n^2 + 50n + 200$ is $O(n^2)$.
 
+Because Big-O is only an upper bound, $3n^2 + 50n + 200$ is also $O(n^3)$, just not usefully. When a question asks for "the complexity", give the **tightest** bound: $O(n^2)$. Two related symbols turn up in exam options: $\Omega(g)$ means "grows **at least** as fast as $g$" (a lower bound), and $\Theta(g)$ means both at once, "grows exactly like $g$" up to constant factors. Binary search is $\Theta(\log n)$ in the worst case; merge sort is $\Theta(n \log n)$ on every input.
+
 <Steps title="Show that $3n^2 + 50n + 200 = O(n^2)$">
   <Step title="Bound each term by a multiple of $n^2$">
     For every $n \ge 1$ we have $n \le n^2$ and $1 \le n^2$. So $50n \le 50n^2$ and $200 \le 200n^2$.

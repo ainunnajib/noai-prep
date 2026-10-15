@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Plot, Grid, Axes, Path, Dots, VLine, useNarrow } from '../../../../../kit'
-import { expectedCounts, metricsOf, type Counts, type Metrics } from './evalMath'
+import { calibratedCounts, metricsOf, type Counts, type Metrics } from './evalMath'
 import { HaloLabel } from './HaloLabel'
 import s from './eval.module.css'
 
 /*
   Four applications, one question: where should the threshold go?
-  For each scenario, 1,000 cases are scored by a model (binormal score model, see evalMath.ts).
+  For each scenario, 1,000 cases are scored by a CALIBRATED model (its score is the true probability of the
+  positive class; see calibratedCounts in evalMath.ts), so the cheapest threshold is c_FP / (c_FP + c_FN).
   Total cost(t) = (cost of one FP) × FP(t) + (cost of one FN) × FN(t), using expected counts.
   We mark the threshold with the lowest total cost and the threshold with the highest F1.
 */
@@ -119,7 +120,7 @@ export default function ErrorCostScenarios() {
   const rows: Row[] = useMemo(
     () =>
       TS.map((t) => {
-        const c = expectedCounts(t, sc.d, nNeg, nPos)
+        const c = calibratedCounts(t, sc.d, sc.share, N)
         const m = metricsOf(c)
         return { t, c, m, cost: cFP * c.fp + cFN * c.fn }
       }),
@@ -140,7 +141,8 @@ export default function ErrorCostScenarios() {
           Pick an application. Each one scores 1,000 cases with a model; the sliders set what one mistake of each kind costs (in made-up units). The teal curve is
           the <b>total cost</b> at every threshold, and its lowest point is the best threshold for this job. The dashed olive line is the threshold that makes{' '}
           <b>F1</b> largest. For screening the cheapest threshold is lower than the F1 one (catch more cancers, accept more extra tests); for the spam filter and
-          face unlock it is higher (avoid false alarms). Raise the cost of a false negative and watch the best threshold slide left.
+          face unlock it is higher (avoid false alarms). Raise the cost of a false negative and watch the best threshold slide left. The scores here are calibrated
+          probabilities, so the cheapest threshold always lands at cost of a false positive ÷ (sum of the two costs): the rule in the next lesson.
         </>
       }
     >

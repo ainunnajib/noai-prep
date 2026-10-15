@@ -3,6 +3,15 @@ import { Figure, Button, Toggle } from '../../../../../kit'
 import { parse, trace, repr, typeName, PyError, Unsupported, type Node, type PyVal } from './miniPython'
 import s from './viz.module.css'
 
+/** repr() that never throws during render (huge ints raise a PyError, as in CPython's 4300-digit limit) */
+function safeRepr(v: Parameters<typeof repr>[0]): string {
+  try {
+    return repr(v)
+  } catch (e) {
+    return e instanceof PyError ? `(${e.pyType}: too many digits to show)` : '?'
+  }
+}
+
 /*
   An expression drawn as a tree, collapsed one operation at a time in the exact order Python
   evaluates it (left operand, right operand, then the operator). Values come from miniPython.ts.
@@ -46,7 +55,7 @@ function layout(root: Node, done: Map<number, PyVal>, errorId: number | null) {
     depthMax = Math.max(depthMax, depth)
     const y = 26 + depth * ROW_H
     if (done.has(n.id) || n.kind === 'lit' || n.kind === 'name') {
-      const label = done.has(n.id) ? repr(done.get(n.id)!) : n.kind === 'lit' ? n.text : n.kind === 'name' ? n.name : ''
+      const label = done.has(n.id) ? safeRepr(done.get(n.id)!) : n.kind === 'lit' ? n.text : n.kind === 'name' ? n.name : ''
       const w = leafWidth(label)
       const x = cursor + w / 2
       cursor += w + GAP
@@ -98,7 +107,7 @@ function parentsOf(root: Node) {
 /** Source text of the partly evaluated expression, with the next operation highlighted. */
 function exprText(n: Node, done: Map<number, PyVal>, nextId: number | null, lastId: number | null, keepNegParen = false): ReactNode {
   if (done.has(n.id)) {
-    const v = repr(done.get(n.id)!)
+    const v = safeRepr(done.get(n.id)!)
     const shown = keepNegParen && v.startsWith('-') ? `(${v})` : v
     return n.id === lastId ? <span className={s.hlDone}>{shown}</span> : shown
   }
@@ -284,7 +293,7 @@ export default function ExpressionTree() {
     const nextParent = nextNode ? parents.get(nextNode.id) : undefined
     let status: ReactNode
     if (next && nextNode) {
-      const preview = next.error ? `${next.error instanceof PyError ? next.error.pyType : 'error'}` : repr(next.value!)
+      const preview = next.error ? `${next.error instanceof PyError ? next.error.pyType : 'error'}` : safeRepr(next.value!)
       status = (
         <>
           <strong>Next:</strong> the highlighted part{next.error ? ' raises ' : ' gives '}
@@ -300,7 +309,7 @@ export default function ExpressionTree() {
     } else if (finalVal) {
       status = (
         <>
-          <strong>Done:</strong> the result is <code>{repr(finalVal)}</code>, of type <code>{typeName(finalVal)}</code>.
+          <strong>Done:</strong> the result is <code>{safeRepr(finalVal)}</code>, of type <code>{typeName(finalVal)}</code>.
           {n === 0 ? ' There was nothing to work out.' : ` Python needed ${n} step${n === 1 ? '' : 's'}.`}
         </>
       )

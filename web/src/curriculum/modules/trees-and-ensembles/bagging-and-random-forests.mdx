@@ -127,6 +127,8 @@ Each individual tree gets a little **worse**, since it sometimes cannot use the 
 
 Look at the accuracy curve: it rises quickly, then flattens. Adding trees **never makes a forest overfit more**, because each extra tree just makes the average a little more stable. It simply stops helping, while training time keeps growing in proportion to the number of trees. So `n_estimators` is not tuned to fight overfitting: pick "enough" trees (typically a few hundred) and stop when the validation or OOB score levels off. If a forest overfits, look instead at the trees themselves (`max_depth`, `min_samples_leaf`) or at `max_features`.
 
+<PastPaperQuestion paper="final2026" n={1} />
+
 <QuickCheck
   q="Why does a random forest let each split choose from only a random subset of the features, even though this makes every single tree a little less accurate?"
   options={['It makes the trees less alike, so their errors are less correlated and the average cancels more of them', 'It makes each tree shallower, which lowers the bias of the forest as a whole', 'It speeds up training, which is the only reason; the accuracy of the average is unaffected', 'It stops the trees from overfitting, so they no longer need bootstrap samples']}
@@ -188,7 +190,7 @@ The NOAI favourites, in one place:
 <Takeaways>
 
 - A **bootstrap sample** draws $n$ rows from $n$ with replacement: about 63.2% distinct rows, about 36.8% out of bag.
-- **Bagging** trains a deep tree on each bootstrap sample and votes or averages. It lowers variance by $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$: a lot when the trees are independent, only down to the floor $\rho\sigma^2$ when they are correlated.
+- **Bagging** trains a deep tree on each bootstrap sample and votes or averages. It lowers the variance from $\sigma^2$ **to** $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$: close to $\sigma^2/B$ when the trees are independent, but never below the floor $\rho\sigma^2$ when they are correlated.
 - A **random forest** also restricts each split to a random subset of features (`max_features`), which makes the trees less alike and the average better.
 - The **out-of-bag** score is a free estimate of test performance; adding trees gives diminishing returns but never more overfitting.
 - **Feature importance** (impurity or permutation) shows what the model relies on; watch out for correlated features and for impurity importance's bias towards high-cardinality features.

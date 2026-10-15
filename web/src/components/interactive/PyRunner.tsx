@@ -51,6 +51,25 @@ function getPyodide(): Promise<Pyodide> {
   return pyodidePromise
 }
 
+/**
+ * Pyodide's tracebacks start with frames from its own machinery ("/lib/python3xx.zip/_pyodide/..."). Drop those so a
+ * beginner sees only their own code's frames, as in a normal Python traceback.
+ */
+function cleanTraceback(msg: string): string {
+  const out: string[] = []
+  let skipping = false
+  for (const line of msg.split('\n')) {
+    if (/^\s+File "\/lib\/python/.test(line)) {
+      skipping = true
+      continue
+    }
+    if (skipping && /^\s{4,}/.test(line)) continue // the source line and ^^^ markers of a skipped frame
+    skipping = false
+    out.push(line)
+  }
+  return out.join('\n')
+}
+
 export function PyRunner({ code: initial, packages = [], title = 'Try it: Python', rows }: { code: string; packages?: string[]; title?: string; rows?: number }) {
   const [code, setCode] = useState(initial.replace(/^\n/, '').replace(/\n$/, ''))
   const [out, setOut] = useState<string>('')
@@ -59,6 +78,7 @@ export function PyRunner({ code: initial, packages = [], title = 'Try it: Python
 
   const run = async () => {
     setOut('')
+    let buf = ''
     try {
       setStatus('loading')
       const py = await getPyodide()
@@ -68,7 +88,6 @@ export function PyRunner({ code: initial, packages = [], title = 'Try it: Python
         need.forEach((p) => loadedPackages.add(p))
       }
       setStatus('running')
-      let buf = ''
       py.setStdout({ batched: (s) => (buf += s + '\n') })
       py.setStderr({ batched: (s) => (buf += s + '\n') })
       const result = await py.runPythonAsync(code)
@@ -81,7 +100,7 @@ export function PyRunner({ code: initial, packages = [], title = 'Try it: Python
       setOut(
         offline
           ? 'Python could not start here (it downloads from cdn.jsdelivr.net the first time). Copy the code into Google Colab (colab.research.google.com) or a local Python to run it.'
-          : msg,
+          : buf + cleanTraceback(msg),
       )
       setStatus('error')
     }

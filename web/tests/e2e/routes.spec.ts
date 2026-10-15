@@ -1,4 +1,16 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
+
+/** Module and lesson slugs, read from the module folders (one test per module keeps each test short). */
+const MODULES_DIR = join(process.cwd(), 'src', 'curriculum', 'modules') // tests run from web/
+const COURSE = readdirSync(MODULES_DIR, { withFileTypes: true })
+  .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
+  .map((d) => {
+    const index = readFileSync(join(MODULES_DIR, d.name, 'index.ts'), 'utf8')
+    const lessons = [...index.matchAll(/^\s+slug: "([^"]+)",\n\s+title:/gm)].map((m) => m[1])
+    return { slug: d.name, lessons }
+  })
 
 /** Collect console errors and uncaught exceptions on a page. */
 function watch(page: Page) {
@@ -14,6 +26,7 @@ async function check(page: Page, route: string, errors: string[]) {
   await page.goto('./#' + route)
   await page.waitForLoadState('networkidle')
   await expect(page.locator('main')).toBeVisible()
+  await expect(page.locator('.loading-block')).toHaveCount(0, { timeout: 30_000 })
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
   expect(overflow, `${route} scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1)
   await expect(page.locator('text=Something on this page failed to load')).toHaveCount(0)
@@ -27,20 +40,23 @@ test('static pages render cleanly', async ({ page }) => {
   for (const r of STATIC) await check(page, r, errors)
 })
 
-test('every module and lesson renders cleanly', async ({ page }) => {
-  const errors = watch(page)
-  await page.goto('./#/learn')
-  await page.waitForLoadState('networkidle')
-  const moduleHrefs = await page.locator('a.roadmap-card').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).hash.slice(1)))
-  expect(moduleHrefs.length).toBeGreaterThan(0)
-  for (const m of moduleHrefs) {
-    await check(page, m, errors)
-    const lessons = await page.locator('a.module-lesson').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).hash.slice(1)))
-    for (const l of lessons) {
-      await check(page, l, errors)
+for (const m of COURSE) {
+  test(`module ${m.slug} and its lessons render cleanly`, async ({ page }) => {
+    const errors = watch(page)
+    await check(page, `/learn/${m.slug}`, errors)
+    expect(m.lessons.length).toBeGreaterThan(0)
+    for (const l of m.lessons) {
+      await check(page, `/learn/${m.slug}/${l}`, errors)
       await expect(page.locator('.prose')).not.toBeEmpty()
     }
-  }
+  })
+}
+
+test('the course map links to every module', async ({ page }) => {
+  await page.goto('./#/learn')
+  await page.waitForLoadState('networkidle')
+  const linked = await page.locator('a.roadmap-card').evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).hash.replace('#/learn/', '')))
+  expect(new Set(linked)).toEqual(new Set(COURSE.map((m) => m.slug)))
 })
 
 test('practice and mock exam flows work', async ({ page }) => {
