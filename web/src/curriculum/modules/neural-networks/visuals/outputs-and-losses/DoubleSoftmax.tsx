@@ -36,7 +36,7 @@ const f3 = (v: number) => {
 
 export default function DoubleSoftmax() {
   const [K, setK] = useState(10)
-  const [m, setM] = useState(6)
+  const [m, setM] = useState(1)
   const [bug, setBug] = useState(true)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
   const good = pipeline(m, K, false)
@@ -51,7 +51,8 @@ export default function DoubleSoftmax() {
         <>
           The true class&rsquo;s logit is <M>m</M> bigger than every other. With the bug on, the model ends with its own softmax, so the scores are squashed{' '}
           <b>twice</b> and pulled towards <M>{'1/K'}</M>. Slide <M>m</M>: the correct loss heads to 0, but the buggy loss never falls below{' '}
-          <M>{'\\ln\\!\\left(1 + \\frac{K-1}{e}\\right)'}</M>, and no error message warns you.
+          <M>{'\\ln\\!\\left(1 + \\frac{K-1}{e}\\right)'}</M>, and no error message warns you. Watch the push readouts too: at <M>m = 0</M> the
+          bug pushes the true logit about 10 times more weakly than the correct pipeline (−0.09 against −0.9 with K = 10).
         </>
       }
     >
@@ -125,7 +126,7 @@ export default function DoubleSoftmax() {
                 ['loss, correct', f3(good.loss)],
                 ...(bug ? ([['loss, bug', f3(bad.loss)]] as [string, string][]) : []),
                 ['push on true logit, correct', f3(good.grad)],
-                ...(bug ? ([['push, bug', f3(bad.grad)]] as [string, string][]) : []),
+                ...(bug ? ([['push, bug', f3(bad.grad)], ['bug push is', `${(good.grad / bad.grad).toFixed(1)}× weaker`]] as [string, string][]) : []),
               ]}
             />
           </div>
