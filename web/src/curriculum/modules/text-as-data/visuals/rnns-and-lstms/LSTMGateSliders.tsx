@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Figure, Controls, Readout, Slider, Button, Plot, Grid, Axes, Rect, Path, Dots, HLine, usePlot, useContainerWidth, M } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import st from './rnn.module.css'
 
 /*
@@ -203,13 +204,23 @@ export default function LSTMGateSliders() {
     <Figure
       title="An LSTM cell: three valves on a conveyor belt"
       caption={
-        <>
-          "Cats" writes a note of 0.9 into the cell state <M>c</M>. You set the gates used for every word after it: the <b>forget</b> gate <M>f</M> keeps the old
-          note, the <b>input</b> gate <M>i</M> writes each new word&apos;s note and the <b>output</b> gate <M>o</M> reveals the note. The bars show <M>{'c_t'}</M> and the
-          dots the output <M>{'h_t'}</M>. The dashed line is Cats&apos; own contribution to <M>{'c_t'}</M> (<M>{'0.9 \\cdot f^{\\,t-1}'}</M>); later words&apos; notes add to it
-          or subtract from it, so a bar can sit above or below the line. Try the buttons: with <b>f = 1, i = 0</b> the note rides the belt untouched to
-          "are"; with <b>o = 0</b> it is still stored but hidden from the output. Click a word to inspect that step in the diagram.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              press the presets: <b>f = 1, i = 0</b>, then <b>o = 0</b>. Click a word to inspect that step in the diagram.
+            </>
+          }
+          notice={
+            <>
+              with <b>f = 1, i = 0</b> the note "Cats" wrote (0.9) rides the cell state untouched to "are"; with <b>o = 0</b> it is still stored but hidden from the output.
+            </>
+          }
+          note={
+            <>
+              Bars are the cell state <M>{'c_t'}</M>, dots the output <M>{'h_t'}</M>. The dashed line is Cats&apos; own share, <M>{'0.9 \\cdot f^{\\,t-1}'}</M>; later words add to it or subtract from it.
+            </>
+          }
+        />
       }
     >
       <CellDiagram v={v} t={sel} />

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, Rect, Label, usePlot, useNarrow, M } from '../../../../../kit'
+import { TryNotice, textTone } from '../Caption'
 
 /*
   Backpropagation through time multiplies one factor per step. For a plain RNN the factor is
@@ -82,11 +83,19 @@ export default function GradientThroughTime() {
     <Figure
       title="How much gradient survives the trip back in time?"
       caption={
-        <>
-          Going back one step multiplies the gradient by one factor, so after <M>k</M> steps it is <M>{'r^k'}</M> for a plain RNN (circles) and <M>{'f^k'}</M> along an LSTM's cell state (squares; log scale:
-          each faint grid line is 10 times smaller than the one above). Slide the RNN factor below 1 and the signal from 30 words ago all but vanishes; push it above 1 and it explodes. The LSTM's forget gate can sit just below
-          1, so the signal fades slowly instead.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              slide the RNN factor <M>r</M> below 1, then above 1, and compare the LSTM line with its forget gate <M>f</M> just below 1.
+            </>
+          }
+          notice={
+            <>
+              after <M>k</M> steps the gradient is <M>{'r^k'}</M>: below 1 the signal from 30 words ago all but vanishes, above 1 it explodes. The LSTM's <M>{'f^k'}</M> only fades slowly.
+            </>
+          }
+          note="Log scale: each faint grid line is 10 times smaller than the one above. Circles are the plain RNN, squares the LSTM's cell state."
+        />
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
@@ -97,27 +106,20 @@ export default function GradientThroughTime() {
         <Label x={0} y={YMIN} anchor="start" dx={6} dy={-6} color="var(--ink-2)" size={12}>
           {narrow ? 'vanishing' : 'vanishing: almost no learning signal'}
         </Label>
-        <Label x={0} y={YMAX} anchor="start" dx={6} dy={15} color="var(--ink-2)" size={12}>
+        {/* below the axis title "gradient size", which sits in the top-left corner */}
+        <Label x={0} y={YMAX} anchor="start" dx={6} dy={34} color="var(--ink-2)" size={12}>
           {narrow ? 'exploding' : 'exploding: huge, unstable updates'}
         </Label>
         <Path points={rnn} color="var(--viz-2)" width={2.5} />
         <Path points={lstm} color="var(--viz-3)" width={2.5} />
         <Dots points={shown(rnnRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-2)' }))} />
         <Dots points={shown(lstmRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-3)', shape: 'square' as const }))} />
-        {rEnd.off ? (
-          <Label x={rEnd.x} y={rEnd.y} anchor={rEnd.x > K * 0.6 ? 'end' : 'start'} dx={rEnd.x > K * 0.6 ? -4 : 4} dy={rEnd.y < 0 ? -22 : 30} color="var(--viz-2)" size={12} weight={700}>
-            {`RNN rᵏ ${rEnd.y < 0 ? '▼' : '▲'} off the chart`}
-          </Label>
-        ) : (
+        {!rEnd.off && (
           <Label x={rEnd.x} y={rEnd.y} anchor="end" dx={-4} dy={rDy} color="var(--viz-2)" size={12} weight={700}>
             RNN rᵏ
           </Label>
         )}
-        {lEnd.off ? (
-          <Label x={lEnd.x} y={lEnd.y} anchor={lEnd.x > K * 0.6 ? 'end' : 'start'} dx={lEnd.x > K * 0.6 ? -4 : 4} dy={-38} color="var(--viz-3)" size={12} weight={700}>
-            LSTM fᵏ ▼ off the chart
-          </Label>
-        ) : (
+        {!lEnd.off && (
           <Label x={lEnd.x} y={lEnd.y} anchor="end" dx={-4} dy={lDy} color="var(--viz-3)" size={12} weight={700}>
             LSTM fᵏ
           </Label>
@@ -125,6 +127,17 @@ export default function GradientThroughTime() {
         <Axes xLabel="steps back in time →" yLabel="gradient size" xTicks={5} hideYTicks />
         <PowerTicks />
       </Plot>
+      {/* lines that leave the chart are named here, below the plot, so the notice never sits on top of a line */}
+      {(rEnd.off || lEnd.off) && (
+        <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', textAlign: 'center', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.2rem 1rem' }}>
+          {rEnd.off && (
+            <span style={{ color: textTone('var(--viz-2)'), fontWeight: 700 }}>
+              RNN rᵏ {rEnd.y < 0 ? '▼ below' : '▲ above'} the chart after {Math.ceil(rEnd.x)} steps
+            </span>
+          )}
+          {lEnd.off && <span style={{ color: textTone('var(--viz-3)'), fontWeight: 700 }}>LSTM fᵏ ▼ below the chart after {Math.ceil(lEnd.x)} steps</span>}
+        </p>
+      )}
       </div>
       <Controls>
         <Slider label={<span style={{ color: 'var(--viz-2)' }}>RNN factor per step r</span>} value={r} min={0.2} max={1.5} step={0.05} onChange={setR} format={(v) => v.toFixed(2)} />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, usePlayer, PlayerControls, useContainerWidth, M } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import { H, wordVec, forward, influenceOf, type Model } from './rnnSim'
 import st from './rnn.module.css'
 
@@ -60,11 +61,19 @@ export default function RNNUnroller() {
     <Figure
       title="An RNN reading a sentence, one word at a time"
       caption={
-        <>
-          Press <b>Play</b> or <b>Next</b>. Each column is the hidden state <M>{'h_t'}</M> (8 numbers, orange positive, blue negative) after reading that word, computed with the{' '}
-          <b>same</b> weights at every step. The bars in the bottom row show how much the tracked word still moves the state. Add words in the middle and watch "Cats" fade in the RNN; switch to the
-          LSTM and it lasts far longer. Click any word to track it instead. (Untrained toy weights; the LSTM's forget gate is biased towards keeping.)
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              press <b>Play</b>, add words in the middle, then switch to the LSTM. Click any word to track it instead.
+            </>
+          }
+          notice={
+            <>
+              the same weights are used at every step, and the bottom bars show "Cats" fading fast in the RNN but lasting far longer in the LSTM.
+            </>
+          }
+          note="Each column is the hidden state after that word: 8 numbers, orange positive, blue negative. Untrained toy weights; the LSTM's forget gate is biased towards keeping."
+        />
       }
     >
       <div ref={ref} style={{ width: '100%' }}>

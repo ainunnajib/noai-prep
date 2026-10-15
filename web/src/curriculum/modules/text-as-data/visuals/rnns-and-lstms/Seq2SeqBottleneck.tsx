@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, Path, Dots, VLine, HLine, Label, useContainerWidth } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import { LENGTHS, SIZES, ACC } from './s2sData'
 
 /*
@@ -118,11 +119,15 @@ export default function Seq2SeqBottleneck() {
     <Figure
       title="Squeezing a sentence through one vector"
       caption={
-        <>
-          Slide the sentence length: without attention, the share of correct output words falls as sentences get longer, because every extra word must be crammed into the same {d}{' '}
-          numbers. A bigger context vector postpones the drop but does not remove it. Switch on attention: the decoder reads every encoder state directly and stays close to 100% (only the
-          tiny 16-number model slips on long sentences). These are real results: one small GRU encoder–decoder trained for each setting.
-        </>
+        <TryNotice
+          tryIt={<>slide the sentence length up, try a bigger context vector, then switch on attention.</>}
+          notice={
+            <>
+              without attention accuracy falls as sentences grow, because every word must fit into the same {d} numbers; with attention the decoder reads every encoder state and stays close to 100%.
+            </>
+          }
+          note="Real results: one small GRU encoder–decoder trained for each setting. Only the tiny 16-number model slips on long sentences even with attention."
+        />
       }
     >
       <Diagram n={n} d={d} attn={attn} />
