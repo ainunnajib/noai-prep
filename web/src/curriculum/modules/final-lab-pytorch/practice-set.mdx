@@ -56,8 +56,6 @@ Hidden tests are why "it ran without errors" is not the same as "it is correct".
   </Step>
 </Steps>
 
-<PastPaperQuestion paper="prelim2026" n={57} />
-
 Now practise the loop on eight likely tasks, plus a stretch task that rewrites conv2d without loops. Pick two now and come back for the rest. Each one runs real Python with NumPy in your browser. The **visible tests** are the kind of self-check the notebook gives you; the **hidden tests** unlock only when the visible ones pass, like a grader's tests after the exam.
 
 <TestDrivenLoop />
@@ -119,8 +117,6 @@ False
 ## From loops to vectors
 
 Your first draft of a convolution will probably have four nested loops: two over output positions, two over the kernel. That is fine for correctness. But Python runs each step of a loop one at a time, and an image of $256 \times 256$ with a $3 \times 3$ kernel needs over half a million multiply-adds. <Term def="Rewriting code so that one array operation (run inside NumPy's compiled code) replaces a Python loop over the elements.">Vectorising</Term> means restructuring the same arithmetic so that NumPy (or PyTorch) runs the loops inside fast compiled code.
-
-<PastPaperQuestion paper="prelim2026" n={98} />
 
 For convolution the classic trick is called <Term def="'Image to columns': copy every window that the kernel visits into one row (or column) of a matrix, so the whole convolution becomes one matrix multiplication.">im2col</Term>: copy every $k \times k$ window of the image into one row of a **patch matrix**, flatten the kernel into a vector, and do **one** matrix-vector product. Row $r$ of the result is exactly the output at window $r$. Step through both versions; the $3 \times 3$ image with the $2 \times 2$ kernel is the example worked by hand below it:
 

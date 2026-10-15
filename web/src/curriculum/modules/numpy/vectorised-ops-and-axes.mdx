@@ -121,7 +121,7 @@ The same crossing-out rule works for any number of dimensions. Negative axes cou
 
 ### keepdims: keep the axis as a 1
 
-`marks.mean(axis=1)` has shape $(3,)$, which is fine for printing but awkward for the next step. Suppose you want each student's marks relative to their own average. With `keepdims=True` the squashed axis stays, with length 1, so the result has shape $(3, 1)$: a column with one average per student, lined up with the rows of `marks`. Then `marks - marks.mean(axis=1, keepdims=True)` subtracts each student's own average from each of their marks. Without `keepdims`, NumPy tries to line up shapes $(3, 4)$ and $(3,)$ and raises `ValueError: operands could not be broadcast together`. The rule that decides which shapes line up is called **broadcasting**, and it is the whole of the next lesson.
+`marks.mean(axis=1)` has shape $(3,)$, which is fine for printing but awkward for the next step. Suppose you want each student's marks relative to their own average. With `keepdims=True` the squashed axis stays, with length 1, so the result has shape $(3, 1)$: a column with one average per student, lined up with the rows of `marks`. Then `marks - marks.mean(axis=1, keepdims=True)` subtracts each student's own average from each of their marks. Without `keepdims`, NumPy tries to line up shapes $(3, 4)$ and $(3,)$ and raises `ValueError: operands could not be broadcast together`. The rule that decides which shapes line up is called **broadcasting**, and it is the whole of the next lesson, [Broadcasting](#/learn/numpy/broadcasting).
 
 Predict each printed line before you press Run, then change the axes and predict again.
 

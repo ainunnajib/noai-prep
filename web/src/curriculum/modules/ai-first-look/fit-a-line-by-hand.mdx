@@ -13,7 +13,7 @@ In ML language, the floor area is the <Term def="An input that the model uses to
 
 ## A model is a function with knobs
 
-In the last lesson you saw that a model is a function with adjustable numbers inside, its parameters. Here is about the simplest one there is. Bigger flats cost more, and the dots roughly follow a straight line. So our model is a line:
+In the last lesson, [AI, machine learning and deep learning](#/learn/ai-first-look/what-is-ai), you saw that a model is a function with adjustable numbers inside, its parameters. Here is about the simplest one there is. Bigger flats cost more, and the dots roughly follow a straight line. So our model is a line:
 
 $$
 \hat{y} = w\,x + b
@@ -45,8 +45,6 @@ For a line, $\hat{y} = wx + b$, the knobs (**parameters**) are $w$ and $b$, and 
 <Mistake>
 $b$ is the line's prediction for a 0 m² flat, but no flat has zero area, and the line is only trustworthy near the data (about 45 to 150 m²). So don't treat $b$ as a real price. Think of it as the knob that moves the line up and down.
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={138} />
 
 ## Loss: measuring how wrong the line is
 
@@ -177,7 +175,7 @@ The best slope is $w \approx 5$, at the very bottom of the curve, and that is ex
 Notice that the bottom is **not** zero. The lowest MSE is about 1,650, a typical miss of about $\sqrt{1650} \approx 41$, or S\$41k. No straight line passes through all 30 flats, because price depends on more than size: town, floor level, age of the lease.
 
 <KeyIdea>
-Every choice of parameters gives one value of the loss. The best fit is the one at the **lowest point of the loss**, so training a model means searching for the bottom of a valley. (This is the lowest loss on the *training* data; in the last lesson of this module you will see why we must also check the model on new data.)
+Every choice of parameters gives one value of the loss. The best fit is the one at the **lowest point of the loss**, so training a model means searching for the bottom of a valley. (This is the lowest loss on the *training* data; in the last lesson of this module, [Classifying: boundaries and neighbours](#/learn/ai-first-look/classify-with-boundaries), you will see why we must also check the model on new data.)
 </KeyIdea>
 
 <QuickCheck
@@ -187,7 +185,7 @@ Every choice of parameters gives one value of the loss. The best fit is the one 
   explain="Lower loss means a better fit, so pick the lowest MSE: 10 at $w = 3$, the bottom of the U. $w = 5$ has the highest MSE, and $w = 4$ is past the bottom, on the side where the loss is climbing again."
 />
 
-With two knobs, $w$ and $b$, the loss becomes a bowl-shaped surface instead of a curve. Real models have thousands or even billions of knobs, so nobody can draw their loss, let alone look for the bottom by eye. In the next lesson you will meet **gradient descent**: a way for the computer to feel which way is downhill and walk to the bottom by itself.
+With two knobs, $w$ and $b$, the loss becomes a bowl-shaped surface instead of a curve. Real models have thousands or even billions of knobs, so nobody can draw their loss, let alone look for the bottom by eye. In the next lesson, [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn), you will meet **gradient descent**: a way for the computer to feel which way is downhill and walk to the bottom by itself.
 
 <Takeaways>
 - A **model** is a function with **parameters** (knobs). For a line $\hat{y} = wx + b$, the parameters are the slope $w$ and the intercept $b$; the data stays fixed.

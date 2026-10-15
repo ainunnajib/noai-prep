@@ -37,7 +37,7 @@ print(f"Loop:  {loop_ms:.1f} ms")
 print(f"NumPy: {numpy_ms:.2f} ms")
 print(f"Speed-up: {ratio:.0f}x")`
 
-Every AI model is, underneath, millions of multiplications and additions. Plain Python is far too slow for that, so almost all AI code in Python stands on one library: **NumPy** (*Numerical Python*). The NOAI Final asks you to build algorithms such as k-means (an algorithm that groups similar points, built in the last lesson of this module) *from scratch* with NumPy, and the Prelim asks *why* it is fast. This lesson opens the bonnet: how numbers sit in memory, what "vectorised" means, and two pieces of Python machinery (garbage collection and the GIL) that exam questions love.
+Every AI model is, underneath, millions of multiplications and additions. Plain Python is far too slow for that, so almost all AI code in Python stands on one library: **NumPy** (*Numerical Python*). The NOAI Final asks you to build algorithms such as k-means (an algorithm that groups similar points, built in [NumPy patterns for from-scratch ML](#/learn/numpy/from-scratch-patterns)) *from scratch* with NumPy, and the Prelim asks *why* it is fast. This lesson opens the bonnet: how numbers sit in memory, what "vectorised" means, and two pieces of Python machinery (garbage collection and the GIL) that exam questions love.
 
 <Analogy title="A bus versus a hawker centre">
 
@@ -61,7 +61,7 @@ If all the numbers sit in one block and each takes the same number of bytes, Num
 
 In a 1-D array of 8-byte numbers (`int64` or `float64`), each element starts 8 bytes after the one before, so the stride is 8 and `a[5]` starts $5 \times 8 = 40$ bytes after the start of the block.
 
-An array can also be a table. `a.reshape(2, 3)` regroups our six numbers into 2 rows of 3: its **shape** is `(2, 3)`, rows first. Each direction is an **axis**: **axis 0** runs down the rows and **axis 1** across the columns (the next lesson covers both properly).
+An array can also be a table. `a.reshape(2, 3)` regroups our six numbers into 2 rows of 3: its **shape** is `(2, 3)`, rows first. Each direction is an **axis**: **axis 0** runs down the rows and **axis 1** across the columns ([Arrays, shape and dtype](#/learn/numpy/arrays-and-shapes) covers both properly).
 
 <MatrixGrid data={[[7, 2, 9], [4, 1, 6]]} cellSize={38} label="shape (2, 3): axis 0 runs down (2 rows), axis 1 runs across (3 columns)" ariaLabel="A 2 by 3 table holding 7, 2, 9 in row 0 and 4, 1, 6 in row 1" />
 
@@ -173,8 +173,6 @@ Time it yourself. This runs real Python in your browser (a little slower than a 
 **Vectorisation** means replacing Python loops over numbers with whole-array operations. NumPy is fast because the numbers sit in **one contiguous block** (no pointer chasing) and the loop runs in **compiled C** (no type checks or new objects per number).
 
 </KeyIdea>
-
-<PastPaperQuestion paper="prelim2026" n={98} />
 
 <Mistake title="Using NumPy but still looping">
 

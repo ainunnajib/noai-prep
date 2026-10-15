@@ -48,7 +48,7 @@ $$
 That lesson read the rule symbol by symbol. The recap, in three lines:
 
 - $\theta_j$ is the coefficient for column $j$ of `X` and $m$ is the number of rows; the fraction is the **average of (error × the input in column $j$)**, the slope of the cost $J(\theta) = \frac{1}{2m}\sum_i \left(h_\theta(x^{(i)}) - y^{(i)}\right)^2$, which is 9.33 at $\theta = 0$. Here $i$ counts rows, not iterations, whatever the notebook's wording says.
-- $\alpha$ (alpha) is the learning rate, the $\eta$ of earlier lessons; the 2025 notebook calls it alpha, so keep that name in your code.
+- $\alpha$ (alpha) is the learning rate, the $\eta$ of earlier lessons such as [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent); the 2025 notebook calls it alpha, so keep that name in your code.
 - The first column of `X` holds 2s, so it already does the intercept's job (the intercept is $2\theta_0$): add no column of your own, and update every $\theta_j$ together from the same old $\theta$.
 
 The data cell holds `X = [[2, 2], [2, 4], [2, 6]]`, `y = [2, 4, 6]`, `alpha = 0.01` and `iterations = 1000`. Three things are *not* said, and you should decide them before typing:
@@ -142,8 +142,6 @@ array([0.003 , 0.9987])
 <GDRegressionRunner />
 
 Why is the answer after 1000 steps not exactly (0, 1)? The cost surface is a long, narrow valley: steep across, almost flat along. The first few steps race down the steep sides, then θ crawls along the flat floor, and 1000 steps of size 0.01 are not quite enough to finish the crawl. Raising α speeds the crawl, but past about 0.09 the steps across the steep sides overshoot further each time and the run blows up.
-
-<PastPaperQuestion paper="prelim2026" n={66} />
 
 Reading the answer is part of the task too. The prediction is $\hat{y} = 2\theta_0 + \theta_1 x$, so `[0.003, 0.9987]` means an intercept of $2 \times 0.003 = 0.006$ and a slope of 0.9987, almost exactly the slope 1 of the data's line $y = x$.
 

@@ -173,8 +173,6 @@ The attribute version was left behind, and only the buffer is saved in the `stat
 
 The `forward` adds only the first `T` rows, `self.pe[:, :x.size(1)]`, which broadcasts over the batch.
 
-<PastPaperQuestion paper="prelim2026" n={214} />
-
 ## Part 4: the classification head
 
 Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for example, whether a sentence is positive or negative. The <Term def="nn.Embedding(vocab_size, d_model) is a lookup table with one learned vector of d_model numbers per token id: row 2304 is the vector for token 2304.">embedding</Term>, the positional encoding and the stack of encoder layers are already created in `__init__`. You add the head and write `forward`.
@@ -373,8 +371,6 @@ Passing `device=device` creates the mask where the model lives, so it never has 
 - **Forgetting the two `unsqueeze(0)`** returns `(T, T)`, and `assert mask.shape == (1, 1, 5, 5)` fails.
 
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={220} />
 
 <ExamTip title="Finishing Task 3 cleanly">
 

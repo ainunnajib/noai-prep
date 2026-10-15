@@ -84,7 +84,7 @@ print(heap)              # a heap: not sorted
 print(sorted(heap, reverse=True))
 print(heapq.nlargest(3, scores))  # same job`
 
-Finding things and putting them in order are what computers spend much of their time doing. Your phone's contact search, a search engine's ranking, a language model choosing its next word from 50,000 candidates: underneath each one is a **search**, a **sort**, a **hash table** or a **heap**. This lesson builds all four from scratch and explains, using the Big-O tools from the last lesson, why each one costs what it costs.
+Finding things and putting them in order are what computers spend much of their time doing. Your phone's contact search, a search engine's ranking, a language model choosing its next word from 50,000 candidates: underneath each one is a **search**, a **sort**, a **hash table** or a **heap**. This lesson builds all four from scratch and explains, using the Big-O tools from [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o), why each one costs what it costs.
 
 ## Searching: one by one, or halve and halve again
 
@@ -204,7 +204,7 @@ Now count the whole of merge sort. Halving $n$ items down to single items takes 
 | Quicksort | $O(n \log n)$, also the average | $O(n^2)$ | $O(\log n)$ on average |
 | Timsort (Python's sort) | $O(n)$ | $O(n \log n)$ | $O(n)$ |
 
-**Quicksort** picks a pivot, puts smaller items to its left and bigger ones to its right, then sorts each side the same way; its extra space is the recursion (a function calling itself, the topic of the next lesson). A good pivot halves the list, giving $O(n \log n)$; a bad pivot every time (for example, always the first item of an already sorted list) leaves one side empty, so there are $n$ levels and $O(n^2)$ work. It is the classic case where the average and the worst case differ.
+**Quicksort** picks a pivot, puts smaller items to its left and bigger ones to its right, then sorts each side the same way; its extra space is the recursion (a function calling itself, the topic of the next lesson, [Recursion, dynamic programming and graph search](#/learn/algorithms-and-complexity/recursion-dp-graphs)). A good pivot halves the list, giving $O(n \log n)$; a bad pivot every time (for example, always the first item of an already sorted list) leaves one side empty, so there are $n$ levels and $O(n^2)$ work. It is the classic case where the average and the worst case differ.
 
 In real code, always use Python's built-in sort. It is a merge-and-insertion hybrid called <Term def="Python's built-in sorting algorithm: a hybrid of merge sort and insertion sort, O(n log n) in the worst case and very fast on partly sorted data.">Timsort</Term>, it is $O(n \log n)$, and it is **stable** (items that compare equal keep their original order). Sort by any rule with `key=`, for example `sorted(students, key=lambda s: s["score"], reverse=True)`.
 
@@ -241,7 +241,7 @@ $$
 - $h$ is the hash function: it turns any key into a whole number, and the same key always gives the same number.
 - $m$ is the number of buckets, and $\bmod$ ("mod") takes the remainder after dividing by $m$, so the answer is always a bucket number from $0$ to $m - 1$.
 
-To **insert** a key, compute its bucket and put it there. To **look up** a key, compute the same bucket and check only the keys stored in it. Two different keys that land in the same bucket are a **collision**, as in that lesson; with chaining, the bucket simply keeps a short chain (a little list) of its keys.
+To **insert** a key, compute its bucket and put it there. To **look up** a key, compute the same bucket and check only the keys stored in it. Two different keys that land in the same bucket are a **collision**, as in [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets); with chaining, the bucket simply keeps a short chain (a little list) of its keys.
 
 <HashBuckets />
 
@@ -249,7 +249,7 @@ With $n$ keys spread over $m$ buckets, the average chain has $\alpha = n/m$ keys
 
 <Steps title="A collision with chaining (toy hash, m = 8 buckets)">
   <Step title="Hash 'kopi' and 'nasi'">
-    With the toy hash from that lesson (a = 1, b = 2, …, z = 26, then add the letters): 'kopi' gives $11 + 15 + 16 + 9 = 51$ and $51 \bmod 8 = 3$; 'nasi' gives $14 + 1 + 19 + 9 = 43$ and $43 \bmod 8 = 3$. Bucket 3 both times: a collision, so bucket 3's chain becomes kopi → nasi.
+    With the toy hash from [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets) (a = 1, b = 2, …, z = 26, then add the letters): 'kopi' gives $11 + 15 + 16 + 9 = 51$ and $51 \bmod 8 = 3$; 'nasi' gives $14 + 1 + 19 + 9 = 43$ and $43 \bmod 8 = 3$. Bucket 3 both times: a collision, so bucket 3's chain becomes kopi → nasi.
   </Step>
   <Step title="Look up 'nasi'">
     Compute bucket 3, compare with 'kopi' (no), then 'nasi' (yes): 2 comparisons, and the other 7 buckets are never touched.
@@ -323,8 +323,6 @@ For $n$ items the whole job costs $O(n \log k)$ time and only $O(k)$ memory, com
 <PyRunner code={heapCode} />
 
 Top-$k$ selection is everywhere in AI. **Top-$k$ sampling** lets a language model choose its next word only from the $k$ most likely tokens, **beam search** keeps the $k$ best partial sentences at each step, and retrieval systems fetch the $k$ documents most similar to a question, for example in RAG (retrieval-augmented generation, where those documents help a language model answer; [taught later](#/learn/prompting-and-rag/rag-pipeline)).
-
-<PastPaperQuestion paper="prelim2026" n={230} />
 
 <KeyIdea>
 

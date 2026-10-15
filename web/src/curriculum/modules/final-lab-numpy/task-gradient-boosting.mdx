@@ -292,8 +292,6 @@ The [gradient boosting lesson](#/learn/trees-and-ensembles/gradient-boosting) wo
   explain="$F_0 + \eta \times (20 - 10 + 5) = 10 + 0.1 \times 15 = 11.5$. Forgetting the learning rate gives $10 + 15 = 25$, forgetting $F_0$ gives $1.5$, and $13.5$ adds $+10$ instead of $-10$."
 />
 
-<PastPaperQuestion paper="noai2025" n={5} />
-
 ### Reading the scaffold
 
 <Reveal label="Python classes in 60 seconds">
@@ -346,7 +344,7 @@ return self
 
 <Note title="Why the L1 model scores so badly (it is not a bug)">
 
-The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops below 1,800. The exam did not ask for it: in the exam's algorithm, switching to L1 changes only the targets, `sign(y - F)`, which is why the 2026 Final's MCQ on this (Question 2, worked in the gradient boosting lesson) has the answer "Line A only". The leaf-median line search is an optional improvement, not a required change.
+The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops below 1,800. The exam did not ask for it: in the exam's algorithm, switching to L1 changes only the targets, `sign(y - F)`, which is why the 2026 Final's MCQ on this (Question 2, worked in [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting)) has the answer "Line A only". The leaf-median line search is an optional improvement, not a required change.
 
 </Note>
 

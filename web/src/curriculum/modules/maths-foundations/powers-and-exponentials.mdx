@@ -120,9 +120,7 @@ Shrink a picture to 90% and photocopy the copy, again and again: after 10 copies
 
 ### Why deep learning cares: vanishing and exploding gradients
 
-When a network learns, a signal called the <Term def="A number (or list of numbers) that says how the loss changes when a parameter changes. Training uses it to decide which way to adjust each parameter.">gradient</Term> (the slope of the loss: the same idea as a line's slope in the last lesson) travels backwards through the layers, and at each layer it gets **multiplied** by a factor, roughly the slope of that layer. Ten layers means ten factors multiplied together. The sigmoid's slope is never more than 0.25 (its value at $x = 0$, where the last lesson's gallery shows its peak). If every layer multiplies the signal by about 0.25, the first layer receives about $0.25^{10} \approx 10^{-6}$ of it and barely learns. That is the <Term def="When gradients shrink towards 0 as they are multiplied back through many layers, so the early layers learn extremely slowly.">vanishing gradient problem</Term>. With factors above 1 the signal **explodes** instead, the numbers overflow and training produces NaN ("not a number"). ReLU's slope is exactly 1 for positive inputs, which is one reason it replaced the sigmoid in <Term def="The layers of a neural network between the input and the output.">hidden layers</Term>.
-
-<PastPaperQuestion paper="prelim2026" n={44} />
+When a network learns, a signal called the <Term def="A number (or list of numbers) that says how the loss changes when a parameter changes. Training uses it to decide which way to adjust each parameter.">gradient</Term> (the slope of the loss: the same idea as a line's slope in [Functions and their graphs](#/learn/maths-foundations/functions-and-graphs)) travels backwards through the layers, and at each layer it gets **multiplied** by a factor, roughly the slope of that layer. Ten layers means ten factors multiplied together. The sigmoid's slope is never more than 0.25 (its value at $x = 0$, where the last lesson's gallery shows its peak). If every layer multiplies the signal by about 0.25, the first layer receives about $0.25^{10} \approx 10^{-6}$ of it and barely learns. That is the <Term def="When gradients shrink towards 0 as they are multiplied back through many layers, so the early layers learn extremely slowly.">vanishing gradient problem</Term>. With factors above 1 the signal **explodes** instead, the numbers overflow and training produces NaN ("not a number"). ReLU's slope is exactly 1 for positive inputs, which is one reason it replaced the sigmoid in <Term def="The layers of a neural network between the input and the output.">hidden layers</Term>.
 
 <QuickCheck
   q="Roughly how big is $0.5^{20}$?"
@@ -161,8 +159,6 @@ The function $e^x$ (written `np.exp(x)`, `math.exp(x)` or `torch.exp(x)` in code
 And one property that makes $e$ special: the slope of $e^x$ at every point equals its height. At $x = 1$ the curve is $2.72$ high and climbing at slope $2.72$. That is why $e$ is called the "natural" base, and why, in calculus, $e^x$ is its own derivative.
 
 <ExpGraph />
-
-<PastPaperQuestion paper="prelim2026" n={31} />
 
 <KeyIdea>
 

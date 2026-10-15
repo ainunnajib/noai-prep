@@ -115,9 +115,7 @@ Treating "not 100% sure" as "no idea". Suppose you are fairly sure option X is w
 
 </Mistake>
 
-The reasoning behind "1 in $k$" is ordinary probability: favourable outcomes divided by equally likely outcomes. NOAI asks about it directly. Try this one from the 2026 Prelim:
-
-<PastPaperQuestion paper="prelim2026" n={49} />
+The reasoning behind "1 in $k$" is ordinary probability: favourable outcomes divided by equally likely outcomes. NOAI also asks about it directly, and [Probability rules and conditional probability](#/learn/probability-and-statistics/probability-rules) teaches it from the start.
 
 <QuickCheck
   q="One minute is left and 12 questions are still blank. You have no time to read them, so you guess all 12 blind. How many marks do you expect to gain?"
@@ -136,13 +134,20 @@ With about 2 minutes left, stop working and **sweep**: go through the whole form
 
 In 2026 the questions came in **domain blocks**: Mathematics first, Problem solving last. Most questions were short (about 110 characters, question plus options, for the first 60), but the last block held the long scenarios: the final 30 questions had a median length of about **690 characters**, six times longer. About 1 in 8 questions in 2026 was over 400 characters, almost all of them in that last block.
 
-Those long scenario questions reward a reading trick: **read the question line first** (usually the last sentence), then hunt for the one detail that decides it, usually a number, a date or a comparison. Try it on this real question from the end of the 2026 paper. You have not learnt the words yet, so do not worry about that. Read the last sentence first, then look for the detail that is different between the data sets.
+Those long scenario questions reward a reading trick: **read the question line first** (usually the last sentence), then hunt for the one detail that decides it, usually a number, a date or a comparison. Try it on this real question from the end of the 2026 paper. You have not learnt the words yet, so do not worry about that. Read the last sentence first, then check each option against three details in the scenario: how common each of the 50 classes is, what the training loss did, and which classes the model predicts.
 
-<PastPaperQuestion paper="prelim2026" n={275} />
+<PastPaperQuestion paper="prelim2026" n={278} />
 
 <Reveal label="How the trick works on this question">
 
-The question line asks for "the primary issue". The deciding detail is the **years**: training and validation data come from 2023, but the test data comes from 2025, and only the test score collapsed (92% down to 64%). Something changed **over time**, so the answer is the one about the data changing with time: *temporal distribution shift*. You will meet the term in [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage) and learn it properly in [Data bugs, leakage and distribution shift](#/learn/debugging-and-diagnosis/data-bugs-and-shift), in the problem-solving part; for now, notice that the detail that differed between the data sets pointed straight at it.
+The question line asks which failure mode "best explains this", so you are matching a cause to the symptoms. Now test each option against the details:
+
+- One blames *class imbalance*, with the model favouring "frequent classes". But the scenario says the 50 classes are **uniform** (all equally common), so there are no frequent classes, and nothing in that option explains why 0, 1 and 2 in particular would win.
+- One says the final layer's weights *diverge* (grow out of control). But the training loss **converged**: it settled at 2.8 instead of blowing up.
+- One blames weights drawn at the *wrong scale*. Random weights have no reason to favour classes 0, 1 and 2 in particular, so it does not fit such a specific symptom.
+- That leaves the option that names exactly the classes the model never predicts: a starting *bias* set far too low for **classes 3-49**. A bias is a number added to a class's score for every input, so a big handicap on classes 3 to 49 leaves 0, 1 and 2 on top whatever the input.
+
+The numbers did the work: "only classes 0, 1, 2" in the scenario matches "classes 3-49" in the answer. You will learn about output biases in [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation); for now, notice that three plain details in the scenario crossed out three options.
 
 </Reveal>
 

@@ -112,15 +112,7 @@ In machine learning (ML), a *model* is a program that learns its behaviour from 
 
 ML also has a rule for measuring honestly, and it is a great rule for studying. Models are *tuned* (their settings are chosen) on a <Term def="Data used to make decisions while building a model, such as which settings (hyperparameters) to use. It is separate from the final test set.">validation set</Term> and scored once at the end on a <Term def="Data kept completely unseen until the very end, used once to estimate how well a finished model does on new data.">test set</Term> that was never touched before. If you keep re-sitting the same mock paper after studying its answers, your score climbs but stops telling you anything: you have tuned yourself to that test set. Keep at least one full mock paper **unseen** and sit it once, under exam conditions, as your honest estimate.
 
-The question below describes this exact mistake in ML language, and it is long (a Problem-solving scenario from the end of the 2026 paper). A <Term def="A setting you choose before training, such as how long to train for, rather than something the model learns. The next module meets two: the learning rate and the number of neighbours k.">hyperparameter</Term> is a setting you choose before training. Ignore the other words you do not know yet and ask one question: **which protocol looked at its test set more than once?**
-
-<PastPaperQuestion paper="prelim2026" n={292} />
-
-<Reveal label="How to crack this one">
-
-Protocol A checked its test score 50 times and reported the best one, so it tuned itself to that test set, just like re-sitting one mock paper until your score climbs. Protocol B tuned on a separate validation set and touched its test set once, at the very end, so its 91.8% is the honest number. The lower score is the believable one. The correct option says exactly this in ML words (B's test set stays untouched, and A's score is "optimistically biased"); the other three are tempting wrong reasons. You will learn the exact words in [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting) and [Hyperparameter tuning without fooling yourself](#/learn/model-evaluation/hyperparameter-tuning), in the classical machine learning part.
-
-</Reveal>
+Models fall into the same trap. Tune one by checking its test score again and again, and the score it reports ends up too good to be true; a lower score from a test set used only once is the more believable number. [Hyperparameter tuning without fooling yourself](#/learn/model-evaluation/hyperparameter-tuning) shows why, later in the course.
 
 ## Your personal study plan
 

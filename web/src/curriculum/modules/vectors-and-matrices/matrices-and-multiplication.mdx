@@ -182,7 +182,7 @@ A missing transpose is the commonest shape error in network code, Final tasks in
 
 <Reveal label="Peek ahead: the missing transpose in PyTorch">
 
-You will learn PyTorch in its own module; for now, just read the shapes. `nn.Linear(784, 10)` stores $W$ as (outputs, inputs) = (10, 784) and, for a batch `X` of 32 images with 784 pixels each, computes `X @ W.T + b`. Forget the `.T` and the inner numbers, 784 and 10, no longer match:
+You will learn PyTorch in its own module, where [nn.Module, layers and saving models](#/learn/pytorch/modules-and-layers) explains `nn.Linear`; for now, just read the shapes. `nn.Linear(784, 10)` stores $W$ as (outputs, inputs) = (10, 784) and, for a batch `X` of 32 images with 784 pixels each, computes `X @ W.T + b`. Forget the `.T` and the inner numbers, 784 and 10, no longer match:
 
 ```python
 import torch
@@ -233,8 +233,6 @@ For the worked example's $A$ and $B$, $A \circ B = \begin{bmatrix} 1 \times 5 & 
 <Mistake>
 Typing `A * B` when you meant `A @ B`. For two square matrices of the same size **both run without error**, so you silently get the wrong matrix. When your maths says "matrix product", type `@`.
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={102} />
 
 ## Try it in Python
 

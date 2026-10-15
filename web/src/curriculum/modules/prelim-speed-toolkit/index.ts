@@ -23,7 +23,7 @@ const mod: ModuleDef = {
       slug: "drill-linear-algebra",
       title: "Speed drills: shapes, dot products, norms and determinants",
       summary: "Mental shortcuts and timed drills for matrix shapes, dot products, norms, cosine similarity, and 2 × 2 determinants, inverses and eigenvalues.",
-      minutes: 25,
+      minutes: 20,
       objectives: ["You can find the shape of a chain of matrix products, transposes included, in a few seconds", "You can compute dot products and L1 and L2 norms mentally, spotting the Pythagorean triples hidden in exam vectors", "You can find the determinant and eigenvalues of a 2 × 2 matrix and tell whether it has an inverse"],
       load: () => import('./drill-linear-algebra.mdx'),
     },

@@ -321,7 +321,7 @@ The table has $(m + 1)(n + 1)$ cells and each takes $O(1)$ work, so edit distanc
 
 <Note title="Looking ahead: backpropagation is dynamic programming">
 
-You will meet this properly in the backpropagation module; for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it works backwards from the output one layer at a time. For each layer it computes one shared answer (how the error changes with that layer's output) just once, then reuses it for every weight in that layer and to get the same answer for the layer before, instead of redoing the whole long calculation for each weight. That is exactly the DP idea, and it is why getting all the gradients costs only a few times as much as running the network once.
+You will meet this properly in [Backprop step by step](#/learn/backpropagation/backprop-step-by-step); for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it works backwards from the output one layer at a time. For each layer it computes one shared answer (how the error changes with that layer's output) just once, then reuses it for every weight in that layer and to get the same answer for the layer before, instead of redoing the whole long calculation for each weight. That is exactly the DP idea, and it is why getting all the gradients costs only a few times as much as running the network once.
 
 </Note>
 
@@ -371,13 +371,9 @@ Both searches look at each node once and each edge once (twice, once from each e
 
 ### Graphs in AI
 
-Graphs are everywhere in AI. (These ideas are taught properly in later modules; here just notice the graphs.) When PyTorch, the deep-learning library you will meet later, runs a model it builds a <Term def="A graph whose nodes are operations such as multiply and add, and whose edges show which result feeds into which. Deep-learning libraries build one to compute gradients.">computational graph</Term>: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards to get every gradient automatically, which is why this is called automatic differentiation.
+Graphs are everywhere in AI. (These ideas are taught properly later, starting with [Computational graphs](#/learn/backpropagation/computational-graphs); here just notice the graphs.) When PyTorch, the deep-learning library you will meet later, runs a model it builds a <Term def="A graph whose nodes are operations such as multiply and add, and whose edges show which result feeds into which. Deep-learning libraries build one to compute gradients.">computational graph</Term>: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards to get every gradient automatically, which is why this is called automatic differentiation.
 
-<PastPaperQuestion paper="prelim2026" n={43} />
-
-Language models also search. **Beam search** builds sentences word by word like a BFS over all possible sentences, but keeps only the $k$ best partial sentences at each level (a top-$k$ selection, as in the last lesson), because the full tree of sentences grows exponentially.
-
-<PastPaperQuestion paper="noai2025" n={18} />
+Language models also search. **Beam search** builds sentences word by word like a BFS over all possible sentences, but keeps only the $k$ best partial sentences at each level (a top-$k$ selection, as in [Searching, sorting, hashing and heaps](#/learn/algorithms-and-complexity/searching-sorting-hashing)), because the full tree of sentences grows exponentially.
 
 For weighted graphs, where edges have different costs (minutes of travel, fares), BFS no longer guarantees the cheapest path; algorithms such as Dijkstra's and A\* extend the same frontier idea with a priority queue (a heap). They are the next step in classical AI search and planning, and worth knowing by name.
 

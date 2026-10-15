@@ -20,7 +20,7 @@ To find them, `df.isna()` gives a table the same shape as `df`, with `True` wher
 
 `df.isnull()` is exactly the same method as `df.isna()` (and `notnull()` is the same as `notna()`). Exam questions and tutorials use both spellings, so recognise `df.isnull().sum()` on sight.
 
-`df.info()` from the last lesson shows the same thing from the other side, as non-null counts.
+`df.info()`, from [DataFrames: inspect, select and filter](#/learn/pandas-and-plotting/dataframes-and-selection), shows the same thing from the other side, as non-null counts.
 
 <MissingMap />
 
@@ -136,8 +136,6 @@ In words: start from the value before the gap, $y_0$; the whole change across th
 Some models can cope with gaps on their own: some <Term def="Models that make predictions by asking a series of yes/no questions about the features, such as 'is the area above 90?'. You meet them in module 17.">tree models</Term> can learn which way to send a missing value. Models that measure distances between rows or multiply the numbers by weights, such as k-nearest neighbours and linear regression, need every value, so for them you must drop or fill first.
 
 Dropping rows also gets expensive fast when gaps are scattered. If each value is missing independently with probability 0.15, a row with 20 features is complete only when all 20 are present: probability $0.85^{20} \approx 0.04$. `dropna()` would throw away about 96% of the data.
-
-<PastPaperQuestion paper="prelim2026" n={259} />
 
 <PastPaperQuestion paper="prelim2026" n={101} />
 

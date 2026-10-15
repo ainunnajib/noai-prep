@@ -14,7 +14,7 @@ Fold a sheet of A4 paper in half: 2 layers. Fold again: 4 layers. Again: 8 layer
 
 ## A log answers "which power?"
 
-In the last lesson you worked forwards: base 2, power 3, so $2^3 = 8$. A logarithm runs the same question backwards. You know the base and the answer, and you ask for the power:
+In the last lesson, [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials), you worked forwards: base 2, power 3, so $2^3 = 8$. A logarithm runs the same question backwards. You know the base and the answer, and you ask for the power:
 
 $$
 \log_b x = y \quad \text{means exactly} \quad b^y = x
@@ -54,7 +54,7 @@ You will use the first fact again when you work with text. TF-IDF, a classic way
 
 In NumPy the three are `np.log` (that is ln), `np.log2` and `np.log10`. ML papers often write plain "log" and mean ln.
 
-$\ln$ is the <Term def="The logarithm with base e ≈ 2.718, written ln. It is the default log in maths and machine learning.">natural log</Term>, the one that undoes $e^x$ from the last lesson. The bases differ only by a constant factor: $\log_2 x = \dfrac{\ln x}{\ln 2}$, about $1.44 \times \ln x$. In general, to change from one base to another, divide by the log of the base:
+$\ln$ is the <Term def="The logarithm with base e ≈ 2.718, written ln. It is the default log in maths and machine learning.">natural log</Term>, the one that undoes $e^x$ from [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials). The bases differ only by a constant factor: $\log_2 x = \dfrac{\ln x}{\ln 2}$, about $1.44 \times \ln x$. In general, to change from one base to another, divide by the log of the base:
 
 $$
 \log_b x = \frac{\ln x}{\ln b}
@@ -120,7 +120,7 @@ Memorise $2^{10} = 1024 \approx 10^3$. It converts between powers of 2 and power
 
 ## Log rules turn products into sums
 
-Logs are exponents, so they obey the exponent rules from the last lesson. Suppose $x = 2^m$ and $y = 2^k$, so that $\log_2 x = m$ and $\log_2 y = k$. Multiplying adds the exponents: $xy = 2^m \times 2^k = 2^{m+k}$. Therefore $\log_2(xy) = m + k = \log_2 x + \log_2 y$. Dividing subtracts exponents and raising to a power multiplies them, which gives the other two rules:
+Logs are exponents, so they obey the exponent rules from [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials). Suppose $x = 2^m$ and $y = 2^k$, so that $\log_2 x = m$ and $\log_2 y = k$. Multiplying adds the exponents: $xy = 2^m \times 2^k = 2^{m+k}$. Therefore $\log_2(xy) = m + k = \log_2 x + \log_2 y$. Dividing subtracts exponents and raising to a power multiplies them, which gives the other two rules:
 
 $$
 \begin{aligned}
@@ -171,8 +171,6 @@ $\log(x + y)$ is **not** $\log x + \log y$; the rule is about products. Check wi
 ## Why machine learning adds log-probabilities
 
 For <Term def="Events where knowing that one happened does not change the chance of the other, such as two separate coin flips.">independent</Term> events, probabilities multiply: the chance of two heads in two coin flips is $\tfrac12 \times \tfrac12 = \tfrac14$.
-
-<PastPaperQuestion paper="prelim2026" n={51} />
 
 Now imagine a model that gives the correct label probability 0.9 for each of 1,000 independent training examples. The probability of the whole dataset under the model, called the <Term def="The probability the model gives to all of the observed data together. Training tries to make it as large as possible.">likelihood</Term>, is
 
@@ -269,7 +267,7 @@ Reading the curve:
 
 A model that has learned nothing spreads its bets evenly: with $K$ classes it gives each one probability $\tfrac{1}{K}$, so its loss is $-\ln \tfrac{1}{K} = \ln K$. For 10 classes (the digits 0 to 9) that is $\ln 10 \approx 2.303$; for 2 classes it is $\ln 2 \approx 0.693$; for 100 classes it is $\ln 100 \approx 4.605$. If the very first loss of your training run is far from $\ln K$, suspect a bug.
 
-For two classes, labels are written $y = 1$ or $y = 0$, and the model's predicted probability of class 1 is written $\hat{y}$ ("y-hat"; the hat marks a prediction, as in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), and the next lesson covers hats and the other marks). The cost is then $-\ln \hat{y}$ when $y = 1$ and $-\ln(1 - \hat{y})$ when $y = 0$. One formula covers both cases, because one of its two terms is always multiplied by 0:
+For two classes, labels are written $y = 1$ or $y = 0$, and the model's predicted probability of class 1 is written $\hat{y}$ ("y-hat"; the hat marks a prediction, as in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand)). The next lesson, [Reading formulas: Σ, subscripts and hats](#/learn/maths-foundations/sigma-notation-and-subscripts), covers hats and the other marks. The cost is then $-\ln \hat{y}$ when $y = 1$ and $-\ln(1 - \hat{y})$ when $y = 0$. One formula covers both cases, because one of its two terms is always multiplied by 0:
 
 $$
 L = -\big[\, y \ln \hat{y} + (1 - y) \ln(1 - \hat{y}) \,\big]

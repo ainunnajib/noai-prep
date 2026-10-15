@@ -179,6 +179,10 @@ Python reports the line where it *noticed* the problem. Usually that is the line
 
 Some bugs don't crash anything: the program runs happily and prints the wrong answer. Then the classic tool is the humble `print`. Add extra `print(...)` lines in the middle of your program to see the values at each point, and find the first place where reality differs from what you expected. This is called *print debugging*, and AI engineers use it all the time (for example to print the shape of the data before it goes into a model). You will practise it in [Exceptions and debugging](#/learn/python-toolkit/exceptions-debugging).
 
+Print debugging only helps once the program actually runs. A `SyntaxError` stops the program before its first line runs, so your extra prints never appear; for that kind of bug, the traceback itself points you to the line.
+
+<PastPaperQuestion paper="prelim2026" n={127} />
+
 <ExamTip>
 
 Prelim questions about code are about **reading** it, not running it: "What is the output of …?" or "What error does … raise?". With about 36 seconds per question, trace line by line from the top, skip comments, and write the output down in order. To match an error to its cause, remember: grammar problem → `SyntaxError`; unknown name → `NameError`; wrong type → `TypeError`. In the Final you work in a Jupyter notebook, and reading tracebacks calmly is how you fix bugs in time.
