@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { Controls, Slider, Toggle, Plot, Grid, Axes, Path, Label, DraggablePoint, usePlot, useNarrow } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, Path, Label, DraggablePoint, usePlot, useNarrow } from '../../../../../kit'
 import { TRAIN, X_RANGE, Y_RANGE, PLOT_W, PLOT_H, PASS_C, FAIL_C, knn, knnPass, regionRuns, dist2, colourOf } from './students'
 import { Regions, StudentMarks, Legend } from './parts'
 import rc from './regions.module.css'
@@ -9,7 +8,7 @@ import rc from './regions.module.css'
   k-nearest neighbours on last year's class. Click (or drag the big marker) to place a new student; lines
   join them to their k nearest classmates and the dashed circle reaches the k-th nearest. The background shows
   what kNN would predict for a new student at every spot, so you can watch the regions change as k changes.
-  On touch screens only a tap places the student, so a swipe over the map scrolls the page (see TouchFigure) instead of moving it.
+  On touch screens only a tap places the student, so a swipe over the map scrolls the page instead of moving it.
 */
 
 /** Places the new student: mouse or pen on press and drag; touch only on a tap (little movement). */

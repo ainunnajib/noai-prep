@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Controls, Readout, Slider, NeuralNet } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Readout, Slider, NeuralNet } from '../../../../../kit'
 
 /** Add hidden layers to a small network and watch it become "deep" (and its number of weights grow). */
 export default function DeepNetSlider() {

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Controls, Readout, Button, Plot, Grid, Axes, Path, Label, DraggablePoint, useNarrow } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Readout, Button, Plot, Grid, Axes, Path, Label, DraggablePoint, useNarrow } from '../../../../../kit'
 import { TRAIN, X_RANGE, Y_RANGE, PLOT_W, PLOT_H, PASS_BG, FAIL_BG, ruleFromPoints, countCorrect, linePass, bestLine, handlesFor, halfPlane, ruleText, prefersReducedMotion } from './students'
 import { StudentMarks, WrongRings, Legend, RegionVars } from './parts'
 

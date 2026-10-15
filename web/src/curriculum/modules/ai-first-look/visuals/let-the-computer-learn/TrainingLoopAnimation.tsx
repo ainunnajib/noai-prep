@@ -1,6 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { Controls, Segmented, usePlayer, PlayerControls, Plot, Grid, Axes, Path, Dots, Arrow, Label, HLine, M, useNarrow } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Segmented, usePlayer, PlayerControls, Plot, Grid, Axes, Path, Dots, Arrow, Label, HLine, M, useNarrow } from '../../../../../kit'
 import { AREA, PRICE, loss, slope, fixed, prefersReducedMotion } from './flats'
 
 /*

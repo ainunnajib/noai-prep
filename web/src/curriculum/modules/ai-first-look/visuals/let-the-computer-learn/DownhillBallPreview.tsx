@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Controls, Readout, Button, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Readout, Button, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Arrow, Label, DraggablePoint, MBlock, useNarrow } from '../../../../../kit'
 import { loss, slope, fixed, fmt, prefersReducedMotion } from './flats'
 
 /*

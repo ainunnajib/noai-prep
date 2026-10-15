@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { Controls, Button, Segmented, Bars, Plot, Grid, Axes, Path, useNarrow } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Button, Segmented, Bars, Plot, Grid, Axes, Path, useNarrow } from '../../../../../kit'
 import { TRAIN, TEST, X_RANGE, Y_RANGE, PASS_BG, FAIL_BG, knnPass, regionRuns, bestLine, linePass, halfPlane, prefersReducedMotion, type Student } from './students'
 import { Regions, StudentMarks, WrongRings, Legend, RegionVars } from './parts'
 

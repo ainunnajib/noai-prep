@@ -1,6 +1,5 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react'
-import { Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, Label, usePlot, useContainerWidth } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, Label, usePlot, useContainerWidth } from '../../../../../kit'
 import { loss, slope, fixed, prefersReducedMotion } from './flats'
 
 /*

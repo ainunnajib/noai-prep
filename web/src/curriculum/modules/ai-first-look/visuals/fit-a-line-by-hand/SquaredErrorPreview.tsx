@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Controls, Readout, Slider, Toggle, Button, Plot, Grid, Axes, FnPath, Dots, DraggablePoint, usePlot, M } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Grid, Axes, FnPath, Dots, DraggablePoint, usePlot, M } from '../../../../../kit'
 import { FLATS, AREA, PRICE, mse, bestLine, fmt, plainTick } from './hdbFlats'
 
 /*

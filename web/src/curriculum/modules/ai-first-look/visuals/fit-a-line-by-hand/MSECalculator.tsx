@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Controls, Slider, Plot, Grid, Axes, FnPath, Dots, usePlot, M } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Slider, Plot, Grid, Axes, FnPath, Dots, usePlot, M } from '../../../../../kit'
 import { fmt } from './hdbFlats'
 
 /** The worked example as a live table: three flats, your line, and every number of the MSE calculation. */

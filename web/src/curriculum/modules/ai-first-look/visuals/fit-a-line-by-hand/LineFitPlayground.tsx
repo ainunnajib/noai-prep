@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { Controls, Readout, Slider, Plot, Grid, Axes, FnPath, Dots, Path, Label, DraggablePoint, M } from '../../../../../kit'
-import Figure from '../TouchFigure'
+import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, FnPath, Dots, Path, Label, DraggablePoint, M } from '../../../../../kit'
 import { FLATS, AREA, PRICE, fmt, plainTick } from './hdbFlats'
 
 /** The model price = w × area + b as a line with two knobs. Drag the knobs (or the line's handles) and use the model to predict. */
