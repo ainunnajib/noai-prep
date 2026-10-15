@@ -289,13 +289,14 @@ The example below is a **loss**, a scorer for a model's predictions. It has two 
 from abc import ABC, abstractmethod
 
 class Loss(ABC):
-    @abstractmethod
-    def value(self, y, p): ...     # blank
+    @abstractmethod  # a blank
+    def value(self, y, p): ...
 
-    @abstractmethod
-    def gradient(self, y, p): ...  # blank
+    @abstractmethod  # a blank
+    def gradient(self, y, p): ...
 
-    def step(self, y, p, lr):  # shared
+    # shared code, written once
+    def step(self, y, p, lr):
         return p - lr * self.gradient(y, p)
 
 class L2Loss(Loss):
@@ -337,10 +338,10 @@ The 2026 NOAI Final's gradient-boosting task used this exact pattern: `BaseGradi
   id="classes-objects.qc2"
   q="A scaffold defines `class Booster(ABC)` with an abstract method `negative_gradient`. You write `class L2Booster(Booster)` but misspell the method as `negative_gradeint`. What happens when you run `L2Booster()`?"
   options={[
-    'A `TypeError` straight away: `negative_gradient` is still abstract',
-    'It works, and `negative_gradeint` is used in its place',
-    'It works until `fit` runs, then raises a `NameError`',
-    'A `SyntaxError`, because the method name is misspelt',
+    'A `TypeError` at once, as `negative_gradient` is still abstract',
+    'It works, and Python uses `negative_gradeint` as the gradient method',
+    'It works until `fit` calls the gradient, then raises a `NameError`',
+    'A `SyntaxError` before anything runs, because the name is misspelt',
   ]}
   answer={0}
   explain="Python only checks names, not intentions. The misspelt method is a brand-new method, so `negative_gradient` is still a blank and creating the object raises `TypeError` at once. This early error is a feature: it catches the typo before any training runs."

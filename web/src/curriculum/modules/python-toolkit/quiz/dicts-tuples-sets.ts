@@ -4,10 +4,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'python-toolkit.dicts-tuples-sets.1',
     prompt: 'Which of these objects can be changed in place after it has been created?',
-    options: ["`{'a': 1}`", '`(1, 2)`', "`'abc'`", '`7`'],
+    options: ["`{'a': 1}`", "`('a', 1)`", "`'abc'`", '`3.14`'],
     answer: 0,
     explanation:
-      "Dicts are mutable: `d['b'] = 2` changes the same dict. The tuple `(1, 2)` looks like a list but is immutable (`t[0] = 9` raises a `TypeError`), and so are strings and integers: operations on them build new objects instead.",
+      "Dicts are mutable: `d['b'] = 2` changes the same dict. The tuple `('a', 1)` holds similar items and looks like a list, but it is immutable (`t[0] = 'b'` raises a `TypeError`), and so are strings and floats: operations on them build new objects instead.",
     difficulty: 'beginner',
   },
   {

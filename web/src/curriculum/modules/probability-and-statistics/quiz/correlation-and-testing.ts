@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
     options: [
       'The new model is 4% more accurate than the old one, and this improvement is statistically significant',
       'There is a 4% probability that $H_0$ is true, so $H_0$ is rejected at the 5% significance level',
-      'Results at least this extreme would occur about 4% of the time if $H_0$ were true, so $H_0$ is rejected',
+      'Only about 4% of results would be at least this extreme if $H_0$ were true, so $H_0$ is rejected',
       'Because $p$ is so close to $\\alpha$, the result is not significant and $H_0$ should be kept',
     ],
     answer: 2,

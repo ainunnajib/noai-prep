@@ -42,7 +42,8 @@ calls = 0
 print(fib_memo(25), "with", calls, "calls")
 print(fib_memo(90))
 
-@lru_cache(maxsize=None)   # Python memoises for you
+# Python can memoise for you
+@lru_cache(maxsize=None)
 def fib2(n):
     return n if n <= 1 else fib2(n - 1) + fib2(n - 2)
 
@@ -51,18 +52,23 @@ print(fib2(90))`
 export const editCode = `def edit_distance(a, b):
     m, n = len(a), len(b)
     D = [[0] * (n + 1) for _ in range(m + 1)]
+    # first column: delete every letter
     for i in range(m + 1):
-        D[i][0] = i      # deletes
+        D[i][0] = i
+    # first row: insert every letter
     for j in range(n + 1):
-        D[0][j] = j      # inserts
+        D[0][j] = j
     for i in range(1, m + 1):
         for j in range(1, n + 1):
             same = a[i-1] == b[j-1]
             cost = 0 if same else 1
             D[i][j] = min(
-                D[i-1][j-1] + cost,  # sub/match
-                D[i-1][j] + 1,       # delete
-                D[i][j-1] + 1,       # insert
+                # substitute or match
+                D[i-1][j-1] + cost,
+                # delete
+                D[i-1][j] + 1,
+                # insert
+                D[i][j-1] + 1,
             )
     return D[m][n]
 
@@ -70,7 +76,9 @@ print(edit_distance("TEA", "EAT"))
 print(edit_distance("KITTEN", "SITTING"))
 print(edit_distance("SUNDAY", "SATURDAY"))`
 
-export const graphCode = `from collections import deque
+export const graphCode = `# deque: a list that is fast to take from
+# the FRONT (popleft) and add to at the back
+from collections import deque
 
 graph = {
     "Home": ["MRT", "Park"],
@@ -89,34 +97,42 @@ def bfs_path(graph, start, goal):
     queue = deque([start])
     parent = {start: None}
     while queue:
-        u = queue.popleft()      # oldest first
+        # take the oldest place
+        u = queue.popleft()
         if u == goal:
             break
         for v in graph[u]:
-            if v not in parent:  # not seen yet
+            # not seen yet
+            if v not in parent:
                 parent[v] = u
                 queue.append(v)
+    # walk back through the parents
     path, node = [], goal
-    while node is not None:      # walk back
+    while node is not None:
         path.append(node)
         node = parent[node]
     return path[::-1]
 
 def dfs_path(graph, start, goal):
-    stack = [(start, None)]      # (place, came from)
+    # each entry: (place, came from)
+    stack = [(start, None)]
     parent = {}
     while stack:
-        u, p = stack.pop()       # newest first
-        if u in parent:          # an old copy: already visited
+        # take the newest place
+        u, p = stack.pop()
+        # an old copy: already visited
+        if u in parent:
             continue
-        parent[u] = p            # mark when popped
+        # mark it when popped
+        parent[u] = p
         if u == goal:
             break
         for v in reversed(graph[u]):
             if v not in parent:
                 stack.append((v, u))
+    # walk back through the parents
     path, node = [], goal
-    while node is not None:      # walk back
+    while node is not None:
         path.append(node)
         node = parent[node]
     return path[::-1]
@@ -251,9 +267,15 @@ print(f)   # [0, 1, 1, 2, 3, 5, 8]
 
 Every DP solution answers the same five questions: **what is a subproblem**, **how is a subproblem built from smaller ones** (the <Term def="The rule that builds an answer from the answers to smaller subproblems, such as F(i) = F(i - 1) + F(i - 2).">recurrence</Term>), **what are the base cases**, **in what order do I fill the table**, and **where is the final answer**?
 
+<Note title="Greedy: fast, but not always right">
+
+A **greedy** algorithm makes the choice that looks best right now and never goes back on it, like paying with the biggest coin first. It is fast, but it is only correct for some problems. With coins of 1, 3 and 4 cents and a target of 6 cents, greedy pays 4 + 1 + 1 (3 coins). DP, which works out the fewest coins for every amount from 1 up to 6, finds 3 + 3 (2 coins).
+
+</Note>
+
 ### Edit distance
 
-The <Term def="The smallest number of single-letter insertions, deletions and substitutions needed to turn one word into another (also called Levenshtein distance).">edit distance</Term> between two words is the fewest single-letter edits (insert a letter, delete a letter, or substitute one letter for another) that turn one into the other. Spell-checkers use it to suggest "kitten" for "kiten", and speech recognisers are scored with it: the word error rate is the edit distance between the words heard and the true words, divided by the number of true words.
+The <Term def="The smallest number of single-letter insertions, deletions and substitutions needed to turn one word into another (also called Levenshtein distance).">edit distance</Term> between two words is the fewest single-letter edits (insert a letter, delete a letter, or substitute one letter for another) that turn one into the other. Spell-checkers use it to suggest "kitten" for "kiten", and speech recognisers are scored with it: the word error rate is the edit distance counted in whole **words** (word insertions, deletions and substitutions) between the transcript and the true words, divided by the number of true words.
 
 Turn word $a$ (length $m$) into word $b$ (length $n$). Let $D[i][j]$ be the edit distance between the **first $i$ letters** of $a$ and the **first $j$ letters** of $b$. Then
 
@@ -295,7 +317,7 @@ The table has $(m + 1)(n + 1)$ cells and each takes $O(1)$ work, so edit distanc
 
 <Note title="Looking ahead: backpropagation is dynamic programming">
 
-You will meet this properly in the backpropagation module; for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it stores each layer's result on the forward pass and reuses it on the backward pass, instead of recomputing the same chain-rule products for every weight. That is exactly the DP idea, and it is why training costs only a small multiple of a forward pass.
+You will meet this properly in the backpropagation module; for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it works backwards from the output one layer at a time. For each layer it computes one shared answer (how the error changes with that layer's output) just once, then reuses it for every weight in that layer and to get the same answer for the layer before, instead of redoing the whole long calculation for each weight. That is exactly the DP idea, and it is why getting all the gradients costs only a few times as much as running the network once.
 
 </Note>
 
@@ -332,7 +354,7 @@ You can search floor by floor: check every shop on level 1, then every shop on l
   </Step>
 </Steps>
 
-Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so both take $O(V + E)$ time for $V$ nodes and $E$ edges. The essential difference is which end of the frontier you take from: the oldest item (a queue, BFS) or the newest (a stack, DFS). In code there is one more detail: a stack-based DFS must mark a node as visited when it is **popped**, not when it is pushed, so just swapping `popleft()` for `pop()` in `bfs_path` does not give a true DFS. Compare the two functions below: `dfs_path` takes the newest item with `pop()`, skips old copies of places it has already visited, and pushes neighbours in reverse so it explores them in the same order as the picture. Its path has 9 hops where BFS needs only 4: DFS finds *a* path, not the shortest.
+Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so with an adjacency list both take $O(V + E)$ time for $V$ nodes and $E$ edges. (With an adjacency matrix, a $V \times V$ table of yes/no entries, finding one node's neighbours means reading a whole row of $V$ entries, so both become $O(V^2)$.) The essential difference is which end of the frontier you take from: the oldest item (a queue, BFS) or the newest (a stack, DFS). In code there is one more detail: a stack-based DFS must mark a node as visited when it is **popped**, not when it is pushed, so just swapping `popleft()` for `pop()` in `bfs_path` does not give a true DFS. Compare the two functions below: `dfs_path` takes the newest item with `pop()`, skips old copies of places it has already visited, and pushes neighbours in reverse so it explores them in the same order as the picture. Its path has 9 hops where BFS needs only 4: DFS finds *a* path, not the shortest.
 
 <PyRunner code={graphCode} />
 
@@ -345,7 +367,7 @@ Both searches look at each node once and each edge once (twice, once from each e
 
 ### Graphs in AI
 
-Graphs are everywhere in AI. (These ideas are taught properly in later modules; here just notice the graphs.) When PyTorch, the deep-learning library you will meet later, runs a model it builds a <Term def="A graph whose nodes are operations such as multiply and add, and whose edges show which result feeds into which. Deep-learning libraries build one to compute gradients.">computational graph</Term>: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards.
+Graphs are everywhere in AI. (These ideas are taught properly in later modules; here just notice the graphs.) When PyTorch, the deep-learning library you will meet later, runs a model it builds a <Term def="A graph whose nodes are operations such as multiply and add, and whose edges show which result feeds into which. Deep-learning libraries build one to compute gradients.">computational graph</Term>: each node is an operation, and each edge says which result feeds into which. Backpropagation walks this graph backwards to get every gradient automatically, which is why this is called automatic differentiation.
 
 <PastPaperQuestion paper="prelim2026" n={43} />
 
@@ -353,7 +375,7 @@ Language models also search. **Beam search** builds sentences word by word like 
 
 <PastPaperQuestion paper="noai2025" n={18} />
 
-For weighted graphs, where edges have different costs (minutes of travel, fares), BFS no longer guarantees the cheapest path; algorithms such as Dijkstra's and A\* extend the same frontier idea with a priority queue (a heap). They are the next step in classical AI search and planning: not required by the IOAI syllabus, but worth knowing by name.
+For weighted graphs, where edges have different costs (minutes of travel, fares), BFS no longer guarantees the cheapest path; algorithms such as Dijkstra's and A\* extend the same frontier idea with a priority queue (a heap). They are the next step in classical AI search and planning, and worth knowing by name.
 
 <ExamTip>
 

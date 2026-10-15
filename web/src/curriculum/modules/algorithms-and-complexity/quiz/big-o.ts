@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'algorithms-and-complexity.big-o.1',
     prompt: 'An algorithm takes $5n^2 + 300n + 1000$ steps on an input of size $n$. What is the tightest Big-O description of its time complexity?',
     options: [
-      '$O(n^2)$, because the $n^2$ term grows fastest',
+      '$O(n^2)$: for large $n$ only the $n^2$ term matters',
       '$O(n)$, because $300n$ has the largest coefficient',
-      '$O(n^3)$, because the expression has three terms',
-      '$O(1)$, because Big-O drops all constants',
+      '$O(n^3)$, because the expression is a sum of three terms',
+      '$O(1)$, because Big-O drops the constant factors',
     ],
     answer: 0,
     explanation:
-      'For large $n$ the fastest-growing term dominates and its coefficient is dropped. At $n = 1000$: $5n^2 = 5{,}000{,}000$ while $300n = 300{,}000$ and the constant is $1{,}000$, so $O(n^2)$. A big coefficient like 300 cannot stop $n^2$ from overtaking $n$; the number of terms is irrelevant, and only constant **factors** are dropped, not $n$ itself.',
+      'For large $n$ the fastest-growing term dominates and its coefficient is dropped. At $n = 1000$: $5n^2 = 5{,}000{,}000$ while $300n = 300{,}000$ and the constant is $1{,}000$, so $O(n^2)$. A big coefficient like 300 cannot stop $n^2$ from overtaking $n$; the number of terms is irrelevant, and Big-O drops constant **factors** such as the 5, not $n$ itself.',
     difficulty: 'beginner',
   },
   {
@@ -32,13 +32,13 @@ const questions: QuizQuestion[] = [
     options: ['About 6', 'About 20', 'About 1,000', 'About 500,000'],
     answer: 1,
     explanation:
-      'Each pass halves `n`, so the loop runs about $\\log_2 1{,}000{,}000$ times. Since $2^{10} \\approx 1000$, a million is about $2^{20}$: about 20 passes (exactly 19, because it stops when `n` reaches 1). 6 is the number of zeros, which would be $\\log_{10}$ of a loop dividing by 10; 500,000 confuses halving once with halving repeatedly.',
+      'Each pass halves `n`, so the loop runs about $\\log_2 1{,}000{,}000$ times. Since $2^{10} \\approx 1000$, a million is about $2^{20}$: about 20 passes (exactly 19, because $2^{19} = 524{,}288 \\le 1{,}000{,}000 < 2^{20}$). 6 is the number of zeros, which would be $\\log_{10}$ of a loop dividing by 10; 1,000 is $\\sqrt{n}$, the count for a loop that runs while `i * i < n`; 500,000 is what is left after halving once, not the number of halvings.',
     difficulty: 'intermediate',
   },
   {
     id: 'algorithms-and-complexity.big-o.4',
     prompt:
-      'Two functions check whether a list of $n$ numbers contains a repeat. Function P compares every pair of items. Function Q walks through the list once, storing each number it has seen in a set. In the worst case, which statement is correct?',
+      'Two functions check whether a list of $n$ numbers contains a repeat. Function P compares every pair of items. Function Q walks through the list once, storing each number it has seen in a set. The list has no repeat, so neither function can stop early. Counting each set lookup as $O(1)$ (its average cost), which statement is correct?',
     options: [
       'P: $O(n^2)$ time, $O(1)$ extra space. Q: $O(n)$ time, $O(n)$ extra space.',
       'P: $O(n^2)$ time, $O(n^2)$ extra space. Q: $O(n)$ time, $O(1)$ extra space.',
@@ -47,7 +47,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'P makes $n(n-1)/2$ comparisons, which is $O(n^2)$, but only remembers two positions, so its extra space is $O(1)$. Q does one set lookup per item, $O(n)$ time, but its set can grow to all $n$ numbers: $O(n)$ extra space. Giving P $O(n)$ space counts the input list, which space complexity leaves out. Q trades memory for speed.',
+      'P makes $n(n-1)/2$ comparisons, which is $O(n^2)$, but only remembers two positions, so its extra space is $O(1)$. Q does one set lookup per item, $O(n)$ time on average, but its set can grow to all $n$ numbers: $O(n)$ extra space. Giving P $O(n)$ space counts the input list, which space complexity leaves out. Q trades memory for speed.',
     difficulty: 'intermediate',
   },
   {

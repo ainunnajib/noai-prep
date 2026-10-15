@@ -15,10 +15,13 @@ export const binarySearchCode = `def binary_search(a, target):
         if a[mid] == target:
             return mid, steps
         elif a[mid] < target:
-            lo = mid + 1      # go right
+            # go right
+            lo = mid + 1
         else:
-            hi = mid - 1      # go left
-    return -1, steps          # not found
+            # go left
+            hi = mid - 1
+    # not found
+    return -1, steps
 
 a = [3, 7, 11, 15, 18, 22, 26, 31, 35, 40, 44, 49, 53, 58, 62, 67]
 print(binary_search(a, 44))
@@ -29,7 +32,8 @@ big = list(range(0, 2_000_000, 2))
 print(binary_search(big, 1_234_568))
 print(binary_search(big, 7))`
 
-export const pairCode = `def has_pair_slow(nums, target):   # O(n^2)
+export const pairCode = `# O(n^2): check every pair
+def has_pair_slow(nums, target):
     n = len(nums)
     for i in range(n):
         for j in range(i + 1, n):
@@ -37,10 +41,12 @@ export const pairCode = `def has_pair_slow(nums, target):   # O(n^2)
                 return True
     return False
 
-def has_pair_fast(nums, target):   # O(n)
+# O(n): one pass, remembering a set
+def has_pair_fast(nums, target):
     seen = set()
     for x in nums:
-        if target - x in seen:   # O(1)
+        # an O(1) lookup on average
+        if target - x in seen:
             return True
         seen.add(x)
     return False
@@ -88,7 +94,7 @@ If the list is **sorted**, you can do something much cleverer.
 
 <Analogy title="Guess my number">
 
-A friend thinks of a number from 1 to 100 and answers each guess with "higher" or "lower". Guessing 1, 2, 3, … could take 100 guesses. Instead, guess 50. Whatever the answer, half the numbers are ruled out at once. Then guess the middle of what's left (25 or 75), and so on. You never need more than 7 guesses, because $2^7 = 128 \ge 100$.
+A friend thinks of a number from 1 to 100 and answers each guess with "higher" or "lower". Guessing 1, 2, 3, … could take 100 guesses. Instead, guess 50. Whatever the answer, half the numbers are ruled out at once. Then guess the middle of what's left (25 or 75), and so on. You never need more than 7 guesses, because $2^7 = 128 > 100$.
 
 </Analogy>
 
@@ -192,13 +198,13 @@ Now count the whole of merge sort. Halving $n$ items down to single items takes 
 
 | Algorithm | Best case | Worst case | Extra space |
 |---|---|---|---|
-| Bubble sort (stops after a pass with no swaps) | $O(n)$ | $O(n^2)$ | $O(1)$ |
+| Bubble sort (stops once a pass makes no swap) | $O(n)$ | $O(n^2)$ | $O(1)$ |
 | Insertion sort | $O(n)$ | $O(n^2)$ | $O(1)$ |
 | Merge sort | $O(n \log n)$ | $O(n \log n)$ | $O(n)$ |
-| Quicksort | $O(n \log n)$ (also the average) | $O(n^2)$ (e.g. sorted input with the first item as pivot) | $O(\log n)$ average (the recursion) |
-| Python's `sorted()` and `list.sort()` (Timsort) | $O(n)$ | $O(n \log n)$ | $O(n)$ |
+| Quicksort | $O(n \log n)$, also the average | $O(n^2)$ | $O(\log n)$ on average |
+| Timsort (Python's sort) | $O(n)$ | $O(n \log n)$ | $O(n)$ |
 
-**Quicksort** picks a pivot, puts smaller items to its left and bigger ones to its right, then sorts each side the same way. A good pivot halves the list, giving $O(n \log n)$; a bad pivot every time (for example, always the first item of an already sorted list) leaves one side empty, so there are $n$ levels and $O(n^2)$ work. It is the classic case where the average and the worst case differ.
+**Quicksort** picks a pivot, puts smaller items to its left and bigger ones to its right, then sorts each side the same way; its extra space is the recursion. A good pivot halves the list, giving $O(n \log n)$; a bad pivot every time (for example, always the first item of an already sorted list) leaves one side empty, so there are $n$ levels and $O(n^2)$ work. It is the classic case where the average and the worst case differ.
 
 In real code, always use Python's built-in sort. It is a merge-and-insertion hybrid called <Term def="Python's built-in sorting algorithm: a hybrid of merge sort and insertion sort, O(n log n) in the worst case and very fast on partly sorted data.">Timsort</Term>, it is $O(n \log n)$, and it is **stable** (items that compare equal keep their original order). Sort by any rule with `key=`, for example `sorted(students, key=lambda s: s["score"], reverse=True)`.
 
@@ -237,7 +243,7 @@ To **insert** a key, compute its bucket and put it there. To **look up** a key, 
 
 <HashBuckets />
 
-With $n$ keys spread over $m$ buckets, the average chain has $\alpha = n/m$ keys, the <Term def="The average number of keys per bucket, n/m. Keeping it small keeps chains short and lookups fast.">load factor</Term>. A lookup costs one hash calculation plus a walk along one chain, so $O(1 + \alpha)$ on average. Python keeps $\alpha$ small by moving everything into a bigger table whenever it gets too full, so `d[key]`, `key in d`, `x in s` and `s.add(x)` are all **$O(1)$ on average**. The worst case is still $O(n)$: if every key collided (squeeze the visual down to 1 bucket), the table would be one long list. Good hash functions make that astronomically unlikely.
+With $n$ keys spread over $m$ buckets, the average chain has $\alpha = n/m$ keys, the <Term def="The average number of keys per bucket, n/m. Keeping it small keeps chains short and lookups fast.">load factor</Term>. A lookup costs one hash calculation plus a walk along one chain, so $O(1 + \alpha)$ on average. Python keeps $\alpha$ small by moving everything into a bigger table whenever it gets too full, so `d[key]`, `key in d`, `x in s` and `s.add(x)` are all **$O(1)$ on average**. The worst case is still $O(n)$: if every key collided (squeeze the visual down to 1 bucket), the table would be one long list. Good hash functions make that astronomically unlikely. (Python's own dict and set use a variation called open addressing: on a collision they try other empty slots instead of keeping a chain, but the $O(1)$ average is the same.)
 
 <Steps title="Hash two keys by hand (toy hash, m = 8 buckets)">
   <Step title="Add up the letters of 'kopi'">
@@ -258,7 +264,7 @@ This is how hashing turns an $O(n^2)$ "check every pair" into $O(n)$. To find wh
 
 <PyRunner code={pairCode} />
 
-The last lines show the one rule hashing imposes: a key's hash must never change, so keys must be **immutable**. Tuples, strings and numbers can be dict keys or set items; lists cannot.
+The last lines show the one rule hashing imposes: a key's hash must never change, so keys must be **hashable**, which in practice means immutable all the way down. Strings, numbers and tuples of those can be dict keys or set items; lists, sets and dicts cannot, and nor can a tuple that contains a list, such as `(1, [2])`.
 
 <Mistake title="Using a list where a set belongs">
 
@@ -289,10 +295,13 @@ An arcade leaderboard only shows the top 10. When a new score arrives, the only 
 
 </Analogy>
 
-A <Term def="A binary tree in which every parent is no bigger than its children, so the smallest item is always at the root. Stored compactly in a list.">min-heap</Term> is a binary tree with one rule: **every parent is no bigger than its children**. So the smallest item always sits at the root, and you can read it in $O(1)$. The tree is kept perfectly balanced (filled level by level), so it has only about $\log_2 n$ levels, and it is stored in an ordinary list: the children of position $i$ are at $2i + 1$ and $2i + 2$, and its parent is at $\lfloor (i - 1)/2 \rfloor$.
+A <Term def="A binary tree in which every parent is no bigger than its children, so the smallest item is always at the root. Stored compactly in a list.">min-heap</Term> is a binary tree with one rule: **every parent is no bigger than its children**. So the smallest item always sits at the root, and you can read it in $O(1)$. The tree is kept **complete** (every level is full except perhaps the last, which fills from the left), so it has only about $\log_2 n$ levels, and it is stored in an ordinary list: the children of position $i$ are at $2i + 1$ and $2i + 2$, and its parent is at $\lfloor (i - 1)/2 \rfloor$.
 
 - **Push** (add an item): put it at the end, then **sift up**, swapping with its parent while it is smaller. At most one swap per level: $O(\log n)$.
 - **Pop** (remove the root): move the last item of the list into the root's place (the list shrinks by one), then **sift it down**, swapping with the smaller child while it is bigger. **Replace** (`heapreplace`) is the same, except the new item goes into the root's place. Both are $O(\log n)$.
+- **Heapify** (turn a whole list into a heap at once, `heapq.heapify(a)`): only $O(n)$, cheaper than pushing the items one by one.
+
+A **max-heap** flips the rule (every parent is no smaller than its children), so its largest item sits at the root.
 
 To keep the $k$ **largest** items of a stream, use a **min**-heap of size $k$. Its root is the smallest of your current top $k$, the score to beat. Each new item costs one comparison with the root, plus $O(\log k)$ if it gets in.
 
@@ -329,26 +338,27 @@ A min-heap of size $k$ keeps the $k$ largest values seen so far. Its root is the
 
 <QuickCheck
   q="A min-heap keeps the top 3 of a stream and holds [63, 77, 88]. The next value is 50. What happens?"
-  options={['Nothing: 50 is smaller than the root 63, so it cannot be in the top 3', '50 replaces the root 63, then sinks to its place', '50 replaces the largest value 88, then rises to its place', 'It is added, so the heap now holds the 4 values 50, 63, 77, 88']}
+  options={['Nothing: 50 is below the root 63, so it cannot be one of the top 3', '50 replaces the root 63, then sinks down the heap to its correct place', '50 replaces the largest value 88, then rises up the heap to its place', 'It is added, so the heap grows to hold the 4 values 50, 63, 77, 88']}
   answer={0}
-  explain="The root is the smallest of the current top 3. A value below the root cannot be among the 3 largest, so it is skipped. Replacing 88 would throw away the best value, and growing the heap past $k$ items loses the $O(k)$ memory bound."
+  explain="The root is the smallest of the current top 3. A value below the root cannot be among the 3 largest, so it is skipped. Replacing 63 would push out a value that beats 50, replacing 88 would throw away the best value, and growing the heap past $k$ items loses the $O(k)$ memory bound."
 />
 
 <ExamTip>
 
 Memorise this table; NOAI questions often just ask for one entry.
 
-| Structure or algorithm | Operation | Average | Worst |
-|---|---|---|---|
-| list | linear search | $O(n)$ | $O(n)$ |
-| sorted list | binary search | $O(\log n)$ | $O(\log n)$ |
-| bubble or insertion sort | sort | $O(n^2)$ | $O(n^2)$ |
-| merge sort, Python's sort | sort | $O(n \log n)$ | $O(n \log n)$ |
-| quicksort | sort | $O(n \log n)$ | $O(n^2)$ |
-| dict, set (hash table) | lookup, insert | $O(1)$ | $O(n)$ |
-| heap | peek at the minimum | $O(1)$ | $O(1)$ |
-| heap | push, pop | $O(\log n)$ | $O(\log n)$ |
-| heap of size $k$ | top $k$ of $n$ items | $O(n \log k)$ | $O(n \log k)$ |
+| Operation | Average | Worst |
+|---|---|---|
+| linear search in a list | $O(n)$ | $O(n)$ |
+| binary search in a sorted list | $O(\log n)$ | $O(\log n)$ |
+| bubble or insertion sort | $O(n^2)$ | $O(n^2)$ |
+| merge sort, Python's sort | $O(n \log n)$ | $O(n \log n)$ |
+| quicksort | $O(n \log n)$ | $O(n^2)$ |
+| dict or set: lookup, insert | $O(1)$ | $O(n)$ |
+| heap: peek at the minimum | $O(1)$ | $O(1)$ |
+| heap: push, pop | $O(\log n)$ | $O(\log n)$ |
+| heap: build from a list (heapify) | $O(n)$ | $O(n)$ |
+| top $k$ of $n$ with a size-$k$ heap | $O(n \log k)$ | $O(n \log k)$ |
 
 </ExamTip>
 
@@ -356,7 +366,7 @@ Memorise this table; NOAI questions often just ask for one entry.
 
 - Binary search halves a **sorted** range each step: $O(\log n)$, about 20 comparisons for a million items. On unsorted data it gives wrong answers.
 - Bubble and insertion sort are $O(n^2)$; merge sort splits, sorts and merges in $O(n \log n)$. In practice use Python's `sorted()`.
-- A hash table computes a bucket from the key, so dict and set lookups are $O(1)$ on average; keys must be immutable.
+- A hash table computes a bucket from the key, so dict and set lookups are $O(1)$ on average; keys must be hashable (immutable).
 - A min-heap keeps the smallest item at the root with $O(\log n)$ push and pop; a size-$k$ min-heap finds the top $k$ of $n$ items in $O(n \log k)$.
 
 </Takeaways>

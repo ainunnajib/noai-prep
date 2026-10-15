@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
       'A small start-up pays its 9 employees \\$4000 a month each, and its founder \\$100,000 a month. A journalist wants one number for what a *typical* person at the company earns. Which choice is best?',
     options: [
       'The median, \\$4000, because one huge salary drags the mean but cannot move the middle value',
-      'The mean, \\$13,600, because it is the only average that uses every salary in the company',
+      'The mean, \\$13,600, because it is the only average that uses every single salary in the company',
       'The midpoint of the lowest and highest pay, \\$52,000, because it balances the two extremes',
       'The range, \\$96,000, because it shows how different the salaries in the company are',
     ],

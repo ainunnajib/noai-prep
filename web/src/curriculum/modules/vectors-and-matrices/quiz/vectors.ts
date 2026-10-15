@@ -24,10 +24,10 @@ const questions: QuizQuestion[] = [
     id: 'vectors-and-matrices.vectors.3',
     prompt: 'What does this code print?',
     code: 'a = [1, 2]\nb = [3, 4]\nprint(a + b)',
-    options: ['`[1, 2, 3, 4]`', '`[4, 6]`', '`10`', '`TypeError`'],
+    options: ['`[1, 2, 3, 4]`', '`[4, 6]`', '`[1, 2, [3, 4]]`', '`TypeError`'],
     answer: 0,
     explanation:
-      '`a` and `b` are plain Python lists, and `+` on lists **concatenates** them, giving `[1, 2, 3, 4]`. Component-by-component addition, `[4, 6]`, only happens with NumPy arrays (or PyTorch tensors), for example `np.array(a) + np.array(b)`.',
+      '`a` and `b` are plain Python lists, and `+` on lists **concatenates** them, giving `[1, 2, 3, 4]`: the items of `b` join the end of `a` one by one, not as a nested list (`[1, 2, [3, 4]]` is what `a.append(b)` would make). Adding two lists is allowed, so there is no `TypeError`. Component-by-component addition, `[4, 6]`, only happens with NumPy arrays (or PyTorch tensors), for example `np.array(a) + np.array(b)`.',
     difficulty: 'beginner',
   },
   {

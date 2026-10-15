@@ -13,7 +13,7 @@ print("final total:", total)`
 
 export const NUDGE_LOOP = `w = 0.0     # first guess
 lr = 0.1    # learning rate: try 0.05, 0.3, 0.8 and 1.1
-for step in range(20):
+for step in range(15):
     prediction = 2 * w
     error = prediction - 6
     w = w - lr * error

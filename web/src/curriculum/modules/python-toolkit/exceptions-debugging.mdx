@@ -72,12 +72,12 @@ The exception's name is the first clue: `IndexError` means "a position outside t
   q={"What does `int(\"3.5\")` do?"}
   options={[
     'Raises a `TypeError`',
-    'Returns `3`',
+    'Returns the int `3`',
     'Raises a `ValueError`',
-    'Returns `3.5`',
+    'Returns the float `3.5`',
   ]}
   answer={2}
-  explain={"`int()` accepts strings, so the type is fine, but the string must look like a whole number. `\"3.5\"` does not, so Python raises `ValueError: invalid literal for int() with base 10: '3.5'`. (`int(3.5)` with a float, not a string, would return 3; `int(float(\"3.5\"))` does too.)"}
+  explain={"`int()` accepts strings, so the type is fine, but the string must look like a whole number. `\"3.5\"` does not, so Python raises `ValueError: invalid literal for int() with base 10: '3.5'`. `int()` never returns a float. (`int(3.5)` with a float, not a string, would return 3; `int(float(\"3.5\"))` does too.)"}
 />
 
 <PastPaperQuestion paper="prelim2026" n={126} />
@@ -94,13 +94,13 @@ Try to hold sports day on the field. If it rains, fall back to the hall. If it d
 
 ```python
 try:
-    risky()        # might raise
+    risky()      # might raise
 except ValueError:
-    handle_it()    # only on ValueError
+    handle_it()  # on ValueError
 else:
-    celebrate()    # only if no error
+    celebrate()  # if no error
 finally:
-    clean_up()     # always runs
+    clean_up()   # always runs
 ```
 
 The rules, in order:
@@ -128,17 +128,19 @@ One warning before the next real exam question: in MCQs, placeholder comments su
     "        print(10 // x)",
     "    except ZeroDivisionError:",
     "        print(\"zero\")",
+    "    else:",
+    "        print(\"ok\")",
     "    finally:",
     "        print(\"end\")",
   ].join("\n")}
   options={[
-    '`5`, `zero`, `end`',
-    '`5`, `end`, `end`',
-    '`5`, `end`, `zero`',
-    '`5`, `end`, `zero`, `end`',
+    '`5`, `ok`, `end`, `zero`, `ok`, `end`',
+    '`5`, `end`, `ok`, `zero`, `end`',
+    '`5`, `ok`, `end`, `zero`',
+    '`5`, `ok`, `end`, `zero`, `end`',
   ]}
   answer={3}
-  explain="With `x = 2`, `10 // 2` prints `5`, nothing is raised, and `finally` prints `end`. With `x = 0`, `10 // 0` raises `ZeroDivisionError`, the `except` block prints `zero`, and `finally` prints `end` again. `finally` runs on every pass, error or not."
+  explain="With `x = 2`, `10 // 2` prints `5`. Nothing was raised, so `else` prints `ok`, and then `finally` prints `end`. With `x = 0`, `10 // 0` raises `ZeroDivisionError`: the `except` block prints `zero`, `else` is skipped because there was an error, and `finally` still prints `end`. When `else` runs, it always comes before `finally`, and `finally` runs on every pass, error or not."
 />
 
 One `except` can handle several types at once if you list them in a tuple, and `as e` gives you the exception object, whose message you can print:
@@ -208,7 +210,7 @@ A bare `except:` with no type catches **everything**, even pressing Ctrl+C to st
 try:
     result = proces(data)  # typo!
 except:
-    result = None  # NameError hidden
+    result = None  # bug hidden
 ```
 
 The misspelt `proces` raises a `NameError`, but the bare `except` swallows it. The program keeps running with `result = None`, and the typo surfaces much later as a confusing failure somewhere else. Catch only the exceptions you expect, such as `except ValueError:`, and let real bugs crash loudly where they happen.

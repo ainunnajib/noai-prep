@@ -66,7 +66,7 @@ This is the most common beginner mix-up, and examiners know it. `print` **shows*
 
 ```python
 def double(x):
-    print(x * 2)     # shows 8, but returns nothing
+    print(x * 2)  # shows 8
 
 y = double(4)
 print(y)
@@ -104,8 +104,10 @@ A parameter can have a <Term def="A value written in the def line, as in lr=0.1.
 def update(w, grad, lr=0.1):
     return w - lr * grad
 
-print(update(2.0, 4))          # lr not given, so the default 0.1 is used
-print(update(2.0, 4, lr=0.5))  # a keyword argument sets lr by name
+# lr not given, so the default 0.1 is used
+print(update(2.0, 4))
+# a keyword argument sets lr by name
+print(update(2.0, 4, lr=0.5))
 ```
 
 ```text
@@ -164,7 +166,7 @@ x = 'global'
 def outer():
     x = 'enclosing'
     def inner():
-        return x      # no local x, so look outwards
+        return x  # no local x here
     return inner()
 
 print(outer())
@@ -200,9 +202,9 @@ Because `count` is assigned somewhere inside `add_one`, Python treats `count` as
 <QuickCheck
   q="What happens when this code runs?"
   code={localCode}
-  options={["`NameError: name 'y' is not defined`", '`5`', '`10`', '`None`']}
+  options={['A `NameError`', 'It prints `10`', 'It prints `5`', 'It prints `None`']}
   answer={0}
-  explain="`y` is local to `f`. It existed only while `f` was running and vanished when `f` returned, so the main program has no `y` to print. The value 10 was returned and is stored in `z`, not in `y`."
+  explain="`y` is local to `f`. It existed only while `f` was running and vanished when `f` returned, so the main program has no `y` at all: `NameError: name 'y' is not defined`. A vanished name does not turn into `None`, and the value 10 was returned and stored in `z`, not in `y`."
 />
 
 ## *args and **kwargs: any number of arguments
@@ -219,14 +221,17 @@ Sometimes a function should accept *any* number of arguments, like `print`, whic
 def total(*args):
     return sum(args)
 
-print(total(1, 2, 3))   # 6: args is the tuple (1, 2, 3)
-print(total())          # 0: args is the empty tuple ()
+# args is the tuple (1, 2, 3)
+print(total(1, 2, 3))
+# args is the empty tuple ()
+print(total())
 
 def describe(**kwargs):
     for key, value in kwargs.items():
         print(key, '=', value)
 
-describe(lr=0.1, epochs=5)   # kwargs is {'lr': 0.1, 'epochs': 5}
+# kwargs is {'lr': 0.1, 'epochs': 5}
+describe(lr=0.1, epochs=5)
 ```
 
 ```text

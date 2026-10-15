@@ -54,11 +54,13 @@ A comparison asks a yes-or-no question and always produces a Boolean, `True` or 
 
 - **Text** compares too. `"cat" == "cat"` is `True`, and `"apple" < "banana"` is `True`: Python compares letter by letter, like a dictionary (but every capital letter counts as smaller than every small letter, so `"Zebra" < "apple"` is also `True`).
 - **Text is never equal to a number.** `"3" == 3` is `False`, because the text `"3"` is not the number `3`. Numbers of different types do compare by value, though: `3 == 3.0` is `True`.
-- **Floats are stored approximately** (you saw `0.1 + 0.2` in the arithmetic lesson), so `0.1 + 0.2 == 0.3` is `False`. To compare floats, check that they are close instead: `abs((0.1 + 0.2) - 0.3) < 1e-9` is `True`.
+- **Floats are stored approximately** (you saw `0.1 + 0.2` in the lesson on variables, types and arithmetic), so `0.1 + 0.2 == 0.3` is `False`. To compare floats, check that they are close instead: `abs((0.1 + 0.2) - 0.3) < 1e-9` is `True`.
 
 </Note>
 
-Python has one more comparison word, `is`, and exam questions like to ask how it differs from `==`. `==` asks "do these have the same **value**?" `is` asks "are these the very same **object** in the computer's memory?" Two lists made separately with the same contents (you will meet lists properly in two lessons) are equal, but they are not the same object:
+<Note title="Exam aside: in, and is versus ==">
+
+Python has two more comparison words. `in` asks "is this inside that?": `"ap" in "apple"` is `True` and `"z" in "apple"` is `False` (it works on lists too). `is` is the one exam questions like to contrast with `==`. `==` asks "do these have the same **value**?" `is` asks "are these the very same **object** in the computer's memory?" Two lists made separately with the same contents (you will meet lists properly in two lessons) are equal, but they are not the same object:
 
 ```python
 x = [1, 2]
@@ -70,7 +72,9 @@ print(x == y, x is y)
 True False
 ```
 
-So to compare values, always use `==`. Programmers use `is` almost only to check for `None`, Python's special "nothing here" value, as in `if result is None:`.
+So to compare values, always use `==`. Programmers use `is` almost only to check for `None`, Python's value for "nothing here" (you will meet it again with functions), as in `if result is None:`.
+
+</Note>
 
 <PastPaperQuestion paper="prelim2026" n={84} />
 
@@ -78,7 +82,7 @@ So to compare values, always use `==`. Programmers use `is` almost only to check
 
 <Analogy title="The school gate rule">
 
-A school lets you leave early if you have a parent's note **and** a teacher's approval, **or** it is a public holiday. The guard at the gate does not agonise over it. They check each fact (yes or no) and combine the answers by a fixed rule. Python does the same with `and`, `or` and `not`.
+A school lets you leave early if you have a parent's note **and** a teacher's approval, **or** the whole school is being dismissed early that day. The guard at the gate does not agonise over it. They check each fact (yes or no) and combine the answers by a fixed rule. Python does the same with `and`, `or` and `not`.
 
 </Analogy>
 
@@ -100,11 +104,11 @@ A <Term def="A table that lists every possible combination of True/False inputs,
 
 Why `and` before `or`? Write `True` as 1 and `False` as 0. Then `and` behaves like multiplication ($1 \times 0 = 0$: one False makes the whole thing False) and `or` behaves like addition (any 1 makes the total non-zero, which counts as True). Just as $\times$ comes before $+$ in BODMAS, `and` comes before `or`. And because comparisons come first of all, `score >= 50 and score < 65` needs no brackets.
 
-The school rule in Python is `note and approval or holiday`. Wei Ling has a parent's note, her teacher has not approved, and it is not a holiday, so `note = True`, `approval = False` and `holiday = False`.
+The school rule in Python is `note and approval or dismissal`. Wei Ling has a parent's note, her teacher has not approved, and it is not an early-dismissal day, so `note = True`, `approval = False` and `dismissal = False`.
 
 <Steps title="Can Wei Ling leave early?">
   <Step title="Put in the values">
-    `note and approval or holiday` becomes `True and False or False`.
+    `note and approval or dismissal` becomes `True and False or False`.
   </Step>
   <Step title="`and` comes first">
     `True and False` is `False`, because `and` needs both sides to be `True`. The expression is now `False or False`.
@@ -112,19 +116,19 @@ The school rule in Python is `note and approval or holiday`. Wei Ling has a pare
   <Step title="Then `or`">
     `False or False` is `False`, because neither side is `True`. She stays in school.
   </Step>
-  <Step title="Now make it a public holiday">
-    With `holiday = True`: `True and False or True` becomes `False or True`, which is `True`. The holiday alone is enough, because `or` needs only one `True` side.
+  <Step title="Now make it an early-dismissal day">
+    With `dismissal = True`: `True and False or True` becomes `False or True`, which is `True`. The early dismissal alone is enough, because `or` needs only one `True` side.
   </Step>
 </Steps>
 
-Brackets can change the meaning completely. Here the rule is "aged 13 or over, **and** has either a note or a holiday":
+Brackets can change the meaning completely. Here the rule for a school trip is "aged 13 or over, **and** has either a consent form or a parent coming along":
 
 ```python
 age = 11
-has_note = False
-is_holiday = True
-print(age >= 13 and (has_note or is_holiday))
-print(age >= 13 and has_note or is_holiday)
+has_form = False
+parent_coming = True
+print(age >= 13 and (has_form or parent_coming))
+print(age >= 13 and has_form or parent_coming)
 ```
 
 ```text
@@ -132,7 +136,7 @@ False
 True
 ```
 
-With brackets, `age >= 13` is `False`, so the whole `and` is `False`. Without brackets, Python reads the second line as `(age >= 13 and has_note) or is_holiday`, and the holiday makes it `True`, so an 11-year-old walks out. If in doubt, add brackets: they cost nothing and say exactly what you mean.
+With brackets, `age >= 13` is `False`, so the whole `and` is `False`. Without brackets, Python reads the second line as `(age >= 13 and has_form) or parent_coming`, and the parent coming along makes it `True`, so an 11-year-old goes on a trip meant for students aged 13 and over. If in doubt, add brackets: they cost nothing and say exactly what you mean.
 
 <Tip title="Chained comparisons">
 
@@ -181,6 +185,12 @@ Here is what each part does:
 - If the condition is `True`, the `if` block runs. If it is `False`, the `else` block runs instead. Exactly one of the two runs.
 - `print("Have a good day.")` is not indented, so it belongs to neither block. It always runs, after the choice is made.
 - `else` is optional. An `if` without an `else` simply does nothing when its condition is `False`.
+
+<Note title="Conditions that are not True or False">
+
+An `if` also accepts values that are not Booleans, and treats them the way `bool()` does: `0`, `0.0`, the empty string `''` and the empty list `[]` count as `False`, and almost everything else counts as `True`. So `if name:` means "if `name` is not empty". Also, `and` and `or` stop as soon as the answer is known (`False and ...` is `False` whatever comes next) and give back the last value they looked at, so `0 or 5` is `5` and `3 and 0` is `0`.
+
+</Note>
 
 <Mistake title="Three ways to upset the if">
 
@@ -286,8 +296,6 @@ All three conditions are `True`, so `band` becomes `"A"`, then `"B"`, then `"C"`
 If your program takes the wrong branch, add a `print` just before the `if` to see what Python actually sees, for example `print("score is", score, type(score))`. A classic surprise is a score stored as the text `"72"` instead of the number `72`. Then `"72" >= 50` does not quietly give a wrong answer: it raises `TypeError: '>=' not supported between instances of 'str' and 'int'`. Printing values while the program runs is the simplest debugging tool there is.
 
 </Tip>
-
-<PastPaperQuestion paper="prelim2026" n={127} />
 
 ## Decisions inside AI
 

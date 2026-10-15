@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     id: 'python-toolkit.classes-objects.4',
     prompt: 'A PyTorch model starts `class Net(nn.Module):` and its `__init__` begins with `super().__init__()`. What does that line do?',
     options: [
-      'Calls `forward` once so that the network is ready to make predictions',
+      'Calls `forward` once so that the network is ready to make its predictions',
       'Copies pretrained weights from the parent class into the new network',
       'Runs `nn.Module`\'s own set-up, so it can register the layers you assign',
       'Declares `Net` as a subclass, which Python needs before any methods',

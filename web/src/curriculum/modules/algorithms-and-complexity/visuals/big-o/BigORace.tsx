@@ -63,10 +63,10 @@ export default function BigORace() {
       title="The growth race"
       caption={
         <>
-          Slide <M>n</M> from 10 up to a million and watch the time column (at one step per microsecond, a round number for one simple
+          Tap a class to show or hide it. Slide <M>n</M> from 10 up to a million and watch the time column (at one step per microsecond, a round number for one simple
           operation). On the ordinary axis the biggest class squashes everything else flat; switch on the log axis
-          to see all of them at once (each grid line is 1000 times the one before). Then switch on <M>O(2^n)</M>: it is already off the
-          chart at <M>n = 50</M>.
+          to see all of them at once (each grid line is 1000 times the one before). Then, with the log axis still on, switch on <M>O(2^n)</M>:
+          it is already off the chart at <M>n = 50</M>.
         </>
       }
     >

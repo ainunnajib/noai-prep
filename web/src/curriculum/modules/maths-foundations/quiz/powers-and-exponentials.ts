@@ -23,10 +23,10 @@ const questions: QuizQuestion[] = [
     id: 'maths-foundations.powers-and-exponentials.3',
     prompt:
       'In a 10-layer network the gradient is multiplied by about $0.25$ at every layer on its way back to the first layer. Roughly what fraction of the original signal reaches the first layer?',
-    options: ['about $10^{-6}$ (one millionth)', 'about $2.5$', 'about $0.025$', 'about $0.25$ (a quarter)'],
+    options: ['about $10^{-6}$ (one millionth)', 'about $10^{-3}$ (one thousandth)', 'about $0.025$ (one fortieth)', 'about $0.25$ (one quarter)'],
     answer: 0,
     explanation:
-      'Ten multiplications by 0.25 give $0.25^{10} = \\dfrac{1}{4^{10}} = \\dfrac{1}{2^{20}} \\approx \\dfrac{1}{10^6}$, about one millionth: a vanishing gradient. $2.5$ multiplies 0.25 by 10 and $0.025$ divides it by 10, instead of multiplying 0.25 by itself 10 times; a quarter forgets that the factors compound layer after layer.',
+      'Ten multiplications by 0.25 give $0.25^{10} = \\dfrac{1}{4^{10}} = \\dfrac{1}{2^{20}} \\approx \\dfrac{1}{10^6}$, about one millionth: a vanishing gradient. One thousandth is $0.5^{10} = \\dfrac{1}{2^{10}}$: it forgets that $0.25 = 2^{-2}$ halves the signal twice per layer. $0.025$ divides 0.25 by 10 instead of multiplying 0.25 by itself 10 times, and a quarter forgets that the factors compound layer after layer.',
     difficulty: 'intermediate',
   },
   {

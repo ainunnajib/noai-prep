@@ -129,7 +129,7 @@ function Flowchart({ order, score }: { order: string[]; score: number }) {
             <text x={CX} y={y - 2} textAnchor="middle" className={s.svgMono} style={{ fill: 'var(--ink)', opacity: seen ? 1 : 0.5 }}>
               score &gt;= {b.min}?
             </text>
-            <text x={CX} y={y + 13} textAnchor="middle" className={s.svgSmall} style={{ fill: !seen ? 'var(--ink-3)' : yes ? 'var(--ok)' : 'var(--bad)', opacity: seen ? 1 : 0.7 }}>
+            <text x={CX} y={y + 13} textAnchor="middle" className={s.svgSmall} style={{ fill: !seen ? 'var(--ink-3)' : yes ? 'var(--ok)' : 'var(--bad)', opacity: seen ? 1 : 0.85 }}>
               {!seen ? 'not checked' : yes ? 'True' : 'False'}
             </text>
           </g>

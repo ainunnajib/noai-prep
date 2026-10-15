@@ -84,20 +84,20 @@ def total(nums):       # nums holds n numbers
 
 This takes $n + 2$ steps. For $n = 1{,}000$ that is 1,002 steps; for $n = 1{,}000{,}000$ it is 1,000,002. The "+ 2" stops mattering almost at once. What matters is that the work is **proportional to $n$**, and Big-O says exactly that: `total` is $O(n)$, read "order $n$" or "big-O of $n$".
 
-Unless a question says otherwise, Big-O describes the <Term def="The largest number of steps the algorithm can take over all inputs of size n, for example when the item you search for is not there at all.">worst case</Term>. Searching a list for a value that sits at the front takes one step, but we quote $O(n)$ because in the worst case (the value is last or missing) every item is checked.
+Unless a question says otherwise, Big-O describes the <Term def="The largest number of steps the algorithm can take over all inputs of size n, for example when the item you search for is not there at all.">worst case</Term>. Searching a list for a value that sits at the front takes one step, but we quote $O(n)$ because in the worst case (the value is last or missing) every item is checked. The one common exception is hash tables (Python's dict and set): their lookups are quoted as $O(1)$ **on average**, as the next lesson explains.
 
 ## The growth race
 
 A handful of growth rates cover almost everything you will meet:
 
-| Big-O | Name | Typical example | Steps when $n = 1{,}000$ |
+| Big-O | Name | Example | Steps at $n = 1000$ |
 |---|---|---|---|
-| $O(1)$ | constant | read `a[5]`; look up a key in a dict | 1 |
-| $O(\log n)$ | logarithmic | binary search in a sorted list | about 10 |
-| $O(n)$ | linear | find the largest value in a list | 1,000 |
-| $O(n \log n)$ | "n log n" | good sorting, such as Python's `sorted()` | about 10,000 |
-| $O(n^2)$ | quadratic | compare every pair of items | 1,000,000 |
-| $O(2^n)$ | exponential | try every subset of the items | about $10^{301}$ |
+| $O(1)$ | constant | read `a[5]` | 1 |
+| $O(\log n)$ | logarithmic | binary search | about 10 |
+| $O(n)$ | linear | largest value in a list | 1,000 |
+| $O(n \log n)$ | "n log n" | Python's sort | about 10,000 |
+| $O(n^2)$ | quadratic | compare every pair | 1,000,000 |
+| $O(2^n)$ | exponential | try every subset | about $10^{301}$ |
 
 The one that surprises beginners is $\log n$. Here $\log_2 n$ answers the question **"how many times can I halve $n$ before I reach 1?"** Since $2^{10} = 1024$, halving 1,000 about ten times gets you to 1, so $\log_2 1000 \approx 10$. A million is about $2^{20}$, so $\log_2 1{,}000{,}000 \approx 20$. Multiplying the input by a thousand only **adds** about 10 steps.
 
@@ -119,7 +119,7 @@ Computer scientists mean $\log_2$, but in Big-O the base does not matter: $\log_
   q="An $O(n^2)$ program takes 2 seconds when $n = 1{,}000$. Roughly how long will it take when $n = 3{,}000$?"
   options={['6 seconds', '8 seconds', '18 seconds', '54 seconds']}
   answer={2}
-  explain="Tripling $n$ multiplies an $n^2$ cost by $3^2 = 9$, so the time becomes $2 \times 9 = 18$ seconds. 6 seconds is what a linear, $O(n)$, program would take; 54 seconds would be cubic ($3^3 = 27$)."
+  explain="Tripling $n$ multiplies an $n^2$ cost by $3^2 = 9$, so the time becomes $2 \times 9 = 18$ seconds. 6 seconds is what a linear, $O(n)$, program would take; 8 seconds treats tripling as if it were doubling ($2 \times 2^2$); 54 seconds would be cubic ($3^3 = 27$)."
 />
 
 ## What Big-O really means
@@ -204,7 +204,7 @@ Run the doubling test yourself. The step counts are exact, so the pattern is eas
 
 <PyRunner code={doublingCode} />
 
-Each time $n$ doubles, the halving loop gains 1 step, the single loop doubles and the nested loop quadruples. (The halving loop runs 9 times for $n = 1000$, not 10, because it stops at 1: the exact count is $\log_2 n$ rounded down.)
+Each time $n$ doubles, the halving loop gains 1 step, the single loop doubles and the nested loop quadruples. (The halving loop runs 9 times for $n = 1000$, not 10, because $1000 < 2^{10} = 1024$: the exact count is $\log_2 n$ rounded down.)
 
 ### Hidden loops inside one line
 
@@ -214,10 +214,13 @@ Rule 1 is only true for genuinely simple statements. Many single lines of Python
 |---|---|---|
 | `len(a)`, `a[i]`, `a.append(x)`, `a.pop()` | $O(1)$ | the list stores its length and jumps straight to an index |
 | `x in a`, `a.index(x)`, `a.count(x)` on a list | $O(n)$ | checks the items one by one |
+| `min(a)`, `max(a)`, `sum(a)`, `a.remove(x)` | $O(n)$ | looks at (or shifts) every item |
 | `a.insert(0, x)`, `a.pop(0)` | $O(n)$ | every other item has to shuffle along one place |
 | `a[i:j]`, `a.copy()`, `a + b` | $O(k)$ for $k$ items copied | builds a new list |
 | `sorted(a)`, `a.sort()` | $O(n \log n)$ | a clever sort called Timsort |
 | `x in s` for a set, `d[key]` for a dict | $O(1)$ on average | hashing (next lesson) |
+
+(`a.append(x)` is $O(1)$ on average: now and then the list moves to a bigger block of memory, but spread over many appends that is a constant cost each.)
 
 So a single loop containing `if q in items:` is really a loop inside a loop when `items` is a list: $O(n^2)$, not $O(n)$. Turning `items` into a set brings it back to $O(n)$. You can feel the difference:
 
@@ -228,9 +231,9 @@ Your times will differ from anyone else's, but the set wins by a factor of thous
 <QuickCheck
   q="What is the time complexity of this code, in terms of $n$?"
   code={nestedHalvingCode}
-  options={['$O(n)$', '$O(\\log n)$', '$O(n \\log n)$', '$O(n^2)$']}
+  options={['$O(n + \\log n)$', '$O(\\log n)$', '$O(n \\log n)$', '$O(n^2)$']}
   answer={2}
-  explain="The inner `while` loop halves `j` from $n$ down to 1, so it runs about $\log_2 n$ times. It sits inside a loop that runs $n$ times, and nested loops multiply: $n \times \log n = O(n \log n)$. $O(n^2)$ would need the inner loop to run $n$ times, not $\log n$ times."
+  explain="The inner `while` loop halves `j` from $n$ down to 1, so it runs about $\log_2 n$ times. It sits inside a loop that runs $n$ times, and nested loops multiply: $n \times \log n = O(n \log n)$. $O(n^2)$ would need the inner loop to run $n$ times, not $\log n$ times, and $O(n + \log n)$ adds the two loops although one sits inside the other."
 />
 
 ## Time versus space
@@ -254,8 +257,8 @@ A function that sums a list of $n$ numbers uses $O(1)$ extra space, even though 
 Every big idea in this module shows up inside AI systems, and Big-O is how you reason about what is feasible. You will meet these AI ideas properly in later modules; for now only the counting matters.
 
 - **Matrix multiplication.** Multiplying two $n \times n$ matrices fills $n^2$ output entries, and each entry is a sum of $n$ products, so it takes $n^2 \times n = n^3$ multiplications: $O(n^3)$.
-- **Self-attention.** A <Term def="The neural-network design behind modern language models such as ChatGPT. Taught in the attention and Transformers module.">Transformer</Term> compares every <Term def="A word or a piece of a word: the unit a language model reads and writes.">token</Term> in a sequence with every other token (that comparison is called self-attention), producing a table of $n \times n$ scores for a sequence of $n$ tokens. So time and memory grow as $O(n^2)$: a context twice as long costs four times as much attention work. This is why long contexts are expensive.
-- **Newton's method versus gradient descent.** Both are ways to adjust a model step by step. For a model with $p$ <Term def="The adjustable numbers inside a model that training changes, such as the weights of a neural network.">parameters</Term>, Newton's method needs the <Term def="A p × p table of second derivatives: one row and one column for every parameter of the model.">Hessian</Term>, which has $p \times p$ entries, and then has to invert it (or solve equations with it), which costs about $p^3$ steps. For $p = 10{,}000$ that is $10^{12}$ steps for **every** update, and for a model with a billion parameters it is hopeless. Gradient descent only needs the $p$ numbers of the gradient.
+- **Self-attention.** A <Term def="The neural-network design behind modern language models such as ChatGPT. Taught in the attention and Transformers module.">Transformer</Term> compares every <Term def="A word or a piece of a word: the unit a language model reads and writes.">token</Term> in a sequence with every other token (that comparison is called self-attention), producing a table of $n \times n$ scores for a sequence of $n$ tokens. Each score combines the $d$ numbers that describe a token, so the time grows as $O(n^2 d)$ and the score table needs $O(n^2)$ memory. Exam options often just write $O(n^2)$: **quadratic in the sequence length**, so a context twice as long costs four times as much attention work. This is why long contexts are expensive.
+- **Newton's method versus gradient descent.** Both are ways to adjust a model step by step. For a model with $p$ <Term def="The adjustable numbers inside a model that training changes, such as the weights of a neural network.">parameters</Term>, Newton's method needs the <Term def="A p × p table of second derivatives: one row and one column for every parameter of the model.">Hessian</Term>, which has $p \times p$ entries, and then has to invert it (or solve equations with it), which costs about $p^3$ steps. For $p = 10{,}000$ that is $10^{12}$ steps for **every** update, and for a model with a billion parameters it is hopeless. Gradient descent (and SGD, its most common form) only needs the $p$ numbers of the gradient, so each update costs about $p$ steps.
 
 <PastPaperQuestion paper="prelim2026" n={219} />
 

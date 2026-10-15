@@ -41,11 +41,19 @@ function Line({ vals, start, stop, step, narrow }: { vals: number[]; start: numb
   const yL = ys.range()[0] - 44
   const ticks = Array.from({ length: HI - LO + 1 }, (_, k) => LO + k)
   const set = new Set(vals)
+  // On a narrow screen there is no room to number every tick. Label the start and the values produced first, then the
+  // stop, then the multiples of 5, skipping any label that would touch one already placed.
+  const labelled = new Set<number>()
+  if (narrow) {
+    const width = (t: number) => String(t).length
+    const fits = (t: number) => [...labelled].every((u) => Math.abs(t - u) >= (width(t) + width(u) > 2 ? 2 : 1))
+    for (const t of [start, ...vals, stop, ...ticks.filter((u) => u % 5 === 0)]) if (t >= LO && t <= HI && !labelled.has(t) && fits(t)) labelled.add(t)
+  }
   return (
     <g>
       <line x1={xs(LO - 0.6)} x2={xs(HI + 0.6)} y1={yL} y2={yL} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.5 }} />
       {ticks.map((t) => {
-        const showLabel = !narrow || t % 5 === 0 || t === start
+        const showLabel = !narrow || labelled.has(t)
         return (
           <g key={t}>
             <line x1={xs(t)} x2={xs(t)} y1={yL - 4} y2={yL + 4} style={{ stroke: 'var(--viz-axis)', strokeWidth: t % 5 === 0 ? 1.5 : 1 }} />
@@ -54,7 +62,7 @@ function Line({ vals, start, stop, step, narrow }: { vals: number[]; start: numb
                 x={xs(t)}
                 y={yL + 19}
                 textAnchor="middle"
-                style={{ fill: set.has(t) ? 'var(--viz-1)' : 'var(--ink-3)', fontSize: narrow ? 10.5 : 11.5, fontWeight: set.has(t) ? 800 : 400 }}
+                style={{ fill: set.has(t) ? 'var(--viz-1)' : 'var(--ink-3)', fontSize: narrow ? 11 : 11.5, fontWeight: set.has(t) ? 800 : 400 }}
               >
                 {t}
               </text>

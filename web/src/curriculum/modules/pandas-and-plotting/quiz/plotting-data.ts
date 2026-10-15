@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
       'A teacher has two numbers for each of 40 students: hours of sleep the night before a test, and the test score. She wants to see whether students who sleep more tend to score higher. Which plot should she draw?',
     options: [
       'A scatter plot of score against hours of sleep, one dot per student',
-      'A histogram of the 40 test scores, with ten bins from 0 to 100',
+      'A histogram of the 40 test scores, using ten equal bins from 0 to 100',
       'A bar chart of the average test score of each class in the cohort',
       'A line plot of the 40 scores in the order of the class register',
     ],
@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     id: 'pandas-and-plotting.plotting-data.4',
     prompt: "What does `sns.histplot(data=df, x='price', hue='flat_type')` draw?",
     options: [
-      'Histograms of price for each flat type, in different colours on the same axes, with a legend',
+      'Histograms of price for every flat type, in different colours on the same axes, with a legend',
       'A separate figure for each flat type, each holding one histogram of price with its own title',
       'A histogram of flat_type in which each bar is coloured by the average price of that flat type',
       'One histogram of price that uses only the rows of the most common flat type in the table',

@@ -100,7 +100,7 @@ export default function BinarySearchStepper() {
       }
     >
       <div className={s.wrap} ref={ref}>
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Binary search for ${target}: ${T} comparisons, ${res.found >= 0 ? 'found' : 'not found'}`} style={{ display: 'block', maxWidth: W }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Binary search for ${target}: ${T} comparisons, ${res.found >= 0 ? 'found' : 'not found'}`} style={{ display: 'block', maxWidth: W, margin: '0 auto' }}>
           {a.map((_, j) => (
             <text
               key={j}

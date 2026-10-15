@@ -87,12 +87,12 @@ Adding instead of subtracting ($ad + bc$), or multiplying along the rows ($ab - 
 
 <QuickCheck
   q="What is $\det \begin{bmatrix} 2 & 3 \\ 4 & 6 \end{bmatrix}$, and what does it tell you?"
-  options={['0, so the matrix squashes the plane onto a line and has no inverse', '24, so the matrix multiplies every area by 24', '0, so every entry of the matrix must be 0', '−18, so the matrix mirrors the plane and scales areas by 18']}
+  options={['0, so it squashes the plane onto a line and has no inverse', '24, so the matrix scales each area by a factor of 24', '0, so the matrix must be the zero matrix, with every entry 0', '−18, so the matrix mirrors the plane and scales areas by 18']}
   answer={0}
   explain="$ad - bc = 2 \times 6 - 3 \times 4 = 12 - 12 = 0$. Column $[3, 6]$ is 1.5 times column $[2, 4]$, so both point the same way and the square collapses onto a line. 24 comes from adding ($ad + bc$), −18 is $ab - cd = 6 - 24$ (multiplying along the rows), and a matrix can have determinant 0 without being all zeros."
 />
 
-Determinants exist for every **square** matrix, never for non-square ones. For a 3×3 matrix the determinant scales **volumes** (in general, $n$-dimensional volume), but you will only be asked to work out 2×2 determinants by hand. Since doing $B$ then $A$ scales areas by both factors, $\det(AB) = \det(A)\,\det(B)$.
+Determinants exist for every **square** matrix, never for non-square ones. For a 3×3 matrix the determinant scales **volumes** (in general, $n$-dimensional volume), but you will only be asked to work out 2×2 determinants by hand. In $ABx = A(Bx)$, $B$ acts first and then $A$, like the inner function in $f(g(x))$ from [Functions and their graphs](#/learn/maths-foundations/functions-and-graphs). Each scales areas by its own determinant, so $\det(AB) = \det(A)\,\det(B)$.
 
 ## The identity matrix: the "1" of matrices
 
@@ -157,6 +157,8 @@ The formula divides by $ad - bc$, and you cannot divide by 0. The picture shows 
 
 A square matrix with determinant 0 is called <Term def="A square matrix with determinant 0. It squashes space into fewer dimensions and has no inverse. Also called non-invertible.">singular</Term> (or non-invertible). For a 2×2 matrix this happens exactly when one column is a multiple of the other, as in $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$.
 
+In the box below, $\iff$ means "exactly when": each statement is true precisely when the next one is.
+
 <KeyIdea>
 Singular $\iff$ $\det A = 0$ $\iff$ $A$ squashes space flat $\iff$ $A$ has no inverse. If $\det A \neq 0$, the inverse exists and $A^{-1}A = I$.
 </KeyIdea>
@@ -173,6 +175,8 @@ $$
 A^{-1}Ax = A^{-1}b \quad\Longrightarrow\quad x = A^{-1}b
 $$
 
+The arrow $\Longrightarrow$ means "so" or "which gives": $A^{-1}A = I$ and $Ix = x$, so the left side is just $x$.
+
 Only square matrices can have an inverse, and only when they are not singular. The inverse of a product reverses the order, just like the transpose did: $(AB)^{-1} = B^{-1}A^{-1}$ (undo the last thing first).
 
 <PastPaperQuestion paper="prelim2026" n={3} />
@@ -187,7 +191,7 @@ Three more patterns you can spot at a glance.
 
 A <Term def="A square matrix whose only non-zero entries are on the main diagonal.">diagonal matrix</Term> has zeros everywhere off the main diagonal, such as $D = \begin{bmatrix} 2 & 0 \\ 0 & 3 \end{bmatrix}$. It simply stretches each axis by its own factor (here x by 2 and y by 3), so its determinant is the product of the diagonal ($2 \times 3 = 6$), and if none of them is 0 its inverse just uses the reciprocals, $\begin{bmatrix} \tfrac12 & 0 \\ 0 & \tfrac13 \end{bmatrix}$. The identity is the diagonal matrix with all 1s.
 
-A <Term def="A square matrix equal to its own transpose: the entry in row i, column j equals the entry in row j, column i.">symmetric matrix</Term> equals its own transpose: $A = A^T$, which means $a_{ij} = a_{ji}$ for every $i$ and $j$. Fold it along the main diagonal and the numbers land on equal partners. A table of distances between MRT stations is symmetric (Bishan to Tampines equals Tampines to Bishan). So is every <Term def="A table of how much each pair of features varies together. Entry (i, j) is the covariance of feature i and feature j.">covariance matrix</Term>, because the covariance of height with weight is the same as the covariance of weight with height. You will meet these in statistics and PCA.
+A <Term def="A square matrix equal to its own transpose: the entry in row i, column j equals the entry in row j, column i.">symmetric matrix</Term> equals its own transpose: $A = A^T$, which means $a_{ij} = a_{ji}$ for every $i$ and $j$. Fold it along the main diagonal and the numbers land on equal partners. A table of distances between MRT stations is symmetric (Bishan to Tampines equals Tampines to Bishan). So is every <Term def="A table of how much each pair of features varies together. Entry (i, j) is the covariance of feature i and feature j.">covariance matrix</Term>, because the covariance of height with weight is the same as the covariance of weight with height. You will meet covariance in [Correlation and hypothesis tests](#/learn/probability-and-statistics/correlation-and-testing) and covariance matrices in [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca) (principal component analysis, a way to compress many features into a few).
 
 <PastPaperQuestion paper="prelim2026" n={13} />
 
@@ -261,6 +265,8 @@ In PyTorch the same functions are `torch.linalg.det`, `torch.linalg.inv`, `torch
 - **Trace facts:** $\operatorname{tr}(A + B) = \operatorname{tr}A + \operatorname{tr}B$ and $\operatorname{tr}(AB) = \operatorname{tr}(BA)$, even though $AB \neq BA$.
 
 </ExamTip>
+
+Next, the [NumPy module](#/learn/numpy/why-numpy) shows how a computer stores these vectors and matrices and works with them at full speed.
 
 <Takeaways>
 

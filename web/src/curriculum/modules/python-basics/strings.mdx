@@ -14,16 +14,16 @@ reply = "can't lah"      # double quotes, so the ' inside is fine
 empty = ""               # the empty string: no characters at all
 ```
 
-Python sees a string as a <Term def="An ordered row of items where each item has a fixed position, like the characters of a string or the items of a list.">sequence</Term> of characters in a fixed order. A character is anything you can type: a letter, a digit, a space, a punctuation mark, even an emoji. The built-in function `len()` counts them:
+Python sees a string as a <Term def="An ordered row of items where each item has a fixed position, like the characters of a string or the items of a list.">sequence</Term> of characters in a fixed order. A character is anything you can type: a letter, a digit, a space or a punctuation mark. The built-in function `len()` counts them:
 
 ```python
-print(len("Hello"))
+print(len("NOAI"))
 print(len("Hi there"))   # the space counts
 print(len(""))
 ```
 
 ```text
-5
+4
 8
 0
 ```
@@ -86,11 +86,11 @@ Two more rules. Asking for a single index that does not exist, such as `s[20]`, 
   explain="`word[-3:]` starts 3 from the end (index 8 − 3 = 5) and runs to the end: `iam`. `word[2:5]` takes positions 2, 3 and 4 (`pit`), which is 5 − 2 = 3 characters. The stop position is never included, so it cannot be 4."
 />
 
-<ExamTip>
+<Tip title="Learn these rules once">
 
-These rules are not just for strings. Lists and NumPy arrays use exactly the same indexing and slicing, and `range(a, b)` uses the same "stop is excluded" rule. Learn them once here and they pay off for the rest of the course. In the Prelim, `len()`, negative indices and the excluded stop are the usual traps: write the indices under the characters before you answer.
+These rules are not just for strings. Lists and NumPy arrays use exactly the same indexing and slicing, and `range(a, b)` uses the same "stop is excluded" rule. Learn them once here and they pay off for the rest of the course. When a question gets fiddly, write the indices under the characters before you answer.
 
-</ExamTip>
+</Tip>
 
 ## Strings never change
 
@@ -116,7 +116,7 @@ A <Term def="A function that belongs to a value and is called with a dot after i
 | Method: what it returns | Example → result |
 |---|---|
 | `.upper()` / `.lower()`: the text in capitals / small letters | `'Hi'.upper()` → `'HI'` |
-| `.strip()`: the text without spaces at either end | `' hi '.strip()` → `'hi'` |
+| `.strip()`: the text without spaces (or tabs and newlines) at either end | `' hi\n'.strip()` → `'hi'` |
 | `.replace(old, new)`: every `old` swapped for `new` | `'lah'.replace('a', 'e')` → `'leh'` |
 | `.split()`: a **list** of the words | `'can or not'.split()` → `['can', 'or', 'not']` |
 | `sep.join(words)`: the words glued together with `sep` | `'-'.join(['a', 'b'])` → `'a-b'` |

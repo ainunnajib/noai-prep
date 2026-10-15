@@ -156,6 +156,25 @@ export function evaluate(n: Node, env: { A: boolean; B: boolean }): boolean {
   }
 }
 
+/** True when Python would skip the right side of some `and` / `or` because its left side already decides the answer. */
+export function stopsEarly(n: Node, env: { A: boolean; B: boolean }): boolean {
+  switch (n.k) {
+    case 'lit':
+    case 'var':
+      return false
+    case 'not':
+      return stopsEarly(n.a, env)
+    case 'and':
+    case 'or': {
+      if (stopsEarly(n.a, env)) return true
+      const va = evaluate(n.a, env)
+      return (n.k === 'and' ? !va : va) || stopsEarly(n.b, env)
+    }
+    case 'cmp':
+      return n.items.some((x) => stopsEarly(x, env))
+  }
+}
+
 export function show(n: Node): string {
   let s: string
   switch (n.k) {
@@ -214,9 +233,11 @@ function reduceOnce(n: Node): Node | null {
     case 'or': {
       const a = reduceOnce(n.a)
       if (a) return { ...n, a }
+      const va = (n.a as { v: boolean }).v
+      // Python stops early: `False and ...` is False and `True or ...` is True without looking at the right side
+      if (n.k === 'and' ? !va : va) return { k: 'lit', v: va, paren: false }
       const b = reduceOnce(n.b)
       if (b) return { ...n, b }
-      const va = (n.a as { v: boolean }).v
       const vb = (n.b as { v: boolean }).v
       return { k: 'lit', v: n.k === 'and' ? va && vb : va || vb, paren: false }
     }

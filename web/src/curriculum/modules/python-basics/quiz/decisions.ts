@@ -26,14 +26,14 @@ const questions: QuizQuestion[] = [
     prompt: 'A student runs this program. What happens?',
     code: 'score = 100\nif score = 100:\n    print("full marks")',
     options: [
-      'Python stops with a `SyntaxError` before running any line',
-      'It prints `full marks`',
-      'It sets `score` to 100 again and prints nothing',
-      'It prints `True`',
+      'No line runs at all: Python reports a `SyntaxError` for line 2',
+      'It prints `full marks`, because `score` is 100 when the `if` runs',
+      'It sets `score` to 100 again, so it prints nothing and ends normally',
+      'It prints `True`, the answer to the question `score = 100`',
     ],
     answer: 0,
     explanation:
-      'A single `=` assigns; comparing needs `==`. An `if` must be followed by a condition, so Python rejects the line with `SyntaxError: invalid syntax. Maybe you meant \'==\' or \':=\' instead of \'=\'?`. Syntax is checked before the program starts, so not even line 1 runs. With `==` it would print `full marks`.',
+      'A single `=` assigns; comparing needs `==`. An `if` must be followed by a condition, so Python rejects the line with `SyntaxError: invalid syntax. Maybe you meant \'==\' or \':=\' instead of \'=\'?`. Syntax is checked before the program starts, so not even line 1 runs. With `==` it would print `full marks`; `=` never asks a question, so nothing here can print `True`.',
     difficulty: 'beginner',
   },
   {

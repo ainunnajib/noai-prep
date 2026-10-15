@@ -152,7 +152,7 @@ export default function HeapTopK() {
           </div>
         </div>
 
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Min-heap holding ${snap.heap.join(', ') || 'nothing yet'}`} style={{ display: 'block', maxWidth: W }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Min-heap holding ${snap.heap.join(', ') || 'nothing yet'}`} style={{ display: 'block', maxWidth: W, margin: '0 auto' }}>
           {snap.heap.map((_, i) => {
             if (i === 0) return null
             const [x1, y1] = pos(Math.floor((i - 1) / 2))

@@ -46,9 +46,9 @@ const questions: QuizQuestion[] = [
     prompt: "`sales` has 100 rows. After `result = pd.merge(sales, prices, on='item', how='left')`, `result` has 104 rows. What is the most likely cause?",
     options: [
       'Some `item` values appear more than once in `prices`, so those sales rows matched several price rows',
-      'A left join also adds a row for every `item` in `prices` that never appears in `sales`, filled with `NaN`',
+      'A left join also adds a row for each `item` in `prices` that does not appear in `sales`, filled with `NaN`',
       'Sales whose `item` is missing from `prices` are given a second, extra row with `NaN` in the price columns',
-      'pandas adds a header row for every distinct `item` value when it merges the two tables on that column',
+      'pandas adds a header row for each distinct `item` value when it merges the two tables on that column',
     ],
     answer: 0,
     explanation:
@@ -63,7 +63,7 @@ const questions: QuizQuestion[] = [
       'The first works on whole columns at once in compiled NumPy code; the second calls a Python function once for every row',
       'The first divides row by row in a Python loop, which avoids the rounding errors that vectorised division can introduce on large numbers',
       'The second changes `df` in place while it runs, so the original `kg` and `m` columns are overwritten and lost',
-      'The second only fills in the first row of `df` unless you also pass `axis=0`, so every other row is left empty',
+      'The second fills in just the first row of `df` unless you also pass `axis=0`, so the other rows stay empty',
     ],
     answer: 0,
     explanation:

@@ -2,7 +2,7 @@ import BalanceBeam from './visuals/describing-data/BalanceBeam'
 import SkewTail from './visuals/describing-data/SkewTail'
 import VarianceSquares from './visuals/describing-data/VarianceSquares'
 
-Before any model learns from data, someone has to *look* at it. The first two questions are always the same: **what is a typical value?** and **how spread out are the values?** This lesson gives you the handful of numbers that answer them. They come back everywhere in AI (averaging a loss, standardising features) and are worth several quick marks in every NOAI paper.
+Before any model learns from data, someone has to *look* at it. The first two questions are always the same: **what is a typical value?** and **how spread out are the values?** This lesson gives you the handful of numbers that answer them. They come back everywhere in AI (averaging a loss, standardising features), and NOAI papers use them for several quick marks.
 
 <Analogy>
 Two hawker stalls both have an *average* queue of 4 minutes. At the first stall you always wait 3 to 5 minutes. At the second you sometimes walk straight up to the counter and sometimes wait 8 minutes. Same centre, very different experience. To describe data honestly you need one number for the **centre** and another for the **spread**.
@@ -81,9 +81,9 @@ The *skewness* readout turns this into one number: the average **cube** of the s
 <QuickCheck
   id="probability-and-statistics.describing-data.qc2"
   q="In a company, the mean monthly salary is 6000 dollars and the median is 4500 dollars. What is the most likely shape of the salary distribution?"
-  options={['Left-skewed: a few very low salaries pull the mean up', 'Symmetric: the mean and median are close enough', 'Impossible to say without knowing the mode', 'Right-skewed: a few very high salaries pull the mean up']}
+  options={['Left-skewed: a few very low salaries pull the median down', 'Symmetric: the mean and median are close enough', 'Impossible to say without knowing the mode', 'Right-skewed: a few very high salaries pull the mean up']}
   answer={3}
-  explain="The mean sits above the median, so something is pulling the mean towards large values. That is a long right tail. A left tail would pull the mean *below* the median."
+  explain="The mean sits above the median, so something is pulling the mean towards large values. That is a long right tail. A few extreme values barely move the median, and a left tail would pull the mean *below* the median, not above it. A gap of 1500 dollars is far too big to call symmetric."
 />
 
 <ExamTip>
@@ -141,9 +141,9 @@ Drag the points below and watch the squares.
 <QuickCheck
   id="probability-and-statistics.describing-data.qc3"
   q="What is the variance of $[2, 4, 6]$, dividing by $n$?"
-  options={['$4$', '$8/3$', '$8$', '$2$']}
+  options={['$4$', '$8/3$', '$8$', '$4/3$']}
   answer={1}
-  explain="The mean is 4, so the deviations are $-2, 0, 2$ and their squares are $4, 0, 4$. Their sum is 8, and $8 \div 3 = 8/3 \approx 2.67$. Answering 8 forgets to divide by $n$; 4 divides by $n - 1 = 2$ instead of $n = 3$."
+  explain="The mean is 4, so the deviations are $-2, 0, 2$ and their squares are $4, 0, 4$. Their sum is 8, and $8 \div 3 = 8/3 \approx 2.67$. Answering 8 forgets to divide by $n$; 4 divides by $n - 1 = 2$ instead of $n = 3$; $4/3$ averages the distances $2, 0, 2$ without squaring them."
 />
 
 Before the next exam question, think about the extreme case: what happens to every deviation, and so to the variance, if all the values are the same?

@@ -49,9 +49,9 @@ const questions: QuizQuestion[] = [
     id: 'vectors-and-matrices.matrices-and-multiplication.5',
     prompt: '$A$ is a $2 \\times 3$ matrix and $B$ is a $3 \\times 2$ matrix. Which statement is true?',
     options: [
-      '$AB$ is $2 \\times 2$ and $BA$ is $3 \\times 3$, so they cannot be equal',
+      '$AB$ is $2 \\times 2$ and $BA$ is $3 \\times 3$, so they can never be equal',
       '$AB$ and $BA$ are both $2 \\times 2$ but usually have different entries',
-      '$AB$ exists but $BA$ does not, because the inner sizes of $BA$ differ',
+      '$AB$ exists but $BA$ does not, because the inner sizes of $BA$ do not match',
       '$AB = BA$, because swapping the order of a product never changes it',
     ],
     answer: 0,

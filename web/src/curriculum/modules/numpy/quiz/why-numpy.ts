@@ -29,9 +29,9 @@ const questions: QuizQuestion[] = [
     prompt: 'Why does `out = arr * 2` on a NumPy array run much faster than a Python `for` loop that doubles each number of a list?',
     options: [
       'Its loop runs in compiled C over raw same-type numbers, with no per-element type checks',
-      'NumPy automatically sends the array to the GPU and doubles all of the numbers there in parallel',
+      'NumPy automatically sends the array to the GPU and doubles the numbers there in parallel',
       'NumPy notices repeated values in the array and only doubles each distinct number once',
-      'Python lists are kept on the hard disk, while NumPy arrays are always held in fast memory',
+      'Python lists are kept on the hard disk, while NumPy arrays are held in fast memory (RAM)',
     ],
     answer: 0,
     explanation:
@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your pure-Python function crunches numbers (no NumPy, no file or network access). You must run it on 4 independent chunks of data on a 4-core laptop. Which approach can actually make it about 4 times faster?',
     options: [
-      'Use `multiprocessing` to run 4 processes, each with its own interpreter and its own GIL',
+      'Use `multiprocessing` to run 4 processes, every one of them with its own interpreter and GIL',
       'Use `threading` to run 4 threads, because the threads share memory and so avoid copying data',
       'Call `gc.disable()` so that garbage collection stops pausing the program',
       'Use 4 threads, but give each thread a separate list so that they do not compete for the GIL',
@@ -68,7 +68,7 @@ const questions: QuizQuestion[] = [
     prompt: 'After these three lines run, what happens to the list object `[1, 2, 3]`?',
     code: 'a = [1, 2, 3]\nb = a\ndel a',
     options: [
-      'It stays in memory, because `b` still refers to it, so its reference count is 1',
+      'It stays in memory, because `del a` removes only the name and `b` still refers to it',
       'It is freed immediately, because `del a` deletes the list object',
       'It stays in memory until the cyclic garbage collector runs, because `b` is a copy',
       'Python raises an error, because a list cannot be deleted while another name refers to it',

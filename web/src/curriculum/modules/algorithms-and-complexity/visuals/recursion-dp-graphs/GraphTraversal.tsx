@@ -190,7 +190,7 @@ export default function GraphTraversal() {
             { value: 'dfs', label: 'DFS (stack)' },
           ]}
         />
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${algo.toUpperCase()} from ${start} to ${goal}; visited ${snap.visited.join(', ')}`} style={{ display: 'block', maxWidth: W }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${algo.toUpperCase()} from ${start} to ${goal}; visited ${snap.visited.join(', ')}`} style={{ display: 'block', maxWidth: W, margin: '0 auto' }}>
           {EDGES.map(([a, b]) => {
             const onPath = pathEdges.has([a, b].sort().join('|'))
             const tree = treeEdge(a, b)
@@ -218,7 +218,19 @@ export default function GraphTraversal() {
             const k = visitedIdx(v)
             const below = y > 40
             return (
-              <g key={v} onClick={() => onNode(v)} style={{ cursor: 'pointer' }} role="button" aria-label={`${v}${v === start ? ' (start)' : ''}${v === goal ? ' (goal)' : ''}`}>
+              <g
+                key={v}
+                onClick={() => onNode(v)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onNode(v)
+                  }
+                }}
+                tabIndex={0}
+                style={{ cursor: 'pointer' }}
+                role="button"
+                aria-label={`${v}${v === start ? ' (start)' : ''}${v === goal ? ' (goal)' : ''}`}>
                 <circle cx={X(x)} cy={Y(y)} r={r + 12} style={{ fill: 'transparent' }} />
                 {(v === start || v === goal) && (
                   <circle cx={X(x)} cy={Y(y)} r={r + 5} style={{ fill: 'none', stroke: v === goal ? 'var(--viz-3)' : 'var(--viz-ink)', strokeWidth: 2, strokeDasharray: v === goal ? '3 2' : undefined }} />
@@ -245,7 +257,7 @@ export default function GraphTraversal() {
                   y={below ? Y(y) + r + 15 : Y(y) - r - 7}
                   textAnchor={x < 10 ? 'start' : x > 90 ? 'end' : 'middle'}
                   dx={x < 10 ? -8 : x > 90 ? 8 : 0}
-                  style={{ fontSize: 12, fontWeight: v === start || v === goal ? 800 : 600 }}
+                  style={{ fontSize: 12, fontWeight: v === start || v === goal ? 800 : 600, strokeWidth: 6 }}
                 >
                   {v}
                   {v === start ? ' (start)' : v === goal ? ' (goal)' : ''}

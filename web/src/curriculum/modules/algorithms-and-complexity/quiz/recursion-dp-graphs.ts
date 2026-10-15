@@ -15,7 +15,7 @@ const questions: QuizQuestion[] = [
     id: 'algorithms-and-complexity.recursion-dp-graphs.2',
     prompt: 'Why does adding a memo (a dict of answers already computed) make recursive `fib(n)` run in $O(n)$ time instead of exponential time?',
     options: [
-      'Each `fib(k)` is computed only once and later requests are dict lookups, so only about $n$ subproblems are ever solved.',
+      'Each `fib(k)` is worked out only once; every later request is a dict lookup, so about $n$ subproblems are solved.',
       'The dict keeps the calls in sorted order, so Python can find each answer by binary search instead of recursion.',
       'The memo replaces the base cases, so the recursion stops earlier and never reaches `fib(1)` or `fib(0)`.',
       'Python runs the two recursive calls `fib(n - 1)` and `fib(n - 2)` at the same time, halving the work at each level.',
@@ -28,11 +28,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'algorithms-and-complexity.recursion-dp-graphs.3',
     prompt:
-      'In the edit-distance table, $D[i][j] = \\min(D[i-1][j-1] + c,\\ D[i-1][j] + 1,\\ D[i][j-1] + 1)$, where $c = 0$ if the two letters match and $c = 1$ otherwise. If $D[i-1][j-1] = 2$, $D[i-1][j] = 2$, $D[i][j-1] = 3$ and the letters are different, what is $D[i][j]$?',
+      'You are filling an edit-distance table. For the next cell, the up-left cell holds 2, the cell above holds 2 and the cell to the left holds 3, and the two letters differ. What number goes in the cell?',
     options: ['3', '2', '4', '7'],
     answer: 0,
     explanation:
-      'The three candidates are $2 + 1 = 3$ (substitute), $2 + 1 = 3$ (delete) and $3 + 1 = 4$ (insert); the smallest is 3. Answering 2 takes the smallest neighbour but forgets to add the cost of the edit; 7 adds all three neighbours instead of taking the minimum.',
+      'The cell is the smallest of up-left + $c$, up + 1 and left + 1, with $c = 1$ because the letters differ. The three candidates are $2 + 1 = 3$ (substitute), $2 + 1 = 3$ (delete) and $3 + 1 = 4$ (insert); the smallest is 3. Answering 2 takes the smallest neighbour but forgets to add the cost of the edit; 7 adds all three neighbours instead of taking the minimum.',
     difficulty: 'beginner',
   },
   {
@@ -42,7 +42,7 @@ const questions: QuizQuestion[] = [
     options: [
       'BFS with a queue, because it reaches places in order of their distance from the start',
       'DFS with a stack, because it goes deep first and so reaches faraway places sooner',
-      'Any search that visits every place once, because every complete search returns the same route',
+      'Any search that visits each place once, because every complete search returns the same route',
       'Binary search on the sorted list of place names, because it halves the search each step',
     ],
     answer: 0,
@@ -52,16 +52,16 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'algorithms-and-complexity.recursion-dp-graphs.5',
-    prompt: 'Which statement about BFS and DFS on a graph with $V$ nodes and $E$ edges is correct?',
+    prompt: 'Which statement about BFS and DFS on a graph with $V$ nodes and $E$ edges, stored as an adjacency list, is correct?',
     options: [
-      'Both visit every reachable node in $O(V + E)$ time; the order differs because BFS uses a queue and DFS uses a stack.',
+      'Both visit every reachable node in $O(V + E)$ time; only the frontier differs: a queue versus a stack.',
       'BFS takes $O(V^2)$ time while DFS takes $O(V + E)$, so DFS is always the faster choice on large graphs.',
       'DFS always finds the shortest path, because it follows each path all the way to the end before trying another.',
-      'BFS only works if the edges are first sorted by length, which adds an $O(E \\log E)$ sorting step at the start.',
+      'BFS needs the edges sorted by length before it starts, which adds an $O(E \\log E)$ sorting step to its cost.',
     ],
     answer: 0,
     explanation:
-      'Each node is added to the frontier once and each edge is examined a constant number of times, so both are $O(V + E)$. The only difference is the frontier: first in, first out (BFS) gives level-by-level order; last in, first out (DFS) gives deep-first order. DFS does not guarantee shortest paths, and BFS needs no sorting.',
+      'Each node is added to the frontier once and each edge is examined a constant number of times, so both are $O(V + E)$. The only difference is the frontier: first in, first out (BFS) gives level-by-level order; last in, first out (DFS) gives deep-first order. DFS does not guarantee shortest paths, BFS needs no sorting, and $O(V^2)$ is what either search costs on an adjacency matrix, not BFS alone.',
     difficulty: 'intermediate',
   },
 ]

@@ -83,11 +83,14 @@ export default function StringSlicer() {
         )
     } else {
       out = <span className={s.err}>IndexError: string index out of range</span>
-      explain = (
-        <>
-          The valid indices for a string of length {n} are 0 to {n - 1} (or −{n} to −1). Asking for one character outside that range is an error.
-        </>
-      )
+      explain =
+        n === 0 ? (
+          <>The empty string has no characters, so every index is an IndexError (but every slice is just &apos;&apos;).</>
+        ) : (
+          <>
+            The valid indices for a string of length {n} are 0 to {n - 1} (or −{n} to −1). Asking for one character outside that range is an error.
+          </>
+        )
     }
   } else if (q.kind === 'slice') {
     positions = slicePositions(n, q.start, q.stop, q.step)
@@ -103,7 +106,11 @@ export default function StringSlicer() {
       const negNote = negParts.length ? `Negative numbers count from the end: ${negParts.join(' and ')}. ` : ''
       explain =
         positions.length === 0 ? (
-          <>{negNote}The stop is not after the start, so the slice is empty. Slices never raise an error.</>
+          n === 0 ? (
+            <>The string is empty, so every slice of it is empty too. Slices never raise an error.</>
+          ) : (
+            <>{negNote}The stop is not after the start, so the slice is empty. Slices never raise an error.</>
+          )
         ) : (
           <>
             {negNote}Takes positions {positions[0]} to {positions[positions.length - 1]}:{' '}
@@ -130,7 +137,8 @@ export default function StringSlicer() {
     out = String(n)
     explain = (
       <>
-        <code>len(s)</code> counts the characters, including spaces: {n}. The last index is always <code>len(s) - 1</code> = {n - 1}.
+        <code>len(s)</code> counts the characters, including spaces: {n}.{' '}
+        {n === 0 ? <>The string is empty, so there is no last index.</> : <>The last index is always <code>len(s) - 1</code> = {n - 1}.</>}
       </>
     )
   } else {
@@ -157,6 +165,11 @@ export default function StringSlicer() {
   const handleEl = (which: 'start' | 'stop', g: number) => {
     const x = gapX(g)
     const colour = which === 'start' ? 'var(--viz-2)' : 'var(--viz-5)'
+    // both handles on one gap: one shared label instead of two overlapping ones
+    const shared = handles !== null && handles.start === handles.stop
+    const label = shared ? (which === 'start' ? `start = stop = ${g}` : '') : `${which} = ${g}`
+    const half = label.length * 3.5 + 2
+    const labelX = Math.max(half, Math.min(W - half, x))
     return (
       <g
         key={which}
@@ -188,8 +201,8 @@ export default function StringSlicer() {
         <line x1={x} x2={x} y1={yBox - 6} y2={yRule} style={{ stroke: colour, strokeWidth: 2.5, strokeDasharray: '5 3' }} />
         <rect x={x - 22} y={yRule + 4} width={44} height={30} style={{ fill: 'transparent' }} />
         <path className={s.grip} d={`M${x},${yRule} l9,10 v14 h-18 v-14 z`} style={{ fill: colour, stroke: 'var(--surface)', strokeWidth: 1.5 }} />
-        <text x={x} y={yRule + 44} textAnchor="middle" style={{ fill: colour, fontSize: 11.5, fontWeight: 800 }}>
-          {`${which} = ${g}`}
+        <text x={labelX} y={yRule + 44} textAnchor="middle" style={{ fill: shared ? 'var(--ink-2)' : colour, fontSize: 11.5, fontWeight: 800 }}>
+          {label}
         </text>
       </g>
     )
@@ -223,6 +236,12 @@ export default function StringSlicer() {
             </button>
           ))}
         </div>
+        {x0 <= 30 && n > 0 && (
+          <div style={{ fontSize: '0.78rem', color: 'var(--ink-3)' }}>
+            Numbers above the boxes: <span style={{ color: 'var(--viz-1)', fontWeight: 700 }}>index</span> · below:{' '}
+            <span style={{ color: 'var(--viz-4)', fontWeight: 700 }}>index from the end</span> · ruler: the gaps a slice cuts at
+          </div>
+        )}
         <div className={s.svgBox}>
           <svg ref={svgRef} className={s.svg} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`The string ${strRepr(word)} with its indices`}>
             <text x={4} y={yIdx + 4} style={{ fill: 'var(--viz-1)', fontSize: 10.5, fontWeight: 700 }}>

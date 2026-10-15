@@ -49,13 +49,13 @@ const questions: QuizQuestion[] = [
       'A search engine stores each document as a vector of word counts. Document Q is document P copied out 10 times, so every count in Q is 10 times the count in P. Which statement is correct?',
     options: [
       'Their cosine similarity is 1, even though the Euclidean distance between them is large',
-      'Their cosine similarity is 0.1, because Q is 10 times longer than P',
-      'Their Euclidean distance is 0, because they contain exactly the same words',
-      'Their dot product is 1, because the two vectors point the same way',
+      "Their cosine similarity is 0.1, because Q's vector is 10 times as long as P's",
+      'Their Euclidean distance is 0, because the two documents contain exactly the same words',
+      'Their dot product is 1, because the two vectors point in exactly the same direction',
     ],
     answer: 0,
     explanation:
-      '$\\mathbf{q} = 10\\mathbf{p}$ points in exactly the same direction as $\\mathbf{p}$, and cosine similarity only measures direction, so it is 1. The Euclidean distance $\\lVert \\mathbf{q} - \\mathbf{p} \\rVert = \\lVert 9\\mathbf{p} \\rVert = 9\\lVert \\mathbf{p} \\rVert$ is large, which is exactly why search systems prefer cosine for comparing texts of different lengths. The dot product is $10\\lVert \\mathbf{p} \\rVert^2$, not 1.',
+      '$\\mathbf{q} = 10\\mathbf{p}$ points in exactly the same direction as $\\mathbf{p}$, and cosine similarity only measures direction, so it is 1; scaling by a positive number never changes cosine similarity, which rules out 0.1. The Euclidean distance $\\lVert \\mathbf{q} - \\mathbf{p} \\rVert = \\lVert 9\\mathbf{p} \\rVert = 9\\lVert \\mathbf{p} \\rVert$ is large, not 0, which is exactly why search systems prefer cosine for comparing texts of different lengths. The dot product is $10\\lVert \\mathbf{p} \\rVert^2$, not 1.',
     difficulty: 'intermediate',
   },
 ]

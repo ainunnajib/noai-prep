@@ -76,7 +76,8 @@ export default function HashBuckets() {
           Type a hawker dish (letters only) and press Look up or Insert. The key's letters are added up (a = 1, …, z = 26) and the remainder
           after dividing by the number of buckets picks one bucket, so a lookup only checks the few keys in that bucket. Now squeeze the table
           down to 1 bucket: every key collides and the "hash table" becomes a plain list. 'laksa' and 'otah' have the same hash (44), so they
-          share a bucket however many buckets there are.
+          share a bucket however many buckets there are. Real hash functions scramble the letters, so such clashes are rare (with this toy
+          sum, anagrams such as 'tea' and 'eat' always collide).
         </>
       }
     >
@@ -156,7 +157,7 @@ export default function HashBuckets() {
             }}
             disabled={MORE.every((k) => keys.includes(k))}
           >
-            Add 6 more dishes
+            Add more dishes
           </Button>
           <Button
             onClick={() => {

@@ -61,14 +61,15 @@ export default function SortVisualizer() {
       caption={
         <>
           Press Play. Orange bars are being compared, green bars are in their final place (for insertion sort: the sorted "hand" so far), and
-          for merge sort the shaded band is the part being merged. Then compare the counts underneath: on 32 random bars, bubble and
-          insertion sort need hundreds of comparisons, merge sort far fewer. Try "nearly sorted": insertion sort barely has to work.
+          for merge sort the shaded band is the part being merged. Then compare the counts underneath and slide <M>n</M> up to 32: on random bars,
+          bubble and insertion sort need hundreds of comparisons, merge sort only about a hundred. Try "nearly sorted": insertion sort barely
+          has to work. At <M>n = 8</M> insertion sort can even beat merge sort: Big-O is about what happens for large <M>n</M>.
         </>
       }
     >
       <div className={s.wrap} ref={ref}>
         <Segmented label="Algorithm" value={algo} onChange={(v) => reset(() => setAlgo(v))} options={(['bubble', 'insertion', 'merge'] as Algo[]).map((v) => ({ value: v, label: ALGO_LABEL[v] }))} />
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${ALGO_LABEL[algo]} on ${n} bars, step ${player.step + 1} of ${frames.length}`} style={{ display: 'block', maxWidth: W }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${ALGO_LABEL[algo]} on ${n} bars, step ${player.step + 1} of ${frames.length}`} style={{ display: 'block', maxWidth: W, margin: '0 auto' }}>
           {fr.range && (
             <rect x={pad + fr.range[0] * bw} y={0} width={(fr.range[1] - fr.range[0]) * bw} height={H - 14} rx={4} style={{ fill: 'color-mix(in srgb, var(--viz-5) 14%, transparent)' }} />
           )}

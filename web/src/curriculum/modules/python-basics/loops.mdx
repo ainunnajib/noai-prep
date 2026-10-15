@@ -20,7 +20,7 @@ Hi Chen
 Done
 ```
 
-A <Term def="A statement that runs a block of code once for each item in a sequence, such as a list, a string or a range of numbers.">for loop</Term> reads almost like English: "for each name in this list, print a greeting".
+A <Term def="A statement that runs a block of code once for each item in a sequence, such as a list, a string or a range of numbers.">for loop</Term> reads almost like English: "for each name in this list, print a greeting". (The square brackets make a **list**: several values kept in order. Lists get their own lesson at the end of this module.)
 
 - `name` is the **loop variable**. You choose its name. On each pass it refers to the next item: first `"Ali"`, then `"Bala"`, then `"Chen"`.
 - The colon and the indented block work exactly as they did for `if`. The indented lines are the **body**, and they run once per item. One run of the body is called an <Term def="One pass through the body of a loop. A loop over three items has three iterations.">iteration</Term>.
@@ -32,9 +32,9 @@ A for loop can walk over anything that holds items in order. A string, for examp
 
 Often you just want to repeat something a number of times, or count. That is what `range()` is for.
 
-<Analogy title="The polyclinic queue display">
+<Analogy title="The 24-hour clock">
 
-The queue-number display at a polyclinic counts up one number at a time. If the sign says "serving up to number 5" and the display starts from 0, it shows 0, 1, 2, 3, 4, and stops **before** it reaches the number on the sign. `range(5)` behaves exactly like that.
+A 24-hour clock shows the hours 0, 1, 2, … up to 23. That is 24 different hours, and the number 24 itself never appears on the display. `range(24)` works the same way: 24 values, starting at 0 and stopping **before** 24. (Minutes are `range(60)`.) The number you give `range` says how many values you get, not the last value.
 
 </Analogy>
 
@@ -168,7 +168,7 @@ A for loop repeats a known number of times. Sometimes you don't know how many ti
 
 <Analogy title="Topping up your EZ-Link card">
 
-Your card has \$3, and you want more than \$20 before a long trip. You top up \$5, check the balance, and repeat until it is enough. You don't decide "four top-ups" in advance: you keep checking a condition.
+Your card has \$3, and you want at least \$20 before a long trip. You top up \$5, check the balance, and repeat until it is enough. You don't decide "four top-ups" in advance: you keep checking a condition.
 
 </Analogy>
 
@@ -230,9 +230,9 @@ $7 \times 7 = 49$ is not more than 50, but $8 \times 8 = 64$ is, so the loop sto
   q="A program should keep asking for a password until the user types the right one. Which loop fits best?"
   options={[
     'A `while` loop, because you cannot know in advance how many tries it will take',
-    'A `for` loop over `range(3)`, because every loop must have a fixed count',
-    'A `for` loop, because a `while` loop cannot contain an `if` inside it',
-    'No loop at all, because an `if` statement repeats itself until it is True',
+    'A `for` loop over `range(3)`, because every loop must have a fixed number of passes',
+    'A `for` loop, because a `while` loop is not allowed to contain an `if` inside it',
+    'No loop at all, because an `if` statement repeats itself until its condition is True',
   ]}
   answer={0}
   explain="Use `for` when you know what to repeat over (each item, or a fixed count). Use `while` when you repeat **until** a condition changes and the number of passes is unknown, like waiting for the right password. Loops can contain `if` statements, and an `if` runs at most once."
@@ -297,7 +297,7 @@ $$
 w_{\text{new}} - 3 = (w - 3) - \text{lr}\,(2w - 6) = (w - 3) - 2\,\text{lr}\,(w - 3) = (1 - 2\,\text{lr})\,(w - 3).
 $$
 
-In words: every pass multiplies the gap by the same number, $1 - 2\,\text{lr}$. With $\text{lr} = 0.1$ that number is $0.8$, so the gap goes $3 \to 2.4 \to 1.92 \to \ldots$, shrinking by a fifth each pass. With $\text{lr}$ between 0.5 and 1 the number is negative, so $w$ lands on the other side of 3 each time (overshoot) but still gets closer. With $\text{lr} > 1$ the number is below $-1$, so every pass makes the gap **bigger**, and $w$ blows up.
+In words: every pass multiplies the gap by the same number, $1 - 2\,\text{lr}$. With $\text{lr} = 0.1$ that number is $0.8$, so the gap goes $-3 \to -2.4 \to -1.92 \to \ldots$, its size shrinking by a fifth each pass. With $\text{lr}$ between 0.5 and 1 the number is negative, so $w$ lands on the other side of 3 each time (overshoot) but still gets closer. With $\text{lr} > 1$ the number is below $-1$, so every pass makes the gap **bigger**, and $w$ blows up.
 
 <KeyIdea>
 
@@ -307,7 +307,7 @@ Predict, measure the error, nudge against it, repeat. That loop is how machines 
 
 <Note title="You have just written gradient descent">
 
-Real training is this same loop with millions of numbers instead of one $w$. The error is measured by a **loss**, and calculus works out which way to nudge every number (the **gradient**). For the squared error, the exact gradient-descent nudge also multiplies the error by the input, here 2; you will see why in the calculus module. That only changes which learning rates work well, not the idea. In PyTorch, training is literally `for epoch in range(...):` around predict, measure and nudge.
+Real training is this same loop with millions of numbers instead of one $w$. The errors are summed up in one score called the **loss**, and calculus (the **gradient**) works out which way, and by how much, to nudge every number; you will see how in the calculus module. In PyTorch, training is literally a `for` loop around predict, measure and nudge (each pass over the whole dataset is called an **epoch**).
 
 </Note>
 
@@ -332,7 +332,7 @@ Loop questions in the Prelim are about counting and tracing, fast:
 
 - `for x in sequence:` runs the indented body once per item, with `x` taking each item in turn.
 - `range(start, stop, step)` starts at `start`, moves by `step` and stops **before** `stop`. `range(n)` gives the $n$ values $0$ to $n - 1$.
-- `while condition:` repeats as long as the condition is `True`. Something in the body must make it `False`, or the loop runs for ever.
+- `while condition:` repeats as long as the condition is `True`. Something in the body must make it `False`, or the loop runs forever.
 - A trace table (one column per variable, one row per pass) is the surest way to predict what a loop does.
 - Predict, measure, nudge, repeat: a loop with a learning rate is the core of how every model is trained.
 

@@ -104,7 +104,9 @@ $\log_b x$ is the power you raise $b$ to in order to get $x$. A log undoes an ex
 
 ## Counting halvings: where $\log_2 n$ comes from
 
-Run the folding backwards. Start with $n$ and keep halving until you reach 1 or less. The number of halvings is $\log_2 n$ (rounded up when $n$ is not a power of 2): $8 \to 4 \to 2 \to 1$ takes 3 halvings, and $\log_2 8 = 3$.
+Run the folding backwards. Start with $n$ and keep halving until you reach 1 or less. The number of halvings is $\log_2 n$ (rounded up when $n$ is not a power of 2): $8 \to 4 \to 2 \to 1$ takes 3 halvings, and $\log_2 8 = 3$, while 1000 takes 10, because $2^{10} = 1024$ is the first power of 2 above 1000.
+
+Code that halves whole numbers with `n // 2` until `n` reaches 1, like the loop in [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o), throws the remainders away, so it stops one step earlier when $n$ is not a power of 2: 9 steps for 1000 (500, 250, 125, 62, 31, 15, 7, 3, 1), which is $\log_2 n$ rounded down. Both counts are "about $\log_2 n$", which is all Big-O needs.
 
 <HalvingCounter />
 
@@ -161,9 +163,9 @@ $\log(x + y)$ is **not** $\log x + \log y$; the rule is about products. Check wi
 <QuickCheck
   id="mf-logs-qc2"
   q="Given $\log_{10} 2 \approx 0.301$ and $\log_{10} 3 \approx 0.477$, what is $\log_{10} 6$?"
-  options={['0.778', '0.144', '0.176', '1.431']}
+  options={['0.778', '0.144', '0.176', '0.903']}
   answer={0}
-  explain="$6 = 2 \times 3$, so the product rule gives $\log_{10} 6 = 0.301 + 0.477 = 0.778$. Multiplying the logs ($0.301 \times 0.477 \approx 0.144$) is the classic slip, and $0.477 - 0.301 = 0.176$ is $\log_{10} 1.5$, the quotient rule instead."
+  explain="$6 = 2 \times 3$, so the product rule gives $\log_{10} 6 = 0.301 + 0.477 = 0.778$. Multiplying the logs ($0.301 \times 0.477 \approx 0.144$) is the classic slip, $0.477 - 0.301 = 0.176$ is $\log_{10} 1.5$, the quotient rule instead, and $3 \times 0.301 = 0.903$ is $\log_{10} 8 = \log_{10} 2^3$: the power rule used on a product."
 />
 
 ## Why machine learning adds log-probabilities
@@ -267,13 +269,15 @@ Reading the curve:
 
 A model that has learned nothing spreads its bets evenly: with $K$ classes it gives each one probability $\tfrac{1}{K}$, so its loss is $-\ln \tfrac{1}{K} = \ln K$. For 10 classes (the digits 0 to 9) that is $\ln 10 \approx 2.303$; for 2 classes it is $\ln 2 \approx 0.693$; for 100 classes it is $\ln 100 \approx 4.605$. If the very first loss of your training run is far from $\ln K$, suspect a bug.
 
-For two classes, labels are written $y = 1$ or $y = 0$, and the model's predicted probability of class 1 is written $\hat{y}$ ("y-hat", the next lesson explains the hat). The cost is then $-\ln \hat{y}$ when $y = 1$ and $-\ln(1 - \hat{y})$ when $y = 0$. One formula covers both cases, because one of its two terms is always multiplied by 0:
+For two classes, labels are written $y = 1$ or $y = 0$, and the model's predicted probability of class 1 is written $\hat{y}$ ("y-hat"; the hat marks a prediction, as in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), and the next lesson covers hats and the other marks). The cost is then $-\ln \hat{y}$ when $y = 1$ and $-\ln(1 - \hat{y})$ when $y = 0$. One formula covers both cases, because one of its two terms is always multiplied by 0:
 
 $$
 L = -\big[\, y \ln \hat{y} + (1 - y) \ln(1 - \hat{y}) \,\big]
 $$
 
 <PastPaperQuestion paper="prelim2026" n={61} />
+
+With $K$ classes, the true answer can be written as a list of probabilities (1 on the correct class, 0 on the others), and the model's output is another list that adds up to 1. A list like this is called a <Term def="A list of probabilities, one for each possible outcome, each at least 0 and together adding up to 1.">probability distribution</Term>, and cross-entropy measures how far the predicted one is from the true one. With the 1 on the correct class, it reduces to $-\ln p$.
 
 <PastPaperQuestion paper="prelim2026" n={183} />
 

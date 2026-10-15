@@ -36,14 +36,14 @@ const questions: QuizQuestion[] = [
     prompt: 'This program never finishes. Why?',
     code: 'balance = 3\nwhile balance < 20:\n    print("Top up!")\nbalance = balance + 5',
     options: [
-      'The last line is not indented, so it is outside the loop and never runs while the loop repeats',
-      'A `while` loop always needs a `break` statement inside it to stop',
-      'The condition should be written `balance =< 20` for a `while` loop',
-      'Calling `print` inside a loop stops Python from ever checking the condition again',
+      'The last line is outside the loop, so it never runs and `balance` stays at 3',
+      'A `while` loop always needs a `break` statement inside it, and this one has none',
+      'The condition must be written `balance =< 20` for the loop to be able to stop',
+      'Calling `print` inside a loop stops Python from checking the condition again',
     ],
     answer: 0,
     explanation:
-      'Only the indented line `print("Top up!")` is in the loop body, so nothing inside the loop changes `balance`. It stays 3, `3 < 20` is `True` on every check, and the loop runs for ever. Indenting the last line fixes it. A `while` loop stops by itself once its condition becomes `False`, so `break` is optional.',
+      'Only the indented line `print("Top up!")` is in the loop body, so nothing inside the loop changes `balance`. It stays 3, `3 < 20` is `True` on every check, and the loop runs forever. Indenting the last line fixes it. A `while` loop stops by itself once its condition becomes `False`, so `break` is optional, and `=<` is not even valid Python (the operator is `<=`).',
     difficulty: 'beginner',
   },
   {
@@ -51,14 +51,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student runs the nudge loop `w = w - lr * error` (with `error = 2 * w - 6`) using `lr = 1.1`. The values of `w` go 0, 6.6, −1.32, 8.18, … What is happening, and what is the fix?',
     options: [
-      'Each nudge overshoots 3 by more than the gap it corrects, so the swings grow; use a smaller learning rate',
-      'The loop has not run for long enough yet; with more passes `w` will settle at 3',
-      'The first guess `w = 0` is too far from 3; starting at `w = 10` would make it settle',
-      'The nudges are too timid to reach 3; use a bigger learning rate such as 2',
+      'Each nudge jumps past 3 and lands further away than before; use a smaller learning rate',
+      'The loop has not run long enough yet; with more passes the swings die down and `w` settles at 3',
+      'The first guess is too far from 3; starting closer, at `w = 2.9`, would make `w` settle',
+      'The nudges are too timid to keep up with the error; use a bigger learning rate such as 2',
     ],
     answer: 0,
     explanation:
-      'Each pass multiplies the gap $w - 3$ by $1 - 2 \\times 1.1 = -1.2$. The minus sign flips $w$ to the other side of 3, and the size 1.2 makes the gap 20% bigger every pass, so more passes or a different start only make things worse. Any `lr` below 1 makes the gap shrink. In real training this shows up as a loss that oscillates wildly or becomes NaN.',
+      'Each pass multiplies the gap $w - 3$ by $1 - 2 \\times 1.1 = -1.2$. The minus sign flips $w$ to the other side of 3, and the size 1.2 makes the gap 20% bigger every pass, so more passes or a different start (even 2.9, a gap of just 0.1) only make things worse, and `lr = 2` would multiply the gap by $-3$. Any `lr` between 0 and 1 makes the gap shrink. In real training this shows up as a loss that oscillates wildly or becomes NaN.',
     difficulty: 'intermediate',
   },
 ]

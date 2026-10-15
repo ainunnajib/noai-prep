@@ -28,14 +28,14 @@ const questions: QuizQuestion[] = [
     id: 'maths-foundations.logarithms.3',
     prompt: 'Why do machine-learning libraries add up log-probabilities instead of multiplying the probabilities of many independent examples?',
     options: [
-      'Logs turn every probability into a number above 1, which makes the probabilities of different examples easier to compare with each other',
+      'Logs turn each probability into a number above 1, so the probabilities of different examples become easier to compare with one another',
       'Log-probabilities are always positive, so the summed loss can never become negative during training and the optimiser stays stable',
-      'A product of thousands of numbers below 1 underflows to 0, while the sum of their logs stays an ordinary number with the same best parameters',
-      'Multiplying the probabilities of independent examples is mathematically wrong, so taking logs is needed to make the likelihood correct',
+      'A product of thousands of probabilities underflows to 0, but the sum of their logs stays a normal size and always peaks at the same parameters',
+      'Multiplying the probabilities of independent examples is mathematically wrong, so taking logs is needed to make the overall likelihood correct',
     ],
     answer: 2,
     explanation:
-      'For 1,000 examples at probability 0.9, the product is $0.9^{1000} \\approx 1.7 \\times 10^{-46}$, which float32 stores as 0. The log turns it into a sum, $1000 \\ln 0.9 \\approx -105.4$, and because $\\ln$ is increasing the parameters that maximise one also maximise the other. Log-probabilities are actually negative (logs of numbers below 1), and multiplying independent probabilities is correct; it is only numerically fragile.',
+      'For 1,000 examples at probability 0.9, the product is $0.9^{1000} \\approx 1.7 \\times 10^{-46}$, which float32 stores as 0. The log turns it into a sum, $1000 \\ln 0.9 \\approx -105.4$, and because $\\ln$ is increasing the parameters that maximise one also maximise the other. Log-probabilities are actually negative or 0 (logs of numbers up to 1), and multiplying independent probabilities is correct; it is only numerically fragile.',
     difficulty: 'intermediate',
   },
   {
@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
       'A freshly initialised classifier for 100 classes reports a cross-entropy loss of about $4.6$ on its very first batch. Using $\\ln 10 \\approx 2.303$, what should you conclude?',
     options: [
       'There is a bug: an untrained model\'s cross-entropy loss should start very close to 0',
-      'There is a bug: the loss should start at $\\tfrac{1}{100} = 0.01$, the probability of each class',
+      'There is a bug: the loss should start at $\\tfrac{1}{100} = 0.01$, the probability given to each class',
       'This is expected: guessing $\\tfrac{1}{100}$ for every class costs $\\ln 100 = 2 \\ln 10 \\approx 4.6$',
       'This is expected: cross-entropy always starts at $\\ln 2 \\approx 0.693$ times the number of layers',
     ],

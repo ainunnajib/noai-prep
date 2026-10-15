@@ -16,14 +16,14 @@ const questions: QuizQuestion[] = [
     prompt: 'What happens when this code runs?',
     code: 'marks = [72, 85, 64]\nfor i in range(1, 4):\n    print(marks[i])',
     options: [
-      'It prints `85` and `64`, then stops with `IndexError: list index out of range`',
-      'It prints `72`, `85` and `64`',
-      'It prints `85`, `64` and then `None`',
-      'It stops with `IndexError` before printing anything',
+      'It prints `85` and `64`, then stops with an `IndexError`',
+      'It prints `85` and `64`, then quietly skips the missing item',
+      'It prints `72`, `85` and `64`, and the loop ends normally',
+      'It stops with an `IndexError` before printing anything',
     ],
     answer: 0,
     explanation:
-      '`range(1, 4)` gives 1, 2, 3. `marks[1]` is 85 and `marks[2]` is 64, but the list has 3 items, so the valid indices are 0 to 2 and `marks[3]` raises `IndexError` on the third pass. Python runs line by line, so the first two values are already printed when the error happens.',
+      '`range(1, 4)` gives 1, 2, 3. `marks[1]` is 85 and `marks[2]` is 64, but the list has 3 items, so the valid indices are 0 to 2 and `marks[3]` raises `IndexError: list index out of range` on the third pass; Python never skips a bad index quietly. It runs line by line, so the first two values are already printed when the error happens.',
     difficulty: 'beginner',
   },
   {

@@ -50,7 +50,7 @@ export default function KuehSplitter() {
       title="Sharing kueh: // and %"
       caption={
         <>
-          Set the number of kueh and friends, then press <strong>Deal</strong> to hand them out one round at a time. The number of full rounds is{' '}
+          Set the number of kueh and friends, then press <strong>Deal</strong> to hand them out one kueh at a time, round after round. The number of full rounds is{' '}
           <code>a // b</code>; whatever is left in the box, too few for another round, is <code>a % b</code>.
         </>
       }

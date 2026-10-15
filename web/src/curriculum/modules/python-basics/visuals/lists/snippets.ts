@@ -15,4 +15,4 @@ print(grid[1], grid[1][2])
 squares = [x ** 2 for x in range(5)]
 print(squares)
 
-print(marks[10])        # what happens? read the last line of the error`
+# print(marks[10])     # remove the # and run again: read the last line of the error`

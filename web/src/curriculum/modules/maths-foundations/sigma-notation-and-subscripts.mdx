@@ -75,7 +75,7 @@ For $[2, 4, 6, 8, 10]$: the sum is 30 and $n = 5$, so $\bar{x} = 30 / 5 = 6$.
 
 <PastPaperQuestion paper="prelim2026" n={46} />
 
-The **mean squared error** (MSE) measures how far a model's predictions are from the truth. Here $y_i$ is the true value and $\hat{y}_i$ ("y-hat") is the model's prediction for item $i$:
+The **mean squared error** (MSE), which you met in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), measures how far a model's predictions are from the truth. Here $y_i$ is the true value and $\hat{y}_i$ ("y-hat") is the model's prediction for item $i$:
 
 $$
 \text{MSE} = \frac{1}{n}\sum_{i=1}^{n} \left(y_i - \hat{y}_i\right)^2
@@ -99,8 +99,6 @@ MSE is the standard loss for <Term def="A task where the model predicts a number
     $\sum = 1 + 0 + 4 + 1 = 6$, so $\text{MSE} = 6 / 4 = 1.5$. In NumPy: `np.mean((y - y_hat) ** 2)`.
   </Step>
 </Steps>
-
-<PastPaperQuestion paper="prelim2026" n={171} />
 
 Three rules let you rearrange sums, and they are just ordinary algebra applied term by term:
 
@@ -159,6 +157,8 @@ A dataset is a table: one **row** per <Term def="One data point, such as one stu
 
 The superscript in **brackets** is a label, not a power: $x^{(2)}$ means "example 2", while $x^2$ means "$x$ squared". And when a formula only has one kind of index, as in the first half of this lesson, $x_i$ simply means item $i$ of a list.
 
+Notice that $n$ has changed its job too. In the first half of this lesson $n$ counted the items being added (as in the $\frac{1}{n}$ of MSE). In this table $n$ counts features and $m$ counts examples, so the MSE over a dataset is written $\frac{1}{m}\sum_{i=1}^{m}\big(y^{(i)} - \hat{y}^{(i)}\big)^2$.
+
 Here is a tiny dataset of four students (examples $i = 1$ to 4): hours of revision $x_1$, hours of sleep $x_2$, the real test score $y$ and a model's predicted score $\hat{y}$.
 
 | $i$ | $x_1$ revision | $x_2$ sleep | $y$ | $\hat{y}$ |
@@ -178,7 +178,7 @@ A **hat** always means "predicted" or "estimated": $\hat{y}$ is the model's gues
 |---|---|---|
 | $\theta$ or $w$, and $b$ | theta; w for weights, b for bias | the parameters the model learns |
 | $\alpha$ or $\eta$ | alpha, eta | the learning rate (step size) |
-| $\lambda$ | lambda | regularisation strength |
+| $\lambda$ | lambda | regularisation strength: how hard a penalty pushes the weights towards 0 to stop overfitting (met in the [linear regression module](#/learn/linear-regression/regularisation)) |
 | $\mu$, $\sigma$ | mu, sigma | mean and standard deviation; $\sigma(z)$ is also the sigmoid function |
 | $\varepsilon$ | epsilon | a tiny number such as $10^{-8}$ that avoids dividing by zero |
 | $:=$ or $\leftarrow$ | "becomes" | replace the old value with a new one (like `=` in Python) |

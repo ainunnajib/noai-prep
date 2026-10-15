@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt: 'A fair six-sided die has expected value $E[X] = 3.5$. Which statement about this die is correct?',
     options: [
       'A roll of 3.5 is the single most likely outcome of one roll',
-      'The average of a very large number of rolls will be close to 3.5',
+      'The average of a very large number of rolls is almost always close to 3.5',
       'After a run of high rolls, low rolls become more likely, pulling the average back to 3.5',
       'Any 10 rolls of the die always add up to exactly 35',
     ],
@@ -29,10 +29,10 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.distributions-and-clt.3',
     prompt:
       'Marks in a large exam are approximately normal with mean 70 and standard deviation 5. Roughly what percentage of candidates scored **below** 80?',
-    options: ['2.5%', '95%', '68%', '97.5%'],
+    options: ['2.5%', '95%', '47.5%', '97.5%'],
     answer: 3,
     explanation:
-      'The z-score of 80 is $z = (80 - 70)/5 = 2$. About 95% lie within $\\pm 2\\sigma$, so 5% lie outside, 2.5% in each tail. Below $z = 2$ is therefore about $100\\% - 2.5\\% = 97.5\\%$. 95% is the share *within* two standard deviations, not below; 2.5% is the share *above* 80; 68% is the one-standard-deviation band.',
+      'The z-score of 80 is $z = (80 - 70)/5 = 2$. About 95% lie within $\\pm 2\\sigma$, so 5% lie outside, 2.5% in each tail. Below $z = 2$ is therefore about $100\\% - 2.5\\% = 97.5\\%$. 95% is the share *within* two standard deviations, not below; 2.5% is the share *above* 80; 47.5% is only the share between 70 and 80, and forgets the half of the class below the mean.',
     difficulty: 'intermediate',
   },
   {

@@ -38,14 +38,14 @@ const questions: QuizQuestion[] = [
     id: 'maths-foundations.functions-and-graphs.4',
     prompt: 'Why is $\\text{ReLU}(x) = \\max(0, x)$ said to be not differentiable at $x = 0$?',
     options: [
-      'Its slope is 0 on the left of 0 and 1 on the right, so no single tangent exists at 0',
-      'Its graph jumps from 0 to 1 at $x = 0$, so the function is not continuous there',
-      'Its output at $x = 0$ is undefined, because $\\max(0, 0)$ has no answer',
-      'Its graph is vertical at $x = 0$, so the slope there is infinite',
+      'Its slope is 0 left of $x = 0$ and 1 right of it, so no single tangent fits there',
+      'Its graph jumps from 0 to 1 at $x = 0$, so the function is not continuous at that point',
+      'Its value at $x = 0$ is undefined, because $\\max(0, 0)$ has no larger number to pick',
+      'Its graph turns vertical at $x = 0$, so the slope there is infinitely large',
     ],
     answer: 0,
     explanation:
-      'ReLU is flat (slope 0) for negative inputs and the line $y = x$ (slope 1) for positive ones. At 0 these two slopes meet in a corner, so no single tangent exists. ReLU does not jump: it is continuous, and $\\text{ReLU}(0) = \\max(0, 0) = 0$ is perfectly well defined. The jump describes the step function instead.',
+      'ReLU is flat (slope 0) for negative inputs and the line $y = x$ (slope 1) for positive ones. At 0 these two slopes meet in a corner, so no single tangent exists. ReLU does not jump: it is continuous, and $\\text{ReLU}(0) = \\max(0, 0) = 0$ is perfectly well defined (when the two numbers tie, $\\max$ returns their shared value). The jump describes the step function instead, and the graph is never vertical: its steepest slope is 1.',
     difficulty: 'intermediate',
   },
   {

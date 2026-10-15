@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Slider, Segmented } from '../../../../../kit'
+import { Figure, Slider, Segmented, useNarrow } from '../../../../../kit'
 import { highlightPy } from './pyCode'
 import { floatRepr } from './pyStr'
 import s from './str.module.css'
@@ -25,6 +25,8 @@ export default function FStringBuilder() {
   const [c, setC] = useState(78)
   const [spec, setSpec] = useState<Spec>(':.2f')
   const [upper, setUpper] = useState(false)
+  // on a phone the four {avg…} labels do not fit on one line, so show just the format part
+  const [ref, narrow] = useNarrow<HTMLDivElement>(480)
 
   const avg = (a + b + c) / 3
   const nameField = upper ? 'name.upper()' : 'name'
@@ -42,7 +44,7 @@ export default function FStringBuilder() {
         </>
       }
     >
-      <div className={s.wrap}>
+      <div className={s.wrap} ref={ref}>
         <div className={s.grid2}>
           <Slider label="test 1" value={a} min={0} max={100} onChange={setA} />
           <Slider label="test 2" value={b} min={0} max={100} onChange={setB} />
@@ -55,7 +57,7 @@ export default function FStringBuilder() {
           </label>
           <Segmented
             label="Format for avg"
-            options={SPECS.map((sp) => ({ value: sp, label: <span style={{ fontFamily: 'var(--font-mono)' }}>{`{avg${sp}}`}</span> }))}
+            options={SPECS.map((sp) => ({ value: sp, label: <span style={{ fontFamily: 'var(--font-mono)' }}>{narrow ? sp || 'plain' : `{avg${sp}}`}</span> }))}
             value={spec}
             onChange={setSpec}
           />

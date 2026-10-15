@@ -28,7 +28,7 @@ const questions: QuizQuestion[] = [
       'The test must have been evaluated on too few people for its 99% sensitivity to be reliable',
       'A sensitivity of 99% is too low for screening, so the test misses most of the real cases',
       'A test whose sensitivity and false-positive rate add up to 100% always gives mostly false alarms',
-      'Healthy people vastly outnumber sick ones, so 1% of them (about 100) swamps the 1 real case',
+      'Healthy people vastly outnumber sick ones: every real case comes with about 100 false alarms',
     ],
     answer: 3,
     explanation:
@@ -39,10 +39,10 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.bayes-theorem.4',
     prompt:
       'Before testing, a patient\'s chance of having a condition is 1%. After one positive test it is updated to 15%. A second, independent test is then done. Which probability should be used as the prior for the second update?',
-    options: ['1%', '15%', '90%, the sensitivity of the test', '50%, because the first test may have been wrong'],
+    options: ['1%, the chance before any testing', '15%, the chance after the first test', '90%, the sensitivity of the test', '50%, because the first test may have been wrong'],
     answer: 1,
     explanation:
-      'Bayesian updating is sequential: the posterior after the first test (15%) is the prior for the second. Going back to 1% would throw away the evidence from the first test. The sensitivity is a likelihood, not a belief about the patient.',
+      'Bayesian updating is sequential: the posterior after the first test (15%) is the prior for the second. Going back to 1% would throw away the evidence from the first test. The sensitivity (90%) is a likelihood, not a belief about the patient, and 50% is a guess that ignores both the prior and the evidence.',
     difficulty: 'beginner',
   },
   {

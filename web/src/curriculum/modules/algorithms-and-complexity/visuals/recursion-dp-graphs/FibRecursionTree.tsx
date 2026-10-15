@@ -110,15 +110,15 @@ export default function FibRecursionTree() {
       title="The recursion tree of fib(n)"
       caption={
         <>
-          Every circle is one call, labelled with its argument; circles of the same colour are the same subproblem being solved again.
+          Every circle is one call, labelled with its argument; circles of the same colour are the same subproblem being solved again (the base cases fib(1) and fib(0) are both grey).
           Press Restart and step through to see the order Python makes the calls and the call stack of calls still waiting for an answer.
-          Then switch on memoisation: every repeat becomes a dashed "already know it" leaf, and the tree collapses into a chain of{' '}
+          Then switch on memoisation: every repeated fib(<i>k</i>) with <i>k</i> ≥ 2 becomes a dashed "already know it" leaf, and the tree collapses into a chain of{' '}
           <M>2n - 1</M> calls.
         </>
       }
     >
       <div className={s.wrap} ref={ref}>
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Call tree of fib(${n}) ${memo ? 'with' : 'without'} memoisation: ${totalCalls} calls`} style={{ display: 'block', maxWidth: W }}>
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Call tree of fib(${n}) ${memo ? 'with' : 'without'} memoisation: ${totalCalls} calls`} style={{ display: 'block', maxWidth: W, margin: '0 auto' }}>
           {tree.nodes.map((d) =>
             d.parent ? (
               <line

@@ -27,7 +27,7 @@ const questions: QuizQuestion[] = [
       'It is a `SyntaxError`, because Python requires an exception type after `except`',
       'It only catches errors raised inside functions, not errors raised in the `try` block itself',
       'It stops the `finally` block from running, so clean-up code is silently skipped',
-      'It also catches errors you did not expect, like a `NameError` from a typo, hiding bugs',
+      'It catches every exception, even a `NameError` from a typo, so real bugs are hidden',
     ],
     answer: 3,
     explanation:
@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     options: [
       '`ValueError` is raised for string arguments, and `TypeError` for any argument that is not a string',
       '`ValueError` can be caught with `try`/`except`, but a `TypeError` always stops the program',
-      '`ValueError` means an acceptable type with an unusable value; `TypeError` means the type cannot work',
+      '`ValueError` means only the value is unusable; `TypeError` means the type itself cannot work',
       '`ValueError` comes from built-in functions, while `TypeError` only comes from operators such as `+`',
     ],
     answer: 2,

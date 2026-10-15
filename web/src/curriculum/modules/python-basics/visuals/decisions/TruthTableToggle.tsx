@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { Figure, useNarrow } from '../../../../../kit'
-import { parse, evaluate, traceSteps, ExprError, type Node } from './boolExpr'
+import { parse, evaluate, traceSteps, stopsEarly, ExprError, type Node } from './boolExpr'
 import { Py } from './pyCode'
 import s from './ui.module.css'
 
@@ -16,7 +16,9 @@ const ROWS: [boolean, boolean][] = [
   [true, false],
   [true, true],
 ]
-const PRESETS = ['A and not B', 'not (A and B)', 'not A and not B', 'A != B']
+const PRESETS = ['A and not B', 'not (A and B)', 'not A and not B', 'not A or B']
+// the caption's challenge: True when exactly one switch is on (F, T, T, F down the table)
+const XOR = ROWS.map(([a, b]) => a !== b)
 const FIXED: { label: string; f: (a: boolean, b: boolean) => boolean }[] = [
   { label: 'A and B', f: (a, b) => a && b },
   { label: 'A or B', f: (a, b) => a || b },
@@ -77,6 +79,7 @@ export default function TruthTableToggle() {
   const node = 'node' in parsed ? parsed.node : null
   const custom = node ? src.trim().replace(/\s+/g, ' ') : null
   const steps = node ? traceSteps(node, { A, B }) : []
+  const solved = node !== null && ROWS.every(([a, b], i) => evaluate(node, { A: a, B: b }) === XOR[i])
   const tf = (v: boolean) => (narrow ? (v ? 'T' : 'F') : v ? 'True' : 'False')
 
   return (
@@ -140,10 +143,22 @@ export default function TruthTableToggle() {
                 </div>
               ))}
             </div>
+            {stopsEarly(node, { A, B }) && (
+              <div style={{ marginTop: '0.25rem' }}>
+                Python stopped early: <Py>False and …</Py> is already False and <Py>True or …</Py> is already True, so the right side is never looked at.
+              </div>
+            )}
           </div>
         ) : (
           <div className={`${s.status} ${s.statusBad}`} role="alert">
             <strong>{'err' in parsed ? parsed.err.kind : 'Error'}:</strong> {'err' in parsed ? parsed.err.message : ''}
+          </div>
+        )}
+
+        {solved && (
+          <div className={`${s.status} ${s.statusOk}`}>
+            <strong>Challenge solved:</strong> your condition is True exactly when one switch is on. Two classic ways to write it are{' '}
+            <Py>A != B</Py> and <Py>(A or B) and not (A and B)</Py>.
           </div>
         )}
 

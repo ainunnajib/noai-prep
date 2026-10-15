@@ -50,7 +50,8 @@ export default function DominantTerm() {
         <>
           The cost is <M>{'f(n) = 3n^2 + 50n + 200'}</M> steps. Drag the dot (or use the slider) to grow <M>n</M>. At <M>n = 10</M> the{' '}
           <M>50n</M> term is the biggest share, but by <M>n = 1000</M> the <M>3n^2</M> term does more than 98% of the work. That is why
-          Big-O keeps only the dominant term and writes <M>{'O(n^2)'}</M>.
+          Big-O keeps only the dominant term and writes <M>{'O(n^2)'}</M>. In the readouts, <M>{'f(n) \\div n^2'}</M> settles near 3, the constant
+          factor Big-O throws away, and <M>{'f(2n) \\div f(n)'}</M> heads towards 4: the doubling test you will meet further down.
         </>
       }
     >
@@ -63,7 +64,7 @@ export default function DominantTerm() {
           <Label x={2.95} y={42} anchor="middle" weight={800} size={15} color="var(--viz-ink)">
             3n²
           </Label>
-          <Label x={1.0} y={58} anchor="middle" weight={800} size={15} color="var(--viz-ink)">
+          <Label x={0.62} y={33} anchor="middle" weight={800} size={15} color="var(--viz-ink)">
             50n
           </Label>
           <Label x={0.3} y={90} anchor="middle" weight={800} size={15} color="var(--viz-ink)">

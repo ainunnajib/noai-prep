@@ -34,10 +34,10 @@ const questions: QuizQuestion[] = [
     prompt: 'What does this program print, and why?',
     code: 'name = "alice"\nname.upper()\nprint(name)',
     options: [
-      '`alice`, because `upper()` returns a new string that was never saved',
-      '`ALICE`, because `upper()` changes the string stored in `name`',
-      '`Alice`, because `upper()` only capitalises the first letter',
-      'An error, because strings cannot be changed, so `upper()` fails',
+      '`alice`, because `upper()` returns a new string that is never saved',
+      '`ALICE`, because `upper()` changes the string stored in `name` itself',
+      '`Alice`, because `upper()` capitalises just the first letter of a word',
+      'An error, because strings cannot be changed, so `upper()` must fail',
     ],
     answer: 0,
     explanation:

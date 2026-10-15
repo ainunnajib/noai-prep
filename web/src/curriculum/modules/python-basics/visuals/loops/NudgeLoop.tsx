@@ -50,7 +50,7 @@ function regime(lr: number) {
   if (r > 0.85) return { tone: 'warn', text: 'Too timid: each nudge is tiny, so w creeps towards 3 and is still far away after 15 passes. It would get there, but slowly.' }
   if (r > 0) return { tone: 'ok', text: 'Smooth: every pass removes a fixed fraction of the gap, so w closes in on 3 without ever passing it.' }
   if (r > -1) return { tone: 'warn', text: 'Overshoot: each nudge jumps past 3, so w zig-zags above and below the target, but the swings shrink and it still settles.' }
-  if (Math.abs(r + 1) < 1e-9) return { tone: 'bad', text: 'Stuck bouncing: every nudge overshoots by exactly the gap, so w jumps between 0 and 6 for ever.' }
+  if (Math.abs(r + 1) < 1e-9) return { tone: 'bad', text: 'Stuck bouncing: every nudge overshoots by exactly the gap, so w jumps between 0 and 6 forever.' }
   return { tone: 'bad', text: 'Diverging: each nudge overshoots by more than the gap it was correcting, so the swings grow and w flies off the chart. The learning rate is too big.' }
 }
 
@@ -118,7 +118,7 @@ export default function NudgeLoop() {
         <>
           Press <strong>Play</strong> to run the loop one pass at a time: the error shrinks and <code>w</code> closes in on 3, the number that makes{' '}
           <code>2 * w</code> equal 6. Then change the learning rate <code>lr</code>. Small values crawl, medium values glide in, and values above 0.5
-          overshoot. Above 1 every nudge overshoots by more than it fixes, and <code>w</code> explodes.
+          overshoot. Above 1 every nudge overshoots by more than it fixes, and <code>w</code> explodes. The visual runs 15 passes; the code above printed only the first 5.
         </>
       }
     >

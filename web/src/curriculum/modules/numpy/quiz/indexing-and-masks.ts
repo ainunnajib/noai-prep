@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     id: 'numpy.indexing-and-masks.5',
     prompt: 'A `float64` array `a` has shape `(3, 4)` and strides `(32, 8)`. Which statement about `a.T` is correct?',
     options: [
-      'Its shape is `(4, 3)` and its strides are `(8, 32)`; it shares memory with `a`',
+      'Its shape is `(4, 3)` and its strides are `(8, 32)`; it is only a view, sharing `a`\'s memory',
       'Its shape is `(4, 3)` and its strides are `(24, 8)`, because NumPy copies the data into the new order',
       'Its shape is `(4, 3)` and its strides stay `(32, 8)`, because strides depend only on the dtype',
       'Its shape stays `(3, 4)` until `.copy()` is called, because transposing is lazy',

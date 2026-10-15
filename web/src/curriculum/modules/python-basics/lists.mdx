@@ -22,6 +22,8 @@ print(type(marks))
 
 A <Term def="An ordered collection of values, written inside square brackets and separated by commas, for example [72, 85, 64]. Lists can be changed after they are made.">list</Term> is written with square brackets, with commas between its **items** (also called elements). `len()` counts the items, just as it counted characters in a string. A list can hold any values, even a mix such as `[3, "lah", True]`, and `[]` is an empty list.
 
+<PastPaperQuestion paper="prelim2026" n={76} />
+
 <Analogy title="A train with numbered carriages">
 
 Picture an MRT train whose carriages are numbered 0, 1, 2, … from the front. Each carriage carries one item. You can read what is in carriage 2, swap its cargo, add a carriage at the end, or take one out of the middle (and the carriages behind it move up a number).
@@ -128,11 +130,19 @@ To add the items one by one, use `a.extend([3, 4])` or `a = a + [3, 4]`. A secon
 
 <Note title="Two names, one list">
 
-Because lists are mutable, `b = a` does **not** copy a list. It puts a second name tag on the same list, so `b.append(4)` changes what you see through `a` as well. When you need an independent copy, write `b = a.copy()`. The Python toolkit module returns to this in detail.
+Because lists are mutable, `b = a` does **not** copy a list. It puts a second name tag on the same list, so `b.append(4)` changes what you see through `a` as well. Nothing moved: both names still point at the same list, and `append` changed that list itself. When you need an independent copy, write `b = a.copy()`. The Python toolkit module returns to this in detail.
 
 </Note>
 
-Most `IndexError`s come from the same off-by-one slip: forgetting that the last index is `len - 1`, not `len`. The loop `for i in range(len(marks) + 1):` crashes on its last pass, while `for i in range(len(marks)):` visits exactly the valid indices.
+<QuickCheck
+  q="What does this program print?"
+  code={'a = [1, 2]\nb = a\nb[0] = 9\nprint(a)'}
+  options={['`[9, 2]`', '`[1, 2]`', '`[9, 1, 2]`', '`[1, 2, 9]`']}
+  answer={0}
+  explain="`b = a` gives the same list a second name; it does not copy it. `b[0] = 9` changes item 0 of that one list, so printing it through `a` shows `[9, 2]`. You would get `[1, 2]` only with a real copy, `b = a.copy()`. Assigning to an index replaces an item; it never inserts or appends one."
+/>
+
+Most `IndexError`s come from the same off-by-one slip: forgetting that the last index is `len - 1`, not `len`. A loop like `for i in range(len(marks) + 1): print(marks[i])` crashes on its last pass, while `for i in range(len(marks)):` visits exactly the valid indices.
 
 <PastPaperQuestion paper="prelim2026" n={126} />
 

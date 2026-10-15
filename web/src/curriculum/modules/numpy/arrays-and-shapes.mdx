@@ -74,9 +74,9 @@ The key move is in `np.zeros((3, 4))`: the shape goes in as one <Term def="A fix
 
 <QuickCheck
   q="What does `np.linspace(0, 10, 5)` produce?"
-  options={['[0, 2.5, 5, 7.5, 10]', '[0, 2, 4, 6, 8]', '[0, 2.5, 5, 7.5]', '[0, 5, 10]']}
+  options={['[0.0, 2.5, 5.0, 7.5, 10.0]', '[0.0, 2.0, 4.0, 6.0, 8.0]', '[0.0, 2.5, 5.0, 7.5]', '[0.0, 2.0, 4.0, 6.0, 8.0, 10.0]']}
   answer={0}
-  explain="linspace includes both ends and makes exactly 5 points, so the gap is $\frac{10 - 0}{5 - 1} = 2.5$. Dividing by 5 instead of 4 gives a gap of 2 and the list [0, 2, 4, 6, 8], which is what `np.arange(0, 10, 2)` makes. The third argument is the number of points, not the step, so [0, 5, 10] is wrong too."
+  explain="linspace includes both ends and makes exactly 5 points, so the gap is $\frac{10 - 0}{5 - 1} = 2.5$, and the values are floats. Dividing by 5 instead of 4 gives a gap of 2: five such points stop at 8 (what `np.arange(0, 10, 2)` makes), and reaching 10 would take 6 points. Leaving out the stop value, as `arange` does, loses the 10."
 />
 
 <Mistake title="Forgetting the inner brackets">

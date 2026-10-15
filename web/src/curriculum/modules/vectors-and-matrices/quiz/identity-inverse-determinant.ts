@@ -30,20 +30,20 @@ const questions: QuizQuestion[] = [
     code: 'import numpy as np\nA = np.array([[1., 2.], [2., 4.]])\nprint(np.linalg.inv(A))',
     options: [
       'It raises a `LinAlgError`, because $\\det A = 0$ so $A$ has no inverse',
-      'It prints `[[ 4. -2.] [-2.  1.]]`, the inverse of $A$',
-      'It prints `[[1.   0.5 ] [0.5  0.25]]`, one over each entry',
-      'It prints the identity matrix, because $A$ is symmetric',
+      'It prints `[[ 4. -2.] [-2.  1.]]`, which is the inverse of $A$',
+      'It prints `[[1.   0.5 ] [0.5  0.25]]`, which is one over each entry',
+      'It prints a matrix of `inf` values, because it divides by $\\det A = 0$',
     ],
     answer: 0,
     explanation:
-      '$\\det A = 1 \\times 4 - 2 \\times 2 = 0$: the second column is twice the first, so $A$ squashes the plane onto a line and is singular. NumPy stops with `LinAlgError: Singular matrix`. `[[4, -2], [-2, 1]]` is the swap-and-negate step without dividing by the determinant, which here would mean dividing by 0.',
+      '$\\det A = 1 \\times 4 - 2 \\times 2 = 0$: the second column is twice the first, so $A$ squashes the plane onto a line and is singular. NumPy does not divide by 0 and fill the result with `inf`: it stops with `LinAlgError: Singular matrix`. `[[4, -2], [-2, 1]]` is only the swap-and-negate step, before the division by the determinant that is impossible here, and taking one over each entry does not give an inverse at all.',
     difficulty: 'intermediate',
   },
   {
     id: 'vectors-and-matrices.identity-inverse-determinant.4',
     prompt:
       'A data scientist computes the $3 \\times 3$ covariance matrix $\\Sigma$ of three features: height, weight and age. Entry $\\Sigma_{13}$ (height with age) is $0.8$. What is entry $\\Sigma_{31}$?',
-    options: ['$0.8$, because a covariance matrix is symmetric', '$-0.8$, because the order of the features is reversed', '$1.25$, because $\\Sigma_{31}$ is the reciprocal of $\\Sigma_{13}$', 'It cannot be known without the original data'],
+    options: ['$0.8$, because a covariance matrix is always symmetric', '$-0.8$, because the order of the features is reversed', '$1.25$, because $\\Sigma_{31}$ is the reciprocal of $\\Sigma_{13}$', 'It cannot be known without the original data'],
     answer: 0,
     explanation:
       'The covariance of height with age is the same number as the covariance of age with height, so $\\Sigma_{ij} = \\Sigma_{ji}$ for every pair: covariance matrices are always symmetric ($\\Sigma = \\Sigma^T$). Swapping the order of a covariance never changes its sign, and reciprocals have nothing to do with transposes.',

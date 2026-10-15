@@ -36,12 +36,12 @@ const questions: QuizQuestion[] = [
     options: [
       '`counts / counts.sum(axis=1, keepdims=True)`',
       '`counts / counts.sum(axis=0, keepdims=True)`',
-      '`counts / counts.sum(axis=1)[None, :]`',
-      '`counts / counts.sum(axis=None, keepdims=True)`',
+      '`counts / counts.sum(axis=1).reshape(1, -1)`',
+      '`counts / counts.sum(axis=(0, 1), keepdims=True)`',
     ],
     answer: 0,
     explanation:
-      'With `axis=1, keepdims=True` the row totals form a $(4, 1)$ column, one per row, so each row is divided by its own total. `[None, :]` turns the 4 totals into a $(1, 4)$ row, which meets the 3 columns and raises a `ValueError` (so does plain `counts.sum(axis=1)`, shape $(4,)$). `axis=0` makes each *column* sum to 1, and `axis=None` makes the whole table sum to 1.',
+      'With `axis=1, keepdims=True` the row totals form a $(4, 1)$ column, one per row, so each row is divided by its own total. `.reshape(1, -1)` turns the 4 totals into a $(1, 4)$ row, which meets the 3 columns and raises a `ValueError` (so does plain `counts.sum(axis=1)`, shape $(4,)$). `axis=0` makes each *column* sum to 1, and `axis=(0, 1)` divides by the grand total, so the whole table sums to 1.',
     difficulty: 'intermediate',
   },
   {
