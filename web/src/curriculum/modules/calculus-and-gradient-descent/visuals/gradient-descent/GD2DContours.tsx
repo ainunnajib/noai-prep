@@ -115,8 +115,8 @@ export default function GD2DContours() {
       title="Zig-zags in a long, narrow valley"
       caption={
         <>
-          You are looking down on a two-parameter loss from above: each oval is a contour line joining points of equal loss, and the minimum is in
-          the middle, and the ovals are drawn at equal steps of loss. Drag the purple start point and watch the purple path. The green arrow shows
+          You are looking down on a two-parameter loss from above: each oval is a contour line joining points of equal loss (drawn at equal steps of
+          loss), and the minimum is in the middle. Drag the purple start point and watch the purple path. The green arrow shows
           the steepest-downhill direction −∇L: it points across the valley, not along it to the minimum. Raise the elongation and the path crawls; raise η to speed up and it diverges. Then switch on{' '}
           <b>standardise features</b>.
         </>

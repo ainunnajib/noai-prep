@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     options: ['$\\frac{1}{8}$', '$\\frac{1}{3}$', '$\\frac{1}{12}$', '$\\frac{1}{4}$'],
     answer: 0,
     explanation:
-      '12 days is $12 \\div 4 = 3$ half-lives, so $R = 2^{-3} = \\frac18$: halve three times ($1 \\to \\frac12 \\to \\frac14 \\to \\frac18$). $\\frac13$ comes from dividing by the number of half-lives instead of halving that many times, and $\\frac14$ halves only twice.',
+      '12 days is $12 \\div 4 = 3$ half-lives, so $R = 2^{-3} = \\frac18$: halve three times ($1 \\to \\frac12 \\to \\frac14 \\to \\frac18$). $\\frac13$ comes from dividing by the number of half-lives instead of halving that many times, $\\frac{1}{12}$ is one over the number of days, and $\\frac14$ halves only twice.',
     difficulty: 'beginner',
   },
   {
@@ -35,7 +35,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Two habits work best: retrieval (testing yourself, not re-reading) and spacing (reviews spread out, with growing gaps). Only the first plan does both. Reviewing four times on the first evening is too early: you have hardly forgotten anything, so each review adds little. Cramming just before the exam can work for one day, but it fades quickly, and the Final is two weeks later.',
+      'Two habits work best: retrieval (testing yourself, not re-reading) and spacing (reviews spread out, with growing gaps). Only the plan that tests her on days 1, 4, 11 and 30 does both. Reviewing four times on the first evening is too early: you have hardly forgotten anything, so each review adds little. Cramming just before the exam can work for one day, but it fades quickly, and the Final is two weeks later.',
     difficulty: 'beginner',
   },
   {

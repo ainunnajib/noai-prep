@@ -132,8 +132,9 @@ export default function InheritanceTree() {
   const call = list[ci]
   const player = usePlayer({ steps: call.steps.length + 1, interval: 1100 })
   const [trained, setTrained] = useState(false)
-  // the longest code line in the boxes has 41 characters; box + row padding is about 52px
-  const [fitRef, fs] = useFitFont<HTMLDivElement>(41, 52)
+  // the longest code line in the boxes has 41 characters; box + row padding and borders are about 32px.
+  // 11.5px is the floor: on the narrowest phones the longest line then scrolls inside its box.
+  const [fitRef, fs] = useFitFont<HTMLDivElement>(41, 32, 12.5, 11.5)
 
   // At rest, show the finished search for b.describe(); after choosing another call, start from step 1.
   const prev = useRef(`${who}${ci}`)
@@ -172,7 +173,7 @@ export default function InheritanceTree() {
     return {
       border: `2px ${c === 'object' ? 'dashed' : 'solid'} ${st.tone === 'found' ? 'var(--viz-pos)' : isCur ? 'var(--accent)' : 'var(--rule)'}`,
       borderRadius: 12,
-      padding: '0.45rem 0.65rem',
+      padding: '0.45rem 0.5rem',
       background: st.tone === 'found' ? 'color-mix(in srgb, var(--viz-pos) 9%, var(--surface))' : 'var(--surface)',
       opacity: faded ? 0.38 : 1,
       transition: 'all 0.3s',
@@ -239,7 +240,7 @@ export default function InheritanceTree() {
                           fontSize: fs,
                           lineHeight: 1.5,
                           whiteSpace: 'pre',
-                          padding: '0.15rem 0.45rem',
+                          padding: '0.15rem 0.35rem',
                           borderRadius: 6,
                           minWidth: 'max-content',
                           background: run ? 'var(--highlight-soft)' : 'var(--surface-2)',

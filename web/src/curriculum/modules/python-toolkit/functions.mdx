@@ -29,7 +29,7 @@ def mse(y, y_hat):
 print(mean([2, 4, 9]))
 print(mse([1, 2, 3], [1, 3, 5]))`
 
-You have already used plenty of functions: `print()`, `len()`, `range()`. Now you will write your own. Every AI program is built out of them: a <Term def="A function that measures how wrong a model's predictions are. Training tries to make it as small as possible.">loss function</Term>, a training step, a `predict` method. The NOAI Prelim asks you to read and debug them, and the Final's programming tasks ask you to write them from scratch, such as a `softmax(x)` function that turns a list of scores into probabilities.
+You have already used plenty of functions: `print()`, `len()`, `range()`. Now you will write your own. Every AI program is built out of them: a <Term def="A function that measures how wrong a model's predictions are. Training tries to make it as small as possible.">loss function</Term>, a training step, a `predict` method. The NOAI Prelim asks you to read and debug them, and the Final's programming tasks ask you to write them from scratch, such as `linear_regression_gradient_descent(X, y, alpha, iterations)` in 2025 or `l2_negative_gradient(y, y_pred)` in 2026.
 
 ## Defining and calling a function
 
@@ -91,7 +91,7 @@ Parameters are the slots; arguments are the values you pass in. **return** hands
 <QuickCheck
   q="What does this code print?"
   code={addCode}
-  options={['5, then None', '5, then 5', 'None, then 5', 'Only 5']}
+  options={['`5`, then `None`', '`5`, then `5`', '`None`, then `5`', 'Only `5`']}
   answer={0}
   explain="Calling `add(2, 3)` runs `print(a + b)`, which shows 5. The function has no return, so it hands back None, which is stored in `result` and printed on the second line. 'Only 5' forgets that the last line prints too."
 />
@@ -139,7 +139,7 @@ Now write some of your own. Edit `mean` or `mse` (the mean squared error, a comm
 
 The second line prints `1.6666666666666667`: the squared errors are $0^2 = 0$, $1^2 = 1$ and $2^2 = 4$, and $(0 + 1 + 4) / 3 = 5/3$.
 
-## Scope: local and global variables
+## Scope: where Python looks for a name
 
 <Analogy title="A classroom and the school PA system">
 
@@ -149,19 +149,38 @@ An announcement made in your classroom stays in your classroom. An announcement 
 
 A variable created inside a function (including its parameters) is a <Term def="A variable created inside a function, including its parameters. It exists only while that call is running.">local variable</Term>. It exists only while that call runs, and it disappears when the function returns. A variable created in the main program, outside every function, is a <Term def="A variable created in the main program, outside every function. Every part of the program can read it.">global variable</Term>. The part of a program where a name can be seen is its <Term def="The region of a program in which a name can be used. Each function call has its own local scope.">scope</Term>.
 
-When Python meets a name, it searches the scopes from the inside out:
+When Python meets a name, it searches the scopes from the inside out, in an order called the **LEGB rule**:
 
 1. **Local**: the function that is running right now.
-2. **Global**: the main program.
-3. **Built-in**: Python's own names, such as `print` and `len`.
+2. **Enclosing**: the function this one is defined inside, if there is one.
+3. **Global**: the main program.
+4. **Built-in**: Python's own names, such as `print` and `len`.
 
-It uses the first match it finds. If there is none, you get a `NameError`.
+It uses the first match it finds. If there is none, you get a `NameError`. The Enclosing step only matters when one function is defined inside another:
+
+```python
+x = 'global'
+
+def outer():
+    x = 'enclosing'
+    def inner():
+        return x      # no local x, so look outwards
+    return inner()
+
+print(outer())
+```
+
+```text
+enclosing
+```
+
+`inner` has no `x` of its own, so Python checks the enclosing function `outer` next and finds `'enclosing'` there. It never reaches the global `x`.
 
 <ScopeBubbles />
 
 <KeyIdea>
 
-Assigning to a name inside a function creates a **local** variable, even if a global one has the same name. Lookup goes from the inside out: local, then global, then built-in. So a function can read a global, but assigning to that name inside the function makes a separate local copy and leaves the global alone.
+Lookup goes from the inside out: local, enclosing, global, built-in (**LEGB**), so a function can read a global. But assigning to a name inside a function creates a brand-new **local** variable with that name: not a copy of the global (it has no value until you assign one), and the global is left alone.
 
 </KeyIdea>
 
@@ -174,14 +193,14 @@ def add_one():
 add_one()
 ```
 
-Because `count` is assigned somewhere inside `add_one`, Python treats `count` as local **everywhere** in that function. So the right-hand side tries to read a local `count` that has no value yet: `UnboundLocalError: cannot access local variable 'count' where it is not associated with a value`. The clean fix is to pass the value in and return the new one: `def add_one(count): return count + 1`, then `count = add_one(count)`. (Python also has a `global count` statement, but code that changes globals from inside functions is hard to debug.)
+Because `count` is assigned somewhere inside `add_one`, Python treats `count` as local **everywhere** in that function. So the right-hand side tries to read a local `count` that has no value yet: `UnboundLocalError: cannot access local variable 'count' where it is not associated with a value`. The clean fix is to pass the value in and return the new one: `def add_one(count): return count + 1`, then `count = add_one(count)`. (Python also has a `global count` statement, and `nonlocal count`, which does the same job for a variable of an enclosing function. Use them sparingly: code that changes outside variables from inside a function is hard to debug.)
 
 </Mistake>
 
 <QuickCheck
   q="What happens when this code runs?"
   code={localCode}
-  options={["NameError: name 'y' is not defined", '5', '10', 'None']}
+  options={["`NameError: name 'y' is not defined`", '`5`', '`10`', '`None`']}
   answer={0}
   explain="`y` is local to `f`. It existed only while `f` was running and vanished when `f` returned, so the main program has no `y` to print. The value 10 was returned and is stored in `z`, not in `y`."
 />
@@ -190,7 +209,7 @@ Because `count` is assigned somewhere inside `add_one`, Python treats `count` as
 
 <Analogy title="The 'extras' bag at check-in">
 
-At an airport counter, your suitcase gets its own tag, and everything else goes into one bag marked "extras". Python does the same when a function is called with more arguments than it has named parameters.
+At an airport counter, your suitcase gets its own tag. Loose extras go into one bag, in the order you hand them over. Extras that carry name tags go into a separate pouch, where each one is found by its tag. Python does the same when a function is called with more arguments than it has named parameters: the bag is `*args` and the pouch is `**kwargs`.
 
 </Analogy>
 
@@ -219,7 +238,28 @@ epochs = 5
 
 <ArgsPacker />
 
-Python fills the parameters in a fixed order: named parameters first (by position, or by name for keyword arguments), then `*args` takes the leftover positional arguments, then `**kwargs` takes the leftover keyword arguments. The names `args` and `kwargs` are only a convention; the stars do the work. The stars also work the other way round when you *call* a function: `f(*[1, 2])` spreads a list into positional arguments, and `f(**{'lr': 0.1})` spreads a dict into keyword arguments. You will see `model(**inputs)` in <Term def="A popular library of ready-made, pretrained AI models such as BERT and GPT-2.">Hugging Face</Term> code for exactly this reason.
+Python fills the parameters in a fixed order: normal parameters first (by position, or by name for keyword arguments), then `*args` takes the leftover positional arguments, then `**kwargs` takes the leftover keyword arguments. The names `args` and `kwargs` are only a convention; the stars do the work.
+
+<Note title="Stars in a call">
+
+The stars also work the other way round when you *call* a function. `*` spreads a list or tuple into positional arguments, and `**` spreads a dict into keyword arguments:
+
+```python
+def f(a, b):
+    print(a, b)
+
+f(*[1, 2])              # same as f(1, 2)
+f(**{'a': 1, 'b': 2})   # same as f(a=1, b=2)
+```
+
+```text
+1 2
+1 2
+```
+
+You will see `model(**inputs)` in <Term def="A popular library of ready-made, pretrained AI models such as BERT and GPT-2.">Hugging Face</Term> code for exactly this reason: `inputs` is a dict of named tensors.
+
+</Note>
 
 <PastPaperQuestion paper="prelim2026" n={85} />
 
@@ -228,6 +268,19 @@ Python fills the parameters in a fixed order: named parameters first (by positio
 One star means a tuple of extra **positional** arguments; two stars mean a dict of extra **keyword** arguments. Expect distractors that swap the two, or that describe default values (`def f(x=0)`) instead. In "what does this print?" questions, remember that a one-item tuple prints with a comma, `(3,)`, and that a function without `return` gives `None`.
 
 </ExamTip>
+
+<Note title="Type hints: labels, not rules">
+
+Exam scaffolds often write a function like this:
+
+```python
+def area(w: float, h: float) -> float:
+    return w * h
+```
+
+`: float` after a parameter says what type should go in, and `-> float` before the final colon says what comes out. These **type hints** are labels for readers and tools. Python does not enforce them, so `area(3, 4)` still returns `12`. They are different from default values (`w=0`) and from `*args`. The 2026 Final's gradient functions were written this way, with `np.ndarray` (a NumPy array) as the type.
+
+</Note>
 
 <Note title="One-line functions: lambda">
 
@@ -240,7 +293,7 @@ One star means a tuple of extra **positional** arguments; two stars mean a dict 
 - `def name(params):` defines a function; its body runs only when you call `name(args)`, and arguments are matched to parameters in order or by name.
 - `return` hands a value back to the caller; `print` only displays it. With no `return`, a function gives `None`.
 - Defaults such as `lr=0.1` make arguments optional, and keyword arguments set them by name.
-- Variables made inside a function are local. Lookup goes local, then global, then built-in.
+- Variables made inside a function are local. Lookup goes local, enclosing, global, built-in (LEGB).
 - `*args` packs extra positional arguments into a tuple; `**kwargs` packs extra keyword arguments into a dict.
 
 </Takeaways>

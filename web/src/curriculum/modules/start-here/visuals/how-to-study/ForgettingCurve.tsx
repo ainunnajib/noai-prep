@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, VLine, HLine, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, Label, VLine, HLine, useNarrow, usePlot } from '../../../../../kit'
 
 /*
   A simple half-life model of memory for ONE topic you learn on day 0.
     retention R(t) = 2^(−Δ/h): Δ = days since the last review, h = half-life in days.
-  Each review resets R to 100% and multiplies the half-life by g = 1 + k(1 − R), where R is the
-  retention just before the review: k = 3 if you test yourself, k = 1 if you only re-read.
-  So reviewing when you have forgotten more (but not everything) grows the half-life more.
+  Each review resets R to 100% and multiplies the half-life by g = 1 + 4k·Rb(1 − Rb), where Rb is
+  the retention just before the review: k = 3 if you test yourself, k = 2 if you only re-read.
+  Rb(1 − Rb) is 0 when Rb = 1 (too soon: nothing to strengthen) and 0 when Rb = 0 (forgotten:
+  relearning from scratch), and largest (1/4) when Rb = 1/2, so g peaks at 1 + k half-way.
   The numbers are illustrative; the shapes match what memory research finds.
   Day 60 = Prelim and day 74 = Final if you first learn the topic on 21 Dec 2026.
 */
@@ -17,13 +18,13 @@ const PRELIM_DAY = 60
 const FINAL_DAY = 74
 
 type Mode = 'test' | 'reread'
-const K: Record<Mode, number> = { test: 3, reread: 1 }
+const K: Record<Mode, number> = { test: 3, reread: 2 }
 
 const PRESETS = {
   none: [] as number[],
   cram: [59],
-  spaced: [2, 7, 19, 50],
-  both: [2, 7, 19, 50, 59],
+  spaced: [2, 10, 42],
+  both: [2, 10, 42, 59],
 }
 type Preset = keyof typeof PRESETS | 'custom'
 
@@ -40,7 +41,7 @@ function run(reviews: number[], k: number) {
   const evs: Ev[] = []
   for (const d of days) {
     const before = 2 ** (-(d - last) / h)
-    h = h * (1 + k * (1 - before))
+    h = h * (1 + 4 * k * before * (1 - before))
     evs.push({ day: d, before, h })
     last = d
   }
@@ -73,11 +74,59 @@ function run(reviews: number[], k: number) {
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
+const hTxt = (h: number) => `h=${h < 10 ? h.toFixed(1) : Math.round(h)}d`
+/** small coloured text: mixed towards the ink colour so it passes contrast in light mode */
+const txt = (c: string) => `color-mix(in srgb, ${c} 65%, var(--ink))`
+
+/** Labels placed with the live pixel scale so they do not collide or run off the edge. */
+function Marks({ evs, rP, rF, hint, narrow }: { evs: Ev[]; rP: number; rF: number; hint: boolean; narrow: boolean }) {
+  const { xs } = usePlot()
+  const [, x1] = xs.range()
+  const pxPerDay = xs(1) - xs(0)
+  // half-life labels: drop to a second line when a neighbour is too close; keep clear of the exam lines
+  let lastX = -Infinity
+  let lastRow = 0
+  const hl = evs.map((e) => {
+    const w = hTxt(e.h).length * 6.2
+    const nearExam = [PRELIM_DAY, FINAL_DAY].some((d) => e.day < d && (d - e.day) * pxPerDay < w + 6)
+    const left = nearExam || xs(e.day) + w + 4 > x1
+    const x0 = left ? xs(e.day) - w - 3 : xs(e.day) + 3
+    const row = x0 < lastX + 4 ? 1 - lastRow : 0
+    lastX = x0 + w
+    lastRow = row
+    return { e, left, row }
+  })
+  const finalLeft = xs(FINAL_DAY) + 9 + 34 > x1
+  return (
+    <>
+      <Label x={3.2} y={2 ** (-3.2 / H0)} dx={5} dy={-2} color="var(--ink-3)" size={11}>
+        no reviews
+      </Label>
+      {hl.map(({ e, left, row }) => (
+        <Label key={e.day} x={e.day} y={0} dx={left ? -3 : 3} dy={row ? -18 : -5} anchor={left ? 'end' : 'start'} color={txt('var(--viz-2)')} size={10.5} weight={700}>
+          {hTxt(e.h)}
+        </Label>
+      ))}
+      <Label x={PRELIM_DAY} y={rP} dx={-9} dy={rP > 0.9 ? 16 : -8} anchor="end" color={txt('var(--viz-1)')} size={13} weight={800}>
+        {pct(rP)}
+      </Label>
+      <Label x={FINAL_DAY} y={rF} dx={finalLeft ? -9 : 9} dy={rF > 0.9 || (finalLeft && rF > 0.15) ? 16 : -8} anchor={finalLeft ? 'end' : 'start'} color={txt('var(--viz-3)')} size={13} weight={800}>
+        {pct(rF)}
+      </Label>
+      {hint && (
+        <Label x={narrow ? 30 : 27} y={0.22} anchor="middle" color="var(--ink-3)" size={11.5}>
+          {narrow ? 'tap to add a review' : 'click the chart to add or remove a review'}
+        </Label>
+      )}
+    </>
+  )
+}
 
 export default function ForgettingCurve() {
   const [reviews, setReviews] = useState<number[]>(PRESETS.spaced)
   const [preset, setPreset] = useState<Preset>('spaced')
   const [mode, setMode] = useState<Mode>('test')
+  const [touched, setTouched] = useState(false)
   const [ref, narrow] = useNarrow<HTMLDivElement>(560)
   const m = useMemo(() => run(reviews, K[mode]), [reviews, mode])
   const rP = m.at(PRELIM_DAY)
@@ -90,6 +139,7 @@ export default function ForgettingCurve() {
   const click = ([x]: [number, number]) => {
     const d = Math.round(x)
     if (d < 1 || d > END - 1) return
+    setTouched(true)
     setPreset('custom')
     setReviews((rs) => (rs.some((r) => Math.abs(r - d) <= 1) ? rs.filter((r) => Math.abs(r - d) > 1) : [...rs, d].sort((a, b) => a - b)))
   }
@@ -99,13 +149,14 @@ export default function ForgettingCurve() {
       title="Forgetting, and how reviews slow it down"
       caption={
         <>
-          Click on the chart to add a review on that day (click a review again to remove it), or use the presets. Compare <strong>Cram</strong> (one review the night before) with{' '}
-          <strong>Spaced</strong>: both look fine on Prelim day, but only the spaced reviews still hold two weeks later at the Final. Then switch to <strong>Re-read</strong> and see
-          how much less each review buys you. (A simplified model of one topic; the numbers are illustrative, the shapes are real.)
+          Day 0 is the day you first learn one topic; if that is 21 December, the Prelim is day 60 and the Final day 74. Compare <strong>Cram</strong> (one review the night before)
+          with <strong>Spaced</strong> (three self-tests, each when about half is gone): the cram leaves you less on Prelim day and almost nothing by the Final, while the
+          spaced self-tests hold for both. Then switch to <strong>Re-read</strong> and see how much less each review buys. Click the chart to add your own reviews. (A simplified model of one
+          topic: the numbers are illustrative, the shapes are real.)
         </>
       }
     >
-      <div ref={ref} style={{ width: '100%' }}>
+      <div ref={ref} style={{ width: '100%', cursor: 'crosshair' }}>
         <Plot
           x={[0, END]}
           y={[0, 1.08]}
@@ -125,30 +176,23 @@ export default function ForgettingCurve() {
           ))}
           <HLine y={0.5} color="var(--viz-muted)" dash="3 4" width={1} />
           {!narrow && (
-            <Label x={40} y={0.5} dy={14} anchor="middle" color="var(--ink-3)" size={11}>
+            <Label x={30} y={0.5} dy={14} anchor="middle" color="var(--ink-3)" size={11}>
               half forgotten
             </Label>
           )}
           <VLine x={PRELIM_DAY} color="var(--viz-1)" dash="5 4" width={1.5} />
           <VLine x={FINAL_DAY} color="var(--viz-3)" dash="5 4" width={1.5} />
-          <Label x={PRELIM_DAY} y={1.08} dx={-4} dy={11} anchor="end" color="var(--viz-1)" size={12} weight={800}>
-            Prelim
+          <Label x={PRELIM_DAY} y={1.08} dx={-4} dy={11} anchor="end" color={txt('var(--viz-1)')} size={12} weight={800}>
+            {narrow ? 'Prelim' : 'Prelim (day 60)'}
           </Label>
-          <Label x={FINAL_DAY} y={1.08} dx={-4} dy={11} anchor="end" color="var(--viz-3)" size={12} weight={800}>
+          <Label x={FINAL_DAY} y={1.08} dx={-4} dy={11} anchor="end" color={txt('var(--viz-3)')} size={12} weight={800}>
             Final
           </Label>
           {/* no-review reference */}
           <FnPath f={(t) => 2 ** (-t / H0)} color="var(--viz-muted)" width={1.5} dash="4 4" />
           {/* review markers */}
           {m.evs.map((e) => (
-            <g key={e.day}>
-              <Path points={[[e.day, 0], [e.day, 1]]} color="var(--viz-2)" width={1.2} dash="2 3" />
-              {!narrow && reviews.length <= 6 && (
-                <Label x={e.day} y={0} dx={3} dy={-5} color="var(--viz-2)" size={10.5} weight={700}>
-                  {`h=${e.h < 10 ? e.h.toFixed(1) : Math.round(e.h)}d`}
-                </Label>
-              )}
-            </g>
+            <Path key={e.day} points={[[e.day, 0], [e.day, 1]]} color="var(--viz-2)" width={1.2} dash="2 3" />
           ))}
           <Path points={m.pts} color={mode === 'test' ? 'var(--viz-4)' : 'var(--viz-5)'} width={2.6} />
           <Dots points={m.evs.map((e) => ({ x: e.day, y: 1, color: 'var(--viz-2)', r: 5, shape: 'triangle' as const }))} />
@@ -158,12 +202,7 @@ export default function ForgettingCurve() {
               { x: FINAL_DAY, y: rF, color: 'var(--viz-3)', r: 6 },
             ]}
           />
-          <Label x={PRELIM_DAY} y={rP} dx={-9} dy={rP > 0.9 ? 16 : -8} anchor="end" color="var(--viz-1)" size={13} weight={800}>
-            {pct(rP)}
-          </Label>
-          <Label x={FINAL_DAY} y={rF} dx={9} dy={rF > 0.9 ? 16 : -8} color="var(--viz-3)" size={13} weight={800}>
-            {pct(rF)}
-          </Label>
+          <Marks evs={!narrow && reviews.length <= 6 ? m.evs : []} rP={rP} rF={rF} hint={!touched} narrow={narrow} />
         </Plot>
       </div>
       <Controls>

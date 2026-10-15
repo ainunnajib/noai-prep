@@ -14,12 +14,12 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.probability-rules.2',
     prompt: 'Events $A$ and $B$ have $P(A) = 0.3$ and $P(B) = 0.5$, and they are mutually exclusive. Which statement is correct?',
     options: [
-      '$A$ and $B$ are dependent, because $P(A \\cap B) = 0$ but $P(A)P(B) = 0.15$',
       '$A$ and $B$ are independent, because $P(A \\cap B) = P(A)P(B) = 0.15$',
+      '$A$ and $B$ are dependent, because $P(A \\cap B) = 0$ but $P(A)P(B) = 0.15$',
       '$A$ and $B$ are independent, because neither event can cause the other',
       '$P(A \\cup B) = 0.65$, because the overlap $0.15$ must be subtracted once',
     ],
-    answer: 0,
+    answer: 1,
     explanation:
       'Mutually exclusive means they cannot happen together, so $P(A \\cap B) = 0$. Independence would need $P(A \\cap B) = 0.3 \\times 0.5 = 0.15$, which fails. Knowing $A$ happened tells you $B$ did not, so they are dependent. With no overlap, $P(A \\cup B) = 0.3 + 0.5 = 0.8$; subtracting $0.15$ wrongly assumes independence.',
     difficulty: 'intermediate',
@@ -37,8 +37,8 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.probability-rules.4',
     prompt:
       'A spam filter is tested on 200 emails. 50 are spam. The word "winner" appears in 40 emails, and 30 of those are spam. An email contains "winner". What is the probability that it is spam?',
-    options: ['$3/4$', '$3/5$', '$3/20$', '$1/4$'],
-    answer: 0,
+    options: ['$1/4$', '$3/5$', '$3/20$', '$3/4$'],
+    answer: 3,
     explanation:
       '"Given it contains winner" shrinks the world to those 40 emails, and 30 of them are spam, so $P(\\text{spam} \\mid \\text{winner}) = 30/40 = 3/4$. $3/5 = 30/50$ is the reverse, $P(\\text{winner} \\mid \\text{spam})$. $3/20 = 30/200$ is $P(\\text{spam and winner})$, which uses the whole data set as the denominator, and $1/4 = 50/200$ is just the base rate $P(\\text{spam})$, ignoring the evidence.',
     difficulty: 'intermediate',
@@ -47,8 +47,8 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.probability-rules.5',
     prompt:
       'A self-driving car\'s sensor misses an obstacle with probability 0.1 on each independent check. Two checks are made. What is the probability that the obstacle is missed at least once?',
-    options: ['$0.19$', '$0.2$', '$0.01$', '$0.18$'],
-    answer: 0,
+    options: ['$0.01$', '$0.2$', '$0.19$', '$0.18$'],
+    answer: 2,
     explanation:
       'P(never missed) $= 0.9 \\times 0.9 = 0.81$, so P(missed at least once) $= 1 - 0.81 = 0.19$. Adding $0.1 + 0.1 = 0.2$ counts the "missed both times" case ($0.01$) twice. $0.18 = 2 \\times 0.1 \\times 0.9$ is the probability of *exactly* one miss.',
     difficulty: 'intermediate',

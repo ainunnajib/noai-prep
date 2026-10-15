@@ -10,7 +10,9 @@ You change list `b`, and list `a` changes too. It feels like a bug, but Python i
 You may have pictured a variable as a box with a value inside. For Python, that picture breaks down. A better picture is a **name tag tied to a thing**: the value lives somewhere in memory, and the name is just attached to it.
 
 <Analogy title="A shared Google Doc">
+
 When your CCA teacher shares a Google Doc link with two students, nobody gets their own copy. Both links lead to **one** document, so if Wei Ling edits it, Arjun sees the edit. Python names work like those links: `b = a` hands out a second link to the same thing. It does not photocopy the document.
+
 </Analogy>
 
 Three words make this precise:
@@ -22,7 +24,9 @@ Three words make this precise:
 So `a = [1, 2]` does **two** things: it builds a list object, then it points the name `a` at it.
 
 <KeyIdea>
+
 `name = something` works out the object on the right, then points the name on the left at it. **Assignment moves arrows. It never copies objects.**
+
 </KeyIdea>
 
 Step through the four programs below. Each differs from the first by one line, yet some print different things.
@@ -55,15 +59,18 @@ Everything you do through a name is one of two kinds of action:
 </div>
 </Columns>
 
-Two names that point at the same object are <Term def="Two or more names that refer to the same object. Mutating it through one name is visible through all of them.">aliases</Term>. Aliasing only bites with <Term def="Objects that can be changed after they are created: list, dict, set, and also NumPy arrays and PyTorch tensors.">mutable</Term> objects such as lists and dicts. Ints, floats, strings and tuples are <Term def="Objects that can never change once created: int, float, str, tuple, bool, None. Any 'change' really builds a new object.">immutable</Term>: every "change" builds a new object and moves one arrow, as the "ints" program showed.
+Two names that point at the same object are <Term def="Two or more names that refer to the same object. Mutating it through one name is visible through all of them.">aliases</Term>. Aliasing only bites with <Term def="Objects that can be changed after they are created: list, dict, set, and also NumPy arrays and PyTorch tensors.">mutable</Term> objects such as lists and dicts. Ints, floats, strings and tuples are <Term def="Objects that can never change once created: int, float, str, tuple, bool, None. Any 'change' really builds a new object.">immutable</Term>: every "change" builds a new object and moves one arrow, as the "ints" program showed. (A tuple that holds a list is the exception: the tuple can't change, but the list inside it can, and every alias sees that. After `t = ([1], 2)`, `u = t` and `t[0].append(9)`, `u` is `([1, 9], 2)` too.)
 
 <Note title="Watch out for +=">
+
 On a list, `b += [3]` mutates the list in place (aliases see it), while `b = b + [3]` builds a new list and rebinds only `b`. On an int, `y += 1` can only rebind, because ints cannot change.
+
 </Note>
 
 When you really want a separate list, ask for a copy: `b = a.copy()` (or `list(a)`, or `a[:]`).
 
 <Mistake title="Saving the 'best' weights with =">
+
 A training loop keeps the best weights so far, then carries on updating. If you save them with `=`, you save an arrow to the live array, and the in-place update `-=` changes your "best" too:
 
 ```python
@@ -79,9 +86,11 @@ print(best_w)
 ```
 
 Write `best_w = w.copy()` instead. PyTorch has the same trap: `model.state_dict()` refers to the live weight tensors, so a saved snapshot needs `copy.deepcopy(model.state_dict())`.
+
 </Mistake>
 
 <Note title="Copies are shallow">
+
 `a.copy()` copies the outer list only. If the list holds other lists, the copy points at the same inner lists. `copy.deepcopy(a)` copies all the way down:
 
 ```python
@@ -94,7 +103,38 @@ c = copy.deepcopy(a)
 c[0].append(7)   # c has its own
 print(a)         # [[1, 2, 9], [3]]
 ```
+
 </Note>
+
+<Mistake title="Building a grid with * copies the arrow, not the row">
+
+The same sharing hides inside a classic one-liner for making a grid. `[0] * 3` builds one row, and `* 2` then repeats the **arrow** to that row, so both rows are the very same list:
+
+```python
+grid = [[0] * 3] * 2
+grid[0][0] = 1
+print(grid)
+```
+
+```text
+[[1, 0, 0], [1, 0, 0]]
+```
+
+Changing "row 0" changed row 1 too, because there is only one row object. Build each row separately with a comprehension instead:
+
+```python
+grid = [[0] * 3 for _ in range(2)]
+grid[0][0] = 1
+print(grid)
+```
+
+```text
+[[1, 0, 0], [0, 0, 0]]
+```
+
+(`[0] * 3` itself is safe: its items are ints, which can't be changed in place.)
+
+</Mistake>
 
 <QuickCheck
   id="references-mutability.qc1"
@@ -118,19 +158,25 @@ Python has two different questions for "are these the same?":
 Every object carries an <Term def="A number that identifies an object while it exists; no two live objects share one. id(x) returns it (in CPython it is the memory address).">identity</Term>, which the built-in `id(x)` returns. `a is b` is True exactly when `id(a) == id(b)`.
 
 <Analogy title="Identical twins">
+
 Identical twins look the same (`==` is True), but they are two different people (`is` is False). And you are always `is` yourself.
+
 </Analogy>
 
 <IdentityVsEquality />
 
 <KeyIdea>
+
 `==` compares **contents**; `is` compares **arrows**. Two names for one object normally hold equal values, so `a is b` being True means `a == b` is True as well. The reverse fails: equal lists are often separate objects.
+
 </KeyIdea>
 
 Use `is` mainly for `None`: write `if x is None:`. There is only ever one `None` object, so asking "is this that object?" is exactly the right test.
 
 <Mistake title="Using is to compare numbers or strings">
-`if score is 100:` may seem to work, because CPython reuses some small int and string objects, and then fail for other values. Python 3.8 and later even warns `SyntaxWarning: "is" with 'int' literal. Did you mean "=="?`. Compare values with `==`.
+
+`if score is 100:` may seem to work, because CPython reuses some small int and string objects, and then fail for other values. Python 3.8 and later even warn you: `SyntaxWarning: "is" with a literal. Did you mean "=="?` (newer versions name the type, as in `"is" with 'int' literal`). Compare values with `==`.
+
 </Mistake>
 
 <QuickCheck
@@ -152,7 +198,9 @@ print(x == y, x is y, x is z)`}
 When you call a function, each parameter is pointed at the argument's object, exactly as if you had written `scores = marks`. No copy is made. So the function can **mutate** your list, but if it **rebinds** its own parameter, only its local arrow moves.
 
 <Analogy title="Lending your notebook">
+
 You lend a friend your notebook. If they write in it, the writing is in **your** notebook when it comes back. If instead they put yours aside and write in a new notebook of their own, yours comes back clean.
+
 </Analogy>
 
 <FunctionMutationTrace />
@@ -160,7 +208,9 @@ You lend a friend your notebook. If they write in it, the writing is in **your**
 This rule is called <Term def="Python's way of passing arguments: the parameter becomes a new name for the very object the caller passed, so mutations are shared but rebinding the parameter is not.">pass by object reference</Term> (or "call by sharing"). MCQ options often say "passed by reference", which is close enough: the fact that matters is that **no copy is made**.
 
 <Mistake title="x = x.sort()">
+
 `list.sort()` sorts the list in place and returns `None`. So `nums = nums.sort()` sorts the list and then points `nums` at `None`. Either call `nums.sort()` on its own line, or write `nums = sorted(nums)`, which returns a new sorted list. The same habit applies to your own functions: either change the input or return a new result, and make it clear which one you do.
+
 </Mistake>
 
 <PastPaperQuestion paper="prelim2026" n={83} />
@@ -170,7 +220,9 @@ This rule is called <Term def="Python's way of passing arguments: the parameter 
 A <Term def="A value written in the def line, as in def f(x, lr=0.1), that is used when the caller leaves that argument out.">default argument</Term> lets the caller leave an argument out. The catch: Python works out the default value **once, when the `def` line runs**, and stores that object on the function. Every call that relies on the default gets an arrow to that one stored object.
 
 <Analogy title="The sign-up sheet at the counter">
+
 A shop leaves one sign-up sheet at the counter. Every customer writes on the same sheet instead of getting a fresh one, so after three customers the "blank" form already has three names on it.
+
 </Analogy>
 
 <DefaultArgTrap />
@@ -222,7 +274,9 @@ print(add_item(2))
 ```
 
 <ExamTip>
+
 NOAI tests this topic two ways: one-line definitions ("What happens when you modify a list passed to a function?", "What is the difference between `is` and `==`?") and short "what does this print?" snippets. With about 36 seconds per question, sketch the names and arrows in the margin, then ask one thing of each line: does it **move an arrow** (`=`) or **change an object** (`.append`, `[i] =`, `+=` on a list)? Only the second kind spreads to other names.
+
 </ExamTip>
 
 ## What happens to objects nobody points at?
@@ -256,9 +310,11 @@ Run this, then change `a.copy()` to `a` and predict the new output before runnin
   ].join("\n")} />
 
 <Takeaways>
+
 - A name is an arrow to an object. `=` moves arrows and never copies objects.
 - Mutating an object (`.append`, `x[i] = …`, `+=` on a list) is seen through every name that points at it; rebinding a name is not.
-- `==` compares values; `is` compares identity (same object). Use `is` for `None` checks only.
+- `==` compares values; `is` compares identity (same object). Use `is` mainly for `None` checks.
 - A function receives an arrow to your list, not a copy, so it can mutate your list.
 - Defaults are created once, when `def` runs: use `items=None` and build the list inside.
+
 </Takeaways>

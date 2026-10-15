@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
-import { Figure, Readout, Segmented, Button, useContainerWidth } from '../../../../../kit'
+import { Figure, Readout, Button, useContainerWidth } from '../../../../../kit'
+import { ChoiceGroup } from '../references-mutability/pyviz'
 import s from './dts.module.css'
 
 /*
@@ -173,7 +174,7 @@ export default function SetVenn() {
 
         {chipRow('A', listA)}
         {chipRow('B', listB)}
-        <Segmented label="Operator" value={op} onChange={(v) => { setOp(v); setFlash(null) }} options={OPS.map((o) => ({ value: o.value, label: <span className={s.mono}>{o.label}</span> }))} />
+        <ChoiceGroup narrow={measured < 520} label="Operator" value={op} onChange={(v) => { setOp(v); setFlash(null) }} options={OPS.map((o) => ({ value: o.value, label: <span className={s.mono}>{o.label}</span> }))} />
         <Readout
           items={[
             ['len(robotics)', String(listA.length)],

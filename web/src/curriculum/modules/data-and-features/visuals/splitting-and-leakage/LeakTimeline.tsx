@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Figure, Readout, Plot, Path, Rect, Label, DraggablePoint, usePlot, useNarrow } from '../../../../../kit'
 
 /*
@@ -148,12 +148,15 @@ export default function LeakTimeline() {
     clearly "known" even where it runs across the predict line into the red zone. */
 function FeatLabel({ x, y, right, color, weight, text }: { x: number; y: number; right: boolean; color: string; weight: number; text: string }) {
   const { xs, ys } = usePlot()
-  const ref = useRef<SVGTextElement>(null)
   const [w, setW] = useState(0)
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (el && typeof el.getComputedTextLength === 'function') setW(el.getComputedTextLength())
-  }, [text])
+  // Measure the label before paint. A ref callback (unlike useLayoutEffect) gives no warning when the
+  // lesson is server-rendered in tests; depending on `text` makes React call it again when the label changes.
+  const ref = useCallback(
+    (el: SVGTextElement | null) => {
+      if (el && typeof el.getComputedTextLength === 'function') setW(el.getComputedTextLength())
+    },
+    [text],
+  )
   const px = xs(x) + (right ? 11 : -11)
   const py = ys(y)
   return (

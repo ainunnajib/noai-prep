@@ -71,7 +71,7 @@ $$
 
 L2 **divides** by $1 + \lambda$. The weight gets smaller but never reaches 0 (unless $a$ was already 0).
 
-**With L1:** minimise $(w - a)^2 + \lambda |w|$. For $w > 0$ the derivative is $2(w - a) + \lambda = 0$, so $w = a - \frac{\lambda}{2}$. But if $a \le \frac{\lambda}{2}$, that would be negative, and the best you can do is stop at exactly $0$. In one line:
+**With L1:** minimise $(w - a)^2 + \lambda |w|$. For $w > 0$ the derivative is $2(w - a) + \lambda = 0$, so $w = a - \frac{\lambda}{2}$. But if $a \le \frac{\lambda}{2}$, that would not be positive, and the best you can do is stop at exactly $0$. In one line:
 
 $$
 w^* = \operatorname{sign}(a)\cdot\max\!\left(|a| - \tfrac{\lambda}{2},\; 0\right).
@@ -232,10 +232,6 @@ for model in models:
     print(f"{name:16s}", model.coef_.round(2) + 0.0)`} />
 
 Run it: plain least squares gives the three useless features small non-zero weights (0.07, −0.11, 0.07); ridge makes every weight smaller in size (one tiny weight even crosses zero, 0.07 → −0.01) but none is exactly 0; lasso sets those three to exactly `0.` and keeps the two real ones. (scikit-learn scales the data term differently for each model, so `alpha` values are not comparable between `Ridge` and `Lasso`; only the direction "bigger is stronger" is.)
-
-The same ideas apply to classifiers such as logistic regression, which you will meet in the next module. Try this exam scenario:
-
-<PastPaperQuestion paper="prelim2026" n={258} />
 
 ## MSE versus MAE: how much do you fear big mistakes?
 

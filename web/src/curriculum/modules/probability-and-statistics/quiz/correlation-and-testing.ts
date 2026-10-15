@@ -16,12 +16,12 @@ const questions: QuizQuestion[] = [
     prompt:
       'A survey of 500 students finds that those who sleep more tend to get higher exam scores, with correlation $r = 0.6$. Which conclusion does this data alone support?',
     options: [
-      'Sleep and scores tend to rise together, but the data cannot show that more sleep causes higher scores',
       'Getting more sleep will raise any student\'s exam score, by an amount that $r$ lets us predict',
-      'Higher scores must cause students to sleep more, because the correlation is positive',
+      'Sleep and scores rise together, but this data cannot show that more sleep causes higher scores',
+      'Higher scores must cause students to sleep more, because the correlation between them is positive',
       'Exactly 60% of the differences in exam scores are caused by differences in sleep',
     ],
-    answer: 0,
+    answer: 1,
     explanation:
       'A correlation shows that two variables move together, not why. A confounder (for example, students with less stressful schedules may both sleep more and revise better) or reverse causation could produce the same $r$; only a randomised experiment could show cause. A positive $r$ says nothing about which way causation runs, and $r = 0.6$ does not mean "60% caused by" anything.',
     difficulty: 'beginner',
@@ -31,12 +31,12 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team tests $H_0$: "the new model is no more accurate than the old one" and gets $p = 0.04$, with significance level $\\alpha = 0.05$. Which statement is correct?',
     options: [
-      'Results at least this extreme would occur about 4% of the time if $H_0$ were true, so $H_0$ is rejected',
-      'There is a 4% probability that $H_0$ is true, so $H_0$ is rejected at the 5% significance level',
       'The new model is 4% more accurate than the old one, and this improvement is statistically significant',
+      'There is a 4% probability that $H_0$ is true, so $H_0$ is rejected at the 5% significance level',
+      'Results at least this extreme would occur about 4% of the time if $H_0$ were true, so $H_0$ is rejected',
       'Because $p$ is so close to $\\alpha$, the result is not significant and $H_0$ should be kept',
     ],
-    answer: 0,
+    answer: 2,
     explanation:
       'The p-value is computed assuming $H_0$ is true: it is the probability of data at least as extreme as observed. Since $0.04 \\le 0.05$, $H_0$ is rejected. It is not the probability that $H_0$ is true (that would need Bayes\' theorem and a prior), it is not an effect size, and there is no "too close" rule: $p \\le \\alpha$ decides.',
     difficulty: 'intermediate',
@@ -61,12 +61,12 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team lowers its significance level from $\\alpha = 0.05$ to $\\alpha = 0.01$ but keeps the same sample size and the same test. What happens to the two kinds of error?',
     options: [
-      'Type I errors become rarer, but Type II errors become more common',
+      'Type I errors become rarer, while Type II errors stay exactly the same',
       'Type I and Type II errors both become rarer at the same time',
       'Type I errors become more common, but Type II errors become rarer',
-      'Type I errors become rarer, while Type II errors stay exactly the same',
+      'Type I errors become rarer, but Type II errors become more common',
     ],
-    answer: 0,
+    answer: 3,
     explanation:
       'The probability of a Type I error is $\\alpha$ itself, so it falls from 5% to 1%. But a stricter threshold also lets more real effects slip through, so $\\beta$ (the Type II error rate) rises. With the data fixed you can only trade one error for the other; collecting more data is what lowers both.',
     difficulty: 'intermediate',

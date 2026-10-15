@@ -1,11 +1,12 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Figure, Controls, Slider, Button, Bars, M, mulberry32, useBump } from '../../../../../kit'
 
 /*
   Expected marks from guessing when wrong answers cost nothing.
   One guess among k remaining options is right with probability 1/k, so it is worth 1/k of a
   mark on average; n guesses are worth n/k. Click options to cross them out, then try guessing
-  for real (a seeded random draw, so each press gives a new but repeatable result).
+  for real (a seeded random draw, so each press gives a new but repeatable result). A running
+  tally of the presses shows the average settling towards the expected value.
 */
 
 const LETTERS = ['A', 'B', 'C', 'D']
@@ -13,25 +14,40 @@ const LETTERS = ['A', 'B', 'C', 'D']
 const frac = (k: number) => (k === 1 ? '1' : `\\tfrac{1}{${k}}`)
 
 export default function GuessValue() {
-  const [out, setOut] = useState<boolean[]>([false, true, false, false])
+  const [out, setOut] = useState<boolean[]>([false, false, false, false])
   const [n, setN] = useState(20)
   const [seed, bump] = useBump()
+  const [refused, setRefused] = useState(false)
+  // the running tally covers every run since the set-up (n, crossed-out options) last changed
+  const [since, setSince] = useState(0)
   const crossed = out.filter(Boolean).length
   const left = 4 - crossed
   const p = 1 / left
   const expected = n * p
 
   // a real run of n guesses with probability p each
-  const rng = mulberry32(1000 + seed * 7919 + left)
-  const hits = Array.from({ length: n }, () => rng() < p)
+  const draw = (sd: number) => {
+    const rng = mulberry32(1000 + sd * 7919 + left)
+    return Array.from({ length: n }, () => rng() < p)
+  }
+  const hits = draw(seed)
   const got = hits.filter(Boolean).length
 
-  const toggle = (i: number) =>
-    setOut((o) => {
-      const next = o.slice()
-      next[i] = !next[i]
-      return next.filter(Boolean).length > 3 ? o : next
-    })
+  const setup = `${n}-${out.join(',')}`
+  useEffect(() => setSince(seed), [setup]) // eslint-disable-line react-hooks/exhaustive-deps
+  const runs = Array.from({ length: Math.max(1, seed - since + 1) }, (_, k) => (k === seed - since ? got : draw(since + k).filter(Boolean).length))
+  const mean = runs.reduce((a, b) => a + b, 0) / runs.length
+
+  const toggle = (i: number) => {
+    const next = out.slice()
+    next[i] = !next[i]
+    if (next.filter(Boolean).length > 3) {
+      setRefused(true)
+      return
+    }
+    setRefused(false)
+    setOut(next)
+  }
 
   const card = (i: number): CSSProperties => ({
     display: 'flex',
@@ -46,7 +62,6 @@ export default function GuessValue() {
     color: 'var(--ink)',
     textAlign: 'left',
     width: '100%',
-    opacity: out[i] ? 0.6 : 1,
   })
 
   return (
@@ -55,7 +70,7 @@ export default function GuessValue() {
       caption={
         <>
           Click the options you are <em>sure</em> are wrong to cross them out (up to three). The chance of a lucky guess jumps from 1 in 4 to 1 in 3 to 1 in 2. Then press{' '}
-          <strong>Guess them all</strong> a few times: single runs bounce around, but they average out at the expected value. A blank is always worth exactly 0.
+          <strong>Guess them all</strong> a few times: single runs bounce around, but the running average settles near the expected value. A blank is always worth exactly 0.
         </>
       }
     >
@@ -84,7 +99,9 @@ export default function GuessValue() {
                 <span style={{ height: 7, borderRadius: 4, width: `${[78, 60, 70, 52][i]}%`, background: 'var(--surface-3)' }} />
                 <span style={{ height: 7, borderRadius: 4, width: `${[40, 55, 30, 45][i]}%`, background: 'var(--surface-3)' }} />
               </span>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: out[i] ? 'var(--viz-neg)' : 'var(--ink-3)', whiteSpace: 'nowrap' }}>{out[i] ? '✕ crossed out' : 'still possible'}</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: out[i] ? 'var(--bad)' : 'var(--ink-2)', whiteSpace: 'nowrap', textDecoration: out[i] ? 'line-through' : 'none' }}>
+                {out[i] ? '✕ crossed out' : 'still possible'}
+              </span>
             </button>
           ))}
         </div>
@@ -99,6 +116,11 @@ export default function GuessValue() {
             </span>
           </div>
           {crossed === 3 && <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--ok)' }}>Three crossed out: you know the answer! That is no longer a guess.</div>}
+          {refused && (
+            <div role="status" style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--warn)' }}>
+              Leave at least one option: one of them is right.
+            </div>
+          )}
         </div>
       </div>
 
@@ -126,6 +148,11 @@ export default function GuessValue() {
           <span className="tabular" style={{ fontSize: '0.92rem', color: 'var(--ink)' }}>
             This run: <strong>{got}</strong> right out of {n} · expected <strong>{expected.toFixed(expected % 1 ? 2 : 0)}</strong>
           </span>
+        </div>
+        <div className="tabular" aria-live="polite" style={{ fontSize: '0.88rem', color: 'var(--ink-2)' }}>
+          {runs.length === 1
+            ? 'Press Guess them all a few more times and watch the running average.'
+            : `After ${runs.length} runs: on average ${mean.toFixed(2)} right, against an expected ${expected.toFixed(2)}.`}
         </div>
         <div aria-label={`${got} of ${n} guesses were right`} role="img" style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {hits.map((h, i) => (

@@ -74,6 +74,9 @@ export default function ScopeBubbles() {
   const needsGuess = st.out != null && guess[player.step] == null && !player.playing
   // Until the learner has predicted, hide the lookup arrow and the explanation (they give the answer away).
   const showLookup = !!st.lookup && !needsGuess
+  // Pressing Next on a prediction step without predicting first reveals the answer and the lookup arrow
+  // (recorded as an empty guess), so the arrow can never be skipped; the next press moves on.
+  const gated = { ...player, next: () => (needsGuess ? setGuess({ ...guess, [player.step]: '' }) : player.next()) }
 
   // ---------- layout ----------
   const [ref, measured] = useContainerWidth<HTMLDivElement>(340)
@@ -206,7 +209,8 @@ export default function ScopeBubbles() {
           <b>Line {st.line}.</b>{' '}
           {needsGuess ? (
             <>
-              print(x) needs the value of x. Which x will Python use? Make your prediction below, then the arrow will show where Python found it.
+              print(x) needs the value of x. Which x will Python use? Make your prediction below (or press Next to skip straight to the answer), then the
+              arrow will show where Python found it.
             </>
           ) : (
             st.note
@@ -233,7 +237,7 @@ export default function ScopeBubbles() {
             return (
               <span key={i}>
                 {hidden ? <span className={s.muted}>?</span> : out}
-                {!hidden && g != null && (
+                {!hidden && g != null && g !== '' && (
                   <span className={g === out ? s.ok : s.err}>{g === out ? '   ✓ you predicted it' : `   ✗ you guessed ${g}`}</span>
                 )}
                 {'\n'}
@@ -242,7 +246,7 @@ export default function ScopeBubbles() {
           })}
         </pre>
 
-        <PlayerControls player={player} label={(k) => `Step ${k + 1} of ${STEPS.length}`} />
+        <PlayerControls player={gated} label={(k) => `Step ${k + 1} of ${STEPS.length}`} />
       </div>
     </Figure>
   )

@@ -4,11 +4,11 @@ import ProductRuleRectangle from './visuals/derivative-rules/ProductRuleRectangl
 import SigmoidDerivation from './visuals/derivative-rules/SigmoidDerivation'
 import ActivationSlopes from './visuals/derivative-rules/ActivationSlopes'
 
-In the last lesson you found the derivative of $x^2$ the slow way, with secants and a limit. With about 36 seconds per Prelim question, nobody does that: a handful of **rules** give the answer in one line. This lesson covers every rule NOAI expects, including the two in almost every neural network: the derivatives of the **sigmoid** and of **ReLU**.
+Last lesson you found the derivative of $x^2$ the slow way, with a limit. With about 36 seconds per Prelim question, a handful of **rules** must give the answer in one line. This lesson covers every rule NOAI expects, including the derivatives of the **sigmoid** and **ReLU**, found in almost every neural network.
 
 <Analogy title="Times tables for slopes">
 
-You do not work out $7 \times 8$ by adding seven eights; you just know it is 56. Each derivative rule is a pattern that the zoom-in method always produces, so once you know the pattern you never need the limit again.
+You do not work out $7 \times 8$ by adding seven eights; you just know it is 56. Each derivative rule is a pattern the limit always produces: know the pattern and you never need the limit again.
 
 </Analogy>
 
@@ -20,9 +20,9 @@ $$
 \frac{d}{dx}\, x^n = n\, x^{n-1}
 $$
 
-- $\frac{d}{dx}$ means "the derivative with respect to $x$ of", so the left side is the slope of the curve $y = x^n$.
+- $\frac{d}{dx}$ means "the derivative with respect to $x$ of": the left side is the slope of $y = x^n$.
 - In words: **bring the power down in front, then lower the power by one**.
-- $x^3$ becomes $3x^2$; $x^2$ becomes $2x^1 = 2x$, exactly what the limit gave last lesson; $x$ (which is $x^1$) becomes $1 \cdot x^0 = 1$.
+- $x^3$ becomes $3x^2$; $x^2$ becomes $2x$, as the limit gave last lesson; $x = x^1$ becomes $1 \cdot x^0 = 1$.
 
 It works for negative and fractional powers too. $\frac{1}{x} = x^{-1}$ becomes $-1 \cdot x^{-2} = -\frac{1}{x^2}$, and $\sqrt{x} = x^{1/2}$ becomes $\tfrac{1}{2}x^{-1/2} = \frac{1}{2\sqrt{x}}$.
 
@@ -35,13 +35,10 @@ Three helper rules let you differentiate any polynomial term by term:
 | Rule | In symbols | Why |
 |---|---|---|
 | A constant has slope 0 | $\frac{d}{dx}\, c = 0$ | A flat line never rises. |
-| Constant multiples stay | $\frac{d}{dx}\big[c\, f(x)\big] = c\, f'(x)$ | Stretching a graph 3 times taller makes every slope 3 times steeper. |
+| Constant multiples stay | $\frac{d}{dx}\big[c\, f(x)\big] = c\, f'(x)$ | A graph 3 times taller is 3 times steeper. |
 | Sums split up | $\frac{d}{dx}\big[f(x) + g(x)\big] = f'(x) + g'(x)$ | The rise of a sum is the sum of the rises. |
 
-<Steps title="Differentiate $f(x) = 3x^4 - 2x^2 + 5x - 7$">
-  <Step title="Split into terms">
-    Differentiate $3x^4$, $-2x^2$, $5x$ and $-7$ separately, then add the results.
-  </Step>
+<Steps title="Differentiate $f(x) = 3x^4 - 2x^2 + 5x - 7$ term by term">
   <Step title="$3x^4$">
     The power rule gives $4x^3$, and the multiple 3 stays: $3 \times 4x^3 = 12x^3$.
   </Step>
@@ -71,7 +68,7 @@ The derivative $f'(x)$ is itself a function, so you can differentiate it again. 
 - $f''(x) > 0$: the slope is increasing, so the curve bends **upwards**, like a bowl ($\cup$).
 - $f''(x) < 0$: the slope is decreasing, so the curve bends **downwards**, like a cap ($\cap$).
 
-For $f(x) = x^3$: $f'(x) = 3x^2$ and then $f''(x) = 3 \times 2x = 6x$. For a loss, a bowl shape ($L'' > 0$) at a point where $L' = 0$ means a minimum. The curvature lesson at the end of this module builds on this.
+For $f(x) = x^3$: $f'(x) = 3x^2$, then $f''(x) = 6x$. A loss that bends like a bowl ($L'' > 0$) where $L' = 0$ is at a minimum: the curvature lesson builds on this.
 
 <PastPaperQuestion paper="prelim2026" n={32} />
 
@@ -85,11 +82,11 @@ $$
 
 At every point, the **slope of $e^x$ equals its height**. At $x = 0$ the height is $1$ and so is the slope; at $x = 2$ both are about $7.39$.
 
-Other bases do not have this property. The slope of $2^x$ is only about $0.69$ times its height, and the slope of $3^x$ is about $1.10$ times its height. $e$ is the base, between 2 and 3, where that factor is exactly 1. (In general $\frac{d}{dx} b^x = (\ln b)\, b^x$, and $\ln e = 1$.)
+Other bases miss: the slope of $2^x$ is about $0.69$ times its height, and that of $3^x$ about $1.10$ times. $e$ is the base where the factor is exactly 1. (In general $\frac{d}{dx} b^x = (\ln b)\, b^x$, and $\ln e = 1$.)
 
 <ExpSelfSlope />
 
-One relative of $e^x$ is needed below: $e^{-x}$, the mirror image of $e^x$ in the $y$-axis. A mirror keeps every height but turns uphill into downhill, so the slope of $e^{-x}$ is **minus** its height:
+You will also need $e^{-x}$, the mirror image of $e^x$ in the $y$-axis. A mirror keeps every height but turns uphill into downhill, so its slope is **minus** its height:
 
 $$
 \frac{d}{dx}\, e^{-x} = -e^{-x}
@@ -99,7 +96,7 @@ $$
 
 <Mistake title="Do not use the power rule on $e^x$">
 
-The power rule needs the **power** to be a fixed number, as in $x^3$. In $e^x$ the variable is in the power, so "bring the power down" gives the wrong answer $x e^{x-1}$. The right answer is simply $e^x$.
+The power rule needs a fixed **power**, as in $x^3$. In $e^x$ the variable is in the power, so "bring the power down" gives the wrong $x e^{x-1}$. The answer is simply $e^x$.
 
 </Mistake>
 
@@ -107,13 +104,13 @@ The power rule needs the **power** to be a fixed number, as in $x^3$. In $e^x$ t
 
 ## $\ln x$: slope $1/x$
 
-The natural log $\ln x$ undoes $e^x$: its graph is $e^x$ reflected in the line $y = x$, which swaps every rise with its run. On $e^x$ the point $(2,\ 7.39)$ has slope $7.39$ (slope equals height). Reflected, it becomes $(7.39,\ 2)$ on $\ln x$, with slope $\frac{1}{7.39}$. The same happens at every point: at input $x$, the slope of $\ln x$ is one over $x$,
+The natural log $\ln x$ undoes $e^x$: its graph is $e^x$ reflected in the line $y = x$, which swaps rise and run. The point $(2,\ 7.39)$ on $e^x$ has slope $7.39$; reflected, $(7.39,\ 2)$ on $\ln x$ has slope $\frac{1}{7.39}$. So at input $x$, the slope of $\ln x$ is one over $x$:
 
 $$
 \frac{d}{dx} \ln x = \frac{1}{x} \qquad (x > 0).
 $$
 
-Switch the visual above to **ln x** to see it. This rule is behind the logs in <Term def="A loss for classification: −ln p, where p is the probability the model gave to the correct class. You will meet it properly in the classification module.">cross-entropy</Term>: the loss $-\ln p$ has slope $-\frac{1}{p}$. If the model gives the correct class a probability of only $p = 0.1$, the slope is $-10$, a strong push to raise $p$; at $p = 0.9$ it is only about $-1.1$.
+Switch the visual above to **ln x** to see it. This rule is behind <Term def="A loss for classification: −ln p, where p is the probability the model gave to the correct class. You will meet it properly in the classification module.">cross-entropy</Term>: the loss $-\ln p$ has slope $-\frac{1}{p}$, so a correct class given only $p = 0.1$ gets a strong push ($-10$), and one given $p = 0.9$ a gentle one (about $-1.1$).
 
 ## Products and quotients
 
@@ -168,11 +165,11 @@ The slope of the sigmoid is "output times one minus output". A network has alrea
 
 </KeyIdea>
 
-**How big can it get?** $\sigma(x)$ and $1 - \sigma(x)$ are two numbers that add up to 1. The product of two such numbers is largest when they are equal, $0.5 \times 0.5 = 0.25$, which happens at $x = 0$. So the sigmoid's slope is **never more than 0.25**. Far from 0 it is tiny: at $x = 5$, $\sigma \approx 0.9933$ and the slope is about $0.9933 \times 0.0067 \approx 0.0066$. A neuron stuck out there is <Term def="Pushed so far into the flat part of an S-shaped activation that its slope is almost 0, so it hardly learns.">saturated</Term>: changing its input barely changes its output.
+**How big can it get?** $\sigma(x)$ and $1 - \sigma(x)$ add up to 1, and two such numbers have the largest product when equal: $0.5 \times 0.5 = 0.25$, at $x = 0$. So the sigmoid's slope is **never more than 0.25**. Far from 0 it is tiny: at $x = 5$, $\sigma \approx 0.9933$ and the slope is about $0.0066$. Such a neuron is <Term def="Pushed so far into the flat part of an S-shaped activation that its slope is almost 0, so it hardly learns.">saturated</Term>: changing its input barely changes its output.
 
 <ActivationSlopes />
 
-Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \tanh^2(x)$. That peaks at $1$ at $x = 0$: four times the sigmoid's best. Remember the number **0.25**: the next lesson shows how multiplying many such slopes together makes deep sigmoid networks stop learning.
+Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \tanh^2(x)$, peaking at $1$ at $x = 0$. Remember the sigmoid's **0.25**: the next lesson shows how multiplying many such slopes makes deep sigmoid networks stop learning.
 
 <QuickCheck
   id="calculus-and-gradient-descent.derivative-rules.qc3"
@@ -186,12 +183,12 @@ Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \
 
 ## Corners: ReLU and $|x|$
 
-Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zooming in never makes it look straight, so there is no single tangent there.">kink</Term>. Zoom in as far as you like and it never looks straight, because the slopes on the two sides disagree, so the derivative there is **undefined**.
+Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zooming in never makes it look straight, so there is no single tangent there.">kink</Term>. However far you zoom in, it never looks straight, because the slopes on the two sides disagree: the derivative there is **undefined**.
 
-- **ReLU**, $\text{ReLU}(x) = \max(0, x)$: slope $0$ for $x < 0$ (flat), slope $1$ for $x > 0$, and a kink at $x = 0$. Switch the visual above to ReLU: its slope is a step from 0 to 1.
+- **ReLU**, $\text{ReLU}(x) = \max(0, x)$: slope $0$ for $x < 0$, slope $1$ for $x > 0$, and a kink at $x = 0$ (switch the visual above to ReLU).
 - **Absolute value** $|x|$: slope $-1$ on the left and $+1$ on the right, so its derivative is the <Term def="sign(x) is −1 for negative x, +1 for positive x, and 0 at x = 0.">sign</Term> of $x$, written $\text{sign}(x)$.
 
-Training code still needs *some* number at exactly 0, so frameworks pick one. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; such a slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0:
+Training code still needs *some* number at exactly 0. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; each such slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0:
 
 ```python
 import torch
@@ -214,13 +211,13 @@ tensor([-1.,  0.,  1.])
 
 <Note title="Seen in the 2026 Final">
 
-If a prediction $F$ is scored by the absolute error $|y - F|$, its slope with respect to $F$ is $-1$ when $F$ is too small and $+1$ when $F$ is too big (and undefined at the corner $F = y$). So the direction that lowers the loss is just the sign of $y - F$: $+1$ (raise $F$) or $-1$ (lower $F$), however big the error is.
+If a prediction $F$ is scored by the absolute error $|y - F|$, the slope with respect to $F$ is $-1$ when $F$ is too small and $+1$ when it is too big (undefined at $F = y$). So the way to lower the loss is the sign of $y - F$: raise $F$ ($+1$) or lower it ($-1$), however big the error.
 
 </Note>
 
 ## Check any rule with code
 
-You can always test a rule by zooming in numerically: measure rise over a tiny run on each side of $x$, $\frac{f(x+h) - f(x-h)}{2h}$, and compare with the formula. Run this and change the functions:
+Test any rule by zooming in numerically: compare the rise over a tiny run either side of $x$, $\frac{f(x+h) - f(x-h)}{2h}$, with the formula. Run this and change the functions:
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
@@ -248,9 +245,9 @@ print("sign:", np.sign(np.array([-3.0, 0.0, 2.5])))`} />
 | $x^n$ | $n x^{n-1}$ | power down, power minus one |
 | $e^x$ | $e^x$ | slope = height |
 | $e^{-x}$ | $-e^{-x}$ | mirror flips the slope |
-| $\ln x$ | $\frac{1}{x}$ | reflection of $e^x$ |
+| $\ln x$ | $\dfrac{1}{x}$ | reflection of $e^x$ |
 | $uv$ | $u'v + uv'$ | two strips |
-| $\frac{u}{v}$ | $\frac{u'v - uv'}{v^2}$ | bottom-dee-top minus top-dee-bottom |
+| $\dfrac{u}{v}$ | $\dfrac{u'v - uv'}{v^2}$ | bottom-dee-top minus top-dee-bottom |
 | $\sigma(x)$ | $\sigma(x)(1 - \sigma(x))$ | at most $0.25$, at $x = 0$ |
 | $\tanh(x)$ | $1 - \tanh^2(x)$ | at most $1$, at $x = 0$ |
 | $\text{ReLU}(x)$ | $0$ if $x < 0$, $1$ if $x > 0$ | undefined at 0 (code uses 0) |
@@ -260,19 +257,19 @@ print("sign:", np.sign(np.array([-3.0, 0.0, 2.5])))`} />
 
 Typical NOAI calculus items take seconds if you know the table:
 
-- "Derivative of $e^x$?" $e^x$. "Of $\ln x$?" $\frac{1}{x}$. "Second derivative of $x^3$?" $6x$, not $3x^2$.
-- "Derivative of the sigmoid?" $\sigma(x)(1 - \sigma(x))$, never just $\sigma(x)$. Its maximum is $0.25$ at $x = 0$.
-- "Why is ReLU's derivative a problem at 0?" It is undefined there (a kink); in practice a value of 0 is used.
+- "Second derivative of $x^3$?" $6x$, not $3x^2$.
+- "Derivative of the sigmoid?" $\sigma(x)(1 - \sigma(x))$, never just $\sigma(x)$.
+- "Why is ReLU's derivative a problem at 0?" It is undefined there (a kink).
 
-Traps to expect: answers that apply the power rule to $e^x$, that keep a constant term, or that stop after the first derivative when the question asked for the second.
+Traps: the power rule applied to $e^x$, a constant term that survives, or stopping at the first derivative.
 
 </ExamTip>
 
 <Takeaways>
 
-- Learn the cheat sheet above cold: it answers most NOAI calculus questions in seconds.
-- Power rule $x^n \to n x^{n-1}$; constants vanish, multiples stay, sums split. Differentiating twice gives $f''$, which measures bending.
-- $e^x$ is its own slope and $\ln x$ has slope $\frac{1}{x}$; products and fractions need the product and quotient rules, not $u'v'$.
-- $\sigma'(x) = \sigma(x)(1 - \sigma(x)) \le 0.25$ (nearly 0 when saturated); ReLU has slope 0 or 1 with a kink at 0, where code uses 0.
+- Learn the cheat sheet cold: it answers most NOAI calculus questions in seconds.
+- Power rule $x^n \to n x^{n-1}$; constants vanish, multiples stay, sums split; $f''$ measures bending.
+- $e^x$ is its own slope, $\ln x$ has slope $\frac{1}{x}$, and products need $u'v + uv'$, not $u'v'$.
+- $\sigma' = \sigma(1 - \sigma) \le 0.25$; ReLU has slope 0 or 1, with a kink at 0 where code uses 0.
 
 </Takeaways>

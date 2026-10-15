@@ -24,11 +24,12 @@ big_gen = (x * x for x in range(1_000_000))
 
 print(sys.getsizeof(big_list), 'bytes for the list object')
 print(sys.getsizeof(big_gen), 'bytes for the generator')
+print(sys.getsizeof(big_list) // sys.getsizeof(big_gen), 'times as big')
 print(next(big_gen), next(big_gen), next(big_gen))
 print(sum(x * x for x in range(10)))`
 
 export const exhaustCode = `g = (x for x in range(3))
-print(sum(g), sum(g))`
+print(sum(g), sum(g))   # the second sum finds nothing left`
 
 AI code is full of loops: over <Term def="One full pass of training through the whole training set.">epochs</Term>, over <Term def="A small group of training examples that a model processes together in one step.">batches</Term>, over pairs of inputs and labels. Python has four tools that make these loops shorter, clearer and lighter on memory: **list comprehensions**, **zip**, **enumerate** and **generators**. NOAI questions love asking what one line of them prints, so this lesson teaches you to read each one like a machine.
 
@@ -98,9 +99,47 @@ A filter `if` goes at the **end** and has no `else`: `[x for x in nums if x > 0]
 
 <QuickCheck
   q="What is `[x * 10 for x in range(1, 4) if x != 2]`?"
-  options={['[10, 30]', '[10, 20, 30]', '[0, 10, 30]', '[10, 30, 40]']}
+  options={['`[10, 30]`', '`[10, 20, 30]`', '`[0, 10, 30]`', '`[10, 30, 40]`']}
   answer={0}
   explain="`range(1, 4)` gives 1, 2, 3 (the stop value 4 is excluded). The filter drops 2, leaving 1 and 3, and each is multiplied by 10. [10, 20, 30] forgets the filter; [0, 10, 30] starts range at 0."
+/>
+
+### Two `for` clauses
+
+A comprehension can have more than one `for`. Read the `for` clauses **left to right as nested loops, outer loop first**:
+
+```python
+pairs = [(i, j) for i in range(2) for j in range(3)]
+
+# exactly the same as:
+pairs = []
+for i in range(2):          # first for = outer loop
+    for j in range(3):      # second for = inner loop
+        pairs.append((i, j))
+print(pairs)
+```
+
+```text
+[(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)]
+```
+
+`j` changes fastest because it belongs to the inner loop. The same pattern flattens a list of lists: `[x for row in M for x in row]` turns `[[1, 2], [3], [4, 5]]` into `[1, 2, 3, 4, 5]`.
+
+Don't confuse this with a comprehension **inside** another comprehension. The inner brackets build a whole list for each value of the outer loop, so the result is a list of lists. Careful: here the outer loop is the `for` written **last**, outside the inner brackets.
+
+```python
+print([[i * j for j in range(3)] for i in range(2)])
+```
+
+```text
+[[0, 0, 0], [0, 1, 2]]
+```
+
+<QuickCheck
+  q="What is `[x * y for x in [1, 2] for y in [10, 100]]`?"
+  options={['`[10, 100, 20, 200]`', '`[10, 20, 100, 200]`', '`[[10, 100], [20, 200]]`', '`[10, 200]`']}
+  answer={0}
+  explain="The first `for` is the outer loop. With x = 1, the inner loop gives 1 × 10 and 1 × 100; with x = 2 it gives 20 and 200. One pair of brackets means one flat list, so [[10, 100], [20, 200]] is wrong, and [10, 20, 100, 200] runs the loops in the wrong order. [10, 200] pairs the items up like zip, which two for clauses never do."
 />
 
 ## zip and enumerate: looping over pairs
@@ -146,7 +185,7 @@ Two patterns worth memorising:
 
 <QuickCheck
   q="What does `list(enumerate(['x', 'y'], start=1))` give?"
-  options={["[(1, 'x'), (2, 'y')]", "[(0, 'x'), (1, 'y')]", "[('x', 1), ('y', 2)]", "[1, 'x', 2, 'y']"]}
+  options={["`[(1, 'x'), (2, 'y')]`", "`[(0, 'x'), (1, 'y')]`", "`[('x', 1), ('y', 2)]`", "`[1, 'x', 2, 'y']`"]}
   answer={0}
   explain="enumerate pairs each item with a counter, counter first: (index, item). `start=1` makes the counter begin at 1 instead of 0, so the pairs are (1, 'x') and (2, 'y'). Without `start=1` you would get [(0, 'x'), (1, 'y')]."
 />
@@ -182,20 +221,17 @@ A list stores all its values at once. A generator stores only its current positi
 
 </KeyIdea>
 
-A `for` loop calls `next()` for you and stops quietly at `StopIteration`, which is why you can loop over a generator just like a list. Functions that consume a sequence also accept one: `sum(x * x for x in range(10))` adds up $0 + 1 + 4 + \dots + 81 = 285$ without ever building a list. This is how a PyTorch <Term def="A PyTorch object that hands a training loop one batch of data at a time, loading each batch only when it is needed.">DataLoader</Term> streams a dataset far bigger than memory: it hands your training loop one batch at a time.
+A `for` loop calls `next()` for you and stops quietly at `StopIteration`, which is why you can loop over a generator just like a list. Functions that consume a sequence also accept one: `sum(x * x for x in range(10))` adds up $0 + 1 + 4 + \dots + 81 = 285$ without ever building a list. A PyTorch <Term def="A PyTorch object that hands a training loop one batch of data at a time, loading each batch only when it is needed.">DataLoader</Term> works on the same lazy principle: each epoch's `for` loop gets a fresh iterator that loads one batch at a time, so a dataset far bigger than memory can stream through. Unlike a used-up generator, a DataLoader can be looped over again every epoch.
 
-Measure the difference yourself. `sys.getsizeof` counts only the list object itself, which holds a million references (about 8 MB); the million integer objects they point to take about 32 MB more, which the figure above includes. Your browser's Python version may report slightly different numbers.
+Measure the difference yourself. `sys.getsizeof` counts only the list object itself, which holds a million references; the million integer objects they point to take about 32 MB more, which the figure above includes. On a normal 64-bit computer the list object is about 8.4 MB and the generator 200 bytes. The Python in your browser is 32-bit, so it reports about half of each: roughly 4.2 MB and about 100 bytes. Either way, the third line shows the list is tens of thousands of times bigger.
 
 <PyRunner code={memoryCode} />
 
 <Mistake title="Looping over a used-up generator or zip">
 
-A generator, a `zip` and an `enumerate` are all used up after one pass. The second pass gets nothing, with no error message:
+A generator, a `zip` and an `enumerate` are all used up after one pass. The second pass gets nothing, with no error message. Run this: it prints `3 0`.
 
-```python
-g = (x for x in range(3))
-print(sum(g), sum(g))   # 3 0
-```
+<PyRunner code={exhaustCode} />
 
 If you need the values twice (for example, once per training epoch), store them in a list with `list(...)` or create a fresh generator each time.
 
@@ -211,7 +247,7 @@ Square brackets build a list now; round brackets around `x for x in …` build a
 
 <Takeaways>
 
-- `[expr for x in items if cond]` is a for loop with `append`: filter first, then transform, keeping the original order.
+- `[expr for x in items if cond]` is a for loop with `append`: filter first, then transform, keeping the original order. With two `for` clauses, the first one is the outer loop.
 - `zip(a, b)` pairs items by position and stops at the shorter input; `enumerate(items)` pairs each item with its index.
 - `zip`, `enumerate` and generators are iterators: lazy, one pass only. Use `list(...)` to see or keep their values.
 - A generator (`(…)` or a function with `yield`) makes values on demand, so it uses almost no memory however long it runs.

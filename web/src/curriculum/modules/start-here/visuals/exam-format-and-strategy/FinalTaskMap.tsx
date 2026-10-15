@@ -4,7 +4,7 @@ import { Figure, useContainerWidth } from '../../../../../kit'
 
 /*
   Every programming task from the 2025 and 2026 NOAI Finals, wired to the course modules that
-  teach it. Hover, tap or tab to a task to light up what it needs; module names are links.
+  teach it. Click, tap or tab to a task to light up what it needs; module names are links.
   Task facts come from the released notebooks (github.com/AISGNUSNOAI).
 */
 
@@ -14,6 +14,8 @@ interface Task {
   name: string
   marks: number
   lib: string
+  /** one plain-English line for a complete beginner */
+  plain: string
   what: string
   modules: string[]
 }
@@ -25,6 +27,7 @@ const TASKS: Task[] = [
     name: 'Linear regression by gradient descent',
     marks: 15,
     lib: 'Python standard library and NumPy only',
+    plain: 'Find the straight line that best fits some points by nudging its slope and intercept downhill, a little at a time, until the error stops shrinking.',
     what: 'Write one function that fits a straight line with batch gradient descent for a set number of steps and returns its coefficients, rounded to 4 decimal places.',
     modules: ['calculus-and-gradient-descent', 'linear-regression', 'numpy', 'final-lab-numpy'],
   },
@@ -34,6 +37,7 @@ const TASKS: Task[] = [
     name: 'K-means clustering',
     marks: 25,
     lib: 'Python standard library and NumPy only',
+    plain: "Sort points into groups by repeatedly moving each group's centre to the middle of its points.",
     what: 'Assign each point to its nearest centre, move each centre to the mean of its points, and repeat until nothing changes, handling a cluster that ends up empty.',
     modules: ['numpy', 'final-lab-numpy', 'unsupervised-learning'],
   },
@@ -43,6 +47,7 @@ const TASKS: Task[] = [
     name: 'Retrieval-augmented generation (RAG)',
     marks: 40,
     lib: 'Python standard library and NumPy only',
+    plain: 'Find the documents most similar to a question, and use them to build the answer.',
     what: 'Turn five short documents and a question into vectors (TF-IDF was suggested), rank the documents by cosine similarity, and build an answer from the best matches.',
     modules: ['numpy', 'final-lab-numpy', 'text-as-data', 'prompting-and-rag'],
   },
@@ -52,6 +57,7 @@ const TASKS: Task[] = [
     name: 'Gradient boosting from scratch',
     marks: 25,
     lib: "NumPy plus scikit-learn's DecisionTreeRegressor (25 marks include a 5-mark bonus)",
+    plain: 'Build a strong predictor from many small decision trees, each one trained to fix the mistakes of the trees before it.',
     what: 'Write the loss gradients, the fit loop that adds one small tree at a time scaled by a learning rate, the predict loop, and (bonus) early stopping.',
     modules: ['calculus-and-gradient-descent', 'final-lab-numpy', 'trees-and-ensembles'],
   },
@@ -61,6 +67,7 @@ const TASKS: Task[] = [
     name: 'Debugging a U-Net, then mean IoU',
     marks: 20,
     lib: 'PyTorch and NumPy; scikit-learn and torchmetrics banned',
+    plain: 'Repair a broken picture-labelling network so that it runs, then score how well the areas it labels overlap the true ones.',
     what: 'Fix a segmentation network that crashes because its skip connections no longer line up (centre-crop them), then compute mean IoU without any metric library.',
     modules: ['convolutional-networks', 'vision-tasks', 'pytorch', 'final-lab-pytorch'],
   },
@@ -70,6 +77,7 @@ const TASKS: Task[] = [
     name: 'The attention mechanism',
     marks: 35,
     lib: 'PyTorch (35 marks include a 5-mark bonus)',
+    plain: 'Build the part of a language model that lets each word look back at the earlier words that matter most to it.',
     what: 'Implement scaled dot-product attention with a causal mask and multi-head attention, fix a buggy positional encoding, and add a classification head.',
     modules: ['pytorch', 'attention-and-transformers', 'final-lab-pytorch'],
   },
@@ -93,6 +101,8 @@ const MODULES: { slug: string; label: string; short: string }[] = [
 ]
 
 const YEAR_COLOUR = { 2025: 'var(--viz-1)', 2026: 'var(--viz-2)' } as const
+/** year colour for small text: mixed towards the ink colour so it passes contrast in light mode */
+const YEAR_TEXT = { 2025: 'color-mix(in srgb, var(--viz-1) 65%, var(--ink))', 2026: 'color-mix(in srgb, var(--viz-2) 65%, var(--ink))' } as const
 
 function wrap(text: string, max: number): string[] {
   const words = text.split(' ')
@@ -175,19 +185,20 @@ export default function FinalTaskMap() {
       title="Every past Final task, and where this course teaches it"
       caption={
         <>
-          Hover, tap or tab to a task to light up the modules it needs; the module names are links. Notice that all six are classic algorithms with a fixed recipe, so you can
-          practise every one of them before the day. 2025 allowed NumPy only; 2026 added PyTorch and asked you to fix someone else's broken code.
+          Click, tap or tab to a task: the card below explains it in one plain line and lights up the modules that teach it (the module names are links). Five of the six are
+          well-known algorithms or building blocks with a clear recipe, and the sixth is a debugging job, so you can practise every one of them before the day. 2025 allowed NumPy
+          only; 2026 added PyTorch and asked you to fix someone else's broken code.
         </>
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
         <svg className="plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Diagram linking the six programming tasks of the 2025 and 2026 NOAI Finals to the course modules that teach them.">
           {/* column heads */}
-          <text x={0} y={14} style={{ ...headStyle, fill: narrow ? 'var(--ink-2)' : YEAR_COLOUR[2025] }}>
+          <text x={0} y={14} style={{ ...headStyle, fill: narrow ? 'var(--ink-2)' : YEAR_TEXT[2025] }}>
             {narrow ? 'Past Final tasks' : 'NOAI 2025 · NumPy only'}
           </text>
           {!narrow && (
-            <text x={W} y={14} textAnchor="end" style={{ ...headStyle, fill: YEAR_COLOUR[2026] }}>
+            <text x={W} y={14} textAnchor="end" style={{ ...headStyle, fill: YEAR_TEXT[2026] }}>
               NOAI 2026 · NumPy + PyTorch
             </text>
           )}
@@ -196,10 +207,10 @@ export default function FinalTaskMap() {
           </text>
           {narrow && (
             <>
-              <text x={0} y={boxes[0].y - 6} style={{ fontSize: 11.5, fontWeight: 800, fill: YEAR_COLOUR[2025] }}>
+              <text x={0} y={boxes[0].y - 6} style={{ fontSize: 11.5, fontWeight: 800, fill: YEAR_TEXT[2025] }}>
                 2025 · NumPy only
               </text>
-              <text x={0} y={boxes[3].y - 6} style={{ fontSize: 11.5, fontWeight: 800, fill: YEAR_COLOUR[2026] }}>
+              <text x={0} y={boxes[3].y - 6} style={{ fontSize: 11.5, fontWeight: 800, fill: YEAR_TEXT[2026] }}>
                 2026 · NumPy + PyTorch
               </text>
             </>
@@ -249,7 +260,7 @@ export default function FinalTaskMap() {
                   x={modX + modW / 2}
                   y={modY(i) + 4}
                   textAnchor="middle"
-                  style={{ fontSize: narrow ? 11.5 : 12, fontWeight: on ? 800 : 600, fill: on ? 'var(--ink)' : 'var(--ink-3)', textDecoration: on ? 'underline' : 'none' }}
+                  style={{ fontSize: narrow ? 11.5 : 12, fontWeight: on ? 800 : 600, fill: on ? 'var(--ink)' : 'var(--ink-2)', textDecoration: on ? 'underline' : 'none' }}
                 >
                   {narrow ? m.short : m.label}
                 </text>
@@ -268,7 +279,6 @@ export default function FinalTaskMap() {
                 aria-pressed={on}
                 aria-label={`${b.t.year} task: ${b.t.name}, ${b.t.marks} marks`}
                 onClick={() => setSel(b.t.id)}
-                onMouseEnter={() => setSel(b.t.id)}
                 onFocus={() => setSel(b.t.id)}
                 onKeyDown={onKey(b.t.id)}
                 style={{ cursor: 'pointer', outline: 'none' }}
@@ -286,7 +296,7 @@ export default function FinalTaskMap() {
                     {l}
                   </text>
                 ))}
-                <text x={b.x + 8} y={b.y + 18 + b.lines.length * 15 + 2} style={{ fontSize: 11.5, fontWeight: 700, fill: c }}>
+                <text x={b.x + 8} y={b.y + 18 + b.lines.length * 15 + 2} style={{ fontSize: 11.5, fontWeight: 700, fill: YEAR_TEXT[b.t.year] }}>
                   {b.t.marks} marks
                 </text>
               </g>
@@ -299,7 +309,7 @@ export default function FinalTaskMap() {
   )
 }
 
-const dtStyle: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-3)' }
+const dtStyle: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)' }
 
 function TaskCard({ task }: { task: Task }) {
   const c = YEAR_COLOUR[task.year]
@@ -308,7 +318,11 @@ function TaskCard({ task }: { task: Task }) {
       <div style={{ fontWeight: 800, color: 'var(--ink)' }}>
         NOAI {task.year} · {task.name} · {task.marks} marks
       </div>
-      <div>
+      <div style={{ color: 'var(--ink)' }}>
+        <span style={dtStyle}>In one line: </span>
+        {task.plain}
+      </div>
+      <div style={{ color: 'var(--ink-2)' }}>
         <span style={dtStyle}>What you write: </span>
         {task.what}
       </div>

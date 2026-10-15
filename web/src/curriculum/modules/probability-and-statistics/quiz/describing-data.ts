@@ -39,8 +39,8 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.describing-data.4',
     prompt: 'What does this code print?',
     code: 'import numpy as np\nimport pandas as pd\n\nx = [2, 4, 6]\nprint(np.var(x), pd.Series(x).var())',
-    options: ['`2.6666666666666665 4.0`', '`4.0 4.0`', '`2.6666666666666665 2.6666666666666665`', '`4.0 2.6666666666666665`'],
-    answer: 0,
+    options: ['`4.0 4.0`', '`2.6666666666666665 4.0`', '`2.6666666666666665 2.6666666666666665`', '`4.0 2.6666666666666665`'],
+    answer: 1,
     explanation:
       'The mean is 4 and the squared deviations are $4, 0, 4$, summing to 8. NumPy divides by $n$ by default: $8 \\div 3 \\approx 2.667$. pandas divides by $n - 1$ by default: $8 \\div 2 = 4.0$. The two libraries disagree unless you pass `ddof` explicitly.',
     difficulty: 'intermediate',
@@ -49,12 +49,12 @@ const questions: QuizQuestion[] = [
     id: 'probability-and-statistics.describing-data.5',
     prompt: 'Why does the variance square each deviation $x_i - \\bar{x}$ instead of simply averaging the deviations?',
     options: [
-      'The plain deviations always add up to zero, so their average is 0 for every data set',
+      'The plain deviations add up to the range, which only depends on the two extreme values',
       'Squaring keeps the result in the same units as the data, so it is easier to interpret',
       'Squaring shrinks the influence of points far from the mean, so the measure is more robust',
-      'The plain deviations add up to the range, which only depends on the two extreme values',
+      'The plain deviations always add up to zero, so their average is 0 for every data set',
     ],
-    answer: 0,
+    answer: 3,
     explanation:
       'The mean is the balance point, so the negative deviations exactly cancel the positive ones: $\\sum (x_i - \\bar{x}) = 0$ always. Squaring makes every term positive so nothing cancels. Squaring does the opposite of the other claims: it changes the units to units² (hence the square root for the SD) and it *magnifies* far-out points.',
     difficulty: 'beginner',

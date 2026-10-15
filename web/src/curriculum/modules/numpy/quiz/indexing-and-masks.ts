@@ -4,7 +4,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.indexing-and-masks.1',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\narr = np.arange(12).reshape(3, 4)\nprint(arr[:, 1])',
+    code: 'import numpy as np\narr = np.arange(12)\narr = arr.reshape(3, 4)\nprint(arr[:, 1])',
     options: ['`[1 5 9]`', '`[4 5 6 7]`', '`[[1] [5] [9]]` (a column of shape (3, 1))', '`[0 1 2 3]`'],
     answer: 0,
     explanation:

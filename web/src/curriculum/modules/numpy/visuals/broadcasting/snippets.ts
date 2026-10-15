@@ -11,7 +11,9 @@ mu = X.mean(axis=0)
 sd = X.std(axis=0)
 Z = (X - mu) / sd
 
-print(mu, sd)
+print(mu)
+print(sd)
 print(Z)
 # every column: mean 0, std 1
-print(Z.mean(axis=0), Z.std(axis=0))`
+print(Z.mean(axis=0))
+print(Z.std(axis=0))`

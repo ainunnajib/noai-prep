@@ -7,7 +7,7 @@ import { learningCurve, diagnose, type CurvePoint, type Diagnosis } from './curv
   Learning-curve clinic. A learning curve plots training error and validation error against the
   size of the training set. Pick a patient (high bias, high variance, good fit), read the curves,
   then try a remedy: more data, a bigger or simpler model, or more regularisation. Every curve is
-  recomputed from real fits (polynomials with a smoothness penalty, 60 random training sets per size).
+  recomputed from real fits (polynomials with a smoothness penalty, 60 random training sets per size, 30 for the 640-point curves).
   Aha: the shape of the gap tells you whether to collect data or change the model.
 */
 
@@ -132,7 +132,7 @@ export default function LearningCurveClinic() {
       title="Learning-curve clinic: diagnose, then treat"
       caption={
         <>
-          Each curve shows the typical training error (blue) and validation error (orange) after training on that many points, from 60 random
+          Each curve shows the typical training error (blue) and validation error (orange) after training on that many points, from 30 to 60 random
           training sets per size. Pick a patient, read the gap, then try the remedies. Notice that <b>more data</b> shrinks a variance gap but does
           nothing for high bias, while a <b>bigger model</b> rescues high bias (try it on the Good-fit patient to see it open a variance gap). Too
           much regularisation turns high variance into high bias.

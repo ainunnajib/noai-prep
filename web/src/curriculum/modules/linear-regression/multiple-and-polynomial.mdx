@@ -172,7 +172,7 @@ print("lstsq =", w_lstsq.round(3))
 print("pinv  =", (np.linalg.pinv(X) @ y).round(3))
 print("predictions:", (X @ w).round(2))`} />
 
-All four lines print `[2.559 0.849 0.183]`: a base fare of about 2.56 dollars, 85 cents per km and 18 cents per minute. In real code prefer `np.linalg.lstsq` or `np.linalg.solve`; computing an inverse explicitly is slower and less accurate.
+All four ways of finding `w` print `[2.559 0.849 0.183]`: a base fare of about 2.56 dollars, 85 cents per km and 18 cents per minute. In real code prefer `np.linalg.lstsq` or `np.linalg.solve`; computing an inverse explicitly is slower and less accurate.
 
 <Mistake title="Element-wise * is not matrix multiplication">
 
@@ -267,7 +267,7 @@ You can pick the degree with the lowest validation error, or keep a flexible mod
 
 Prelim questions on this topic are fast recall, so have these ready:
 - **Shapes:** $(a \times k)(k \times c) = a \times c$. $X$ is $n \times d$, $w$ is $d \times 1$, $X^\top X$ is $d \times d$.
-- **Normal equation:** $w = (X^\top X)^{-1}X^\top y$. It fails when $X^\top X$ is singular (duplicate or perfectly related features, or $d > n$); then use the pseudoinverse, drop a feature, or regularise.
+- **Normal equation:** $w = (X^\top X)^{-1}X^\top y.$ It fails when $X^\top X$ is singular (duplicate or perfectly related features, or $d > n$); then use the pseudoinverse, drop a feature, or regularise.
 - **$(X^\top X)^{-1}X^\top$ is the pseudoinverse** only when $X$ has full column rank.
 - **Polynomial regression is still linear regression**: linear in the weights.
 - **Closed form vs gradient descent:** closed form costs about $d^3$; gradient descent scales to huge $d$.

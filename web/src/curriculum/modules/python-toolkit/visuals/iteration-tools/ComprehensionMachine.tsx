@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Figure, Segmented, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
+import { Figure, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
+import { ChoiceGroup } from '../references-mutability/pyviz'
 import { CodePanel } from './CodePanel'
 import s from './it.module.css'
 
@@ -161,7 +162,7 @@ export default function ComprehensionMachine() {
 
           {/* machine: x -> gate -> expression -> value */}
           <rect x={m0} y={mY - 20} width={bx} height={40} rx={10} style={{ fill: 'color-mix(in srgb, var(--viz-1) 14%, var(--surface))', stroke: 'var(--viz-1)', strokeWidth: 2 }} />
-          <text x={m0 + bx / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-1)', fontSize: 11, fontWeight: 800 }}>
+          <text x={m0 + bx / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-1)', fontSize: 12, fontWeight: 800 }}>
             x
           </text>
           <text x={m0 + bx / 2} y={mY + 5} textAnchor="middle" className={s.svgMono} style={{ fill: 'var(--ink)', fontSize: 14, fontWeight: 800 }}>
@@ -172,7 +173,7 @@ export default function ComprehensionMachine() {
           <text x={gateX + gateW / 2} y={mY + 5} textAnchor="middle" className={s.svgMono} style={{ fill: hasFilter ? 'var(--viz-3)' : 'var(--viz-muted)', fontSize: 12, fontWeight: 800 }}>
             {hasFilter ? F.code.replace('if ', '') : 'no filter'}
           </text>
-          <text x={gateX + gateW / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-3)', fontSize: 11, fontWeight: 800 }}>
+          <text x={gateX + gateW / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-3)', fontSize: 12, fontWeight: 800 }}>
             gate
           </text>
           {cur >= 0 && hasFilter && (
@@ -185,12 +186,12 @@ export default function ComprehensionMachine() {
           <text x={exprX + exprW / 2} y={mY + 5} textAnchor="middle" className={s.svgMono} style={{ fill: 'var(--viz-2)', fontSize: 12.5, fontWeight: 800 }}>
             {E.code}
           </text>
-          <text x={exprX + exprW / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-2)', fontSize: 11, fontWeight: 800 }}>
+          <text x={exprX + exprW / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-2)', fontSize: 12, fontWeight: 800 }}>
             expression
           </text>
           {arrow(exprX + exprW, resX, mY, cur >= 0 && !!pass && ph === 1)}
           <rect x={resX} y={mY - 20} width={bx} height={40} rx={10} style={{ fill: 'var(--surface)', stroke: cur >= 0 && pass && ph === 1 ? 'var(--viz-pos)' : 'var(--rule)', strokeWidth: 2 }} />
-          <text x={resX + bx / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-pos)', fontSize: 11, fontWeight: 800 }}>
+          <text x={resX + bx / 2} y={mY + 36} textAnchor="middle" style={{ fill: 'var(--viz-pos)', fontSize: 12, fontWeight: 800 }}>
             value
           </text>
           <text x={resX + bx / 2} y={mY + 5} textAnchor="middle" className={s.svgMono} style={{ fill: 'var(--ink)', fontSize: 14, fontWeight: 800 }}>
@@ -235,9 +236,9 @@ export default function ComprehensionMachine() {
 
         <PlayerControls player={player} label={(st) => (st === 0 ? 'Start' : `Value ${Math.floor((st - 1) / 2) + 1} of ${n}`)} />
         <div className={s.row}>
-          <Segmented label="Expression" value={expr} onChange={setExpr} options={(Object.keys(EXPRS) as ExprKey[]).map((key) => ({ value: key, label: <span className={s.mono}>{EXPRS[key].code}</span> }))} />
-          <Segmented label="Filter" value={filt} onChange={setFilt} options={(Object.keys(FILTERS) as FiltKey[]).map((key) => ({ value: key, label: <span className={s.mono}>{FILTERS[key].code || 'none'}</span> }))} />
-          <Segmented label="Input" value={src} onChange={setSrc} options={[{ value: 'nums', label: <span className={s.mono}>nums</span> }, { value: 'range', label: <span className={s.mono}>range(6)</span> }]} />
+          <ChoiceGroup narrow={!wide} label="Expression" value={expr} onChange={setExpr} options={(Object.keys(EXPRS) as ExprKey[]).map((key) => ({ value: key, label: <span className={s.mono}>{EXPRS[key].code}</span> }))} />
+          <ChoiceGroup narrow={!wide} label="Filter" value={filt} onChange={setFilt} options={(Object.keys(FILTERS) as FiltKey[]).map((key) => ({ value: key, label: <span className={s.mono}>{FILTERS[key].code || 'none'}</span> }))} />
+          <ChoiceGroup narrow={!wide} label="Input" value={src} onChange={setSrc} options={[{ value: 'nums', label: <span className={s.mono}>nums</span> }, { value: 'range', label: <span className={s.mono}>range(6)</span> }]} />
         </div>
       </div>
     </Figure>

@@ -23,7 +23,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'numpy.from-scratch-patterns.3',
     prompt: 'Each entry of `r` is a true value minus your guess for it. What does this print?',
-    code: 'import numpy as np\n# each entry is y - guess\nr = np.array([2.5, -0.5, 0.0, 3.0])\nprint(np.sign(r))',
+    code: 'import numpy as np\n# each entry is y - guess\nr = np.array([2.5, -0.5,\n              0.0, 3.0])\nprint(np.sign(r))',
     options: ['`[ 1. -1.  0.  1.]`', '`[2.5 0.5 0.  3. ]`', '`[ 1. -1.  1.  1.]`', '`[1. 0. 0. 1.]`'],
     answer: 0,
     explanation:

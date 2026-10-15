@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Figure, Controls, Slider, Segmented, Button, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
+import { ChoiceGroup } from '../references-mutability/pyviz'
 import s from './it.module.css'
 
 /*
@@ -35,18 +36,16 @@ export default function ZipZipper() {
   const makeCmd = isZip ? 'z = zip(names, scores)' : mode === 'enum' ? 'z = enumerate(names)' : 'z = enumerate(names, start=1)'
   const objName = isZip ? 'zip' : 'enumerate'
 
-  const freshLog = (): Line[] => [
-    { cmd: makeCmd },
-    { cmd: 'print(z)', out: `<${objName} object at 0x…>`, note: 'a lazy iterator, not a list' },
-    { cmd: 'print(list(z))', out: listText },
-  ]
+  // At rest the diagram already shows the pairs zip will make, but the console has only created z:
+  // the learner's first print(list(z)) shows the pairs, and the second shows [].
+  const freshLog = (): Line[] => [{ cmd: makeCmd }]
   const [log, setLog] = useState<Line[]>(freshLog)
-  const [used, setUsed] = useState(true)
+  const [used, setUsed] = useState(false)
   const player = usePlayer({ steps: pairs + 1, interval: 520 })
 
   useEffect(() => {
     setLog(freshLog())
-    setUsed(true)
+    setUsed(false)
     player.setStep(pairs)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nNames, nScores, mode])
@@ -68,17 +67,19 @@ export default function ZipZipper() {
 
   // ---------- layout ----------
   const [ref, measured] = useContainerWidth<HTMLDivElement>(520)
+  const narrow = measured < 520
   const width = Math.max(300, Math.min(measured, 560))
   const charW = 7.6
   const chip = (t: string) => t.length * charW + 14
   const rows = Math.max(left.length, right.length)
   const rowH = 36
   const top = 30
-  const height = top + rows * rowH + 30
+  // room below the last row only when the pull tab parks there (every row has a partner)
+  const height = top + Math.max(rows * rowH + 6, pairs * rowH + 24)
   const lw = Math.max(...left.map(chip), 40)
   const rw = Math.max(...right.map(chip), 40)
   const tw = Math.max(...tuples.map(chip), 60)
-  const teeth = 34
+  const teeth = 40
   const arrowW = 24
   const total = lw + teeth + rw + arrowW + tw
   const x0 = Math.max(4, (width - total) / 2)
@@ -98,8 +99,8 @@ export default function ZipZipper() {
       caption={
         <>
           Change the lengths of the two lists and watch the zip close pair by pair: items without a partner are dropped. Switch to{' '}
-          <span className={s.mono}>enumerate</span> to get a counter instead of a second list. Then press <span className={s.mono}>print(list(z))</span> again: an iterator can
-          only be used once, so the second time it gives <span className={s.mono}>[]</span>.
+          <span className={s.mono}>enumerate</span> to get a counter instead of a second list. Then press <span className={s.mono}>print(list(z))</span> twice: an iterator can
+          only be used once, so the second time it gives <span className={s.mono}>[]</span>. Make a fresh <span className={s.mono}>z</span> to start again.
         </>
       }
     >
@@ -122,6 +123,9 @@ export default function ZipZipper() {
           </text>
           <text x={xP + tw / 2} y={16} textAnchor="middle" style={{ fill: 'var(--viz-3)', fontSize: 12, fontWeight: 800 }}>
             tuples
+          </text>
+          <text x={xT + teeth / 2} y={16} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 800 }}>
+            zip
           </text>
           {/* zipper tape */}
           <rect x={xT + 4} y={top - 4} width={teeth - 8} height={rows * rowH} rx={4} style={{ fill: 'var(--surface-2)' }} />
@@ -150,8 +154,8 @@ export default function ZipZipper() {
                   </g>
                 )}
                 {/* teeth: interlocked when this row is zipped, apart otherwise */}
-                <rect x={closed ? xT + 6 : xT + 2} y={midY - 9} width={(teeth - 8) / 2 + 2} height={7} rx={2} style={{ fill: hasL ? 'var(--viz-1)' : 'var(--rule)', transition: 'x 0.3s' }} />
-                <rect x={closed ? xT + teeth / 2 - 3 : xT + teeth / 2 + 1} y={midY + 2} width={(teeth - 8) / 2 + 2} height={7} rx={2} style={{ fill: hasR ? 'var(--viz-2)' : 'var(--rule)', transition: 'x 0.3s' }} />
+                <rect x={closed ? xT + 6 : xT + 2} y={midY - 10} width={(teeth - 8) / 2 + 2} height={9} rx={2} style={{ fill: hasL ? 'var(--viz-1)' : 'var(--rule)', transition: 'x 0.3s' }} />
+                <rect x={closed ? xT + teeth / 2 - 3 : xT + teeth / 2 + 1} y={midY + 1} width={(teeth - 8) / 2 + 2} height={9} rx={2} style={{ fill: hasR ? 'var(--viz-2)' : 'var(--rule)', transition: 'x 0.3s' }} />
                 {i < pairs ? (
                   <g style={{ opacity: closed ? 1 : 0, transition: 'opacity 0.3s' }}>
                     <line x1={xA + 4} y1={midY} x2={xP - 6} y2={midY} style={{ stroke: 'var(--ink-2)', strokeWidth: 1.5 }} />
@@ -171,8 +175,8 @@ export default function ZipZipper() {
           })}
           {/* the zip pull */}
           <g style={{ transform: `translateY(${pullY}px)`, transition: 'transform 0.45s ease' }}>
-            <rect x={xT + teeth / 2 - 9} y={0} width={18} height={12} rx={3} style={{ fill: 'var(--ink-2)' }} />
-            <rect x={xT + teeth / 2 - 4} y={11} width={8} height={14} rx={3} style={{ fill: 'var(--ink-2)' }} />
+            <rect x={xT + teeth / 2 - 11} y={0} width={22} height={13} rx={3} style={{ fill: 'var(--ink-2)' }} />
+            <rect x={xT + teeth / 2 - 5} y={12} width={10} height={16} rx={3} style={{ fill: 'var(--ink-2)' }} />
           </g>
         </svg>
 
@@ -193,26 +197,28 @@ export default function ZipZipper() {
             </span>
           ))}
         </pre>
-        <div className={s.row}>
-          <Button primary onClick={listAgain}>
-            <span className={s.mono}>print(list(z))</span>
-          </Button>
-          <Button onClick={() => push({ cmd: 'print(z)', out: `<${objName} object at 0x…>` })}>
-            <span className={s.mono}>print(z)</span>
-          </Button>
+        <div className={s.row} role="group" aria-label="Try in the console">
+          <span className={s.rowLabel}>Try in the console:</span>
           <Button onClick={remake}>
             <span className={s.mono}>{makeCmd}</span>
           </Button>
+          <Button onClick={() => push({ cmd: 'print(z)', out: `<${objName} object at 0x…>`, note: 'a lazy iterator, not a list' })}>
+            <span className={s.mono}>print(z)</span>
+          </Button>
+          <Button primary onClick={listAgain}>
+            <span className={s.mono}>print(list(z))</span>
+          </Button>
         </div>
         <PlayerControls player={player} label={(k) => `${k} of ${pairs} pairs zipped`} />
-        <Segmented
+        <ChoiceGroup
+          narrow={narrow}
           label="Function"
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'zip', label: <span className={s.mono}>zip(names, scores)</span> },
-            { value: 'enum', label: <span className={s.mono}>enumerate(names)</span> },
-            { value: 'enum1', label: <span className={s.mono}>enumerate(names, start=1)</span> },
+            { value: 'zip', label: <span className={s.mono}>zip(names, scores)</span>, short: <span className={s.mono}>zip</span> },
+            { value: 'enum', label: <span className={s.mono}>enumerate(names)</span>, short: <span className={s.mono}>enumerate</span> },
+            { value: 'enum1', label: <span className={s.mono}>enumerate(names, start=1)</span>, short: <span className={s.mono}>enumerate(start=1)</span> },
           ]}
         />
         <Controls>

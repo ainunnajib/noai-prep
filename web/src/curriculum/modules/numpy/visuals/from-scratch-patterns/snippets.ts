@@ -1,15 +1,16 @@
 /*
   Code kept here because MDX strips indentation inside JSX template literals.
-  Lines stay at 38 characters or fewer so that they fit a phone screen without scrolling.
+  Runnable lines stay at 33 characters or fewer so that they fit a 360 px phone without wrapping (the cheat sheet, shown without line numbers, allows 37).
 */
 
 /** Runnable K-means for the lesson's PyRunner (moves 1, 2, 3 and 5). */
 export const KMEANS_CODE = `import numpy as np
 
-X = np.array([[1.0, 1.0], [1.5, 2.0],
-              [3.0, 4.0], [5.0, 7.0],
-              [3.5, 5.0], [4.5, 5.0],
-              [3.5, 4.5]])
+X = np.array([
+    [1.0, 1.0], [1.5, 2.0],
+    [3.0, 4.0], [5.0, 7.0],
+    [3.5, 5.0], [4.5, 5.0],
+    [3.5, 4.5]])
 # start from the first two points
 C = X[:2].copy()
 
@@ -19,16 +20,17 @@ def assign(X, C):
     diff = A - B       # (7, 2, 2)
     sq = (diff ** 2).sum(axis=-1)
     D = np.sqrt(sq)    # (7, 2)
-    return D.argmin(axis=1)  # (7,)
+    # (7,): the nearest centroid
+    return D.argmin(axis=1)
 
 for step in range(3):
     labels = assign(X, C)
     for j in range(len(C)):
-        mask = labels == j
-        # empty cluster: keep old C[j]
-        if not mask.any():
+        pts = X[labels == j]
+        # empty: keep the old C[j]
+        if len(pts) == 0:
             continue
-        C[j] = X[mask].mean(axis=0)
+        C[j] = pts.mean(axis=0)
     print(step, labels)
     print(np.round(C, 4).tolist())`
 

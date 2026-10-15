@@ -14,11 +14,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'python-toolkit.functions.2',
     prompt: 'What does this code print?',
-    code: 'def double(x):\n    print(x * 2)\n\ny = double(4)\nprint(y)',
-    options: ['`8` and then `None`', '`8` and then `8`', '`None` and then `8`', 'Only `8`'],
+    code: 'def half(x):\n    print(x / 2)\n\nr = half(5)\nprint(r, r is None)',
+    options: ['`2.5`, then `None True`', '`2.5`, then `2.5 False`', '`2`, then `None True`', '`2.5`, then `None False`'],
     answer: 0,
     explanation:
-      "Calling `double(4)` runs `print(x * 2)`, which shows 8. The function has no `return`, so it hands back `None`, which is stored in `y` and printed by the last line. `print` displays a value; only `return` passes it back to the caller.",
+      "Calling `half(5)` runs `print(x / 2)`, which shows `2.5` (`/` always gives a float; `//` would give 2). The function has no `return`, so it hands back `None`, which is stored in `r`, and `r is None` is True. The second line could only be `2.5 False` if the function used `return x / 2`, and then nothing would be printed inside the function.",
     difficulty: 'beginner',
   },
   {

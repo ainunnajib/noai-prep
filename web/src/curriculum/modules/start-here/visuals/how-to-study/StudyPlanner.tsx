@@ -42,6 +42,11 @@ const PARTS = partList.map((p) => ({
 }))
 const LESSON_MIN = PARTS.reduce((s, p) => s + p.minutes, 0)
 
+/** small coloured text: mixed towards the ink colour so it passes contrast in light mode */
+const txt = (c: string) => `color-mix(in srgb, ${c} 65%, var(--ink))`
+/** round up to one decimal, so "aim for at least X" never shows a value that is still too low */
+const up1 = (v: number) => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1)
+
 function thisWeek() {
   const sg = new Date(Date.now() + 8 * 3600000)
   const d = Math.floor((Date.UTC(sg.getUTCFullYear(), sg.getUTCMonth(), sg.getUTCDate()) - BASE) / DAY)
@@ -49,7 +54,8 @@ function thisWeek() {
 }
 
 export default function StudyPlanner() {
-  const [startWk, setStartWk] = useState(thisWeek)
+  const [minWk] = useState(thisWeek)
+  const [startWk, setStartWk] = useState(minWk)
   const [hpw, setHpw] = useState(5.5)
   const [mult, setMult] = useState(1.5)
   const [ref, measured] = useContainerWidth<HTMLDivElement>(640)
@@ -90,14 +96,15 @@ export default function StudyPlanner() {
       { a: Math.max(a, PRELIM_D), b, c: 'var(--viz-neg)' },
     ].filter((s) => s.b > s.a)
 
+  const canStartEarlier = startWk > minWk
   const msg =
     status === 'ok'
       ? `On track: you finish the lessons in the week of ${fmt(Math.floor(finishD / 7) * 7)}, leaving the last two weeks before the Prelim for mock exams.`
       : status === 'tight'
-        ? `Tight: you finish around ${fmt(Math.round(finishD))}, eating into the two weeks you need for mocks. Aim for at least ${needH.toFixed(1)} hours a week.`
+        ? `Tight: you finish around ${fmt(Math.round(finishD))}, eating into the two weeks you need for mocks. Aim for at least ${up1(needH)} hours a week.`
         : needH > 25
-          ? `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}, and no realistic weekly load can fix that. Start earlier, or cover the parts you know least first and skim the rest.`
-          : `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}. Start earlier, or aim for at least ${needH.toFixed(1)} hours a week.`
+          ? `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}, and no realistic weekly load can fix that. ${canStartEarlier ? 'Start earlier, or cover' : 'Cover'} the parts you know least first and skim the rest.`
+          : `Too late: the plan runs past the Prelim (${fmt(PRELIM_D)}) to about ${fmt(Math.round(finishD))}. ${canStartEarlier ? 'Start earlier, or aim' : 'Aim'} for at least ${up1(needH)} hours a week${canStartEarlier ? '' : ', or skim the parts you already know'}.`
   const msgColour = status === 'ok' ? 'var(--ok)' : status === 'tight' ? 'var(--warn)' : 'var(--bad)'
   const msgSoft = status === 'ok' ? 'var(--ok-soft)' : status === 'tight' ? 'var(--warn-soft)' : 'var(--bad-soft)'
 
@@ -108,14 +115,15 @@ export default function StudyPlanner() {
         <>
           Each bar is one part of this course, sized by its lesson time × your practice multiplier. Slide your <strong>start week</strong> and <strong>hours per week</strong>: the
           bars stretch and squeeze. Blue lessons finish before the mock fortnight; orange eats into it; red runs past the Prelim. The lower chart shows why starting early matters:
-          the hours you need each week shoot up as the start slides towards February. Drag its dot to move your start.
+          the hours you need each week shoot up as the start slides towards February. Drag its dot to move your start. (The last bar is drawn last to keep the chart simple,
+          but start its Final labs in January, one task a week, alongside the other parts.)
         </>
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
         <svg className="plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Study plan: ${Math.round(totalH)} hours at ${hpw} hours a week from ${fmt(startD)}, finishing ${fmt(Math.round(finishD))}. ${msg}`}>
           {/* mock fortnight and exam lines */}
-          <rect x={X(MOCKS_D)} y={top - 4} width={X(PRELIM_D) - X(MOCKS_D)} height={PARTS.length * rowH + 8} style={{ fill: 'color-mix(in srgb, var(--viz-2) 14%, transparent)' }} />
+          <rect x={X(MOCKS_D)} y={top - 4} width={X(PRELIM_D) - X(MOCKS_D)} height={PARTS.length * rowH + 8} style={{ fill: 'color-mix(in srgb, var(--viz-2) 20%, transparent)' }} />
           {months.map((m) => (
             <g key={m.d}>
               <line x1={X(m.d)} x2={X(m.d)} y1={top - 4} y2={top + PARTS.length * rowH + 4} style={{ stroke: 'var(--viz-grid)', strokeWidth: 1 }} />
@@ -125,18 +133,18 @@ export default function StudyPlanner() {
             </g>
           ))}
           {[
-            { d: PRELIM_D, name: 'Prelim', c: 'var(--viz-1)', anchor: 'end' as const, dx: -3 },
+            { d: PRELIM_D, name: 'Prelim', c: 'var(--viz-ink)', anchor: 'end' as const, dx: -3 },
             { d: FINAL_D, name: 'Final', c: 'var(--viz-3)', anchor: 'start' as const, dx: 3 },
             { d: NTU_D, name: narrow ? 'NTU' : 'NTU test', c: 'var(--viz-5)', anchor: 'end' as const, dx: -3 },
           ].map((e) => (
             <g key={e.name}>
               <line x1={X(e.d)} x2={X(e.d)} y1={top - 8} y2={top + PARTS.length * rowH + 6} style={{ stroke: e.c, strokeWidth: 2 }} />
-              <text x={X(e.d) + e.dx} y={top - 10} textAnchor={e.anchor} style={{ fill: e.c, fontSize: 11.5, fontWeight: 800 }}>
+              <text x={X(e.d) + e.dx} y={top - 10} textAnchor={e.anchor} style={{ fill: txt(e.c), fontSize: 11.5, fontWeight: 800 }}>
                 {e.name}
               </text>
             </g>
           ))}
-          <text x={(X(MOCKS_D) + X(PRELIM_D)) / 2} y={H - 2} textAnchor="middle" style={{ fill: 'var(--viz-2)', fontSize: 10.5, fontWeight: 700 }}>
+          <text x={(X(MOCKS_D) + X(PRELIM_D)) / 2} y={H - 2} textAnchor="middle" style={{ fill: txt('var(--viz-2)'), fontSize: 10.5, fontWeight: 700 }}>
             mocks
           </text>
           {/* start line */}
@@ -163,7 +171,7 @@ export default function StudyPlanner() {
         </svg>
       </div>
       <Controls>
-        <Slider label="start in the week of" value={startWk} min={0} max={MAX_START_WK} step={1} onChange={setStartWk} format={(v) => fmt(v * 7)} />
+        <Slider label="start in the week of" value={startWk} min={minWk} max={MAX_START_WK} step={1} onChange={setStartWk} format={(v) => fmt(v * 7)} />
         <Slider label="hours per week" value={hpw} min={2} max={15} step={0.5} onChange={setHpw} format={(v) => `${v} h`} />
       </Controls>
       <Controls>
@@ -185,7 +193,7 @@ export default function StudyPlanner() {
         items={[
           ['study time', `${(LESSON_MIN / 60).toFixed(0)} h of lessons × ${mult} = ${totalH.toFixed(0)} h`],
           ['weeks before the mocks', weeksAvail.toFixed(1)],
-          ['hours a week needed', needH.toFixed(1)],
+          ['hours a week needed', up1(needH)],
         ]}
       />
       <div style={{ width: '100%', display: 'grid', gap: '0.2rem' }}>
@@ -197,7 +205,7 @@ export default function StudyPlanner() {
           height={210}
           minHeight={190}
           margin={{ left: 40, right: 14, top: 12, bottom: 32 }}
-          ariaLabel={`Hours a week needed against start week. Starting the week of ${fmt(startD)} needs ${needH.toFixed(1)} hours a week.`}
+          ariaLabel={`Hours a week needed against start week. Starting the week of ${fmt(startD)} needs ${up1(needH)} hours a week.`}
         >
           <Grid xTicks={8} yTicks={6} />
           <Axes xLabel={narrow ? 'start week' : 'week you start'} yLabel="hours a week" hideXTicks yTicks={6} />
@@ -208,19 +216,21 @@ export default function StudyPlanner() {
           ))}
           <FnPath f={(w) => totalH / ((MOCKS_D - w * 7) / 7)} color="var(--viz-4)" width={2.6} />
           <HLine y={hpw} color="var(--viz-1)" dash="5 4" width={1.5} label={`you: ${hpw} h a week`} />
-          <Label x={startWk} y={Math.min(29, needH)} dx={startWk > MAX_START_WK - 3 ? -12 : 12} dy={-10} anchor={startWk > MAX_START_WK - 3 ? 'end' : 'start'} color="var(--viz-4)" size={12} weight={800}>
-            {`${needH.toFixed(1)} h`}
+          <Label x={startWk} y={Math.min(29, needH)} dx={startWk > MAX_START_WK - 3 ? -12 : 12} dy={-10} anchor={startWk > MAX_START_WK - 3 ? 'end' : 'start'} color={txt('var(--viz-4)')} size={12} weight={800}>
+            {`${up1(needH)} h`}
           </Label>
+          <g role="group" aria-label="Start week marker: use the arrow keys to move your start week">
           <DraggablePoint
             x={startWk}
             y={Math.min(30, needH)}
             color="var(--viz-4)"
             constrain={(x) => {
-              const w = Math.max(0, Math.min(MAX_START_WK, Math.round(x)))
+              const w = Math.max(minWk, Math.min(MAX_START_WK, Math.round(x)))
               return [w, Math.min(30, totalH / ((MOCKS_D - w * 7) / 7))]
             }}
-            onChange={(x) => setStartWk(Math.max(0, Math.min(MAX_START_WK, Math.round(x))))}
+            onChange={(x) => setStartWk(Math.max(minWk, Math.min(MAX_START_WK, Math.round(x))))}
           />
+          </g>
         </Plot>
       </div>
     </Figure>

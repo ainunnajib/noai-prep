@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      "A dict stores each key in the slot given by its hash. If a key could be changed after being stored, its hash would change and Python would look in the wrong slot, so Python only accepts immutable (hashable) keys: `{[2, 3]: 1}` raises `TypeError: unhashable type: 'list'`. Lists are ordered too, and duplicates inside a key are fine, e.g. the key `(2, 2)`.",
+      "A dict stores each key in the slot given by its hash. If a key could be changed after being stored, its hash would change and Python would look in the wrong slot, so Python only accepts **hashable** keys: `{[2, 3]: 1}` raises `TypeError: unhashable type: 'list'`. A tuple is hashable only if everything inside it is, so `(2, [3])` would fail too. Lists are ordered as well, and duplicates inside a key are fine, e.g. the key `(2, 2)`.",
     difficulty: 'intermediate',
   },
   {

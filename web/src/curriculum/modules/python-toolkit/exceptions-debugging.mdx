@@ -44,10 +44,12 @@ ZeroDivisionError: division by zero
 ## The common exceptions
 
 <Analogy title="Dashboard warning lights">
+
 A car's dashboard has a different light for each problem: oil, battery, tyre pressure. A driver who knows the symbols knows where to look before even opening the bonnet. Exception names work the same way.
+
 </Analogy>
 
-- **`IndexError`**: a position out of range, e.g. `nums[3]` when `nums` has 3 items.
+- **`IndexError`**: a position out of range, e.g. `nums[3]` or `nums[-4]` when `nums` has 3 items.
 - **`KeyError`**: a dictionary key that isn't there, e.g. `d["teh"]` when `"teh"` was never added.
 - **`TypeError`**: the wrong **type** for the operation, e.g. `"Score: " + 90` or `len(42)`.
 - **`ValueError`**: the right type but a bad **value**, e.g. `int("abc")`.
@@ -60,7 +62,9 @@ The pair that trips people up is `TypeError` versus `ValueError`. Ask: **could a
 <ExceptionZoo />
 
 <KeyIdea>
-The exception's name is the first clue: `IndexError` means "a position past the end" (very often an off-by-one), `KeyError` means "a missing dict key", `TypeError` means "wrong kind of object", `ValueError` means "right kind, unusable value".
+
+The exception's name is the first clue: `IndexError` means "a position outside the valid range": 0 to n − 1, or −1 to −n counting from the end (very often an off-by-one), `KeyError` means "a missing dict key", `TypeError` means "wrong kind of object", `ValueError` means "right kind, unusable value".
+
 </KeyIdea>
 
 <QuickCheck
@@ -83,7 +87,9 @@ The exception's name is the first clue: `IndexError` means "a position past the 
 Some errors are expected: a user types "abc" where a number belongs, or a data file has a bad row. Instead of crashing, you can **handle** the exception.
 
 <Analogy title="Sports day wet-weather plan">
+
 Try to hold sports day on the field. If it rains, fall back to the hall. If it doesn't rain, hand out the medals outdoors. Either way, the chairs get packed up at the end.
+
 </Analogy>
 
 ```python
@@ -100,14 +106,18 @@ finally:
 The rules, in order:
 
 1. The `try` block runs. If a line raises an exception, the rest of the `try` block is **abandoned** at once.
-2. Python checks the `except` clauses **from top to bottom** and runs the **first** one whose type matches. At most one `except` block runs.
+2. Python checks the `except` clauses **from top to bottom** and runs the **first** one that matches. At most one `except` block runs. An `except` clause matches its own exception type **and every type that inherits from it**: `ZeroDivisionError` is a kind of `ArithmeticError`, and almost every exception is a kind of `Exception`, so `except Exception:` catches almost everything. Put specific handlers before general ones.
 3. `else` runs only if the `try` block finished with no exception at all.
 4. `finally` runs **every time**: after success, after a handled error, and even when an unhandled error is about to stop the program.
 5. If no `except` matches, the exception carries on outwards (after `finally` runs) and, if nothing else catches it, the program crashes.
 
 <TryExceptFlow />
 
-`else` and `finally` are optional; a `try` needs at least one `except` or a `finally`. Python's keyword is `except`, not `catch` (that is Java and JavaScript). And every block needs at least one real statement: a block containing only a comment is a `SyntaxError`, so write `pass` for an intentionally empty block.
+`else` and `finally` are optional; a `try` needs at least one `except` or a `finally`. Python's keyword is `except`, not `catch` (that is Java and JavaScript). And every block needs at least one real statement: a block containing only a comment is a `SyntaxError` (an `IndentationError`, to be exact), so write `pass` for an intentionally empty block.
+
+<PastPaperQuestion paper="prelim2026" n={86} />
+
+In MCQs like this one, `# code` and `# handle` stand for real statements. Judge the structure, which is correct: `try` followed by `except` is complete on its own.
 
 <QuickCheck
   id="exceptions-debugging.qc2"
@@ -129,6 +139,42 @@ The rules, in order:
   ]}
   answer={3}
   explain="With `x = 2`, `10 // 2` prints `5`, nothing is raised, and `finally` prints `end`. With `x = 0`, `10 // 0` raises `ZeroDivisionError`, the `except` block prints `zero`, and `finally` prints `end` again. `finally` runs on every pass, error or not."
+/>
+
+One `except` can handle several types at once if you list them in a tuple, and `as e` gives you the exception object, whose message you can print:
+
+```python
+for text in ["abc", "0"]:
+    try:
+        print(10 / int(text))
+    except (ValueError, ZeroDivisionError) as e:
+        print("Problem:", e)
+```
+
+```text
+Problem: invalid literal for int() with base 10: 'abc'
+Problem: division by zero
+```
+
+<QuickCheck
+  id="exceptions-debugging.qc3"
+  q="What does this print?"
+  code={[
+    "try:",
+    "    int(\"abc\")",
+    "except Exception:",
+    "    print(\"general\")",
+    "except ValueError:",
+    "    print(\"value\")",
+  ].join("\n")}
+  options={[
+    '`general`',
+    '`value`',
+    '`general`, then `value`',
+    'Nothing: it is a `SyntaxError`',
+  ]}
+  answer={0}
+  explain={"`int(\"abc\")` raises `ValueError`, and `ValueError` is a kind of `Exception`, so the first clause already matches and prints `general`. Only one `except` block ever runs, so the `except ValueError:` below it can never be reached. Python allows this order without any error; it is simply a bug. Put the specific handler first."}
 />
 
 Here is a realistic use: cleaning messy input without stopping at the first bad value. Run it, then add `"5.5"` to the list and predict what happens.
@@ -155,7 +201,8 @@ def set_learning_rate(lr):
 ```
 
 <Mistake title="A bare except hides real bugs">
-`except:` with no type (or `except Exception:`) catches **everything**, including mistakes you never meant to allow:
+
+A bare `except:` with no type catches **everything**, even pressing Ctrl+C to stop the program. `except Exception:` catches almost everything. Both catch mistakes you never meant to allow:
 
 ```python
 try:
@@ -165,6 +212,7 @@ except:
 ```
 
 The misspelt `proces` raises a `NameError`, but the bare `except` swallows it. The program keeps running with `result = None`, and the typo surfaces much later as a confusing failure somewhere else. Catch only the exceptions you expect, such as `except ValueError:`, and let real bugs crash loudly where they happen.
+
 </Mistake>
 
 ## Debugging systematically
@@ -172,7 +220,9 @@ The misspelt `proces` raises a `NameError`, but the bare `except` swallows it. T
 Not every bug raises an exception. The worst ones run quietly and give a wrong answer. For those, guessing and randomly changing code wastes time. Use a routine instead.
 
 <Analogy title="A doctor's diagnosis">
+
 A good doctor doesn't prescribe at random. They note the symptoms, run tests, and narrow the possible causes down until only one is left, and only then treat it.
+
 </Analogy>
 
 <Steps title="A five-step debugging routine">
@@ -214,19 +264,25 @@ AssertionError: X and y must have the same length
 ```
 
 <Note title="Print debugging cannot help with a SyntaxError">
+
 A `SyntaxError` (a missing colon, an unclosed bracket, a block containing only a comment) is found **before** the program starts, so none of your `print` calls ever run. Read the message instead: Python points at the problem with a `^`.
+
 </Note>
 
 <PastPaperQuestion paper="prelim2026" n={127} />
 
 <ExamTip>
-NOAI asks this topic in three ways. First, **name the cause**: match the exception name to its family (`IndexError` → index ≥ length, often off-by-one). Second, **spot correct handling**: `try` followed by `except` is complete on its own; `else` and `finally` are optional; `catch` is not Python. Third, **find the faulty line** in a short snippet: check loop ranges (`range(1, n)`, `range(n + 1)`), `=` versus `==`, and indentation (is the `return` inside the loop by mistake?).
+
+NOAI asks this topic in three ways. First, **name the cause**: match the exception name to its family (`IndexError` → index outside 0 to n − 1, often off-by-one). Second, **spot correct handling**: `try` followed by `except` is complete on its own; `else` and `finally` are optional; `catch` is not Python. Third, **find the faulty line** in a short snippet: check loop ranges (`range(1, n)`, `range(n + 1)`), `=` versus `==`, and indentation (is the `return` inside the loop by mistake?).
+
 </ExamTip>
 
 <Takeaways>
+
 - Read a traceback from the bottom: exception type and message, then the failing line, then upwards to see how you got there.
-- `IndexError` = position too big, `KeyError` = missing key, `TypeError` = wrong type, `ValueError` = right type but bad value, `ZeroDivisionError` = dividing by 0.
-- In `try`/`except`/`else`/`finally`, the first matching `except` runs, `else` runs only if there was no error, and `finally` always runs.
+- `IndexError` = position outside the valid range (too big, or too negative), `KeyError` = missing key, `TypeError` = wrong type, `ValueError` = right type but bad value, `ZeroDivisionError` = dividing by 0.
+- In `try`/`except`/`else`/`finally`, the first matching `except` runs (a parent type such as `Exception` matches its children too), `else` runs only if there was no error, and `finally` always runs.
 - Catch specific exceptions; a bare `except:` hides real bugs.
 - Debug with a routine: reproduce, read, print or assert intermediate values, halve the suspect code, fix one thing and re-test.
+
 </Takeaways>

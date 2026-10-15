@@ -50,7 +50,7 @@ const DECODE: Piece[] = [
   { tex: '\\theta', key: 'd8', desc: 'θ (theta) = (θ₀, θ₁, θ₂) = (20, 5, 4): the parameters, the numbers the model learns. Some books call them w (weights) and b (bias).', hl: { theta: [0, 1, 2] } },
 ]
 
-function formulaPieces(f: Formula, i: number, j: number): { pieces: Piece[]; worked: string } {
+function formulaPieces(f: Formula, i: number, j: number): { pieces: Piece[]; worked: string; note?: string } {
   const r = i - 1
   const c = j - 1
   if (f === 'mean') {
@@ -82,7 +82,8 @@ function formulaPieces(f: Formula, i: number, j: number): { pieces: Piece[]; wor
         { tex: '\\theta_2', key: 't2', desc: 'θ₂ = 4: the learned weight for feature 2 (4 marks per hour of sleep).', hl: { theta: [2] } },
         { tex: `x_2^{(${i})}`, key: 'x2', desc: `x₂⁽${i}⁾ = ${row[1]}: feature 2 (sleep hours) of example ${i}.`, hl: { cells: [[r, 1]] } },
       ],
-      worked: `= 20 + 5 \\times ${row[0]} + 4 \\times ${row[1]} = ${pred} \\quad (\\text{true } y^{(${i})} = ${row[2]})`,
+      worked: `= 20 + 5 \\times ${row[0]} + 4 \\times ${row[1]} = ${pred}`,
+      note: `(\\text{true } y^{(${i})} = ${row[2]})`,
     }
   }
   const sq = DATA.map((row) => (row[3] - row[2]) ** 2)
@@ -132,7 +133,7 @@ export default function NotationDecoder() {
   const [j, setJ] = useState(2)
   const [hover, setHover] = useState<string | null>(null)
 
-  const { pieces, worked } = formulaPieces(formula, i, j)
+  const { pieces, worked, note } = formulaPieces(formula, i, j)
   const all = [...pieces, ...DECODE]
   const hovered = hover ? all.find((p) => p.key === hover) : undefined
   const hl: Hl = hovered?.hl ?? union(pieces)
@@ -191,8 +192,16 @@ export default function NotationDecoder() {
           ),
         )}
       </div>
-      <div style={{ fontSize: '1rem', maxWidth: '100%', overflowX: 'auto' }}>
+      <div style={{ fontSize: '1rem', maxWidth: '100%', overflowX: 'auto', textAlign: 'center' }}>
         <M>{worked}</M>
+        {note && (
+          <>
+            {' '}
+            <span style={{ display: 'inline-block', whiteSpace: 'nowrap', marginLeft: '0.5em' }}>
+              <M>{note}</M>
+            </span>
+          </>
+        )}
       </div>
 
       <div style={{ width: '100%', overflowX: 'auto' }}>

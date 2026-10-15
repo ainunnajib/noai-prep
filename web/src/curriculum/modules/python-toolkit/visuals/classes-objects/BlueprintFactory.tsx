@@ -64,9 +64,12 @@ export default function BlueprintFactory() {
   }
 
   const building = build && build.step < 3
-  const active = building ? [build!.step + 2] : build ? [] : [7]
+  const active = building ? [build!.step + 2] : build ? [] : [6, 7]
   const o = objs[sel]
   const shownRows = (i: number) => (build && build.idx === i ? build.step : 3)
+  // while __init__ is still filling the selected object, inspect `self` instead of the finished s3
+  const inBuild = Boolean(building && build!.idx === sel)
+  const buildRows = inBuild ? build!.step : 3
 
   const card = (selected: boolean, fresh: boolean): CSSProperties => ({
     textAlign: 'left',
@@ -105,7 +108,7 @@ export default function BlueprintFactory() {
               </>
             ) : (
               <>
-                Line 7 is the method <code>passed</code>. It works for any object, because <code>self</code> is whichever object you call it on.
+                Lines 6 and 7 are the method <code>passed</code>. It works for any object, because <code>self</code> is whichever object you call it on.
               </>
             )}
           </div>
@@ -146,6 +149,29 @@ export default function BlueprintFactory() {
               )
             })}
           </div>
+          {inBuild ? (
+            <div style={{ border: '1px solid var(--rule)', borderRadius: 10, padding: '0.5rem 0.7rem', background: 'var(--surface-2)', fontSize: 14, lineHeight: 1.55 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                Inside <code>__init__</code>: <code>self</code> is the object being built
+              </div>
+              <div style={{ fontFamily: MONO, fontSize: 13.5, minHeight: '3.2em' }}>
+                {buildRows === 0 && <div style={{ color: 'var(--ink-3)', fontStyle: 'italic', fontFamily: 'var(--font-body)' }}>no attributes yet</div>}
+                {buildRows >= 1 && (
+                  <div>
+                    self.name <span style={{ color: 'var(--ink-3)' }}>→</span> '{o.name}'
+                  </div>
+                )}
+                {buildRows >= 2 && (
+                  <div>
+                    self.score <span style={{ color: 'var(--ink-3)' }}>→</span> {o.score}
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: 6, color: 'var(--ink-2)', fontSize: 13.5 }}>
+                The name <code>{o.v}</code> does not exist yet: it is pointed at this object only when <code>__init__</code> has finished.
+              </div>
+            </div>
+          ) : (
           <div style={{ border: '1px solid var(--rule)', borderRadius: 10, padding: '0.5rem 0.7rem', background: 'var(--surface-2)', fontSize: 14, lineHeight: 1.55 }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>
               Inspecting <code>{o.v}</code>
@@ -167,6 +193,7 @@ export default function BlueprintFactory() {
               {o.score} &gt;= 50 is {o.score >= 50 ? 'True' : 'False'}.
             </div>
           </div>
+          )}
         </div>
       </div>
       <Controls>

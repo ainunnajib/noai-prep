@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Figure, Controls, Slider, Segmented, Toggle, Button, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Slider, Toggle, Button, useContainerWidth } from '../../../../../kit'
+import { ChoiceGroup } from '../references-mutability/pyviz'
 import { CodePanel } from './CodePanel'
 import s from './fn.module.css'
 
@@ -131,7 +132,7 @@ export default function FunctionMachine() {
                 {pr.v}
               </text>
               {pr.dflt && (
-                <text x={x + 34} y={tokenY + 4} style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
+                <text x={x + 34} y={tokenY + 4} style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
                   default
                 </text>
               )}
@@ -158,13 +159,13 @@ export default function FunctionMachine() {
       <text x={scrX + screenW / 2} y={bodyTop + 47} textAnchor="middle" className={s.svgMono} style={{ fill: 'var(--ink)', fontSize: 13, fontWeight: 800 }}>
         {mode === 'print' && phase >= 2 ? valueText : ''}
       </text>
-      <text x={scrX + screenW / 2} y={bodyTop + 80} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
+      <text x={scrX + screenW / 2} y={bodyTop + 80} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
         screen
       </text>
 
       {/* chute */}
       <path d={`M${cx - 20},${chuteTop} L${cx - 20},${resultY} M${cx + 20},${chuteTop} L${cx + 20},${resultY}`} style={{ stroke: 'var(--ink-2)', strokeWidth: 2 }} />
-      <text x={cx + 28} y={chuteTop + 22} style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
+      <text x={cx + 28} y={chuteTop + 22} style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
         output chute
       </text>
 
@@ -235,8 +236,8 @@ export default function FunctionMachine() {
         )}
 
         <div className={s.row}>
-          <Segmented label="Machine" value={machine} onChange={change(setMachine)} options={[{ value: 'area', label: <span className={s.mono}>area(w, h)</span> }, { value: 'update', label: <span className={s.mono}>update(w, grad, lr=0.1)</span> }]} />
-          <Segmented label="Body" value={mode} onChange={change(setMode)} options={[{ value: 'return', label: <span className={s.mono}>return</span> }, { value: 'print', label: <span className={s.mono}>print</span> }]} />
+          <ChoiceGroup narrow={measured < 520} label="Machine" value={machine} onChange={change(setMachine)} options={[{ value: 'area', label: <span className={s.mono}>area(w, h)</span> }, { value: 'update', label: <span className={s.mono}>update(w, grad, lr=0.1)</span>, short: <span className={s.mono}>update(…)</span> }]} />
+          <ChoiceGroup narrow={measured < 520} label="Body" value={mode} onChange={change(setMode)} options={[{ value: 'return', label: <span className={s.mono}>return</span> }, { value: 'print', label: <span className={s.mono}>print</span> }]} />
         </div>
         <Controls>
           {isArea ? (

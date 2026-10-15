@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 2,
     explanation:
-      '`int()` accepts strings, so `"abc"` has an acceptable **type**; only its **value** is unusable, giving `ValueError`. No `None` value could ever be converted, so the type itself is wrong: `TypeError`. Both can be caught with `try`/`except`, and `int(3.5)` shows the first option is false: a float is not a string, yet it raises nothing.',
+      '`int()` accepts strings, so `"abc"` has an acceptable **type**; only its **value** is unusable, giving `ValueError`. No `None` value could ever be converted, so the type itself is wrong: `TypeError`. Both can be caught with `try`/`except`. And `int(3.5)` shows that the claim "`TypeError` for any argument that is not a string" is false: a float is not a string, yet `int(3.5)` raises nothing and returns 3.',
     difficulty: 'intermediate',
   },
   {
@@ -60,7 +60,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'No exception is raised, so `try`/`except` has nothing to catch. Printing intermediate values shows which items are actually added: here `i` takes only the values 1 and 2, so `nums[0]` is skipped and the total is $8 + 6 = 14$, giving $14 / 3 \\approx 4.67$. Rounding would hide the bug, and rewriting everything throws away the chance to learn the cause.',
+      'No exception is raised, so `try`/`except` has nothing to catch. Printing intermediate values shows which items are actually added. For example, in the bug hunt in this lesson, printing `i` showed only the values 1 and 2, so `nums[0]` was skipped and the total was $8 + 6 = 14$, giving $14 / 3 \\approx 4.67$. Rounding would hide the bug, and rewriting everything throws away the chance to learn the cause.',
     difficulty: 'beginner',
   },
 ]

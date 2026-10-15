@@ -94,10 +94,15 @@ const CARDS: Card[] = [
 
 type Guess = 'mut' | 'imm'
 
+/** The list card starts sorted as a worked example; it is not counted in the learner's score. */
+const EXAMPLE = 'list'
+
 export default function MutabilitySorter() {
-  const [guesses, setGuesses] = useState<Record<string, Guess>>({ list: 'mut' })
+  const [guesses, setGuesses] = useState<Record<string, Guess>>({ [EXAMPLE]: 'mut' })
   const sorted = CARDS.filter((c) => guesses[c.type])
-  const correct = sorted.filter((c) => (guesses[c.type] === 'mut') === c.mutable).length
+  const scored = sorted.filter((c) => c.type !== EXAMPLE)
+  const correct = scored.filter((c) => (guesses[c.type] === 'mut') === c.mutable).length
+  const label = (c: Card) => (c.mutable ? 'mutable' : 'immutable')
 
   return (
     <Figure
@@ -105,8 +110,8 @@ export default function MutabilitySorter() {
       caption={
         <>
           For each card, decide whether the type is mutable or immutable. Your choice runs the code on the card, so you see Python either change the object
-          or refuse with a <span className={s.mono}>TypeError</span>. Notice the pattern in the last line of each card too: only immutable objects can be dictionary
-          keys.
+          or refuse with a <span className={s.mono}>TypeError</span>. The list card is done for you as an example. Notice the pattern in the last line of each card too: only
+          hashable objects can be dictionary keys, and of these six types that means the immutable ones.
         </>
       }
     >
@@ -119,12 +124,20 @@ export default function MutabilitySorter() {
               <div key={c.type} className={`${s.card} ${g ? (c.mutable ? s.cardMut : s.cardImm) : ''}`}>
                 <div className={s.cardHead}>
                   <span className={s.typeName}>{c.type}</span>
-                  {g && (
-                    <span className={s.verdict} style={{ color: right ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>
-                      {right ? '✓ ' : '✗ '}
-                      {c.mutable ? 'mutable' : 'immutable'}
-                    </span>
-                  )}
+                  {g &&
+                    (c.type === EXAMPLE ? (
+                      <span className={s.verdict} style={{ color: 'var(--ink-2)' }}>
+                        example: {label(c)}
+                      </span>
+                    ) : right ? (
+                      <span className={s.verdict} style={{ color: 'var(--viz-pos)' }}>
+                        ✓ {label(c)}
+                      </span>
+                    ) : (
+                      <span className={s.verdict}>
+                        <span style={{ color: 'var(--viz-neg)' }}>✗ Not quite:</span> <span style={{ color: 'var(--ink)' }}>{c.type} is {label(c)}</span>
+                      </span>
+                    ))}
                 </div>
                 <pre className={s.cardCode}>
                   {c.setup}
@@ -205,11 +218,11 @@ export default function MutabilitySorter() {
         <div className={s.row} style={{ justifyContent: 'space-between' }}>
           <Readout
             items={[
-              ['sorted', `${sorted.length} of ${CARDS.length}`],
-              ['your sorts correct', `${correct} of ${sorted.length}`],
+              ['you have sorted', `${scored.length} of ${CARDS.length - 1}`],
+              ['correct', `${correct} of ${scored.length}`],
             ]}
           />
-          <Button onClick={() => setGuesses({ list: 'mut' })}>Reset</Button>
+          <Button onClick={() => setGuesses({ [EXAMPLE]: 'mut' })}>Reset</Button>
         </div>
       </div>
     </Figure>

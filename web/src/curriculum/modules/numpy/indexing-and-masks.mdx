@@ -119,14 +119,7 @@ That last move turns any comparison into a metric. Accuracy is the fraction of p
 
 <Reveal label="Show the expected output">
 
-```text
-[ True False  True False  True]
-[3 4 5]
-3 0.6
-[3 4]
-[3 0 4 0 5]
-0.6
-```
+<CodeBlock language="text" showLineNumbers={false} code={'[ True False  True False  True]\n[3 4 5]\n3 0.6\n[3 4]\n[3 0 4 0 5]\n0.6'} />
 
 </Reveal>
 
@@ -210,7 +203,8 @@ The first lesson showed that an array is one strip of memory plus **strides**: h
 $$
 \begin{aligned}
 \text{byte of } v[i, j] &= \text{offset} \\
-&\quad + i \times \text{stride}_0 + j \times \text{stride}_1
+&\quad + i \times \text{stride}_0 \\
+&\quad + j \times \text{stride}_1
 \end{aligned}
 $$
 
@@ -251,15 +245,18 @@ print(t.is_contiguous())
 try:
     t.view(6)
 except RuntimeError as e:
-    print("RuntimeError:", e)
-print(t.contiguous().view(6))
+    print("RuntimeError:")
+    print(e)
+c = t.contiguous()
+print(c.view(6))
 ```
 
 ```text
 False
-RuntimeError: view size is not
-compatible with input tensor's
-size and stride (at least one
+RuntimeError:
+view size is not compatible
+with input tensor's size and
+stride (at least one
 dimension spans across two
 contiguous subspaces). Use
 .reshape(...) instead.

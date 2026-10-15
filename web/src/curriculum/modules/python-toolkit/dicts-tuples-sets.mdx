@@ -21,7 +21,7 @@ Tell a friend "meet me at stall #01-23" and they walk straight there. They don't
 
 </Analogy>
 
-A <Term def="A Python container (type dict) that stores key: value pairs and finds a value from its key very quickly.">dictionary</Term> (type `dict`) stores pairs. Each pair has a <Term def="The label you use to look something up in a dictionary, such as 'kopi'. Keys are unique and must be immutable.">key</Term> and a <Term def="The data stored under a key in a dictionary. It can be any Python object.">value</Term>, written `key: value` inside curly braces.
+A <Term def="A Python container (type dict) that stores key: value pairs and finds a value from its key very quickly.">dictionary</Term> (type `dict`) stores pairs. Each pair has a <Term def="The label you use to look something up in a dictionary, such as 'kopi'. Keys are unique and must be hashable (for built-in types: immutable all the way down).">key</Term> and a <Term def="The data stored under a key in a dictionary. It can be any Python object.">value</Term>, written `key: value` inside curly braces.
 
 ```python
 prices = {'kopi': 1.2, 'teh': 1.1}   # two key: value pairs
@@ -51,6 +51,32 @@ for drink, price in prices.items():
     print(drink, price)
 ```
 
+A few more tools turn up in "what does this print?" questions. Watch what a plain `for` loop and `in` do:
+
+```python
+for drink in prices:          # a plain loop gives the KEYS only
+    print(drink)
+print(list(prices.keys()))
+print(list(prices.values()))
+print(prices.pop('teh'))      # removes 'teh' and returns its value
+del prices['kopi']            # removes 'kopi' (KeyError if missing)
+print(prices)
+print(1.5 in prices, 'milo' in prices)
+```
+
+```text
+kopi
+teh
+milo
+['kopi', 'teh', 'milo']
+[1.3, 1.1, 1.5]
+1.1
+{'milo': 1.5}
+False True
+```
+
+The last line is the trap: `in` checks the **keys**, not the values. `1.5` is a value in the dict, but not a key, so `1.5 in prices` is `False`.
+
 ### How can a dict find a key without searching?
 
 A list of 1,000,000 pairs might have to be checked one item at a time. A dict skips the search with a <Term def="A function that turns a key into a whole number in a fixed, repeatable way. The same key always gives the same number.">hash function</Term>. It turns the key into a whole number, and that number picks a numbered **slot** in a table:
@@ -78,7 +104,7 @@ To look a key up later, Python recalculates the same slot and jumps straight the
     m = 13, i = 9, l = 12, o = 15, so the sum is $49$, and $49 \bmod 8 = 1$ (since $49 = 6 \times 8 + 1$). Slot 1 again: a collision!
   </Step>
   <Step title="Look up 'milo'">
-    Python checks slot 1, finds `'teh'` (the wrong key), and moves on to another slot. Here that is slot 2. If slot 2 is empty, `'milo'` is not in the dict. Two checks, not a search through every key.
+    Python checks slot 1, finds `'teh'` (the wrong key), and moves on to another slot. In our toy, that is the next one, slot 2. (Real Python jumps to a slot chosen by a scrambling rule, but the idea is the same.) If slot 2 is empty, `'milo'` is not in the dict. Two checks, not a search through every key.
   </Step>
 </Steps>
 
@@ -123,7 +149,7 @@ The first time the loop meets a word, `.get(word, 0)` gives 0, so the word is st
 stock['egg'] = stock.get('egg', 0) + 2
 stock['kaya'] = 5
 print(stock)`}
-  options={["{'kaya': 5, 'egg': 2}", "{'kaya': 3, 'egg': 2, 'kaya': 5}", "{'kaya': 8, 'egg': 2}", "KeyError: 'egg'"]}
+  options={["`{'kaya': 5, 'egg': 2}`", "`{'kaya': 3, 'egg': 2, 'kaya': 5}`", "`{'kaya': 8, 'egg': 2}`", "`KeyError: 'egg'`"]}
   answer={0}
   explain="`.get('egg', 0)` returns the default 0 because 'egg' is missing, so 'egg' is stored as 0 + 2 = 2. Assigning to 'kaya' again replaces 3 with 5: keys are unique, so a dict can never hold 'kaya' twice, and the old value is not added to the new one."
 />
@@ -217,7 +243,7 @@ A real use: before training, check that no example appears in both your training
 
 <QuickCheck
   q="What is `len(set([3, 1, 3, 2, 1]))`?"
-  options={['3', '5', '2', '6']}
+  options={['`3`', '`5`', '`2`', '`6`']}
   answer={0}
   explain="`set()` keeps one copy of each value, giving {1, 2, 3}, which has 3 items. 5 is the length of the original list, with the duplicates still in it."
 />
@@ -247,12 +273,12 @@ A type is <Term def="Able to be changed in place after it is created: list, dict
 
 Why does this matter?
 
-1. **Only immutable values can be dictionary keys or set items.** A key's slot is calculated from its value. If the key could change, its hash would change too, and Python would look in the wrong slot. Python calls values that can be used as keys <Term def="Having a hash value that never changes, so the value can be a dict key or a set item. Immutable built-in types are hashable; list, dict and set are not.">hashable</Term>. So `{[1, 2]: 'a'}` raises `TypeError: unhashable type: 'list'`, while `{(1, 2): 'a'}` works. Tuples make great keys for grid positions: `grid[(row, col)]`.
+1. **Dict keys and set items must be hashable.** A key's slot is calculated from its value. If the key could change, its hash would change too, and Python would look in the wrong slot. Python calls values that can be used as keys <Term def="Having a hash value that never changes, so the value can be a dict key or a set item. Immutable built-in types are hashable as long as everything inside them is hashable; list, dict and set are not.">hashable</Term>. Among the built-in types, int, float, str and tuples whose items are all hashable can be keys; list, dict and set can't. So `{(1, 2): 'a'}` works, but `{[1, 2]: 'a'}` raises `TypeError: unhashable type: 'list'`, and so does `{(1, [2]): 'a'}`: the tuple itself is immutable, but the list inside it is not. Tuples of numbers make great keys for grid positions: `grid[(row, col)]`.
 2. **A mutable object can be changed by any code that has access to it,** including a function you pass it to. You will explore this in the lesson on names and references.
 
 <KeyIdea>
 
-list, dict and set are **mutable**: they can change in place. int, float, str and tuple are **immutable**: any "change" builds a new object. Only immutable values can be dict keys or set items.
+list, dict and set are **mutable**: they can change in place. int, float, str and tuple are **immutable**: any "change" builds a new object. Dict keys and set items must be **hashable**: in practice, immutable built-ins such as int, str and tuples of them. A tuple that contains a list can't be a key.
 
 </KeyIdea>
 
@@ -260,7 +286,7 @@ list, dict and set are **mutable**: they can change in place. int, float, str an
 
 <ExamTip>
 
-Memorise the brackets: `[]` is an empty list, `()` an empty tuple, `{}` an empty **dict**, and `set()` an empty set. `{1, 2}` with items is a set, and `type({})` prints `<class 'dict'>`. In "which is mutable?" questions, the tempting wrong answer is tuple, because it looks like a list.
+Memorise the brackets: `[]` is an empty list, `()` an empty tuple, `{}` an empty **dict**, and `set()` an empty set. `{1, 2}` with items is a set, and `type({})` prints `<class 'dict'>`. In the same way, `type([1, 2, 3])` prints `<class 'list'>` and `type((1, 2))` prints `<class 'tuple'>`. In "which is mutable?" questions, the tempting wrong answer is tuple, because it looks like a list.
 
 </ExamTip>
 
@@ -282,10 +308,10 @@ Ask what you need to do with the data:
 
 <Takeaways>
 
-- A **dict** maps unique keys to values. `{}` or `dict()` makes an empty one, `d[k] = v` adds or updates, and `d.get(k, default)` avoids a `KeyError`.
+- A **dict** maps unique keys to values. `{}` or `dict()` makes an empty one, `d[k] = v` adds or updates, and `d.get(k, default)` avoids a `KeyError`. `for k in d` and `k in d` work on the **keys**.
 - Hashing sends each key straight to its slot, so dict and set lookups stay fast however big they get.
 - A **tuple** is an ordered sequence that can't change. Shapes such as `(32, 3, 224, 224)` are tuples, and `(5,)` needs its comma.
 - A **set** keeps each item once and supports `|`, `&`, `-` and `^`. The empty set is `set()`.
-- list, dict and set are mutable. int, float, str and tuple are immutable, and only immutable values can be dict keys.
+- list, dict and set are mutable. int, float, str and tuple are immutable. Dict keys and set items must be hashable: int, str, and tuples whose items are hashable work, but lists (and tuples holding lists) don't.
 
 </Takeaways>

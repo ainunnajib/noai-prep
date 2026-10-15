@@ -140,7 +140,7 @@ const REGIONS: Region[] = [
     id: 'past',
     name: 'Real exam question',
     what: 'An official NOAI question placed right after the part of the lesson that prepares you for it.',
-    how: 'Time yourself: about 36 seconds, as in the Prelim. If you get it wrong, read the explanation and write the question number in your mistake log to retry next week.',
+    how: 'Time yourself: about 36 seconds (up to a minute for a long scenario), as in the Prelim. If you get it wrong, read the explanation and write the question number in your mistake log to retry next week.',
     habit: 'retrieve',
     mini: (
       <span style={{ display: 'grid', gap: 4 }}>
@@ -182,12 +182,12 @@ const REGIONS: Region[] = [
   {
     id: 'checkpoint',
     name: 'Checkpoint quiz',
-    what: 'Five exam-style questions at the end of every lesson.',
-    how: 'Do it straight after the lesson, then again a few days later without rereading first: that second try is a spaced review. Below 4 out of 5? Revisit the sections behind the questions you missed.',
+    what: 'A short exam-style quiz (4 to 6 questions) at the end of every lesson.',
+    how: 'Do it straight after the lesson, then again a few days later without re-reading first: that second try is a spaced review. Below about 80%? Revisit the sections behind the questions you missed.',
     habit: 'check',
     mini: (
       <span style={{ display: 'grid', gap: 4 }}>
-        <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink)' }}>Checkpoint · 5 questions</span>
+        <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink)' }}>Checkpoint · 4–6 questions</span>
         {bar('80%')}
       </span>
     ),
@@ -195,11 +195,14 @@ const REGIONS: Region[] = [
 ]
 
 const HABIT: Record<Region['habit'], { label: string; colour: string }> = {
-  predict: { label: 'Predict before you look', colour: 'var(--viz-4)' },
   retrieve: { label: 'Test yourself', colour: 'var(--viz-3)' },
+  predict: { label: 'Predict before you look', colour: 'var(--viz-4)' },
   connect: { label: 'Connect to what you know', colour: 'var(--viz-5)' },
   check: { label: 'Check your understanding', colour: 'var(--viz-2)' },
 }
+const HABITS = Object.keys(HABIT) as Region['habit'][]
+/** coloured text mixed towards the ink colour so small labels pass contrast in light mode */
+const txt = (c: string) => `color-mix(in srgb, ${c} 65%, var(--ink))`
 
 export default function LessonAnatomy() {
   const [sel, setSel] = useState('visual')
@@ -209,7 +212,7 @@ export default function LessonAnatomy() {
 
   const info = (
     <div aria-live="polite" style={{ position: narrow ? 'static' : 'sticky', top: 80, display: 'grid', gap: '0.55rem', background: 'var(--surface-2)', borderRadius: 'var(--radius-m)', padding: narrow ? '0.7rem 0.8rem' : '0.85rem 1rem', margin: narrow ? '4px 0 8px' : 0, borderTop: `4px solid ${h.colour}` }}>
-      <span style={{ justifySelf: 'start', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: h.colour }}>{h.label}</span>
+      <span style={{ justifySelf: 'start', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: txt(h.colour) }}>{h.label}</span>
       <strong style={{ fontSize: '1.05rem', color: 'var(--ink)' }}>{r.name}</strong>
       <div style={{ fontSize: '0.92rem', color: 'var(--ink-2)', lineHeight: 1.5 }}>{r.what}</div>
       <div style={{ fontSize: '0.95rem', color: 'var(--ink)', lineHeight: 1.55 }}>
@@ -240,11 +243,22 @@ export default function LessonAnatomy() {
       title="The anatomy of a lesson on this site"
       caption={
         <>
-          Click (or tap) any part of the miniature page to see what it is for and how to use it. Notice the coloured tag on each tip: almost every part becomes a learning tool once you{' '}
-          <strong>predict</strong> or <strong>test yourself</strong> with it, instead of just reading it.
+          Click (or tap) any part of the miniature page to see what it is for and how to use it. The coloured dot on each part, and the tag on its tip, show which habit it trains:
+          count them in the key. Almost every part becomes a learning tool once you <strong>predict</strong> or <strong>test yourself</strong> with it, instead of just reading it.
         </>
       }
     >
+      <div role="list" aria-label="Key: the habit each part trains" style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.3rem 1rem', fontSize: '0.82rem', color: 'var(--ink-2)' }}>
+        {HABITS.map((k) => (
+          <span role="listitem" key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: HABIT[k].colour }} />
+            {HABIT[k].label}
+            <strong className="tabular" style={{ color: 'var(--ink)' }}>
+              {REGIONS.filter((r) => r.habit === k).length}
+            </strong>
+          </span>
+        ))}
+      </div>
       <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr) minmax(0, 1.1fr)', gap: '0.9rem', alignItems: 'start' }}>
         <div
           role="list"

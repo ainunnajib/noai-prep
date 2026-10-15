@@ -19,7 +19,7 @@ $$
 
 Here $a_i$ and $b_i$ are the $i$-th components of $\mathbf{a}$ and $\mathbf{b}$, and $\sum_{i=1}^{n}$ ("sum for $i$ from 1 to $n$") adds all $n$ products $a_i b_i$. The answer is a single number (a <Term def="A single ordinary number, as opposed to a vector.">scalar</Term>), **not** a vector.
 
-For example, $[1, 2] \cdot [3, 4] = 1 \times 3 + 2 \times 4 = 3 + 8 = 11$, and the hawker bill above is $[2, 1, 3] \cdot [4, 2, 1] = 13$. A dot product is a **weighted sum**, the core of what a neuron in a neural network computes: inputs times weights, added up. The neuron then adds a bias $b$ and applies an activation function: $\text{activation}(\mathbf{w} \cdot \mathbf{x} + b)$.
+For example, $[1, 2] \cdot [3, 4] = 1 \times 3 + 2 \times 4 = 3 + 8 = 11$, and the hawker bill above is $[2, 1, 3] \cdot [4, 2, 1] = 13$. A dot product is a **weighted sum**, the core of a neuron in a neural network: inputs times weights, added up. The neuron then adds a bias $b$ and applies an activation function, $\text{activation}(\mathbf{w} \cdot \mathbf{x} + b)$.
 
 <PastPaperQuestion paper="prelim2026" n={6} />
 
@@ -35,7 +35,7 @@ $$
 \mathbf{a} \cdot \mathbf{b} = \lVert \mathbf{a} \rVert \, \lVert \mathbf{b} \rVert \cos\theta
 $$
 
-Here $\lVert \mathbf{a} \rVert$ is the **length** of arrow $\mathbf{a}$, found by Pythagoras (the arrow $\mathbf{a} = [4, 1]$ in the figure below has length $\sqrt{4^2 + 1^2} = \sqrt{17} \approx 4.12$; more on lengths soon), $\lVert \mathbf{b} \rVert$ is the length of $\mathbf{b}$, and $\theta$ (theta) is the angle between the arrows.
+Here $\lVert \mathbf{a} \rVert$ and $\lVert \mathbf{b} \rVert$ are the **lengths** of the arrows, found by Pythagoras (the figure's $\mathbf{a} = [4, 1]$ has length $\sqrt{4^2 + 1^2} = \sqrt{17} \approx 4.12$; more on lengths soon), and $\theta$ (theta) is the angle between them.
 
 The <Term def="cos θ is a number between -1 and 1 that depends only on the angle θ: 1 at 0°, 0 at 90°, -1 at 180°.">cosine</Term> $\cos\theta$ comes from trigonometry: in a right-angled triangle, $\cos\theta = \dfrac{\text{adjacent side}}{\text{hypotenuse}}$. If you have not met cosine yet, this table is all you need:
 
@@ -43,7 +43,7 @@ The <Term def="cos θ is a number between -1 and 1 that depends only on the angl
 |---|---|---|---|---|---|
 | $\cos\theta$ | 1 | 0.5 | 0 | −0.5 | −1 |
 
-In pictures, drop a line from the tip of $\mathbf{b}$ at 90° onto the line through $\mathbf{a}$. The stretch from the origin to where it lands is the **shadow** of $\mathbf{b}$, its <Term def="The shadow of one vector on the line of another: drop a perpendicular from the tip of b onto the line through a.">projection</Term>. Arrow $\mathbf{b}$ (the hypotenuse), its shadow (the side next to $\theta$) and the drop line form a right-angled triangle, so the shadow's length is $\lVert \mathbf{b} \rVert \cos\theta$, counted as negative when it falls behind the origin (angles over 90°). So the dot product is "length of $\mathbf{a}$ times the shadow of $\mathbf{b}$ on it".
+In pictures, drop a line from the tip of $\mathbf{b}$ at 90° onto the line through $\mathbf{a}$. The stretch from the origin to where it lands is the **shadow** of $\mathbf{b}$, its <Term def="The shadow of one vector on the line of another: drop a perpendicular from the tip of b onto the line through a.">projection</Term>. In the right-angled triangle this makes, $\mathbf{b}$ is the hypotenuse and the shadow is the side next to $\theta$, so the shadow is $\lVert \mathbf{b} \rVert \cos\theta$ long (negative when it falls behind the origin, for angles over 90°). So the dot product is "length of $\mathbf{a}$ times the shadow of $\mathbf{b}$ on it".
 
 <DotProductProjector />
 
@@ -103,7 +103,7 @@ A norm is a ruler for vectors. **L2** = square root of the sum of squares (the c
 Two classic wrong options: forgetting the square root gives 25 instead of 5 for $[3, 4]$ (the **squared** norm), and adding the components gives 7 (the L1 norm). Read which norm the question asks for.
 </Mistake>
 
-The L1 diamond in the figure has sharp corners on the axes, where one component is 0. When you later meet <Term def="Adding a penalty on the size of a model's weights to the loss, to discourage overfitting. L1 regularisation uses the L1 norm; L2 regularisation uses the squared L2 norm.">regularisation</Term>, this shape explains why an L1 penalty (Lasso) tends to push weights to exactly zero while an L2 penalty (Ridge) only shrinks them.
+The L1 diamond's sharp corners sit on the axes, where one component is 0. When you meet <Term def="Adding a penalty on the size of a model's weights to the loss, to discourage overfitting. L1 regularisation uses the L1 norm; L2 regularisation uses the squared L2 norm.">regularisation</Term>, later, this shape explains why an L1 penalty (Lasso) pushes some weights to exactly zero while an L2 penalty (Ridge) only shrinks them.
 
 **Unit vectors.** A vector of length 1 is a <Term def="A vector whose L2 norm is exactly 1. It describes a pure direction.">unit vector</Term>. Dividing a non-zero vector by its length **normalises** it: same direction, length 1. $\dfrac{[3, 4]}{5} = [0.6, 0.8]$, and $\sqrt{0.36 + 0.64} = 1$.
 
@@ -164,7 +164,7 @@ Cosine similarity compares **directions only**: 1 for the same direction, 0 for 
   </Step>
 </Steps>
 
-A long document and a short one on the same topic have word-count vectors pointing the same way but with very different lengths, so cosine similarity is the fair comparison. Learned text <Term def="A learned vector of numbers that represents a word, sentence or document, placed so that similar meanings get similar directions.">embeddings</Term> also store meaning in their direction, so search engines and RAG systems (retrieval-augmented generation: a chatbot first looks up relevant documents) compare them with cosine similarity. Many systems first normalise every embedding to length 1; then the bottom of the fraction is $1 \times 1$, so **cosine similarity is just the dot product**. **Cosine distance** $= 1 - \text{cosine similarity}$ is 0 for vectors pointing the same way.
+A long and a short document on the same topic have word-count vectors pointing the same way but with very different lengths, so cosine similarity compares them fairly. Learned text <Term def="A learned vector of numbers that represents a word, sentence or document, placed so that similar meanings get similar directions.">embeddings</Term> also store meaning in their direction, so search engines and RAG systems (retrieval-augmented generation: a chatbot first looks up relevant documents) compare them by cosine similarity. Many systems normalise every embedding to length 1 first; then the bottom of the fraction is $1 \times 1$ and **cosine similarity is just the dot product**. **Cosine distance** $= 1 - \text{cosine similarity}$ is 0 for vectors pointing the same way.
 
 <QuickCheck
   q="What is the cosine similarity of $[1, 2]$ and $[3, 6]$?"
@@ -195,7 +195,7 @@ print("cosine after stretching b:", a @ (10 * b) / (np.linalg.norm(a) * np.linal
 In NumPy, `a * b` is **not** the dot product: it multiplies matching components and keeps a vector (`[12 12]` above). The dot product also adds them up: `a @ b`, `np.dot(a, b)` or `(a * b).sum()` give 24.
 </Mistake>
 
-Here are the same operations in PyTorch, which you will use in the Final (it cannot run in the browser, so this is its real output):
+The same operations in PyTorch, which you will use in the Final (it cannot run in the browser, so this is its real output):
 
 ```python
 import torch

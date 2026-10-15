@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'A generator is lazy: it remembers only where it is up to (here, the current x and the range) and computes the next value on demand, so its size stays about 200 bytes whatever the length. The list must build and store all ten million results before the line finishes. No compression or disk storage is involved.',
+      'A generator is lazy: it remembers only where it is up to (here, the current x and the range) and computes the next value on demand, so its size stays tiny (200 bytes on a 64-bit computer) whatever the length. The list must build and store all ten million results before the line finishes. No compression or disk storage is involved.',
     difficulty: 'intermediate',
   },
   {

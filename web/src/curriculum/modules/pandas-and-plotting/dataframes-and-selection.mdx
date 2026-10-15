@@ -74,11 +74,11 @@ Most of `describe()` is ordinary statistics. The two rows that trip people up ar
   <Step title="mean">
     $\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i$: add every value $x_i$ and divide by how many there are. $\frac{3 + 5 + 6 + 8 + 13}{5} = \frac{35}{5} = 7$.
   </Step>
-  <Step title="25%, 50%, 75% (the quartiles)">
-    Sort the values and count positions from 0. pandas puts the $p$ quantile at position $p \times (n - 1)$. So 50% sits at position $0.5 \times 4 = 2$, which holds **6**: the 50% row is the **median**. 25% sits at position 1 (value **5**) and 75% at position 3 (value **8**). When the position falls between two values, pandas goes the same fraction of the way between them. That is how the `rooms` column gets 3.75 in the 25% row of `describe()`: open that tab above and tap `3.750000`.
+  <Step title="25%, 50%, 75%">
+    These rows are the **quartiles**. Sort the values and count positions from 0. pandas puts the $p$ quantile at position $p \times (n - 1)$. So 50% sits at position $0.5 \times 4 = 2$, which holds **6**: the 50% row is the **median**. 25% sits at position 1 (value **5**) and 75% at position 3 (value **8**). When the position falls between two values, pandas goes the same fraction of the way between them. That is how the `rooms` column gets 3.75 in the 25% row of `describe()`: open that tab above and tap `3.750000`.
   </Step>
-  <Step title="std (standard deviation)">
-    $s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2}$: take each value's distance from the mean, square it, add them up, divide by $n - 1$ and take the square root. The distances are $-4, -2, -1, 1, 6$; their squares add up to $16 + 4 + 1 + 1 + 36 = 58$; $58 / 4 = 14.5$; and $\sqrt{14.5} \approx 3.81$.
+  <Step title="std">
+    The **std** row is the standard deviation, $s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n} (x_i - \bar{x})^2}$: take each value's distance from the mean, square it, add them up, divide by $n - 1$ and take the square root. The distances are $-4, -2, -1, 1, 6$; their squares add up to $16 + 4 + 1 + 1 + 36 = 58$; $58 / 4 = 14.5$; and $\sqrt{14.5} \approx 3.81$.
   </Step>
   <Step title="read the story">
     The mean (7) is above the median (6) because one large value (13) pulls the mean up. A mean well above the median is a quick sign of a few very large values, such as million-dollar flats.
@@ -155,7 +155,7 @@ With the default index, labels and positions are the same numbers, so the differ
   <Step title="iloc counts seats">
     `df.iloc[0:2]` takes positions 0 and 1 (it stops **before** 2). Those hold labels 1 and 3: the two cheapest flats, Bedok at 398000 and Tampines at 430000.
   </Step>
-  <Step title="loc looks for names">
+  <Step title="loc finds labels">
     `df.loc[0:2]` finds label 0 (at position 4) and label 2 (at position 6) and takes everything from one to the other, **including** label 2. That is 3 rows: labels 0, 7 and 2.
   </Step>
   <Step title="Conclusion">

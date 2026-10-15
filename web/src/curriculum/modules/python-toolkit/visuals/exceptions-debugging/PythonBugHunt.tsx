@@ -22,7 +22,7 @@ type Probe = 2 | 3 | 4 | 5
 const PROBE_CODE: Record<Probe, string> = {
   2: '    print("total =", total)',
   3: '        print("i =", i)',
-  4: '        print("i =", i, "total =", total)',
+  4: '        print(i, total)  # i, total',
   5: '    print("before return:", total)',
 }
 
@@ -35,7 +35,7 @@ function run(fixed: boolean, probes: Set<Probe>): { lines: ConsoleLine[]; result
   for (let i = fixed ? 0 : 1; i < NUMS.length; i++) {
     if (probes.has(3)) lines.push({ text: `i = ${i}`, tone: 'ok' })
     total = total + NUMS[i]
-    if (probes.has(4)) lines.push({ text: `i = ${i} total = ${total}`, tone: 'ok' })
+    if (probes.has(4)) lines.push({ text: `${i} ${total}`, tone: 'ok' })
   }
   if (probes.has(5)) lines.push({ text: `before return: ${total}`, tone: 'ok' })
   const result = total / NUMS.length
@@ -85,7 +85,7 @@ export default function PythonBugHunt() {
       style={{
         display: 'flex',
         whiteSpace: 'pre',
-        padding: '0 0.75rem 0 0.4rem',
+        padding: '0 0.5rem 0 0.4rem',
         background: 'color-mix(in srgb, var(--viz-pos) 12%, var(--surface))',
         color: 'var(--viz-pos)',
         fontWeight: 600,
@@ -141,14 +141,14 @@ export default function PythonBugHunt() {
           <CodeView
             code={codeFor(fixed)}
             onLineClick={click}
-            lineLabel={(n) => (mode === 'probe' ? `Toggle a print probe after line ${n}` : `Mark line ${n} as the bug`)}
+            lineLabel={(n) => (mode === 'probe' ? (n === 5 ? 'Toggle a print probe before line 5 (the return)' : `Toggle a print probe after line ${n}`) : `Mark line ${n} as the bug`)}
             active={mode === 'accuse' && accused !== null ? [accused] : fixed ? [3] : []}
             activeTone={mode === 'accuse' && accused !== null ? (found ? 'ok' : 'bad') : 'ok'}
             inserts={inserts}
             fitChars={Math.max(33, ...[...probes].map((p) => PROBE_CODE[p].length))}
           />
           <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
-            {mode === 'probe' ? 'Probe mode: click lines 2 to 5 to add or remove a print.' : 'Accuse mode: click the line you think is wrong.'}
+            {mode === 'probe' ? 'Probe mode: click lines 2 to 5 to add or remove a print (line 5 puts it just before the return).' : 'Bug-marking mode: click the line you think is wrong.'}
           </div>
         </div>
         <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>

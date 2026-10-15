@@ -29,7 +29,7 @@ function build(key: Key): { code: string; steps: TraceStep[] } {
   }
   const enter: TraceStep = {
     line: [5],
-    note: <>Calling <code>add_bonus(marks)</code> opens a new frame. The parameter <code>scores</code> receives a copy of the <b>arrow</b>, not a copy of the list.</>,
+    note: <>Calling <code>add_bonus(marks)</code> opens a new local scope (Python calls it a <b>frame</b>). The parameter <code>scores</code> receives a copy of the <b>arrow</b>, not a copy of the list.</>,
     frames: [g(), { id: 'f', label: F, names: [{ name: 'scores', to: 'L1', hl: true }] }],
     objects: [{ id: 'L1', type: 'list', cells: ['70', '85'] }],
     out: [],
@@ -50,7 +50,7 @@ function build(key: Key): { code: string; steps: TraceStep[] } {
         },
         {
           line: [5],
-          note: <>The function ends and its frame, with the name <code>scores</code>, is thrown away. The change it made to the list stays.</>,
+          note: <>The function ends and its local scope, with the name <code>scores</code>, is thrown away. The change it made to the list stays.</>,
           frames: [g()],
           objects: [{ id: 'L1', type: 'list', cells: ['70', '85', '100'] }],
           out: [],
@@ -84,7 +84,7 @@ function build(key: Key): { code: string; steps: TraceStep[] } {
         },
         {
           line: [5],
-          note: <>The frame is thrown away. Nothing points at the new list any more, so Python frees it: the work is lost.</>,
+          note: <>The call's local scope is thrown away. Nothing points at the new list any more, so Python frees it: the work is lost.</>,
           frames: [g()],
           objects: [
             { id: 'L1', type: 'list', cells: ['70', '85'] },
@@ -120,7 +120,7 @@ function build(key: Key): { code: string; steps: TraceStep[] } {
       },
       {
         line: [5],
-        note: <>The frame is thrown away and <code>new = ...</code> points a global name at the returned list. Nothing was lost and nothing was changed by surprise.</>,
+        note: <>The call's local scope is thrown away and <code>new = ...</code> points a global name at the returned list. Nothing was lost and nothing was changed by surprise.</>,
         frames: [g([{ name: 'new', to: 'L2', hl: true }])],
         objects: [
           { id: 'L1', type: 'list', cells: ['70', '85'] },

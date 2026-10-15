@@ -47,7 +47,7 @@ function proj([x, y, z]: V3, phiDeg: number): [number, number] {
 const BOUNDS = (() => {
   const pts: V3[] = []
   for (const a of [0, 100]) for (const b of [0, 100]) for (const c of [0, 100]) pts.push([a, b, c])
-  pts.push([122, 0, 0], [0, 122, 0], [0, 0, 118])
+  pts.push([122, 0, 0], [0, 0, 118])
   let x0 = Infinity
   let x1 = -Infinity
   let y0 = Infinity
@@ -130,8 +130,9 @@ export default function DataAsVectors() {
     return { ux, uy, nx, ny }
   }
 
-  // Science runs away from the viewer, so its axis tip sits among the students' arrows. Its name goes
-  // beside the right-hand floor edge instead (parallel to the Science axis), with a small arrow showing the direction.
+  // Science runs away from the viewer, so an arrowhead at the end of its axis would sit among the students' arrows
+  // (right on the class average) and read as one more student. The axis stops at the back edge of the floor instead,
+  // and its name goes beside the right-hand floor edge (parallel to it), with a small arrow showing the direction.
   const sciEdge = (() => {
     const a = P([100, 0, 0])
     const b = P([100, 100, 0])
@@ -141,18 +142,32 @@ export default function DataAsVectors() {
     return { at, ux, uy, nx, ny, from: at(0.42, 11), to: at(0.92, 11) }
   })()
 
-  // everything drawn as a line: labels keep clear of these (the faint floor grid is allowed under labels)
-  const segs: [Pt, Pt][] = [
+  /** the base of an arrowhead at b, as a segment, so labels keep clear of the head as well as the shaft */
+  const headBase = (a: Pt, b: Pt, head = 11): [Pt, Pt] => {
+    const [ux, uy] = unit(a, b)
+    const h = Math.min(head, Math.hypot(b[0] - a[0], b[1] - a[1]) * 0.5)
+    const [bx, by] = [b[0] - ux * h, b[1] - uy * h]
+    return [
+      [bx - uy * h * 0.55, by + ux * h * 0.55],
+      [bx + uy * h * 0.55, by - ux * h * 0.55],
+    ]
+  }
+  const arrows: [Pt, Pt][] = [
     [org, P([118, 0, 0])],
-    [org, P([0, 118, 0])],
     [org, P([0, 0, 112])],
     [org, tip],
-    [org, P([m[0], 0, 0])],
-    [P([m[0], 0, 0]), P([m[0], m[1], 0])],
-    [P([m[0], m[1], 0]), tip],
     [sciEdge.from, sciEdge.to],
     ...STUDENTS.filter((_, i) => i !== sel).map((row) => [org, P(row.marks)] as [Pt, Pt]),
     ...(showAvg ? [[org, P(AVG)] as [Pt, Pt]] : []),
+  ]
+  // everything drawn as a line: labels keep clear of these (the faint floor grid is allowed under labels)
+  const segs: [Pt, Pt][] = [
+    ...arrows,
+    ...arrows.map(([a, b]) => headBase(a, b)),
+    [org, P([0, 100, 0])],
+    [org, P([m[0], 0, 0])],
+    [P([m[0], 0, 0]), P([m[0], m[1], 0])],
+    [P([m[0], m[1], 0]), tip],
   ]
   const distPtSeg = (q: Pt, a: Pt, b: Pt) => {
     const L2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2 || 1
@@ -273,6 +288,7 @@ export default function DataAsVectors() {
       ...ring(a, 9, t, 12),
       ...[0.8, 0.65].flatMap((k) => [off(mid(k), uy, -ux, 6, t, 12), off(mid(k), -uy, ux, 6, t, 12)]),
       ...ring(a, 20, t, 12),
+      ...ring(a, 30, t, 12),
     ])
   })()
   const label = (q: Pt | null, t: string, color: string, size: number, key: string, weight = 700, halo = false) =>
@@ -383,7 +399,7 @@ export default function DataAsVectors() {
               {line([0, 0, 0], [0, 0, 100], { stroke: 'var(--viz-grid)', strokeWidth: 1.2 }, 'w1')}
               {/* axes */}
               {arrow([118, 0, 0], 'var(--viz-axis)', 1.4, undefined, 'ax')}
-              {arrow([0, 118, 0], 'var(--viz-axis)', 1.4, undefined, 'ay')}
+              {line([0, 0, 0], [0, 100, 0], { stroke: 'var(--viz-axis)', strokeWidth: 1.4 }, 'ay')}
               {arrow([0, 0, 112], 'var(--viz-axis)', 1.4, undefined, 'az')}
               {label(mathsAt, 'Maths', COLS[0], 13, 'lx', 700, true)}
               {label(englishAt, 'English', COLS[2], 13, 'lz', 700, true)}

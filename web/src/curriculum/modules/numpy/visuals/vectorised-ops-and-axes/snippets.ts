@@ -13,7 +13,8 @@ print(marks.sum(axis=0))
 print(marks.mean(axis=1))
 # each student's best subject
 print(marks.argmax(axis=1))
-m = marks.mean(axis=1, keepdims=True)
+m = marks.mean(axis=1,
+               keepdims=True)
 print(m.shape)
 
 # marks relative to own average

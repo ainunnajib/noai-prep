@@ -16,7 +16,9 @@ const dayOfIso = (iso: string) => Math.round((Date.UTC(+iso.slice(0, 4), +iso.sl
 const isoOf = (title: string, fallback: string) => TIMELINE.find((t) => t.title === title)?.iso ?? fallback
 const fmt = (d: number, withDay = false) =>
   new Date(ORIGIN + d * DAY).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(withDay ? { weekday: 'short' } : {}), timeZone: 'UTC' })
-const weeks = (n: number) => `${Math.floor(n / 7)} wk ${n % 7} d`
+const weeks = (n: number) => (n < 7 ? `${n} day${n === 1 ? '' : 's'}` : `${Math.floor(n / 7)} wk ${n % 7} d`)
+/** small coloured text: mixed towards the ink colour so it passes contrast in light mode */
+const txt = (c: string) => `color-mix(in srgb, ${c} 65%, var(--ink))`
 
 const D = {
   writeIns: dayOfIso(isoOf('Direct write-ins close', '2026-11-27')),
@@ -30,7 +32,7 @@ const D = {
   ioaiTo: dayOfIso(isoOf('IOAI 2027 in Singapore', '2027-07-10')),
 }
 
-const AXIS = 5.6
+const AXIS = 5.9
 
 interface Pin {
   day: number
@@ -74,6 +76,9 @@ function phase(t: number): { title: string; text: string } {
     }
   if (t < D.prelim)
     return { title: 'The last fortnight', text: 'Full 150-question mocks in 90 minutes, spaced review of your mistakes, and one Final-lab notebook a week.' }
+  if (t === D.prelim)
+    return { title: 'Prelim day', text: '150 MCQs in 90 minutes. Check your pace with "question number ÷ 2 = minutes gone", and answer every question. From tomorrow, switch to Final mode.' }
+  if (t === D.final) return { title: 'Final day', text: 'MCQs first, then bank the core parts of each programming task before any bonus part.' }
   if (t < D.final) return { title: 'Final mode', text: 'Timed Jupyter notebooks with no AI helpers, plus code-reading MCQs. There is no time to start from zero now.' }
   if (t < D.ntu)
     return { title: 'Results and IOAI-style practice', text: 'Award tiers come out in early April. If you are invited to NTU, switch to open-ended tasks on real datasets.' }
@@ -113,7 +118,7 @@ function Layers({ today, narrow }: { today: number; narrow: boolean }) {
         <g key={m.d}>
           <Path points={[[m.d, AXIS - 0.18], [m.d, AXIS + 0.18]]} color="var(--viz-axis)" width={1.5} />
           {(narrow ? m.short : m.label) && (
-            <Label x={m.d} y={AXIS} dy={15} dx={2} color="var(--ink-3)" size={11}>
+            <Label x={m.d} y={AXIS} dy={19} dx={2} color="var(--ink-3)" size={11}>
               {narrow ? m.short : m.label}
             </Label>
           )}
@@ -128,7 +133,7 @@ function Layers({ today, narrow }: { today: number; narrow: boolean }) {
           <g key={p.label}>
             {p.to !== undefined && <Rect x0={p.day} x1={p.to} y0={AXIS - 0.22} y1={AXIS + 0.22} fill={p.colour} />}
             <Path points={[[p.day, AXIS], [p.day, ly - 0.25]]} color={p.colour} width={1.5} dash={p.bold ? undefined : '3 3'} />
-            <Label x={flip ? end : p.day} y={ly} dx={flip ? -3 : 3} anchor={flip ? 'end' : 'start'} color={p.colour} size={narrow ? 11.5 : 12.5} weight={p.bold ? 800 : 650}>
+            <Label x={flip ? end : p.day} y={ly} dx={flip ? -3 : 3} anchor={flip ? 'end' : 'start'} color={txt(p.colour)} size={narrow ? 11.5 : 12.5} weight={p.bold ? 800 : 650}>
               {text}
             </Label>
           </g>
@@ -137,10 +142,12 @@ function Layers({ today, narrow }: { today: number; narrow: boolean }) {
       <Dots points={PINS.filter((p) => p.to === undefined).map((p) => ({ x: p.day, y: AXIS, color: p.colour, r: 4 }))} />
       {TARGETS.map((t) => {
         const left = t.day - today
-        if (left <= 0)
+        // milestones already passed: the tiles below say "done", so draw nothing here
+        if (left < 0) return null
+        if (left === 0)
           return (
-            <Label key={t.name} x={t.day} y={t.y} dx={xs(t.day) > (x0 + x1) / 2 ? -4 : 4} dy={4} anchor={xs(t.day) > (x0 + x1) / 2 ? 'end' : 'start'} color="var(--ink-3)" size={11.5}>
-              {`${t.name}: done`}
+            <Label key={t.name} x={t.day} y={t.y} dx={xs(t.day) > (x0 + x1) / 2 ? -6 : 6} dy={4} anchor={xs(t.day) > (x0 + x1) / 2 ? 'end' : 'start'} color={txt(t.colour)} size={12} weight={800}>
+              {`${t.name}: today!`}
             </Label>
           )
         const text = narrow ? `${weeks(left)} → ${t.name}` : `${weeks(left)} to the ${t.name}`
@@ -151,15 +158,15 @@ function Layers({ today, narrow }: { today: number; narrow: boolean }) {
             <Path points={[[today, t.y], [t.day, t.y]]} color={t.colour} width={3} />
             <Path points={[[t.day, t.y - 0.25], [t.day, t.y + 0.25]]} color={t.colour} width={2} />
             {where === 'inside' ? (
-              <Label x={(today + t.day) / 2} y={t.y} dy={-6} anchor="middle" color={t.colour} size={12} weight={700}>
+              <Label x={(today + t.day) / 2} y={t.y} dy={-6} anchor="middle" color={txt(t.colour)} size={12} weight={700}>
                 {text}
               </Label>
             ) : where === 'right' ? (
-              <Label x={t.day} y={t.y} dx={6} dy={4} color={t.colour} size={12} weight={700}>
+              <Label x={t.day} y={t.y} dx={6} dy={4} color={txt(t.colour)} size={12} weight={700}>
                 {text}
               </Label>
             ) : (
-              <Label x={today} y={t.y} dx={-6} dy={4} anchor="end" color={t.colour} size={12} weight={700}>
+              <Label x={today} y={t.y} dx={-6} dy={4} anchor="end" color={txt(t.colour)} size={12} weight={700}>
                 {text}
               </Label>
             )}
@@ -167,6 +174,26 @@ function Layers({ today, narrow }: { today: number; narrow: boolean }) {
         )
       })}
     </>
+  )
+}
+
+/** "today: 15 Oct" in a pill at the top of the dashed line, above every pin label; it flips side near the right edge. */
+function TodayTag({ today }: { today: number }) {
+  const { xs, ys } = usePlot()
+  const [, x1] = xs.range()
+  const text = `today: ${fmt(today)}`
+  const w = text.length * 6.9 + 14
+  const x = xs(today)
+  const left = x + w + 2 > x1
+  const bx = left ? x - w : x
+  const y = ys(10.25)
+  return (
+    <g aria-hidden="true">
+      <rect x={bx} y={y - 9} width={w} height={19} rx={9.5} style={{ fill: 'var(--viz-ink)' }} />
+      <text x={bx + w / 2} y={y + 4.5} textAnchor="middle" style={{ fill: 'var(--surface)', fontSize: 12, fontWeight: 800 }}>
+        {text}
+      </text>
+    </g>
   )
 }
 
@@ -188,18 +215,18 @@ export default function CountdownTimeline() {
       }
     >
       <div ref={ref} style={{ width: '100%' }}>
-        <Plot x={[-4, LAST + 4]} y={[0, 10]} width={680} height={300} minHeight={290} margin={{ left: 10, right: 10, top: 6, bottom: 6 }} ariaLabel={`Timeline from October 2026 to July 2027. Today is ${fmt(today)}; ${Math.max(0, D.prelim - today)} days to the Prelim.`}>
+        <Plot x={[-4, LAST + 4]} y={[0, 11]} width={680} height={320} minHeight={310} margin={{ left: 10, right: 10, top: 6, bottom: 6 }} ariaLabel={`Timeline from October 2026 to July 2027. Today is ${fmt(today)}; ${Math.max(0, D.prelim - today)} days to the Prelim.`}>
           <Rect x0={D.prelim} x1={D.final} y0={0.4} y1={9.9} fill="color-mix(in srgb, var(--viz-neg) 14%, transparent)" />
-          <Label x={(D.prelim + D.final) / 2} y={0.15} anchor="middle" color="var(--viz-neg)" size={11} weight={700}>
+          <Label x={(D.prelim + D.final) / 2} y={0.15} anchor="middle" color={txt('var(--viz-neg)')} size={11} weight={700}>
             {`${D.final - D.prelim} d`}
           </Label>
           <Layers today={today} narrow={narrow} />
           {/* today */}
-          <Path points={[[today, 0.4], [today, 9.9]]} color="var(--viz-ink)" width={1.5} dash="5 4" />
-          <Label x={today} y={AXIS} dx={today > LAST * 0.6 ? -10 : 10} dy={-10} anchor={today > LAST * 0.6 ? 'end' : 'start'} color="var(--viz-ink)" size={12} weight={800}>
-            {`today: ${fmt(today)}`}
-          </Label>
-          <DraggablePoint x={today} y={AXIS} lockY color="var(--viz-ink)" r={8} constrain={(x, y) => [Math.round(Math.max(0, Math.min(LAST, x))), y]} onChange={(x) => setToday(Math.round(Math.max(0, Math.min(LAST, x))))} label="" />
+          <Path points={[[today, 0.4], [today, 10.25]]} color="var(--viz-ink)" width={1.5} dash="5 4" />
+          <TodayTag today={today} />
+          <g role="group" aria-label="Today marker: drag it, or use the arrow keys, to change the date">
+            <DraggablePoint x={today} y={AXIS} lockY color="var(--viz-ink)" r={8} constrain={(x, y) => [Math.round(Math.max(0, Math.min(LAST, x))), y]} onChange={(x) => setToday(Math.round(Math.max(0, Math.min(LAST, x))))} />
+          </g>
         </Plot>
       </div>
       <Controls>

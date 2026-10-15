@@ -1,6 +1,6 @@
 import { Highlight, themes } from 'prism-react-renderer'
 import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
-import { useContainerWidth, usePlayer, PlayerControls } from '../../../../../kit'
+import { useContainerWidth, usePlayer, PlayerControls, Segmented } from '../../../../../kit'
 
 /*
   Shared building blocks for the python-toolkit visuals written for the lessons
@@ -12,6 +12,7 @@ import { useContainerWidth, usePlayer, PlayerControls } from '../../../../../kit
   - MemoryDiagram: Python-Tutor style "names on the left, objects on the right, arrows between".
   - TraceStepper: CodeView + Console + MemoryDiagram driven by a list of precomputed steps,
     with optional predict-then-reveal questions on print lines.
+  - ChoiceGroup: the kit's Segmented control on wide screens, separate wrapping chips on phones.
 */
 
 export const MONO = 'var(--font-mono)'
@@ -51,12 +52,12 @@ export function CodeView({
   fitChars?: number
 }) {
   const src = code.replace(/\n$/, '')
-  // shrink the font (down to 11px) so the longest line fits without scrolling on phones
+  // shrink the font (down to 11.5px) so the longest line fits on a 390px phone; anything longer scrolls inside the box
   const [wrapRef, w] = useContainerWidth<HTMLDivElement>(640)
   const longest = fitChars ?? Math.max(1, ...src.split('\n').map((l) => l.length))
   const hasMarks = Boolean(marks)
-  const fit = (w - 22) / ((hasMarks ? 3.8 : 2.8) + 0.61 * longest)
-  const fs = Math.max(10.5, Math.min(fontSize, fit))
+  const fit = (w - 18) / ((hasMarks ? 3.8 : 2.8) + 0.61 * longest)
+  const fs = Math.max(11.5, Math.min(fontSize, fit))
   const toneBg =
     activeTone === 'bad'
       ? 'color-mix(in srgb, var(--bad) 16%, var(--surface))'
@@ -83,7 +84,7 @@ export function CodeView({
                 const rowStyle: CSSProperties = {
                   display: 'flex',
                   alignItems: 'baseline',
-                  padding: '0 0.75rem 0 0.4rem',
+                  padding: '0 0.5rem 0 0.4rem',
                   background: on ? toneBg : undefined,
                   boxShadow: on ? `inset 3px 0 0 ${toneBar}` : undefined,
                   opacity: faded ? 0.42 : 1,
@@ -375,7 +376,7 @@ export function MemoryDiagram({ frames, objects, minHeight = 0, ariaLabel }: { f
                 o.cells.map((c, i) => (
                   <g key={i}>
                     {showIdx && (
-                      <text x={x + i * cellW + cellW / 2} y={y + OBJ_LABEL + BOX_H + 11} textAnchor="middle" style={{ fontSize: 10, fill: 'var(--ink-3)', fontFamily: MONO }}>
+                      <text x={x + i * cellW + cellW / 2} y={y + OBJ_LABEL + BOX_H + 12} textAnchor="middle" style={{ fontSize: 11.5, fill: 'var(--ink-3)', fontFamily: MONO }}>
                         {i}
                       </text>
                     )}
@@ -401,7 +402,7 @@ export function MemoryDiagram({ frames, objects, minHeight = 0, ariaLabel }: { f
                   x={Math.min(W - 2, Math.max(x + cellW * Math.max(1, o.cells.length), x + 104))}
                   y={y + OBJ_LABEL + BOX_H + 25}
                   textAnchor="end"
-                  style={{ fontSize: 11, fill: 'var(--ink-3)', fontStyle: 'italic', fontFamily: 'var(--font-body)' }}
+                  style={{ fontSize: 11.5, fill: 'var(--ink-3)', fontStyle: 'italic', fontFamily: 'var(--font-body)' }}
                 >
                   no names left: freed
                 </text>
@@ -410,6 +411,26 @@ export function MemoryDiagram({ frames, objects, minHeight = 0, ariaLabel }: { f
           )
         })}
       </svg>
+    </div>
+  )
+}
+
+/** Explains the two arrow colours used by MemoryDiagram. */
+export function DiagramLegend() {
+  const swatch = (colour: string, thick: number) => (
+    <svg width="26" height="10" aria-hidden="true" style={{ flex: 'none' }}>
+      <line x1="1" y1="5" x2="18" y2="5" style={{ stroke: colour, strokeWidth: thick }} />
+      <path d="M25,5 L17,1 L17,9 Z" style={{ fill: colour }} />
+    </svg>
+  )
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem', fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.4 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {swatch('var(--viz-2)', 2.6)} what this line just used or changed
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {swatch('var(--viz-1)', 1.8)} every other arrow
+      </span>
     </div>
   )
 }
@@ -507,6 +528,7 @@ export function TraceStepper({ code, steps, resetKey, codeTitle, diagramLabel, i
         </div>
         <div style={{ display: 'grid', gap: 8, minWidth: 0 }}>
           <MemoryDiagram frames={s.frames} objects={s.objects} minHeight={minHeight} ariaLabel={diagramLabel} />
+          <DiagramLegend />
           <div style={{ fontSize: 14.5, lineHeight: 1.5, color: 'var(--ink)', background: 'var(--surface-2)', borderRadius: 8, padding: '0.5rem 0.7rem', minHeight: '3.2em' }}>
             {waiting ? <span style={{ color: 'var(--ink-3)' }}>Make your prediction below first. The explanation appears here once you have chosen.</span> : s.note}
           </div>
@@ -526,7 +548,7 @@ export function TraceStepper({ code, steps, resetKey, codeTitle, diagramLabel, i
  * Font size (px) that lets `chars` monospace characters fit in the measured width minus
  * `overhead` px, clamped to [min, max]. Attach `ref` to the element whose width counts.
  */
-export function useFitFont<T extends HTMLElement>(chars: number, overhead: number, max = 12.5, min = 10.5) {
+export function useFitFont<T extends HTMLElement>(chars: number, overhead: number, max = 12.5, min = 11.5) {
   const [ref, w] = useContainerWidth<T>(640)
   const fs = Math.max(min, Math.min(max, (w - overhead) / (0.61 * Math.max(1, chars))))
   return [ref, fs] as const
@@ -564,6 +586,61 @@ export function Lamp({ on, label, sub }: { on: boolean; label: ReactNode; sub?: 
       <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
       <span style={{ fontFamily: MONO, fontSize: 14, fontWeight: 700, color: on ? 'var(--viz-pos)' : 'var(--ink-3)' }}>{on ? 'True' : 'False'}</span>
       {sub && <span style={{ fontSize: 12, color: 'var(--ink-3)', textAlign: 'center' }}>{sub}</span>}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ choice group */
+
+/**
+ * The kit's Segmented control when there is room. On phones a wrapped pill track looks ragged,
+ * so below the breakpoint each option becomes its own chip (optionally with a shorter label).
+ */
+export function ChoiceGroup<T extends string | number>({
+  narrow,
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  narrow: boolean
+  options: { value: T; label: ReactNode; short?: ReactNode }[]
+  value: T
+  onChange: (v: T) => void
+  label?: string
+}) {
+  if (!narrow) return <Segmented label={label} value={value} onChange={onChange} options={options.map((o) => ({ value: o.value, label: o.label }))} />
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {label && <span className="segmented-label">{label}</span>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {options.map((o) => {
+          const on = o.value === value
+          return (
+            <button
+              key={String(o.value)}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(o.value)}
+              style={{
+                font: 'inherit',
+                fontSize: 'var(--step--1)',
+                fontWeight: 700,
+                padding: '0.3rem 0.75rem',
+                minHeight: 34,
+                borderRadius: 999,
+                border: `1.5px solid ${on ? 'var(--accent)' : 'var(--rule)'}`,
+                background: on ? 'var(--accent-soft)' : 'var(--surface)',
+                color: on ? 'var(--ink)' : 'var(--ink-2)',
+                cursor: 'pointer',
+              }}
+            >
+              {o.short ?? o.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

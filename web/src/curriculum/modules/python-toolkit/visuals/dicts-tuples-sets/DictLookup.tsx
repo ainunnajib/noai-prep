@@ -190,8 +190,15 @@ export default function DictLookup() {
   else if (!done) status = phase < 2 ? <>Hashing {q(op.key)}…</> : <>Checking slot {res.checked[Math.min(checkedUpTo, res.checked.length) - 1]}…</>
   else {
     const probes = res.checked.length
-    const skipped = res.checked.slice(0, -1).map((i) => q(table[i]?.key ?? ''))
-    const skipText = probes > 1 ? <>Slot {res.checked[0]} holds {skipped.join(', then ')}, a different key, so Python tries the next slot. </> : null
+    const skipped = res.checked.slice(0, -1).map((i, k) => `${k === 0 ? 'Slot' : 'slot'} ${i} holds ${q(table[i]?.key ?? '')}`)
+    const skipList = skipped.length > 1 ? `${skipped.slice(0, -1).join(', ')} and ${skipped[skipped.length - 1]}` : skipped[0]
+    const skipText =
+      probes > 1 ? (
+        <>
+          {skipList}, {skipped.length === 1 ? 'a different key' : skipped.length === 2 ? 'both different keys' : 'all different keys'}, so Python moves on (in this toy, to the
+          next slot; real Python jumps to a slot chosen by a scrambling rule).{' '}
+        </>
+      ) : null
     if (op.kind === 'set') {
       status = res.found ? (
         <>{q(op.key)} is already in slot {lastIdx}, so its value is <b>replaced</b> by {fmtVal(op.value)}. Keys are unique.</>
@@ -297,13 +304,13 @@ export default function DictLookup() {
             return (
               <g key={`${res.cap}-${i}`}>
                 <rect x={x} y={y} width={cellW} height={cellH} rx={8} style={{ fill: st.fill, stroke: st.stroke, strokeWidth: order >= 0 && order < checkedUpTo ? 2.5 : 1.3, strokeDasharray: st.dash }} />
-                <text x={x + 6} y={y + 13} style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
+                <text x={x + 6} y={y + 14} style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
                   {i}
                 </text>
                 {order >= 0 && order < checkedUpTo && res.checked.length > 1 && (
                   <g>
-                    <circle cx={x + cellW - 10} cy={y + 10} r={7.5} style={{ fill: st.stroke }} />
-                    <text x={x + cellW - 10} y={y + 13.5} textAnchor="middle" style={{ fill: 'var(--surface)', fontSize: 10, fontWeight: 800 }}>
+                    <circle cx={x + cellW - 11} cy={y + 11} r={8.5} style={{ fill: st.stroke }} />
+                    <text x={x + cellW - 11} y={y + 15} textAnchor="middle" style={{ fill: 'var(--surface)', fontSize: 11.5, fontWeight: 800 }}>
                       {order + 1}
                     </text>
                   </g>
@@ -318,7 +325,7 @@ export default function DictLookup() {
                     </text>
                   </>
                 ) : (
-                  <text x={x + cellW / 2} y={y + 36} textAnchor="middle" style={{ fill: 'var(--viz-muted)', fontSize: 11 }}>
+                  <text x={x + cellW / 2} y={y + 36} textAnchor="middle" style={{ fill: 'var(--viz-muted)', fontSize: 11.5 }}>
                     empty
                   </text>
                 )}

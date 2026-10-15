@@ -13,7 +13,8 @@ type Child = 'l2' | 'l1' | 'half'
 
 const CHILD: Record<Child, { cls: string; value?: string; gradient?: string; v: (y: number, p: number) => number; g?: (y: number, p: number) => number }> = {
   l2: { cls: 'L2Loss', value: 'return (p - y) ** 2 / 2', gradient: 'return p - y', v: (y, p) => (p - y) ** 2 / 2, g: (y, p) => p - y },
-  l1: { cls: 'L1Loss', value: 'return abs(p - y)', gradient: 'return 1 if p > y else -1', v: (y, p) => Math.abs(p - y), g: (y, p) => (p > y ? 1 : -1) },
+  // the sign of p - y: 1, 0 or -1 (True counts as 1, False as 0), like np.sign(p - y)
+  l1: { cls: 'L1Loss', value: 'return abs(p - y)', gradient: 'return (p > y) - (p < y)', v: (y, p) => Math.abs(p - y), g: (y, p) => (p > y ? 1 : 0) - (p < y ? 1 : 0) },
   half: { cls: 'HalfLoss', value: 'return abs(p - y)', v: (y, p) => Math.abs(p - y) },
 }
 
@@ -40,7 +41,7 @@ function Row({ children, kind, hl, badge, minH = 62, fs = 12.5 }: { children: Re
     background: bg,
     boxShadow: hl ? 'inset 3px 0 0 var(--highlight)' : undefined,
     borderRadius: 8,
-    padding: '0.35rem 0.55rem',
+    padding: '0.35rem 0.45rem',
     minHeight: minH,
     fontFamily: MONO,
     fontSize: fs,
@@ -153,7 +154,7 @@ export default function AbstractTemplate() {
         ]}
       />
       <div style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
-        <div ref={fitRef} style={{ border: '2px solid var(--viz-5)', borderRadius: 12, padding: '0.5rem', display: 'grid', gap: 6, alignContent: 'start', minWidth: 0 }}>
+        <div ref={fitRef} style={{ border: '2px solid var(--viz-5)', borderRadius: 12, padding: '0.5rem 0.4rem', display: 'grid', gap: 6, alignContent: 'start', minWidth: 0 }}>
           <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 14 }}>
             class Loss(ABC): <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--ink-3)', fontWeight: 400 }}>the template</span>
           </div>
@@ -170,7 +171,7 @@ export default function AbstractTemplate() {
             {'\ndef step(self, y, p, lr):\n    return p - lr * self.gradient(y, p)'}
           </Row>
         </div>
-        <div style={{ border: `2px solid ${c.gradient ? 'var(--viz-2)' : 'var(--viz-neg)'}`, borderRadius: 12, padding: '0.5rem', display: 'grid', gap: 6, alignContent: 'start', minWidth: 0 }}>
+        <div style={{ border: `2px solid ${c.gradient ? 'var(--viz-2)' : 'var(--viz-neg)'}`, borderRadius: 12, padding: '0.5rem 0.4rem', display: 'grid', gap: 6, alignContent: 'start', minWidth: 0 }}>
           <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 14 }}>
             class {c.cls}(Loss): <span style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--ink-3)', fontWeight: 400 }}>fills the blanks</span>
           </div>
@@ -180,7 +181,7 @@ export default function AbstractTemplate() {
           </Row>
           {c.gradient ? (
             <Row fs={fs} kind="concrete" hl={Boolean(hl.child.gradient)} badge={hl.child.gradient}>
-              {tag('fills gradient', 'var(--viz-2)')}
+              {tag(child === 'l1' ? 'fills gradient: the sign, 1, 0 or -1' : 'fills gradient', 'var(--viz-2)')}
               {`\ndef gradient(self, y, p):\n    ${c.gradient}`}
             </Row>
           ) : (

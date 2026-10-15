@@ -51,13 +51,13 @@ const questions: QuizQuestion[] = [
     ],
     answer: 2,
     explanation:
-      '`super().__init__()` runs the parent\'s constructor on this object. `nn.Module` uses it to create the internal records that let `self.layer = nn.Linear(...)` be registered, so `net.parameters()` can find the weights. Without it PyTorch raises `AttributeError: cannot assign module before Module.__init__() call`. Inheriting is declared by `class Net(nn.Module)`, not by `super()`.',
+      '`super().__init__()` runs the parent\'s `__init__` (its set-up code) on this object. `nn.Module` uses it to create the internal records that let `self.layer = nn.Linear(...)` be registered, so `net.parameters()` can find the weights. Without it PyTorch raises `AttributeError: cannot assign module before Module.__init__() call`. Inheriting is declared by `class Net(nn.Module)`, not by `super()`.',
     difficulty: 'intermediate',
   },
   {
     id: 'python-toolkit.classes-objects.5',
     prompt: 'A scaffold gives the classes below. What happens when you run `L2Booster()`?',
-    code: 'from abc import ABC, abstractmethod\n\nclass BaseBooster(ABC):\n    def predict(self, X):\n        ...   # shared code\n\n    @abstractmethod\n    def negative_gradient(self, y, p): ...\n\nclass L1Booster(BaseBooster):\n    def negative_gradient(self, y, p):\n        return 1 if y > p else -1\n\nclass L2Booster(BaseBooster):\n    pass',
+    code: 'from abc import ABC, abstractmethod\n\nclass BaseBooster(ABC):\n    def predict(self, X):\n        ...   # shared code\n\n    @abstractmethod\n    def negative_gradient(self, y, p): ...\n\nclass L1Booster(BaseBooster):\n    def negative_gradient(self, y, p):\n        return (y > p) - (y < p)  # sign of y - p\n\nclass L2Booster(BaseBooster):\n    pass',
     options: [
       '`TypeError` at once, because `negative_gradient` is still abstract',
       'It works, and `negative_gradient` returns `None` when called',

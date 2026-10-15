@@ -27,8 +27,8 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'pandas-and-plotting.dataframes-and-selection.3',
-    prompt: 'Part of the output of `df.info()` is shown. What does it tell you about the `income` column?',
-    code: 'RangeIndex: 200 entries, 0 to 199\n #   Column  Non-Null Count  Dtype\n---  ------  --------------  -----\n 0   age     200 non-null    int64\n 1   income  184 non-null    float64\n 2   city    200 non-null    object',
+    prompt: 'A table has 200 rows (`RangeIndex: 200 entries`). Part of the output of `df.info()` is shown. What does it tell you about the `income` column?',
+    code: ' #   Column  Non-Null Count  Dtype\n---  ------  --------------  -----\n 0   age     200 non-null    int64\n 1   income  184 non-null    float64',
     codeLang: 'text',
     options: ['16 of its values are missing', 'It is missing in 184 rows', 'It contains 184 different values', 'It has 16 values above the mean'],
     answer: 0,

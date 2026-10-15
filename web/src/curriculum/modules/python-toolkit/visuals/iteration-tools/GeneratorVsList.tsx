@@ -33,6 +33,8 @@ export default function GeneratorVsList() {
   const src = isGen ? `squares = (x * x for x in range(${pyNum(n)}))` : `squares = [x * x for x in range(${pyNum(n)})]`
   const ratio = Math.round(listBytes / GEN_BYTES)
   const done = pulled.length >= n
+  // In generator mode, slide the window of cells along so the newest value (and the next "?") stay in view.
+  const start = isGen ? Math.max(0, Math.min(pulled.length - (SHOW - 1), n - SHOW)) : 0
 
   const pull = () => {
     if (done) {
@@ -52,8 +54,9 @@ export default function GeneratorVsList() {
       title="A list stores every value; a generator makes them on demand"
       caption={
         <>
-          Slide N up to a million and compare the memory bars. Then, in generator mode, press <span className={s.mono}>next(squares)</span> a few times: each value is
-          computed only when you ask, and the generator remembers only where it is up to. Switch to the list and every value already exists, all at once.
+          Slide N up to ten million and compare the memory bars (measured on a normal 64-bit computer). Then, in generator mode, press{' '}
+          <span className={s.mono}>next(squares)</span> a few times: each value is computed only when you ask, and the generator remembers only where it is up to.
+          Switch to the list and every value already exists, all at once.
         </>
       }
     >
@@ -94,7 +97,9 @@ export default function GeneratorVsList() {
           {isGen ? 'Values produced so far (handed out one at a time; the generator stores none of them):' : 'Values in memory (all computed and stored when the line ran):'}
         </div>
         <div className={s.cells} aria-label="Values computed so far">
-          {Array.from({ length: Math.min(SHOW, n) }, (_, i) => {
+          {start > 0 && <span className={s.muted}>…</span>}
+          {Array.from({ length: Math.min(SHOW, n - start) }, (_, j) => {
+            const i = start + j
             const have = isGen ? i < pulled.length : true
             const newest = isGen && i === pulled.length - 1
             const past = isGen && have && !newest
@@ -104,7 +109,7 @@ export default function GeneratorVsList() {
               </span>
             )
           })}
-          {n > SHOW && <span className={s.muted}>… {isGen ? `${(n - pulled.length).toLocaleString('en-GB')} values still to come` : `${(n - SHOW).toLocaleString('en-GB')} more, all stored`}</span>}
+          {n > start + SHOW && <span className={s.muted}>… {isGen ? `${(n - pulled.length).toLocaleString('en-GB')} values still to come` : `${(n - SHOW).toLocaleString('en-GB')} more, all stored`}</span>}
         </div>
 
         {isGen ? (

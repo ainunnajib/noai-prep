@@ -5,7 +5,8 @@ import StackVsConcat from './visuals/arrays-and-shapes/StackVsConcat'
 
 export const MAKE_CODE = `import numpy as np
 
-a = np.array([[1, 2, 3], [4, 5, 6]])
+a = np.array([[1, 2, 3],
+              [4, 5, 6]])
 print(a.shape, a.ndim, a.size,
       a.dtype)
 
@@ -16,7 +17,7 @@ print(np.arange(0, 10, 2))
 print(np.linspace(0, 1, 5))
 print(np.eye(2))
 
-# change the arguments, predict, run!`
+# change, predict, then run!`
 
 export const RESHAPE_CODE = `import numpy as np
 
@@ -29,11 +30,14 @@ print(b)
 c = b.reshape(-1)
 print(c.shape)
 
-A = np.array([[1, 2, 3], [4, 5, 6]])
+A = np.array([[1, 2, 3],
+              [4, 5, 6]])
 B = np.array([[7, 8, 9],
               [10, 11, 12]])
-c0 = np.concatenate([A, B], axis=0)
-c1 = np.concatenate([A, B], axis=1)
+c0 = np.concatenate([A, B],
+                    axis=0)
+c1 = np.concatenate([A, B],
+                    axis=1)
 s0 = np.stack([A, B], axis=0)
 s2 = np.stack([A, B], axis=2)
 print(c0.shape)
@@ -93,7 +97,7 @@ Every array carries four facts about itself:
 For an array with shape $(d_0, d_1, \dots, d_{k-1})$:
 
 $$
-\text{ndim} = k, \qquad \text{size} = d_0 \times d_1 \times \dots \times d_{k-1}
+\text{ndim} = k, \quad \text{size} = d_0 \times d_1 \times \dots \times d_{k-1}
 $$
 
 Here $d_0$ is the length of axis 0, $d_1$ the length of axis 1, and so on, and $k$ is how many axes there are. So an array of shape $(2, 3, 4)$ has ndim 3 and size $2 \times 3 \times 4 = 24$.

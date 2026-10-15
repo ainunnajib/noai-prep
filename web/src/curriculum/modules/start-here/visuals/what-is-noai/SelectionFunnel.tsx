@@ -1,12 +1,14 @@
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Figure, Controls, Button, useAnimationFrame, useContainerWidth, mulberry32 } from '../../../../../kit'
 import { PRELIM, FINAL, FUNNEL } from '../../../../../data/facts'
+import css from './funnel.module.css'
 
 /*
   The NOAI → IOAI selection funnel. Four bands (Prelim, Final, NTU stage, IOAI team).
-  Dots stream down and settle in the last band they reach. From the Final onwards one dot is
-  one student (150 → ~60 → team); the Prelim band is symbolic because entry is uncapped.
+  Dots stream down and settle in the last band each student reaches, so a band holds the students
+  who STOP there (Final: 150 reach it, 90 stop; NTU: ~60 reach it, ~52 stop; team: 8, of which 4
+  are hollow because 2027 may allow only 4). The Prelim band is symbolic: entry is uncapped.
   Click a band to read what that stage looks like and which skill it rewards.
 */
 
@@ -15,6 +17,8 @@ interface Stage {
   short: string
   when: string
   count: string
+  /** how many students end their run at this stage (shown under the count) */
+  stop?: string
   colour: string
   where: string
   format: string
@@ -29,6 +33,7 @@ const STAGES: Stage[] = [
     short: 'Prelim',
     when: 'Fri 19 Feb 2027',
     count: 'open entry, no cap',
+    stop: 'most stop here',
     colour: 'var(--viz-1)',
     where: `${PRELIM.dateLabel}, in your school's computer lab (approved direct-entry students sit it at the AI Singapore office at NUS).`,
     format: `${PRELIM.questions} multiple-choice questions in ${PRELIM.minutes} minutes (about ${PRELIM.secondsPerQuestion} seconds each) on a Google Form. No calculator: pen and paper for rough work only.`,
@@ -43,11 +48,12 @@ const STAGES: Stage[] = [
     name: 'Final Assessment',
     short: 'Final',
     when: 'Fri 5 Mar 2027',
-    count: `top ${FUNNEL[1].n}`,
+    count: `about the top ${FUNNEL[1].n}`,
+    stop: `${Number(FUNNEL[1].n) - Number(FUNNEL[2].n.replace('~', ''))} of them stop here`,
     colour: 'var(--viz-3)',
     where: `${FINAL.dateLabel}, two weeks after the Prelim.`,
     format: `${FINAL.format} ${FINAL.lastYear}`,
-    who: `The top ${FUNNEL[1].n} from the Prelim. Results come as an award tier (Gold, Silver, Bronze or Participation).`,
+    who: `About the top ${FUNNEL[1].n} from the Prelim, ranked on total correct answers, with school seat quotas (not published) so that no single school takes too many seats; tied students may all go through. Results come as an award tier (Gold, Silver, Bronze or Participation).`,
     rewards: 'Implementation: writing classic algorithms such as gradient descent, K-means or attention from scratch in NumPy or PyTorch, plus harder code-reading MCQs.',
     prepare: [
       { slug: 'final-lab-numpy', label: 'Final lab I (NumPy)' },
@@ -59,6 +65,7 @@ const STAGES: Stage[] = [
     short: 'NTU stage',
     when: '8 May – 18 Jun 2027',
     count: `${FUNNEL[2].n} → ${FUNNEL[3].n} at camp`,
+    stop: '~52 stop here',
     colour: 'var(--viz-5)',
     where: 'At NTU: a Selection Test on Sat 8 May 2027, four Saturday training sessions (22 May – 12 Jun) and a residential camp (14–18 Jun).',
     format: 'Run by NTU, not AI Singapore. NTU professors teach machine learning, computer vision, language and audio, and set IOAI-style tasks on real datasets.',
@@ -80,8 +87,8 @@ const STAGES: Stage[] = [
   },
 ]
 
-/** Dots that come to rest in each band. Prelim is symbolic (uncapped); then 150 → 60 → 8. */
-const STOPS = [150, 90, 52, 8]
+/** Dots that come to rest in each band. Prelim is symbolic (uncapped); then 150 → 60 → 8 reach the next stages. */
+const STOPS = [240, 90, 52, 8]
 const DURATION = 6.5 // seconds for one full stream
 
 interface Dot {
@@ -129,6 +136,7 @@ export default function SelectionFunnel() {
 
   const dots = useMemo<Dot[]>(() => {
     const rng = mulberry32(2027)
+    const rr = g.narrow ? 2.4 : 3
     const out: Dot[] = []
     STOPS.forEach((n, band) => {
       const b = g.bands[band]
@@ -140,21 +148,21 @@ export default function SelectionFunnel() {
           // the team: two neat rows of four; the second row is hollow (maybe only 4 places in 2027)
           const row = Math.floor(i / 4)
           const col = i % 4
-          x = g.cx + (col - 1.5) * (r * 2.9)
+          x = g.cx + (col - 1.5) * (rr * 2.9)
           y = b.y0 + (b.y1 - b.y0) * (row === 0 ? 0.34 : 0.68)
         } else {
           let best: [number, number] = [x, y]
           let bestD = -1
           for (let tries = 0; tries < 12; tries++) {
             const ty = b.y0 + (b.y1 - b.y0) * (0.12 + 0.76 * rng())
-            const hw = halfWidthAt(b, ty) - r - 3
+            const hw = halfWidthAt(b, ty) - rr - 3
             const tx = g.cx + (2 * rng() - 1) * Math.max(2, hw)
             const d = placed.reduce((m, [px, py]) => Math.min(m, Math.hypot(px - tx, py - ty)), 1e9)
             if (d > bestD) {
               bestD = d
               best = [tx, ty]
             }
-            if (d > r * 2.3) break
+            if (d > rr * (band === 0 ? 1.9 : 2.3)) break
           }
           ;[x, y] = best
         }
@@ -176,15 +184,11 @@ export default function SelectionFunnel() {
   }, [W]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useAnimationFrame((dt) => {
-    setP((v) => {
-      const nv = v + dt / DURATION
-      if (nv >= 1) {
-        setPlaying(false)
-        return 1
-      }
-      return nv
-    })
+    setP((v) => Math.min(1, v + dt / DURATION))
   }, playing)
+  useEffect(() => {
+    if (playing && p >= 1) setPlaying(false)
+  }, [playing, p])
 
   const play = () => {
     if (playing) setPlaying(false)
@@ -209,8 +213,10 @@ export default function SelectionFunnel() {
       title="From open entry to a team of a handful"
       caption={
         <>
-          Press <strong>Play the stream</strong> and watch where the dots stop: from the Final onwards one dot is one student (150 finalists, about 60 at NTU, a team of 4 to 8). The
-          Prelim band is only symbolic, because entry is uncapped. Then click each band and compare the <strong>What it rewards</strong> line: it changes at every stage.
+          Press <strong>Play the stream</strong>. From the Final onwards one dot is one student, and each dot settles in the <em>last</em> stage that student reaches: the green
+          band holds the 90 finalists who stop at the Final, while the 60 who go on settle lower down (the counts under the button add them up). Hollow dots are team places that
+          may not exist in 2027, when IOAI allows one team per country. The Prelim band is only symbolic, because entry is uncapped. Then click (or tap) each band and compare the{' '}
+          <strong>Rewards</strong> line: it changes at every stage.
         </>
       }
     >
@@ -232,8 +238,8 @@ export default function SelectionFunnel() {
                 onClick={() => setSel(i)}
                 onKeyDown={onKey(i)}
                 onFocus={() => setSel(i)}
-                style={{ cursor: 'pointer', outline: 'none' }}
-                className="funnel-band"
+                style={{ cursor: 'pointer', outline: 'none', ['--band' as string]: s.colour } as CSSProperties}
+                className={css.band}
               >
                 <polygon
                   points={pts}
@@ -244,17 +250,23 @@ export default function SelectionFunnel() {
                     strokeLinejoin: 'round',
                   }}
                 />
-                <line x1={edge + 3} x2={g.labelX - 5} y1={my} y2={my} style={{ stroke: on ? s.colour : 'var(--viz-muted)', strokeWidth: on ? 1.8 : 1, strokeDasharray: on ? undefined : '3 3' }} />
+                <line className={css.leader} x1={edge + 3} x2={g.labelX - 5} y1={my} y2={my} style={{ stroke: on ? s.colour : 'var(--viz-muted)', strokeWidth: on ? 1.8 : 1, strokeDasharray: on ? undefined : '3 3' }} />
                 <rect x={g.labelX - 4} y={my - 26} width={Math.max(10, W - g.labelX + 2)} height={52} style={{ fill: 'transparent' }} />
-                <text x={g.labelX} y={my - 8} style={{ fill: on ? s.colour : 'var(--ink)', fontSize: g.narrow ? 13 : 14, fontWeight: 750 }}>
+                <text x={g.labelX} y={my - 8} style={{ fill: on ? `color-mix(in srgb, ${s.colour} 65%, var(--ink))` : 'var(--ink)', fontSize: g.narrow ? 13 : 14, fontWeight: 750 }}>
                   {g.narrow ? s.short : s.name}
+                  {on ? '' : ' ▸'}
                 </text>
                 <text x={g.labelX} y={my + 8} style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 600 }}>
                   {s.when}
                 </text>
-                <text x={g.labelX} y={my + 23} style={{ fill: 'var(--ink-3)', fontSize: 12 }}>
+                <text x={g.labelX} y={my + 23} style={{ fill: 'var(--ink-2)', fontSize: 12 }}>
                   {s.count}
                 </text>
+                {s.stop && (
+                  <text x={g.labelX} y={my + 37} style={{ fill: 'var(--ink-3)', fontSize: 11.5, fontStyle: 'italic' }}>
+                    {s.stop}
+                  </text>
+                )}
               </g>
             )
           })}
@@ -299,7 +311,7 @@ export default function SelectionFunnel() {
 
 const rowWide: CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(6.5rem, max-content) 1fr', gap: '0.2rem 0.8rem', alignItems: 'baseline' }
 const rowNarrow: CSSProperties = { display: 'grid', gap: '0.1rem' }
-const dt: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.03em' }
+const dt: CSSProperties = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.03em' }
 
 function StageCard({ stage, narrow }: { stage: Stage; narrow: boolean }) {
   const row = narrow ? rowNarrow : rowWide

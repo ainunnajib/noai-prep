@@ -12,16 +12,16 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Everyone eligible sits the Prelim; the top 150 sit the Final; about the top 60 finalists are invited to NTU\'s Selection Test and training; a small team (4 to 8) goes to IOAI. The numbers shrink at each stage, so "Final (top 60) → NTU (top 150)" cannot be right: a later stage never has more students than an earlier one.',
+      'Everyone eligible sits the Prelim; the top 150 sit the Final; about the top 60 finalists are invited to NTU\'s Selection Test and training; a small team (4 to 8) goes to IOAI. The numbers shrink at each stage, so "Final (top 60) → NTU (top 150)" cannot be right: a later stage never has more students than an earlier one. "Top 150" is approximate: seats come with school quotas, so no single school takes too many, and tied students may all go through.',
     difficulty: 'beginner',
   },
   {
     id: 'start-here.what-is-noai.2',
     prompt: 'The Prelim is on Friday 19 February 2027 and the Final on Friday 5 March 2027. How many days apart are they?',
-    options: ['14', '16', '12', '21'],
+    options: ['14', '16', '13', '21'],
     answer: 0,
     explanation:
-      'February 2027 has 28 days (2027 is not a leap year), so from 19 February there are $28 - 19 = 9$ days to the end of the month, plus 5 days of March: $9 + 5 = 14$. Assuming February has 30 days gives the trap answer 16. Two Fridays exactly two weeks apart are always 14 days apart.',
+      'February 2027 has 28 days (2027 is not a leap year), so from 19 February there are $28 - 19 = 9$ days to the end of the month, plus 5 days of March: $9 + 5 = 14$. Assuming February has 30 days gives the trap answer 16; 13 counts only the days strictly between the two dates (20 February to 4 March); and 21 is three weeks. Two Fridays exactly two weeks apart are always 14 days apart.',
     difficulty: 'beginner',
   },
   {

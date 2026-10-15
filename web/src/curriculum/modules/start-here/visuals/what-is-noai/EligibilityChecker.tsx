@@ -50,7 +50,7 @@ function decide(school: School, age: Age, pass: Pass): Result {
     case 'moe':
       return {
         status: 'yes',
-        headline: 'You can enter, whatever your nationality, through your school.',
+        headline: pass === 'other' ? 'You can enter, whatever your nationality, through your school.' : 'You can enter through your school.',
         route: ['You', "Your school's NOAI teacher rep", 'School signs up with AI Singapore', 'Prelim in your school lab'],
         details: [
           ['Register', "Ask your school's NOAI teacher representative. Sign-ups from individual MOE students are not accepted."],
@@ -155,7 +155,7 @@ export default function EligibilityChecker() {
     { stage: 'Prelim', mark: res.status, note: canEnter ? (res.status === 'maybe' ? 'if approved' : 'yes') : 'no' },
     { stage: 'Final', mark: canEnter ? res.status : 'no', note: canEnter ? 'if top 150' : 'no' },
     { stage: 'NTU stage', mark: canEnter ? (citizen ? res.status : 'maybe') : 'no', note: canEnter ? (citizen ? 'if invited' : 'NTU decides') : 'no' },
-    { stage: 'IOAI team', mark: canEnter && citizen ? res.status : 'no', note: canEnter && citizen ? 'if selected' : 'SC/PR only' },
+    { stage: 'IOAI team', mark: canEnter && citizen ? res.status : 'no', note: !canEnter ? 'no' : citizen ? 'if selected' : 'SC/PR only' },
   ]
 
   return (
@@ -228,10 +228,10 @@ export default function EligibilityChecker() {
               ))}
             </div>
           )}
-          <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(6.5rem, max-content) 1fr', gap: '0.35rem 0.8rem', fontSize: '0.9rem', lineHeight: 1.45 }}>
-            {res.details.map(([k, v]) => (
+          <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(6.5rem, max-content) 1fr', gap: narrow ? '0.1rem 0' : '0.35rem 0.8rem', fontSize: '0.9rem', lineHeight: 1.45 }}>
+            {res.details.map(([k, v], i) => (
               <Fragment key={k}>
-                <dt style={{ fontWeight: 700, color: 'var(--ink-3)' }}>{k}</dt>
+                <dt style={{ fontWeight: 700, color: 'var(--ink-2)', marginTop: narrow && i > 0 ? '0.4rem' : 0 }}>{k}</dt>
                 <dd style={{ margin: 0, color: 'var(--ink)' }}>{v}</dd>
               </Fragment>
             ))}

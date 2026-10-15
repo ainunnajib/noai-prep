@@ -67,7 +67,7 @@ function buggySteps(): TraceStep[] {
       line: [3, callLine],
       note:
         x === 1 ? (
-          <>The list is returned and printed; the frame goes away. But the default list keeps its 1 for next time.</>
+          <>The list is returned and printed; the call's local scope goes away. But the default list keeps its 1 for next time.</>
         ) : (
           <>The shared list is returned and printed. It has grown by one item on every call.</>
         ),

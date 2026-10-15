@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
     options: ['36 seconds', '60 seconds', '1 minute 40 seconds', '54 seconds'],
     answer: 0,
     explanation:
-      '$90 \\times 60 = 5400$ seconds, and $5400 \\div 150 = 36$ seconds. The trap "60 seconds" comes from working out $90 \\div 150 = 0.6$ minutes and then reading 0.6 minutes as 60 seconds; 0.6 of a minute is $0.6 \\times 60 = 36$ seconds. "1 minute 40 seconds" is $150 \\div 90$, the division done the wrong way round.',
+      '$90 \\times 60 = 5400$ seconds, and $5400 \\div 150 = 36$ seconds. The trap "60 seconds" comes from working out $90 \\div 150 = 0.6$ minutes and then reading 0.6 minutes as 60 seconds; 0.6 of a minute is $0.6 \\times 60 = 36$ seconds. "1 minute 40 seconds" is $150 \\div 90$, the division done the wrong way round, and "54 seconds" is $5400 \\div 100$, dividing by 100 instead of 150.',
     difficulty: 'beginner',
   },
   {
@@ -17,7 +17,7 @@ const questions: QuizQuestion[] = [
     options: ['4', '3', '6', '2'],
     answer: 0,
     explanation:
-      'A guess among $k$ remaining options is worth $\\frac{1}{k}$ of a mark on average. The 4 questions with two options crossed out give $4 \\times \\frac12 = 2$; the 8 blind guesses give $8 \\times \\frac14 = 2$. Total: $2 + 2 = 4$. Treating all 12 as blind guesses gives 3, which ignores the value of eliminating options.',
+      'A guess among $k$ remaining options is worth $\\frac{1}{k}$ of a mark on average. The 4 questions with two options crossed out give $4 \\times \\frac12 = 2$; the 8 blind guesses give $8 \\times \\frac14 = 2$. Total: $2 + 2 = 4$. Treating all 12 as blind guesses gives 3, which ignores the value of eliminating options; 6 treats all 12 as 50:50 guesses ($12 \\times \\frac12$); and 2 counts only one of the two groups.',
     difficulty: 'beginner',
   },
   {

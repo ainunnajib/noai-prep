@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 1,
     explanation:
-      'Default values are evaluated once, at `def` time, and stored on the function object. Each call that leaves out `items` gets an arrow to that one stored list and appends to it. Local variables do **not** survive between calls (each call gets a fresh frame); here it is the default object that persists. The fix is `items=None` plus `if items is None: items = []` inside.',
+      'Default values are evaluated once, at `def` time, and stored on the function object. Each call that leaves out `items` gets an arrow to that one stored list and appends to it. Local variables do **not** survive between calls (each call gets a fresh local scope); here it is the default object that persists. The fix is `items=None` plus `if items is None: items = []` inside.',
     difficulty: 'intermediate',
   },
   {
@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 2,
     explanation:
-      '`best_w = w` makes `best_w` an alias of the same array, and `-=` mutates that array in place, so the "best" weights change with every update. `w.copy()` stores a separate array that later updates cannot touch. Copying `grad` changes nothing, because the problem is the shared `w` array, and `==` only compares values without saving anything.',
+      '`best_w = w` makes `best_w` an alias of the same array, and `-=` mutates that array in place, so the "best" weights change with every update. `w.copy()` stores a separate array that later updates cannot touch. Copying `grad` changes nothing, because the problem is the shared `w` array, and `==` only compares values without saving anything. Assigning `best_w = w` once before the loop still makes an alias of the same array, so it would also follow every in-place update.',
     difficulty: 'intermediate',
   },
 ]

@@ -44,7 +44,8 @@ export default function ObjectStateInspector() {
     setLast('fit')
     push([
       { text: `>>> model.fit([${y.join(', ')}])`, tone: 'cmd' },
-      { text: '# nothing printed: fit changes the object', tone: 'note' },
+      { text: '<__main__.MeanPredictor object at 0x…>' },
+      { text: '# fit returned self; what it learned is stored on the object', tone: 'note' },
     ])
     setExplain(`fit worked out sum / len = ${total} / ${y.length} = ${fmt(m)} and stored it on the object as self.mean_. That attribute stays after fit returns.`)
   }

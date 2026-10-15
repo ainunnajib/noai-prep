@@ -23,8 +23,8 @@ const KEYWORDS: { key: string; val: string }[] = [
   { key: 'epochs', val: '5' },
 ]
 const ROWS: { id: Exclude<Dest, 'clash'>; label: string; sub: string }[] = [
-  { id: 'a', label: 'a', sub: 'named' },
-  { id: 'b', label: 'b', sub: 'named' },
+  { id: 'a', label: 'a', sub: 'normal parameter' },
+  { id: 'b', label: 'b', sub: 'normal parameter' },
   { id: 'args', label: '*args', sub: 'a tuple' },
   { id: 'kwargs', label: '**kwargs', sub: 'a dict' },
 ]
@@ -176,7 +176,7 @@ export default function ArgsPacker() {
       title="*args and **kwargs: where does each argument land?"
       caption={
         <>
-          Change the number of positional arguments and switch keyword arguments on or off, then watch each argument fly to its parameter. Named parameters
+          Change the number of positional arguments and switch keyword arguments on or off, then watch each argument fly to its parameter. Normal parameters
           are filled first; leftover positional arguments are packed into the tuple <span className={s.mono}>args</span>, and leftover keyword arguments into the dict{' '}
           <span className={s.mono}>kwargs</span>. Try <span className={s.mono}>b=7</span> with 1 and then with 2 positional arguments.
         </>
@@ -225,8 +225,8 @@ export default function ArgsPacker() {
                 <text x={16} y={y + 18} className={s.svgMono} style={{ fill: 'var(--ink)', fontSize: tiny ? 12.5 : 13.5, fontWeight: 800 }}>
                   {r.label}
                 </text>
-                <text x={16} y={y + 33} style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
-                  {r.sub}
+                <text x={16} y={y + 33} style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
+                  {narrow && r.sub === 'normal parameter' ? 'parameter' : r.sub}
                 </text>
                 {(r.id === 'args' || r.id === 'kwargs') && (
                   <>

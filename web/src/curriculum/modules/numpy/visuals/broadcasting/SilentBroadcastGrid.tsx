@@ -89,10 +89,10 @@ export default function SilentBroadcastGrid() {
 
   const code =
     mode === 'column'
-      ? `err = pred - y         # shape (${n}, ${n}) !!\nloss = np.mean(err ** 2) # ${fmtLoss(wrongLoss)}\n# but the true MSE is ${fmtLoss(correctLoss)}`
+      ? `err = pred - y  # shape (${n}, ${n}) !!\nloss = np.mean(err ** 2)  # ${fmtLoss(wrongLoss)}\n# but the true MSE is ${fmtLoss(correctLoss)}`
       : mode === 'flat'
-        ? `err = pred - y         # shape (${n},)\nloss = np.mean(err ** 2) # ${fmtLoss(correctLoss)}`
-        : `err = pred - y[:, None] # shape (${n}, 1)\nloss = np.mean(err ** 2) # ${fmtLoss(correctLoss)}`
+        ? `err = pred - y  # shape (${n},)\nloss = np.mean(err ** 2)  # ${fmtLoss(correctLoss)}`
+        : `# y[:, None] has shape (${n}, 1)\nerr = pred - y[:, None]\nloss = np.mean(err ** 2)  # ${fmtLoss(correctLoss)}`
 
   return (
     <Figure

@@ -2,7 +2,7 @@ import BalanceBeam from './visuals/describing-data/BalanceBeam'
 import SkewTail from './visuals/describing-data/SkewTail'
 import VarianceSquares from './visuals/describing-data/VarianceSquares'
 
-Before any model learns from data, someone has to *look* at the data. The first two questions are always the same: **what is a typical value?** and **how spread out are the values?** This lesson gives you the handful of numbers that answer them. They come back everywhere in AI (averaging a loss, standardising features, batch normalisation), and they are worth several quick marks in every NOAI paper.
+Before any model learns from data, someone has to *look* at it. The first two questions are always the same: **what is a typical value?** and **how spread out are the values?** This lesson gives you the handful of numbers that answer them. They come back everywhere in AI (averaging a loss, standardising features) and are worth several quick marks in every NOAI paper.
 
 <Analogy>
 Two hawker stalls both have an *average* queue of 4 minutes. At the first stall you always wait 3 to 5 minutes. At the second you sometimes walk straight up to the counter and sometimes wait 8 minutes. Same centre, very different experience. To describe data honestly you need one number for the **centre** and another for the **spread**.
@@ -44,17 +44,13 @@ The <Term def="The middle value once the data is sorted. With an even number of 
 - **Odd** number of values: take the middle one. $2, 3, 5, \mathbf{5}, 5, 7, 8$ has median 5.
 - **Even** number of values: take the mean of the two middle ones. $2, 3, 5, \mathbf{5}, \mathbf{5}, 7, 8, 21$ has median $\frac{5 + 5}{2} = 5$.
 
-That second list is the bus data plus one friend whose bus broke down (21 minutes). The mean jumped from 5 to $56 \div 8 = 7$ minutes, but the median did not move at all. The median only cares about the *order* of the values, so a huge value is just "one more value on the right", however far right it is. We say the median is <Term def="Hardly affected by a few extreme values. The median is robust; the mean is not.">robust</Term> to <Term def="A value far away from the rest of the data, such as a typing error or a rare extreme case.">outliers</Term>, and the mean is not.
+That second list is the bus data plus one friend whose bus broke down (21 minutes). The mean jumped from 5 to $56 \div 8 = 7$ minutes, but the median did not move at all: it only cares about the *order* of the values, so a huge value is just "one more value on the right". We say the median is <Term def="Hardly affected by a few extreme values. The median is robust; the mean is not.">robust</Term> to <Term def="A value far away from the rest of the data, such as a typing error or a rare extreme case.">outliers</Term>, and the mean is not. That is why reports on incomes and house prices quote the **median**: one billionaire moving in would drag the mean up by millions.
 
 <PastPaperQuestion paper="prelim2026" n={47} />
 
-<Analogy title="A billionaire moves in">
-If a billionaire moves into a 50-unit condo block, the average household income jumps by millions of dollars, yet the household in the middle is exactly as well off as before. This is why reports on income and house prices quote the **median**.
-</Analogy>
-
 ## The mode: the most common value
 
-The <Term def="The value that appears most often in the data. There can be more than one mode, or none.">mode</Term> is the value that appears most often. In the bus data, 5 appears three times, so the mode is 5. A data set can have two modes (it is then called *bimodal*), or no mode at all if every value appears once. The mode is also the only "average" that works for categories. You cannot find the mean of favourite bubble-tea flavours, but you can find the most popular one.
+The <Term def="The value that appears most often in the data. There can be more than one mode, or none.">mode</Term> is the value that appears most often: 5 in the bus data. A data set can have two modes (it is then *bimodal*), or none at all if every value appears once. The mode is also the only "average" that works for categories: there is no mean bubble-tea flavour, but there is a most popular one.
 
 <QuickCheck
   id="probability-and-statistics.describing-data.qc1"
@@ -80,7 +76,7 @@ Slide between the three shapes and watch where the mean, median and mode sit.
 The mean is dragged towards the tail, the median follows a little, and the mode stays at the peak. Right-skewed data typically has **mean > median > mode**, left-skewed data has **mean < median < mode**, and symmetric, single-peaked data has all three equal.
 </KeyIdea>
 
-The readout labelled *skewness* turns this into one number: the average **cube** of the standardised distances, $\frac{1}{n}\sum \big(\frac{x_i - \bar{x}}{\sigma}\big)^3$, where $\sigma$ is the standard deviation (coming up next). Cubing keeps the sign, so a long right tail makes it positive and a long left tail negative. For NOAI you only need the sign and the ordering rule above.
+The *skewness* readout turns this into one number: the average **cube** of the standardised distances, $\frac{1}{n}\sum \big(\frac{x_i - \bar{x}}{\sigma}\big)^3$, where $\sigma$ is the standard deviation (coming up next). Cubing keeps the sign, so a long right tail makes it positive. For NOAI you only need the sign and the ordering rule.
 
 <QuickCheck
   id="probability-and-statistics.describing-data.qc2"
@@ -91,14 +87,14 @@ The readout labelled *skewness* turns this into one number: the average **cube**
 />
 
 <ExamTip>
-NOAI likes the ordering question: "In a right-skewed distribution, which is typically largest?" The mean, giving **mean > median > mode**: the mean chases the tail. Incomes, house prices, waiting times and follower counts are the standard right-skewed examples. *Typically* matters: the ordering is a strong rule of thumb, not a law, and odd shapes can break it.
+NOAI likes the ordering question: "In a right-skewed distribution, which is typically largest?" The mean, because it chases the tail: **mean > median > mode**. Incomes, house prices, waiting times and follower counts are the standard right-skewed examples. *Typically* matters: it is a rule of thumb, and odd shapes can break it.
 </ExamTip>
 
 <PastPaperQuestion paper="prelim2026" n={58} />
 
 ## Spread: how far do values wander from the centre?
 
-The quickest measure of spread is the <Term def="The largest value minus the smallest value.">range</Term>, the largest value minus the smallest. A single outlier wrecks it. A more robust partner for the median is the <Term def="Interquartile range: the spread of the middle half of the sorted data (the third quartile minus the first quartile). Outliers barely affect it.">interquartile range (IQR)</Term>, the width of the middle half of the data. To find it, sort the data and split it into a lower half and an upper half. The first quartile $Q_1$ is the median of the lower half, the third quartile $Q_3$ is the median of the upper half, and $\text{IQR} = Q_3 - Q_1$. For $1, 2, \dots, 8$ the halves are $1, 2, 3, 4$ and $5, 6, 7, 8$, so $Q_1 = 2.5$, $Q_3 = 6.5$ and the IQR is 4. (Software such as NumPy interpolates slightly differently, so its quartiles can differ a little.)
+The quickest measure of spread is the <Term def="The largest value minus the smallest value.">range</Term>, the largest value minus the smallest, but a single outlier wrecks it. A more robust partner for the median is the <Term def="Interquartile range: the spread of the middle half of the sorted data (the third quartile minus the first quartile). Outliers barely affect it.">interquartile range (IQR)</Term>, the width of the middle half of the data. Sort the data and split it into a lower and an upper half: the first quartile $Q_1$ is the median of the lower half, the third quartile $Q_3$ the median of the upper half, and $\text{IQR} = Q_3 - Q_1$. For $1, 2, \dots, 8$ that gives $Q_1 = 2.5$, $Q_3 = 6.5$ and an IQR of 4. (NumPy interpolates slightly differently, so its quartiles can differ a little.)
 
 The measure used most in maths and AI, though, is built from the deviations. A natural first idea is to average the deviations $x_i - \bar{x}$, but you already know they always add up to 0, whatever the data. The fix is to **square** each deviation first. Squares are never negative, so nothing cancels.
 
@@ -110,10 +106,9 @@ $$
 
 In words:
 
-- $x_i - \bar{x}$ is how far value $i$ is from the mean.
-- $(x_i - \bar{x})^2$ squares it, so it is positive and far values count much more.
+- $(x_i - \bar{x})^2$ squares each deviation, so it is positive and far values count much more.
 - $\frac{1}{n}\sum$ averages those squares. The result $\sigma^2$ ("sigma squared") is the <Term def="The average of the squared distances from the mean. Its units are the data's units squared.">variance</Term>.
-- Squaring also squares the units: the variance of times in minutes is in "minutes²", which is hard to picture. Taking the square root gives the <Term def="The square root of the variance. It measures a typical distance from the mean, in the same units as the data.">standard deviation</Term> $\sigma$, back in minutes.
+- Squaring also squares the units (minutes become "minutes²"), so taking the square root gives the <Term def="The square root of the variance. It measures a typical distance from the mean, in the same units as the data.">standard deviation</Term> $\sigma$, back in minutes.
 
 Drag the points below and watch the squares.
 
@@ -162,7 +157,7 @@ The visual's toggle shows two versions of the variance.
 - Divide by $n$ when your numbers are the **whole population** you care about (every student in the class). This is the <Term def="Variance computed by dividing the sum of squared deviations by n. Used when the data is the entire population.">population variance</Term> $\sigma^2$.
 - Divide by $n - 1$ when your numbers are a **sample** used to estimate a bigger population (50 students surveyed out of a whole school). This is the <Term def="Variance computed by dividing by n minus 1. Used when the data is a sample and you want to estimate the population's variance.">sample variance</Term>, usually written $s^2$.
 
-Why $n - 1$? The sample's points are a little closer to their own mean than to the true population mean, so the squared distances come out slightly too small on average. Dividing by the smaller number $n - 1$ scales them back up. For large $n$ the two versions are almost identical.
+Why $n - 1$? A sample's points sit a little closer to their own mean than to the true population mean, so dividing by $n$ comes out slightly too small on average; the smaller divisor $n - 1$ corrects this. For large $n$ the two are almost identical.
 
 <Mistake>
 Python libraries disagree about the default. NumPy's `np.var` and `np.std` divide by $n$ unless you pass `ddof=1`. pandas' `.var()` and `.std()` divide by $n - 1$ by default. PyTorch's `torch.var` and `torch.std` also divide by $n - 1$ by default. If a result doesn't match the expected output, check the divisor first.
@@ -173,9 +168,9 @@ Python libraries disagree about the default. NumPy's `np.var` and `np.std` divid
 Two facts save time in the exam:
 
 - **Add** the same number $c$ to every value: the mean goes up by $c$, but the variance and standard deviation do **not** change, because the distances between values stay the same.
-- **Multiply** every value by $k$: the mean is multiplied by $k$, the standard deviation by $|k|$ (just $k$ when $k$ is positive), and the variance by $k^2$. For example, doubling every mark doubles the SD and multiplies the variance by 4.
+- **Multiply** every value by $k$: the mean is multiplied by $k$, the standard deviation by $|k|$ and the variance by $k^2$. Doubling every mark doubles the SD and multiplies the variance by 4.
 
-These two facts are why <Term def="Rescaling a feature as (x minus mean) divided by standard deviation, so it has mean 0 and standard deviation 1.">standardising</Term> a feature with $z = (x - \bar{x}) / \sigma$ gives mean 0 and standard deviation 1 (using the same data's divide-by-$n$ SD). You will meet $z$-scores properly in the lesson on the normal curve.
+These two facts are why <Term def="Rescaling a feature as (x minus mean) divided by standard deviation, so it has mean 0 and standard deviation 1.">standardising</Term> a feature with $z = (x - \bar{x}) / \sigma$ gives mean 0 and standard deviation 1. You will meet $z$-scores properly in the lesson on the normal curve.
 
 ## In Python
 
@@ -215,14 +210,14 @@ pandas .var() (n - 1):    5.0
 </Reveal>
 
 <Note title="Why AI cares: squared error versus absolute error">
-The mean is the single number $c$ that makes the total squared distance $\sum (x_i - c)^2$ as small as possible. A median makes the total absolute distance $\sum |x_i - c|$ as small as possible (with an even count, any value between the two middle values does). This is why a model trained with mean squared error (MSE) gets pulled around by outliers, just as the mean does, while one trained with mean absolute error (MAE) is more robust, just like the median.
+The mean is the number $c$ that makes the total squared distance $\sum (x_i - c)^2$ smallest; a median makes the total absolute distance $\sum |x_i - c|$ smallest. So a model trained with mean squared error (MSE) gets pulled around by outliers, like the mean, while one trained with mean absolute error (MAE) is more robust, like the median.
 </Note>
 
 <ExamTip>
 Speed tricks for a 36-second question:
-- The mean of evenly spaced numbers is $(\text{first} + \text{last}) / 2$, even for an even count: the mean of $2, 4, 6, 8$ is 5.
+- The mean of evenly spaced numbers is $(\text{first} + \text{last}) / 2$: the mean of $2, 4, 6, 8$ is 5.
 - If every value is identical, the variance and standard deviation are 0.
-- The standard deviation is the **square root** of the variance. If the variance is 9, the SD is 3, and a distractor of 81 is a trap.
+- The SD is the **square root** of the variance: variance 9 means SD 3, and a distractor of 81 is a trap.
 - To find the median, sort first. Unsorted lists are a favourite trap.
 </ExamTip>
 

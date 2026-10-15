@@ -8,7 +8,9 @@ Every model in this course is an **object**. `model = LinearRegression()` builds
 ## A class is a blueprint, an object is the thing built
 
 <Analogy title="BTO floor plans and flats">
+
 HDB draws one floor plan for a block of BTO flats. The plan is not a home: nobody lives in it. But from that one plan, hundreds of real flats are built, each with the same layout and a different family inside. A **class** is the floor plan; each **object** is a real flat.
+
 </Analogy>
 
 The words you need:
@@ -47,7 +49,7 @@ Ben False
     Python creates a new, empty `Student` object. It has no `name` or `score` yet.
   </Step>
   <Step title="Call `__init__` on it">
-    Python calls the special method `__init__` (say "dunder init", for the double underscores), the <Term def="The method Python runs automatically when you create an object; its job is to set up the object's starting attributes.">constructor</Term>. It passes the new object as `self`, then your arguments: `name = "Aisha"`, `score = 81`.
+    Python calls the special method `__init__` (say "dunder init", for the double underscores), the <Term def="The method Python runs automatically when you create an object; its job is to set up the object's starting attributes.">initialiser</Term> (often loosely called the constructor). It passes the new, already-made object as `self`, then your arguments: `name = "Aisha"`, `score = 81`.
   </Step>
   <Step title="Store attributes on self">
     `self.name = name` attaches an attribute to **this** object. Without the `self.` part, `name` would just be a local variable that vanishes when `__init__` ends.
@@ -60,14 +62,18 @@ Ben False
 When you later call `s1.passed()`, Python runs `Student.passed(s1)`. The object before the dot is passed in automatically as the first parameter, which by convention is named <Term def="The first parameter of every method: the object the method was called on. In s1.passed(), self is s1.">self</Term>. That is how one method, written once, can read the right `score` for every student.
 
 <KeyIdea>
+
 A class is written once; each object made from it keeps **its own** attributes. Inside a method, `self` is the object the method was called on: `s1.passed()` means `Student.passed(s1)`.
+
 </KeyIdea>
 
 <Mistake title="Forgetting self">
+
 Two classic errors, both from leaving out `self`:
 
 - Writing `name = name` instead of `self.name = name` in `__init__`. The value never reaches the object, and later `s1.name` fails with `AttributeError: 'Student' object has no attribute 'name'`.
 - Writing `def passed():` with no `self` parameter. Calling `s1.passed()` still passes `s1` in, so you get `TypeError: Student.passed() takes 0 positional arguments but 1 was given`.
+
 </Mistake>
 
 <QuickCheck
@@ -98,7 +104,9 @@ Two classic errors, both from leaving out `self`:
 Attributes outlive method calls. A local variable disappears when its function returns, but an attribute stored on `self` stays on the object until something changes it. That is exactly what a machine learning model needs: **learn** something in one call, **use** it in a later one.
 
 <Analogy title="Study, then answer from memory">
+
 A student studies the notes (fit) and keeps what they learned in their head. In the exam they answer from memory (predict), without the notes. Asking for answers before studying gets you nothing useful.
+
 </Analogy>
 
 Here is the simplest possible model. It learns the mean of the training targets and predicts that mean for every input.
@@ -142,7 +150,10 @@ model.fit(X, y)
 print(model.constant_)   # learned by fit
 print(model.predict([[10], [20]]))`} />
 
+`constant_` prints as `[[5.]]` rather than `5.0`: scikit-learn stores it as a small NumPy array, with one value per target column. The mean is the same 5.0 that `MeanPredictor` learned.
+
 <Mistake title="A list at class level is shared by every object">
+
 Attributes should be created on `self` inside `__init__`. A list written directly in the class body belongs to the class, so every object shares it, the same trap as a mutable default argument:
 
 ```python
@@ -158,10 +169,13 @@ print(q.items)     # ['pen'] !
 ```
 
 Write `def __init__(self): self.items = []` so each bag gets its own list.
+
 </Mistake>
 
 <ExamTip>
+
 NOAI Final tasks are scaffolds: a class with `__init__` already written and empty methods for you to fill in. **Read `__init__` first.** It tells you the exact attribute names (`self.trees`, `self.init_prediction`, `self.learning_rate`) that your `fit` must fill and your `predict` must read. Hidden tests call those names, so keep every given name and signature exactly as provided.
+
 </ExamTip>
 
 ## Inheritance: reuse a parent class
@@ -169,7 +183,9 @@ NOAI Final tasks are scaffolds: a class with `__init__` already written and empt
 Often a new class is "like that one, except…". <Term def="Making a new class (the child, or subclass) from an existing one (the parent, or base class). The child gets all the parent's methods and can override some of them.">Inheritance</Term> lets a child class start with **everything** the parent has and change only what differs.
 
 <Analogy title="A new hawker stall">
+
 A hawker opens a second stall with the parent stall's recipes. Rice, sauce and soup stay the same; only the chilli is changed. Customers ordering soup get the parent recipe; customers asking for chilli get the new one.
+
 </Analogy>
 
 ```python
@@ -209,7 +225,7 @@ The surprising part is `b.describe()`. Its code lives in `Model`, but inside it 
 
 ### `super()`: let the parent set itself up
 
-If a child defines its own `__init__`, it replaces the parent's. To keep the parent's setup as well, call it through <Term def="A built-in that gives you the parent class's version of a method, e.g. super().__init__(name) runs the parent's constructor on this object.">super()</Term>:
+If a child defines its own `__init__`, it replaces the parent's. To keep the parent's setup as well, call it through <Term def="A built-in that gives you the parent class's version of a method, e.g. super().__init__(name) runs the parent's __init__ on this object.">super()</Term>:
 
 ```python
 class Baseline(Model):
@@ -247,6 +263,12 @@ torch.Size([1, 1])
 
 The 3 parameters are the two weights and one bias of `nn.Linear(2, 1)`, found automatically because the layer was stored on `self`. Forget the `super().__init__()` line and PyTorch stops you at once: `AttributeError: cannot assign module before Module.__init__() call`.
 
+<Note title="Special methods hook into Python's syntax">
+
+Methods with double underscores on both sides are called by Python itself when you use ordinary syntax on an object. `len(obj)` calls `obj.__len__()`, `obj[i]` calls `obj.__getitem__(i)`, and `obj(x)` calls `obj.__call__(x)`. That is why `net(x)` works: `nn.Module` defines `__call__`, which runs your `forward`. A PyTorch `Dataset` class you write yourself defines `__len__` and `__getitem__`, so that `len(dataset)` and `dataset[i]` work.
+
+</Note>
+
 <PastPaperQuestion paper="prelim2026" n={111} />
 
 <PastPaperQuestion paper="prelim2026" n={112} />
@@ -256,8 +278,12 @@ The 3 parameters are the two weights and one bias of `nn.Linear(2, 1)`, found au
 Sometimes a parent class is not meant to be used on its own. It holds the shared code and leaves some methods as **blanks** that every child must fill in. That is an <Term def="A class that cannot be instantiated itself; it declares abstract methods that every concrete subclass must implement, and usually provides shared code that uses them.">abstract base class</Term> (ABC).
 
 <Analogy title="A form with must-fill boxes">
+
 A government form has some boxes pre-printed and others marked "must fill in". Every copy shares the printed parts. A form with an empty must-fill box is rejected at the counter, before anyone tries to process it.
+
 </Analogy>
+
+The example below is a **loss**, which scores how wrong a prediction is. It has two jobs: `value(y, p)` measures how wrong the prediction `p` is for the target `y`, and `gradient(y, p)` says which way, and how far, to nudge `p` to make it less wrong. Every kind of loss needs both, but each one works them out differently, so they are left as blanks.
 
 ```python
 from abc import ABC, abstractmethod
@@ -289,14 +315,22 @@ Reading it line by line:
 
 <AbstractTemplate />
 
-Check the numbers for `L2Loss().step(5, 2, 0.5)`: the gradient is $p - y = 2 - 5 = -3$, so the step returns $2 - 0.5 \times (-3) = 3.5$. The prediction moved from 2 towards the target 5. With `L1Loss` the gradient is $-1$ (because $p < y$), so the step gives $2 - 0.5 \times (-1) = 2.5$ instead.
+Check the numbers for `L2Loss().step(5, 2, 0.5)`: the gradient is $p - y = 2 - 5 = -3$, so the step returns $2 - 0.5 \times (-3) = 3.5$. The prediction moved from 2 towards the target 5.
+
+The visual's second child, `L1Loss`, fills the same blanks differently. Its value is `abs(p - y)`, and its gradient is just the **sign** of $p - y$: `return (p > y) - (p < y)`. True counts as 1 and False as 0, so this gives $+1$ when the prediction is too big, $-1$ when it is too small, and $0$ when it is exactly right (the same as `np.sign(p - y)`).
+
+Here $p < y$, so the gradient is $-1$ and `step` gives $2 - 0.5 \times (-1) = 2.5$: a smaller nudge in the same direction. The shared `step` code did not change at all.
 
 <KeyIdea>
+
 In an abstract base class, the methods marked `@abstractmethod` are the blanks. They tell you exactly what a subclass, or an exam scaffold, expects you to write. The concrete methods are shared code you can rely on but should not rewrite.
+
 </KeyIdea>
 
 <ExamTip>
+
 The 2026 NOAI Final's gradient-boosting task used this exact pattern: `BaseGradientBoosting(ABC)` held shared helpers and marked `fit` as abstract, and `GradientBoostingRegressor(BaseGradientBoosting)` had to implement it. When a scaffold arrives, scan for `@abstractmethod` and for empty bodies first: that list is your to-do list.
+
 </ExamTip>
 
 <QuickCheck
@@ -313,9 +347,11 @@ The 2026 NOAI Final's gradient-boosting task used this exact pattern: `BaseGradi
 />
 
 <Takeaways>
+
 - A class is a blueprint; each object (instance) has its own attributes, set up in `__init__` on `self`.
 - In `obj.method()`, Python passes `obj` in as `self`, so one method works for every object.
 - `fit` stores what was learned on `self` (like `mean_`); `predict` reads it. Calling `predict` first fails.
 - A child class inherits all its parent's methods, overrides the ones that differ, and calls `super().__init__()` to keep the parent's setup. `class Net(nn.Module)` with `forward` is exactly this.
 - An abstract base class marks blanks with `@abstractmethod`; you cannot create an object until every blank is filled.
+
 </Takeaways>

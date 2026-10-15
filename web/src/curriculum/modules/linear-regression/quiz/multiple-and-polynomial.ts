@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear regression has $d = 2{,}000{,}000$ features and 50 million examples. Why is it trained with gradient descent rather than the normal equation?',
     options: [
-      'Forming and inverting the $2{,}000{,}000 \\times 2{,}000{,}000$ matrix $X^\\top X$ is far too slow and too big for memory',
+      'Forming and inverting the $d \\times d$ matrix $X^\\top X$ is far too slow and needs too much memory',
       'The normal equation only works for a single feature plus a bias, not for millions of features',
       'Gradient descent reaches a lower training MSE than the normal equation on the same data',
       'With many more examples than features, $X^\\top X$ is always singular and has no inverse',

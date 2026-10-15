@@ -4,7 +4,7 @@ import ColumnMixer from './visuals/matrices-and-multiplication/ColumnMixer'
 import TransposeFlip from './visuals/matrices-and-multiplication/TransposeFlip'
 import HadamardVsMatmul from './visuals/matrices-and-multiplication/HadamardVsMatmul'
 
-When a neural network looks at a photo, almost all of its arithmetic is one operation repeated millions of times: **matrix multiplication**. This lesson teaches you to read a matrix's shape, predict whether two matrices can be multiplied, and work out a product by hand. NOAI tests all three, usually in questions you can answer in under 30 seconds.
+When a neural network looks at a photo, almost all of its arithmetic is one operation repeated millions of times: **matrix multiplication**. This lesson teaches you to read a matrix's shape, tell whether two matrices can be multiplied, and work out a product by hand: three things NOAI tests in 30-second questions.
 
 <Analogy title="Matrices at the hawker centre">
 
@@ -37,7 +37,7 @@ $$
 
 This $A$ has 2 rows and 3 columns, so it is **2×3**. The <Term def="One number inside a matrix, identified by its row and column.">entry</Term> in row $i$, column $j$ is written $a_{ij}$, so $a_{12} = 2$ and $a_{21} = 4$. A matrix with as many rows as columns (2×2, 3×3, …) is <Term def="Having the same number of rows as columns.">square</Term>.
 
-A vector is a matrix too: an $n \times 1$ **column vector** or a $1 \times n$ **row vector**. From now on vectors are plain lowercase letters such as $x$ (not bold), as in most machine-learning books, and matrices are capitals such as $A$.
+A vector is a matrix too: an $n \times 1$ **column vector** or a $1 \times n$ **row vector**. From now on, as in most machine-learning books, vectors are plain lowercase letters such as $x$ (not bold) and matrices are capitals such as $A$.
 
 Data is stored the same way: **rows are samples, columns are <Term def="One measured property of each data point, such as height or a subject mark. In a data matrix, each column is a feature.">features</Term>**. A class of 40 students with marks in 4 subjects is a 40×4 matrix; a batch of 32 photos, each flattened into 784 pixel values, is 32×784.
 
@@ -47,13 +47,13 @@ Rows before columns, like finding your NDP seat: the **row** first, then the sea
 
 ### Adding and scaling matrices
 
-Adding, subtracting and scaling work entry by entry, as they did for vectors:
+These work entry by entry, as for vectors:
 
 $$
 (A + B)_{ij} = a_{ij} + b_{ij}, \qquad (cA)_{ij} = c\,a_{ij}
 $$
 
-For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} + \begin{bmatrix} 5 & 0 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 6 & 2 \\ 2 & 6 \end{bmatrix}$ and $3\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} = \begin{bmatrix} 3 & 6 \\ 9 & 12 \end{bmatrix}$. Adding needs **identical** shapes (2×3 plus 3×2 is undefined). Multiplication has a different shape rule.
+For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} + \begin{bmatrix} 5 & 0 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 6 & 2 \\ 2 & 6 \end{bmatrix}$, and $3A$ triples every entry of $A$. Adding needs **identical** shapes (2×3 plus 3×2 is undefined); multiplication has its own shape rule.
 
 ## The shape rule: which matrices can be multiplied?
 
@@ -98,11 +98,7 @@ $$
 \end{aligned}
 $$
 
-- $(AB)_{ij}$ is the answer's entry in row $i$, column $j$.
-- $a_{ik}$ is the $k$-th number **along row $i$** of $A$; $b_{kj}$ is the $k$-th number **down column $j$** of $B$.
-- $\sum_{k=1}^{n}$ adds the terms for $k = 1, \dots, n$, walking along the row and down the column together.
-
-In words: **entry $(i, j)$ of $AB$ is row $i$ of $A$ dotted with column $j$ of $B$.**
+Here $a_{ik}$ is the $k$-th number **along row $i$** of $A$, $b_{kj}$ is the $k$-th number **down column $j$** of $B$, and $\sum_{k=1}^{n}$ adds the $n$ products, walking along the row and down the column together. In words: **entry $(i, j)$ of $AB$ is row $i$ of $A$ dotted with column $j$ of $B$.**
 
 <MatMulStepper />
 
@@ -139,26 +135,26 @@ If a question asks for **one** entry of a product, compute only that dot product
 
 With ordinary numbers $3 \times 5 = 5 \times 3$: multiplication is <Term def="An operation is commutative if swapping the order never changes the answer, like 3 + 5 = 5 + 3.">commutative</Term>. Matrix multiplication is **not**. Switch the stepper above to B·A and compare:
 
-- With the 2×2 numbers, $AB = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}$ but $BA = \begin{bmatrix} 23 & 34 \\ 31 & 46 \end{bmatrix}$: same shape, different numbers.
+- With the 2×2 numbers above, $BA = \begin{bmatrix} 23 & 34 \\ 31 & 46 \end{bmatrix}$: same shape as $AB$, different numbers.
 - In the hawker example, $AB$ is 2×2 but $BA$ is 3×3.
 - If $A$ is 2×3 and $B$ is 3×4, $AB$ is 2×4 but $BA$ does not exist: $(3 \times 4)(2 \times 3)$ has inner numbers 4 and 2.
 
 ## Matrix times vector: what a neural-network layer does
 
-The most common product in AI is a matrix times a vector. If $A$ is $m \times n$ and $x$ is a column vector of $n$ numbers, $Ax$ is a new $m \times 1$ vector. Two equally correct pictures:
+The commonest product in AI is a matrix times a vector. If $A$ is $m \times n$ and $x$ is a column of $n$ numbers, $Ax$ is $m \times 1$. Two equally correct pictures:
 
 - **Row picture:** each entry of $Ax$ is one row of $A$ dotted with $x$.
 - **Column picture:** $Ax = x_1 \cdot (\text{column } 1) + x_2 \cdot (\text{column } 2) + \dots$, a mix of the columns of $A$ with the numbers in $x$ as the amounts. Such a "scale and add" is a <Term def="A sum of vectors, each multiplied by a number: for example 2u + 3v.">linear combination</Term>.
 
 <ColumnMixer />
 
-This is what a linear (fully connected) layer of a neural network computes before its activation function. A layer with 3 inputs and 2 outputs stores a 2×3 <Term def="The table of numbers (weights) a neural-network layer learns. Entry (i, j) says how strongly input j affects output i.">weight matrix</Term> $W$ (row $i$ holds output neuron $i$'s weights) and outputs $Wx + b$, where $b$ holds 2 extra numbers called biases.
+A linear (fully connected) layer of a neural network computes exactly this, before its activation function. With 3 inputs and 2 outputs it stores a 2×3 <Term def="The table of numbers (weights) a neural-network layer learns. Entry (i, j) says how strongly input j affects output i.">weight matrix</Term> $W$ (row $i$ holds output $i$'s weights) and outputs $Wx + b$, where $b$ holds 2 numbers called biases.
 
-For a batch, stack $N$ inputs as the rows of $X$ ($N \times 3$). $WX$ would be $(2 \times 3)(N \times 3)$, which does not fit, so the layer computes $XW^T + b$: $(N \times 3)(3 \times 2) = N \times 2$, one row of outputs per sample, with $b$ added to each row. $W^T$, the transpose, comes next.
+A batch of $N$ inputs is stacked as the rows of $X$ ($N \times 3$). $WX$ would be $(2 \times 3)(N \times 3)$, which does not fit, so the layer computes $XW^T + b$: $(N \times 3)(3 \times 2) = N \times 2$, one row of outputs per sample, with $b$ added to each row. $W^T$ is the transpose, coming next.
 
 ## The transpose: swap rows and columns
 
-The <Term def="The matrix you get by turning rows into columns: entry (i, j) moves to (j, i). Written A with a superscript T.">transpose</Term> $A^T$ turns every row of $A$ into a column: entry $(i, j)$ moves to $(j, i)$:
+The <Term def="The matrix you get by turning rows into columns: entry (i, j) moves to (j, i). Written A with a superscript T.">transpose</Term> $A^T$ turns every row of $A$ into a column, so entry $(i, j)$ moves to $(j, i)$:
 
 $$
 (A^T)_{ij} = a_{ji}
@@ -178,15 +174,15 @@ $$
 (AB)^T = B^T A^T
 $$
 
-Like socks and shoes: socks go on first, but shoes come off first. Check with shapes: if $A$ is 2×3 and $B$ is 3×4, $(AB)^T$ is 4×2; $B^T A^T = (4 \times 3)(3 \times 2) = 4 \times 2$ fits, but $A^T B^T = (3 \times 2)(4 \times 3)$ does not even exist.
+Socks go on before shoes, but shoes come off first. Check with shapes: if $A$ is 2×3 and $B$ is 3×4, $(AB)^T$ is 4×2; $B^T A^T = (4 \times 3)(3 \times 2) = 4 \times 2$ fits, but $A^T B^T = (3 \times 2)(4 \times 3)$ does not even exist.
 
 The transpose also writes a dot product as a matrix product: for column vectors $u$ and $v$ of $n$ numbers each, $u^T v$ is $(1 \times n)(n \times 1) = 1 \times 1$, one number.
 
-PyTorch's `nn.Linear(784, 10)` stores its weights as (outputs, inputs) = (10, 784) and, for a batch `X` of shape (32, 784), computes `X @ W.T + b`. Forgetting the `.T` gives the commonest error in network code, Final tasks included: `mat1 and mat2 shapes cannot be multiplied (32x784 and 10x784)`. The inner numbers 784 and 10 differ, so a transpose is missing.
+A missing transpose is the commonest shape error in network code, Final tasks included.
 
-<Reveal label="Peek ahead: what this looks like in PyTorch">
+<Reveal label="Peek ahead: the missing transpose in PyTorch">
 
-You will learn PyTorch properly in its own module. For now, read the shapes:
+You will learn PyTorch in its own module; for now, just read the shapes. `nn.Linear(784, 10)` stores $W$ as (outputs, inputs) = (10, 784) and, for a batch `X` of 32 images with 784 pixels each, computes `X @ W.T + b`. Forget the `.T` and the inner numbers, 784 and 10, no longer match:
 
 ```python
 import torch
@@ -216,13 +212,13 @@ RuntimeError: mat1 and mat2 shapes cannot be multiplied (32x784 and 10x784)
 
 ## Element-wise product versus matrix product
 
-A second, simpler way to "multiply" pairs up entries in matching positions. This is the <Term def="Multiplying two same-shaped matrices position by position. Also called the Hadamard product, written A ∘ B, and computed with * in NumPy and PyTorch.">element-wise product</Term>, also called the **Hadamard product** and written $A \circ B$:
+A simpler way to "multiply" pairs up entries in matching positions. This is the <Term def="Multiplying two same-shaped matrices position by position. Also called the Hadamard product, written A ∘ B, and computed with * in NumPy and PyTorch.">element-wise product</Term>, also called the **Hadamard product** and written $A \circ B$:
 
 $$
 (A \circ B)_{ij} = a_{ij}\, b_{ij}
 $$
 
-For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \circ \begin{bmatrix} 5 & 6 \\ 7 & 8 \end{bmatrix} = \begin{bmatrix} 1 \times 5 & 2 \times 6 \\ 3 \times 7 & 4 \times 8 \end{bmatrix} = \begin{bmatrix} 5 & 12 \\ 21 & 32 \end{bmatrix}$. It needs **equal** shapes and keeps that shape. In code the two products look almost identical, which is the trap:
+For the worked example's $A$ and $B$, $A \circ B = \begin{bmatrix} 1 \times 5 & 2 \times 6 \\ 3 \times 7 & 4 \times 8 \end{bmatrix} = \begin{bmatrix} 5 & 12 \\ 21 & 32 \end{bmatrix}$, nothing like $AB = \begin{bmatrix} 19 & 22 \\ 43 & 50 \end{bmatrix}$. It needs **equal** shapes and keeps that shape. In code the two look almost identical, which is the trap:
 
 | | Matrix product | Element-wise product |
 |---|---|---|
@@ -235,7 +231,7 @@ For example, $\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix} \circ \begin{bmatrix}
 <HadamardVsMatmul />
 
 <Mistake>
-Typing `A * B` when you meant `A @ B`. For two square matrices of the same size **both run without any error**, so you silently get a different matrix. When your maths says "matrix product", type `@`.
+Typing `A * B` when you meant `A @ B`. For two square matrices of the same size **both run without error**, so you silently get the wrong matrix. When your maths says "matrix product", type `@`.
 </Mistake>
 
 <PastPaperQuestion paper="prelim2026" n={102} />
@@ -268,7 +264,7 @@ except ValueError as e:
 
 <ExamTip title="Speed tricks for the Prelim">
 
-- **Cost:** $(m \times n)(n \times p)$ takes $m \times n \times p$ multiplications, about $n^3$ for two $n \times n$ matrices. This is why matrix products dominate training time.
+- **Cost:** $(m \times n)(n \times p)$ takes $m \times n \times p$ multiplications, $n^3$ for two $n \times n$ matrices, which is why matrix products dominate training time.
 - **Rules that still hold:** $(AB)C = A(BC)$ and $A(B + C) = AB + AC$. The one that fails is $AB = BA$.
 
 </ExamTip>

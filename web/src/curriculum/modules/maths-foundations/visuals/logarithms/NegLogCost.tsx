@@ -32,12 +32,12 @@ function verdict(p: number) {
   return { text: 'confident and WRONG: punished hard', colour: 'var(--viz-neg)' }
 }
 
-/** −ln p equals ln(1/p): the cost of a fair guess among 1/p options. Only say so when 1/p is (nearly) whole. */
+/** −ln p equals ln(1/p): the cost of a fair guess among 1/p options. Say "about" when 1/p is not (nearly) whole. */
 function guessText(p: number) {
-  if (p >= 1) return 'being certain: no guessing'
+  if (p >= 1) return 'a sure answer'
   const k = 1 / p
   const r = Math.round(k)
-  return Math.abs(k - r) < 0.05 ? `a fair guess among ${r} options` : `a fair guess among about ${r} options`
+  return Math.abs(k - r) < 0.05 ? `a fair 1-in-${r} guess` : `about a 1-in-${r} guess`
 }
 
 const cell: CSSProperties = { padding: '0.3rem 0.5rem', borderBottom: '1px solid var(--rule)', textAlign: 'left', fontSize: '0.9rem' }

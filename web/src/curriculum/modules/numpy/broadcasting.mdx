@@ -161,13 +161,15 @@ Z = (X - mu) / sd
 <Reveal label="Show the expected output">
 
 ```text
-[165.  55.   4.] [10.  4.  2.]
+[165.  55.   4.]
+[10.  4.  2.]
 [[ 0.5  0.5 -1.5]
  [-1.5 -1.5  1.5]
  [ 0.  -0.5  0. ]
  [ 1.5  1.5 -0.5]
  [-0.5  0.   0.5]]
-[0. 0. 0.] [1. 1. 1.]
+[0. 0. 0.]
+[1. 1. 1.]
 ```
 
 </Reveal>
@@ -206,7 +208,8 @@ import torch.nn as nn
 pred = torch.tensor([[4.], [5.],
                      [1.], [6.]])
 # targets: shape (4,)
-y = torch.tensor([3., 5., 2., 6.])
+y = torch.tensor([3., 5.,
+                  2., 6.])
 
 loss = nn.MSELoss()
 print(loss(pred, y))
@@ -216,12 +219,12 @@ print(loss(pred.squeeze(1), y))
 
 ```text
 UserWarning: Using a target size
-(torch.Size([4])) that is different
-to the input size
+(torch.Size([4])) that is
+different to the input size
 (torch.Size([4, 1])). This will
 likely lead to incorrect results
-due to broadcasting. Please ensure
-they have the same size.
+due to broadcasting. Please
+ensure they have the same size.
 tensor(6.)
 tensor(0.5000)
 ```
