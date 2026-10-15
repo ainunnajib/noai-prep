@@ -52,9 +52,9 @@ const questions: QuizQuestion[] = [
       'Which statement about bag-of-words and TF-IDF vectors is **true**?',
     options: [
       'A word that occurs in every document gets weight 0 with $\\mathrm{idf} = \\log(N/\\mathrm{df})$',
-      'The vectors keep word order, so "dog bites man" differs from "man bites dog"',
-      'The word with the highest count in a document always gets the highest TF-IDF weight',
-      'Changing the log base from 2 to 10 changes which documents are retrieved by cosine',
+      'The vectors keep word order, so "dog bites man" and "man bites dog" get different vectors',
+      'The word with the highest count in a document always gets that document\'s highest TF-IDF weight',
+      'Changing the log base from 2 to 10 changes which documents rank highest by cosine similarity',
     ],
     answer: 0,
     explanation:

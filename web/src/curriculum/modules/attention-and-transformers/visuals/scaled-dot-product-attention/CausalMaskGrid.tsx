@@ -108,7 +108,9 @@ export default function CausalMaskGrid() {
   const cw = narrow ? (T > 6 ? 31 : 36) : T > 6 ? 40 : 44
   const ch = narrow ? 28 : 30
   const lw = narrow ? 38 : 44
-  const fmtW = (v: number) => (Number.isNaN(v) ? 'NaN' : v === 0 ? '0' : v > 0.995 ? '1' : v.toFixed(2).replace(/^0/, ''))
+  const fmtW = (v: number) => (Number.isNaN(v) ? 'NaN' : v === 0 ? '0' : v > 0.995 ? '1' : v.toFixed(2))
+  // narrow cells get a smaller font so '0.88' and '−1e9' still fit
+  const tiny = cw < 40 ? s.cellTiny : ''
   const fmtS = (v: number) => (v === -Infinity ? '−∞' : v === -1e9 ? '−1e9' : String(v).replace('-', '−'))
 
   return (
@@ -161,14 +163,22 @@ export default function CausalMaskGrid() {
         />
       </Controls>
 
-      <pre className={s.code} aria-label="PyTorch code for this mask">
-        {lines.map((l, k) => (
-          <div key={k} className={l.bad ? s.codeBad : undefined}>
-            {l.code}
-            {l.note && <span className={s.codeCmt}>{`   # ${l.note}`}</span>}
-            {l.bad && <span className={s.codeCmt}>{'   # ✗ wrong rule for this mask'}</span>}
-          </div>
-        ))}
+      <pre className={`${s.code} ${narrow ? s.codeWrap : ''}`} aria-label="PyTorch code for this mask">
+        {lines.map((l, k) => {
+          // on a phone each comment goes on its own line above its code, so nothing hides off the right edge
+          const note = [l.note, l.bad ? '✗ wrong rule for this mask' : undefined].filter(Boolean).join('; ')
+          return narrow ? (
+            <div key={k}>
+              {note && <div className={s.codeCmt}>{`# ${note}`}</div>}
+              <div className={l.bad ? s.codeBad : undefined}>{l.code}</div>
+            </div>
+          ) : (
+            <div key={k} className={l.bad ? s.codeBad : undefined}>
+              {l.code}
+              {note && <span className={s.codeCmt}>{`   # ${note}`}</span>}
+            </div>
+          )
+        })}
       </pre>
 
       <div ref={ref} className={s.grids}>
@@ -194,7 +204,7 @@ export default function CausalMaskGrid() {
           cellH={ch}
           labelW={lw}
           fmt={fmtS}
-          cls={(i, j) => [blocked[i][j] ? s.cellBlocked : '', isPad[i] ? s.cellDim : ''].join(' ')}
+          cls={(i, j) => [blocked[i][j] ? s.cellBlocked : '', isPad[i] ? s.cellDim : '', tiny].join(' ')}
           ariaLabel="Scores with blocked cells set to minus infinity"
           shape={`(${T}, ${T})`}
         />
@@ -208,7 +218,7 @@ export default function CausalMaskGrid() {
           labelW={lw}
           fmt={fmtW}
           bg={(i, j) => (Number.isNaN(W[i][j]) || blocked[i][j] ? undefined : heat(W[i][j]))}
-          cls={(i, j) => [Number.isNaN(W[i][j]) ? s.cellNan : blocked[i][j] ? s.cellBlocked : '', isPad[i] ? s.cellDim : ''].join(' ')}
+          cls={(i, j) => [Number.isNaN(W[i][j]) ? s.cellNan : blocked[i][j] ? s.cellBlocked : '', isPad[i] ? s.cellDim : '', tiny].join(' ')}
           ariaLabel="Attention weights after softmax"
           shape="each row sums to 1"
         />

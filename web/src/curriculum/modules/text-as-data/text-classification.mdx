@@ -37,16 +37,6 @@ order = w.argsort()
 print("most negative:", list(words[order[:4]]))
 print("most positive:", list(words[order[-4:]]))`
 
-export const metricsCode = `from sklearn.metrics import accuracy_score, f1_score
-
-y_true = ["praise"] * 150 + ["late"] * 40 + ["safety"] * 10
-y_lazy = ["praise"] * 200        # always predicts the biggest class
-
-print("accuracy   :", accuracy_score(y_true, y_lazy))
-for avg in ["macro", "weighted"]:
-    f1 = f1_score(y_true, y_lazy, average=avg, zero_division=0)
-    print(avg, "F1:", round(f1, 3))`
-
 Is this email spam? Is this food review happy or angry? Each question takes a piece of text and returns one label from a fixed list: that is <Term def="Giving each piece of text one label from a fixed set of classes (spam/not spam, positive/negative, topic A/B/C), learned from labelled examples.">text classification</Term>, and every text classifier, from a 1990s spam filter to a fine-tuned BERT, follows the same three-stage recipe built from parts you already know.
 
 <Analogy title="Sorting letters at a post office">
@@ -152,7 +142,7 @@ Expect options that test whether you know **bag of words (and TF-IDF) ignores wo
 | training | seconds on a CPU | seconds to minutes | minutes to hours; a GPU helps |
 | easy to inspect? | yes: one weight per word | partly | hard |
 
-A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. To <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term> it for sentiment:
+A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. (You will open up Transformers in [Attention and Transformers](#/learn/attention-and-transformers/attention-intuition) and BERT itself in [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt); for now treat it as a black box that turns text into a vector.) To <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term> it for sentiment:
 
 <Steps title="Fine-tuning BERT for sentiment">
   <Step title="Read the review">
@@ -165,7 +155,7 @@ A pretrained encoder such as <Term def="Bidirectional Encoder Representations fr
     One linear layer and a softmax turn that vector into P(positive) and P(negative).
   </Step>
   <Step title="Train gently">
-    Train the head *and* all of BERT on your labelled reviews for 2–3 passes (epochs) with a tiny learning rate (about $2 \times 10^{-5}$), so the pretrained knowledge is nudged, not wiped out.
+    Train the head *and* all of BERT on your labelled reviews for 2 to 4 passes (epochs) with a tiny learning rate ($2 \times 10^{-5}$ to $5 \times 10^{-5}$), so the pretrained knowledge is nudged, not wiped out.
   </Step>
 </Steps>
 
@@ -234,19 +224,9 @@ The next question shows the last bullet in action. An LSTM is a sequence model y
 
 ## Evaluating: when accuracy lies
 
-Real text datasets are usually <Term def="A dataset in which some classes have many more examples than others, for example 150 praise messages but only 10 food-safety reports.">imbalanced</Term>. Imagine a food-delivery app that sorts 200 messages into *praise* (150), *late delivery* (40) and *food safety* (10). The rare class is the one that matters most, yet accuracy (the fraction of all messages labelled correctly) hardly notices it. You already have the fix from [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics): score each class $c$ separately with
+Real text datasets are usually <Term def="A dataset in which some classes have many more examples than others, for example 150 praise messages but only 10 food-safety reports.">imbalanced</Term>. Imagine a food-delivery app that sorts 200 messages into *praise* (150), *late delivery* (40) and *food safety* (10). The rare class matters most, yet accuracy hardly notices it, as you saw in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data).
 
-$$
-F1_c = \frac{2\,TP}{2\,TP + FP + FN}
-$$
-
-where TP counts messages correctly labelled $c$, FP messages wrongly labelled $c$ and FN real $c$ messages that were missed. This is the harmonic mean of precision and recall, written in the form that is fastest by hand. Then, as in [macro averaging](#/learn/model-evaluation/regression-and-overlap-metrics), take the plain average over the $K$ classes:
-
-$$
-\text{macro-F1} = \frac{1}{K} \sum_{c=1}^{K} F1_c
-$$
-
-Every class gets an equal vote, however small it is. (**Weighted-F1** averages by class size instead, so big classes dominate it again; for single-label problems **micro-F1** equals accuracy.)
+The fix is the one from [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics) and [macro averaging](#/learn/model-evaluation/regression-and-overlap-metrics): score each class $c$ with $F1_c = 2\,TP / (2\,TP + FP + FN)$, then take **macro-F1**, the plain average over the classes, so every class gets an equal vote however small it is.
 
 <MacroF1Explorer />
 
@@ -264,10 +244,6 @@ Every class gets an equal vote, however small it is. (**Weighted-F1** averages b
     $\frac{0.82 + 0 + 0}{3} \approx 0.27$. Accuracy said 70%; macro-F1 shows the model is useless for two of the three classes.
   </Step>
 </Steps>
-
-<PyRunner packages={['scikit-learn']} code={metricsCode} />
-
-<PastPaperQuestion paper="prelim2026" n={263} />
 
 <QuickCheck
   q="A two-class spam filter has F1 = 0.9 on 'not spam' (90 test emails) and F1 = 0.5 on 'spam' (10 test emails). What is its macro-F1?"

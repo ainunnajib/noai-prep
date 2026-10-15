@@ -58,6 +58,7 @@ const std = (xs: number[]) => {
 export default function SqrtDScaling() {
   const [p, setP] = useState(6)
   const [scaled, setScaled] = useState(false)
+  const [zoom, setZoom] = useState(false)
   const [seed, bump] = useBump()
   const [ref, narrow] = useNarrow<HTMLDivElement>(640)
   const d = 2 ** p
@@ -72,23 +73,27 @@ export default function SqrtDScaling() {
   const sd = std(scores)
   const top = Math.max(...w)
   const slope = top * (1 - top)
-  const outside = scores.filter((v) => Math.abs(v) > XLIM).length
-  // The x-axis stays fixed so the spreads can be compared; narrow spreads get finer bins so their shape still shows.
-  const BIN = sd < 2.5 ? 0.5 : sd < 6 ? 1 : 2.5
+  // The x-axis stays fixed so the spreads can be compared, unless the learner zooms in to see a narrow spread's shape.
+  const XL = zoom ? Math.max(4, Math.ceil(4 * sd)) : XLIM
+  const outside = scores.filter((v) => Math.abs(v) > XL).length
+  // narrow spreads get finer bins so their shape still shows
+  const BIN = zoom ? XL / 20 : sd < 2.5 ? 0.5 : sd < 6 ? 1 : 2.5
 
   const bins = useMemo(() => {
-    const nb = Math.round((2 * XLIM) / BIN)
+    const nb = Math.round((2 * XL) / BIN)
     const c = new Array(nb).fill(0)
     for (const v of scores) {
-      const b = Math.floor((v + XLIM) / BIN)
+      const b = Math.floor((v + XL) / BIN)
       if (b >= 0 && b < nb) c[b]++
     }
     return c
-  }, [scores, BIN])
+  }, [scores, BIN, XL])
   const maxC = Math.max(...bins)
 
-  const health = slope > 0.12 ? 'healthy' : slope > 0.03 ? 'weak' : 'almost zero'
-  const healthColour = slope > 0.12 ? 'var(--viz-pos)' : slope > 0.03 ? 'var(--viz-2)' : 'var(--viz-neg)'
+  // a soft row (top weight under 0.5) is healthy even though p(1 − p) is below its peak of 0.25
+  const healthy = top < 0.5 || slope > 0.12
+  const health = healthy ? 'healthy' : slope > 0.03 ? 'weak' : 'almost zero'
+  const healthColour = healthy ? 'var(--viz-pos)' : slope > 0.03 ? 'var(--viz-2)' : 'var(--viz-neg)'
 
   return (
     <Figure
@@ -99,13 +104,14 @@ export default function SqrtDScaling() {
           Each score is the dot product of two random vectors whose {d} entries each have mean 0 and variance 1. Slide d<sub>k</sub> up with scaling off:
           the scores spread out like √d<sub>k</sub> (their standard deviation is about {root.toFixed(1)}), and the softmax of one row turns almost one-hot,
           so the top weight's slope p(1 − p) collapses towards 0 and learning stalls. Switch scaling on: dividing by √d<sub>k</sub> pulls the spread back to
-          about 1 at every size, and the weights stay soft.
+          about 1 at every size, and the weights stay soft. Zoom the axis to see the shape of a narrow spread.
         </>
       }
     >
       <Controls>
         <Slider label={<>key/query length d<sub>k</sub></>} value={p} min={1} max={9} step={1} onChange={setP} format={(v) => String(2 ** v)} />
         <Toggle label={<>divide scores by √d<sub>k</sub></>} checked={scaled} onChange={setScaled} />
+        <Toggle label="zoom the axis to fit" checked={zoom} onChange={setZoom} />
         <Button onClick={bump}>New random vectors</Button>
       </Controls>
 
@@ -114,19 +120,20 @@ export default function SqrtDScaling() {
           <div className={s.panelTitle}>
             {N_PAIRS.toLocaleString('en-GB')} scores {scaled ? <>q·k / √{d}</> : <>q·k</>}
           </div>
-          <Plot x={[-XLIM, XLIM]} y={[0, maxC * 1.18]} width={440} height={220} margin={{ top: 12, right: 10, bottom: 30, left: 12 }} ariaLabel={`Histogram of ${N_PAIRS} attention scores with standard deviation ${sd.toFixed(1)}`}>
-            <Axes xTicks={7} hideYTicks />
+          <Plot x={[-XL, XL]} y={[0, maxC * 1.18]} width={440} height={220} margin={{ top: 12, right: 10, bottom: 30, left: 12 }} ariaLabel={`Histogram of ${N_PAIRS} attention scores with standard deviation ${sd.toFixed(1)}`}>
+            <Axes xTicks={7} hideYTicks yLabel="count" />
             {bins.map((c, b) =>
-              c > 0 ? <Rect key={b} x0={-XLIM + b * BIN} x1={-XLIM + (b + 1) * BIN - BIN * 0.14} y0={0} y1={c} fill={scaled ? 'var(--viz-3)' : 'var(--viz-2)'} /> : null,
+              c > 0 ? <Rect key={b} x0={-XL + b * BIN} x1={-XL + (b + 1) * BIN - BIN * 0.14} y0={0} y1={c} fill={scaled ? 'var(--viz-3)' : 'var(--viz-2)'} /> : null,
             )}
             <VLine x={-sd} color="var(--viz-ink)" dash="4 4" width={1.2} />
             <VLine x={sd} color="var(--viz-ink)" dash="4 4" width={1.2} />
-            <Label x={Math.min(sd, XLIM - 30)} y={maxC * 1.08} dx={6} color="var(--viz-ink)">
+            <Label x={Math.min(sd, XL * 0.55)} y={maxC * 1.08} dx={6} color="var(--viz-ink)">
               ±1 std = {sd.toFixed(1)}
             </Label>
           </Plot>
           <div className={s.panelNote}>
-            The dashed lines mark one standard deviation either side of 0. The axis never changes, so you can compare spreads.
+            The dashed lines mark one standard deviation either side of 0.{' '}
+            {zoom ? 'The axis is zoomed to fit these scores, so read the numbers on it.' : 'The axis never changes, so you can compare spreads.'}
             {outside > 0 ? ` ${outside} scores fall off the chart.` : ''}
           </div>
         </div>

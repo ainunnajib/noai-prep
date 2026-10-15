@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'attention-and-transformers.positional-encoding-and-blocks.1',
     prompt: 'Why does a Transformer add positional encodings to its token embeddings?',
     options: [
-      'Self-attention gives each word the same output wherever it sits, so without them shuffling the words only shuffles the outputs',
+      'Self-attention on its own ignores word order, so without them shuffling the words only shuffles the outputs',
       'Softmax needs every attention score to be positive, and the encodings shift the scores so that none of them is below zero',
       'They cut the cost of attention from quadratic to linear in the sequence length by letting each token skip distant tokens',
       'They rescale every embedding to length 1, so that the dot products between tokens always stay between −1 and 1',
     ],
     answer: 0,
     explanation:
-      'Each attention output is a weighted sum over all tokens, computed from their contents only, so self-attention is blind to order: "dog bites man" and "man bites dog" give the same outputs, just rearranged. Adding a position vector makes the same word at different positions a different input. Softmax works fine with negative scores, and positional encodings do nothing to the $O(T^2)$ cost.',
+      'Each attention output is a weighted sum over all tokens, computed from their contents only, so self-attention without a causal mask is blind to order: "dog bites man" and "man bites dog" give the same outputs, just rearranged. Adding a position vector makes the same word at different positions a different input. Softmax works fine with negative scores, positional encodings do nothing to the $O(T^2)$ cost, and they are added to the embeddings rather than rescaling them.',
     difficulty: 'beginner',
   },
   {

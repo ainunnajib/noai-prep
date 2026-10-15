@@ -51,14 +51,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A museum wants visitors to type "a red dragon boat" and get matching photos from 50,000 untagged images. Which approach fits best?',
     options: [
-      'Embed the text and every image with a model such as CLIP that maps both into one space, then rank images by cosine similarity',
+      'Embed the text and every image with a model such as CLIP that maps both into one space, then rank by cosine similarity',
       'Build TF-IDF vectors from the raw pixel values of every image and compare them with the TF-IDF vector of the query words',
       'One-hot encode each image file name and return the image whose one-hot vector is closest to the one-hot vector of the query',
-      'Train Word2Vec on the query words only, then return the images whose file sizes are closest to the average query vector',
+      'Average the Word2Vec vectors of the query words, then return the images whose pixel values are closest to that average',
     ],
     answer: 0,
     explanation:
-      'Embeddings are not just for words: models like CLIP are trained so that an image and a caption describing it get nearby vectors in a shared space, so cosine similarity between the query embedding and each image embedding finds matching photos without any tags. TF-IDF needs words, which pixels are not, and one-hot vectors make every pair equally dissimilar, so they cannot rank anything.',
+      'Embeddings are not just for words: models like CLIP are trained so that an image and a caption describing it get nearby vectors in a shared space, so cosine similarity between the query embedding and each image embedding finds matching photos without any tags. TF-IDF needs words, which pixels are not; one-hot vectors make every pair equally dissimilar, so they cannot rank anything; and Word2Vec vectors and pixel values were never trained to share a space, so their distances mean nothing.',
     difficulty: 'intermediate',
   },
 ]

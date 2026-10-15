@@ -15,17 +15,21 @@ $$
 
 Each row of weights adds up to 1. That is a fixed budget. Take the sentence *"the students who won the quiz cheered"*. The word *cheered* would like to look at *students* (who cheered?) and also at *quiz* (what came just before?). With a single row of weights it has to split its budget between them, and the weighted average it produces is a blur of both.
 
-<Analogy>
+<Analogy title="A panel of judges">
+
 A hawker food competition has a panel of judges: one scores taste, one presentation, one value for money. Each judge fills in a separate score sheet at the same time, and the final verdict combines all the sheets. One judge trying to score everything at once would give a muddled mark. Multi-head attention is the panel: each <Term def="One complete, independent copy of the attention calculation, with its own learned query, key and value projections. A multi-head layer runs several heads side by side.">head</Term> is one judge with its own score sheet.
+
 </Analogy>
 
 <HeadPatterns />
 
 <KeyIdea>
+
 Multi-head attention runs $h$ attention heads in parallel. Each head has its **own** learned projections, so it can learn its own pattern of who looks at whom. The heads' outputs are glued together and mixed at the end.
+
 </KeyIdea>
 
-Nobody programs these patterns. Every head starts with random weights, and training shapes each one into whatever pattern helps the model most. When researchers looked inside a trained BERT model (Clark et al., 2019), they found heads that attend to the previous word, heads that park their attention on separator tokens, and heads that follow grammar, such as a verb finding its object.
+Nobody programs these patterns. Every head starts with random weights, and training shapes each one into whatever pattern helps the model most. When researchers looked inside a trained BERT model (Clark et al., 2019), they found heads that attend to the previous word, heads that park their attention on separator tokens, and heads that follow grammar, such as a direct object finding its verb.
 
 ## The recipe: split, attend, glue, mix
 
@@ -56,10 +60,12 @@ $$
 
 For example, the original Transformer used $d_\text{model} = 512$ and $h = 8$, so $d_k = 512 / 8 = 64$; BERT-base uses $768 / 12 = 64$.
 
-**The trick that makes it fast.** We never build $h$ separate small layers. Put the $h$ small matrices $W_1^Q, \dots, W_h^Q$ side by side and you get one big $d_\text{model} \times d_\text{model}$ matrix $W^Q$. So the code projects **once** with a big `nn.Linear(d_model, d_model)` and then cuts the result into $h$ slices of $d_k$ columns: slice $i$ is exactly $XW_i^Q$.
+**The trick that makes it fast.** We never build $h$ separate small layers. Put the $h$ small matrices $W_1^Q, \dots, W_h^Q$ side by side and you get one big $d_\text{model} \times d_\text{model}$ matrix $W^Q$. So the code projects **once** with a big `nn.Linear(d_model, d_model)` and then cuts the result into $h$ slices of $d_k$ columns: slice $i$ is exactly $XW_i^Q$. This big $W^Q$ plays the role of the $W_Q$ you met in [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition), and the code below calls it `W_q`.
 
-<Analogy>
+<Analogy title="The CCA committee">
+
 A CCA committee of four reviews a stack of camp applications. Every member reads **every** application, but each holds only a quarter of the checklist (safety, budget, schedule, food). They work at the same time, then the secretary staples their notes together and writes one summary. Heads see every token, but each works on its own slice of the features; $W^O$ is the secretary.
+
 </Analogy>
 
 Is it expensive to run $h$ attentions? No. The main cost of attention is the score table $QK^\top$, which takes $T \times T \times (\text{vector length})$ multiplications. With $h$ heads of length $d_k$ that is $h \cdot T^2 \cdot d_k = T^2 \cdot d_\text{model}$, the same as one big head. You get $h$ patterns for about the price of one.
@@ -163,10 +169,13 @@ Now the classic bug. Many people try to jump straight to $(B, h, T, d_k)$ with a
 <ReshapeTrap />
 
 <Mistake title="Skipping the transpose: right shape, wrong numbers">
-`view` (and `reshape`) never move numbers: they read memory row by row and cut it into the new shape. `x.view(B, h, T, d_k)` therefore cuts token A's row in half and treats the second half as "token B". The model trains without errors, just badly, and shape-only tests cannot catch it. Always split with `view(B, T, h, d_k).transpose(1, 2)` and merge with `transpose(1, 2)` **before** the final `view`.
+
+`view` (and `reshape`) never move numbers: they read memory row by row and cut it into the new shape. `x.view(B, h, T, d_k)` therefore cuts token A's row into $h$ pieces and treats the second piece as "token B" (with $h = 2$, as in the visual, the second half of token A). The model trains without errors, just badly, and shape-only tests cannot catch it. Always split with `view(B, T, h, d_k).transpose(1, 2)` and merge with `transpose(1, 2)` **before** the final `view`.
+
 </Mistake>
 
 <Mistake title="view after transpose without contiguous()">
+
 `transpose` does not move data either: it only changes the order in which memory is read. `view` refuses to work on such a tensor:
 
 ```text
@@ -174,6 +183,7 @@ RuntimeError: view size is not compatible with input tensor's size and stride (a
 ```
 
 The fix is `out.transpose(1, 2).contiguous().view(B, T, d_model)` (or `.reshape(B, T, d_model)`, which copies when it has to).
+
 </Mistake>
 
 Here is a real Final question with a complete multi-head implementation. Read it line by line: you can now follow every reshape, and the missing piece comes from the previous lesson.
@@ -208,17 +218,21 @@ The number of heads $h$ does not appear: heads only **slice** the matrices, they
   q="A multi-head attention layer has $d_\text{model} = 10$, $h = 2$ heads, and biases in all four projections. How many parameters does it have?"
   options={['440', '400', '880', '220']}
   answer={0}
-  explain="$4(d^2 + d) = 4(100 + 10) = 440$. Forgetting the biases gives 400. Multiplying by the 2 heads (880) is the classic trap: heads slice the matrices, they do not copy them."
+  explain="$4(d^2 + d) = 4(100 + 10) = 440$. Forgetting the biases gives 400. Multiplying by the 2 heads (880) is the classic trap: heads slice the matrices, they do not copy them. 220 counts only two of the four projections."
 />
 
 <ExamTip>
+
 Three patterns cover most NOAI questions on this topic. **Head size**: $d_k = d_\text{model}/h$. **Shapes**: $(B, T, d) \to$ `view` $\to (B, T, h, d_k) \to$ `transpose(1, 2)` $\to (B, h, T, d_k)$, with weights $(B, h, T, T)$ and output back to $(B, T, d)$. **Parameters**: $4(d^2 + d)$, whatever $h$ is. Learn $512^2 = 262{,}144$ and $768^2 = 589{,}824$ so you never multiply under time pressure.
+
 </ExamTip>
 
 <Takeaways>
+
 - Multi-head attention runs $h$ attention heads in parallel; each has its own projections, so each can learn a different pattern, and $W^O$ mixes their answers.
 - Head size $d_k = d_\text{model} / h$, so $d_\text{model}$ must be divisible by $h$. The total cost is about the same as one big head.
 - Split with `view(B, T, h, d_k).transpose(1, 2)` to get $(B, h, T, d_k)$; merge with `transpose(1, 2).contiguous().view(B, T, d_model)`. Skipping the transpose gives the right shape but the wrong numbers.
 - Attention weights have shape $(B, h, T, T)$; the output has the input's shape $(B, T, d_\text{model})$.
 - Parameters: $4(d_\text{model}^2 + d_\text{model})$, independent of the number of heads.
+
 </Takeaways>

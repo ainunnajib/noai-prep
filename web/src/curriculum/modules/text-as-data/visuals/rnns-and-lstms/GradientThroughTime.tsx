@@ -115,12 +115,12 @@ export default function GradientThroughTime() {
         <Dots points={shown(rnnRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-2)' }))} />
         <Dots points={shown(lstmRaw).map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-3)', shape: 'square' as const }))} />
         {!rEnd.off && (
-          <Label x={rEnd.x} y={rEnd.y} anchor="end" dx={-4} dy={rDy} color="var(--viz-2)" size={12} weight={700}>
+          <Label x={rEnd.x} y={rEnd.y} anchor="end" dx={-4} dy={rDy} color={textTone('var(--viz-2)')} size={12} weight={700}>
             RNN rᵏ
           </Label>
         )}
         {!lEnd.off && (
-          <Label x={lEnd.x} y={lEnd.y} anchor="end" dx={-4} dy={lDy} color="var(--viz-3)" size={12} weight={700}>
+          <Label x={lEnd.x} y={lEnd.y} anchor="end" dx={-4} dy={lDy} color={textTone('var(--viz-3)')} size={12} weight={700}>
             LSTM fᵏ
           </Label>
         )}
@@ -140,8 +140,8 @@ export default function GradientThroughTime() {
       )}
       </div>
       <Controls>
-        <Slider label={<span style={{ color: 'var(--viz-2)' }}>RNN factor per step r</span>} value={r} min={0.2} max={1.5} step={0.05} onChange={setR} format={(v) => v.toFixed(2)} />
-        <Slider label={<span style={{ color: 'var(--viz-3)' }}>LSTM forget gate f</span>} value={f} min={0.5} max={1} step={0.01} onChange={setF} format={(v) => v.toFixed(2)} />
+        <Slider label={<span style={{ color: textTone('var(--viz-2)') }}>RNN factor per step r</span>} value={r} min={0.2} max={1.5} step={0.05} onChange={setR} format={(v) => v.toFixed(2)} />
+        <Slider label={<span style={{ color: textTone('var(--viz-3)') }}>LSTM forget gate f</span>} value={f} min={0.5} max={1} step={0.01} onChange={setF} format={(v) => v.toFixed(2)} />
         <Slider label="Steps back k" value={K} min={5} max={50} step={1} onChange={setK} />
         <Readout
           items={[

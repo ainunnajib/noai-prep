@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, Path, Dots, VLine, HLine, Label, useContainerWidth } from '../../../../../kit'
-import { TryNotice } from '../Caption'
+import { TryNotice, textTone } from '../Caption'
 import { LENGTHS, SIZES, ACC } from './s2sData'
 
 /*
@@ -114,6 +114,9 @@ export default function Seq2SeqBottleneck() {
   const plain = ACC[d].plain
   const withA = ACC[d].attn
   const pts = (arr: number[]) => LENGTHS.map((L, i) => [L, arr[i]] as [number, number])
+  // direct labels sit above the highest point of the line's last 8 words, so a falling line never runs through its label
+  const tailMax = (arr: number[]) => Math.max(...arr.slice(-8))
+  const attnHigh = tailMax(withA) > 85
 
   return (
     <Figure
@@ -123,10 +126,11 @@ export default function Seq2SeqBottleneck() {
           tryIt={<>slide the sentence length up, try a bigger context vector, then switch on attention.</>}
           notice={
             <>
-              without attention accuracy falls as sentences grow, because every word must fit into the same {d} numbers; with attention the decoder reads every encoder state and stays close to 100%.
+              without attention accuracy falls as sentences grow, because every word must fit into the same {d} numbers; with attention the decoder reads every encoder state
+              {d === 16 ? ' and does far better, though this tiny model still slips on long sentences.' : ' and stays close to 100%.'}
             </>
           }
-          note="Real results: one small GRU encoder–decoder trained for each setting. Only the tiny 16-number model slips on long sentences even with attention."
+          note="Real results: one small GRU encoder–decoder trained for each setting. Even with attention, the tiny 16-number model falls to about 60% at 40 words (against 11% without)."
         />
       }
     >
@@ -145,11 +149,11 @@ export default function Seq2SeqBottleneck() {
         {attn && <Path points={pts(withA)} color="var(--viz-3)" width={2.6} />}
         <Dots points={[{ x: n, y: plain[idx], color: 'var(--viz-2)', r: 6 }, ...(attn ? [{ x: n, y: withA[idx], color: 'var(--viz-3)', r: 6, shape: 'square' as const }] : [])]} />
         {/* direct labels at the right-hand end of each line */}
-        <Label x={40} y={plain[plain.length - 1]} anchor="end" dx={-2} dy={-9} color="var(--viz-2)" size={12} weight={700}>
+        <Label x={40} y={tailMax(plain)} anchor="end" dx={-2} dy={-9} color={textTone('var(--viz-2)')} size={12} weight={700}>
           no attention
         </Label>
         {attn && (
-          <Label x={40} y={withA[withA.length - 1]} anchor="end" dx={-2} dy={withA[withA.length - 1] > 85 ? 18 : -9} color="var(--viz-3)" size={12} weight={700}>
+          <Label x={40} y={attnHigh ? withA[withA.length - 1] : tailMax(withA)} anchor="end" dx={-2} dy={attnHigh ? 18 : -9} color={textTone('var(--viz-3)')} size={12} weight={700}>
             with attention
           </Label>
         )}
@@ -161,8 +165,8 @@ export default function Seq2SeqBottleneck() {
         <Toggle label="Attention" checked={attn} onChange={setAttn} />
         <Readout
           items={[
-            [<span style={{ color: 'var(--viz-2)' }}>no attention</span>, `${plain[idx].toFixed(0)}%`],
-            [<span style={{ color: 'var(--viz-3)' }}>with attention</span>, attn ? `${withA[idx].toFixed(0)}%` : '(switch it on)'],
+            [<span style={{ color: textTone('var(--viz-2)') }}>no attention</span>, `${plain[idx].toFixed(0)}%`],
+            [<span style={{ color: textTone('var(--viz-3)') }}>with attention</span>, attn ? `${withA[idx].toFixed(0)}%` : '(switch it on)'],
           ]}
         />
       </Controls>

@@ -22,7 +22,7 @@ a_{ij} &= \text{softmax}_j\!\left(\frac{q_i \cdot k_j}{\sqrt{d_k}}\right)
 \end{aligned}
 $$
 
-Every ingredient, $q_i$, $k_j$ and $v_j$, is computed from a token's **content** alone. Nothing in the formula says *where* token $j$ sits, and a sum gives the same answer whatever order you add its terms in. So if you shuffle the words, each word sees exactly the same set of keys and values as before and produces exactly the same output, which just appears at its new place. This property is called being <Term def="Shuffling the inputs shuffles the outputs in exactly the same way, and nothing else changes. Self-attention without positions has this property. Exam questions often say 'permutation-invariant' for the same idea: the model is blind to order.">permutation-equivariant</Term>; exam questions often say *permutation-invariant* for the same idea.
+Every ingredient, $q_i$, $k_j$ and $v_j$, is computed from a token's **content** alone. Nothing in the formula says *where* token $j$ sits, and a sum gives the same answer whatever order you add its terms in. So if you shuffle the words (in self-attention with no causal mask, as in an encoder), each word sees exactly the same set of keys and values as before and produces exactly the same output, which just appears at its new place. This property is called being <Term def="Shuffling the inputs shuffles the outputs in exactly the same way, and nothing else changes. Self-attention without positions has this property. Exam questions often say 'permutation-invariant' for the same idea: the model is blind to order.">permutation-equivariant</Term>; exam questions often say *permutation-invariant* for the same idea. A causal mask already breaks this symmetry, because each position then sees a different set of earlier words, but decoders such as GPT still add position information.
 
 <ShuffleInvariance />
 
@@ -30,7 +30,7 @@ The two copies of *the* are a telling detail: without positions they get identic
 
 <KeyIdea>
 
-Self-attention treats a sentence as a **set** of tokens: shuffle the input and the output is only shuffled the same way. To give a Transformer word order, we **add a position vector to every token's embedding** before the first layer.
+Without a causal mask, self-attention treats a sentence as a **set** of tokens: shuffle the input and the output is only shuffled the same way. To give a Transformer word order, we **add a position vector to every token's embedding** before the first layer.
 
 </KeyIdea>
 
@@ -42,7 +42,7 @@ $$
 x_\text{pos} = \text{embedding}(\text{token at pos}) + p_\text{pos}
 $$
 
-Now *dog* at position 1 and *dog* at position 4 enter attention as different vectors. There are two common ways to make the $p_\text{pos}$:
+Now *dog* at position 1 and *dog* at position 4 enter attention as different vectors. (In the original paper, and in the 2026 Final's code, the embedding is first multiplied by $\sqrt{d_\text{model}}$, as in `embed(tokens) * math.sqrt(d_model) + pe`, which keeps the word signal large compared with the position signal.) There are two common ways to make the $p_\text{pos}$:
 
 - **Learned position embeddings**: a table with one trainable vector per position, `nn.Embedding(max_len, d_model)`, learned like word embeddings. BERT and GPT-2 do this. The catch: a table with 512 rows cannot handle position 600.
 - **Sinusoidal positional encoding**: fixed waves from the original Transformer paper. Nothing to learn, and it works for any position.
@@ -166,7 +166,7 @@ $$
 \text{LayerNorm}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
 $$
 
-Here $\sigma^2$ is the variance of the token's numbers, $\epsilon$ is a tiny constant such as $10^{-5}$ that prevents division by zero, and $\odot$ means multiply entry by entry. For example $[1, 3, 3, 9]$ has mean 4 and variance $\tfrac{9 + 1 + 1 + 25}{4} = 9$, so standard deviation 3, and normalises to $[-1, -\tfrac13, -\tfrac13, \tfrac53]$ (with $\gamma = 1$, $\beta = 0$). Keeping every token's numbers on the same scale stops values drifting as they pass through many blocks. You met it in [Initialisation and normalisation](#/learn/training-deep-networks/initialisation-and-normalisation); Transformers prefer it to batch norm because it does not depend on the batch.
+Here $\sigma^2$ is the variance of the token's numbers, dividing by $d_\text{model}$ rather than $d_\text{model} - 1$ (which is why the code below passes `unbiased=False`); $\epsilon$ is a tiny constant such as $10^{-5}$ that prevents division by zero, and $\odot$ means multiply entry by entry. For example $[1, 3, 3, 9]$ has mean 4 and variance $\tfrac{9 + 1 + 1 + 25}{4} = 9$, so standard deviation 3, and normalises to $[-1, -\tfrac13, -\tfrac13, \tfrac53]$ (with $\gamma = 1$, $\beta = 0$). Keeping every token's numbers on the same scale stops values drifting as they pass through many blocks. You met it in [Initialisation and normalisation](#/learn/training-deep-networks/initialisation-and-normalisation); Transformers prefer it to batch norm because it does not depend on the batch.
 
 **FFN** is the <Term def="Position-wise feed-forward network: a small two-layer MLP, Linear(d_model, d_ff), ReLU, Linear(d_ff, d_model), applied to every token separately with the same weights.">position-wise feed-forward network</Term>, a two-layer MLP applied to **each token separately**, with the same weights for every position:
 
@@ -176,7 +176,7 @@ $$
 
 $W_1$ is $d_\text{model} \times d_\text{ff}$ and $W_2$ is $d_\text{ff} \times d_\text{model}$, with the hidden size usually $d_\text{ff} = 4\,d_\text{model}$ (2048 for $d_\text{model} = 512$). No token looks at another inside the FFN: **only attention mixes tokens**.
 
-Every sub-layer returns the shape it was given, $(B, T, d_\text{model})$, so the block's output can feed straight into an identical block. The original Transformer stacked 6, BERT-base stacks 12.
+Every sub-layer returns the shape it was given, $(B, T, d_\text{model})$, so the block's output can feed straight into an identical block. The original Transformer stacked 6, BERT-base stacks 12. The same block reads images too: a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) cuts an image into small patches, treats each patch as a token, adds positions and runs a stack of encoder blocks.
 
 <TransformerBlockFlow />
 
@@ -187,6 +187,8 @@ The block comes in three flavours, and NOAI likes to ask which is which:
 | Encoder (BERT) | self-attention with **no mask**: every token sees the whole text | understanding: classifying, tagging |
 | Decoder-only (GPT) | **causally masked** self-attention: each token sees only the past | generating text, one token at a time |
 | Decoder of an encoder–decoder (original Transformer, T5) | masked self-attention, then **cross-attention** to the encoder | translating, summarising |
+
+<PastPaperQuestion paper="prelim2026" n={213} />
 
 In <Term def="Attention where the queries come from one sequence and the keys and values come from another. In an encoder-decoder Transformer, the decoder's tokens (queries) look at the encoder's output (keys and values).">cross-attention</Term> the **queries** come from the decoder's own tokens, while the **keys and values** come from the encoder's output. The `MultiHeadAttention` class from the previous lesson already handles this: call it as `mha(dec_x, enc_out, enc_out)`. The weight table then has shape $(B, h, T_\text{tgt}, T_\text{src})$: one row per target word, one column per source word.
 
@@ -203,7 +205,13 @@ It is **Q from the decoder, K and V from the encoder**, not the other way round:
   explain="The French word being produced asks the question (query), and the encoded English sentence supplies the keys to match and the values to mix in. All three from the decoder is ordinary self-attention; all three from the encoder would never let the French side ask anything."
 />
 
-Two more facts worth knowing. **Pre-norm**: GPT-2 and most modern LLMs move each LayerNorm to the *start* of its sub-layer, $x + \text{MHA}(\text{LayerNorm}(x))$, which trains more stably in very deep stacks; the parts are the same, only the order changes. **Where the parameters live**: with $d_\text{model} = 512$, $h = 8$ and $d_\text{ff} = 2048$, one encoder block has $1{,}050{,}624$ attention parameters (from $4(d^2 + d)$), $2{,}099{,}712$ in the FFN and $2{,}048$ in its two LayerNorms: $3{,}152{,}384$ in total, two-thirds of them in the FFN.
+<Reveal label="Two more facts: pre-norm, and where the parameters live">
+
+**Pre-norm.** GPT-2 and most modern LLMs move each LayerNorm to the *start* of its sub-layer, $x + \text{MHA}(\text{LayerNorm}(x))$, which trains more stably in very deep stacks; the parts are the same, only the order changes.
+
+**Where the parameters live.** With $d_\text{model} = 512$, $h = 8$ and $d_\text{ff} = 2048$, one encoder block has $1{,}050{,}624$ attention parameters (from $4(d^2 + d)$), $2{,}099{,}712$ in the FFN and $2{,}048$ in its two LayerNorms: $3{,}152{,}384$ in total, two-thirds of them in the FFN.
+
+</Reveal>
 
 <PastPaperQuestion paper="prelim2026" n={174} />
 
@@ -259,7 +267,9 @@ decoder-style: (1, 6, 16)
 
 Check the count: attention $4(16^2 + 16) = 1088$, FFN $(16 \cdot 64 + 64) + (64 \cdot 16 + 16) = 2128$, two LayerNorms $2 \cdot 2 \cdot 16 = 64$, total $3280$. The last LayerNorm is why every token comes out with mean 0 and standard deviation 1. Passing the lower-triangular mask turns the same block into a GPT-style decoder block.
 
-Finally, you can test the first section of this lesson in code. Shuffle the six positions with and without positional encoding:
+Finally, you can test the first section of this lesson in code.
+
+<Reveal label="Shuffle the six positions, with and without positional encoding">
 
 ```python
 perm = torch.tensor([3, 0, 5, 1, 4, 2])          # a shuffle of the 6 positions
@@ -279,6 +289,8 @@ False
 ```
 
 Without positions, "shuffle then run the block" equals "run the block then shuffle": the whole block, FFN and LayerNorm included, is blind to order. With positions added, it is not.
+
+</Reveal>
 
 ## The price: cost grows with T²
 
@@ -308,6 +320,8 @@ For complexity questions: self-attention is $O(T^2)$ (more fully $O(T^2 d)$) in 
 </ExamTip>
 
 <PastPaperQuestion paper="prelim2026" n={219} />
+
+You now have every part of a Transformer. In [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt) you will see how stacks of these blocks, with or without the causal mask, are pretrained into BERT and GPT.
 
 <Takeaways>
 

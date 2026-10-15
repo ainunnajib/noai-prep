@@ -226,7 +226,7 @@ export default function HeadSplitter() {
                     transition: 'opacity 0.4s',
                   }}
                 >
-                  {blockW >= 46 ? `head ${i}` : `h${i}`}
+                  {blockW >= 46 ? `head ${i + 1}` : `h${i + 1}`}
                 </text>
               ))}
             {(step === 0 || step >= 5 || !valid) && (
@@ -300,7 +300,7 @@ export default function HeadSplitter() {
           <PlayerControls player={player} label={(st) => `Step ${st + 1} of 7`} />
           <p className={s.stepNote}>{stepNote(step, d, h, dk)}</p>
           <div className={s.codeWrap}>
-            <CodeBlock code={CODE} language="python" title="inside MultiHeadAttention.forward" highlight={[step + 1]} showLineNumbers />
+            <CodeBlock code={CODE} language="python" title="inside forward()" highlight={[step + 1]} showLineNumbers />
           </div>
         </>
       ) : (

@@ -70,7 +70,7 @@ Three things to notice:
 - The output has **one row per token**, as long as a value vector.
 - $K$ and $V$ must have the same number of rows (one value per key), but $d_k$ and $d_v$ are free to differ.
 
-In PyTorch the tokens come in a <Term def="A group of examples processed together. Its size B is the first dimension of the tensor.">batch</Term> of $B$ sentences, so every tensor gets an extra dimension in front: $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$. The `@` operator treats every dimension except the last two as "batch" and multiplies the last two as matrices. That is why code transposes keys with `key.transpose(-2, -1)` (swap the last two dimensions) and not with `.T`, which reverses *all* the dimensions. In the next lesson a head dimension joins the front too: $(B, h, T, d_k)$.
+In PyTorch the tokens come in a <Term def="A group of examples processed together. Its size B is the first dimension of the tensor.">batch</Term> of $B$ sentences, so every tensor gets an extra dimension in front: $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$. The `@` operator treats every dimension except the last two as "batch" and multiplies the last two as matrices. That is why code transposes keys with `key.transpose(-2, -1)` (swap the last two dimensions) and not with `.T`, which reverses *all* the dimensions (and on tensors with more than 2 dimensions, PyTorch now warns that this use of `.T` is deprecated). In the next lesson a head dimension joins the front too: $(B, h, T, d_k)$.
 
 <QuickCheck
   q="In a batch, `Q` and `K` have shape `(32, 10, 64)` and `V` has shape `(32, 10, 16)`. What are the shapes of the attention weights and of the output?"
@@ -106,7 +106,7 @@ $$
 
 <Steps title="softmax(QKᵀ/√dₖ)V for three tokens">
   <Step title="Scores $S = QK^\top$">
-    Each entry is one query row dotted with one key row. For example, row 3 and column 2: $S_{32} = q_3 \cdot k_2 = 0 \times 0 + 0 \times 0 + 2 \times 1 + 2 \times 1 = 4$. All nine entries make a $3 \times 3$ table:
+    Each entry is one query row dotted with one key row. For example, row 3 and column 2 (token 3 is "laksa" in the visual, token 2 is "love"): $S_{32} = q_3 \cdot k_2 = 0 \times 0 + 0 \times 0 + 2 \times 1 + 2 \times 1 = 4$. All nine entries make a $3 \times 3$ table:
 
     $$
     S = \begin{bmatrix} 2 & 2 & 2 \\ 2 & 0 & 2 \\ 0 & 4 & 2 \end{bmatrix}
@@ -135,13 +135,23 @@ $$
   </Step>
 </Steps>
 
-Now press **Worked example (dₖ = 4)** in the visual above and step through it: every number should match yours. Token 3's query points the same way as key 2, so its output leans towards $v_2 = [0, 6]$ more than towards the other values.
+Now press **Worked example (dₖ = 4)** in the visual above and step through it: every number should match yours. In the scores, cell S[laksa, love] is the $S_{32} = 4$ you just computed. Token 3's query points the same way as key 2, so its output leans towards $v_2 = [0, 6]$ more than towards the other values.
 
 ## Why divide by √dₖ?
 
-Leave out the $\sqrt{d_k}$ and the formula still runs, and every shape is still right. So why is it there?
+Leave out the $\sqrt{d_k}$ and the formula still runs, and every shape is still right. So why is it there? Try it first: slide $d_k$ up to 512 with scaling off and watch the softmax weights, then switch scaling on.
 
-**Dot products grow with the dimension.** A dot product $q \cdot k = q_1 k_1 + q_2 k_2 + \dots + q_{d_k} k_{d_k}$ is a sum of $d_k$ products. Suppose every entry of $q$ and $k$ is a random number with average 0 and <Term def="A measure of spread: the average squared distance from the mean. Its square root is the standard deviation, the typical size of a deviation.">variance</Term> 1 (see [Describing data](#/learn/probability-and-statistics/describing-data)), all independent. Then each product $q_i k_i$ also has average 0 and variance 1, and the variances of independent terms add up:
+<SqrtDScaling />
+
+<Analogy title="Sharing a prize by softmax">
+
+A teacher splits a prize between three students by taking the softmax of their marks. On a 10-question quiz they score 8, 7 and 6, and the prize splits 67%, 24% and 9%: everyone gets a share. On a 100-question exam the same three students score 80, 70 and 60. The gaps are ten times bigger, and because softmax exponentiates the gaps, the top student now takes 99.995% and the other two get almost nothing. Dividing the exam marks by 10 before the softmax brings back the fair 67 / 24 / 9 split. Longer query and key vectors make bigger dot products in the same way, and dividing by $\sqrt{d_k}$ is that rescaling.
+
+</Analogy>
+
+Here is the maths behind what you just saw.
+
+**Dot products grow with the dimension.** A dot product $q \cdot k = q_1 k_1 + q_2 k_2 + \dots + q_{d_k} k_{d_k}$ is a sum of $d_k$ products. Suppose every entry of $q$ and $k$ is a random number with average 0 and <Term def="A measure of spread: the average squared distance from the mean. Its square root is the standard deviation, the typical size of a deviation.">variance</Term> 1 (see [Describing data](#/learn/probability-and-statistics/describing-data)), all independent. Then each product $q_i k_i$ also has average 0 and variance 1 (the same argument as for weight initialisation in [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation)), and [the variances of independent terms add up](#/learn/probability-and-statistics/distributions-and-clt):
 
 $$
 \operatorname{Var}(q \cdot k) = \underbrace{1 + 1 + \dots + 1}_{d_k \text{ terms}} = d_k
@@ -153,15 +163,7 @@ So the standard deviation, the typical size of a score, is $\sqrt{d_k}$: about 2
 
 **Saturated softmax stops learning.** The slope of a softmax weight $p$ with respect to its own score is $p(1 - p)$. For $p = 0.665$ that is $0.665 \times 0.335 \approx 0.22$; for $p = 0.9997$ it is about $0.0003$, hundreds of times smaller. The gradients that should train $W_Q$ and $W_K$ shrink towards zero: the [vanishing gradient](#/learn/backpropagation/vanishing-and-exploding-gradients) problem, inside attention.
 
-**The fix.** Dividing a random quantity by $c$ divides its variance by $c^2$. Dividing the scores by $\sqrt{d_k}$ divides their variance by $d_k$, bringing it back to $d_k / d_k = 1$ whatever the dimension.
-
-<Analogy title="Sharing a prize by softmax">
-
-A teacher splits a prize between three students by taking the softmax of their marks. On a 10-question quiz they score 8, 7 and 6, and the prize splits 67%, 24% and 9%: everyone gets a share. On a 100-question exam the same three students score 80, 70 and 60. The gaps are ten times bigger, and because softmax exponentiates the gaps, the top student now takes 99.995% and the other two get almost nothing. Dividing the exam marks by 10 before the softmax brings back the fair 67 / 24 / 9 split. Longer query and key vectors make bigger dot products in the same way, and dividing by $\sqrt{d_k}$ is that rescaling.
-
-</Analogy>
-
-<SqrtDScaling />
+**The fix.** Dividing a random quantity by $c$ divides its variance by $c^2$ ($\operatorname{Var}(aX) = a^2\operatorname{Var}(X)$ with $a = 1/c$). Dividing the scores by $\sqrt{d_k}$ divides their variance by $d_k$, bringing it back to $d_k / d_k = 1$ whatever the dimension.
 
 <KeyIdea>
 
@@ -169,11 +171,15 @@ With unit-variance entries, $\operatorname{Var}(q \cdot k) = d_k$. Dividing by $
 
 </KeyIdea>
 
+There are two ways to get the scaling wrong, and the worse one is invisible.
+
 <Mistake title="Dividing by dₖ, or not at all">
 
 Dividing by $d_k$ instead of $\sqrt{d_k}$ over-shrinks the scores: their standard deviation becomes $1/\sqrt{d_k}$ (0.125 when $d_k = 64$), so every row of weights is almost uniform and attention cannot focus. Forgetting the scale entirely is worse because it is silent: the code runs and every shape test passes. Only a check on the actual numbers catches it.
 
 </Mistake>
+
+The Final turned exactly this reasoning into a written question.
 
 <ExamTip title="The Final's written question">
 
@@ -192,6 +198,8 @@ Sometimes a token must **not** look at certain positions. There are two common c
 Working through a worksheet with the answers printed further down the page, you cover everything below the line you are on. You may look back at your earlier working as much as you like, but never ahead.
 
 </Analogy>
+
+<PastPaperQuestion paper="noai2025" n={20} />
 
 **Padding mask.** Sentences in a batch must have the same length, so short ones are filled up with `[PAD]` tokens (see [Tokenisation](#/learn/text-as-data/tokenisation)). Those fillers mean nothing, so no real token should attend to them; otherwise a sentence's meaning would depend on how much padding its batch happened to need.
 
@@ -289,11 +297,39 @@ tensor([[0.6652, 0.2447, 0.0900],
 
 In the first row, the score 5 would have taken almost all the weight; masked with $-\infty$ or $-10^9$ it gets exactly 0. Masked with 0 it still takes 9%.
 
-**Mask shapes.** A mask only needs to *broadcast* against the scores: size-1 dimensions are stretched to match. For scores of shape $(B, T, T)$, a causal mask $(T, T)$ is shared by the whole batch, and a padding mask is stored as $(B, 1, T)$: one row per sentence that marks which **keys** are real, copied down every query row. With attention heads (next lesson), these become $(1, 1, T, T)$ and $(B, 1, 1, T)$, the shapes the Final's tests expected.
+**Padding masks in code.** A padding mask comes straight from the token ids: `ids != PAD` is `True` for every real token and `False` for every `[PAD]`, one row per sentence. One `unsqueeze` adds a size-1 query axis so the mask can *broadcast* against the scores: PyTorch stretches a size-1 axis to match, here down all $T$ query rows.
 
-<PastPaperQuestion paper="noai2025" n={20} />
+```python
+import torch
+PAD = 0
+ids = torch.tensor([[5, 7, 9, 0, 0],    # 3 real tokens, 2 [PAD]s
+                    [4, 4, 0, 0, 0]])   # 2 real tokens, 3 [PAD]s
+pad = ids != PAD            # (B, T): True = real token
+mask = pad.unsqueeze(1)     # (B, 1, T): one row per sentence
+print(mask.shape)
 
-<PastPaperQuestion paper="prelim2026" n={220} />
+scores = torch.zeros(2, 5, 5)   # (B, T, T), all equal here
+scores = scores.masked_fill(mask == 0, -1e9)
+weights = torch.softmax(scores, dim=-1)
+print(weights[1])               # sentence 2
+```
+
+```text
+torch.Size([2, 1, 5])
+tensor([[0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000]])
+```
+
+Every query row of sentence 2, its three `[PAD]` rows included, shares its weight between the two real tokens only.
+
+<Reveal label="Mask shapes the Final expects">
+
+For scores of shape $(B, T, T)$, a causal mask $(T, T)$ is shared by the whole batch, and the padding mask $(B, 1, T)$ above marks which **keys** are real, copied down every query row. With attention heads (next lesson) the scores become $(B, h, T, T)$, and the masks become $(1, 1, T, T)$ and $(B, 1, 1, T)$, the shapes the Final's tests expected. For the padding mask that is `pad.unsqueeze(1).unsqueeze(2)`.
+
+</Reveal>
 
 ## All of it in PyTorch
 

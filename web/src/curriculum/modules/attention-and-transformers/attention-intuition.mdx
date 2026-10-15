@@ -3,6 +3,8 @@ import SentenceAttention from './visuals/attention-intuition/SentenceAttention'
 
 Read this sentence: *The animal didn't cross the street because it was too tired.* What does "it" mean? You knew at once: the animal. Now change one word: *…because it was too wide.* Suddenly "it" is the street. To understand a word, you have to look at the other words around it and decide which ones matter. **Attention** is the mechanism that lets a neural network do exactly that. It is the engine inside every Transformer (BERT, GPT, ChatGPT, and the Vision Transformers that read images), and Task 3 of the 2026 NOAI Final asked students to build it from scratch. This lesson builds it from something you already do every day: looking things up.
 
+You met a first version at the end of [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms): instead of squeezing a sentence into one context vector, a translation model's decoder gave every encoder state a softmax weight and took their weighted average. Here we take that idea apart and rebuild it as the building block of the Transformer.
+
 ## A lookup you already know
 
 A Python dictionary stores **values** under **keys**, and you fetch a value by asking with a **query**:
@@ -10,7 +12,8 @@ A Python dictionary stores **values** under **keys**, and you fetch a value by a
 ```python
 menu = {"chicken rice": 4.5, "laksa": 6.0, "kaya toast": 2.2}
 print(menu["laksa"])         # 6.0
-print(menu["chiken rice"])   # KeyError: one typo and you get nothing
+# KeyError: one typo and you get nothing
+print(menu["chiken rice"])
 ```
 
 Every lookup has three roles:
@@ -61,7 +64,7 @@ $$
 
 Three things to notice in the picture:
 
-- **Close matches dominate, but everything contributes.** The key that points most along $q$ gets the biggest weight, yet the output colour is still a mix.
+- **Close matches dominate, but everything contributes.** The key with the largest dot product with $q$ (one that points along $q$ and is long) gets the biggest weight, yet the output colour is still a mix.
 - **A longer query makes attention sharper.** Doubling $q$ doubles every score, and softmax exaggerates differences, so the weights move towards "all on one key". This is the temperature effect you met with softmax. Near the centre every score is close to 0, so the weights are nearly equal and the output is close to a plain average.
 - **Soft means smooth.** The hard lookup paints a patchwork with sudden jumps at the borders. The soft lookup's output changes gradually as $q$ moves, so gradient descent can learn where $q$ should point.
 
@@ -103,13 +106,13 @@ The answer leans strongly towards Stall A, because the friend whose interests be
 <QuickCheck
   q="Same friends, but now the question is $q = [0, 0]$, which matches nobody in particular. What does attention return?"
   options={[
-    '$[5, 5]$: every score is 0, so each weight is $\\tfrac{1}{3}$ and the output is the plain average of the values',
-    '$[10, 0]$: when nothing matches, the first key wins and its value is returned',
-    '$[0, 0]$: a zero query makes every weight 0, so the output is the zero vector',
-    '$[15, 15]$: every weight is $e^0 = 1$, so the three values are simply added up',
+    '$[5, 5]$: all three scores are 0, so each weight is $\\tfrac{1}{3}$ and the output is the plain average',
+    '$[10, 0]$: when no key matches well, softmax falls back to the first key and returns its value unchanged',
+    '$[0, 0]$: a zero query makes every score and every weight 0, so the output is the zero vector',
+    '$[15, 15]$: each weight is $e^0 = 1$, so the three value vectors are simply added together',
   ]}
   answer={0}
-  explain="Every score is $0 \cdot k_i = 0$ and $e^0 = 1$, so the weights are $\tfrac{1}{3}$ each (softmax always divides by the total, so they cannot all be 1). The output is $\tfrac{1}{3}([10,0] + [0,10] + [5,5]) = [5, 5]$, the plain average. Weights are never 0 either: $e^s$ is always positive."
+  explain="Every score is $0 \cdot k_i = 0$ and $e^0 = 1$, so the weights are $\tfrac{1}{3}$ each (softmax always divides by the total, so they cannot all be 1). The output is $\tfrac{1}{3}([10,0] + [0,10] + [5,5]) = [5, 5]$, the plain average. Weights are never 0 either, because $e^s$ is always positive, and softmax has no rule that favours the first key."
 />
 
 The same calculation in NumPy. Run it, then try `q = [0, 1]` (a sport question) or a much longer query such as `q = [5, 0]`.
@@ -117,24 +120,29 @@ The same calculation in NumPy. Run it, then try `q = [0, 1]` (a sport question) 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
 def softmax(s):
-    e = np.exp(s - s.max())    # subtracting the max avoids overflow; same answer
+    # subtracting the max avoids overflow
+    e = np.exp(s - s.max())
     return e / e.sum()
 
 def attend(q, K, V):
-    scores = K @ q             # one dot product per key (row of K)
-    weights = softmax(scores)  # positive, add up to 1
-    return weights, weights @ V   # weighted average of the rows of V
+    scores = K @ q             # one per key
+    weights = softmax(scores)  # add up to 1
+    # weighted average of the rows of V
+    return weights, weights @ V
 
-q = np.array([1.0, 0.0])                              # the question: food
-K = np.array([[2.0, 0.0], [1.0, 1.0], [0.0, 2.0]])    # keys, one per row
-V = np.array([[10.0, 0.0], [0.0, 10.0], [5.0, 5.0]])  # values, one per row
+# the question: food
+q = np.array([1.0, 0.0])
+# keys and values, one per row
+K = np.array([[2.0, 0.0], [1.0, 1.0], [0.0, 2.0]])
+V = np.array([[10.0, 0.0], [0.0, 10.0], [5.0, 5.0]])
 
 w, out = attend(q, K, V)
 print("scores :", K @ q)
 print("weights:", w.round(3), " sum =", round(w.sum(), 3))
 print("output :", out.round(2))
 
-w2, out2 = attend(2 * q, K, V)                        # same direction, twice as long
+# same direction, twice as long
+w2, out2 = attend(2 * q, K, V)
 print("2q weights:", w2.round(3), " output:", out2.round(2))`} />
 
 You should see weights `[0.665 0.245 0.09 ]` and output `[7.1 2.9]`. Doubling the query sharpens the weights to `[0.867 0.117 0.016]`, and the output moves to `[8.75 1.25]`, much closer to Wei Ling's suggestion.
@@ -148,9 +156,10 @@ q = x\,W_Q, \qquad k = x\,W_K, \qquad v = x\,W_V
 $$
 
 - $q$, the **query**, says "what am I looking for?" For "it": *a noun that I could be referring to*.
-- $k$, the **key**, says "what can I offer?" For "animal": *I'm a noun, and a living thing*.
+- $k$, the **key**, says "this is what I advertise": the label that queries are matched against. For "animal": *I'm a noun, and a living thing*.
 - $v$, the **value**, is "what I pass on if you pick me": the information about "animal" that gets copied into "it".
 - $W_Q$, $W_K$ and $W_V$ are matrices of numbers learned during training. The same three matrices are used for every word in every sentence.
+- $x$ is a **row** vector, so the matrix comes second: the row-vector convention from [Backprop step by step](#/learn/backpropagation/backprop-step-by-step). The RNN lesson wrote $W_x\, x_t$ with column vectors: the same idea with the matrix transposed.
 
 Why three different vectors instead of using $x$ for everything? Because what a word is looking for is not the same as what it advertises, and neither is the same as what it should hand over. Separate matrices let the network learn each role on its own.
 
@@ -182,7 +191,7 @@ The attention weights are **not** stored in the model. Training learns $W_Q$, $W
 
 <PastPaperQuestion paper="prelim2026" n={211} />
 
-### Self-attention and cross-attention
+## Self-attention and cross-attention
 
 In self-attention, the queries, keys and values all come from one sequence. In <Term def="Attention in which the queries come from one sequence and the keys and values come from another, so one sequence can look things up in the other.">cross-attention</Term>, the queries come from one sequence and the keys and values from another. A translation model writing French uses cross-attention so that each French word it writes can look back at the English sentence. An image-captioning model lets each word it writes look at patches of the image. The maths is identical; only the source of the vectors changes.
 
@@ -193,7 +202,7 @@ In self-attention, the queries, keys and values all come from one sequence. In <
 Prelim questions on attention are mostly fast recall. Know these cold:
 
 - attention lets a model **focus on the relevant parts of the input**;
-- **query** = what I'm looking for, **key** = what I'm matched on, **value** = what I pass on;
+- **query** = what I'm looking for, **key** = what I advertise to be matched on, **value** = what I pass on;
 - the weights come from **softmax**, so they are positive and **add up to 1**;
 - the output is a **weighted average of the values** (not of the keys, and not one single value);
 - self-attention takes Q, K and V from one sequence; cross-attention takes Q from one sequence and K, V from another.

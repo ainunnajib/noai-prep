@@ -218,6 +218,7 @@ export default function LSTMGateSliders() {
           note={
             <>
               Bars are the cell state <M>{'c_t'}</M>, dots the output <M>{'h_t'}</M>. The dashed line is Cats&apos; own share, <M>{'0.9 \\cdot f^{\\,t-1}'}</M>; later words add to it or subtract from it.
+              In a real LSTM the gates are recomputed at every step from <M>{'h_{t-1}'}</M> and the current word; here they are held fixed so you can see what each one does.
             </>
           }
         />
@@ -275,9 +276,9 @@ export default function LSTMGateSliders() {
         <Slider label="inspect word" value={sel + 1} min={1} max={N} step={1} onChange={(x) => setSel(x - 1)} format={(x) => `${x}: “${WORDS[x - 1]}”`} />
         <Readout
           items={[
-            ['c at “are”', n2(steps[N - 1].c)],
-            ['still from “Cats”', n2(steps[N - 1].cats)],
-            ['h at “are”', n2(steps[N - 1].h)],
+            [`c at “${WORDS[sel]}”`, n2(v.c)],
+            ['still from “Cats”', n2(v.cats)],
+            [`h at “${WORDS[sel]}”`, n2(v.h)],
           ]}
         />
       </Controls>

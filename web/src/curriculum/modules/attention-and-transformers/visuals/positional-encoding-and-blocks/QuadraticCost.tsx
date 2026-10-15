@@ -26,7 +26,7 @@ function TableSquare({ T, size }: { T: number; size: number }) {
         {T} keys →
       </text>
       <text transform={`translate(12, ${pad + size / 2}) rotate(-90)`} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 11, fontWeight: 700 }}>
-        {T} queries ↓
+        {T} queries
       </text>
       <g transform={`translate(${pad}, ${pad})`}>
         <rect x={0} y={0} width={size} height={size} style={{ fill: 'color-mix(in srgb, var(--viz-4) 22%, var(--surface))' }} />
@@ -57,7 +57,7 @@ function TableSquare({ T, size }: { T: number; size: number }) {
 }
 
 export default function QuadraticCost() {
-  const [k, setK] = useState(10) // T = 2^k
+  const [k, setK] = useState(12) // T = 2^k; starts at 4,096 so both dots are clear of the origin on linear axes
   const [log, setLog] = useState<'linear' | 'log'>('linear')
   const [ref, width] = useContainerWidth<HTMLDivElement>(300)
   const T = 2 ** k
@@ -73,9 +73,10 @@ export default function QuadraticCost() {
       caption={
         <>
           Slide the sequence length T. The square is one head's table of scores: the blue quarter is the table for half as many tokens, so every
-          doubling of T makes the table <b>4 times</b> bigger. In the plot, compare the table (pink, T²) with the token vectors themselves (green,
-          T × d_model with d_model = 768). Below T = 768 the tokens take more room; above it the table runs away. Switch to log axes: both become
-          straight lines, with slope 2 for T² and slope 1 for T.
+          doubling of T makes the table <b>4 times</b> bigger. In the plot, compare one head's table (pink, T²) with the token vectors themselves
+          (green, T × d_model with d_model = 768). Below T = 768 the tokens take more room than one head's table; above it the table runs away (and a
+          layer with 12 heads stores 12 such tables). Switch to log axes: both become straight lines, and the T² line is twice as steep as the T line,
+          because on log–log axes the slope is the power.
         </>
       }
     >
@@ -135,7 +136,7 @@ export default function QuadraticCost() {
           )}
           <div className={s.legend}>
             <span>
-              <i className={s.swatch} style={{ background: 'var(--viz-4)' }} /> scores T² = {fmtInt(scores)}
+              <i className={s.swatch} style={{ background: 'var(--viz-4)' }} /> one head's scores T² = {fmtInt(scores)}
             </span>
             <span>
               <i className={s.swatch} style={{ background: 'var(--viz-3)' }} /> token values T × 768 = {fmtInt(tokens)}

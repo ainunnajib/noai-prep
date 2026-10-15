@@ -36,13 +36,13 @@ const questions: QuizQuestion[] = [
       'A student deletes the division by $\\sqrt{d_k}$ from a model with $d_k = 256$, whose query and key entries have mean 0 and variance 1. The code still runs. What goes wrong?',
     options: [
       'The scores have a standard deviation of about 16, so softmax becomes almost one-hot and its gradients nearly vanish',
-      'The scores have a standard deviation of about 256, so softmax overflows and every weight becomes `nan`',
+      'The scores have a standard deviation of about 256, so the exponentials in softmax overflow and the weights become `nan`',
       'The attention weights no longer add up to 1 in each row, so the output is no longer an average of the values',
-      'The weight matrix changes shape from $(T, T)$ to $(T, d_k)$, so the multiplication by $V$ fails',
+      'The weight matrix changes shape from $(T, T)$ to $(T, d_k)$, so the multiplication by $V$ fails with a shape error',
     ],
     answer: 0,
     explanation:
-      'A dot product of 256 unit-variance terms has variance 256 and standard deviation $\\sqrt{256} = 16$. Scores that far apart push softmax into saturation: nearly all the weight lands on one key, and the gradient $p(1-p)$ is close to 0, so learning stalls. The rows still sum to 1 and the shapes are unchanged, which is why the bug is silent; 256 is the variance, not the standard deviation, and a stable softmax does not produce `nan` here.',
+      'A dot product of 256 unit-variance terms has variance 256 and standard deviation $\\sqrt{256} = 16$. Scores that far apart push softmax into saturation: nearly all the weight lands on one key, and the gradient $p(1-p)$ is close to 0, so learning stalls. The rows still sum to 1 and the shapes are unchanged, which is why the bug is silent; 256 is the variance, not the standard deviation, and PyTorch\'s softmax subtracts the row maximum first, so it does not overflow to `nan` here.',
     difficulty: 'intermediate',
   },
   {

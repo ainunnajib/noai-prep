@@ -96,7 +96,7 @@ torch.Size([2, 5, 16]) torch.Size([1, 2, 16]) torch.Size([1, 2, 16])
 
 <QuickCheck
   q="An RNN has input size 3 and hidden size 4, with one bias vector. How many parameters does it have, and how does that change for sentences twice as long?"
-  options={['32, and it stays 32 for longer sentences', '32, and it doubles to 64', '28, and it stays 28', '19, and it grows with each extra word']}
+  options={['32, and it stays 32', '32, and it doubles to 64', '28, and it stays 28', '19, and it grows with length']}
   answer={0}
   explain="$W_x$ is $4 \times 3 = 12$, $W_h$ is $4 \times 4 = 16$ and $b$ has 4 numbers: $12 + 16 + 4 = 32$. The same weights are reused at every step, so the count does not depend on the sentence length. 28 forgets the bias; 19 adds the sizes ($3 + 4 \times 4$) instead of multiplying them."
 />
@@ -120,11 +120,11 @@ For a one-number RNN, each factor is $w_h \cdot \tanh'(\dots)$, the recurrent we
 
 <GradientThroughTime />
 
-The two problems have different fixes. **Exploding** gradients are tamed with <Term def="Rescaling the gradient whenever its size (norm) is bigger than a chosen threshold, so a single update can never be huge. In PyTorch: torch.nn.utils.clip_grad_norm_.">gradient clipping</Term>: if the gradient's length is above a threshold, shrink it back to the threshold. **Vanishing** gradients cannot be clipped back into existence; they need a different architecture.
+The two problems have different fixes. **Exploding** gradients are tamed with the [gradient clipping](#/learn/training-deep-networks/stability-and-scale) you have already met: if the gradient's length is above a threshold, shrink it back to the threshold. **Vanishing** gradients cannot be clipped back into existence; they need a different architecture.
 
 <Mistake title="Mixing up the two gradient problems">
 
-Vanishing gradients become **tiny** (not exactly zero), so early steps learn extremely slowly; exploding gradients become **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem, the same disease as in very deep feed-forward networks: an unrolled RNN *is* a very deep network, one layer per word.
+Vanishing gradients become **tiny** (not exactly zero), so early steps learn extremely slowly; exploding gradients become **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem, the same disease you met in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients): an unrolled RNN *is* a very deep network, one layer per word.
 
 </Mistake>
 
@@ -217,6 +217,7 @@ We trained small GRU encoder–decoders, with and without attention, on a toy st
 <Seq2SeqBottleneck />
 
 The Transformer (2017) took the last step: it drops the recurrence and keeps only attention, so all positions are processed **in parallel** and any two words are one step apart. That is the [Attention and Transformers](#/learn/attention-and-transformers/attention-intuition) module.
+
 <PastPaperQuestion paper="prelim2026" n={267} />
 
 <ExamTip>

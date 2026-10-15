@@ -45,7 +45,7 @@ const HEADS: Head[] = [
   {
     name: 'Head 3: who did what',
     short: 'grammar',
-    what: 'Grammar links: "cheered" finds its subject "students" four words away; "won" finds "who"; each "the" finds its noun.',
+    what: 'Grammar links: "cheered" finds its subject "students" five positions back; "won" finds "who"; each "the" finds its noun.',
     W: fromRules([
       [0, 0, 2],
       [1, 2, 3.5],
@@ -121,7 +121,7 @@ export default function HeadPatterns() {
           Pick a head, then tap a cell (or hover) to read one weight: the row is the word doing the looking (query), the column is the word looked
           at (key), and every row adds up to 100%. Each head has its own sharp pattern, and the panel underneath shows that one word collects all
           four kinds of information at once. Now pick <b>all in one head</b>: a single head must share its 100% between every kind of link, so each
-          link gets only a slice. These weights are illustrative (hand-set scores through a real softmax), modelled on heads found in trained models.
+          link gets only a slice. (<b>&lt;s&gt;</b> is a special start-of-sentence token added before every sentence.) These weights are illustrative (hand-set scores through a real softmax), modelled on heads found in trained models.
         </>
       }
     >
@@ -151,7 +151,7 @@ export default function HeadPatterns() {
       </div>
       <p className={s.headWhat}>
         {isAvg
-          ? 'Every pattern is still there, but faded: the strongest links now get far less than half the weight, so the mixed-in information is a blur.'
+          ? 'Every pattern is still there, but faded: most links now get a much smaller share than they had in their own head, so the mixed-in information is a blur.'
           : HEADS[sel].what}
       </p>
 

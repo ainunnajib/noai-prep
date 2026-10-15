@@ -20,7 +20,7 @@ const NOTE: Record<PeVariant, string> = {
   correct:
     'Fast waves on the left, slow waves on the right, and every row (position) gets a different pattern. In the similarity map each position matches itself best (the diagonal), its next-door neighbours almost as well, and positions further away less, with gentle ripples.',
   samefreq:
-    'Bug: forgot the 10000^(2i/d) term. Every pair of columns is the same sin(pos), cos(pos) wave, which repeats every 2π ≈ 6.28 positions. Strong stripes repeat far from the diagonal: different positions get almost the same code (positions 0 and 44 match to 0.9998).',
+    'Bug: forgot the 10000^(2i/d) term. Every pair of columns is the same sin(pos), cos(pos) wave, which repeats every 2π ≈ 6.28 positions. Strong stripes repeat far from the diagonal: different positions get almost the same code',
   multiply:
     'Bug: multiplied by 10000^(2i/d) instead of dividing. The higher dimensions jump by huge angles from one position to the next, so the codes look like noise. Each code still matches itself (the thin diagonal), but the soft band around it breaks up: neighbouring positions are no longer reliably similar.',
 }
@@ -71,13 +71,21 @@ export default function PositionalEncodingHeatmap() {
   const angle = peAngle(p, j, d, variant)
   const value = peValue(p, j, d, variant)
   const nearest = sim[p].reduce((best, v, q) => (q !== p && (best < 0 || v > sim[p][best]) ? q : best), -1)
+  // whole denominators (1, 10, 100, …) are shown as integers, so 100 never reads as 100.000
+  const denTxt = Math.abs(den - Math.round(den)) < 1e-9 ? String(Math.round(den)) : fmt(den)
+  // for the 'no 10000' bug: the far position whose code best matches position 0's
+  const far = useMemo(() => {
+    let best = -1
+    for (let q = 2; q < T; q++) if (best < 0 || sim[0][q] > sim[0][best]) best = q
+    return best
+  }, [sim, T])
   const period = variant === 'samefreq' ? 2 * Math.PI : variant === 'multiply' ? (2 * Math.PI) / den : 2 * Math.PI * den
 
   let calc: string
   if (variant === 'correct')
-    calc = `\\text{PE}(${p}, ${j}) = ${fn}\\!\\left(\\dfrac{${p}}{10000^{2\\cdot${i}/${d}}}\\right) = ${fn}\\!\\left(\\dfrac{${p}}{${fmt(den)}}\\right) = ${fn}(${fmt(angle)}) = ${fmt(value)}`
+    calc = `\\text{PE}(${p}, ${j}) = ${fn}\\!\\left(\\dfrac{${p}}{10000^{2\\cdot${i}/${d}}}\\right) = ${fn}\\!\\left(\\dfrac{${p}}{${denTxt}}\\right) = ${fn}(${fmt(angle)}) = ${fmt(value)}`
   else if (variant === 'samefreq') calc = `\\text{PE}(${p}, ${j}) = ${fn}(${p}) = ${fmt(value)}`
-  else calc = `\\text{PE}(${p}, ${j}) = ${fn}(${p} \\times ${fmt(den)}) = ${fn}(${fmt(angle, 2)}) = ${fmt(value)}`
+  else calc = `\\text{PE}(${p}, ${j}) = ${fn}(${p} \\times ${denTxt}) = ${fn}(${fmt(angle, 2)}) = ${fmt(value)}`
 
   const heatW2 = Math.max(240, Math.min(heatW, 520))
   const simSide = Math.max(200, Math.min(simW, 300))
@@ -174,7 +182,9 @@ export default function PositionalEncodingHeatmap() {
       <p className={s.note} style={{ borderColor: variant === 'correct' ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>
         {variant === 'correct' && d < 12
           ? `With d_model = ${d} there are only ${d / 2} waves, and the fast ones wrap round every 2π ≈ 6.3 positions, so some distant positions look more alike than neighbours (see the stripes). From d_model = 12 up, each position's closest match is its neighbour; real models use 64 or more.`
-          : NOTE[variant]}
+          : variant === 'samefreq' && far >= 0
+            ? `${NOTE.samefreq} (positions 0 and ${far} match to ${fmt(sim[0][far], 4)}).`
+            : NOTE[variant]}
       </p>
 
       <Controls>

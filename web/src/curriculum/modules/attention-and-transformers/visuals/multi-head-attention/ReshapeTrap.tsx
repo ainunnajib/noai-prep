@@ -50,14 +50,14 @@ export default function ReshapeTrap() {
       caption={
         <>
           Both lines of code give a tensor of shape (B, h, T, d_k) = (1, 2, 4, 3), and neither raises an error. Tap any square to see where that
-          number came from. With the bug, <code>view</code> cuts the row-by-row memory strip into heads, so head 0's "token B" row is really the
-          second half of token A. Rows outlined in red hold the wrong token's features: the model still trains, just badly.
+          number came from. With the bug, <code>view</code> cuts the row-by-row memory strip into heads, so head 1's "token B" row is really the
+          second half of token A. (Heads are numbered from 1, as in the formula; the features keep their code numbers 0–5.) Rows outlined in red hold the wrong token's features: the model still trains, just badly.
         </>
       }
     >
       <div className={s.trap}>
         <div className={s.mat}>
-          <div className={s.matTitle}>x after W_q: T = 4 tokens × d_model = 6 (columns 0–2 → head 0, 3–5 → head 1)</div>
+          <div className={s.matTitle}>x after W_q: T = 4 tokens × d_model = 6 (columns 0–2 → head 1, 3–5 → head 2)</div>
           <div className={s.matGrid} style={{ gridTemplateColumns: `auto repeat(${D}, auto)` }}>
             {Array.from({ length: T }, (_, t) => (
               <div key={t} className={s.matRow}>
@@ -86,17 +86,18 @@ export default function ReshapeTrap() {
             value={mode}
             onChange={setMode}
             options={[
-              { value: 'good', label: 'view(B, T, h, d_k).transpose(1, 2)' },
-              { value: 'bad', label: 'view(B, h, T, d_k)' },
+              { value: 'good', label: 'view, then transpose' },
+              { value: 'bad', label: 'view only' },
             ]}
           />
         </Controls>
+        <code className={s.trapCode}>{mode === 'good' ? 'x.view(B, T, h, d_k).transpose(1, 2)' : 'x.view(B, h, T, d_k)'}</code>
 
         <div className={s.trapHeads}>
           {Array.from({ length: H }, (_, hh) => (
             <div key={hh} className={s.mat}>
               <div className={s.matTitle}>
-                head {hh} · rows should be A, B, C, D<br />actually holds tokens {seen[hh].join(', ')}
+                head {hh + 1} · rows should be A, B, C, D<br />actually holds tokens {seen[hh].join(', ')}
               </div>
               <div className={s.matGrid} style={{ gridTemplateColumns: `auto repeat(${DK}, auto)` }}>
                 {Array.from({ length: T }, (_, r) => (
@@ -111,7 +112,7 @@ export default function ReshapeTrap() {
                           className={`${s.cellBtn} ${isPick(p) ? s.cellOn : ''} ${okRows[hh][r] ? '' : s.rowBad}`}
                           style={{ background: bg(p.t, isPick(p)) }}
                           onClick={() => setPick(p)}
-                          aria-label={`head ${hh} row ${r} column ${c} holds token ${TOK[p.t]} feature ${p.j}`}
+                          aria-label={`head ${hh + 1} row ${r} column ${c} holds token ${TOK[p.t]} feature ${p.j}`}
                         >
                           {TOK[p.t]}
                           {p.j}

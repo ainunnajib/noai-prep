@@ -21,10 +21,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A TF-IDF + logistic regression model gives exactly the same probability to *the plot was good but the acting was bad* and *the plot was bad but the acting was good*. Why?',
     options: [
-      'They contain exactly the same words, and a TF-IDF vector does not record word order',
-      'TF-IDF gives every common word, including "good" and "bad", a weight of exactly zero',
-      'Logistic regression always outputs 0.5 for any review that mixes positive and negative words',
-      'Both have the same number of tokens, and a TF-IDF vector stores only the length of the text',
+      'They contain the same words, and a TF-IDF vector keeps only weighted counts, not word order',
+      'TF-IDF gives common words such as "good" and "bad" a weight of exactly zero in both reviews',
+      'Logistic regression outputs 0.5 for any review that mixes positive and negative words',
+      'Both have the same number of tokens, and a TF-IDF vector mainly records the text length',
     ],
     answer: 0,
     explanation:
@@ -37,8 +37,8 @@ const questions: QuizQuestion[] = [
       'A hospital has 50,000 labelled patient-feedback messages to sort into 6 topics and has a GPU. Which approach is most likely to give the highest accuracy?',
     options: [
       'Fine-tune a pretrained encoder such as BERT, with a linear classification head on its [CLS] vector',
-      'TF-IDF with logistic regression, because a linear model cannot overfit and so is always the most accurate',
-      'Train a large Transformer from random initial weights using only the 50,000 hospital messages',
+      'TF-IDF with logistic regression, because a linear model cannot overfit and so beats deep models',
+      'Train a large Transformer from random initial weights on just the 50,000 hospital messages',
       'Average randomly initialised word embeddings that are frozen, then train a logistic regression on top',
     ],
     answer: 0,
@@ -63,7 +63,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Reordering the words in a sentence never changes its logits',
       '`fc` needs one input weight for every word in the vocabulary',
-      'It only works on sentences as long as its training sentences',
+      'It cannot handle sentences longer than its training sentences',
       '`avg` has shape `(batch, seq_len)`, one number per word',
     ],
     answer: 0,
@@ -78,7 +78,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Reuse a pretrained encoder, either as frozen features for logistic regression or fine-tuned gently',
       'Train a 3-layer LSTM from random weights, because only a sequence model can understand word order',
-      'Use TF-IDF with logistic regression only, because pretrained models need thousands of labelled reviews',
+      'Use TF-IDF with logistic regression, because pretrained models need thousands of labelled reviews',
       'Cluster the reviews into two groups with k-means, because 300 labels are too few for supervised learning',
     ],
     answer: 0,

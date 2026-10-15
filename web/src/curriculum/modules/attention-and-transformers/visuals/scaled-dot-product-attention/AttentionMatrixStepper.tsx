@@ -52,7 +52,8 @@ const paren = (v: number) => (v < 0 ? `(${f(v)})` : f(v))
 
 export default function AttentionMatrixStepper() {
   const [mats, setMats] = useState(INIT)
-  const [cell, setCell] = useState<[number, number]>([2, 0])
+  // start on S[laksa, love]: in the worked example this is the S₃₂ = 4 that the lesson computes by hand
+  const [cell, setCell] = useState<[number, number]>([2, 1])
   const [out, setOut] = useState<[number, number]>([2, 0])
   const [seed, bump] = useBump()
   const [ref, narrow] = useNarrow<HTMLDivElement>(560)
@@ -156,8 +157,8 @@ export default function AttentionMatrixStepper() {
         <span className={s.calc}>
           {f(S[i][j])} ÷ {rootTxt} = {f(Ssc[i][j])}
         </span>
-        . With d<sub>k</sub> = {dk} this changes the scores only a little, but real models use d<sub>k</sub> = 64 or more, where it divides by 8 or
-        more and keeps softmax from saturating. The shape does not change.
+        . With d<sub>k</sub> = {dk} this divides by just {rootTxt}; real models use d<sub>k</sub> = 64 or more, where it divides by 8 or more and
+        keeps softmax from saturating. The shape does not change.
       </>
     )
     shapeLine = '(T, T) → (T, T):  (3, 3) → (3, 3)'

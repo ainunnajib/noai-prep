@@ -102,7 +102,7 @@ export default function ParamCounter() {
       <Readout
         items={[
           ['d_k = d_model / h', `${d} / ${h} = ${dk}`],
-          [`head ${p}'s slice of W_Q`, `${d} × ${dk} = ${fmtInt(d * dk)}`],
+          [`head ${p + 1}'s slice of W_Q`, `${d} × ${dk} = ${fmtInt(d * dk)}`],
           ['total with h = 1', fmtInt(total)],
         ]}
       />

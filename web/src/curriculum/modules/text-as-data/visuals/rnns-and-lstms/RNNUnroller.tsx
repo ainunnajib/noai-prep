@@ -69,7 +69,7 @@ export default function RNNUnroller() {
           }
           notice={
             <>
-              the same weights are used at every step, and the bottom bars show "Cats" fading fast in the RNN but lasting far longer in the LSTM.
+              to choose “are”, not “is”, the network must still remember at the end that “Cats” was plural. The bottom bars show “Cats” fading fast in the RNN but lasting far longer in the LSTM.
             </>
           }
           note="Each column is the hidden state after that word: 8 numbers, orange positive, blue negative. Untrained toy weights; the LSTM's forget gate is biased towards keeping."
@@ -199,13 +199,13 @@ export default function RNNUnroller() {
           ]}
         />
         <Slider
-          label="Phrases between “Cats” and “are”"
+          label="Words between “Cats” and “are”"
           value={extra}
           min={0}
           max={CHUNKS.length}
           step={1}
           onChange={(v) => setExtra(v)}
-          format={(v) => `${v} (${CHUNKS.slice(0, v).flat().length} words)`}
+          format={(v) => `${CHUNKS.slice(0, v).flat().length} words`}
         />
         <Readout
           items={[

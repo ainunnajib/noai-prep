@@ -26,6 +26,13 @@ const snap = (v: number) => Math.round(v * 10) / 10
 
 type Mode = 'soft' | 'hard'
 
+/** Put a key's label beside its tip, flipped inwards near the plot edges so it is never clipped. */
+function keyLabelOffset(k: V2): [number, number] {
+  const right = k[0] >= 0 ? k[0] < LIM - 0.6 : k[0] < -LIM + 0.6
+  const above = k[1] >= 0 ? k[1] < LIM - 0.5 : k[1] < -LIM + 0.5
+  return [right ? 8 : -26, above ? -6 : 16]
+}
+
 /** The output colour for every query position on a grid of cells. */
 function Field({ keys, colours, mode }: { keys: V2[]; colours: string[]; mode: Mode }) {
   const { xs, ys } = usePlot()
@@ -85,7 +92,8 @@ export default function SoftLookup() {
     setQ([snap(clamp(ux * L)), snap(clamp(uy * L))])
   }
 
-  const tableCols = 'auto auto auto auto minmax(2rem, 1fr) auto'
+  // the score and e^score columns get extra space between them so '3.40' and '30.0' never run together
+  const tableCols = 'auto auto auto auto minmax(1.5rem, 1fr) auto'
 
   return (
     <Figure
@@ -93,11 +101,12 @@ export default function SoftLookup() {
       title="Attention as a soft lookup: drag the query"
       caption={
         <>
-          Each key <b>k</b> is a label; the colour it carries is its <b>value</b>. Drag the black query <b>q</b>: every key gets a score{' '}
-          <b>q·k</b> (a dot product), softmax turns the scores into weights that add up to 1, and the output is the weights' mix of the value colours.
-          Drag <b>q</b> further from the centre and the scores grow, so the weights become sharper. The background paints the output for every place
-          you could put <b>q</b>: switch to <b>hard lookup</b> and it becomes a patchwork with sudden jumps, while the soft lookup changes smoothly. You
-          can also drag the key tips and tap a colour to change a value.
+          Drag the query <b>q</b> (the big dot), use the slider to change its length, and switch between soft and hard lookup. Each key <b>k</b> is a
+          label; the colour it carries is its <b>value</b>. Every key gets a score <b>q·k</b> (a dot product), softmax turns the scores into weights
+          that add up to 1, and the output is the weights' mix of the value colours. A colour is just three numbers (red, green, blue), so mixing
+          colours is a weighted average of vectors, as in the worked example below. Drag <b>q</b> further from the centre and the scores grow, so the
+          weights become sharper. The background paints the output for every place you could put <b>q</b>: the hard lookup gives a patchwork with
+          sudden jumps, while the soft lookup changes smoothly. You can also drag the key tips and tap a colour to change a value.
         </>
       }
     >
@@ -106,11 +115,11 @@ export default function SoftLookup() {
           {showField && <Field keys={keys} colours={colours} mode={mode} />}
           <Axes origin hideXTicks hideYTicks />
           {keys.map((k, i) => (
-            <Arrow key={`k${i}`} from={[0, 0]} to={k} color={colours[i]} width={w[i] > 0.5 ? 4 : 2.5} label={`k${SUB[i]}`} labelOffset={[k[0] >= 0 ? 8 : -26, k[1] >= 0 ? -6 : 16]} />
+            <Arrow key={`k${i}`} from={[0, 0]} to={k} color={colours[i]} width={w[i] > 0.5 ? 4 : 2.5} label={`k${SUB[i]}`} labelOffset={keyLabelOffset(k)} />
           ))}
-          <Arrow from={[0, 0]} to={q} color="var(--viz-ink)" width={3.5} label="q" labelOffset={[8, -8]} />
+          <Arrow from={[0, 0]} to={q} color="var(--viz-ink)" width={3.5} label="q" labelOffset={[q[0] > LIM - 0.6 ? -20 : 8, q[1] > LIM - 0.5 ? 18 : -8]} />
           {keys.map((k, i) => (
-            <DraggablePoint key={`d${i}`} x={k[0]} y={k[1]} r={6} color={colours[i]} onChange={(x, y) => setKey(i, x, y)} />
+            <DraggablePoint key={`d${i}`} x={k[0]} y={k[1]} r={8} color={colours[i]} onChange={(x, y) => setKey(i, x, y)} />
           ))}
           <DraggablePoint x={q[0]} y={q[1]} r={9} color="var(--viz-ink)" onChange={(x, y) => setQ([snap(x), snap(y)])} label="" />
         </Plot>
@@ -146,7 +155,9 @@ export default function SoftLookup() {
                   title="Tap to change this value"
                 />
                 <span className={s.num}>{sgn(scores[i])}</span>
-                <span className={s.num}>{mode === 'soft' ? fmtExp(Math.exp(scores[i])) : '–'}</span>
+                <span className={s.num} style={{ paddingLeft: '0.5rem' }}>
+                  {mode === 'soft' ? fmtExp(Math.exp(scores[i])) : '–'}
+                </span>
                 <span className={s.barTrack}>
                   <span className={s.barFill} style={{ width: `${w[i] * 100}%`, background: colours[i] }} />
                 </span>

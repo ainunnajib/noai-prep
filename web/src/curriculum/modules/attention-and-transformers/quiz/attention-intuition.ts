@@ -29,14 +29,14 @@ const questions: QuizQuestion[] = [
     id: 'attention-and-transformers.attention-intuition.3',
     prompt: 'Why does attention pass the scores through softmax instead of using the raw dot products as the weights?',
     options: [
-      'So the weights are positive and add up to 1, making the output a proper weighted average of the values',
-      'So exactly one key gets weight 1 and all the others get weight 0, just as in a dictionary lookup',
-      'So the dot products become smaller numbers, which makes the computation run faster on a GPU',
+      'So every weight is positive and they sum to 1, making the output a weighted average of the values',
+      'So exactly one key gets weight 1 and the others get weight 0, just as in a Python dictionary lookup',
+      'So the dot products become smaller numbers, which makes the whole computation run faster on a GPU',
       'So keys pointing away from the query get large negative weights that cancel out the matching values',
     ],
     answer: 0,
     explanation:
-      'Raw dot products can be negative and can add up to anything, so they would not give an average. Softmax computes $e^{s_i} / \\sum_j e^{s_j}$: every weight is positive and they sum to 1. It never produces exact 0s and 1s (that would be a hard lookup with no useful gradient), and it never produces negative weights.',
+      'Raw dot products can be negative and can add up to anything, so they would not give an average. Softmax computes $e^{s_i} / \\sum_j e^{s_j}$: every weight is positive and they sum to 1. It never produces exact 0s and 1s (that would be a hard lookup with no useful gradient) or negative weights, and speed is not the reason for it.',
     difficulty: 'intermediate',
   },
   {
@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
       'A model reads "I deposited cash at the bank" and "We had a picnic on the river bank". Before attention, "bank" has the same embedding in both sentences. Why is its vector different after a self-attention layer?',
     options: [
       'Its new vector is a weighted mix of the values of the words around it, and those words differ',
-      'Its attention weights are learned parameters, stored separately for every sentence it has seen',
+      'Its attention weights are learned parameters, stored separately for each sentence it has seen',
       'The matrices $W_Q$, $W_K$ and $W_V$ are retrained on each new sentence before it is read',
       'The tokeniser gives "bank" a different token id depending on the words that surround it',
     ],

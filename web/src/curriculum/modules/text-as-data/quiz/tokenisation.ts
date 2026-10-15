@@ -7,9 +7,9 @@ const questions: QuizQuestion[] = [
       'A chatbot uses a **word-level** tokeniser built from news articles. On Singlish chat messages ("so shiok sia", "dun liddat") it produces many `[UNK]` tokens. Which change fixes this best while keeping input sequences reasonably short?',
     options: [
       'Switch to a subword (BPE) tokeniser trained on text that includes chat messages',
-      'Switch to a character-level tokeniser so that no symbol is ever unknown',
-      'Raise `max_length` so that longer messages are no longer truncated',
-      'Delete `[UNK]` from the vocabulary so unknown words are simply skipped',
+      'Switch to a character-level tokeniser, so that no word in a chat message is unknown',
+      'Raise `max_length`, so that long chat messages are no longer cut off part-way',
+      'Delete `[UNK]` from the vocabulary, so that unknown words are skipped, not encoded',
     ],
     answer: 0,
     explanation:
@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'When training a language model on padded batches, padding positions get the **label** −100 while the **input** keeps the pad id 0. Why?',
     options: [
-      '`cross_entropy` skips labels equal to −100, and −100 is not a valid row of the embedding table',
+      '`cross_entropy` ignores all labels equal to −100, but the embedding table has no row −100',
       '−100 pushes the predicted probability of padding down, and 0 marks padding for the optimiser',
       'Labels must be negative for the loss to work, and inputs must be non-negative to be multiplied',
       'The attention mask is built from the labels, and the pad id 0 tells the model where sentences end',

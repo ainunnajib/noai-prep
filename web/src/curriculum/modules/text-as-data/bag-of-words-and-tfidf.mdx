@@ -14,7 +14,7 @@ Your class writes 40 essays on National Day. Knowing that an essay contains "the
 
 Some vocabulary first. A <Term def="One piece of text being searched or classified: a sentence, a review, a web page, a paragraph.">document</Term> is one piece of text, and the <Term def="The whole collection of documents you are working with.">corpus</Term> is the whole collection. The vocabulary is the list of every distinct word (token) in the corpus.
 
-A <Term def="A representation of a document as the number of times each vocabulary word occurs in it, ignoring the order of the words.">bag of words</Term> turns each document into a vector with **one entry per vocabulary word**, holding how many times that word occurs. Stack the vectors of all $N$ documents and you get the <Term def="A table with one row per document and one column per vocabulary word; each entry is a count (or a weight).">document-term matrix</Term>, of shape $N \times |V|$, where $|V|$ is the vocabulary size.
+A <Term def="A representation of a document as the number of times each vocabulary word occurs in it, ignoring the order of the words.">bag of words</Term> turns each document into a vector with **one entry per vocabulary word**, holding how many times that word occurs. Stack the vectors of all $N$ documents and you get the <Term def="A table with one row per document and one column per vocabulary word; each entry is a count (or a weight).">document-term matrix</Term>, of shape $N \times V$, where $V$ is the vocabulary size.
 
 <BagOfWords />
 
@@ -126,7 +126,7 @@ The top line, the dot product, grows with every word the two vectors share (weig
 
 <Note title="This is the R in RAG">
 
-A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant documents, then gives them to a language model as context for its answer.">RAG</Term> system answers a question in two steps: **retrieve** the most relevant documents (what you just built), then **generate** an answer with a language model that reads them. Modern systems usually swap TF-IDF vectors for learned embeddings (next lesson), but the cosine-and-top-$k$ step is identical. You will build the whole pipeline in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline).
+A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant documents, then gives them to a language model as context for its answer.">RAG</Term> system answers a question in two steps: **retrieve** the most relevant documents (what you just built), then **generate** an answer with a language model that reads them. Modern systems usually swap TF-IDF vectors for learned embeddings (next lesson), but the cosine-and-top-$k$ step is identical. You will see the whole pipeline in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline) and build it from scratch in [Building a RAG retriever from scratch](#/learn/prompting-and-rag/rag-from-scratch).
 
 </Note>
 
@@ -135,6 +135,8 @@ A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant 
 ## Build it in NumPy: the 2025 Final task
 
 The 2025 Final gave five one-sentence documents and the query "How does machine learning work?", allowed only NumPy and the standard library, and expected documents 2 and 4 to be retrieved. Here is a clean solution. Read it step by step, run it, then change the query.
+
+The `tokenise` function uses Python's built-in `re` (regular expression) module: `re.findall(r"[a-z]+", s)` returns every run of one or more letters a to z in `s`, so punctuation and digits are dropped (`[a-z]` means "any one letter from a to z", `+` means "one or more of them", and the `r` before the quotes marks a raw string, so Python leaves the pattern exactly as written).
 
 <PyRunner packages={['numpy']} code={`import re
 import numpy as np

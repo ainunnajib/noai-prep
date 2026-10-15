@@ -103,7 +103,7 @@ function stepsFor(mode: Mode): StepInfo[] {
         mode === 'encoder' ? (
           <>
             Same shape as the input, so identical blocks stack: 6 in the original Transformer, 12 in BERT-base. After the last one, a task head
-            (for example a classifier on the [CLS] vector) reads the result.
+            (for example a classifier on the first token's vector) reads the result.
           </>
         ) : mode === 'decoder' ? (
           <>Same shape as the input, so blocks stack. After the last one, a linear layer and softmax give the probabilities of the next word.</>
@@ -323,7 +323,7 @@ export default function TransformerBlockFlow() {
                   <text x={ex + ew / 2} y={ey + 28} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: 10.5, fontWeight: 800 }}>
                     output
                   </text>
-                  <text x={ex + ew / 2} y={ey + 40} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 9.5, fontFamily: 'var(--font-mono)' }}>
+                  <text x={ex + ew / 2} y={ey + 40} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
                     (B,T_src,d)
                   </text>
                   <path d={`M${ex + ew / 2},${ey + 44} V${c.y + c.h / 2} H${x0 + boxW + 2}`} markerEnd="url(#tbf-arrow)" style={{ fill: 'none', stroke: 'var(--viz-5)', strokeWidth: 1.8 }} />
