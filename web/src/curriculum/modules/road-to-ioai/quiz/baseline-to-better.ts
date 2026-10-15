@@ -35,10 +35,10 @@ const questions: QuizQuestion[] = [
     id: 'road-to-ioai.baseline-to-better.3',
     prompt:
       'A public leaderboard scores accuracy on 400 test images, and good submissions get about 80%. Using $\\text{SE} = \\sqrt{p(1-p)/n}$, roughly how big is the random wobble in a public score?',
-    options: ['2 percentage points', '0.2 percentage points', '8 percentage points', '4 percentage points'],
+    options: ['2 percentage points', '0.1 percentage points', '0.8 percentage points', '4 percentage points'],
     answer: 0,
     explanation:
-      '$p(1-p) = 0.8 \\times 0.2 = 0.16$, and $\\sqrt{0.16/400} = \\dfrac{0.4}{20} = 0.02$, which is 2 percentage points. So a 0.5-point public gain is well within luck. 4 points would be the wobble for only 100 images, and 0.2 points comes from forgetting the square root of $n$.',
+      '$p(1-p) = 0.8 \\times 0.2 = 0.16$, and $\\sqrt{0.16/400} = \\dfrac{0.4}{20} = 0.02$, which is 2 percentage points. So a 0.5-point public gain is well within luck. 4 points would be the wobble for only 100 images. 0.1 points comes from dividing $\\sqrt{0.16} = 0.4$ by $n = 400$ instead of by $\\sqrt{n} = 20$, and 0.8 points is $0.16 / \\sqrt{400} = 0.008$, taking the square root of $n$ but not of $p(1-p)$.',
     difficulty: 'intermediate',
   },
   {

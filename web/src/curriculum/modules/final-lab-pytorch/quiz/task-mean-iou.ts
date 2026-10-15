@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'With intersection 0 and union 0, IoU is $0/0$, undefined, so the task says to skip the class. Scoring it 1.0 would hand out free marks for every absent class and inflate the mean; scoring it 0.0 punishes the model for being right. Producing `nan` first breaks the rule "check union == 0 BEFORE dividing".',
+      'With intersection 0 and union 0, IoU is $0/0$, undefined, so the task says to skip the class. Scoring it 1.0 would hand out free marks for every absent class and inflate the mean; scoring it 0.0 punishes the model for being right. `np.nanmean` would give the same final number, but producing `nan` first divides 0 by 0 (a warning in NumPy, or an error once you call `.item()` on a tensor) and breaks the task\'s rule "check union == 0 BEFORE dividing".',
     difficulty: 'beginner',
   },
   {

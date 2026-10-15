@@ -31,7 +31,7 @@ const ROWS: Row[] = [
     lib: 'NumPy',
     prelim: 'Q139',
     finalMcq: 'Q4 (the L2 gradient)',
-    ioai: '1B2, 1B3',
+    ioai: 'Supervised Learning: Logistic Regression; L1 & L2 Regularization',
     pastTask: '2025 Task 1: linear regression by gradient descent',
     why: 'The natural next step after 2025 Task 1: same loop, plus a sigmoid and a penalty that must skip the bias.',
     practice: 'logreg',
@@ -41,7 +41,7 @@ const ROWS: Row[] = [
     task: 'k-nearest neighbours',
     lib: 'NumPy',
     prelim: 'Q140',
-    ioai: '1B4',
+    ioai: 'Supervised Learning: K-Nearest Neighbors',
     pastTask: '2025 Task 2: K-means (distances, argmin)',
     why: 'Pairwise distances by broadcasting, argsort and a vote: the K-means skills in a new order.',
     practice: 'knn',
@@ -52,7 +52,7 @@ const ROWS: Row[] = [
     lib: 'Either',
     prelim: 'Q61, Q183',
     finalMcq: 'Q6 (a cross-entropy loss)',
-    ioai: '2A5',
+    ioai: 'Neural Networks: Loss Functions',
     pastTask: '2026 Task 3: softmax over the right axis',
     why: 'Short, easy to test, and it has a classic trap (overflow without subtracting the maximum).',
     practice: 'softmax_ce',
@@ -62,7 +62,7 @@ const ROWS: Row[] = [
     task: 'PCA from the covariance eigenvectors',
     lib: 'NumPy',
     prelim: 'Q14, Q145',
-    ioai: '1C2',
+    ioai: 'Unsupervised Learning: Principal Component Analysis',
     why: 'Centre, covariance, eigh, sort: a few lines, with sign and ordering traps.',
     practice: 'pca',
     revise: { label: 'PCA', href: '#/learn/unsupervised-learning/pca' },
@@ -72,7 +72,7 @@ const ROWS: Row[] = [
     lib: 'NumPy',
     prelim: 'Q141',
     finalMcq: 'Q5 (AdaBoost with depth-1 trees)',
-    ioai: '1B5',
+    ioai: 'Supervised Learning: Decision Trees',
     why: 'Trees appeared in both 2026 papers; writing the split search yourself is the from-scratch version.',
     revise: { label: 'Decision trees', href: '#/learn/trees-and-ensembles/decision-trees' },
   },
@@ -80,7 +80,7 @@ const ROWS: Row[] = [
     task: 'Precision, recall and F1 from scratch',
     lib: 'Either',
     prelim: 'Q55, Q56, Q57',
-    ioai: '1D1',
+    ioai: 'Data Science Fundamentals: Model Evaluation Metrics',
     pastTask: '2026 Task 2: mean IoU from boolean masks',
     why: 'Exactly the mIoU pattern: boolean masks, sums, and a guard for a zero denominator.',
     practice: 'prf1',
@@ -90,7 +90,7 @@ const ROWS: Row[] = [
     task: 'conv2d forward pass',
     lib: 'Either',
     prelim: 'Q190, Q191, Q193',
-    ioai: '3A1',
+    ioai: 'Computer Vision: Convolutional Layers',
     pastTask: '2026 Task 2: convolution sizes in U-Net',
     why: 'Four loops or one im2col matrix product; the output-size formula is tested everywhere.',
     practice: 'conv2d',
@@ -101,7 +101,7 @@ const ROWS: Row[] = [
     lib: 'Either',
     prelim: 'Q170, Q184, Q185',
     finalMcq: 'Q8 (a custom BatchNorm)',
-    ioai: '2B12',
+    ioai: 'Deep Learning: Batch Normalization',
     why: 'Mean and variance along the right axis, biased variance, eps, and register_buffer for running statistics.',
     practice: 'layernorm',
     revise: { label: 'Initialisation and normalisation', href: '#/learn/training-deep-networks/initialisation-and-normalisation' },
@@ -120,7 +120,7 @@ const ROWS: Row[] = [
     lib: 'PyTorch',
     prelim: 'Q190, Q191',
     finalMcq: 'Q12 (U-Net decoder shapes)',
-    ioai: '3A1',
+    ioai: 'Computer Vision: Convolutional Layers',
     pastTask: '2026 Task 2: the crashing U-Net',
     why: 'Debugging was graded in 2026; shape arithmetic is the fastest way in.',
     revise: { label: '2026 Task 2 Part 1', href: '#/learn/final-lab-pytorch/task-unet-center-crop' },
@@ -173,7 +173,7 @@ export default function PredictionMatrix() {
       title="Which tasks could the 2027 Final set?"
       caption={
         <>
-          Every tick is a checkable fact (the question numbers and syllabus codes are listed), not a probability: nobody outside the organisers knows the 2027 tasks. Sort by the
+          Every tick is a checkable fact (the question numbers and IOAI syllabus topic names are listed), not a probability: nobody outside the organisers knows the 2027 tasks. Sort by the
           number of ticks, filter by library, and open a row to see the evidence, then jump to its practice task. Tasks marked Either can be set in NumPy or PyTorch.
         </>
       }

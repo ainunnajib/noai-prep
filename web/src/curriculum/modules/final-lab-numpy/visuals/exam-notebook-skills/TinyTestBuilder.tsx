@@ -10,7 +10,7 @@ import { TESTS, runCentroid, fmtVal, fmtExpected, passes, callText, codeFor, typ
   simulating the Python code shown.
 */
 
-const START: string[] = ['two', 'thirds']
+const START: string[] = ['two', 'one']
 
 const ADVICE: Record<string, string> = {
   thirds: 'The mean 22/3 is printed with 16 digits. Round each coordinate to 4 d.p. before returning.',
@@ -52,7 +52,7 @@ export default function TinyTestBuilder() {
       caption={
         <>
           This is the update step of K-means (2025 Task 2) as a small function. Add the edge cases one at a time, press <strong>Run tests</strong>, and switch on a fix for
-          each failure. Notice that the two "obvious" tests pass even though the function has three bugs.
+          each failure. Notice that the two "obvious" tests pass even though the function has three bugs: only the exam-style thirds test and the edge cases catch them.
         </>
       }
     >

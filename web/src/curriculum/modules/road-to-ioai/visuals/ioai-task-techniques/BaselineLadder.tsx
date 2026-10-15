@@ -70,13 +70,28 @@ txt = txt / txt.norm(dim=-1, keepdim=True)
 preds = (img @ txt.T).argmax(dim=-1)`,
   },
   {
-    name: 'Fine-tune a pretrained ResNet-18',
+    name: 'Frozen CLIP features + a linear probe',
+    short: 'linear probe',
+    score: 96,
+    scoreLabel: '≈ 96%',
+    cost: 'one forward pass per photo, then a small head trains in seconds',
+    needs: ['pretrained', 'learns'],
+    what: 'Compute the frozen CLIP embedding of every training photo once, cache them, and train only a logistic-regression (linear) head on top. Best value for money on many tasks. A k-NN on the same cached features needs no learned weights at all, so it still works under a "no new learned parameters" rule.',
+    source: 'Expected accuracy stated in the 2024 Singapore camp CV test, Q1.5: a small head trained on the cached CLIP features, full marks at 96%.',
+    code: `with torch.no_grad():
+    feats = clip_model.encode_image(images)       # once, then cache
+feats = feats / feats.norm(dim=-1, keepdim=True)
+probe = LogisticRegression(max_iter=2000).fit(feats_train, y_train)
+print(probe.score(feats_test, y_test))           # about 0.96`,
+  },
+  {
+    name: 'Fine-tune a pretrained ResNet-18 for 1 epoch',
     short: 'fine-tuned',
     score: 88,
     scoreLabel: '≈ 88%',
     cost: '1 epoch · needs a GPU',
     needs: ['pretrained', 'learns', 'gpu'],
-    what: 'Start from ResNet-18 weights learned on ImageNet, swap the 1,000-class head for a 10-class one and train everything for one epoch. The early layers already detect edges, textures and parts, so one epoch is enough to get close to 90%.',
+    what: 'Start from ResNet-18 weights learned on ImageNet, swap the 1,000-class head for a 10-class one and train everything for one epoch. The early layers already detect edges, textures and parts, so one epoch is enough to get close to 90%; more epochs typically go well above 90%.',
     source: 'Expected accuracy stated in the 2024 Singapore camp CV test, Q1.1.',
     code: `net = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
 net.fc = nn.Linear(512, 10)                   # new head for 10 classes

@@ -6,7 +6,7 @@
 export type Heuristic = 'absolute' | 'swap' | 'offtopic' | 'clash' | 'empty'
 
 export const HEURISTICS: Record<Heuristic, { name: string; colour: string; hint: string }> = {
-  absolute: { name: 'Absolute word', colour: 'var(--viz-neg)', hint: '“always”, “never”, “only”, “must”, “all”: a claim with no exceptions is almost never true in ML.' },
+  absolute: { name: 'Absolute word', colour: 'var(--viz-neg)', hint: '“always”, “never”, “only”, “must”, “all”: a claim about methods with no exceptions is almost never true in ML (maths definitions such as “all eigenvalues > 0” are the exception).' },
   swap: { name: 'Swapped terms', colour: 'var(--viz-4)', hint: 'Describes the partner concept: eigenvalue for eigenvector, recall for precision, sigmoid for ReLU.' },
   offtopic: { name: 'Answers a different question', colour: 'var(--viz-5)', hint: 'A true statement or real formula, but about something the question did not ask.' },
   clash: { name: 'Clashes with the stem', colour: 'var(--viz-2)', hint: 'Contradicts a number or fact given in the question itself.' },

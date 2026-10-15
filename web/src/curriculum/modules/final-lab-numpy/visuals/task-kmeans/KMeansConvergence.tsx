@@ -33,6 +33,8 @@ export default function KMeansConvergence() {
     return c
   }, [seed, forceEmpty])
   const frames = useMemo(() => traceKMeans(P, init, MAX_IT, { tol, emptyRule: rule }), [init, tol, rule])
+  // the same run with tolerance 0, to tell whether a large tolerance really changed the answer
+  const reference = useMemo(() => traceKMeans(P, init, MAX_IT, { tol: 0, emptyRule: rule }), [init, rule])
   const player = usePlayer({ steps: frames.length + 1, interval: 900 })
   const t = Math.min(player.step, frames.length)
   const fr = t > 0 ? frames[t - 1] : undefined
@@ -56,7 +58,7 @@ export default function KMeansConvergence() {
       caption={
         <>
           Press <strong>Play</strong> to watch the centroids (stars) settle. The bars show how far the furthest centroid moved in each iteration (log scale); the run stops
-          at the first bar under the tolerance line, or after {MAX_IT} iterations. Try tolerance 0.5 (it stops early, before the clusters are right), other seeds (some
+          at the first bar under the tolerance line, or after {MAX_IT} iterations. Try tolerance 0.5 (on some seeds it stops before the clusters are right), other seeds (some
           starts end in a worse clustering), and <strong>force an empty cluster</strong>, then switch to the naive mean.
         </>
       }
@@ -163,9 +165,17 @@ export default function KMeansConvergence() {
             )}
           </Note>
         )}
-        {firstEmpty < 0 && tol >= 0.5 && converged && frames.length < 4 && (
-          <Note title="Stopped early.">A large tolerance stops while the centroids are still moving a little, so the answer is not the converged one. The exam asked for "no significant change": use exact equality or np.allclose.</Note>
-        )}
+        {firstEmpty < 0 && tol >= 0.5 && converged && frames.length < 4 &&
+          (JSON.stringify(round4(last.after)) !== JSON.stringify(round4(reference[reference.length - 1].after)) ? (
+            <Note title="Stopped early.">
+              A large tolerance stopped while the centroids were still moving, so this answer differs from the converged one. The exam asked for "no significant change":
+              use exact equality or np.allclose.
+            </Note>
+          ) : (
+            <Note title="Lucky this time.">
+              Tolerance {tol} happened to stop at the same clustering as a full run on this seed. Try other seeds: on some, it stops too early with a different answer.
+            </Note>
+          ))}
         <PlayerControls player={player} label={(i) => (i === 0 ? 'Start' : `Iteration ${Math.min(i, frames.length)} of ${frames.length}`)} />
       </div>
     </Figure>

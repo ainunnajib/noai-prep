@@ -50,10 +50,10 @@ const questions: QuizQuestion[] = [
     id: 'road-to-ioai.study-roadmap.4',
     prompt:
       'You can give 10 hours a week in 2-hour blocks, from Monday 8 March until the end of the week containing the Selection Test (9 weeks). If half the blocks go to full practice tasks of 2 blocks each, how many practice tasks is that?',
-    options: ['11 tasks (and one spare block)', '22 tasks', '45 tasks', '5 tasks'],
+    options: ['11 tasks', '22 tasks', '45 tasks', '5 tasks'],
     answer: 0,
     explanation:
-      '10 hours is $10 \\div 2 = 5$ blocks a week, so $9 \\times 5 = 45$ blocks. Half is 22.5, so 22 blocks; at 2 blocks per task that is 11 tasks with a block left over. 22 counts blocks rather than tasks, and 45 is all the blocks.',
+      '10 hours is $10 \\div 2 = 5$ blocks a week, so $9 \\times 5 = 45$ blocks. Half is 22.5 blocks, and $22.5 \\div 2 = 11.25$, so 11 complete tasks (22 blocks). 22 counts blocks rather than tasks, 45 is all the blocks, and 5 is one week\'s blocks.',
     difficulty: 'beginner',
   },
   {

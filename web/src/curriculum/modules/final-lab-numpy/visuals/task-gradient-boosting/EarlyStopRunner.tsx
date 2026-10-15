@@ -70,7 +70,7 @@ export default function EarlyStopRunner() {
         <>
           The model adds one tree at a time and checks the <b>validation</b> MSE after each. It remembers the best so far and stops once{' '}
           <code>patience</code> trees in a row have failed to beat it; then it keeps only the first <code>best_n_estimators</code> trees. The
-          default settings reproduce the notebook&apos;s test (patience = 1: stop after 125 trees, keep 124). Raise the patience: one unlucky
+          default settings reproduce the notebook&apos;s test with scikit-learn 1.9 (patience = 1: stop after 125 trees, keep 124; other versions stop elsewhere). Raise the patience: one unlucky
           tree no longer ends training, and the kept model is better on unseen test data. Try learning_rate 0.5: the validation loss bottoms out after
           about 90 trees and then creeps back up while the training loss falls to zero (overfitting); early stopping keeps the best point. Faded lines show what would have happened if training had continued.
         </>

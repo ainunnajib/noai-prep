@@ -112,7 +112,7 @@ The Prelim is a Google Form, so do not count on a "flag" button. Keep your own f
 
 A wrong option in an MCQ is called a <Term def="A wrong option written to look right, usually built from a common misconception or a confusion between two related ideas.">distractor</Term>. Setters write distractors in a few recurring ways, and each way leaves a mark you can spot. A <Term def="A rule of thumb: a quick method that usually works, but not always.">heuristic</Term> is a rule of thumb for spotting them. These five cover most NOAI distractors:
 
-1. **Absolute words.** "Always", "never", "only", "must", "cannot", "all". Machine learning is full of trade-offs, so a claim with no exceptions is almost always false. In the 2026 Prelim, 50 options started with an absolute word and **only 1** of them was the correct answer.
+1. **Absolute words.** "Always", "never", "only", "must", "cannot", "all". Machine learning is full of trade-offs, so a claim with no exceptions is almost always false. In the 2026 Prelim, 50 options started with an absolute word and **only 1** of them was the correct answer. The exception is maths definitions, where the absolute word is the point: "positive definite: all eigenvalues > 0", "only square matrices have a determinant", "the inner dimensions must match". The one correct absolute-word option in 2026 was exactly such a definition (Q21). Strike absolute words in claims about methods and trade-offs, not in definitions.
 2. **Swapped terms.** The option correctly describes the *partner* concept: eigenvalue instead of eigenvector, recall instead of precision, sigmoid instead of ReLU. Before choosing, check that the description matches the word the question asked about.
 3. **Answers a different question.** A true statement or a real formula, but not about what was asked. "(TP + TN) / Total" is a real formula, for accuracy; it is still wrong when the question asks for precision.
 4. **Clashes with the stem.** In scenario questions, an option that contradicts a number or fact in the question is out. "High bias" cannot describe a model with 99% training accuracy.
@@ -151,6 +151,21 @@ Try both techniques on two real questions. The first is pure elimination; for th
 **Q273:** the decisive number is **10% validation accuracy on a 10-class problem**: exactly what random guessing gives ($1 \div 10$). Overfitting gives validation accuracy *below* training accuracy, but still well above chance; vanishing gradients would stop the training loss from falling, which clashes with "decreases smoothly to 0.01". Only a mismatch between the training and validation labels makes a model that has truly learnt something score exactly chance.
 
 </Reveal>
+
+### Keyword triggers
+
+Many scenario questions describe a symptom in a few standard phrases. Learn the phrase-to-diagnosis pairs so you can jump straight to the right option:
+
+| the stem says | think | the fix usually offered |
+|---|---|---|
+| training accuracy far above validation | overfitting | regularise, augment, more data, early stopping |
+| both accuracies low and close together | underfitting | bigger model, more features, train longer |
+| validation accuracy = 1 ÷ number of classes | a label or pipeline bug (chance level) | check the labels and the data loading |
+| loss becomes NaN after training was stable | exploding gradients or a too-high learning rate | lower the learning rate, clip gradients |
+| CUDA out of memory | activations too big | smaller batch, gradient accumulation, mixed precision, checkpointing |
+| 1% positives and 99% accuracy | accuracy paradox | look at recall, precision, F1 or PR-AUC |
+| long inputs are slow or run out of memory | attention is $O(n^2)$ in sequence length | truncate, chunk, or use efficient attention |
+| test score far below validation, same source | leakage or a split problem | re-split by group or time, fit preprocessing on the training set only |
 
 ## Where the questions come from
 

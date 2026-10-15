@@ -201,7 +201,7 @@ return self
 
 <Note title="Why the L1 model scores so badly (it is not a bug)">
 
-The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 number is huge, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops to about 1,779. The exam did not ask for it.
+The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops to about 1,779. The exam did not ask for it.
 
 </Note>
 
@@ -256,7 +256,7 @@ for m in range(self.n_estimators):
 - `best_n_estimators = m` instead of `m + 1`. After the first tree, `m` is 0 but one tree exists, so you would keep one tree too few.
 - Never updating `best_n_estimators`. The given trim `self.trees[:0]` then keeps **no** trees. The visible check only asks for fewer than 500 trees, so it still passes while the model predicts $F_0$ for everyone.
 - Updating `F_val` with a different tree, or forgetting it, so the validation loss never changes.
-- `>` versus `>=`. The code comment says "exceeds" (`>`), but the text and the official solution stop when the counter **reaches** the patience (`>=`). With patience 1 on the test data, `>=` stops after 125 trees and keeps 124; `>` runs on to tree 249 and keeps 247. Use `>=`.
+- `>` versus `>=`. The code comment says "exceeds" (`>`), but the text and the official solution stop when the counter **reaches** the patience (`>=`). With patience 1 on the notebook's data (and scikit-learn 1.9), `>=` stops after 125 trees and keeps 124; `>` runs on to tree 249 and keeps 247. Other scikit-learn versions stop elsewhere, because they break ties between equally good splits differently. Use `>=`.
 - Changing the defaults. `criterion` defaults to `'l2'` in `GradientBoostingRegressor` but to `"l1"` in `GBREarlyStop`. Leave both as given; the test cell passes `criterion="l2"` explicitly.
 
 </Mistake>
@@ -436,7 +436,7 @@ In 2026 this task shared a 3-hour paper with two PyTorch tasks and 20 MCQs. A se
 - **Bank Part 1 first.** The four one-liners are 8 marks for about five minutes of work.
 - **Q1.5 and Q1.6b are the same four lines.** Write them once and paste.
 - **Write the loop from the TODO comments** a to e, in order, and use the given helpers (`self._compute_negative_gradient`, `self._subsample_indices`) instead of re-deriving them.
-- **Sanity-check every printed MSE** against the baseline of always predicting the mean (about 17,000 here). A number far above it means a sign or learning-rate bug; a number near it means the trees are not being used.
+- **Sanity-check the L2 MSE** against the baseline of always predicting the mean (about 17,100 here). Far above it means a sign or learning-rate bug; close to it means the trees are not being used. The L1 model is the exception: about 16,000 is expected (see the note above).
 - **Keep every name, signature and default.** Then use **Restart & Run All** before time is up.
 
 The {FINAL.dateLabel} Final again has three Python tasks. If one of them is classical ML, a from-scratch ensemble (AdaBoost, a random forest, or boosting with another loss) would test exactly these skills.
