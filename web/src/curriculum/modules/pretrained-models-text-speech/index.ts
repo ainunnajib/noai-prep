@@ -30,9 +30,9 @@ const mod: ModuleDef = {
     {
       slug: "hugging-face-in-practice",
       title: "Using and fine-tuning models with Hugging Face",
-      summary: "Pipelines, tokenizers and AutoModels, what the tokenizer outputs, fine-tuning with labels and -100, and calling API-based models.",
-      minutes: 25,
-      objectives: ["You can run a Hugging Face pipeline for a task", "You can explain input_ids, attention_mask and labels", "You can outline a fine-tuning loop (or Trainer) for sequence classification", "You can explain ignore_index = -100 for padded label positions"],
+      summary: "Pipelines, tokenisers and AutoModels, what the tokeniser outputs, fine-tuning with labels and -100, and calling API-based models.",
+      minutes: 30,
+      objectives: ["You can run a Hugging Face pipeline for a task", "You can explain input_ids, attention_mask and labels", "You can outline a fine-tuning loop (or Trainer) for sequence classification", "You can explain ignore_index = -100 and compute a cross-entropy loss that skips those positions"],
       load: () => import('./hugging-face-in-practice.mdx'),
     },
     {

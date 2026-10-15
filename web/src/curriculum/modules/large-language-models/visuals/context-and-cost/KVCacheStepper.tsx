@@ -64,7 +64,7 @@ export default function KVCacheStepper() {
       caption={
         <>
           <b>Try:</b> press <b>Next</b> to generate each token, then switch the cache off. <b>Notice:</b> with the cache only the row tagged{' '}
-          <b>new</b> (orange) is computed and <b>cached</b> rows (blue) are reused, so the work grows in a straight line, not a curve.
+          <b>new</b> (orange) is computed and the rows tagged <b>cached</b> (blue) are reused, so the work grows in a straight line, not a curve.
         </>
       }
     >
@@ -94,7 +94,7 @@ export default function KVCacheStepper() {
                   <div key={`${t}${i}`} style={{ display: 'contents' }}>
                     <span className={`${s.kvTok} ${fresh ? s.kvTokNew : s.kvTokCached}`}>
                       {t}
-                      <span className={`${s.tag} ${fresh ? s.tagNew : s.tagCache}`}>{fresh ? (cache ? 'new' : 'redo') : 'cache'}</span>
+                      <span className={`${s.tag} ${fresh ? s.tagNew : s.tagCache}`}>{fresh ? (cache ? 'new' : 'redo') : 'cached'}</span>
                     </span>
                     <Vec v={K[i]} cls={cls} label={`key of ${t}`} />
                     <Vec v={V[i]} cls={cls} label={`value of ${t}`} />

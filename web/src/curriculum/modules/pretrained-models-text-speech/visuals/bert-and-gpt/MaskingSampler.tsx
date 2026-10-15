@@ -96,10 +96,8 @@ export default function MaskingSampler() {
       title="BERT's 15% and 80/10/10 rule, sampled"
       caption={
         <>
-          Each box is one token. Top: the original word. Middle: what BERT is actually fed. Bottom: the label the loss uses (the original word, or{' '}
-          <code>−100</code> meaning "do not score this position"). Press <b>New sample</b> a few times, then <b>Add 1,000 samples</b>: the tally settles
-          near 15% chosen, and 80% / 10% / 10% of the chosen tokens. Notice that the green "unchanged" tokens still get a label: BERT must predict them
-          even though nothing looks wrong.
+          Each column is one token: the original word, what BERT is fed, and the label (<code>−100</code> = not scored). Press{' '}
+          <b>Add 1,000 samples</b> and notice that the "unchanged" tokens still get a label: BERT must predict them too.
         </>
       }
     >
@@ -108,10 +106,10 @@ export default function MaskingSampler() {
           <i className={s.sw} style={{ background: 'var(--accent)' }} /> replaced by [MASK] (80%)
         </span>
         <span>
-          <i className={s.sw} style={{ background: 'color-mix(in srgb, var(--viz-4) 26%, var(--surface))' }} /> random word (10%)
+          <i className={`${s.sw} ${s.inRandom}`} /> random word (10%)
         </span>
         <span>
-          <i className={s.sw} style={{ background: 'color-mix(in srgb, var(--viz-3) 26%, var(--surface))' }} /> left unchanged (10%)
+          <i className={`${s.sw} ${s.inSame}`} /> left unchanged (10%)
         </span>
       </div>
 

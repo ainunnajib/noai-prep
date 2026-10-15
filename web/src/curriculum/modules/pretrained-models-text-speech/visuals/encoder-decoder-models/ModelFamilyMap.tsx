@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Figure, Controls, Button, Readout } from '../../../../../kit'
+import { Figure, Controls, Button, Readout, useNarrow } from '../../../../../kit'
 import s from './ed.module.css'
 
 /*
@@ -14,8 +14,12 @@ interface Task {
   label: string
   fam: Fam
   also?: Fam
+  alsoWhy?: string // why the 'also' family works too, shown when the card is placed there
   why: string
 }
+
+const LLM_TOO = 'a large decoder-only LLM can do this too, if you prompt it.'
+
 
 const TASKS: Task[] = [
   { id: 'sentiment', label: 'Is this review positive or negative?', fam: 'enc', why: 'Text in, one label out. An encoder reads the whole review in both directions and a head on [CLS] classifies it.' },
@@ -23,9 +27,9 @@ const TASKS: Task[] = [
   { id: 'spam', label: 'Flag spam messages', fam: 'enc', why: 'Another classification: a fixed set of labels, no new text to write. Encoder-only models are small and fast at this.' },
   { id: 'chat', label: 'A chatbot that answers anything', fam: 'dec', why: 'Open-ended text out, written one token at a time: exactly what decoder-only LLMs (GPT, Llama, Qwen) are trained to do.' },
   { id: 'code', label: 'Autocomplete code as you type', fam: 'dec', why: 'Continue a sequence from the left: next-token prediction with a causal mask.' },
-  { id: 'translate', label: 'Translate English to Malay', fam: 'encdec', also: 'dec', why: 'One sequence in, a different sequence out (other length, other word order): the encoder reads, the decoder writes with cross-attention (MarianMT, T5).' },
-  { id: 'summ', label: 'Summarise a long news article', fam: 'encdec', also: 'dec', why: 'Long text in, short text out: BART and T5 were built for this.' },
-  { id: 'asr', label: 'Turn speech into text', fam: 'encdec', why: 'Audio in, text out: an audio encoder and a text decoder joined by cross-attention. This is Whisper.' },
+  { id: 'translate', label: 'Translate English to Malay', fam: 'encdec', also: 'dec', alsoWhy: LLM_TOO, why: 'One sequence in, a different sequence out (other length, other word order): the encoder reads, the decoder writes with cross-attention (MarianMT, T5).' },
+  { id: 'summ', label: 'Summarise a long news article', fam: 'encdec', also: 'dec', alsoWhy: LLM_TOO, why: 'Long text in, short text out: BART and T5 were built for this.' },
+  { id: 'asr', label: 'Turn speech into text', fam: 'encdec', also: 'enc', alsoWhy: 'encoder-only models can transcribe too, with a letter head on every audio frame trained with a CTC loss (wav2vec 2.0, HuBERT).', why: 'Audio in, text out: an audio encoder and a text decoder joined by cross-attention. This is Whisper.' },
   { id: 'caption', label: 'Write a caption for a photo', fam: 'encdec', why: 'Image in, sentence out: a vision encoder (for example a ViT) and a text decoder that cross-attends to the image.' },
 ]
 
@@ -62,6 +66,7 @@ export default function ModelFamilyMap() {
   const [sel, setSel] = useState<string | null>('translate')
   const [last, setLast] = useState<string | null>(null)
   const [over, setOver] = useState<Fam | null>(null)
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
 
   const drop = (id: string, fam: Fam) => {
     setPlace((p) => ({ ...p, [id]: fam }))
@@ -99,7 +104,7 @@ export default function ModelFamilyMap() {
     } else if (g === 'also') {
       feedback = (
         <>
-          ≈ <b>{lastTask.label}</b>: a large decoder-only LLM can do this too, if you prompt it. The classic fit is <b>{famName(lastTask.fam)}</b>: {lastTask.why}
+          ≈ <b>{lastTask.label}</b>: {lastTask.alsoWhy} The classic modern fit is <b>{famName(lastTask.fam)}</b>: {lastTask.why}
         </>
       )
       fbClass = `${s.status} ${s.statusWarn}`
@@ -128,13 +133,12 @@ export default function ModelFamilyMap() {
       title="Which family fits the task?"
       caption={
         <>
-          Tap a task card, then tap <b>Place here</b> under a family (on a computer you can also drag the card). A card can be moved again by tapping
-          it. Notice the rule: the shape of the task decides the architecture. Label or tag the input → encoder. Keep writing → decoder. Turn one
-          sequence into a different one → encoder-decoder.
+          Tap a task card, then choose its family (on a computer you can also drag it). Notice the rule: label the input → encoder; keep
+          writing → decoder; turn one sequence into a different one → encoder-decoder.
         </>
       }
     >
-      <div className={s.deck} aria-label="Task cards still to place">
+      <div ref={ref} className={s.deck} aria-label="Task cards still to place">
         {deck.length === 0 ? (
           <span className={s.deckEmpty}>All cards placed.</span>
         ) : (
@@ -156,6 +160,22 @@ export default function ModelFamilyMap() {
           ))
         )}
       </div>
+
+      {narrow && selTask && (
+        <div className={s.placeRow} role="group" aria-label={`Choose a family for "${selTask.label}"`}>
+          <span className={s.colSub}>Place "{selTask.label}" in:</span>
+          {FAMS.map((f) => (
+            <button key={f.id} type="button" className={s.placeBtn} onClick={() => drop(selTask.id, f.id)}>
+              {f.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {narrow && (
+        <div className={fbClass} role="status">
+          {feedback}
+        </div>
+      )}
 
       <div className={s.cols}>
         {FAMS.map((f) => (
@@ -179,7 +199,7 @@ export default function ModelFamilyMap() {
             </div>
             {f.diagram}
             <span className={s.colSub}>e.g. {f.models}</span>
-            {selTask && (
+            {selTask && !narrow && (
               <button type="button" className={s.placeBtn} onClick={() => drop(selTask.id, f.id)} aria-label={`Place "${selTask.label}" in ${f.name}`}>
                 Place here
               </button>
@@ -196,9 +216,11 @@ export default function ModelFamilyMap() {
         ))}
       </div>
 
-      <div className={fbClass} role="status">
-        {feedback}
-      </div>
+      {!narrow && (
+        <div className={fbClass} role="status">
+          {feedback}
+        </div>
+      )}
       <Controls>
         <Readout
           items={[

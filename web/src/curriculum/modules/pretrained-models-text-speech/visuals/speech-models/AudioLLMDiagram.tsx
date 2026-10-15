@@ -116,6 +116,9 @@ export default function AudioLLMDiagram() {
   ]
 
   const used = Math.min(100, (total / CONTEXT) * 100)
+  const lengthSlider = (
+    <Slider label="audio length" value={mins} min={0.5} max={50} step={0.5} onChange={setMins} format={(v) => (v < 1 ? `${v * 60} s` : `${v} min`)} />
+  )
 
   const infoPanel = (
     <div className={s.panel} aria-live="polite">
@@ -133,9 +136,8 @@ export default function AudioLLMDiagram() {
       title="An audio LLM: a speech encoder, a small adapter and an LLM"
       caption={
         <>
-          Click any block to see what it does and its tensor shape. Switch the <b>training stage</b>: in stage 1 only the small projector learns
-          (both big pretrained parts stay frozen); in stage 2 the LLM is fine-tuned too. Drag the audio length: every second of sound costs 12.5
-          tokens of the LLM's context. Shapes follow a Voxtral-style design.
+          Click any block to see its job and tensor shape, then switch the training stage and drag the audio length. Notice that only the
+          small projector trains in stage 1, and every second of sound costs 12.5 LLM tokens (Voxtral-style shapes).
         </>
       }
     >
@@ -164,6 +166,8 @@ export default function AudioLLMDiagram() {
                   </span>
                 )}
               </button>
+              {/* on phones the length slider sits right under the clip it changes */}
+              {narrow && b.id === 'audio' && <div style={{ marginTop: '0.4rem' }}>{lengthSlider}</div>}
               {/* on phones the explanation opens right under the tapped block, instead of below the whole flow */}
               {narrow && part === b.id && <div style={{ marginTop: '0.4rem' }}>{infoPanel}</div>}
             </div>
@@ -195,7 +199,7 @@ export default function AudioLLMDiagram() {
             { value: 'instruct', label: '2 · instruction-tune' },
           ]}
         />
-        <Slider label="audio length" value={mins} min={0.5} max={50} step={0.5} onChange={setMins} format={(v) => (v < 1 ? `${v * 60} s` : `${v} min`)} />
+        {!narrow && lengthSlider}
         <Readout
           items={[
             ['audio tokens', fmtInt(nAudio)],

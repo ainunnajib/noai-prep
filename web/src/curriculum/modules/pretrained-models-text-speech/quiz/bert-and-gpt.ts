@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.bert-and-gpt.1',
     prompt: 'What is the main reason BERT can use context on both sides of a word, while GPT cannot?',
     options: [
-      'BERT has no causal mask, so each token attends to every position; GPT\'s causal mask lets a token attend only to itself and earlier positions',
+      'BERT has no causal mask, so each token attends to every position; GPT\'s causal mask limits a token to itself and earlier ones',
       'BERT reads the sentence twice, forwards and then backwards, with two separate recurrent networks, and joins the two results at the end',
       'GPT has no attention layers at all, and predicts each token only from a fixed window of the three tokens immediately before it',
       'BERT adds positional encodings to its input while GPT does not, so GPT cannot tell which of the words come after the current one',
@@ -49,7 +49,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team fine-tunes BERT to classify customer emails, but they also want the same model to draft replies to the emails. A teammate suggests appending several `[MASK]` tokens after each email and letting BERT fill them in. What is the main problem?',
     options: [
-      'BERT learned to fill gaps using both sides, never to continue text left to right, so it writes poor replies; a GPT-style or encoder-decoder model fits',
+      'BERT learned to fill gaps from both sides, never to continue text left to right, so it writes poor replies; a GPT-style model fits',
       'Fine-tuning for classification deletes `[MASK]` from BERT\'s vocabulary, so appending `[MASK]` tokens to an email would raise an error',
       'BERT can only ever predict one masked position per forward pass, so filling several `[MASK]` tokens at once is impossible however it was trained',
       'The fine-tuned `[CLS]` head would overwrite every masked position, so all of the filled-in words would just be the predicted class label',
@@ -57,6 +57,15 @@ const questions: QuizQuestion[] = [
     answer: 0,
     explanation:
       'BERT predicts hidden tokens independently from bidirectional context and was never trained on left-to-right continuation, so it writes poor free text. Generation needs a model trained autoregressively with a causal mask. BERT can predict many masked positions in one pass (one output per position), and `[MASK]` stays in the vocabulary.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'pretrained-models-text-speech.bert-and-gpt.6',
+    prompt: 'A language model\'s average cross-entropy on a test text is 3 **bits** per token (measured with $\\log_2$). What is its perplexity?',
+    options: ['8', '$e^3 \\approx 20$', '9', '$\\tfrac18$'],
+    answer: 0,
+    explanation:
+      'With the cross-entropy $H$ in bits, perplexity is $2^H = 2^3 = 8$: the model is as unsure as if it were choosing among 8 equally likely tokens. $e^3 \\approx 20$ mixes bases (the base of the power must match the base of the log), 9 squares 3 instead of raising 2 to the power 3, and $\\tfrac18$ is the typical probability per token, the reciprocal of the perplexity.',
     difficulty: 'intermediate',
   },
 ]

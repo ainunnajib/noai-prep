@@ -62,8 +62,8 @@ const SCENARIOS: { short: string; text: string; answer: Family; why: string; cod
     short: 'Wake word',
     text: 'Detect the wake word "Hey Merlion" on a phone, offline, many times per second.',
     answer: 'encoder',
-    why: 'Keyword spotting is classification on short clips ("wake word" or "not"), and it must be tiny and fast. A small audio encoder with a classification head fits; running Whisper or an LLM non-stop on a phone would be far too slow.',
-    code: 'kws = pipeline("audio-classification",\n               model="superb/hubert-base-superb-ks")\nkws("clip.wav")   # keyword labels with scores',
+    why: 'Keyword spotting is classification on short clips ("wake word" or "not"), so the family is an audio encoder with a classification head. On the phone itself you would use, or distil into, a very small keyword-spotting model (well under a million parameters); the HuBERT pipeline below (about 95 million) is for trying the idea on a computer. Running Whisper or an LLM non-stop would be far too slow.',
+    code: 'kws = pipeline("audio-classification",\n               model="superb/hubert-base-superb-ks")\nkws("clip.wav")   # keyword labels with scores (a prototype, too big for a phone)',
   },
 ]
 

@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A call centre has 3,000 short recordings labelled "satisfied" or "frustrated" and wants a fast model to tag new calls. Which approach fits best?',
     options: [
-      'Fine-tune a pretrained HuBERT encoder with a small classification head on the labelled clips',
+      'Fine-tune a pretrained HuBERT encoder with a small classification head on the clips',
       'Train Whisper from scratch on the 3,000 clips so that it outputs the two labels as text',
       'Run Whisper and classify the transcript, since tone of voice carries no useful signal',
       'Prompt an audio LLM with each call and parse its free-text answer for one of the two labels',
@@ -61,6 +61,21 @@ const questions: QuizQuestion[] = [
     answer: 0,
     explanation:
       'The output is one label per clip, and labelled data exists, so a pretrained audio encoder plus a small head is accurate, small and fast. Training Whisper from scratch on 3,000 clips is hopeless (it learned from 680,000 hours). Transcripts throw away tone of voice, which is the main clue to frustration. An audio LLM could work zero-shot, but it is far bigger and slower and does not learn from your labels.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'pretrained-models-text-speech.speech-models.6',
+    prompt: 'A student has a 44.1 kHz recording of a speech in Malay, `rapat.wav`, and wants English text from it in one step. After the line below, which call does that?',
+    code: 'from transformers import pipeline\nasr = pipeline("automatic-speech-recognition", model="openai/whisper-small")',
+    options: [
+      '`asr("rapat.wav", generate_kwargs={"language": "malay", "task": "translate"})`',
+      '`asr("rapat.wav", generate_kwargs={"language": "english", "task": "transcribe"})`',
+      '`asr("rapat.wav", generate_kwargs={"language": "malay", "task": "transcribe"})`',
+      '`pipeline("audio-classification", model="openai/whisper-small")("rapat.wav")`',
+    ],
+    answer: 0,
+    explanation:
+      'The `language` argument names the language **spoken** (Malay), and `task: "translate"` asks Whisper for English text. The pipeline loads the file and resamples it to Whisper\'s 16 kHz itself, so the 44.1 kHz rate needs no extra step. Saying `"english"` claims the audio is English, `"transcribe"` with Malay returns Malay text, and an audio-classification pipeline returns labels, not text.',
     difficulty: 'intermediate',
   },
 ]

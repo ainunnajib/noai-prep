@@ -2,17 +2,17 @@ import ForgettingLandscape from './visuals/fine-tuning-and-lora/ForgettingLandsc
 import LoRAMatrixViz from './visuals/fine-tuning-and-lora/LoRAMatrixViz'
 import OuterProductBuilder from './visuals/fine-tuning-and-lora/OuterProductBuilder'
 
-A pretrained LLM knows a lot, but not *your* job: marking Sec 3 essays in your school's rubric, replying in your company's style, or reading medical notes. Teaching it means more training, and training every one of its billions of weights takes a data centre. **LoRA**, the trick in this lesson, lets you adapt the same model on a single GPU by training well under 1% of the numbers. NOAI asks what it is, and the IOAI syllabus lists parameter-efficient fine-tuning as a skill you should be able to use.
+A pretrained LLM knows a lot, but not *your* job: marking essays with your school's rubric, say, or replying in your company's style. Teaching it means more training, and training all of its billions of weights takes a data centre. **LoRA** lets you adapt the same model on a single GPU by training well under 1% of the numbers. NOAI asks what it is, and IOAI expects you to use it.
 
 <Analogy title="A booklet of corrections">
 
-Your school decides the Sec 3 maths textbook needs updating for a new syllabus. Reprinting all 400 pages for every class is slow and expensive, and a printing mistake could ruin pages that were fine. Instead, the department prints a **thin booklet of corrections** that you read alongside the original. The textbook stays untouched; the booklet is cheap to make, easy to swap for a different class, and can be thrown away to get the original back. LoRA is that booklet for a neural network.
+Your Sec 3 maths textbook needs updating for a new syllabus. Reprinting all 400 pages is slow and expensive. Instead, the department prints a **thin booklet of corrections** to read alongside the original. The textbook stays untouched; the booklet is cheap to make, easy to swap for another class, and can be thrown away to get the original back. LoRA is that booklet for a neural network.
 
 </Analogy>
 
 ## Fine-tuning: training a trained model a little more
 
-<Term def="Continuing to train an already-trained model on a smaller, task-specific dataset, so it adapts to that task. It starts from the pretrained weights instead of random ones.">Fine-tuning</Term> means taking a pretrained model and continuing gradient descent on a smaller dataset for your task. You met one example in [How LLMs are built](#/learn/large-language-models/how-llms-are-built): supervised fine-tuning turns a base model into an assistant. Vision models are fine-tuned in the same way (see [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation)).
+<Term def="Continuing to train an already-trained model on a smaller, task-specific dataset, so it adapts to that task. It starts from the pretrained weights instead of random ones.">Fine-tuning</Term> means continuing gradient descent on a pretrained model with a smaller dataset for your task. You met one example in [How LLMs are built](#/learn/large-language-models/how-llms-are-built): supervised fine-tuning turns a base model into an assistant. Vision models are fine-tuned the same way (see [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation)).
 
 Fine-tuning is not the same as prompting. A prompt changes only the *input*; fine-tuning changes the model's *weights*, so the new behaviour stays even with a short prompt.
 
@@ -29,29 +29,29 @@ The obvious way is <Term def="Fine-tuning in which every weight of the model is 
 | Adam's bookkeeping: a 32-bit master copy and two running averages | 12 |
 | **total** | **16** |
 
-For a 7-billion-weight model that is $7 \times 10^9 \times 16 \text{ bytes} = 112$ GB, before counting the activations: more than a single GPU usually holds (a gaming GPU has about 8 to 32 GB). And every fine-tuned version is a full 14 GB copy of the model ($7 \times 10^9$ weights × 2 bytes).
+For a 7-billion-weight model that is $7 \times 10^9 \times 16 \text{ bytes} = 112$ GB before counting activations, far more than one GPU holds (a gaming GPU has 8 to 32 GB). And every fine-tuned version is a full 14 GB copy ($7 \times 10^9$ weights × 2 bytes).
 
-**Problem 2: forgetting.** Push a model hard enough on new data and it can lose what it used to know.
+**Problem 2: forgetting.** Push a model hard enough on new data and it can lose what it knew.
 
 ## Catastrophic forgetting
 
-<Term def="When training on a new task changes the weights so much that a network loses abilities it had before, such as general knowledge or fluent conversation.">Catastrophic forgetting</Term> is what happens when training on a new task overwrites the weights that an old skill depended on. Fine-tune a chatbot hard on legal contracts and it may write excellent contract summaries but stumble on simple arithmetic or casual chat that it handled before.
+<Term def="When training on a new task changes the weights so much that a network loses abilities it had before, such as general knowledge or fluent conversation.">Catastrophic forgetting</Term> is what happens when training on a new task overwrites the weights that an old skill depended on. Fine-tune a chatbot hard on legal contracts and it may write excellent contract summaries but stumble on arithmetic or casual chat it handled before.
 
-Why does it happen? The new task's loss only measures the new task. Gradient descent follows that loss downhill and has no reason to stay where the old skill lives. You can see this in a model with only two weights: each point of the plot below is one setting of the two weights, the blue rings show the old task's loss (a long valley where many settings work), and the orange rings show the new task's loss around its best point.
+Why does it happen? The new task's loss only measures the new task, so gradient descent follows it downhill with no reason to stay where the old skill lives. You can see this with only two weights: each point of the plot below is one setting of the two weights, the blue rings show the old task's loss (a long valley where many settings work), and the orange rings the new task's loss around its best point.
 
 <ForgettingLandscape />
 
-The picture holds the whole story. Usually many weight settings are good for the old task (the long blue valley), and some of them are also good for the new task. Plain fine-tuning does not look for those; it walks straight to the new task's best point. The standard remedies all keep the walk short or keep the old task in view:
+Many weight settings suit the old task (the long blue valley), and some also suit the new one. Plain fine-tuning does not look for those; it walks straight to the new task's best point. The standard remedies keep the walk short or keep the old task in view:
 
 - **Small learning rate and few epochs**, so the weights do not travel far.
 - **Mix some old or general data** into the fine-tuning set (often called replay), so the loss itself rewards keeping the old skill.
-- **Freeze most of the weights** and train only a small part. LoRA, below, does exactly this, and its original weights are never changed at all.
+- **Freeze most of the weights** and train only a small part, as LoRA does.
 
-Freezing reduces forgetting rather than preventing it: while the LoRA update is switched on, the model computes with the changed weights and can still lose some old skills. The difference is that you can always switch the update off and get the original model back.
+Freezing reduces forgetting but does not prevent it; with LoRA, though, switching the update off always restores the original model.
 
 <Mistake title="Forgetting is not overfitting">
 
-Overfitting means doing well on the *training* data of a task but badly on new examples of the *same* task. Catastrophic forgetting means doing well on the *new* task but worse on an *old* one. A model can forget without overfitting at all.
+Overfitting: good on a task's *training* data, bad on new examples of the *same* task. Catastrophic forgetting: good on the *new* task, worse on an *old* one. A model can forget without overfitting at all.
 
 </Mistake>
 
@@ -59,7 +59,7 @@ Overfitting means doing well on the *training* data of a task but badly on new e
 
 Every layer of a Transformer is mostly matrix multiplications: a weight matrix $W$ turns an input vector $x$ into an output $h = Wx$. Fine-tuning would change $W$ into a new matrix $W' = W + \Delta W$, where $\Delta W$ ("delta W") is the change. Full fine-tuning learns every entry of $\Delta W$.
 
-<Term def="Low-Rank Adaptation: a parameter-efficient fine-tuning method that freezes a pretrained weight matrix W and learns the update as a product BA of two thin matrices.">LoRA (low-rank adaptation)</Term>, introduced by Microsoft researchers in 2021, makes one bet: the change a model needs for a new task is **simple**, so it can be written as the product of two thin matrices.
+<Term def="Low-Rank Adaptation: a parameter-efficient fine-tuning method that freezes a pretrained weight matrix W and learns the update as a product BA of two thin matrices.">LoRA (low-rank adaptation)</Term> (2021) makes one bet: the change a model needs for a new task is **simple**, so it can be written as the product of two thin matrices.
 
 $$
 W' = W + \Delta W = W + BA
@@ -70,11 +70,11 @@ $$
 - $r$ is the <Term def="In LoRA, the inner size r shared by B (d × r) and A (r × k). It caps the rank of the update BA and is chosen small, typically 4 to 64.">rank</Term>, a small number you choose, such as 4, 8 or 16, much smaller than $d$ and $k$.
 - $BA$ is $(d \times r)(r \times k) = d \times k$, the same shape as $W$, so the two can be added.
 
-In words: **keep the original weights and add a correction built from two thin matrices.** (Real implementations multiply $BA$ by a fixed number $\alpha / r$, where $\alpha$ is a setting; it changes the size of the update, not the number of trainable values.) The layer's output becomes $h = Wx + BAx$: the original path plus a small side path.
+In words: **keep the original weights and add a correction built from two thin matrices.** (Real implementations scale $BA$ by a fixed number $\alpha / r$; this changes the size of the update, not the number of trainable values.) The layer's output becomes $h = Wx + BAx$: the original path plus a small side path.
 
 <LoRAMatrixViz />
 
-Counting the trainable numbers is the most common exam calculation. $B$ has $d \times r$ entries and $A$ has $r \times k$, so
+Counting trainable numbers is the commonest exam calculation. $B$ has $d \times r$ entries and $A$ has $r \times k$, so
 
 $$
 \text{LoRA trains } dr + rk = r(d + k) \text{ numbers}
@@ -99,7 +99,7 @@ $$
   </Step>
 </Steps>
 
-Now redo the memory sum. The frozen weights only need storing (2 bytes each, about 14 GB); the 16-bytes-per-weight training cost applies only to the 4.2 million LoRA weights, about 67 MB. That is why LoRA fits on one GPU where full fine-tuning needs several. The saved adapter is about 8 MB (4.2 million × 2 bytes) instead of a 14 GB model copy, so one base model can carry many adapters (one for Chinese essays, one for physics help) and swap them in seconds. On GPT-3, the LoRA authors reported 10,000 times fewer trainable parameters and 3 times less GPU memory than full fine-tuning.
+Now redo the memory sum. The frozen weights only need storing (2 bytes each, about 14 GB); the 16 bytes per weight apply only to the 4.2 million LoRA weights, about 67 MB. So LoRA fits on one GPU where full fine-tuning needs several. The saved adapter is about 8 MB (4.2 million × 2 bytes) instead of a 14 GB copy, so one base model can carry many adapters and swap them in seconds.
 
 <KeyIdea>
 
@@ -118,7 +118,7 @@ LoRA freezes $W$ and learns $W' = W + BA$ with $B$ of size $d \times r$ and $A$ 
 
 ## What "low rank" really means
 
-Why can two thin matrices describe a useful change? Start with the thinnest case, $r = 1$. Then $B$ is a single column $u$ and $A$ a single row $v^\top$, and $BA = uv^\top$ is called an <Term def="The matrix u vᵀ made from a column vector u and a row vector v. Its entry in row i, column j is u_i × v_j, so it is like a times table.">outer product</Term>. Its entry in row $i$, column $j$ is simply $u_i \times v_j$: it is a times table.
+Why can two thin matrices describe a useful change? Take the thinnest case, $r = 1$. Then $B$ is a single column $u$ and $A$ a single row $v^\top$, and $BA = uv^\top$ is called an <Term def="The matrix u vᵀ made from a column vector u and a row vector v. Its entry in row i, column j is u_i × v_j, so it is like a times table.">outer product</Term>. Its entry in row $i$, column $j$ is simply $u_i \times v_j$: it is a times table.
 
 <Steps title="An outer product by hand: u = [1, 2, 3], v = [2, 0, 1]">
   <Step title="Row 1 is 1 × v">
@@ -142,30 +142,29 @@ where $b_i$ is column $i$ of $B$ and $a_i^\top$ is row $i$ of $A$. So **the rank
 
 <OuterProductBuilder />
 
-Structured pictures need few layers; random noise needs many. LoRA's bet is that the change needed to adapt a model is structured, like the tartan, not like the noise. Experiments back this up: the LoRA authors found ranks as small as 1 to 8 often matched full fine-tuning on their test tasks.
+Structured pictures need few layers; random noise needs many. LoRA's bet is that the change needed to adapt a model is structured, like the tartan, not like the noise. Experiments back this up: in the LoRA paper, ranks as small as 1 to 8 often matched full fine-tuning.
 
 <Reveal label="Check: what is the largest possible rank of BA when B is 4096 × 8 and A is 8 × 4096?">
 
-At most **8**. $BA$ is a sum of 8 outer products, and each adds at most one new pattern. It is a $4096 \times 4096$ matrix, but it can never have rank 4096. In PyTorch, `torch.linalg.matrix_rank(B @ A)` for random $B$ (512 × 8) and $A$ (8 × 512) prints `tensor(8)` (checked on this smaller example so it runs quickly; the limit of 8 is the same).
+At most **8**: $BA$ is a sum of 8 outer products, each adding at most one new pattern, so although it is $4096 \times 4096$ it can never have rank 4096.
 
 </Reveal>
 
 ## Why B starts at zero
 
-LoRA initialises $A$ with small random numbers and $B$ with **zeros**. Then $BA = 0$, so at step 0 the model is *exactly* the pretrained model, and training begins from everything it already knows.
+LoRA initialises $A$ with small random numbers and $B$ with **zeros**. Then $BA = 0$, so at step 0 the model is *exactly* the pretrained model.
 
-Why not make both zero? The side path computes $B(Ax)$. The gradient for $B$ depends on $Ax$, and the gradient for $A$ depends on $B$. If $B = 0$ but $A$ is random, $B$ gets a non-zero gradient and starts learning at once; as soon as $B$ moves, $A$ learns too. If **both** were zero, both gradients would be zero and the adapter would never learn. If both were random, $BA$ would add random noise to every layer and damage the model before training even started.
+Why not make both zero? The side path computes $B(Ax)$: the gradient for $B$ depends on $Ax$, and the gradient for $A$ depends on $B$. With $B = 0$ and $A$ random, $B$ gets a non-zero gradient at once, and as soon as $B$ moves, $A$ learns too. If **both** were zero, both gradients would be zero and the adapter would never learn. If both were random, $BA$ would add noise to every layer before training even started.
 
-<Mistake title="Myths about LoRA">
+<Mistake title="Myth: LoRA makes the model smaller or faster">
 
-- *"LoRA makes the model smaller or faster."* No. The model keeps all its weights. After training you can **merge** the update ($W \leftarrow W + BA$), giving a normal layer of the same size, so LoRA adds no extra delay at inference, but it does not make inference faster either.
-- *"LoRA trains A and B instead of W, so W slowly changes too."* No. $W$ is frozen for the whole of training. Delete the adapter and the original model is back, bit for bit.
+No. The model keeps all its weights, and training never changes $W$. After training you can **merge** the update ($W \leftarrow W + BA$) into a normal layer of the same size, so LoRA adds no delay at inference, but it does not make inference faster either.
 
 </Mistake>
 
 ## LoRA in PyTorch
 
-A LoRA layer wraps an ordinary `nn.Linear`. PyTorch stores the weight as (out, in), so `nn.Linear(k, d)` holds a $d \times k$ matrix and computes $x W^\top$ for a batch of row vectors $x$; the side path `x @ A.T @ B.T` is the same as $BAx$ written for row vectors.
+A LoRA layer wraps an ordinary `nn.Linear(k, d)`, which stores a $d \times k$ weight and computes $x W^\top$ for a batch of row vectors $x$; the side path `x @ A.T @ B.T` is $BAx$ written for row vectors.
 
 ```python
 import torch
@@ -206,7 +205,7 @@ trainable: 65,536 of 16,846,848 (0.39%)
 same output as the frozen layer? True
 ```
 
-The total includes the frozen bias (4,096 numbers). The second line confirms the zero-initialised $B$: before training, the LoRA layer gives exactly the original output. Freezing is the line `p.requires_grad = False`, which tells autograd not to compute gradients for those weights, so the optimiser never changes them.
+The total includes the frozen bias (4,096 numbers). The second line confirms the zero-initialised $B$: before training, the output is exactly the original. Freezing is `p.requires_grad = False`: autograd computes no gradients for those weights, so the optimiser never changes them.
 
 <PastPaperQuestion paper="prelim2026" n={121} />
 
@@ -243,7 +242,7 @@ B still zero? False
 merged layer gives the same output? True
 ```
 
-$W$ did not move, $B$ learned, and the merged layer is an ordinary `nn.Linear` with the same output. In practice nobody writes this class by hand: Hugging Face's `peft` library wraps a whole model in a few lines.
+$W$ did not move, $B$ learned, and the merged layer is an ordinary `nn.Linear` with the same output. In practice, Hugging Face's `peft` library wraps a whole model in a few lines:
 
 ```python
 from peft import LoraConfig, get_peft_model
@@ -262,25 +261,23 @@ LoRA belongs to a family called <Term def="Parameter-efficient fine-tuning: meth
 
 | Method | What is trained | Extra cost at inference |
 |---|---|---|
-| Full fine-tuning | every weight | none, but one full copy per task |
 | Feature extraction | only a new output layer on a frozen model | none |
 | Adapters | small extra layers inserted between existing layers | a little: the extra layers must run |
 | Prompt or prefix tuning | a few learned vectors placed in front of the input | a little: a longer input |
 | **LoRA** | thin matrices $B$, $A$ beside chosen weight matrices | none once merged |
-| **QLoRA** | LoRA on a base model stored in 4-bit numbers (a quarter of the 16-bit memory, so a 7B model can be fine-tuned on one gaming GPU) | a little: keep the adapter separate, or convert the base back to 16-bit to merge |
+| **QLoRA** | LoRA on a base model stored in 4-bit numbers (a quarter of the memory), so a 7B model fits one gaming GPU | a little, unless the base is converted back to 16-bit and merged |
 
 <ExamTip>
 
-Learn the formula pair: **LoRA trains $r(d + k)$, full fine-tuning trains $dk$.** Wrong options love $r \cdot d \cdot k$, or counting only one of $B$ and $A$. Remember the three facts examiners test: $W$ is **frozen**, $B$ starts at **zero** so training begins from the pretrained model, and LoRA makes fine-tuning cheaper, **not** inference faster. With $d = k$ use the shortcut ratio $2r/d$.
+Learn the formula pair: **LoRA trains $r(d + k)$, full fine-tuning trains $dk$.** Wrong options love $r \cdot d \cdot k$, or counting only one of $B$ and $A$. Examiners also test that $W$ is **frozen**, $B$ starts at **zero**, and LoRA makes fine-tuning cheaper, **not** inference faster. For $d = k$ the ratio is $2r/d$.
 
 </ExamTip>
 
 <Takeaways>
 
-- Fine-tuning continues training a pretrained model on task data; full fine-tuning updates every weight, which is costly (about 16 bytes per trained weight with Adam) and risks **catastrophic forgetting**.
-- Forgetting happens because the new task's loss ignores the old task; small learning rates, mixing in old data and freezing weights all reduce it.
-- LoRA freezes $W$ and learns $W' = W + BA$, with $B$: $d \times r$ (initialised to 0) and $A$: $r \times k$ (small random), training $r(d + k)$ instead of $dk$ numbers.
-- $BA$ is a sum of $r$ outer products, so its rank is at most $r$: a few simple patterns, which is usually enough to adapt a model.
-- In PyTorch, freezing is `requires_grad = False`; the update can be merged into $W$, so LoRA adds no inference delay.
+- Full fine-tuning updates every weight: costly (about 16 bytes per trained weight with Adam) and prone to **catastrophic forgetting**, because the new task's loss ignores the old one. Small learning rates, mixing in old data and freezing weights all reduce forgetting.
+- LoRA freezes $W$ and learns $W' = W + BA$ ($B$: $d \times r$, starting at 0; $A$: $r \times k$, small random), training $r(d + k)$ numbers instead of $dk$.
+- $BA$ is a sum of $r$ outer products, so its rank is at most $r$, which is usually enough to adapt a model.
+- In PyTorch, freezing is `requires_grad = False`; merging $BA$ into $W$ means no extra delay at inference.
 
 </Takeaways>

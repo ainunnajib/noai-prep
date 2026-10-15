@@ -339,10 +339,8 @@ export default function WhisperFlow() {
       title="Whisper: from sound to text, one token at a time"
       caption={
         <>
-          Press <b>Play</b> or step through. Switch the clip's language and the task: <b>transcribe</b> writes the words in the language spoken,
-          <b> translate</b> writes English. Each new word comes with its <b>cross-attention</b>: the orange bump shows which stretch of audio the
-          decoder looked at, even when translation changes the word order. (Synthetic speech-like clips, word-sized tokens and illustrative
-          attention; real Whisper writes sub-word tokens.)
+          Press <b>Play</b>, then switch the clip's language and the task (transcribe, or translate into English). Notice the orange bump:
+          each new word's cross-attention points at the audio it came from. (Synthetic clips, word-sized tokens, illustrative attention.)
         </>
       }
     >

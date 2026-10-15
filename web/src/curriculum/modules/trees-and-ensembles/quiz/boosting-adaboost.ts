@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'With $\\varepsilon = 0.5$, $\\frac{1-\\varepsilon}{\\varepsilon} = 1$ and $\\ln 1 = 0$: a coin-flip learner gets no say and does not change the weights. Above 0.5 the ratio is below 1, so $\\alpha < 0$. Normalising still works fine (the total is positive), and a learner worse than chance gets a negative say, not a huge positive one.',
+      'With $\\varepsilon = 0.5$, $\\frac{1-\\varepsilon}{\\varepsilon} = 1$ and $\\ln 1 = 0$: a coin-flip learner gets no say and does not change the weights. Above 0.5 the ratio is below 1, so $\\alpha < 0$. Normalising still works fine (the total is positive), and a learner worse than chance gets a negative say, not a huge positive one. With $\\alpha < 0$ its mistakes would indeed lose weight, the opposite of what boosting needs, but nothing halves the later $\\alpha$ values.',
     difficulty: 'intermediate',
   },
   {

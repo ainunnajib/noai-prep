@@ -76,8 +76,14 @@
   font-size: 0.8rem;
   line-height: 1.5;
   color: var(--ink);
-  white-space: pre;
+  /* wrap long lines (model names) instead of hiding them; wrapped parts get a hanging indent */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   overflow-x: auto;
+}
+.code > div {
+  padding-left: 2ch;
+  text-indent: -2ch;
 }
 .codeCmt {
   color: var(--ink-3);
@@ -358,4 +364,26 @@
 .scroll {
   width: 100%;
   overflow-x: auto;
+}
+
+/* phone: a fade on the right edge says "there is more to scroll to" */
+.scrollFade {
+  position: relative;
+  min-width: 0;
+}
+.scrollFade::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1.6rem;
+  background: linear-gradient(to right, transparent, var(--surface));
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .code {
+    font-size: 0.74rem;
+  }
 }

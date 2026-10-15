@@ -18,13 +18,25 @@ function fold(f: number, fs: number) {
   return { freq: Math.abs(a), sign: a < 0 ? -1 : 1 }
 }
 
+/** What sampling at rate fs does to a sine of frequency f: kept, aliased to a lower frequency, or lost (a flat line). */
+type Fate = { kind: 'ok' | 'alias' | 'vanish'; seen: number }
+function fate(f: number, fs: number): Fate {
+  const nyq = fs / 2
+  if (f < nyq - 1e-9) return { kind: 'ok', seen: f }
+  const { freq } = fold(f, fs)
+  // the alias sits exactly on the limit (every sample on a zero crossing) or at 0 Hz (every sample at the same point): a flat line
+  if (Math.abs(freq - nyq) < 1e-9 || freq < 1e-9) return { kind: 'vanish', seen: freq }
+  return { kind: 'alias', seen: freq }
+}
+
 /** The wave a perfect reconstruction draws through the samples of A·sin(2π f t). */
 function rebuilt(f: number, fs: number, amp: number) {
   const { freq, sign } = fold(f, fs)
-  // exactly at the limit, every sample of a sine lands on a zero crossing: nothing survives
-  if (Math.abs(freq - fs / 2) < 1e-9 && freq > 0) return () => 0
+  if (fate(f, fs).kind === 'vanish') return () => 0
   return (t: number) => sign * amp * Math.sin(TWO_PI * freq * t)
 }
+
+const hz = (v: number) => `${+v.toFixed(2)} Hz`
 
 export default function SamplingRateExplorer() {
   const [f, setF] = useState(3)
@@ -40,27 +52,45 @@ export default function SamplingRateExplorer() {
   const n = Math.floor(fs) + 1 // samples at t = 0, 1/fs, …, 1
   const samples = Array.from({ length: n }, (_, i) => i / fs).filter((t) => t <= 1 + 1e-9)
   const nyq = fs / 2
-  const { freq: seen } = fold(f, fs)
-  const atLimit = Math.abs(f - nyq) < 1e-9
-  const ok = f < nyq
+  const hi = fate(f, fs)
+  const lo = fate(LOW_F, fs)
+  const seen = hi.seen
+  const ok = hi.kind === 'ok'
+  const aliased = hi.kind === 'alias'
   const yMax = mix ? 1.75 : 1.3
 
   let verdict: string
   if (ok) verdict = `captured: ${f} Hz is below the limit of ${nyq} Hz`
-  else if (atLimit) verdict = `exactly at the limit: every sample lands on a zero crossing, so the wave vanishes`
-  else verdict = `aliased: ${f} Hz is above ${nyq} Hz, so it comes back as a fake ${+seen.toFixed(2)} Hz`
+  else if (Math.abs(f - nyq) < 1e-9) verdict = 'exactly at the limit: every sample lands on a zero crossing, so the wave vanishes'
+  else if (hi.kind === 'vanish')
+    verdict =
+      seen < 1e-9
+        ? `lost: ${f} Hz is a whole multiple of the rate, so every sample lands on a zero crossing and the wave vanishes`
+        : `lost: ${f} Hz is above ${nyq} Hz and folds exactly onto the limit, where every sample lands on a zero crossing, so it vanishes`
+  else verdict = `aliased: ${f} Hz is above ${nyq} Hz, so it comes back as a fake ${hz(seen)}`
+
+  let lowNote = ''
+  if (lo.kind === 'ok') lowNote = `the slow ${LOW_F} Hz tone survives`
+  else if (lo.kind === 'alias') lowNote = `the slow ${LOW_F} Hz tone is above the limit too, so it comes back as a fake ${hz(lo.seen)}`
+  else lowNote = `the slow ${LOW_F} Hz tone ${Math.abs(LOW_F - nyq) < 1e-9 ? 'sits exactly at the limit and vanishes' : 'folds to 0 Hz and vanishes'}`
+
+  const part = (fr: number, x: Fate) => (x.kind === 'ok' ? `${fr} Hz` : x.kind === 'alias' ? `fake ${hz(x.seen)}` : null)
+  const heard = [part(f, hi), mix ? part(LOW_F, lo) : null].filter((v): v is string => v !== null)
+  const hear = heard.length ? heard.join(' + ') : 'a flat line (silence)'
+  const k = Math.round(f / fs)
 
   const fMaxAxis = 20
+
+  const loMark = mix && lo.kind === 'alias'
+  const aliasLabel = (x: number) => (x < 1.5 ? { anchor: 'start' as const, dx: -3 } : { anchor: 'middle' as const, dx: 0 })
 
   return (
     <Figure
       title="Sample a wave, then rebuild it from the dots"
       caption={
         <>
-          Grey: the real sound wave. Dots: the numbers the microphone stores. Orange dashed: the smoothest wave that passes through
-          the dots, which is what any playback or model can recover. Lower the <b>sampling rate</b> below twice the wave's
-          frequency and the orange wave turns into a slower, fake wave (an <b>alias</b>). Try 3 Hz at 4 samples per second, then
-          5 Hz at exactly 10.
+          Grey: the real wave. Dots: the stored samples. Orange: the wave rebuilt from them. Lower the <b>sampling rate</b> below twice
+          the frequency and the orange wave becomes a slower fake (an <b>alias</b>): try 3 Hz at 4 per second, then 5 Hz at 10.
         </>
       }
     >
@@ -81,25 +111,27 @@ export default function SamplingRateExplorer() {
         <Axes xLabel="frequency (Hz)" xTicks={narrow ? 5 : 10} hideYTicks />
         {nyq <= fMaxAxis && <VLine x={nyq} color="var(--viz-pos)" dash="5 3" width={2} />}
         {nyq <= fMaxAxis && (
-          <Label x={nyq} y={1} dy={-8} anchor={nyq > fMaxAxis * 0.7 ? 'end' : 'start'} color="var(--viz-pos)" size={11} weight={700}>
+          <Label x={nyq} y={1} dy={-8} anchor={nyq > fMaxAxis * 0.7 ? 'end' : 'start'} color="color-mix(in srgb, var(--viz-pos) 70%, var(--ink))" size={11} weight={700}>
             {`limit = rate ÷ 2 = ${nyq} Hz`}
           </Label>
         )}
-        {!ok && !atLimit && f <= fMaxAxis && seen <= fMaxAxis && <Arrow from={[f, 0.45]} to={[seen, 0.45]} color="var(--viz-2)" width={2} />}
+        {aliased && f <= fMaxAxis && <Arrow from={[f, 0.45]} to={[seen, 0.45]} color="var(--viz-2)" width={2} />}
+        {loMark && <Arrow from={[LOW_F, 0.2]} to={[lo.seen, 0.2]} color="var(--viz-2)" width={1.5} />}
         <Dots
           points={[
             { x: f, y: 0.45, color: 'var(--viz-muted)', r: 6, shape: 'square' },
-            ...(!ok && !atLimit ? [{ x: seen, y: 0.45, color: 'var(--viz-2)', r: 6 }] : []),
-            ...(mix ? [{ x: LOW_F, y: 0.45, color: 'var(--viz-muted)', r: 4.5, shape: 'square' as const }] : []),
+            ...(aliased ? [{ x: seen, y: 0.45, color: 'var(--viz-2)', r: 6 }] : []),
+            ...(mix ? [{ x: LOW_F, y: 0.2, color: 'var(--viz-muted)', r: 4.5, shape: 'square' as const }] : []),
+            ...(loMark ? [{ x: lo.seen, y: 0.2, color: 'var(--viz-2)', r: 4.5 }] : []),
           ]}
         />
         {f <= fMaxAxis && (
           <Label x={f} y={0.45} dx={9} dy={4} anchor="start" color="var(--ink-2)" size={11} weight={700}>
-            {`${f} Hz`}
+            {hi.kind === 'vanish' ? `${f} Hz: lost` : `${f} Hz`}
           </Label>
         )}
-        {!ok && !atLimit && (
-          <Label x={seen} y={0.45} dy={-10} anchor="middle" color="var(--viz-2)" size={11} weight={700}>
+        {aliased && (
+          <Label x={seen} y={0.45} dy={-10} {...aliasLabel(seen)} color="color-mix(in srgb, var(--viz-2) 70%, var(--ink))" size={11} weight={700}>
             {`alias ${+seen.toFixed(2)}`}
           </Label>
         )}
@@ -113,13 +145,13 @@ export default function SamplingRateExplorer() {
         <Readout
           items={[
             ['Nyquist limit', `${nyq} Hz`],
-            ['you hear', ok ? `${f} Hz` : atLimit ? 'silence' : `${+seen.toFixed(2)} Hz`],
+            ['you hear', hear],
           ]}
         />
       </Controls>
-      <p style={{ margin: '0.4rem 0 0', fontSize: '0.92rem', color: ok ? 'var(--viz-pos)' : 'var(--viz-neg)', fontWeight: 600 }} aria-live="polite">
+      <p style={{ margin: '0.4rem 0 0', fontSize: '0.92rem', color: ok ? 'color-mix(in srgb, var(--viz-pos) 70%, var(--ink))' : 'var(--viz-neg)', fontWeight: 600 }} aria-live="polite">
         {verdict}
-        {mix && <span style={{ color: 'var(--ink-2)', fontWeight: 400 }}> · the slow {LOW_F} Hz tone {LOW_F < nyq ? 'survives' : 'is lost too'}</span>}
+        {mix && <span style={{ color: 'var(--ink-2)', fontWeight: 400 }}> · {lowNote}</span>}
       </p>
       <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--ink-2)' }}>
         {ok ? (
@@ -127,14 +159,15 @@ export default function SamplingRateExplorer() {
             Below the limit, the nearest whole multiple of the rate is 0, so the wave stays where it is:{' '}
             <M>{`|${f} - 0 \\times ${fs}| = ${f}`}</M> Hz.
           </>
-        ) : atLimit ? (
+        ) : Math.abs(f - nyq) < 1e-9 ? (
           <>
             At exactly half the rate, <M>f</M> sits halfway between 0 and the rate, and a sine's samples all land on zero crossings.
           </>
         ) : (
           <>
             Fake frequency = distance from <M>f</M> to the nearest whole multiple of the rate:{' '}
-            <M>{`|${f} - ${Math.round(f / fs)} \\times ${fs}| = ${+seen.toFixed(2)}`}</M> Hz.
+            <M>{`|${f} - ${k} \\times ${fs}| = ${+seen.toFixed(2)}`}</M> Hz
+            {hi.kind === 'vanish' ? (seen < 1e-9 ? ': a flat line.' : ': exactly the limit, where the samples all land on zero crossings.') : '.'}
           </>
         )}
       </p>

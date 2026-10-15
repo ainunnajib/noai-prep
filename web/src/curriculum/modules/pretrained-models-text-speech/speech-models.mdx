@@ -3,7 +3,7 @@ import WhisperFlow from './visuals/speech-models/WhisperFlow'
 import AudioLLMDiagram from './visuals/speech-models/AudioLLMDiagram'
 import SpeechModelPicker from './visuals/speech-models/SpeechModelPicker'
 
-In the last lesson you turned sound into numbers and pictures. Now meet the three families of pretrained models that read them. **HuBERT** learns what speech sounds like from thousands of hours of audio with no transcripts at all. **Whisper** writes down what was said, in about a hundred languages. **Audio LLMs** such as Qwen-Audio and Voxtral answer questions about any sound. Each one reuses an idea you already know: BERT's masked prediction, the encoder-decoder Transformer and the large language model. Spotting that reuse is the key to this lesson. At IOAI 2026, the on-site audio task handed contestants exactly these tools: wav2vec 2.0 (HuBERT's close cousin), Whisper and a Qwen language model.
+Meet the three families of pretrained models that read sound: **HuBERT** learns what speech sounds like from audio with no transcripts, **Whisper** writes down what was said in about a hundred languages, and **audio LLMs** such as Qwen-Audio and Voxtral answer questions about any sound. Each reuses an idea you already know (BERT's masked prediction, the encoder-decoder, the large language model), and spotting that reuse is the key to this lesson. IOAI 2026 set an audio task, "Find the Order": put the shuffled turns of a spoken dialogue back in order.
 
 ## Why learn from audio without labels?
 
@@ -45,8 +45,6 @@ Only masked frames are scored. A visible frame's unit can be read straight off t
 **HuBERT = BERT's masked prediction applied to audio frames**, with k-means cluster numbers ("hidden units") as the vocabulary. It needs no transcripts, and the trained encoder gives a rich vector for every 20 ms of speech.
 
 </KeyIdea>
-
-<PastPaperQuestion paper="prelim2026" n={137} />
 
 Here is the heart of HuBERT's training step in PyTorch, with random numbers standing in for real features (a 2-layer Transformer instead of HuBERT's 12):
 
@@ -93,9 +91,9 @@ ln(100): 4.61
 
 <QuickCheck
   q="Why does HuBERT compute its loss only on the masked frames?"
-  options={['A visible frame\'s unit can be read off the frame itself, so only hidden frames force the model to use context', 'Unmasked frames have no k-means unit, so there is no target to compare with', 'Scoring every frame would make the model generate text instead of audio', 'Unmasked frames are kept aside to train the speech recognition head later']}
+  options={['Visible frames give their own answer away; only hidden ones force the model to use context', 'Unmasked frames get no k-means unit, so there is no target to compare them with', 'Scoring every frame would turn the model into a text generator instead of an audio encoder', 'Unmasked frames are kept aside to train the speech recognition head in a later stage']}
   answer={0}
-  explain="Every frame has a unit (k-means labels all of them), so a target exists. But predicting a visible frame's unit is trivial, because the answer is in the input. Hiding frames turns the task into guessing from context, which is what builds useful speech representations, exactly as in BERT."
+  explain="Every frame has a unit (k-means labels all of them), so a target exists. But predicting a visible frame's unit is trivial, because the answer is in the input itself. Hiding frames turns the task into guessing from context, which is what builds useful speech representations, exactly as in BERT."
 />
 
 ## Whisper: speech recognition as translation
@@ -106,10 +104,10 @@ A stenographer listens to a recording and types it out. Before starting, they ar
 
 </Analogy>
 
-**Whisper** (OpenAI, 2022) is an [encoder-decoder Transformer](#/learn/pretrained-models-text-speech/encoder-decoder-models), like a translation model whose "source sentence" is a spectrogram. It was trained on **680,000 hours** of audio paired with transcripts collected from the internet. Those labels are plentiful but imperfect, which is called <Term def="Learning from labels that are plentiful but imperfect, such as subtitles found on the web, instead of a small set of carefully checked labels.">weak supervision</Term>. So unlike HuBERT, Whisper does learn from transcripts. The pipeline:
+**Whisper** (OpenAI, 2022) is an [encoder-decoder Transformer](#/learn/pretrained-models-text-speech/encoder-decoder-models), like a translation model whose "source sentence" is a spectrogram. The original Whisper was trained on **680,000 hours** of audio paired with transcripts collected from the internet (large-v3 later used about 5 million hours). Those labels are plentiful but imperfect, which is called <Term def="Learning from labels that are plentiful but imperfect, such as subtitles found on the web, instead of a small set of carefully checked labels.">weak supervision</Term>. So unlike HuBERT, Whisper does learn from transcripts. The pipeline:
 
 1. Cut or pad the audio to a **30-second** chunk at 16 kHz: 480,000 samples.
-2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in the last lesson.
+2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in the last lesson; large-v3 and large-v3-turbo use 128 mel rows instead of 80.
 3. **Encoder:** two 1-D convolutions (width 3; the second has <Term def="How many positions a convolution's filter jumps each time it moves. Stride 2 visits every other position, so the output is about half as long as the input.">stride</Term> 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms.
 4. **Decoder:** generates text tokens one at a time. Each block has causal self-attention over the tokens so far, plus **cross-attention**, whose queries come from the text and whose keys and values come from the 1,500 audio vectors.
 5. **Special tokens** start every output: `<|startoftranscript|>`, a language token such as `<|ms|>`, a task token (`<|transcribe|>` or `<|translate|>`) and `<|notimestamps|>`. The output ends with `<|endoftext|>`.
@@ -171,7 +169,7 @@ torch.Size([1, 1500, 384])
 
 <PastPaperQuestion paper="prelim2026" n={190} />
 
-Whisper comes in five sizes, all with the same design: tiny (39M parameters, width 384), base (74M, 512), small (244M, 768), medium (769M, 1,024) and large (1.55B, 1,280).
+Whisper comes in five sizes, all with the same design: tiny (39M parameters, width 384), base (74M, 512), small (244M, 768), medium (769M, 1,024) and large (1.55B, 1,280). Since 2024 there is also **large-v3-turbo** (809M): a large encoder with only 4 decoder layers, for faster transcription.
 
 <QuickCheck
   q="A 12-second voice note is given to Whisper. How many vectors does its encoder output?"
@@ -182,7 +180,7 @@ Whisper comes in five sizes, all with the same design: tiny (39M parameters, wid
 
 <Mistake>
 
-Three common slips. The task token `<|translate|>` always means **into English**: Whisper cannot translate English into Malay. The language token names the language **spoken**, not the language you want out. And every input costs a full 30-second window, so a 2-second clip takes as much computation as a 30-second one. Whisper can also invent text on long silences or noise, a "hallucination" worth checking for.
+Three common slips. The task token `<|translate|>` always means **into English**: Whisper cannot translate English into Malay. The language token names the language **spoken**, not the language you want out. And every input is padded to a full 30-second window, so a 2-second clip takes as much *encoder* computation as a 30-second one (the decoder's cost grows with the number of words written). Whisper can also invent text on long silences or noise, a "hallucination" worth checking for.
 
 </Mistake>
 
@@ -249,6 +247,8 @@ The `reshape` works because the 1,500 vectors sit one after another in memory, s
 
 ## Choosing and running a speech model
 
+Choose by the output you need: a label, the words, or an open answer. Match each job below to the model family whose output fits it.
+
 <SpeechModelPicker />
 
 With the Hugging Face `transformers` library (introduced in [Using and fine-tuning models with Hugging Face](#/learn/pretrained-models-text-speech/hugging-face-in-practice)), each family is a few lines. The pipeline loads the audio, resamples it to 16 kHz, runs the model and post-processes the output:
@@ -261,23 +261,25 @@ asr = pipeline("automatic-speech-recognition", model="openai/whisper-small")
 print(asr("voice_note.wav")["text"])
 
 # Malay speech -> English text: set the language and task tokens
-asr("mesyuarat.wav", generate_kwargs={"language": "malay", "task": "translate"})
+print(asr("mesyuarat.wav", generate_kwargs={"language": "malay", "task": "translate"})["text"])
 
 # a label per clip with a fine-tuned HuBERT; returns [{"label": ..., "score": ...}, ...]
 clf = pipeline("audio-classification", model="superb/hubert-base-superb-er")
 print(clf("caller.wav")[0])             # the most likely emotion and its probability
 ```
 
+These calls need real audio files, so no output is shown.
+
 <ExamTip>
 
-Prelim questions on speech models test **matching**: HuBERT ↔ self-supervised masked prediction of k-means units; Whisper ↔ encoder-decoder, log-mel input, 680,000 hours of weakly labelled audio, transcribe or translate into English; audio LLM ↔ audio encoder + projector + LLM. Keep these numbers ready: 16 kHz, 30 s windows, 80 × 3,000 log-mel, 1,500 encoder positions, 20 ms per HuBERT or Whisper encoder frame. If an option says HuBERT "needs transcripts" or Whisper is "decoder-only", it is a trap.
+Prelim questions on speech models test **matching**: HuBERT ↔ self-supervised masked prediction of k-means units; Whisper ↔ encoder-decoder, log-mel input, 680,000 hours of weakly labelled audio (original version), transcribe or translate into English; audio LLM ↔ audio encoder + projector + LLM. Keep these numbers ready: 16 kHz, 30 s windows, 80 × 3,000 log-mel (128 × 3,000 in large-v3), 1,500 encoder positions, 20 ms per HuBERT or Whisper encoder frame. If an option says HuBERT "needs transcripts" or Whisper is "decoder-only", it is a trap.
 
 </ExamTip>
 
 <Takeaways>
 
 - **HuBERT** clusters 20 ms audio frames with k-means to make "hidden units", masks spans of frames and trains a Transformer to predict the hidden units, so it learns speech with no transcripts. Use its encoder with a small head for classification, or with CTC for recognition.
-- **Whisper** is an encoder-decoder: 30 s of audio → 80 × 3,000 log-mel → conv (stride 2) → 1,500 encoder vectors → a decoder that writes text, cross-attending to the audio.
+- **Whisper** is an encoder-decoder: 30 s of audio → 80 × 3,000 log-mel (128 rows in large-v3) → conv (stride 2) → 1,500 encoder vectors → a decoder that writes text, cross-attending to the audio.
 - Whisper's special tokens choose the **language** spoken and the **task**: transcribe, or translate into English.
 - **Audio LLMs** (Qwen-Audio, Voxtral) put audio tokens from a Whisper-style encoder, passed through a small trained projector, next to text tokens in an LLM.
 - Choose by output: a label per clip → encoder + head; the words said → Whisper; an open-ended answer about the sound → audio LLM.

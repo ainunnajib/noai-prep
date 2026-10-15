@@ -5,7 +5,7 @@ import NextTokenBars from './visuals/bert-and-gpt/NextTokenBars'
 import PerplexityMeter from './visuals/bert-and-gpt/PerplexityMeter'
 import EncoderVsDecoderMasks from './visuals/bert-and-gpt/EncoderVsDecoderMasks'
 
-In 2018 two models changed how AI handles language. Google's **BERT** and OpenAI's **GPT** are both stacks of the [Transformer blocks](#/learn/attention-and-transformers/positional-encoding-and-blocks) you have just built. Neither was trained for any particular task. Instead, each spent weeks playing a simple word game on billions of words, and that one game left it knowing enough about language to be adapted to almost any task. This lesson covers the two games, the one vector BERT uses to classify a sentence, how GPT gives a probability to every sentence, and the single setting that makes BERT and GPT different: the attention mask.
+In 2018 two models changed how AI handles language: OpenAI's **GPT** (June) and Google's **BERT** (October), both stacks of the [Transformer blocks](#/learn/attention-and-transformers/positional-encoding-and-blocks) you have just built. Neither was trained for a particular task. Each spent days to weeks of computing on a simple word game over hundreds of millions to billions of words, and that game taught it enough about language to be adapted to almost any task.
 
 ## Pretrain once, fine-tune many times
 
@@ -14,7 +14,7 @@ Both models follow the same two-stage recipe.
 1. <Term def="Training a model on a huge amount of general data first, so that it learns broadly useful knowledge before it ever sees your task.">Pretraining</Term>: train on a huge pile of raw text. The game is designed so that **the text supplies its own answers**, so nobody has to label anything. This is called <Term def="Learning where the labels come from the data itself, for example hiding a word and using the real word as the answer. No human labelling is needed, so it scales to billions of examples.">self-supervised learning</Term>.
 2. <Term def="Continuing to train a pretrained model on a small labelled dataset for your task, usually with a small learning rate, so it adapts without forgetting what it learned.">Fine-tuning</Term>: take the pretrained model, add a small task-specific layer if needed, and train briefly on a few thousand labelled examples.
 
-The expensive part (pretraining) is done once by a big lab; everyone else downloads the result and fine-tunes it cheaply. You will do exactly that in the [Hugging Face lesson](#/learn/pretrained-models-text-speech/hugging-face-in-practice). The two models differ in which game they play:
+A big lab pretrains once; everyone else downloads the result and fine-tunes it cheaply, as you will in the [Hugging Face lesson](#/learn/pretrained-models-text-speech/hugging-face-in-practice). The two models differ in their game:
 
 | | BERT | GPT |
 |---|---|---|
@@ -31,7 +31,11 @@ In an English paper's cloze passage you fill each blank using the words **before
 
 </Analogy>
 
-This game is called <Term def="BERT's pretraining task: hide some tokens of a sentence and train the model to predict the hidden tokens from all the other tokens, on both sides.">masked language modelling (MLM)</Term>. BERT replaces some <Term def="The pieces a tokenizer cuts text into: whole words, parts of words such as '##ing', or punctuation. Models read and predict tokens, not letters.">tokens</Term> with a special `[MASK]` token, runs the whole sentence through its encoder, and at each hidden position outputs a probability for every one of its 30,522 vocabulary tokens. The loss is the average <Term def="The loss for one prediction is −log of the probability the model gave to the correct answer: 0 if it was certain and right, large if it gave the right answer a small probability.">cross-entropy</Term> over the hidden positions only:
+This game is called <Term def="BERT's pretraining task: hide some tokens of a sentence and train the model to predict the hidden tokens from all the other tokens, on both sides.">masked language modelling (MLM)</Term>. BERT replaces some <Term def="The pieces a tokeniser cuts text into: whole words, parts of words such as '##ing', or punctuation. Models read and predict tokens, not letters.">tokens</Term> with a special `[MASK]` token, runs the whole sentence through its encoder and guesses each hidden token. Because every token attends to every other token, it uses clues from **both sides** of each gap. Try it with two real models: BERT, and GPT-2, which only ever sees the words to the left.
+
+<MaskedWordGame />
+
+What you just saw, written as maths: at each hidden position BERT outputs a probability for each of its 30,522 vocabulary tokens, and the loss is the average <Term def="The loss for one prediction is −log of the probability the model gave to the correct answer: 0 if it was certain and right, large if it gave the right answer a small probability.">cross-entropy</Term> over the hidden positions only:
 
 $$
 \mathcal{L}_\text{MLM} = -\frac{1}{|M|} \sum_{i \in M} \log P\big(x_i \mid \tilde{x}\big)
@@ -41,10 +45,6 @@ $$
 - $x_i$ is the real token at position $i$ (the answer).
 - $\tilde{x}$ is the corrupted sentence BERT actually sees, with the chosen tokens hidden.
 - $P(x_i \mid \tilde{x})$ is the probability BERT gives the right token. The $-\log$ makes the loss small when that probability is near 1.
-
-Because every token attends to every other token, BERT uses clues from **both sides** of each gap. Try it below with two real models: BERT, and GPT-2, which only ever sees the words to the left.
-
-<MaskedWordGame />
 
 <KeyIdea>
 
@@ -60,7 +60,7 @@ BERT does not hide every word, and it does not always use `[MASK]`. In each sequ
 - Of the chosen tokens, **80%** are replaced by `[MASK]`, **10%** by a random token, and **10%** are left **unchanged**.
 - All chosen tokens are predicted, whatever happened to them. Every other position gets the label $-100$, which tells PyTorch's cross-entropy to skip it.
 
-Why not simply `[MASK]` all of them? Because `[MASK]` never appears when the model is used later, during fine-tuning or real use. A model that only ever predicted at `[MASK]` positions could learn "only work hard where you see `[MASK]`". With the random and unchanged cases, **any** token might secretly be one it is tested on, so BERT has to build a good representation of every token, including ones that look normal.
+Why not simply `[MASK]` all of them? Because `[MASK]` never appears later, in fine-tuning or real use, and a model tested only at `[MASK]` positions could learn to "work hard only where you see `[MASK]`". With the random and unchanged cases, **any** token might secretly be tested, so BERT must build a good representation of every token.
 
 <MaskingSampler />
 
@@ -104,25 +104,18 @@ ids = torch.randint(1000, V, (512, 128))       # 512 fake sequences
 ids[:, 0], ids[:, -1] = CLS, SEP
 inputs, labels = mask_tokens(ids, MASK, V, special_ids=[CLS, SEP])
 
-chosen = labels != -100
-masked = (inputs == MASK) & chosen
-random = (inputs != ids) & (inputs != MASK)
-same = (inputs == ids) & chosen
-for name, m in [("chosen", chosen), ("[MASK]", masked),
-                ("random", random), ("unchanged", same)]:
-    print(f"{name:10s} {m.float().mean().item():.4f}")
+chosen = (labels != -100).float().mean().item()
+masked = (inputs == MASK).float().mean().item()
+print(f"chosen {chosen:.4f}, [MASK] {masked:.4f}")
 print("first row labels:", labels[0, :8].tolist())
 ```
 
 ```text
-chosen     0.1485
-[MASK]     0.1186
-random     0.0147
-unchanged  0.0152
+chosen 0.1485, [MASK] 0.1186
 first row labels: [-100, 6261, -100, 25588, -100, -100, -100, -100]
 ```
 
-The numbers are shares of **all** tokens: about 15% chosen (slightly less, because the 2 special tokens in each row are never chosen), about 12% masked, and about 1.5% each for random and unchanged.
+These are shares of **all** tokens: about 15% chosen (slightly less, as the 2 special tokens per row are never chosen) and 12% masked. In the labels, every unchosen position is $-100$.
 
 <Mistake title="Three classic slips">
 
@@ -136,11 +129,15 @@ Putting $-100$ in the **input** instead of the labels (it is not a token id, and
 
 <Analogy title="The class monitor">
 
-The class monitor listens to everyone in the class and then reports the class's overall view to the teacher. BERT's `[CLS]` token does the same job: it sits at the front of every input, attends to every token in every layer, and its final vector is what gets "reported" to the classifier.
+The class monitor listens to everyone, then reports the class's overall view to the teacher. BERT's `[CLS]` token sits at the front of every input, attends to every token in every layer, and its final vector is what the classifier hears.
 
 </Analogy>
 
-As in the [tokenisation lesson](#/learn/text-as-data/tokenisation), BERT's tokenizer adds `[CLS]` at the start and `[SEP]` at the end: `[CLS] the laksa was amazing [SEP]`. After 12 layers, every token has a 768-number vector, so the output for a batch has shape $(B, T, 768)$: $B$ sentences, $T$ tokens each. To classify a sentence into $k$ classes we keep only position 0, the `[CLS]` vector $h_\text{CLS}$, and add a linear **classification head**:
+As in the [tokenisation lesson](#/learn/text-as-data/tokenisation), BERT's tokeniser adds `[CLS]` at the start and `[SEP]` at the end: `[CLS] the laksa was amazing [SEP]`. After 12 layers every token has a 768-number vector, so a batch of $B$ sentences of $T$ tokens gives an output of shape $(B, T, 768)$. To classify a sentence we keep only position 0, the `[CLS]` vector $h_\text{CLS}$, and feed it to a small **classification head**. The figure uses a real BERT fine-tuned for sentiment (it splits "laksa" into `la ##ks ##a`):
+
+<CLSHead />
+
+It gets "shiok" wrong: it learned English from Wikipedia and books and sentiment from film reviews, but never Singlish. Fine-tuning on local examples would fix that. Written as maths, a linear head for $k$ classes is:
 
 $$
 p = \text{softmax}\big(W\, h_\text{CLS} + b\big)
@@ -150,14 +147,18 @@ $$
 - $W$ is a $k \times 768$ weight matrix and $b$ is a bias vector of length $k$. Together they turn 768 numbers into $k$ scores, called <Term def="The raw scores a model outputs before softmax. They can be any real numbers; softmax turns them into probabilities that add up to 1.">logits</Term>.
 - softmax turns the $k$ logits into $k$ probabilities that add up to 1.
 
-The head has $768k + k$ parameters: for 2 classes, $1536 + 2 = 1538$. During pretraining, BERT's `[CLS]` vector was also trained on a second game, **next sentence prediction**: "does sentence B really follow sentence A?" That is why it already carries sentence-level meaning before fine-tuning (later models such as RoBERTa dropped this game and still work well).
+The head has $768k + k$ parameters: for 2 classes, $1536 + 2 = 1538$.
 
-<CLSHead />
+<Reveal label="Going further: the pooler and BERT's second game">
+
+BERT's own head first passes $h_\text{CLS}$ through a small pretrained **pooler**, a 768→768 layer with tanh, as the figure shows; the formula above leaves it out to keep the maths simple. The pooler was trained by a second pretraining game, **next sentence prediction**: "does sentence B really follow sentence A?" That gave `[CLS]` a sentence-level training signal. Even so, the raw pretrained `[CLS]` vector is a weak sentence summary (averaging word vectors often does better), and fine-tuning is what makes it a good one for your task. RoBERTa later dropped this second game and still works well.
+
+</Reveal>
 
 You can fine-tune in two ways:
 
-- **Fine-tune everything** (the usual choice): train the head *and* all 110 million BERT weights, with a small learning rate such as $2 \times 10^{-5}$ to $5 \times 10^{-5}$ for 2 to 4 epochs, so the pretrained knowledge is nudged rather than wiped out.
-- **Freeze the encoder** (also called *feature extraction* or a *linear probe*): train only the head. It is much cheaper and cannot overfit as badly, but it is usually less accurate.
+- **Fine-tune everything** (the usual choice): train the head *and* all 110 million BERT weights with a small learning rate ($2 \times 10^{-5}$ to $5 \times 10^{-5}$), so the pretrained knowledge is nudged rather than wiped out.
+- **Freeze the encoder** (a *linear probe*): train only the head. Much cheaper, but usually less accurate.
 
 In PyTorch the whole idea is one slice and one `nn.Linear`. Here a random tensor stands in for BERT's output:
 
@@ -165,32 +166,25 @@ In PyTorch the whole idea is one slice and one `nn.Linear`. Here a random tensor
 import torch
 import torch.nn as nn
 
-torch.manual_seed(0)
 B, T, d, k = 4, 10, 768, 3      # batch, tokens, BERT-base width, classes
 hidden = torch.randn(B, T, d)   # stand-in for BERT's last-layer output
-
 cls_vec = hidden[:, 0, :]       # position 0 is [CLS]: shape (B, d)
 head = nn.Linear(d, k)          # the classification head
-logits = head(cls_vec)          # shape (B, k)
-probs = logits.softmax(dim=-1)
-
-print("hidden:", tuple(hidden.shape), " cls_vec:", tuple(cls_vec.shape),
-      " logits:", tuple(logits.shape))
+logits = head(cls_vec)          # shape (B, k): one score per class
+print("cls_vec:", tuple(cls_vec.shape), " logits:", tuple(logits.shape))
 print("head parameters:", sum(p.numel() for p in head.parameters()))
-print("each row sums to 1:", torch.allclose(probs.sum(dim=-1), torch.ones(B)))
 ```
 
 ```text
-hidden: (4, 10, 768)  cls_vec: (4, 768)  logits: (4, 3)
+cls_vec: (4, 768)  logits: (4, 3)
 head parameters: 2307
-each row sums to 1: True
 ```
 
 <QuickCheck
   q="A BERT-base model (hidden size 768) is fine-tuned to sort forum posts into 4 categories with a linear head on the `[CLS]` vector. How many parameters does the head have?"
   options={['3,076', '3,072', '772', '590,592']}
   answer={0}
-  explain="The head is `nn.Linear(768, 4)`: $768 \times 4 = 3072$ weights plus $4$ biases, so $3076$. Forgetting the biases gives 3,072; $768 + 4 = 772$ adds instead of multiplying; 590,592 is a $768 \times 768$ layer."
+  explain="The head is `nn.Linear(768, 4)`: $768 \times 4 = 3072$ weights plus $4$ biases, so $3076$. Forgetting the biases gives 3,072; $768 + 4 = 772$ adds instead of multiplying; 590,592 is a $768 \times 768$ layer plus 768 biases, the size of BERT's pooler."
 />
 
 <PastPaperQuestion paper="prelim2026" n={218} />
@@ -203,7 +197,13 @@ Your phone's keyboard suggests the next word as you type. GPT does the same thin
 
 </Analogy>
 
-A <Term def="A model that gives a probability to every possible next token, given the text so far. Multiplying these probabilities gives a probability for a whole sentence.">language model</Term> answers one question again and again: given the text so far, how likely is each possible next token? We write this as $P(w_t \mid w_1, \dots, w_{t-1})$, read "the probability of token $w_t$ **given** all the earlier tokens". Multiplying these <Term def="A probability that something happens given that something else is already known, written P(A | B).">conditional probabilities</Term> gives the probability of a whole sentence. This is the **chain rule** of probability:
+A <Term def="A model that gives a probability to every possible next token, given the text so far. Multiplying these probabilities gives a probability for a whole sentence.">language model</Term> answers one question again and again: given the text so far, how likely is each possible next token? We write this as $P(w_t \mid w_1, \dots, w_{t-1})$, read "the probability of token $w_t$ **given** all the earlier tokens".
+
+The visual below uses a tiny model you can check by hand. It was "trained" by counting 16 short sentences. A <Term def="A count-based language model that predicts the next word from only the previous one word: P(w | previous word) = count(previous word, w) / count(previous word).">bigram</Term> model looks at the previous word only: $P(\text{mrt} \mid \text{the})$ is the number of times "the mrt" appears divided by the number of times "the" is followed by anything. A **trigram** looks at the previous two words.
+
+<NextTokenBars />
+
+Multiplying these <Term def="A probability that something happens given that something else is already known, written P(A | B).">conditional probabilities</Term> gives the probability of a whole sentence. This is the **chain rule** of probability:
 
 $$
 P(w_1, w_2, \dots, w_n) = \prod_{t=1}^{n} P(w_t \mid w_1, \dots, w_{t-1})
@@ -212,10 +212,6 @@ $$
 - $w_1, \dots, w_n$ are the $n$ tokens of the sentence, in order.
 - $\prod$ means "multiply together", like $\sum$ means "add together".
 - For $t = 1$ there is nothing before, so the first factor is just $P(w_1)$ (in practice, given a start token).
-
-The visual below uses a tiny model you can check by hand. It was "trained" by counting 16 short sentences. A <Term def="A count-based language model that predicts the next word from only the previous one word: P(w | previous word) = count(previous word, w) / count(previous word).">bigram</Term> model looks at the previous word only: $P(\text{mrt} \mid \text{the})$ is the number of times "the mrt" appears divided by the number of times "the" is followed by anything. A **trigram** looks at the previous two words.
-
-<NextTokenBars />
 
 <Steps title="Chain rule by hand: P(i take the mrt to school .) with the bigram model">
   <Step title="Write one factor per token">
@@ -228,11 +224,11 @@ The visual below uses a tiny model you can check by hand. It was "trained" by co
     The 6s cancel and $\tfrac44 = \tfrac55 = 1$, leaving $\tfrac{4}{16} \cdot \tfrac{3}{14} \cdot \tfrac{2}{3} \cdot \tfrac{2}{5} = \tfrac14 \cdot \tfrac{3}{14} \cdot \tfrac{4}{15} = \tfrac{12}{840} = \tfrac{1}{70}$.
   </Step>
   <Step title="Sanity check">
-    $\tfrac{1}{70} \approx 0.0143$, which matches the visual. Every extra token multiplies by a number at most 1, so **longer sentences always get smaller probabilities**.
+    $\tfrac{1}{70} \approx 0.0143$, which matches the visual. Every extra token multiplies by a number at most 1, so **extending a sentence can never raise its probability**. That is why raw sentence probabilities favour short texts, and why we compare models per token (perplexity, below).
   </Step>
 </Steps>
 
-GPT works exactly like this, except that each factor comes from a Transformer reading all the earlier tokens instead of from a table of counts. Counting fails for real text, because most long contexts never appear twice. Pretraining GPT means **maximising the probability of real text**, which is the same as minimising the average cross-entropy $-\log P(w_t \mid w_{<t})$ over every position of billions of sentences. Like BERT's game, this is self-supervised: the next word is the label.
+GPT works the same way, but each factor comes from a Transformer reading all the earlier tokens, since most long contexts never appear twice and cannot be counted. Pretraining GPT means minimising the average cross-entropy $-\log P(w_t \mid w_{<t})$ over every position. Like BERT's game, this is self-supervised: the next word is the label.
 
 To write text, GPT runs the chain rule forwards: compute the next-token probabilities, pick a token, append it, and repeat. Generating one token at a time, each conditioned on everything generated so far, is called <Term def="Generating a sequence one token at a time, where each new token is predicted from all the tokens before it, including the ones the model just generated.">autoregressive</Term> generation. How to pick (always the most likely, or at random, and how random) is the topic of [decoding strategies](#/learn/large-language-models/decoding-and-sampling).
 
@@ -245,7 +241,11 @@ To write text, GPT runs the chain rule forwards: compute the next-token probabil
 
 ## Perplexity: how surprised is the model?
 
-To compare language models, we use the probability they give to real text they have not seen. Raw sentence probabilities are awkward (they shrink with length), so we average per token. The **surprise** of one token is $-\log P$: 0 for a certain token, large for an unexpected one. <Term def="How surprised a language model is by a text: e raised to the average negative log-probability per token. Lower is better. It equals the number of equally likely options the model is effectively choosing between at each step.">Perplexity</Term> is $e$ raised to the average surprise:
+To compare language models, we use the probability they give to real text they have not seen, averaged per token. The **surprise** of one token is $-\log P$: 0 for a certain token, large for an unexpected one. <Term def="How surprised a language model is by a text: e raised to the average negative log-probability per token. Lower is better. It equals the number of equally likely options the model is effectively choosing between at each step.">Perplexity</Term> is $e$ raised to the average surprise. See it with real GPT-2 numbers:
+
+<PerplexityMeter />
+
+As a formula:
 
 $$
 \text{PPL} = \exp\!\left( -\frac{1}{N} \sum_{t=1}^{N} \ln P(w_t \mid w_{<t}) \right)
@@ -254,8 +254,9 @@ $$
 - $N$ is the number of tokens scored.
 - $\ln$ is the natural logarithm (base $e$), and $\exp(x)$ means $e^x$, which undoes it.
 - The part inside the brackets is exactly the average cross-entropy loss, so **perplexity = $e^{\text{loss}}$**.
+- With $\log_2$ the cross-entropy $H$ is in **bits**, and then $\text{PPL} = 2^{H}$: the base of the power must match the base of the log. So $H = 3$ bits gives $2^3 = 8$, not $e^3 \approx 20$.
 
-**Lower is better.** The best possible value is 1 (every token predicted with probability 1). A useful way to read it: if a model gave every token probability $\tfrac{1}{k}$, its perplexity would be exactly $k$, so perplexity is "the number of equally likely tokens the model is effectively choosing between". A model that knows nothing and spreads its bets evenly over a vocabulary of $V$ tokens has perplexity $V$.
+**Lower is better**, and the best possible value is 1. If a model gave every token probability $\tfrac{1}{k}$, its perplexity would be exactly $k$: perplexity is "the number of equally likely tokens the model is effectively choosing between".
 
 <Steps title="Perplexity without a calculator">
   <Step title="The probabilities">
@@ -272,42 +273,23 @@ $$
   </Step>
 </Steps>
 
-<PerplexityMeter />
-
-In PyTorch, perplexity is just `loss.exp()`. The second part below is the actual GPT training loss: the logits at positions $0, \dots, T-2$ are compared with the tokens at positions $1, \dots, T-1$, the "shift by one". The model is untrained, so its perplexity (about 1,200) is roughly the vocabulary size of 1,000: it is no better than guessing.
+In PyTorch, perplexity is just `loss.exp()`. Below is the actual GPT training loss: the logits at positions $0, \dots, T-2$ are compared with the tokens at positions $1, \dots, T-1$, the "shift by one". The model is untrained, so its perplexity (about 1,200) is a little worse than guessing uniformly among its 1,000 tokens (which would score exactly 1,000), because random initial logits are not perfectly flat.
 
 ```python
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# 1) Perplexity by hand: true tokens got probabilities 1/2, 1/4, 1/8
-p = torch.tensor([0.5, 0.25, 0.125])
-nll = -torch.log(p)                       # surprise of each token
-print("surprises:", [round(v, 4) for v in nll.tolist()])
-print("perplexity:", torch.exp(nll.mean()).item())
-
-# 2) The GPT training loss: predict token t+1 from tokens 0..t
 torch.manual_seed(0)
 V, d, T = 1000, 64, 12                    # vocabulary, width, length
+emb, pos = nn.Embedding(V, d), nn.Embedding(T, d)
+block = nn.TransformerEncoderLayer(d, nhead=4, batch_first=True).eval()
+to_vocab = nn.Linear(d, V)
 
-class TinyGPT(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.emb = nn.Embedding(V, d)
-        self.pos = nn.Embedding(T, d)
-        self.block = nn.TransformerEncoderLayer(d, nhead=4, batch_first=True)
-        self.out = nn.Linear(d, V)
-
-    def forward(self, ids):
-        n = ids.shape[1]
-        x = self.emb(ids) + self.pos(torch.arange(n))
-        causal = nn.Transformer.generate_square_subsequent_mask(n)
-        return self.out(self.block(x, src_mask=causal, is_causal=True))
-
-model = TinyGPT().eval()
 ids = torch.randint(V, (8, T))            # 8 sequences of 12 token ids
-logits = model(ids)                       # (8, 12, 1000)
+causal = nn.Transformer.generate_square_subsequent_mask(T)
+h = block(emb(ids) + pos(torch.arange(T)), src_mask=causal, is_causal=True)
+logits = to_vocab(h)                      # (8, 12, 1000)
 loss = F.cross_entropy(
     logits[:, :-1].reshape(-1, V),        # predictions at positions 0..10
     ids[:, 1:].reshape(-1),               # targets: the NEXT tokens, 1..11
@@ -317,13 +299,11 @@ print(f"loss = {loss.item():.3f}, perplexity = {loss.exp().item():.0f}")
 ```
 
 ```text
-surprises: [0.6931, 1.3863, 2.0794]
-perplexity: 4.0
 logits: (8, 12, 1000)
 loss = 7.089, perplexity = 1198
 ```
 
-Notice that the "decoder" block is PyTorch's `TransformerEncoderLayer` with a causal mask. That is not a typo, and it leads to the most important idea of this lesson.
+Notice that GPT's "decoder" block here is PyTorch's `TransformerEncoderLayer` with a causal mask. That is not a typo, and it leads to the most important idea of this lesson.
 
 ## The real difference is the mask
 
@@ -333,11 +313,11 @@ Writing a story one sentence at a time, without peeking ahead, is GPT: you only 
 
 </Analogy>
 
-Inside, BERT's encoder blocks and GPT's decoder blocks are almost the same: attention, feed-forward network, residuals, LayerNorm. What differs is the [attention mask](#/learn/attention-and-transformers/scaled-dot-product-attention). BERT uses **no mask**: every token attends to every token, in both directions (*bidirectional*). GPT uses a **causal mask**: token $t$ may attend only to positions $1, \dots, t$, a lower-triangular pattern.
+Inside, BERT's encoder blocks and GPT's decoder blocks are almost the same: attention, feed-forward network, residuals, LayerNorm. What differs is the [attention mask](#/learn/attention-and-transformers/scaled-dot-product-attention). BERT uses **no causal mask** (only a padding mask, so nothing attends to `[PAD]`): every real token attends to every other, in both directions (*bidirectional*). GPT uses a **causal mask**: token $t$ may attend only to positions $1, \dots, t$, a lower-triangular pattern.
 
 <EncoderVsDecoderMasks />
 
-The causal mask is what makes next-token training honest. If GPT could see position $t+1$ while predicting it, it would simply copy the answer. With the mask, one forward pass over a $T$-token sentence gives $T$ separate prediction exercises, one per position, all computed in parallel. BERT cannot be trained this way, because each of its tokens already sees the word it would be asked to predict. That is why BERT needs the `[MASK]` trick, and why it **cannot generate text left to right**: it was never trained to continue a sentence.
+The causal mask is what makes next-token training honest: without it, GPT could see position $t+1$ and simply copy the answer. With it, one forward pass over a $T$-token text gives $T - 1$ prediction exercises (or $T$ with a start token in front), all computed in parallel. BERT's tokens already see the word they would be asked to predict, which is why BERT needs the `[MASK]` trick and **cannot generate text left to right**: it was never trained to continue a sentence.
 
 | | Encoder-only (BERT family) | Decoder-only (GPT family) |
 |---|---|---|
@@ -346,11 +326,11 @@ The causal mask is what makes next-token training honest. If GPT could see posit
 | Best at | **understanding**: sentiment and topic classification, named-entity tagging, finding the answer span in a passage, sentence embeddings | **generating**: chatbots, story and code completion, and any task you can phrase as a prompt |
 | Examples | BERT, RoBERTa, DistilBERT, mBERT | GPT-2, GPT-3/4, Llama, Qwen, Gemma |
 
-Today's large decoder-only models are so strong that they also handle classification by prompting ("Is this review positive or negative?"). But a fine-tuned encoder is often far smaller, faster and cheaper for a fixed understanding task, and still common in practice and in IOAI tasks.
+Large decoder-only models can also classify by prompting ("Is this review positive or negative?"), but a fine-tuned encoder is often far smaller, faster and cheaper for a fixed understanding task.
 
 <ExamTip>
 
-NOAI's favourite facts here: BERT = **bidirectional encoder, masked words**; GPT = **autoregressive decoder, next token, causal mask**; `[CLS]` = **pooled sentence vector for classification**; MLM = **15% chosen, 80/10/10**; perplexity = $e^{\text{average cross-entropy}}$, **lower is better**. For quick perplexity questions, look for powers of 2: probabilities $\tfrac12, \tfrac14, \tfrac18$ average to a surprise of $2 \ln 2$, giving perplexity 4. A distractor often multiplies probabilities when the question asks for perplexity, or the reverse.
+NOAI's favourite facts here: BERT = **bidirectional encoder, masked words**; GPT = **autoregressive decoder, next token, causal mask**; `[CLS]` = **pooled sentence vector for classification**; MLM = **15% chosen, 80/10/10**; perplexity = $e^{\text{average cross-entropy}}$ (or $2^{H}$ in bits), **lower is better**. A common distractor multiplies the probabilities when the question asks for perplexity, or the reverse.
 
 </ExamTip>
 
@@ -368,7 +348,7 @@ NOAI's favourite facts here: BERT = **bidirectional encoder, masked words**; GPT
 - **BERT** (encoder-only) is pretrained by **masked language modelling**: choose 15% of tokens; 80% become `[MASK]`, 10% a random token, 10% unchanged; predict all chosen ones, using context on **both sides**. Unscored positions get label $-100$.
 - The final **`[CLS]`** vector summarises the input; a linear head $\text{softmax}(W h_\text{CLS} + b)$ with $768k + k$ parameters classifies it. Fine-tune everything with a small learning rate, or freeze the encoder and train only the head.
 - **GPT** (decoder-only) is a language model: $P(w_1, \dots, w_n) = \prod_t P(w_t \mid w_{<t})$. It is trained to predict the next token and generates **autoregressively**.
-- **Perplexity** $= \exp\big(\text{mean of } {-\ln P}\big) = e^{\text{loss}}$: the effective number of choices per token. Lower is better; a know-nothing model scores the vocabulary size.
+- **Perplexity** $= \exp\big(\text{mean of } {-\ln P}\big) = e^{\text{loss}}$ (or $2^{H}$ with $H$ in bits): the effective number of choices per token. Lower is better; a model that guesses uniformly scores the vocabulary size.
 - The **attention mask** is the key difference: full (bidirectional) for BERT, causal (lower-triangular) for GPT.
 
 </Takeaways>

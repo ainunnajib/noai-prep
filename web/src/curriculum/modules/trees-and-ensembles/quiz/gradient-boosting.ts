@@ -13,20 +13,25 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'trees-and-ensembles.gradient-boosting.2',
-    prompt: 'With the L1 loss $L = |y - F|$, the targets are $y = [3, 1, 2, 10]$ and every current prediction is $F = 2.5$. Which pseudo-residuals (negative gradients) does the next tree learn?',
-    options: ['$[+1, -1, -1, +1]$', '$[0.5, -1.5, -0.5, 7.5]$', '$[-1, +1, +1, -1]$', '$[0.5, 1.5, 0.5, 7.5]$'],
+    prompt: 'Gradient boosting with the L1 loss $L = |y - F|$ is trained on the targets $y = [3, 1, 2, 10]$. What is the starting constant $F_0$, and which pseudo-residuals (negative gradients) does the first tree learn?',
+    options: ['$F_0 = 2.5$, pseudo-residuals $[+1, -1, -1, +1]$', '$F_0 = 4$, pseudo-residuals $[-1, -1, -1, +1]$', '$F_0 = 2.5$, pseudo-residuals $[0.5, -1.5, -0.5, 7.5]$', '$F_0 = 4$, pseudo-residuals $[-1, -3, -2, 6]$'],
     answer: 0,
     explanation:
-      'For L1 the negative gradient is $\\operatorname{sign}(y - F)$: $3 - 2.5 > 0$ gives $+1$, $1 - 2.5 < 0$ gives $-1$, and so on. $[0.5, -1.5, -0.5, 7.5]$ are the plain residuals, which is the L2 answer. $[-1, +1, +1, -1]$ is the gradient itself (`y_pred - y`), with the wrong sign, and $[0.5, 1.5, 0.5, 7.5]$ takes absolute values of the residuals.',
+      'For L1 the best constant is the median: sorted, the targets are $[1, 2, 3, 10]$, so $F_0 = \\tfrac{2 + 3}{2} = 2.5$ (the mean, 4, is the L2 start). The negative gradient of $|y - F|$ is $\\operatorname{sign}(y - F)$: $3 - 2.5 > 0$ gives $+1$, $1 - 2.5$ and $2 - 2.5$ give $-1$, and $10 - 2.5$ gives $+1$. The plain residuals $y - F$ are the L2 pseudo-residuals, and $[-1, -3, -2, 6]$ is the full L2 answer, from the mean.',
     difficulty: 'intermediate',
   },
   {
-    id: 'trees-and-ensembles.gradient-boosting.3',
-    prompt: 'The training targets are $y = [3, 1, 2, 10]$. Which constant does gradient boosting start from, $F_0$, under the L2 loss and under the L1 loss?',
-    options: ['L2: 4, L1: 2.5', 'L2: 2.5, L1: 4', 'L2: 4, L1: 4', 'L2: 0, L1: 0'],
+    id: 'trees-and-ensembles.gradient-boosting.7',
+    prompt: 'A table of HDB resale flats has some missing values in its numeric columns and a text column `town` with 26 categories. Which statement about the gradient-boosting libraries is true?',
+    options: [
+      'XGBoost learns a default direction for missing values at each split, so rows with NaNs can be used as they are',
+      'XGBoost needs every NaN replaced by the column mean first, because a split cannot compare a NaN with a threshold',
+      'CatBoost needs the town column one-hot encoded first, because its trees can only split on numeric columns',
+      'LightGBM is fast because it trains all of its trees in parallel and averages them, as a random forest does',
+    ],
     answer: 0,
     explanation:
-      'The best constant for squared error is the mean, $\\tfrac{3 + 1 + 2 + 10}{4} = 4$; for absolute error it is the median, the middle of $[1, 2, 3, 10]$, which is $\\tfrac{2 + 3}{2} = 2.5$. Swapping them is the common slip. Starting from 0 still works in principle, but it wastes many early trees on just shifting every prediction up to the right level.',
+      "At every split XGBoost (like LightGBM and scikit-learn's `HistGradientBoostingRegressor`) learns which branch the missing values should go down, so no imputation is needed. CatBoost is built to take categorical columns such as `town` directly (listed in `cat_features`), with no one-hot encoding. LightGBM is still sequential boosting: its speed comes from sorting feature values into histogram bins, not from training independent trees in parallel.",
     difficulty: 'beginner',
   },
   {

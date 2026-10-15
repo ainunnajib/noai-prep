@@ -17,7 +17,7 @@ const questions: QuizQuestion[] = [
       '`enc_out` has shape `(2, 7, 16)` (7 source tokens) and `dec_x` has shape `(2, 5, 16)` (5 target tokens). A student writes the cross-attention call below. What goes wrong?',
     code: 'cross = nn.MultiheadAttention(16, num_heads=4, batch_first=True)\nout, w = cross(query=enc_out, key=dec_x, value=dec_x)',
     options: [
-      '`out` has shape `(2, 7, 16)`: one vector per source token, so the decoder gets no vector for each of its 5 positions to predict from',
+      '`out` has shape `(2, 7, 16)`: one vector per source token, so the decoder gets no vector for its 5 positions',
       'It raises an error, because the query and the keys must have the same number of tokens for the matrix product to work',
       'Nothing: attention is symmetric, so swapping the query with the key and value gives exactly the same output tensor',
       '`out` has shape `(2, 5, 16)` but each row of `w` sums to 7, so the softmax has to be applied a second time afterwards',
@@ -31,7 +31,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.encoder-decoder-models.3',
     prompt: 'Why does the cross-attention in an encoder-decoder model NOT need a causal mask, while the decoder\'s self-attention does?',
     options: [
-      'The whole input is known before decoding starts, so any output word may look at any input word; only future output words must stay hidden',
+      'The whole input is known before decoding starts, so output words may look at all of it; only future output words must stay hidden',
       'Cross-attention has no softmax, so there are no attention weights to which a mask could be applied in the first place',
       'Cross-attention already uses the decoder\'s causal mask through the residual connection, so adding a second mask would hide too much',
       'A causal mask can only be applied when the query and key sequences have exactly the same length, which is rarely true across languages',
@@ -44,11 +44,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'pretrained-models-text-speech.encoder-decoder-models.4',
     prompt:
-      'An encoder-decoder model translates a 20-token sentence into a 15-token output (including `</s>`) with greedy decoding, recomputing everything at each step. How many times do the encoder and the decoder run?',
+      'An encoder-decoder model translates a 20-token sentence into a 15-token output (including `</s>`) with greedy decoding and no caching: at each step the decoder re-reads all the tokens written so far. How many times do the encoder and the decoder run?',
     options: ['Encoder 1 time, decoder 15 times', 'Encoder 15 times, decoder 15 times', 'Encoder 20 times, decoder 15 times', 'Encoder 1 time, decoder 1 time'],
     answer: 0,
     explanation:
-      'The encoder reads the whole source once and its memory is reused at every step. The decoder runs once per output token, 15 times, each time predicting one more token. Running both only once describes training with teacher forcing, where the whole correct output is fed in at once.',
+      'The source does not change while the output grows, so the encoder reads it once and its memory is reused at every step. The decoder runs once per output token, 15 times, each time predicting one more token. Running both only once describes training with teacher forcing, where the whole correct output is fed in at once.',
     difficulty: 'beginner',
   },
   {
@@ -56,7 +56,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team builds an app that writes alt-text captions for photos posted on a school website. Which architecture is the classic fit?',
     options: [
-      'A vision encoder that turns the image into patch vectors, and a text decoder that writes the caption while cross-attending to them',
+      'A vision encoder turns the image into patch vectors, and a text decoder writes the caption while cross-attending to them',
       'A BERT-style encoder-only model, fine-tuned with one classification head that outputs a caption ID from a fixed list of captions',
       'A text-only decoder such as GPT-2 given the file name of the photo as its prompt, since the image pixels are not text tokens',
       'Two separate encoders, one for images and one for text, whose outputs are compared by cosine similarity to produce new captions',

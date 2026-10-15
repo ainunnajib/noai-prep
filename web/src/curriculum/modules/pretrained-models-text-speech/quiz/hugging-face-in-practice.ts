@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'pretrained-models-text-speech.hugging-face-in-practice.1',
     prompt: 'A BERT tokenizer is called on two sentences with `padding=True`. In the returned `attention_mask`, what does a 0 mean?',
     options: [
-      'That position is padding added to make the rows the same length, so attention should ignore it',
+      'That position is padding added to make rows the same length, so attention should ignore it',
       'That position holds the `[CLS]` token, whose vector is reserved for the classification head',
       'That token was chosen for masking, so the model has to predict it during fine-tuning',
       'That token is unknown to the vocabulary and was replaced by `[UNK]` before the lookup',
@@ -31,7 +31,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student loads `AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)` and immediately uses it to classify news headlines into 3 topics, without training. The predictions look random. Why?',
     options: [
-      'The 3-class classification head on top of BERT is newly and randomly initialised, so it must be trained on labelled examples first',
+      'The 3-class head on top of BERT is newly and randomly initialised, so it must be trained on labelled examples first',
       'BERT\'s tokenizer was not loaded with `num_labels=3` as well, so the input ids do not match the 3 classes of the model',
       'BERT was pretrained only on English and so cannot read news headlines until its embeddings are trained again from scratch',
       'The model needs `return_tensors="pt"` to be passed to `from_pretrained`, otherwise its outputs are NumPy arrays of zeros',
@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'When preparing labels for a named-entity tagging model, a student fills the padded positions of the labels with 0, the same value as the `[PAD]` token id. What is the effect?',
     options: [
-      'Label 0 is a real class ("O"), so the padding positions are scored as if they were words, distorting the loss; they should be −100',
+      'Label 0 is a real class ("O"), so padded positions are scored as if they were words; their labels should be −100',
       'Nothing changes, because the attention mask already makes the cross-entropy loss skip every padded position automatically',
       'Training crashes immediately, because label 0 is reserved for the `[PAD]` token and cannot be used as a class index',
       'The model learns faster, because the extra easy positions give it more examples of the most common label to practise on',

@@ -87,10 +87,8 @@ export default function IgnoreIndexMask() {
       title="Labels of −100 are skipped by the loss"
       caption={
         <>
-          One training sentence for named-entity tagging, after tokenising and padding to 12 positions. Each bar is that position's loss, −ln p, where p is the
-          probability the model gives the correct label (illustrative numbers for a model part-way through fine-tuning). Positions with label −100 are faded, with
-          their would-be loss drawn as a dashed outline: cross-entropy skips them and divides only by the number of scored positions. Switch the toggles off one at a time, or tap any label to flip it, and
-          watch the average change.
+          Each bar is one position's loss, −ln p (illustrative numbers). Tap a label to flip it to −100, or switch a toggle off, and notice
+          that −100 positions add nothing and do not count in the divisor.
         </>
       }
     >

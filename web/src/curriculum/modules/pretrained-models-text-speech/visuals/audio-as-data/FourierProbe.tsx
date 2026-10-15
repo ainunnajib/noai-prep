@@ -76,10 +76,8 @@ export default function FourierProbe() {
       title="Be the Fourier transform: hunt for hidden frequencies"
       caption={
         <>
-          The blue sound secretly mixes a 3 Hz wave and a quieter 7 Hz wave. Slide the orange <b>probe</b> wave through 0 to 12 Hz.
-          Multiply sound × probe point by point: when the probe matches a hidden wave, the product stays mostly above zero (green) and
-          its average is large; otherwise green and red cancel. Each probe you try adds a bar to the spectrum (grey stubs are probes not tried yet). Then shift the 7 Hz
-          wave: the cosine probe misses it, but the sine probe catches it, which is why the real transform uses both.
+          Slide the orange probe from 0 to 12 Hz (or press Scan) and watch the spectrum fill in. Notice that bars appear only at the hidden
+          3 Hz and 7 Hz waves; then shift the 7 Hz wave and switch the probe to sine.
         </>
       }
     >
@@ -91,7 +89,7 @@ export default function FourierProbe() {
         <Label x={0.01} y={2.2} dy={12} color="var(--viz-1)" size={12} weight={700}>
           sound
         </Label>
-        <Label x={0.99} y={2.2} dy={12} anchor="end" color="var(--viz-2)" size={12} weight={700}>
+        <Label x={0.99} y={2.2} dy={12} anchor="end" color="color-mix(in srgb, var(--viz-2) 70%, var(--ink))" size={12} weight={700}>
           {`probe: ${probe}(2π·${k}·t)`}
         </Label>
       </Plot>
@@ -120,7 +118,8 @@ export default function FourierProbe() {
             <Rect key={i} x0={i - 0.32} x1={i + 0.32} y0={0} y1={0.035} fill="color-mix(in srgb, var(--viz-muted) 45%, transparent)" />
           ),
         )}
-        <Rect x0={k - 0.45} x1={k + 0.45} y0={0} y1={1.1} fill="none" stroke="var(--viz-2)" />
+        {/* mark the current probe with a thin outline that follows its own bar, so an empty probe does not look like a tall bar */}
+        <Rect x0={k - 0.45} x1={k + 0.45} y0={0} y1={Math.max(coeffs[k].s, 0.035) + 0.06} fill="none" stroke="var(--viz-2)" />
         <Axes xLabel="probe frequency (Hz)" xTicks={12} yTicks={2} />
         <Label x={-0.4} y={1.3} dy={10} color="var(--ink-2)" size={12} weight={700}>
           strength (the spectrum)

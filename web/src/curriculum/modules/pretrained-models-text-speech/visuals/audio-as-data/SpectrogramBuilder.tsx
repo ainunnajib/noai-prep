@@ -271,11 +271,8 @@ export default function SpectrogramBuilder() {
       title="Build a spectrogram one window at a time"
       caption={
         <>
-          Press <b>Play</b>: the orange window slides along the sound, the Fourier transform measures every frequency inside it (right
-          panel), and that becomes one column of the image. The clip holds a rising chirp, a steady 1,000 Hz tone and a click at 0.7 s.
-          Try the <b>64 ms</b> window (the tone is a thin line but the click smears sideways), then <b>16 ms</b> (the click is sharp but the
-          lines get fat). Turn <b>log</b> off to see why we use decibels, and <b>mel</b> on to give low frequencies more rows. Tap the image
-          to jump.
+          Press <b>Play</b> and watch each window become one column. Then try the <b>64 ms</b> window (sharp tone line, smeared click) and
+          <b> 16 ms</b> (sharp click, fat lines); no window size is sharp in both.
         </>
       }
     >

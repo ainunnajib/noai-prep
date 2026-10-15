@@ -51,10 +51,8 @@ export default function NextTokenBars() {
       title="Generate a sentence, one next token at a time"
       caption={
         <>
-          The model was "trained" by counting the {CORPUS.length} sentences below. Click a bar to append that token (or let the model pick), and watch the
-          sentence probability shrink with every factor. Pick a rare token and the perplexity jumps. Switch to the trigram model: with two words of context
-          the bars get sharper (after "take the", only <i>mrt</i> or <i>bus</i>). Some two-word contexts never occur in the corpus at all, so a trigram has
-          nothing to say there: the counting approach runs out of data, which is why real language models are neural networks instead.
+          Tap a bar to add that token and watch the sentence probability shrink with every factor. Then switch to the trigram: the bars
+          get sharper, but some two-word contexts never occur in the corpus, so counting runs out of data.
         </>
       }
     >
@@ -64,8 +62,8 @@ export default function NextTokenBars() {
           value={order}
           onChange={(v) => setOrder(v)}
           options={[
-            { value: 2, label: 'bigram: last 1 word' },
-            { value: 3, label: 'trigram: last 2 words' },
+            { value: 2, label: 'bigram (1 word)' },
+            { value: 3, label: 'trigram (2 words)' },
           ]}
         />
       </Controls>
@@ -83,14 +81,20 @@ export default function NextTokenBars() {
             </span>
           ))}
           {!done && (
-            <span className={`${s.link} ${s.tokHidden}`} aria-hidden="true">
+            <span className={`${s.link} ${s.linkNext}`} aria-hidden="true">
               <span className={s.linkWord}>?</span>
               <span className={s.linkP}>next</span>
             </span>
           )}
         </div>
         <div className={s.formula}>
-          P(sentence) = {fs.length ? fs.map((f) => (f.total ? `${f.count}/${f.total}` : '0')).join(' × ') : '1'} = <b>{fmtP(P)}</b>
+          {fs.length ? (
+            <>
+              P(sentence) = {fs.map((f) => (f.total ? `${f.count}/${f.total}` : '0')).join(' × ')} = <b>{fmtP(P)}</b>
+            </>
+          ) : (
+            <>P(empty sentence) = 1 (nothing chosen yet: tap a word below)</>
+          )}
         </div>
         <Readout
           items={[
@@ -104,7 +108,7 @@ export default function NextTokenBars() {
       <div className={s.panel} style={{ width: '100%' }}>
         <div className={s.panelTitle}>
           <span>{done ? 'Sentence finished' : 'Next-token probabilities'}</span>
-          {!done && <span className={s.panelSub}>given {ctxText}</span>}
+          {!done && <span className={s.panelSub}>given {ctxText} · tap a word to add it</span>}
         </div>
         {done ? (
           <p className={s.hint}>
@@ -120,7 +124,10 @@ export default function NextTokenBars() {
           <div className={s.rows}>
             {dist.items.map((it) => (
               <button key={it.word} type="button" className={`${s.row} ${it === dist.items[0] ? s.rowStrong : ''}`} onClick={() => add(it.word)}>
-                <span className={s.rowLabel}>{it.word === END ? '. (end)' : it.word}</span>
+                <span className={s.rowLabel}>
+                  <span className={s.plus} aria-hidden="true">+</span>
+                  {it.word === END ? '. (end)' : it.word}
+                </span>
                 <span className={s.track} aria-hidden="true">
                   <span className={s.fill} style={{ width: `${(it.p / top) * 100}%`, background: it.word === END ? 'var(--viz-5)' : 'var(--viz-1)' }} />
                 </span>

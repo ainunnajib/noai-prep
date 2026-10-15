@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, usePlayer, PlayerControls, useContainerWidth, useNarrow, Plot, Grid, Axes, Dots, Bars, Label } from '../../../../../kit'
-import { fft, hann } from '../audio-as-data/dsp'
-import { SR, synth, kmeans, type Seg } from './speech'
+import { synth } from './speech'
+import { FRAME_S, N_FR, SEGS, frameFeatures, predict, clusterFrames, meanSpanLoss } from './hubert'
 import s from './sm.module.css'
 
 /*
@@ -11,61 +11,9 @@ import s from './sm.module.css'
   The predictor in step 4 is a toy stand-in for the Transformer (it trusts nearby visible frames).
 */
 
-const FRAME_S = 0.02
-const N_FR = 30
-const FS = Math.round(FRAME_S * SR) // 320 samples per frame
-const A: [number, number, number] = [730, 1090, 2440]
-const I: [number, number, number] = [270, 2290, 3010]
-const U: [number, number, number] = [300, 870, 2240]
-const NAS: [number, number, number] = [250, 1000, 2200]
-const SEGS: Seg[] = [
-  { kind: 'sil', dur: 0.04, f: A, word: -1 },
-  { kind: 'fric', dur: 0.08, f: A, word: 0 },
-  { kind: 'vowel', dur: 0.12, f: A, word: 0 },
-  { kind: 'nasal', dur: 0.06, f: NAS, word: 0 },
-  { kind: 'vowel', dur: 0.1, f: I, word: 0 },
-  { kind: 'stop', dur: 0.04, f: A, word: 0 },
-  { kind: 'vowel', dur: 0.1, f: U, word: 0 },
-  { kind: 'sil', dur: 0.06, f: A, word: -1 },
-]
 // viz-5 (violet) sits close to viz-1 (blue) in dark mode, so it is used last
 const UNIT_COLOURS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)', 'var(--viz-6)', 'var(--viz-5)']
 const STAGES = ['1 · frames', '2 · k-means units', '3 · mask', '4 · predict']
-
-/** Loudness (dB) and brightness (spectral centre, kHz) of every 20 ms frame. */
-function frameFeatures(x: Float64Array): [number, number][] {
-  const w = hann(FS)
-  const out: [number, number][] = []
-  for (let k = 0; k < N_FR; k++) {
-    const re = new Float64Array(512)
-    const im = new Float64Array(512)
-    for (let i = 0; i < FS; i++) re[i] = (x[k * FS + i] ?? 0) * w[i]
-    fft(re, im)
-    let pw = 0
-    let fw = 0
-    for (let b = 0; b <= 256; b++) {
-      const p = re[b] * re[b] + im[b] * im[b]
-      pw += p
-      fw += p * ((b * SR) / 512)
-    }
-    out.push([fw / pw / 1000, 10 * Math.log10(pw + 1e-12)])
-  }
-  return out
-}
-
-/** Toy context model: a masked frame probably shares the unit of its nearest visible neighbours, less so the further away they are. */
-function predict(t: number, units: number[], masked: boolean[], k: number) {
-  let l = t - 1
-  while (l >= 0 && masked[l]) l--
-  let r = t + 1
-  while (r < units.length && masked[r]) r++
-  const score = new Array(k).fill(0)
-  if (l >= 0) score[units[l]] += 3.2 * Math.exp(-(t - l - 1) / 2.2)
-  if (r < units.length) score[units[r]] += 3.2 * Math.exp(-(r - t - 1) / 2.2)
-  const e = score.map((v) => Math.exp(v))
-  const z = e.reduce((a, b) => a + b, 0)
-  return e.map((v) => v / z)
-}
 
 export default function HuBERTMaskedUnits() {
   const [k, setK] = useState(5)
@@ -80,14 +28,8 @@ export default function HuBERTMaskedUnits() {
   const wave = useMemo(() => synth(SEGS, 'hubert-demo'), [])
   // features shown and clustered: [log2(brightness in kHz), loudness in dB]
   const feats = useMemo(() => frameFeatures(wave).map(([b, db]) => [Math.log2(b), db] as [number, number]), [wave])
-  const { labels: units, centroids } = useMemo(() => {
-    // standardise both features before clustering so neither dominates
-    const m = [0, 1].map((d) => feats.reduce((a, f) => a + f[d], 0) / feats.length)
-    const sd = [0, 1].map((d) => Math.sqrt(feats.reduce((a, f) => a + (f[d] - m[d]) ** 2, 0) / feats.length) || 1)
-    const z = feats.map((f) => [(f[0] - m[0]) / sd[0], (f[1] - m[1]) / sd[1]] as [number, number])
-    const res = kmeans(z, k, 11)
-    return { labels: res.labels, centroids: res.centroids.map((c) => [c[0] * sd[0] + m[0], c[1] * sd[1] + m[1]] as [number, number]) }
-  }, [feats, k])
+  // standardise both features before clustering so neither dominates
+  const { labels: units, centroids } = useMemo(() => clusterFrames(feats, k), [feats, k])
 
   const start = Math.min(mStart, N_FR - 1)
   const end = Math.min(N_FR, start + mLen)
@@ -96,7 +38,13 @@ export default function HuBERTMaskedUnits() {
   const preds = maskedIdx.map((t) => ({ t, p: predict(t, units, masked, k) }))
   const losses = preds.map(({ t, p }) => -Math.log(p[units[t]]))
   const loss = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
-  const focus = sel != null && masked[sel] ? sel : maskedIdx[Math.floor(maskedIdx.length / 2)] ?? null
+  // by default inspect a frame at the edge of the span, next to a visible clue, where the toy model guesses right
+  const isRight = (q: { t: number; p: number[] }) => q.p.indexOf(Math.max(...q.p)) === units[q.t]
+  const edge = preds.filter((q) => q.t === start || q.t === end - 1)
+  const focus = sel != null && masked[sel] ? sel : (edge.find(isRight) ?? preds.find(isRight) ?? preds[0])?.t ?? null
+  // the trend: loss for each span length, averaged over every position the span can take
+  const trend = useMemo(() => Array.from({ length: 12 }, (_, i) => meanSpanLoss(units, k, i + 1)), [units, k])
+  const trendMax = Math.max(...trend)
   const focusPred = focus != null ? preds.find((q) => q.t === focus)?.p : undefined
 
   // ---- strip geometry ----
@@ -135,15 +83,36 @@ export default function HuBERTMaskedUnits() {
     setSel(i)
   }
 
+  const controls = (
+    <Controls>
+      {step >= 1 && (
+        <Segmented
+          label="units (k)"
+          value={k}
+          onChange={(v) => setK(v)}
+          options={[3, 4, 5, 6].map((v) => ({ value: v, label: String(v) }))}
+        />
+      )}
+      {step >= 2 && <Slider label="mask start (frame)" value={start} min={0} max={N_FR - 1} step={1} onChange={(v) => (setMStart(v), setSel(null))} />}
+      {step >= 2 && <Slider label="mask length" value={mLen} min={1} max={12} step={1} onChange={(v) => (setMLen(v), setSel(null))} format={(v) => `${v} frames (${v * 20} ms)`} />}
+      <Readout
+        items={[
+          ['frames', `${N_FR} × 20 ms`],
+          ['masked', step >= 2 ? `${maskedIdx.length}` : '0'],
+          ['loss on these masked frames', step >= 3 && losses.length ? loss.toFixed(2) : '–'],
+          ['average over all span positions', step >= 3 ? trend[Math.min(12, end - start) - 1].toFixed(2) : '–'],
+        ]}
+      />
+    </Controls>
+  )
+
   return (
     <Figure
       title="HuBERT: invent a vocabulary for sound, then play BERT's game"
       caption={
         <>
-          Step through. The audio is cut into 20 ms frames; k-means groups frames that sound alike, and each group's number becomes a
-          frame's "word" (a <b>hidden unit</b>). Then a span is hidden and the model must name the hidden units from the frames around them.
-          Make the span longer and watch the loss rise: guesses in the middle of a long gap need real knowledge of how speech flows. (The
-          step-4 guesses come from a toy stand-in for the Transformer that trusts nearby visible frames.)
+          Step through to step 4, then make the span longer. Notice the bars under the guesses: averaged over every span position,
+          the loss rises, because frames deep inside a long gap are far from any visible clue.
         </>
       }
     >
@@ -191,19 +160,20 @@ export default function HuBERTMaskedUnits() {
               </text>
             )}
             {[0, 0.2, 0.4, 0.6].map((t) => (
-              <text key={t} x={Math.min(W - pad - 2, Math.max(pad, pad + (t / FRAME_S) * cw))} y={H - 4} textAnchor={t === 0 ? 'start' : t === 0.6 ? 'end' : 'middle'} style={{ fontSize: 10.5, fill: 'var(--ink-2)' }}>
+              <text key={t} x={Math.min(W - pad - 2, Math.max(pad, pad + (t / FRAME_S) * cw))} y={H - 4} textAnchor={t === 0 ? 'start' : t === 0.6 ? 'end' : 'middle'} style={{ fontSize: 11, fill: 'var(--ink-2)' }}>
                 {t === 0.6 ? '600 ms' : `${t * 1000}`}
               </text>
             ))}
           </svg>
         </div>
+        {narrow && controls}
 
         <div ref={colsRef} className={`${s.cols} ${narrow ? s.colsNarrow : ''}`}>
           <div className={s.panel}>
             <p className={s.panelTitle}>Each frame as a dot</p>
             <Plot x={xr} y={yr} width={300} height={210} minHeight={190} margin={{ left: 40, right: 10, top: 10, bottom: 40 }} ariaLabel="Scatter plot of frames by brightness and loudness, coloured by k-means cluster">
               <Grid xTicks={5} yTicks={4} />
-              <Axes xLabel="brightness (kHz)" yLabel="dB" yTicks={4} hideXTicks />
+              <Axes xLabel="brightness: where the energy sits (kHz)" yLabel="dB" yTicks={4} hideXTicks />
               {[-1, 0, 1, 2, 3].map((v) => (
                 <Label key={v} x={v} y={yr[0]} dy={16} anchor="middle" size={11} color="var(--viz-axis)">
                   {String(2 ** v)}
@@ -266,34 +236,47 @@ export default function HuBERTMaskedUnits() {
                 )}
                 <p className={s.small}>
                   Tap a hatched frame to inspect it. Loss for this frame: −ln p(true) ={' '}
-                  <b>{focusPred && focus != null ? (-Math.log(focusPred[units[focus]])).toFixed(2) : '–'}</b>. Visible frames are not scored.
+                  <b>{focusPred && focus != null ? (-Math.log(focusPred[units[focus]])).toFixed(2) : '–'}</b>. Visible frames are not scored. Frames deep
+                  inside the gap are often guessed wrong, which is why the real model must learn how speech flows.
                 </p>
+                <TrendBars trend={trend} max={trendMax} cur={end - start} />
               </>
             )}
           </div>
         </div>
 
         <PlayerControls player={player} label={(i) => STAGES[i]} />
-        <Controls>
-          {step >= 1 && (
-            <Segmented
-              label="units (k)"
-              value={k}
-              onChange={(v) => setK(v)}
-              options={[3, 4, 5, 6].map((v) => ({ value: v, label: String(v) }))}
-            />
-          )}
-          {step >= 2 && <Slider label="mask start (frame)" value={start} min={0} max={N_FR - 1} step={1} onChange={(v) => (setMStart(v), setSel(null))} />}
-          {step >= 2 && <Slider label="mask length" value={mLen} min={1} max={12} step={1} onChange={(v) => (setMLen(v), setSel(null))} format={(v) => `${v} frames (${v * 20} ms)`} />}
-          <Readout
-            items={[
-              ['frames', `${N_FR} × 20 ms`],
-              ['masked', step >= 2 ? `${maskedIdx.length}` : '0'],
-              ['loss on masked frames', step >= 3 && losses.length ? loss.toFixed(2) : '–'],
-            ]}
-          />
-        </Controls>
+        {!narrow && controls}
       </div>
     </Figure>
+  )
+}
+
+/** Average masked-frame loss for span lengths 1 to 12, with the current length highlighted. */
+function TrendBars({ trend, max, cur }: { trend: number[]; max: number; cur: number }) {
+  const W = 260
+  const H = 92
+  const left = 4
+  const bw = (W - left) / trend.length
+  const base = H - 18
+  const top = 16
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: 320, display: 'block' }} role="img" aria-label="Average loss over all span positions for span lengths 1 to 12">
+      <text x={0} y={10} style={{ fontSize: 11, fontWeight: 700, fill: 'var(--ink-2)' }}>
+        average loss by span length
+      </text>
+      {trend.map((v, i) => {
+        const h = ((base - top) * v) / max
+        const on = i + 1 === cur
+        return (
+          <g key={i}>
+            <rect x={left + i * bw + 2} y={base - h} width={bw - 4} height={h} rx={2} style={{ fill: on ? 'var(--viz-2)' : 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))' }} />
+            <text x={left + (i + 0.5) * bw} y={H - 5} textAnchor="middle" style={{ fontSize: 11, fill: on ? 'var(--ink)' : 'var(--ink-3)', fontWeight: on ? 800 : 500 }}>
+              {i + 1}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
   )
 }

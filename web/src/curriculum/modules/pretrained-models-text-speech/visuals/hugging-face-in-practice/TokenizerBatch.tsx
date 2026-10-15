@@ -31,10 +31,14 @@ export default function TokenizerBatch() {
   const L = pad === 'none' ? longest : pad === 'longest' ? longest : Math.max(MAXLEN_PAD, longest)
   const ragged = pad === 'none' && new Set(rows.map((r) => r.ids.length)).size > 1
 
-  const labW = 34
+  const narrow = width < 520
+  const labW = narrow ? 30 : 34
   const fit = Math.floor((Math.min(width, 640) - labW - 8) / L) - 2
-  const cellIds = Math.max(40, Math.min(46, fit)) // 5-digit ids need ~40px; the grid scrolls sideways on phones
-  const cellMask = Math.max(18, Math.min(46, fit))
+  // 5-digit ids need ~40px (34px in the smaller phone font). On phones both grids share one sideways scroll
+  // and the same column width, so the padding columns of input_ids and attention_mask stay lined up.
+  const cellIds = narrow ? 34 : Math.max(40, Math.min(46, fit))
+  const cellMask = narrow ? cellIds : Math.max(18, Math.min(46, fit))
+  const scrolls = narrow && labW + L * (cellIds + 2) > width
 
   const grid = (kind: 'ids' | 'mask') => (
     <div className={s.mat} style={{ gridTemplateColumns: `${labW}px repeat(${L}, ${kind === 'ids' ? cellIds : cellMask}px)` }} role="table" aria-label={kind === 'ids' ? 'input_ids' : 'attention_mask'}>
@@ -50,7 +54,7 @@ export default function TokenizerBatch() {
           const special = real && /^\[(CLS|SEP)\]$/.test(tok)
           const cls = kind === 'ids' ? [s.mCell, !real ? s.mPad : special ? s.mSpecial : ''].join(' ') : [s.mCell, real ? s.mOne : s.mPad].join(' ')
           return (
-            <span key={`${i}-${j}`} className={cls} title={`${tok} → ${id}`}>
+            <span key={`${i}-${j}`} className={cls} title={`${tok} → ${id}`} style={narrow ? { fontSize: '0.62rem' } : undefined}>
               {kind === 'ids' ? id : real ? 1 : 0}
             </span>
           )
@@ -64,12 +68,11 @@ export default function TokenizerBatch() {
   return (
     <Figure
       wide
-      title="What the tokenizer hands the model"
+      title="What the tokeniser hands the model"
       caption={
         <>
-          Three sentences go through BERT's tokenizer (real ids; hover a cell to see its token). A tensor must be a rectangle, so the short rows are filled
-          with <code>[PAD]</code> = 0 and the <code>attention_mask</code> marks real tokens with 1 and padding with 0, so attention ignores the padding.
-          Try "no padding" to meet the classic error, then switch on truncation: long rows are cut, but <code>[CLS]</code> and <code>[SEP]</code> are kept.
+          A tensor must be a rectangle, so short rows get <code>[PAD]</code> = 0 and a 0 in the <code>attention_mask</code>. Try "none" to meet
+          the classic error, then switch on truncation: long rows are cut, but <code>[CLS]</code> and <code>[SEP]</code> stay.
         </>
       }
     >
@@ -95,14 +98,30 @@ export default function TokenizerBatch() {
       </Controls>
       <pre className={s.code}>{code}</pre>
       <div ref={ref} className={s.mats}>
-        <div>
-          <div className={s.matTitle}>input_ids</div>
-          <div className={s.scroll}>{grid('ids')}</div>
-        </div>
-        <div>
-          <div className={s.matTitle}>attention_mask</div>
-          <div className={s.scroll}>{grid('mask')}</div>
-        </div>
+        {narrow ? (
+          <div className={scrolls ? s.scrollFade : undefined}>
+            <div className={s.scroll}>
+              <div className={s.matTitle}>input_ids</div>
+              {grid('ids')}
+              <div className={s.matTitle} style={{ marginTop: '0.6rem' }}>
+                attention_mask
+              </div>
+              {grid('mask')}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div>
+              <div className={s.matTitle}>input_ids</div>
+              <div className={s.scroll}>{grid('ids')}</div>
+            </div>
+            <div>
+              <div className={s.matTitle}>attention_mask</div>
+              <div className={s.scroll}>{grid('mask')}</div>
+            </div>
+          </>
+        )}
+        {scrolls && <p className={s.hint} style={{ margin: 0 }}>Scroll sideways → to see the padding at the end of each row.</p>}
       </div>
       {ragged ? (
         <div className={`${s.status} ${s.statusBad}`} role="status">

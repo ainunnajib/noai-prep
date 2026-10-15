@@ -102,22 +102,25 @@ export default function EncoderVsDecoderMasks() {
       title="Same blocks, different mask: BERT versus GPT"
       caption={
         <>
-          Click any row (a token name or a cell). Green tokens are the ones the selected token may attend to; struck-out tokens are blocked. In BERT's
-          encoder every row is all 1s, so each word is built from its whole sentence, both sides. In GPT's decoder the mask is lower-triangular: "
-          {toks[sel]}" sees only itself and the words before it, which is exactly what makes it possible to train it to predict the <i>next</i> word
-          without cheating. Count the 1s: {T}² = {T * T} for the encoder, {T}·{T + 1}/2 = {(T * (T + 1)) / 2} for the decoder.
+          Click any row to see what that token may attend to. Notice that BERT's rows are all 1s (both sides), while GPT's mask is
+          lower-triangular: "{toks[sel]}" sees only itself and earlier words, so it cannot peek at the word it must predict.
         </>
       }
     >
       <Controls>
         <Slider label="sentence length T" value={T} min={3} max={SENT.length} step={1} onChange={setT} />
-        <Readout items={[['selected token', `"${toks[sel]}" (position ${sel + 1})`]]} />
+        <Readout
+          items={[
+            ['selected token', `"${toks[sel]}" (position ${sel + 1})`],
+            ['1s in the mask', `BERT ${T}² = ${T * T} · GPT ${T}·${T + 1}/2 = ${(T * (T + 1)) / 2}`],
+          ]}
+        />
       </Controls>
       <div ref={ref} className={s.pair}>
         <div className={s.panel}>
           <div className={s.panelTitle}>
             <span>Encoder (BERT)</span>
-            <span className={s.panelSub}>no mask: bidirectional</span>
+            <span className={s.panelSub}>no causal mask: bidirectional</span>
           </div>
           {strip(false)}
           <MaskGrid toks={toks} causal={false} sel={sel} onSel={setSel} cell={cell} name="Encoder" />
@@ -158,7 +161,8 @@ export default function EncoderVsDecoderMasks() {
         ))}
       </div>
       <p className={s.hint}>
-        The target row is the input shifted one place to the left, so one pass over a {T}-token sentence gives GPT <b>{T}</b> prediction exercises at once.
+        The target row is the input shifted one place to the left, so one pass gives a prediction exercise at every position, all at once. A text of{' '}
+        {T} tokens gives <b>{T - 1}</b>; here the last target, "{NEXT[T - 1]}", is borrowed from just past the window, so you see {T}.
       </p>
     </Figure>
   )

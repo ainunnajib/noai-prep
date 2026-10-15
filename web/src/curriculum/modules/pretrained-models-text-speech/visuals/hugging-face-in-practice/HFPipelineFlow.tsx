@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Figure, Controls, Segmented, usePlayer, PlayerControls, Bars } from '../../../../../kit'
 import { SENT, NER, SUMM } from './hfData'
 import s from './hf.module.css'
@@ -9,7 +9,7 @@ import s from './hf.module.css'
 */
 
 type Task = 'sent' | 'ner' | 'summ'
-const STAGES = ['text', 'tokenizer', 'model', 'post-process']
+const STAGES = ['text', 'tokeniser', 'model', 'post-process']
 
 const isSpecial = (t: string) => /^\[(CLS|SEP|PAD)\]$|^<\/?s>$|^<pad>$/.test(t)
 const entClass = (lab: string) => (lab === 'O' ? s.entO : lab.endsWith('PER') ? s.entPER : lab.endsWith('LOC') ? s.entLOC : lab.endsWith('ORG') ? s.entORG : s.entMISC)
@@ -61,6 +61,11 @@ export default function HFPipelineFlow() {
   const [task, setTask] = useState<Task>('sent')
   const [exIdx, setExIdx] = useState(0)
   const player = usePlayer({ steps: STAGES.length, interval: 1800 })
+  // open on the tokenizer stage, so the first view already shows real numbers (stage 0 is one tap away)
+  useEffect(() => {
+    player.setStep(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const st = player.step
 
   const examples = task === 'sent' ? SENT.examples.map((e) => e.text) : task === 'ner' ? NER.examples.map((e) => e.text) : [SUMM.text]
@@ -91,8 +96,8 @@ export default function HFPipelineFlow() {
       )
       note = (
         <>
-          The tokenizer splits the text into {e.tokens.length} tokens, adds <code>[CLS]</code> (id 101) and <code>[SEP]</code> (id 102), and replaces every
-          token by its row number in the 30,522-token vocabulary. The attention mask is 1 for every real token.
+          The tokeniser turns the text into {e.tokens.length} tokens, including the <code>[CLS]</code> (id 101) and <code>[SEP]</code> (id 102) it adds, and
+          replaces every token by its row number in the 30,522-token vocabulary. The attention mask is 1 for every real token.
         </>
       )
     } else if (st === 2) {
@@ -214,7 +219,8 @@ export default function HFPipelineFlow() {
       note = (
         <>
           A summary is a new sequence, so this is an <b>encoder-decoder</b> job (T5-small). Version 5 of <code>transformers</code> removed this pipeline, but
-          the three stages below work in every version.
+          the three stages below work in every version. They use plain greedy <code>generate()</code>; the version 4 pipeline used beam search, so its
+          wording can differ slightly.
         </>
       )
     } else if (st === 1) {
@@ -222,7 +228,7 @@ export default function HFPipelineFlow() {
       body = <Units tokens={SUMM.inTokens} ids={SUMM.inIds} max={14} />
       note = (
         <>
-          T5 is told the task by a text prefix, <code>summarize:</code>. Its tokenizer marks the start of each word with ▁. The input is{' '}
+          T5 is told the task by a text prefix, <code>summarize:</code>. Its tokeniser marks the start of each word with ▁. The input is{' '}
           <b>{SUMM.inIds.length}</b> tokens long and ends with <code>&lt;/s&gt;</code> (id 1).
         </>
       )
@@ -238,19 +244,23 @@ export default function HFPipelineFlow() {
     } else {
       code = ['summary = tok.decode(out[0], skip_special_tokens=True)']
       body = <pre className={s.result}>{`'${SUMM.summary}'`}</pre>
-      note = <>Decoding maps ids back to text pieces and joins them; <code>skip_special_tokens=True</code> drops <code>&lt;pad&gt;</code> and <code>&lt;/s&gt;</code>.</>
+      note = (
+        <>
+          Decoding maps ids back to text pieces and joins them; <code>skip_special_tokens=True</code> drops <code>&lt;pad&gt;</code> and <code>&lt;/s&gt;</code>.
+          This is the output of the greedy <code>generate()</code> call above, not of the version 4 pipeline (which uses beam search).
+        </>
+      )
     }
   }
 
   return (
     <Figure
       wide
-      title="Inside a pipeline: tokenizer → model → post-processing"
+      title="Inside a pipeline: tokeniser → model → post-processing"
       caption={
         <>
-          Choose a task and step through the stages. Every number shown is real output from the named model. Notice that the middle of every pipeline is
-          the same (text becomes <code>input_ids</code> and an <code>attention_mask</code>, the model turns them into numbers) and only the last stage
-          changes with the task: softmax and a label name for sentiment, one label per token for NER, and decoding generated ids back into text for a summary.
+          Choose a task and step through the stages (real outputs of the named models). Notice that only the last stage changes with the
+          task: a label for sentiment, one label per token for NER, decoded text for a summary.
         </>
       }
     >

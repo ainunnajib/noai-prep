@@ -42,7 +42,7 @@ export default function Seq2SeqFlow() {
   const ySrc = 36
   const encTop = 54
   const encH = 46
-  const yMem = encTop + encH + 22
+  const yMem = encTop + encH + 30
   const decTop = yMem + 92
   const decH = 46
   const yIn = decTop + decH + 30
@@ -82,10 +82,8 @@ export default function Seq2SeqFlow() {
       title="An encoder-decoder translating, one token at a time"
       caption={
         <>
-          Press <b>Play</b> or <b>Next</b>. The encoder reads the whole English sentence in one go, with no mask, and leaves one vector per word (the
-          "memory"). The decoder then writes Malay one token per step: it reads <code>&lt;s&gt;</code> plus everything written so far, uses
-          cross-attention (orange lines) to look back at the memory, and predicts the next token, until it writes <code>&lt;/s&gt;</code>. Count the
-          passes: the encoder runs once, the decoder once per output token. Then switch on the training view.
+          Press <b>Play</b> or <b>Next</b> and count the passes: the encoder runs once, the decoder once per output token, each time looking
+          back at the memory through cross-attention (orange lines). Then switch on the training view.
         </>
       }
     >
@@ -133,7 +131,8 @@ export default function Seq2SeqFlow() {
               )),
             )}
 
-          <text x={W - pad} y={yMem + 26} textAnchor="end" style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700, ...halo }}>
+          {/* above the memory squares, where no attention line passes */}
+          <text x={W - pad} y={encTop + encH + 15} textAnchor="end" style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700, ...halo }}>
             memory: keys and values
           </text>
 

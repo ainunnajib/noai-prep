@@ -9,7 +9,12 @@ import s from './ed.module.css'
   word (line width = weight) and highlights its row in the heat map below.
 */
 
-const heatBg = (v: number) => `color-mix(in srgb, var(--viz-1) ${Math.round(6 + v * 74)}%, var(--surface))`
+// Weights up to 0.5 get light cells (dark text), larger ones dark cells (light text). The jump skips the middle shades,
+// where neither text colour reaches 4.5:1 contrast in both themes.
+const heatPct = (v: number) => (v <= 0.5 ? Math.round(6 + v * 98) : Math.round(80 + (v - 0.5) * 32))
+const heatBg = (v: number) => `color-mix(in srgb, var(--viz-1) ${heatPct(v)}%, var(--surface))`
+const SHORT = ['EN → MS', 'order flips', 'EN → ZH'] // segmented labels for narrow screens, in EXAMPLES order
+const ORANGE_TEXT = 'color-mix(in srgb, var(--viz-2) 70%, var(--ink))'
 
 export default function CrossAttentionAlignment() {
   const [k, setK] = useState(0)
@@ -45,16 +50,15 @@ export default function CrossAttentionAlignment() {
       title="Cross-attention: each output word looks back at the input"
       caption={
         <>
-          Click an output word. The orange lines show how much attention it pays to each word of the {ex.from} sentence: the decoder's word is the{' '}
-          <b>query</b>, and the encoder's outputs are the <b>keys</b> (to match against) and <b>values</b> (to mix in). The heat map shows every row at
-          once: row = output word, column = input word, and each row adds up to 1. Switch examples to see how word-order differences between languages show
-          up as off-diagonal patterns. (Weights are illustrative, shaped like those of a trained translation model.)
+          Click an output word: the orange lines and its heat-map row show how much it draws from each input word. Switch examples and
+          notice how word-order differences between languages show up as off-diagonal patterns.
         </>
       }
     >
       <Controls>
-        <Segmented label="example" value={k} onChange={(v) => setK(v)} options={EXAMPLES.map((e, i) => ({ value: i, label: e.label }))} />
+        <Segmented label="example" value={k} onChange={(v) => setK(v)} options={EXAMPLES.map((e, i) => ({ value: i, label: narrow ? SHORT[i] : e.label }))} />
       </Controls>
+      {narrow && <p className={s.hint} style={{ margin: 0 }}>{ex.label}</p>}
 
       <div ref={wrapRef} className="plot-wrap" style={{ maxWidth: 700 }}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Attention from "${ex.target[sel]}" to the ${ex.from} words`} style={{ width: '100%', height: 'auto', display: 'block' }}>
@@ -77,10 +81,10 @@ export default function CrossAttentionAlignment() {
           ))}
           {ex.source.map((w, j) => (
             <g key={`s${j}`}>
-              <text x={sx(j)} y={ySrc - (stS && j % 2 === 1 ? 15 : 0)} textAnchor="middle" style={{ fill: j === best ? 'var(--viz-2)' : 'var(--ink)', fontSize: fs, fontWeight: j === best ? 800 : 600 }}>
+              <text x={sx(j)} y={ySrc - (stS && j % 2 === 1 ? 15 : 0)} textAnchor="middle" style={{ fill: j === best ? ORANGE_TEXT : 'var(--ink)', fontSize: fs, fontWeight: j === best ? 800 : 600 }}>
                 {w}
               </text>
-              <text x={sx(j)} y={ySrc + 20} textAnchor="middle" style={{ fill: 'var(--viz-2)', fontSize: 10.5, fontWeight: 700, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' }}>
+              <text x={sx(j)} y={ySrc + 20} textAnchor="middle" style={{ fill: ORANGE_TEXT, fontSize: 11, fontWeight: 700, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' }}>
                 {row[j].toFixed(2)}
               </text>
             </g>
@@ -119,7 +123,9 @@ export default function CrossAttentionAlignment() {
           ['weight matrix shape', `${ex.target.length} × ${ex.source.length}`],
         ]}
       />
-      <p className={s.hint}>{ex.note}</p>
+      <p className={s.hint}>
+        {ex.note} <span style={{ color: 'var(--ink-3)' }}>(Weights are illustrative, shaped like those of a trained translation model.)</span>
+      </p>
     </Figure>
   )
 }
@@ -135,7 +141,7 @@ function Row({ i, label, values, sel, onSel, cell }: { i: number; label: string;
           key={j}
           type="button"
           className={`${s.hCell} ${i === sel ? s.hCellRow : ''}`}
-          style={{ height: Math.round(cell * 0.72), background: heatBg(v), color: v > 0.55 ? 'var(--surface)' : 'var(--ink)' }}
+          style={{ height: Math.round(cell * 0.72), background: heatBg(v), color: v > 0.5 ? 'var(--surface)' : 'var(--ink)' }}
           onClick={() => onSel(i)}
           aria-label={`${label} to column ${j + 1}: ${v.toFixed(2)}`}
         >

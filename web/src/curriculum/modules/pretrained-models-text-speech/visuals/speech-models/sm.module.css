@@ -141,7 +141,9 @@ button.tok:focus-visible {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-1) 35%, transparent);
 }
 .tokGhost {
-  opacity: 0.3;
+  /* not generated yet: dotted and quiet, but the text stays readable (ink-3 passes 4.5:1 in both themes) */
+  color: var(--ink-3);
+  background: transparent;
   border-style: dotted;
 }
 .tokAudio {
@@ -210,8 +212,8 @@ button.tok:focus-visible {
   border: 1.5px dashed var(--ink-3);
 }
 .badgeTrained {
-  color: var(--surface);
-  background: var(--viz-2);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-2) 30%, var(--surface));
   border: 1.5px solid var(--viz-2);
 }
 .badgeNone {
@@ -314,10 +316,10 @@ button.tok:focus-visible {
   font-weight: 800;
 }
 .verdictRight {
-  color: var(--viz-pos);
+  color: color-mix(in srgb, var(--viz-pos) 70%, var(--ink));
 }
 .verdictWrong {
-  color: var(--viz-neg);
+  color: color-mix(in srgb, var(--viz-neg) 80%, var(--ink));
 }
 .code {
   font-family: var(--font-mono);

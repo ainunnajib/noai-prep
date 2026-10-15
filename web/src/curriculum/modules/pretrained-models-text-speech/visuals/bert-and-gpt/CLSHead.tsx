@@ -11,6 +11,8 @@ import { CLS_DATA } from './clsData'
 
 const BERT_PARAMS = 109_482_240 // encoder + embeddings + pooler of bert-base-uncased
 const fmt = (n: number) => n.toLocaleString('en-GB')
+const SHORT = ['amazing', 'queue', 'not bad', 'shiok'] // labels for narrow screens, in CLS_DATA order
+const ORANGE_TEXT = 'color-mix(in srgb, var(--viz-2) 70%, var(--ink))' // orange that passes contrast as text
 
 export default function CLSHead() {
   const [ex, setEx] = useState(0)
@@ -39,6 +41,7 @@ export default function CLSHead() {
   const r = narrow ? 4 : 5
   const w = d.att[layer - 1]
   const wMax = Math.max(...w)
+  const top3 = [...w].sort((p, q) => q - p)[Math.min(2, w.length - 1)] // on phones, only the 3 largest weights get a number
   const clsX = x(0)
   const boxW = Math.min(210, W - clsX + 6)
   const encFill = frozen ? 'var(--surface-2)' : 'color-mix(in srgb, var(--viz-1) 9%, var(--surface))'
@@ -50,11 +53,8 @@ export default function CLSHead() {
       title="The [CLS] token: one vector that sums up the sentence"
       caption={
         <>
-          Real numbers from a BERT-base model fine-tuned for sentiment. Each row of dots is one layer, each column one token (BERT splits "laksa" into{' '}
-          <code>la ##ks ##a</code>). Pick a layer, or tap a row: the orange lines show how much [CLS] attends to each token in the layer below. It reads
-          every token, so after 12 layers its vector carries information from the whole sentence, and only that one vector goes to the head. Try "shiok": this
-          model learned English from Wikipedia and books and sentiment from film reviews, but never Singlish, so it gets this one wrong; fine-tuning on
-          local examples would fix that. Then freeze the encoder and compare the trainable parameter counts.
+          Pick a layer: the orange lines show how much [CLS] attends to each token below. Notice that middle layers park most of it on
+          [SEP] ("nothing to read here"), while layer 12 spreads it over the words. Then try "shiok" and freeze the encoder.
         </>
       }
     >
@@ -63,9 +63,10 @@ export default function CLSHead() {
           label="sentence"
           value={ex}
           onChange={setEx}
-          options={CLS_DATA.map((c, i) => ({ value: i, label: c.text.replace(/^the /, '…') }))}
+          options={CLS_DATA.map((c, i) => ({ value: i, label: narrow ? SHORT[i] : c.text.replace(/^the /, '…') }))}
         />
       </Controls>
+      {narrow && <p style={{ margin: '0 0 0.3rem', fontSize: '0.9rem', color: 'var(--ink-2)' }}>"{d.text}"</p>}
       <div ref={wrapRef} className="plot-wrap" style={{ maxWidth: 640 }}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`BERT layers for "${d.text}" with the [CLS] attention in layer ${layer}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
           {/* encoder box */}
@@ -81,7 +82,7 @@ export default function CLSHead() {
           {/* row labels + click targets */}
           {Array.from({ length: 13 }, (_, lvl) => (
             <g key={`row${lvl}`}>
-              <text x={gutter - 10} y={y(lvl)} dy="0.35em" textAnchor="end" style={{ fill: lvl === layer ? 'var(--viz-2)' : 'var(--ink-3)', fontSize: 11, fontWeight: lvl === layer ? 800 : 600 }}>
+              <text x={gutter - 10} y={y(lvl)} dy="0.35em" textAnchor="end" style={{ fill: lvl === layer ? ORANGE_TEXT : 'var(--ink-3)', fontSize: 11, fontWeight: lvl === layer ? 800 : 600 }}>
                 {lvl === 0 ? (narrow ? 'emb' : 'embed') : narrow ? `L${lvl}` : `layer ${lvl}`}
               </text>
               {lvl > 0 && <rect x={0} y={y(lvl) - rh / 2} width={W} height={rh} style={{ fill: 'transparent', cursor: 'pointer' }} onClick={() => setLayer(lvl)} />}
@@ -123,18 +124,20 @@ export default function CLSHead() {
           )}
 
           {/* attention weights, just above the tokens they land on */}
-          {w.map((a, j) => (
-            <text
-              key={`w${j}`}
-              x={x(j) + (j === 0 ? 0 : 0)}
-              y={y(layer - 1) - r - 7}
-              textAnchor="middle"
-              style={{ fill: 'var(--viz-2)', fontSize: narrow ? 10 : 11, fontWeight: 800, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke', pointerEvents: 'none' }}
-            >
-              {a.toFixed(2)}
-            </text>
-          ))}
-          <text x={W - 8} y={y(layer) + rh / 2 + 13} textAnchor="end" style={{ fill: 'var(--viz-2)', fontSize: 11, fontWeight: 700 }}>
+          {w.map((a, j) =>
+            narrow && a < top3 ? null : (
+              <text
+                key={`w${j}`}
+                x={x(j)}
+                y={y(layer - 1) - r - 7}
+                textAnchor="middle"
+                style={{ fill: ORANGE_TEXT, fontSize: 11, fontWeight: 800, stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke', pointerEvents: 'none' }}
+              >
+                {a.toFixed(2)}
+              </text>
+            ),
+          )}
+          <text x={W - 8} y={y(layer) + rh / 2 + 13} textAnchor="end" style={{ fill: ORANGE_TEXT, fontSize: 11, fontWeight: 700, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' }}>
             {narrow ? `[CLS] attention, layer ${layer}` : `how much [CLS] in layer ${layer} attends to each token below`}
           </text>
 

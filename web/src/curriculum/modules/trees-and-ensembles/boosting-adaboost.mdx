@@ -49,11 +49,11 @@ stumps, alphas = adaboost_fit(X, y, 10)
 print("one stump, training accuracy:  ", np.mean(stumps[0].predict(X) == y))
 print("10 stumps voting, training acc:", np.mean(adaboost_predict(stumps, alphas, X) == y))`
 
-In the last lesson, a random forest grew hundreds of strong, deep trees **independently** and averaged away their wobbles. **Boosting** turns that idea around. It trains **weak** models **one after another**, and each new model concentrates on the examples that the team so far still gets wrong. The first practical boosting algorithm, **AdaBoost**, fits in 15 lines of NumPy, and NOAI asks about it in two ways: the bagging-versus-boosting contrast, and the exact formulas for its weights.
+A random forest grows hundreds of strong, deep trees **independently** and averages away their wobbles. **Boosting** turns that around: it trains **weak** models **one after another**, each concentrating on the examples the team so far still gets wrong. The first practical boosting algorithm, **AdaBoost**, fits in about 15 lines of NumPy, and NOAI asks about it in two ways: the bagging-versus-boosting contrast, and the exact formulas for its weights.
 
 <Analogy title="The tuition teacher">
 
-A good tuition teacher does not hand you the same worksheet every week. After you hand in worksheet 1, she checks which topics you got wrong and puts **more questions on those topics** in worksheet 2. Topics you have mastered get fewer questions. After a few weeks, your weak spots have had the most practice. In the end, how much she trusts each worksheet's verdict on your level depends on how reliable that worksheet was. AdaBoost works exactly like this: the worksheets are weak models, the topics are training examples, and "more questions" is a bigger **weight**.
+A good tuition teacher does not hand you the same worksheet every week. She checks which topics you got wrong on worksheet 1 and puts **more questions on those topics** in worksheet 2, and fewer on the topics you have mastered. After a few weeks, your weak spots have had the most practice. How much she trusts each worksheet's verdict on your level depends on how reliable that worksheet was. AdaBoost works exactly like this: the worksheets are weak models, the topics are training examples, and "more questions" is a bigger **weight**.
 
 </Analogy>
 
@@ -77,7 +77,7 @@ Step through the rounds below. Each round has two steps: **fit a stump** to the 
 
 <AdaBoostStepper />
 
-The stepper shows the whole algorithm. Here it is in symbols, for $n$ training examples and $T$ rounds:
+In symbols, for $n$ training examples and $T$ rounds:
 
 1. **Start** with equal weights: $w_i = \frac{1}{n}$ for every example $i$.
 2. **For each round** $t = 1, 2, \dots, T$:
@@ -103,9 +103,9 @@ $$
 
 - $\varepsilon$ (epsilon) is the learner's **weighted error**, between 0 and 1;
 - $1 - \varepsilon$ is its weighted accuracy, so $\frac{1 - \varepsilon}{\varepsilon}$ is **how many times more weight it gets right than wrong**;
-- $\ln$ is the natural logarithm (log base $e \approx 2.718$); the $\frac12$ in front is explained in "For the curious" further down.
+- $\ln$ is the natural logarithm (log base $e \approx 2.718$); the $\frac12$ in front is explained in a "Going further" box further down.
 
-Careful with the letters: this $\alpha$ is AdaBoost's own symbol for a learner's say, not a learning rate (nor the smoothing constant of naive Bayes), and the weights $w_i$ belong to training *examples*, not to features as in a linear model.
+Careful with the letters: this $\alpha$ is AdaBoost's own symbol for a learner's say, not a learning rate, and the weights $w_i$ belong to training *examples*, not to features as in a linear model.
 
 Now read the formula from the middle outwards. A learner with $\varepsilon = 0.5$ is a coin flip: $\frac{0.5}{0.5} = 1$ and $\ln 1 = 0$, so it gets **no say at all**. A better learner has a ratio above 1, so a **positive** $\alpha$, and the ratio explodes as $\varepsilon \to 0$. A learner worse than a coin flip has a ratio below 1 and a **negative** $\alpha$: its votes would be counted backwards.
 
@@ -158,7 +158,7 @@ Then every weight is divided by the new total $Z$ (the sum of all the new weight
   </Step>
 </Steps>
 
-Step through to the end: the 2 mistakes finish at 0.25 each, so together they hold **half** of all the weight, even though they are only 2 of the 10 examples. That is no coincidence. Play with the calculator below and you will find it happens every time.
+The 2 mistakes finish at 0.25 each, so together they hold **half** of all the weight, though they are only 2 of the 10 examples. That is no coincidence: try the calculator below.
 
 <ReweightCalculator />
 
@@ -180,9 +180,9 @@ weights /= weights.sum()                         # normalise
 
 <Mistake>
 
-Three bugs appear again and again in AdaBoost code (and in exam options that ask you to find the bug):
+Three classic bugs (and exam options that ask you to find them):
 
-- **Only the mistakes re-weighted**: with this lesson's $\alpha$ (the one with the $\frac12$), `weights *= np.exp(alpha * incorrect)` leaves the correct examples alone, which is half-strength re-weighting. Use the symmetric update above; the NOAI 2026 Final expected exactly this fix.
+- **Only the mistakes re-weighted**: with this lesson's $\alpha$ (the one with the $\frac12$), `weights *= np.exp(alpha * incorrect)` leaves the correct examples alone, which is half-strength re-weighting. Use the symmetric update above; the NOAI 2026 Final expected exactly this fix. (Paired with $\alpha$ *without* the $\frac12$, that same line is correct: see the box on two versions of $\alpha$ below.)
 - **The wrong sign**: `np.exp(-alpha * incorrect)` *shrinks* the mistakes, so later learners ignore exactly the examples they should focus on.
 - **Labels 0 and 1**: the formula $e^{-\alpha y h}$ only works with labels $\pm 1$. With 0/1 labels, $y \cdot h$ is 0 for many examples and the update breaks. Convert first with `y = 2 * y01 - 1`.
 
@@ -192,7 +192,7 @@ Three bugs appear again and again in AdaBoost code (and in exam options that ask
 
 ## Why boosting reduces bias, and when it overfits
 
-Go back to the stepper and compare the two curves under it. Each stump's own error stays between about 0.15 and 0.3 for the whole run: every learner is still weak. Yet the team's training error falls to zero by round 9. A single cut cannot follow a curved boundary, but a weighted vote of many cuts adds up to a **staircase** that can. Boosting builds a flexible model out of rigid parts, which is why it mainly reduces **bias**, the error from a model being too simple. Bagging, from the last lesson, does the opposite job:
+In the stepper, each stump's own error stays between about 0.15 and 0.3 for the whole run: every learner is still weak. Yet the team's training error falls to zero by round 9. A single cut cannot follow a curved boundary, but a weighted vote of many cuts adds up to a **staircase** that can. Boosting builds a flexible model out of rigid parts, so it mainly reduces **bias**, the error from a model being too simple. Bagging does the opposite job:
 
 | | **Bagging / random forest** | **Boosting (AdaBoost)** |
 |---|---|---|
@@ -205,13 +205,13 @@ Go back to the stepper and compare the two curves under it. Each stump's own err
 
 <PastPaperQuestion paper="noai2025" n={5} />
 
-<Note title="For the curious: where the ½ comes from, and why the training error must fall">
+<Reveal label="Going further: where the ½ comes from, and why the training error must fall">
 
 Before normalising, round $t$ leaves a total weight of $Z_t = (1 - \varepsilon_t)e^{-\alpha} + \varepsilon_t e^{\alpha}$. AdaBoost picks the $\alpha$ that makes $Z_t$ as small as possible: setting $\frac{dZ_t}{d\alpha} = -(1-\varepsilon_t)e^{-\alpha} + \varepsilon_t e^{\alpha} = 0$ gives $e^{2\alpha} = \frac{1-\varepsilon_t}{\varepsilon_t}$, so $\alpha = \tfrac12 \ln \frac{1-\varepsilon_t}{\varepsilon_t}$. That is the $\frac12$. At this $\alpha$, $Z_t = 2\sqrt{\varepsilon_t (1 - \varepsilon_t)}$ (the two equal halves above, added), and one can show that the training error of the vote after $T$ rounds is at most $Z_1 \times Z_2 \times \dots \times Z_T$. For example, $\varepsilon_t = 0.3$ gives $Z_t = 2\sqrt{0.21} \approx 0.917$, and twenty such rounds push the bound down to $0.917^{20} \approx 0.17$. So as long as every learner beats a coin flip, even by a little, the training error is driven towards zero.
 
-</Note>
+</Reveal>
 
-There is a price. A <Term def="An example whose label in the training data is wrong, for instance a cheap flat recorded as expensive. Also called label noise.">mislabelled example</Term> can never be classified "correctly" by a sensible boundary, so every round that a stump gets it wrong, its weight is multiplied up again, and later learners bend the boundary just to fit it. Switch on **Add a mislabelled point** in the stepper to watch this happen: its weight climbs to about 9 times its starting value, and by round 17 the vote has carved a box just for it. That is overfitting: AdaBoost is sensitive to label noise and outliers. The usual cures are to stop after fewer rounds (choose the number of rounds on validation data), to use simple weak learners, or to use a gentler loss, which is where gradient boosting comes in next.
+There is a price. A <Term def="An example whose label in the training data is wrong, for instance a cheap flat recorded as expensive. Also called label noise.">mislabelled example</Term> can never be classified "correctly" by a sensible boundary, so every round that a stump gets it wrong, its weight is multiplied up again, and later learners bend the boundary just to fit it. Switch on **Add a mislabelled point** in the stepper to watch this happen: its weight climbs to about 9 times its starting value, and by round 17 the vote has carved a box just for it. That is overfitting: AdaBoost is sensitive to label noise and outliers. The usual cures are to stop after fewer rounds (chosen on validation data), to use simple weak learners, or to use a gentler loss, which is where gradient boosting comes in next.
 
 Under the hood, the weight of example $i$ after $t$ rounds is proportional to $e^{-y_i F(x_i)}$, where $F(x) = \sum \alpha_t h_t(x)$ is the vote's score. This is the <Term def="The loss e^(−y·F(x)) for a label y = ±1 and a score F(x). It is small when the score has the right sign and a large size, and grows exponentially when the sign is wrong. AdaBoost minimises it.">exponential loss</Term>: AdaBoost turns out to be a method for making $\sum_i e^{-y_i F(x_i)}$ small, one learner at a time. Hold on to this thought: the next lesson generalises it to **any** loss.
 
@@ -223,7 +223,7 @@ Here is AdaBoost from scratch on the 36 points from the stepper. It uses scikit-
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={adaCode} />
 
-Every line prints "its mistakes now hold 0.50 of the weight", which is the halving rule in action. One stump alone gets 75% of the training points right; ten stumps voting get 100%. The stumps differ slightly from the stepper's because scikit-learn chooses each stump's question by weighted **Gini impurity** rather than by weighted error; both are perfectly good weak learners.
+Every line prints "its mistakes now hold 0.50 of the weight", which is the halving rule in action. One stump alone gets 75% of the training points right; ten stumps voting get 100%. The stumps differ slightly from the stepper's because scikit-learn chooses each stump's question by weighted **Gini impurity** rather than by weighted error.
 
 <Reveal label="Going further: two versions of α you will see">
 
@@ -246,10 +246,10 @@ Traps in NOAI boosting questions: "boosting trains its models in parallel" or "m
 
 <Takeaways>
 
-- **Boosting** trains weak learners **in sequence**, each focusing on the examples the team still gets wrong, and mainly reduces **bias**; bagging trains strong learners in parallel and reduces variance.
-- In **AdaBoost**, a learner with weighted error $\varepsilon$ gets the say $\alpha = \frac12 \ln \frac{1-\varepsilon}{\varepsilon}$: 0 for a coin flip, large for an accurate learner, negative if worse than chance.
+- **Boosting** trains weak learners **in sequence**, each focusing on what the team still gets wrong, and mainly reduces **bias**; bagging trains strong learners in parallel and reduces variance.
+- A learner with weighted error $\varepsilon$ gets the say $\alpha = \frac12 \ln \frac{1-\varepsilon}{\varepsilon}$: 0 for a coin flip, large for an accurate learner, negative if worse than chance.
 - **Re-weighting**: mistakes $\times e^{\alpha}$, correct examples $\times e^{-\alpha}$, then normalise. Afterwards the mistakes hold exactly half the weight.
 - The final prediction is the **weighted vote** $\operatorname{sign}\left(\sum_t \alpha_t h_t(x)\right)$.
-- Because a mistake's weight is multiplied up every round, AdaBoost can **chase mislabelled points**; choose the number of rounds on validation data.
+- AdaBoost can **chase mislabelled points**, whose weight is pushed up every round they stay wrong; choose the number of rounds on validation data.
 
 </Takeaways>

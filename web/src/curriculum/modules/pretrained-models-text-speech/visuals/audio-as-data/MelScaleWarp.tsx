@@ -48,10 +48,8 @@ export default function MelScaleWarp() {
       title="The mel scale: equal steps in Hz are not equal steps in pitch"
       caption={
         <>
-          Drag the blue dot. The orange band along the bottom is always the same width in Hz, but the band it makes on the mel axis
-          (roughly "how different the two pitches sound") shrinks as you move right. With 1,000 Hz steps, the first step takes a third of
-          the whole mel axis and the last takes about a twentieth. The triangles below are the <b>mel filters</b>: each adds up the energy
-          under it to make one row of a mel spectrogram, so the narrow low filters keep fine detail where speech needs it.
+          Drag the blue dot: the orange step is always the same width in Hz, yet the mel span it covers shrinks as you move right.
+          Notice the <b>mel filters</b> below: narrow at low frequencies, wide at high ones.
         </>
       }
     >
@@ -66,10 +64,10 @@ export default function MelScaleWarp() {
         <FnPath f={hzToMel} color="var(--viz-1)" width={2.5} />
         <FnPath f={hzToMel} domain={[start, f1]} color="var(--viz-2)" width={6} />
         <Dots points={[{ x: 1000, y: 1000, color: 'var(--viz-muted)', r: 3.5 }, { x: f1, y: m1, color: 'var(--viz-2)', r: 6 }]} />
-        <Label x={1000} y={1000} dx={8} dy={16} color="var(--ink-2)" size={11} weight={600}>
+        <Label x={1000} y={1000} dx={30} dy={14} color="var(--ink-2)" size={11} weight={600}>
           1,000 Hz = 1,000 mel
         </Label>
-        <Label x={F_TOP} y={M_TOP} dx={-2} dy={-10} anchor="end" color="var(--viz-2)" size={13}>
+        <Label x={F_TOP} y={M_TOP} dx={-2} dy={-10} anchor="end" color="color-mix(in srgb, var(--viz-2) 70%, var(--ink))" size={13}>
           {`${start} → ${f1} Hz  =  Δ ${dMel.toFixed(0)} mel`}
         </Label>
         <DraggablePoint

@@ -10,8 +10,11 @@ import s from './bg.module.css'
 
 const YMAX = 16
 
-function SurpriseBars({ nll, tokens, sel, onSel }: { nll: number[]; tokens: string[]; sel: number; onSel: (i: number) => void }) {
+const ORANGE_TEXT = 'color-mix(in srgb, var(--viz-2) 70%, var(--ink))'
+
+function SurpriseBars({ nll, tokens, sel, onSel, avg }: { nll: number[]; tokens: string[]; sel: number; onSel: (i: number) => void; avg: number }) {
   const { xs, ys } = usePlot()
+  const ay = ys(avg)
   const bw = Math.max(8, (xs(1) - xs(0)) * 0.7)
   return (
     <g>
@@ -30,7 +33,13 @@ function SurpriseBars({ nll, tokens, sel, onSel }: { nll: number[]; tokens: stri
               rx={3}
               style={{ fill: on ? 'var(--viz-2)' : 'var(--viz-1)', opacity: on ? 1 : 0.8 }}
             />
-            <text x={x} y={y - 4} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 10, fontWeight: 700 }}>
+            {/* value label: lifted above the average line when the two would overlap */}
+            <text
+              x={x}
+              y={ay >= y - 13 && ay <= y - 2 ? ay - 4 : y - 4}
+              textAnchor="middle"
+              style={{ fill: 'var(--ink-2)', fontSize: 11, fontWeight: 700, stroke: 'var(--surface)', strokeWidth: 3, paintOrder: 'stroke' }}
+            >
               {v.toFixed(1)}
             </text>
             <text
@@ -38,7 +47,7 @@ function SurpriseBars({ nll, tokens, sel, onSel }: { nll: number[]; tokens: stri
               y={ys(0) + 12}
               textAnchor="end"
               transform={`rotate(-40 ${x} ${ys(0) + 12})`}
-              style={{ fill: on ? 'var(--viz-2)' : 'var(--ink)', fontSize: 11.5, fontWeight: on ? 800 : 600 }}
+              style={{ fill: on ? ORANGE_TEXT : 'var(--ink)', fontSize: 11.5, fontWeight: on ? 800 : 600 }}
             >
               {tokens[i].replace(/^ /, '␣')}
             </text>
@@ -83,10 +92,8 @@ export default function PerplexityMeter() {
       title="Perplexity: how surprised is GPT-2?"
       caption={
         <>
-          Real probabilities from GPT-2 (124 million parameters). Each bar is one token's <b>surprise</b>, <code>−ln P</code>: 0 means "certain", and every
-          extra unit means the probability fell by another factor of <i>e</i> ≈ 2.7. Perplexity is <i>e</i> raised to the average surprise (the dashed line). Compare the
-          fluent sentence with the one where a single word is odd, then with the scrambled one (same words, nonsense order). Tap a bar to see that token's
-          probability. GPT-2 splits "MRT" into <code>␣M</code> + <code>RT</code>; ␣ marks a leading space.
+          Each bar is one token's surprise, −ln P, from the real GPT-2. Compare the fluent sentence with the odd-word and scrambled ones, and
+          notice how a few surprising tokens lift the average (the line) and the perplexity. Tap a bar for its probability.
         </>
       }
     >
@@ -94,13 +101,13 @@ export default function PerplexityMeter() {
         <Segmented label="sentence" value={k} onChange={(v) => setK(v)} options={PPL.map((p, i) => ({ value: i, label: p.label }))} />
       </Controls>
       <p className={s.hint} style={{ width: '100%' }}>
-        "{d.text}"
+        "{d.text}" (GPT-2 splits it into the tokens below; ␣ marks a leading space)
       </p>
       <div ref={ref} style={{ width: '100%' }}>
         <Plot x={[0, N + 1.4]} y={[0, YMAX]} width={560} height={300} minHeight={260} margin={{ bottom: 62, left: 40, top: 18 }} ariaLabel="Surprise of each token, in nats">
           <Grid xTicks={0} yTicks={8} />
           <Axes yLabel={narrow ? '−ln P' : 'surprise −ln P'} hideXTicks yTicks={8} />
-          <SurpriseBars nll={nll} tokens={d.tokens} sel={sel} onSel={setSel} />
+          <SurpriseBars nll={nll} tokens={d.tokens} sel={sel} onSel={setSel} avg={avg} />
           <HLine y={avg} color="var(--viz-4)" width={2} />
           <AvgLabel x={N + 0.7} y={avg} value={avg} />
         </Plot>

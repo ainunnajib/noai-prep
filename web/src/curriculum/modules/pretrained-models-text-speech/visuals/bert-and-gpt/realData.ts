@@ -3,7 +3,7 @@
   GAME: for every word of each sentence,
     both: bert-base-uncased with that word replaced by [MASK] (sees both sides): top-5 guesses and P(true word)
     left: gpt2 given only the words to the left: top-5 next tokens and P(true word) (a product over its pieces
-          when GPT-2 splits the word, e.g. " rained" = " rain" + "ed"); "⏎" is GPT-2's newline token.
+          when GPT-2 splits the word, e.g. " rained" = " r" + "ained"); "⏎" is GPT-2's newline token.
   PPL: gpt2 probability of each token given everything before it (the first token is conditioned on <|endoftext|>).
 */
 export interface Guess {

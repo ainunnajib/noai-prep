@@ -25,7 +25,7 @@ print("bin spacing:", freqs[1], "Hz")
 top2 = np.argsort(spec[0])[-2:]     # two strongest bins in frame 0
 print("strongest:", sorted(freqs[top2].tolist()), "Hz")`
 
-Siri, Whisper, Shazam and the voice notes you send on Telegram all start with the same step: turning sound into numbers. A speech model never "hears" anything. It receives a long list of numbers, or a picture made from them called a **spectrogram**. This lesson builds both from scratch, so that when an exam question asks how many numbers 30 seconds of audio becomes, or why a 5 kHz whistle turned into 3 kHz, you can work it out in your head. Audio is now part of the IOAI syllabus, and one of the 2026 IOAI take-home tasks was built on a spectrogram model.
+Siri, Whisper and the voice notes you send on Telegram all start by turning sound into numbers: a long list of them, or a picture made from them called a **spectrogram**. This lesson builds both from scratch, so you can work out in your head how many numbers 30 seconds of audio becomes, or why a 5 kHz whistle turned into 3 kHz. Audio is part of the IOAI syllabus, and IOAI 2026 set an audio task.
 
 ## Sound is a list of numbers
 
@@ -118,7 +118,7 @@ $$
 
 - $x_n$ is sample number $n$, and $\tfrac{n}{f_s}$ is the time in seconds when it was taken.
 - $\cos(2\pi f \tfrac{n}{f_s})$ is the test wave of frequency $f$ at that same time. Multiplying matching entries and adding them up is a [dot product](#/learn/vectors-and-matrices/dot-product-and-norms) between the sound and the test wave.
-- The $\tfrac{2}{N}$ turns the sum into (twice) an average, so a hidden wave of amplitude $A$ gives a strength of exactly $A$.
+- The $\tfrac{2}{N}$ turns the sum into (twice) an average, so a hidden wave of amplitude $A$ gives a strength of $A$: exactly, when the slice holds a whole number of its cycles, as in the visual. Otherwise some energy leaks into neighbouring frequencies, which is one reason real spectrograms taper each window.
 - The sine version $b_f$ catches waves that are shifted in time, which the cosine alone would miss. Combining the two like Pythagoras gives the strength.
 
 With $N$ samples you get $N/2 + 1$ frequencies, evenly spaced $f_s / N$ apart from 0 Hz up to the Nyquist frequency. Computers use a fast algorithm for this, the **FFT** (fast Fourier transform). In NumPy, `np.fft.rfft(x)` returns those $N/2 + 1$ values.
@@ -133,6 +133,8 @@ A musical score shows time from left to right and pitch from low to high, with a
 
 </Analogy>
 
+The clip below holds a rising chirp, a steady 1,000 Hz tone and a click at 0.7 s. Each window's Fourier transform becomes one column of the image. Once you have tried the window sizes, turn **log** off to see why decibels are used (next paragraph), and come back to **mel** after the mel-scale section.
+
 <SpectrogramBuilder />
 
 Two numbers control the slicing. The **window length** $W$ is how many samples each slice holds, and the **hop length** $H$ is how far the window moves each time. Speech models usually use a 25 ms window and a 10 ms hop, so neighbouring slices overlap. For a clip of $N$ samples:
@@ -142,19 +144,20 @@ $$
 $$
 
 $$
-\text{frequency bins} = \frac{W}{2} + 1
+\text{frequency bins} = \frac{n_\text{fft}}{2} + 1
 $$
 
 - $\lfloor \cdot \rfloor$ means round down: a window that would hang off the end is not counted. Libraries often pad the clip's ends so that frames $\approx N / H$; for a quick estimate, **frames ≈ samples ÷ hop**.
-- The bins are spaced $f_s / W$ apart. A **longer window** gives closer bins (finer pitch detail) but blurs *when* things happen, and a shorter window does the opposite. You saw this with the click and the tone: no single window size is sharp in both time and frequency.
+- $n_\text{fft}$ is the FFT size. Usually it equals the window, $n_\text{fft} = W$ (Whisper: 400 samples → 201 bins), but some pipelines pad each window with zeros to a larger size, such as 512 → 257 bins.
+- The bins are spaced $f_s / n_\text{fft}$ apart. With $n_\text{fft} = W$, a **longer window** gives closer bins (finer pitch detail) but blurs *when* things happen, and a shorter window does the opposite. You saw this with the click and the tone: no single window size is sharp in both time and frequency.
 
 The colours use a **log scale** (decibels, $10 \log_{10}$ of the power). Loudness in sound spans an enormous range: a quiet "s" can have a thousand times less power than a vowel. On a plain scale it would be invisible, and on a log scale every factor of 10 becomes the same step of 10 dB. Your ears work roughly like this too.
 
 <QuickCheck
-  q="You change a spectrogram's window from 25 ms to 50 ms but keep the 10 ms hop. What happens?"
-  options={['Frequency bins get twice as close, but quick events such as clicks get smeared in time', 'The number of frames halves, because each window is twice as long', 'The highest frequency you can see doubles, because each window holds more samples', 'Time detail gets sharper, because each window contains more information']}
+  q="You change a spectrogram's window from 25 ms to 50 ms but keep the 10 ms hop (the FFT size equals the window, as usual). What happens?"
+  options={['Bins get twice as close, but quick events such as clicks get smeared in time', 'The number of frames halves, because each window is twice as long', 'The highest frequency you can see doubles, because each window holds more samples', 'Time detail gets sharper, because each window contains more information']}
   answer={0}
-  explain="Bin spacing is $f_s / W$, so doubling $W$ halves the spacing: finer frequency detail. But each column now averages 50 ms of sound, so short events blur. The hop sets the number of frames (about $N/H$), so that barely changes, and the highest frequency is always $f_s/2$, whatever the window."
+  explain="Bin spacing is $f_s / n_\text{fft}$ with $n_\text{fft} = W$, so doubling $W$ halves the spacing: finer frequency detail. But each column now averages 50 ms of sound, so short events blur. The hop sets the number of frames (about $N/H$), so that barely changes, and the highest frequency is always $f_s/2$, whatever the window."
 />
 
 ## The mel scale: frequency the way ears hear it
@@ -169,7 +172,7 @@ $f$ is the frequency in Hz. The constants are chosen so that 1,000 Hz is 1,000 m
 
 <MelScaleWarp />
 
-To make a **mel spectrogram**, each column of the ordinary spectrogram is passed through a set of triangular **mel filters** spaced evenly in mel. Each filter adds up the energy under its triangle to give one row, so hundreds of frequency bins shrink to a few dozen mel bands: Whisper turns 201 bins into **80** (128 in its newest version). Taking the log of the result gives the **log-mel spectrogram**, the standard input for Whisper, the Audio Spectrogram Transformer and many other audio models.
+To make a **mel spectrogram**, each column of the ordinary spectrogram is passed through a set of triangular **mel filters** spaced evenly in mel. Each filter adds up the energy under its triangle to give one row, so hundreds of frequency bins shrink to a few dozen mel bands: Whisper turns 201 bins into **80** (128 in large-v3 and large-v3-turbo). Taking the log of the result gives the **log-mel spectrogram**, the standard input for Whisper, the Audio Spectrogram Transformer and many other audio models.
 
 <KeyIdea>
 
@@ -179,7 +182,7 @@ A **log-mel spectrogram** is sound turned into an image. Short overlapping windo
 
 ## Worked example: how big is Whisper's input?
 
-Whisper always works on 30-second chunks of 16 kHz audio with a 25 ms window, a 10 ms hop and 80 mel bands.
+Whisper always works on 30-second chunks of 16 kHz audio with a 25 ms window and a 10 ms hop, and most versions use 80 mel bands (large-v3 and large-v3-turbo use 128).
 
 <Steps title="From 30 seconds of sound to an 80 × 3,000 image">
   <Step title="Count the samples">
@@ -207,17 +210,13 @@ You should see `waveform shape: (16000,)`, `frames: (98, 400)`, `spectrogram: (2
 
 <ExamTip>
 
-Audio questions in a no-calculator exam are mostly unit conversions. Memorise four facts: samples $= f_s \times$ seconds; the Nyquist frequency $= f_s / 2$; frames $\approx$ samples $\div$ hop; bins $= W/2 + 1$. Convert milliseconds to samples first (at 16 kHz, 1 ms = 16 samples). When an option says "sample at twice the highest frequency", check whether it says *more than* twice.
+Audio questions in a no-calculator exam are mostly unit conversions. Memorise four facts: samples $= f_s \times$ seconds; the Nyquist frequency $= f_s / 2$; frames $\approx$ samples $\div$ hop; bins $= n_\text{fft}/2 + 1$, usually with $n_\text{fft} = W$. Convert milliseconds to samples first (at 16 kHz, 1 ms = 16 samples). Many questions state the sampling rule as "at least twice the highest frequency", and that is the intended answer when no option says *more than* twice; the strict version only matters when both appear.
 
 </ExamTip>
 
 ## Spectrograms are images, so image models work
 
-Once audio is an image, everything you learned about images applies. A [CNN](#/learn/convolutional-networks/images-as-tensors) can slide its filters over a spectrogram to spot the shape of a dog's bark or a siren. The **Audio Spectrogram Transformer (AST)** cuts a 128-band log-mel spectrogram into 16 × 16 patches and feeds them to a Transformer, exactly as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) does with a photo.
-
-<PastPaperQuestion paper="prelim2026" n={186} />
-
-<PastPaperQuestion paper="prelim2026" n={249} />
+Once audio is an image, everything you learned about images applies. A [CNN](#/learn/convolutional-networks/images-as-tensors) can slide its filters over a spectrogram to spot the shape of a dog's bark or a siren. The **Audio Spectrogram Transformer (AST)** cuts a 128-band log-mel spectrogram into 16 × 16 patches and feeds them to a Transformer, as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) does with a photo, except that AST's patches overlap (they start every 10 rows and columns, not every 16).
 
 Not every model starts from a spectrogram. HuBERT and wav2vec 2.0 read the raw waveform with a stack of 1-D convolutions that learn their own filters, producing one vector every 20 ms. You will meet them in the next lesson.
 
@@ -226,7 +225,7 @@ Not every model starts from a spectrogram. HuBERT and wav2vec 2.0 read the raw w
 - Audio is a list of samples: $N = f_s \times T$. Speech models use 16 kHz, so 10 s is 160,000 numbers; a batch has shape `(batch, channels, samples)`.
 - A sampling rate $f_s$ captures only frequencies **below** $f_s/2$ (Nyquist). Higher ones alias to $|f - kf_s|$.
 - The Fourier transform measures each frequency by multiplying the sound by a test wave and averaging; the STFT does this for short overlapping windows (e.g. 25 ms, hop 10 ms) to make a spectrogram.
-- Frames ≈ samples ÷ hop and bins $= W/2 + 1$. Longer windows give sharper frequency but blurrier time.
-- The mel scale gives low frequencies more rows, like human hearing; a log-mel spectrogram (Whisper: $80 \times 3{,}000$ for 30 s) turns sound into an image for CNNs and Transformers.
+- Frames ≈ samples ÷ hop and bins $= n_\text{fft}/2 + 1$, usually with $n_\text{fft} = W$. Longer windows give sharper frequency but blurrier time.
+- The mel scale gives low frequencies more rows, like human hearing; a log-mel spectrogram (Whisper: $80 \times 3{,}000$ for 30 s; 128 rows in large-v3) turns sound into an image for CNNs and Transformers.
 
 </Takeaways>
