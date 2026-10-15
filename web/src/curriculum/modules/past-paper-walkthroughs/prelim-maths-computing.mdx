@@ -12,6 +12,8 @@ If you have worked through the TYS for an O-level subject, you know the moment: 
 
 </Analogy>
 
+In the [speed toolkit](#/learn/prelim-speed-toolkit/pacing-and-elimination) you drilled the calculations one skill at a time. Here you meet them as the paper did, in order, and learn to recognise which kind each question is.
+
 ## What the first two blocks looked like
 
 A quick census of the 2026 paper (counted from the official questions):
@@ -54,35 +56,7 @@ Most of these took under 15 seconds once you knew the fact. Five of the facts ar
 
 ### Why a zero eigenvalue means "singular" (Q15)
 
-Recall that an <Term def="A non-zero vector v that the matrix A keeps on its own line through the origin, only stretching, shrinking or flipping it: Av = λv.">eigenvector</Term> $v$ of a matrix $A$ satisfies
-
-$$
-A v = \lambda v
-$$
-
-- $A$ is the matrix, $v$ is a non-zero vector, and $\lambda$ (the Greek letter lambda) is a plain number called the **eigenvalue**.
-- In words: $A$ does not turn $v$ off its line; it only scales it by $\lambda$ (a negative $\lambda$ flips it to point the other way).
-
-Now suppose one eigenvalue is $0$. Then $Av = 0 \cdot v = 0$: the matrix squashes the whole direction of $v$ flat onto the origin. Two different inputs, $v$ and $0$, both give the output $0$, so no matrix can "undo" $A$ and tell them apart. A matrix with no inverse is called <Term def="A square matrix with no inverse. Equivalently, its determinant is 0, or it squashes some non-zero vector to zero.">singular</Term>.
-
-The **determinant** measures how much $A$ scales areas (in 2-D) or volumes (in 3-D), and it equals the product of the eigenvalues. One factor of 0 makes the product 0, which is the fast route through Q15.
-
-<Steps title="Check it on a small matrix">
-  <Step title="Pick a matrix">
-    $A = \begin{bmatrix} 2 & 1 \\ 4 & 2 \end{bmatrix}$. Its second row is twice its first, which is suspicious.
-  </Step>
-  <Step title="Determinant">
-    $ad - bc = 2 \times 2 - 1 \times 4 = 0$.
-  </Step>
-  <Step title="Find the squashed direction">
-    Try $v = [1, -2]$: $Av = [2 \cdot 1 + 1 \cdot (-2),\; 4 \cdot 1 + 2 \cdot (-2)] = [0, 0]$. So $v$ is an eigenvector with $\lambda = 0$.
-  </Step>
-  <Step title="The other eigenvalue">
-    The eigenvalues add up to the **trace** (sum of the diagonal), $2 + 2 = 4$, and multiply to the determinant, 0. So they are $4$ and $0$, and $4 \times 0 = 0$ agrees with step 2.
-  </Step>
-</Steps>
-
-A squashed direction also costs **rank**: the number of independent directions the matrix's outputs can fill. A $3 \times 3$ matrix with eigenvalues 4, 2, 0 has rank below 3. And no matrix can have more independent directions than it has rows or columns, so $\text{rank} \le \min(\text{rows}, \text{columns})$.
+A recap from the [linear algebra drill](#/learn/prelim-speed-toolkit/drill-linear-algebra): an eigenvalue $\lambda$ of $A$ satisfies $Av = \lambda v$ for some non-zero $v$, and the determinant is the product of all the eigenvalues. So one eigenvalue of 0 means $Av = 0$: $A$ squashes a whole direction flat, $\det A = 0$, no matrix can undo it, and $A$ is singular. That squashed direction also costs **rank**, and in every case $\text{rank} \le \min(\text{rows}, \text{columns})$.
 
 <QuickCheck
   q="Each list gives the eigenvalues of a $3 \times 3$ matrix. Which matrix is singular?"
@@ -112,7 +86,7 @@ The <Term def="The S-shaped function σ(x) = 1/(1 + e^(−x)). It squeezes any n
   </Step>
 </Steps>
 
-At $x = 0$, $\sigma(0) = \tfrac12$, so the slope is $\tfrac12 \times \tfrac12 = \tfrac14$. That is the steepest the sigmoid ever gets. In a deep network, backpropagation multiplies in one such factor per sigmoid layer (together with that layer's weights). Over ten layers the sigmoid factors alone multiply the gradient by at most $(\tfrac14)^{10} = \tfrac{1}{1\,048\,576}$, less than a millionth, so unless the weights are large enough to compensate, the gradient all but vanishes. That is the **vanishing gradient** problem behind Q44.
+At $x = 0$, $\sigma(0) = \tfrac12$, so the slope is $\tfrac12 \times \tfrac12 = \tfrac14$, the steepest the sigmoid ever gets. As the [calculus drill](#/learn/prelim-speed-toolkit/drill-calculus-probability) showed, ten sigmoid layers then multiply the gradient by at most $(\tfrac14)^{10}$, less than a millionth (unless the weights compensate): the **vanishing gradient** problem behind Q44.
 
 <Mistake title="σ′ = σ is the rule for eˣ">
 
@@ -126,19 +100,13 @@ When the options are formulas and you have forgotten the rule, evaluate every op
 
 </ExamTip>
 
-The same outer-times-inner move from step 2 decides this backpropagation question. Try it before you open the answer.
+That quarter-slope bound is the whole of Q44. Try it before you open the answer.
 
-<PastPaperQuestion paper="prelim2026" n={35} />
+<PastPaperQuestion paper="prelim2026" n={44} />
 
 ### Newton's method: count before you guess (Q74)
 
-Newton's method takes the step $w \leftarrow w - H^{-1} \nabla L$.
-
-- $w$ is the vector of all $n$ parameters, and $\nabla L$ is the gradient (one slope per parameter).
-- $H$ is the <Term def="The square table of all second derivatives of the loss, one row and one column per parameter. It describes the curvature of the loss surface.">Hessian</Term>: all the second derivatives, an $n \times n$ table.
-- $H^{-1}$ is its inverse, which Newton uses to scale the step to the curvature.
-
-For the network in Q74, $n = 10{,}000 = 10^4$. The Hessian has $n^2 = 10^8$ entries, about 400 MB in 32-bit floats, and inverting an $n \times n$ matrix takes on the order of $n^3 = 10^{12}$ operations, **at every step**. A forward pass costs roughly one multiply per weight, about $10^4$ per example, and backpropagation a small multiple of that. Adam needs only those. Among the four options, only one is Newton-specific: inverting $H$. (Building $H$ is also Newton-only and expensive, roughly $n$ extra backward passes, but it is not offered.) So inverting the Hessian is the operation eating 95% of the time.
+A recap from the [conv and parameter drills](#/learn/prelim-speed-toolkit/drill-conv-and-params): Newton's step $w \leftarrow w - H^{-1} \nabla L$ needs the Hessian $H$, the $n \times n$ table of second derivatives, which costs $O(n^2)$ to store and $O(n^3)$ to invert. For Q74's $n = 10^4$ parameters that is $10^8$ entries and about $10^{12}$ operations **at every step**, while Adam needs only the forward and backward passes, so inverting the Hessian is the operation eating 95% of the time.
 
 <Mistake title="Blaming something both optimisers do">
 
@@ -165,7 +133,7 @@ for attempt in ["df.total price", "df('total price')", "df.loc['total price']"]:
 
 The second line shows why the paper's word "ONLY" is a little too strong: `df.loc[:, 'total price']` also works. Among the four options offered, though, square brackets are the only one that runs.
 
-Q115 is about where PyTorch keeps gradients. Every tensor created with `requires_grad=True` has a `.grad` slot, and `loss.backward()` **adds** the new gradient into it. Here $\text{loss} = w^2$, so $\frac{d\,\text{loss}}{dw} = 2w = 4$ at $w = 2$:
+Q115 is about where PyTorch keeps gradients, the missing-`zero_grad()` trap from the [shapes and code drill](#/learn/prelim-speed-toolkit/drill-shapes-and-code). Every tensor created with `requires_grad=True` has a `.grad` slot, and `loss.backward()` **adds** the new gradient into it. Here $\text{loss} = w^2$, so $\frac{d\,\text{loss}}{dw} = 2w = 4$ at $w = 2$:
 
 ```python
 import torch
@@ -220,7 +188,9 @@ Why care whether Q1 takes 5 seconds or 30? Because the Prelim gives one clock fo
 
 <ExamTip title="Two passes, not one">
 
-Aim for about 25 seconds per short question on average and about 90 seconds per long scenario: that plan leaves several minutes spare. If a maths or computing question is not falling within about 20 seconds, it is probably one whose fact you have not learnt. Pick your best guess (no marks are deducted for wrong answers), flag it and move on. Come back only if the end of the paper leaves time.
+Aim for about 25 seconds per short question on average and about 90 seconds per long scenario: that plan leaves several minutes spare. If a maths or computing question is not falling within about 30 seconds (the speed-mode cap from the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination)), it is probably one whose fact you have not learnt. Pick your best guess (no marks are deducted for wrong answers), flag it and move on. Come back only if the end of the paper leaves time.
+
+This refines the plan you already have. The [exam format lesson](#/learn/start-here/exam-format-and-strategy) priced scenarios at 60 s, and the pacing lesson keeps a 15-minute reserve for them. Saving about 5 s on each short question is what lets you give each scenario 90 s. The checkpoints (Q50 by 30:00, Q100 by 60:00) stay the same.
 
 </ExamTip>
 

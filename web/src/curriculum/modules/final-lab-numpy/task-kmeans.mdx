@@ -42,7 +42,9 @@ print(k_means_clustering(points, 2, [(2, 2), (100, 100)], 10))      # an empty c
 print(k_means_clustering([(1, 2, 3), (1, 2, 4), (9, 9, 9), (10, 9, 9)],
                          2, [(1, 2, 3), (9, 9, 9)], 10))           # 3-D points`
 
-Question 2 of the 2025 Final was worth 25 marks: write <Term def="A clustering algorithm that splits points into k groups by repeating two steps: give each point to its nearest centre, then move each centre to the mean of its points.">K-means</Term> from scratch, with a distance helper, and return the final centroids rounded to 4 decimal places. Unlike Question 1, the notebook spelled out the algorithm as a five-step recipe. Full marks most likely needed each step in a few lines of code, plus the two details the hints warned about: empty clusters and when to stop.
+Question 2 of the 2025 Final was worth 25 marks: write K-means from scratch, with a distance helper, and return the final centroids rounded to 4 decimal places. Unlike Question 1, the notebook spelled out the algorithm as a five-step recipe. Full marks most likely needed each step in a few lines of code, plus the two details the hints warned about: empty clusters and when to stop.
+
+You traced this exact data set by hand and coded K-means from scratch in [K-means clustering](#/learn/unsupervised-learning/k-means). There the start was (2, 4), (2, 8); the exam starts from (2, 2), (10, 1), which reaches the same clusters in one round. Here you turn that code into the exam's two functions and add the tests that protect the marks.
 
 <Analogy title="Bubble tea shops chasing their customers">
 
@@ -163,7 +165,7 @@ The double loop (every point, every centroid) can be replaced by one array opera
 
 ## Convergence and empty clusters
 
-K-means always stops in the end: each assignment and each update can only lower (or keep) the total squared distance from points to their centroids, and there are finitely many ways to split the points. The code needs a rule to notice it has stopped:
+As the [K-means lesson](#/learn/unsupervised-learning/k-means) showed, neither step can raise the total squared distance from points to their centroids (the inertia), so K-means always stops; the code needs a rule to notice it has stopped:
 
 - **No change**: the new centroids equal the old ones (exactly, or within a tiny tolerance with `np.allclose`). This is what "no longer change significantly" means.
 - **A tolerance**: stop when every centroid moves less than some small number. Too large, and you stop before the clusters are right.

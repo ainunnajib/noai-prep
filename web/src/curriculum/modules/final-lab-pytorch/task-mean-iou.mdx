@@ -24,8 +24,6 @@ The bars $|\cdot|$ mean "the number of pixels in". The top, the <Term def="The p
 
 Why not just count correct pixels? The notebook's own example: on a map that is 90% Forest, a lazy model that always says "Forest" gets **90% pixel accuracy**. Its mIoU is $(0 + 0.90)/2 = 0.45$: Urban has intersection 0 (it never predicts Urban), and Forest has intersection 90 and union 100. Accuracy rewards ignoring the rare class; IoU does not, because it never counts the correctly ignored pixels. ([Segmentation metrics](#/learn/vision-tasks/segmentation-metrics) covers IoU, Dice and this trap in more depth.)
 
-<PastPaperQuestion paper="prelim2026" n={263} />
-
 ## From the formula to tensor code: masks and sums
 
 Each set becomes a <Term def="A tensor of True/False values with the same shape as the label map, e.g. pred == 1 is True exactly where the prediction says class 1.">boolean mask</Term>. `pred_flat == cls` is a tensor that is `True` wherever the prediction says `cls`. Then `p & t` (and) is `True` where both are, `p | t` (or) where at least one is, and `.sum()` counts the `True`s, because `True` counts as 1. Before that, `reshape(-1)` flattens the `(B, H, W)` maps into one long row of pixels, so a single comparison handles every image in the batch at once. That is what the task means by <Term def="Doing a calculation with whole-tensor operations (comparisons, &, |, sum) instead of a Python for loop over individual elements. Much faster, and required by the task.">vectorised</Term>: the only Python loop is over the 2 classes, never over pixels or images.
@@ -62,7 +60,7 @@ For each class: `p = pred == c`, `t = true == c`, intersection `(p & t).sum()`, 
 
 ## The exam answer in PyTorch
 
-Here is the complete answer, following the docstring's algorithm step by step, then the real output of the notebook's two self-check cells:
+You wrote this function in [Segmentation metrics](#/learn/vision-tasks/segmentation-metrics) and checked the same cases, including the 0.375 that the notebook calls a failure. Here it is again in the docstring's exact order, followed by the real output of the notebook's two self-check cells:
 
 ```python
 def calculate_miou(pred_mask, true_mask, num_classes=2):
@@ -93,11 +91,10 @@ Expected: Only class 0 IoU counted (should be 0.75)
 
 The first check passes. The second one "fails", and that is not a bug in this function: the last section of this lesson shows that the cell itself is wrong. The docstring uses `.view(-1)` to flatten; `reshape(-1)` does the same job and also works on non-contiguous tensors (for example after a `transpose`), where `.view` raises an error.
 
-<Mistake title="Five ways to lose the 10 marks">
+<Mistake title="Two more ways to lose the 10 marks">
 
-- **Dividing before checking the union.** With tensors, `0 / 0` gives `tensor(nan)`, and one `nan` turns the whole mean into `nan`; after `.item()` the same division raises `ZeroDivisionError: division by zero`. Check `if union == 0` first.
-- **Using `and` / `or` instead of `&` / `|`.** `p and t` asks Python for one True or False and fails with "Boolean value of Tensor with more than one value is ambiguous".
-- **Looping over pixels or images** with nested `for` loops. It gives the right number slowly and breaks the task's explicit "vectorised operations only" rule.
+The slips from Segmentation metrics (dividing before checking the union, `and` / `or` instead of `&` / `|`, looping over pixels) cost marks here too. The notebook adds two more:
+
 - **Forgetting the empty list.** If every class is skipped, `sum([]) / len([])` is another `ZeroDivisionError`. Return `0.0` (the official solution's choice) when `ious` is empty.
 - **Importing a ready-made metric** from `sklearn` or `torchmetrics`. Both are explicitly banned in this task, so the whole point of the part would be lost.
 

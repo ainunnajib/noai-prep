@@ -5,7 +5,7 @@ import ParamComplexityDrill from './visuals/drill-conv-and-params/ParamComplexit
 
 Deep-learning questions look as if they need a calculator: "how many parameters?", "what size comes out?", "how does the cost grow?". In the Prelim you have no calculator and about {PRELIM.secondsPerQuestion} seconds. The good news is that almost all of them come from **two conv formulas and a dozen parameter and cost formulas**. This lesson drills each one until it is automatic; the next lesson does the same for shapes and code.
 
-You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes) and [attention](#/learn/attention-and-transformers/multi-head-attention) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
+You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes), [attention](#/learn/attention-and-transformers/multi-head-attention), [LoRA](#/learn/large-language-models/fine-tuning-and-lora), [normalisation](#/learn/training-deep-networks/initialisation-and-normalisation), [curvature](#/learn/calculus-and-gradient-descent/curvature-convexity), [schedules](#/learn/training-deep-networks/learning-rate-warmup-schedules) and [Big-O](#/learn/algorithms-and-complexity/big-o) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
 
 ## Conv arithmetic: two formulas
 
@@ -118,7 +118,7 @@ Two of these deserve a closer look.
 | --- | --- | --- |
 | $(n \times m)$ matrix times $(m \times p)$ matrix | $O(nmp)$ | $np$ entries, each a dot product of length $m$ |
 | attention scores $QK^\top$, $n$ tokens of width $d$ | $O(n^2 d)$ | double the context, **four times** the work |
-| <Term def="The p × p table of all second derivatives of the loss with respect to the p parameters: how the slope in each direction changes along every other direction.">Hessian</Term> of a model with $p$ parameters | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids <Term def="An optimiser that uses the Hessian to jump straight towards the minimum in one big step, instead of taking many small gradient steps.">Newton's method</Term> |
+| <Term def="The p × p table of all second derivatives of the loss with respect to the p parameters: how the slope in each direction changes along every other direction.">Hessian</Term> of a model with $p$ parameters (the $n$ of the curvature lesson) | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids <Term def="An optimiser that uses the Hessian to jump straight towards the minimum in one big step, instead of taking many small gradient steps.">Newton's method</Term> |
 | brute-force $k$-NN, one query | $O(nd)$ | fast to train, slow to predict |
 | binary search / sorting $n$ items | $O(\log n)$ / $O(n \log n)$ | a million items: about 20 comparisons |
 

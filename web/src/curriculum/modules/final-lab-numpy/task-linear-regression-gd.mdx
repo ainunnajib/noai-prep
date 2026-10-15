@@ -29,7 +29,7 @@ print(np.round(np.linalg.lstsq(X, y, rcond=None)[0], 4))
 # check 3: more iterations head there
 print(linear_regression_gradient_descent(X, y, 0.01, 3000))`
 
-Question 1 of the 2025 Final was worth 15 marks and asked for one function: linear regression trained by gradient descent, in NumPy, with the answer rounded to 4 decimal places. You met the algorithm in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent). This lesson rebuilds it the way you would in the exam: read the task, write three vectorised lines, prove the answer is right without being told it, and recognise the mistakes that cost marks.
+Question 1 of the 2025 Final was worth 15 marks and asked for one function: linear regression trained by gradient descent, in NumPy, with the answer rounded to 4 decimal places. You already solved this exact task, same data and same answer, in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent) (section "The 2025 Final"). This lesson is the exam run-through: reading the notebook, writing the three lines under time pressure, checking without an answer key, and spotting each mistake from its output.
 
 <Analogy title="The downhill walk, written as code">
 
@@ -45,22 +45,11 @@ $$
 \theta_j := \theta_j - \alpha\,\frac{1}{m}\sum_{i=1}^{m}\left(h_\theta(x^{(i)}) - y^{(i)}\right)x_j^{(i)}
 $$
 
-Read it symbol by symbol:
+That lesson read the rule symbol by symbol. The recap, in three lines:
 
-- $\theta$ (theta) is the list of <Term def="The numbers a model learns. For a straight line, the slope and the intercept.">coefficients</Term>, one per column of `X`; $\theta_j$ is the one in column $j$. The `:=` means "replace with".
-- $\alpha$ (alpha) is the <Term def="How big a step gradient descent takes each iteration. Too small is slow; too large overshoots and can blow up.">learning rate</Term>, and $m$ is the number of examples (rows of `X`).
-- $x^{(i)}$ is row $i$ of `X`, and $x_j^{(i)}$ is the number in row $i$, column $j$. $y^{(i)}$ is that row's target.
-- $h_\theta(x^{(i)}) = \theta_0 x_0^{(i)} + \theta_1 x_1^{(i)}$ is the model's prediction for row $i$, so $h_\theta(x^{(i)}) - y^{(i)}$ is its error.
-- The whole fraction is the **average of (error × the input in column $j$)**: the slope of the cost in the $\theta_j$ direction.
-- Careful: the 2025 notebook calls $h_\theta(x^i)$ "the hypothesis function at iteration $i$", but in the formula $i$ counts training examples (rows), not iterations.
-
-The <Term def="One number that measures how badly the model fits the data. Gradient descent tries to make it small.">cost</Term> behind this rule is half the mean squared error:
-
-$$
-J(\theta) = \frac{1}{2m}\sum_{i=1}^{m}\left(h_\theta(x^{(i)}) - y^{(i)}\right)^2
-$$
-
-The $\frac12$ cancels the 2 that comes from differentiating the square, so $\frac{\partial J}{\partial \theta_j}$ is exactly the task's average. At $\theta = 0$ the errors are $-2, -4, -6$, so $J = \frac{4 + 16 + 36}{6} \approx 9.33$.
+- $\theta_j$ is the coefficient for column $j$ of `X` and $m$ is the number of rows; the fraction is the **average of (error × the input in column $j$)**, the slope of the cost $J(\theta) = \frac{1}{2m}\sum_i \left(h_\theta(x^{(i)}) - y^{(i)}\right)^2$, which is 9.33 at $\theta = 0$. Here $i$ counts rows, not iterations, whatever the notebook's wording says.
+- $\alpha$ (alpha) is the learning rate, the $\eta$ of earlier lessons; the 2025 notebook calls it alpha, so keep that name in your code.
+- The first column of `X` holds 2s, so it already does the intercept's job (the intercept is $2\theta_0$): add no column of your own, and update every $\theta_j$ together from the same old $\theta$.
 
 The data cell holds `X = [[2, 2], [2, 4], [2, 6]]`, `y = [2, 4, 6]`, `alpha = 0.01` and `iterations = 1000`. Three things are *not* said, and you should decide them before typing:
 
@@ -156,30 +145,7 @@ Why is the answer after 1000 steps not exactly (0, 1)? The cost surface is a lon
 
 <PastPaperQuestion paper="prelim2026" n={66} />
 
-## What the column of 2s means
-
-The task says `X` has "a column of values for the intercept", but the column holds **2s, not 1s**. The prediction for an input $x$ is therefore
-
-$$
-\hat{y} = 2\,\theta_0 + \theta_1\,x,
-$$
-
-so the <Term def="Where a line crosses the y-axis: its value when the input x is 0.">intercept</Term> is $2\theta_0$, not $\theta_0$, and the slope is $\theta_1$.
-
-<Steps title="Reading the answer [0.003, 0.9987]">
-  <Step title="Intercept">
-    $2 \times 0.003 = 0.006$: the line crosses the y-axis just above 0.
-  </Step>
-  <Step title="Slope">
-    $\theta_1 = 0.9987$: almost exactly 1, like the data $y = x$.
-  </Step>
-  <Step title="A prediction">
-    At $x = 5$: $\hat{y} = 0.006 + 0.9987 \times 5 = 0.006 + 4.9935 = 4.9995$, very close to the true 5.
-  </Step>
-  <Step title="Why it matters">
-    Do not add your own column of 1s. The column of 2s already does the intercept's job, and an extra column gives three coefficients and the wrong answer.
-  </Step>
-</Steps>
+Reading the answer is part of the task too. The prediction is $\hat{y} = 2\theta_0 + \theta_1 x$, so `[0.003, 0.9987]` means an intercept of $2 \times 0.003 = 0.006$ and a slope of 0.9987, almost exactly the slope 1 of the data's line $y = x$.
 
 <QuickCheck
   q="With this task's column of 2s, gradient descent returns θ = [1.5, 0.5]. Where does the fitted line cross the y-axis?"

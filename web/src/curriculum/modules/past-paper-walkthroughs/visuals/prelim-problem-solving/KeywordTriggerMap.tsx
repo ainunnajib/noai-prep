@@ -79,7 +79,7 @@ const DIAGS: Diag[] = [
   },
   {
     id: 'drift',
-    label: 'distribution drift',
+    label: 'distribution shift',
     fam: 'data',
     fix: 'Monitor inputs and outputs, validate on later data, retrain on recent data.',
     lesson: { to: 'ml-systems-and-tradeoffs/lifecycle-and-deployment', label: 'The ML lifecycle, deployment and monitoring' },

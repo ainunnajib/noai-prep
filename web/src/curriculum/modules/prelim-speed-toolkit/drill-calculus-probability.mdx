@@ -5,7 +5,7 @@ import AnchorSlideRule from './visuals/drill-calculus-probability/AnchorSlideRul
 
 The 2026 Prelim's Mathematics block held 14 calculus questions, 12 on probability and statistics and 3 on classification metrics. Every calculation in them was a one-liner: the derivative of $x^2$, the slope of a sigmoid, a z-score, a precision. You either know these instantly or you burn a minute rebuilding them. This lesson gives you the short fixed list behind those questions, a checklist for probabilities and metrics, and a dozen anchor values that stand in for the calculator you are not allowed.
 
-If any idea here is new, the full explanations are in [derivative rules](#/learn/calculus-and-gradient-descent/derivative-rules), [the chain rule](#/learn/calculus-and-gradient-descent/chain-rule), [probability rules](#/learn/probability-and-statistics/probability-rules), [Bayes' theorem](#/learn/probability-and-statistics/bayes-theorem) and [the confusion matrix](#/learn/model-evaluation/confusion-matrix-and-metrics). Here the goal is speed.
+If any idea here is new, the full explanations are in [derivative rules](#/learn/calculus-and-gradient-descent/derivative-rules), [the chain rule](#/learn/calculus-and-gradient-descent/chain-rule), [logarithms](#/learn/maths-foundations/logarithms), [describing data](#/learn/probability-and-statistics/describing-data), [probability rules](#/learn/probability-and-statistics/probability-rules), [Bayes' theorem](#/learn/probability-and-statistics/bayes-theorem), [distributions](#/learn/probability-and-statistics/distributions-and-clt) and [the confusion matrix](#/learn/model-evaluation/confusion-matrix-and-metrics). Here the goal is speed.
 
 ## Derivative flashcards
 
@@ -72,12 +72,12 @@ Pilots do not decide afresh each morning how to check an aircraft. They run the 
 
 The probability checklist:
 
-1. **Describe a small list.** Mean = sum ÷ number of values; median = the middle value after sorting; variance = the mean of the squared distances from the mean; standard deviation = $\sqrt{\text{variance}}$. A long tail to the right pulls the mean above the median.
+1. **Describe a small list.** Mean = sum ÷ number of values; median = the middle value after sorting; variance = the mean of the squared distances from the mean (divide by $n$; a question about a sample may divide by $n - 1$, as in [describing data](#/learn/probability-and-statistics/describing-data)); standard deviation = $\sqrt{\text{variance}}$. A long tail to the right pulls the mean above the median.
 2. **Count.** When all outcomes are equally likely, $P(\text{event}) = \dfrac{\text{outcomes in the event}}{\text{all outcomes}}$. Two dice have $6 \times 6 = 36$ outcomes, so $P(\text{sum} = 7) = \frac{6}{36} = \frac16$.
 3. **Complement for "at least one".** $P(\text{at least one}) = 1 - P(\text{none})$. At least one head in 3 coin tosses: $1 - \left(\frac12\right)^3 = \frac78$.
 4. **Multiply for independent events.** Two events are <Term def="Knowing whether one happened tells you nothing about the other, so P(A and B) = P(A) × P(B).">independent</Term> when $P(A \text{ and } B) = P(A)\,P(B)$.
 5. **Bayes: use 100 people, not the formula.** Bayes' theorem, $P(A \mid B) = \dfrac{P(B \mid A)\,P(A)}{P(B)}$, turns $P(\text{positive} \mid \text{ill})$ into $P(\text{ill} \mid \text{positive})$. Instead of plugging in, turn every percentage into a count of people, then count the people you care about.
-6. **z-scores:** $z = \dfrac{x - \mu}{\sigma}$, where $\mu$ (mu) is the mean and $\sigma$ (sigma) the standard deviation. In words: how many standard deviations $x$ sits above the mean (negative means below). With $\mu = 50$, $\sigma = 5$, $x = 35$: $z = \frac{-15}{5} = -3$, three standard deviations below. For a normal distribution, about 68% of values lie within $z = \pm 1$, 95% within $\pm 2$ and 99.7% within $\pm 3$.
+6. **z-scores:** $z = \dfrac{x - \mu}{\sigma}$, where $\mu$ (mu) is the mean and $\sigma$ (sigma) the standard deviation (the same letter as the sigmoid $\sigma(x)$ in the derivative table, but a different thing). In words: how many standard deviations $x$ sits above the mean (negative means below). With $\mu = 50$, $\sigma = 5$, $x = 35$: $z = \frac{-15}{5} = -3$, three standard deviations below. For a normal distribution, about 68% of values lie within $z = \pm 1$, 95% within $\pm 2$ and 99.7% within $\pm 3$.
 
 <QuickProbability />
 
@@ -120,6 +120,8 @@ $$
 - **Precision** looks along the *predicted positive* column: of everything flagged, how much was real?
 - **Recall** looks along the *actually positive* row: of everything real, how much was caught?
 - **F1** is the <Term def="A kind of average that is pulled towards the smaller number: 2ab/(a + b). For 1 and 0 it gives 0, not 0.5.">harmonic mean</Term> of precision $P$ and recall $R$. The count form on the right is the same number and much faster: no fractions inside fractions.
+
+This drill puts the positive class first, as many textbooks do; scikit-learn puts class 0 first. Always read the row and column labels before taking $TP$.
 
 <MetricsFromCounts />
 

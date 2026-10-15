@@ -116,29 +116,29 @@ where $B_{\text{eff}}$ is the effective batch size. The gradient matches a batch
 
 ## Keyword triggers
 
-A doctor who hears "chest pain and sweating" immediately thinks of a short list of causes. Long scenario questions usually hinge on one or two phrases in the same way:
+You met a first trigger table in the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination); here are the triggers the 2026 scenarios actually used, grouped by diagnosis. A doctor who hears "chest pain and sweating" immediately thinks of a short list of causes. Long scenario questions usually hinge on one or two phrases in the same way:
 
 - **"Oscillates wildly"** points to the learning rate.
 - **"CUDA out of memory"** points to batch size and precision.
 - **"1% positives"** points to precision and recall.
 - **"p > n"** points to overfitting.
 - **Validation at 10% on 10 classes** points to a label or pipeline bug.
-- **"Trained on 2023 data, tested on 2025"** points to <Term def="The data the model meets after deployment differs from the data it was trained on (new customers, new prices, a new economy).">distribution drift</Term>.
+- **"Trained on 2023 data, tested on 2025"** points to <Term def="The data the model meets after deployment differs from the data it was trained on (new customers, new prices, a new economy). Also called data drift.">distribution shift</Term> (see [data bugs and shift](#/learn/debugging-and-diagnosis/data-bugs-and-shift)).
 
 <KeywordTriggerMap />
 
-The map has twelve keywords but only ten diagnoses, in five families. That is the point: once you have a trigger, the options shrink to the one that names its diagnosis. The 2026 drift question below is a good test. Decide which phrase is the trigger before you look at the options.
+The map has twelve keywords but only ten diagnoses, in five families. That is the point: once you have a trigger, the options shrink to the one that names its diagnosis. The 2026 distribution-shift question below is a good test. Decide which phrase is the trigger before you look at the options.
 
 <PastPaperQuestion paper="prelim2026" n={275} />
 
 ## Pacing the scenario block
 
 <ExamTip title="One plan for the whole paper">
-If 2027 keeps the 2026 shape, roughly 18 of the {PRELIM.questions} questions (about 12%) will be long scenarios, most of them in the last fifth of the paper. Plan about 25 seconds for each short question and about 90 seconds for each scenario: $132 \times 25\,\text{s} + 18 \times 90\,\text{s} = 3{,}300\,\text{s} + 1{,}620\,\text{s} = 4{,}920\,\text{s} = 82$ minutes, which leaves 8 minutes spare. It is the same 25 s / 90 s plan as the [time bank](#/learn/past-paper-walkthroughs/prelim-maths-computing) in the Mathematics and Computing lesson, which models 15 scenarios and so shows a little more spare time: quick one-fact answers pay for the slow scenarios. Scoring is {PRELIM.marking}, so never leave a scenario blank: if the trigger does not appear within about 30 seconds, eliminate what you can, pick one, note the number and move on.
+If 2027 keeps the 2026 shape, roughly 18 of the {PRELIM.questions} questions (about 12%) will be long scenarios, most of them in the last fifth of the paper. Plan about 25 seconds for each short question and about 90 seconds for each scenario: $132 \times 25\,\text{s} + 18 \times 90\,\text{s} = 3{,}300\,\text{s} + 1{,}620\,\text{s} = 4{,}920\,\text{s} = 82$ minutes, which leaves 8 minutes spare. On this plan you pass Q100 well before 60:00, so the checkpoints from the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination) still hold; the scenarios simply use up about half of its 15-minute reserve. It is the same 25 s / 90 s plan as the [time bank](#/learn/past-paper-walkthroughs/prelim-maths-computing) in the Mathematics and Computing lesson, which models 15 scenarios and so shows a little more spare time: quick one-fact answers pay for the slow scenarios. Scoring is {PRELIM.marking}, so never leave a scenario blank: if the trigger does not appear within about 30 seconds, eliminate what you can, pick one, note the number and move on.
 </ExamTip>
 
 <Note title="About guessing by option length">
-The "longest option is right" tell from the AI and GenAI lesson is weakest exactly here: in Q271–300 the uniquely longest option was right only 18 of 29 times. Use it only to break a blind guess; the reading method is what earns the marks.
+The "longest option is right" tell from the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination) (measured again in the AI and GenAI lesson) is weakest exactly here: in Q271–300 the uniquely longest option was right only 18 of 29 times. Use it only to break a blind guess; the reading method is what earns the marks.
 </Note>
 
 <QuickCheck
@@ -152,6 +152,6 @@ The "longest option is right" tell from the AI and GenAI lesson is weakest exact
 - Read the **question line first**, then scan for the numbers it needs; most of a scenario stem is scenery.
 - Turn the numbers into one deciding quantity: the train–validation gap, chance level $1/K$, the positive share, or features versus samples.
 - Long options differ in one phrase: compare them on that phrase only, and distrust options that apply several fixes at once.
-- A small set of diagnoses repeats: learning rate, warm-up and schedules, numerical blow-ups, memory, over- and underfitting, label bugs, drift and imbalanced metrics.
+- A small set of diagnoses repeats: learning rate, warm-up and schedules, numerical blow-ups, memory, over- and underfitting, label bugs, distribution shift and imbalanced metrics.
 - Spot the trigger phrase ("oscillates wildly", "CUDA out of memory", "1% positives", "$p > n$", "10% on 10 classes", "2023 data, tested on 2025") and the answer usually follows.
 </Takeaways>

@@ -28,7 +28,7 @@ Inside every cluster the same thing happens: a question names one idea, and the 
 
 <MLGenAIWalkthrough />
 
-Five of these pairs come up so often that they are worth opening properly.
+Five of these pairs come up so often that they are worth a closer look.
 
 ### Bagging against boosting (Q155)
 
@@ -43,22 +43,7 @@ The same pair decides the question just before Q155 in the paper. Try it now.
 
 ### Why stacked 3×3 kernels win (Q204)
 
-A convolution layer with a $k \times k$ kernel, $C$ input channels and $C$ output channels has $k^2 C^2$ weights (ignoring biases): every one of the $C$ output channels has its own $k \times k \times C$ block of weights.
-
-<Steps title="One 5×5 layer against two 3×3 layers">
-  <Step title="Weights of one 5×5 layer">
-    $5^2 \times C^2 = 25C^2$.
-  </Step>
-  <Step title="Weights of two 3×3 layers">
-    $2 \times 3^2 \times C^2 = 18C^2$. With $C = 64$ that is $73{,}728$ against $102{,}400$.
-  </Step>
-  <Step title="What each sees">
-    A unit in layer 2 looks at a 3×3 patch of layer 1, and each of those looks at its own 3×3 patch of the input. Together they cover a 5×5 patch: the same <Term def="The patch of the original input that can affect one output value.">receptive field</Term> as one 5×5 kernel.
-  </Step>
-  <Step title="The bonus">
-    Two layers means two ReLUs in between, so the stack can represent more complicated features. Three 3×3 layers cover 7×7 with $27C^2$ weights instead of $49C^2$.
-  </Step>
-</Steps>
+The pair here is one big kernel against a stack of small ones. You counted this in the [conv and parameter drills](#/learn/prelim-speed-toolkit/drill-conv-and-params): with $C$ channels in and out, two $3 \times 3$ layers cost $18C^2$ weights against $25C^2$, see the same $5 \times 5$ patch of the input, and add one extra ReLU in between.
 
 ### Encoder against decoder (Q213)
 
@@ -89,17 +74,7 @@ $$
 - $B$ is a tall, thin $d \times r$ matrix and $A$ is a short, wide $r \times k$ matrix.
 - $r$ is the **rank**, a small number such as 8, so $BA$ is a full $d \times k$ matrix built from very few numbers.
 
-<Steps title="Count the trainable numbers for a 4096 × 4096 layer">
-  <Step title="Full fine-tuning">
-    $4096 \times 4096 = 16{,}777{,}216$ numbers, about 16.8 million.
-  </Step>
-  <Step title="LoRA with r = 8">
-    $B$: $4096 \times 8 = 32{,}768$. $A$: $8 \times 4096 = 32{,}768$. Total $65{,}536$.
-  </Step>
-  <Step title="Compare">
-    $65{,}536 / 16{,}777{,}216 \approx 0.39\%$. Fine-tuning becomes cheap in memory and storage. Running the model afterwards is not faster: merging $BA$ into $W$ at best keeps it the same speed.
-  </Step>
-</Steps>
+The [conv and parameter drills](#/learn/prelim-speed-toolkit/drill-conv-and-params) counted this too: for a $4096 \times 4096$ layer with $r = 8$, LoRA trains $4096 \times 8 + 8 \times 4096 = 65{,}536$ numbers instead of 16.8 million (0.39%). That makes fine-tuning cheap in memory and storage, but running the model afterwards is not faster: merging $BA$ into $W$ at best keeps it the same speed.
 
 ### Diffusion as a chain of small noisy steps (Q245)
 
@@ -136,7 +111,7 @@ If you learn "boosting reduces bias" on its own, the option "Variance" still loo
 
 ## Distractor anatomy
 
-A <Term def="A wrong option in a multiple-choice question, written to attract students who hold a particular misconception.">distractor</Term> is a wrong option. Setters do not make them up at random; each one is built to catch a particular mistake. Seven kinds of trap cover every wrong option in the 13 questions below:
+Setters do not make up distractors at random; each one is built to catch a particular mistake. Seven kinds of trap cover every wrong option in the 13 questions below:
 
 - **Confusable twin:** the right answer about the neighbouring idea.
 - **Opposite effect:** the right topic with the direction flipped.
@@ -145,6 +120,8 @@ A <Term def="A wrong option in a multiple-choice question, written to attract st
 - **Overclaim:** an absolute word such as *only*, *always* or *never*.
 - **Half-done working:** in number questions, the answer with one step skipped or swapped (no square root, no division, the wrong operation).
 - **Filler:** an unrelated or empty option that you can cross out at once.
+
+These refine the five strike rules from the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination): overclaim is its *absolute words*, confusable twin its *swapped terms*, true but not the point its *answers a different question*, and filler its *vague or empty*. Opposite effect, wrong reason and half-done working are new. Its fifth rule, *clashes with the stem*, needs a scenario, so it belongs to the next lesson.
 
 <DistractorAnatomy />
 
@@ -163,7 +140,7 @@ On a recall question you do not know cold: cross out fillers and overclaims firs
 
 <ExamTip title="Last-resort tells, measured on the 2026 paper">
 
-Use these only to break a tie when real elimination has failed. In Q120–237, whenever one option was longer than each of the other three, it was the right answer in 102 of 113 questions. Across the whole paper, 68 options started with *always*, *never*, *only*, *cannot*, *all*, *no* or *none*, and just one of them was right. Setters can change this habit in 2027, so it is a tie-breaker, not a method. (The checkpoint questions on this site deliberately avoid it.)
+Use these only to break a tie when real elimination has failed. In Q120–237, whenever one option was longer than each of the other three, it was the right answer in 102 of 113 questions. Across the whole paper, 68 options started with *always*, *never*, *only*, *cannot*, *all*, *no* or *none* (the 50 in the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination) counted a slightly different word list), and just one of them was right. Setters can change this habit in 2027, so it is a tie-breaker, not a method. (The checkpoint questions on this site deliberately avoid it.)
 
 </ExamTip>
 

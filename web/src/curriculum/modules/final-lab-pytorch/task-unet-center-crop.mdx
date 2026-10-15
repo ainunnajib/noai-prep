@@ -12,7 +12,7 @@ You want to put a 6R photo into a slightly smaller frame. The sensible fix is to
 
 ## What the notebook gives you
 
-Part 1 (10 marks) asks you to write a function called `center_crop`, use it in one line of `forward`, and explain the trade-offs in two or three sentences (Q2.1b). Part 2, mean IoU, is the next lesson. If U-Nets are new to you, work through [the U-Net lesson](#/learn/vision-tasks/u-net-segmentation) first; this lesson is about solving the exam task quickly and without losing marks.
+Part 1 (10 marks) asks you to write a function called `center_crop`, use it in one line of `forward`, and explain the trade-offs in two or three sentences (Q2.1b). Part 2, mean IoU, is the next lesson. You traced this exact network and wrote a first `center_crop` in [U-Net segmentation](#/learn/vision-tasks/u-net-segmentation). Here you fit it to the notebook's stub, test it on both grader sizes and answer the written Q2.1b.
 
 The notebook hands you a class with every layer already built. All you see of the crop is a docstring and four TODO comments, and `forward` contains a placeholder that crashes on purpose. Here is the relevant part, trimmed:
 
@@ -65,27 +65,13 @@ The other two layers: `MaxPool2d(2)` halves and rounds down, $\lfloor H/2 \rfloo
 
 <ShapeShrinkTable />
 
-<Steps title="Tracing a 256 × 256 input by hand (padding 0)">
-  <Step title="Encoder level 1">
-    Two valid convs: $256 \to 254 \to 252$, with 64 channels. Pool: $252 / 2 = 126$.
-  </Step>
-  <Step title="Encoder level 2: the skip map">
-    $126 \to 124 \to 122$, with 128 channels. This map is saved as `x2` for the skip connection. Pool: $122 / 2 = 61$.
-  </Step>
-  <Step title="Bottleneck">
-    $61 \to 59 \to 57$, with 256 channels.
-  </Step>
-  <Step title="Upsample">
-    The transposed convolution doubles and halves the channels: $57 \times 2 = 114$, with 128 channels. This is `d1`.
-  </Step>
-  <Step title="The join">
-    `x2` is $122 \times 122$ but `d1` is $114 \times 114$: 8 pixels too many, 4 on each side.
-  </Step>
-</Steps>
+For a $256 \times 256$ input with padding 0 that gives `x2` $= 122$ and `d1` $= 114$, a gap of 8 (4 on each side); the full trace is in [the U-Net lesson](#/learn/vision-tasks/u-net-segmentation).
 
 There is a neat shortcut. Between saving `x2` and meeting `d1`, the path halves, loses $2 + 2 = 4$ pixels in the bottleneck, then doubles: $d_1 = 2\left(\lfloor x_2 / 2 \rfloor - 4\right)$. For even $x_2$ that is $x_2 - 8$; for odd $x_2$ it is $x_2 - 9$. **So in this network the gap is always 8 or 9 and the crop offset is always 4**, whatever the input size. Two smaller facts are worth knowing: the notebook's text guesses the output is "e.g. $196 \times 196$", but it really is $110 \times 110$ (the two decoder convs take $114 \to 112 \to 110$); and with padding 1 the network still breaks for inputs such as 250, because pooling rounds $125$ down to $62$ and doubling gives back only $124$.
 
 <PastPaperQuestion paper="prelim2026" n={191} />
+
+<PastPaperQuestion paper="prelim2026" n={188} />
 
 <QuickCheck
   q="The grader's second test feeds a 128 × 128 input to the same network (padding 0). What are the sizes of the skip map x2 and the upsampled map d1?"
@@ -147,7 +133,7 @@ Here is the complete answer for Q2.1: the four TODO steps, then the one-line fix
 ```python
 # inside class BrokenUNet
 def center_crop(self, layer, target_shape):
-    # step 1: H, W of the big map (B, C, H, W)
+    # step 1: H, W of the big map (N, C, H, W)
     _, _, h_layer, w_layer = layer.shape
     # step 2: H, W of the small map
     target_h, target_w = target_shape[2], target_shape[3]
@@ -211,13 +197,11 @@ The written part asks: what are the **trade-offs** of centre cropping, could a d
 
 <Note title="The question contains a factual error">
 
-The 2015 U-Net paper by Ronneberger, Fischer and Brox did **not** use padding=1. It used unpadded ("valid") convolutions and cropped the skip maps, exactly like this task: a $572 \times 572$ input gave a $388 \times 388$ output, and large images were segmented as overlapping tiles. Padding=1 is the common modern variant. A strong answer can say so politely in one clause; do not spend more than that on it.
+The 2015 U-Net paper by Ronneberger, Fischer and Brox did **not** use padding=1. It used unpadded ("valid") convolutions and cropped the skip maps, exactly like this task: as the U-Net lesson mentioned, a $572 \times 572$ input gave a $388 \times 388$ output, and large images were segmented as overlapping tiles. Padding=1 is the common modern variant. A strong answer can say so politely in one clause; do not spend more than that on it.
 
 </Note>
 
-The skip connections exist to carry fine spatial detail from the encoder to the decoder, which is exactly what cropping trims at the borders. Prelim questions test that purpose directly:
-
-<PastPaperQuestion paper="prelim2026" n={223} />
+The skip connections exist to carry fine spatial detail from the encoder to the decoder, which is exactly what cropping trims at the borders, so a strong answer says so.
 
 <ExamTip title="Part 1 in about 15 minutes">
 

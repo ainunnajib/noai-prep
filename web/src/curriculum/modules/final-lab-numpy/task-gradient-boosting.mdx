@@ -181,7 +181,7 @@ Task 1 of the 2026 Final asked you to build a **gradient boosting regressor** fr
 
 <Note title="Before you start">
 
-If boosting itself is new to you, read [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting) first. This lesson rebuilds the exam task line by line.
+The [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting) lesson already built this algorithm from scratch: the L1 and L2 pseudo-residuals, the mean and median starts, two rounds by hand and early stopping. Re-read it if any of that is shaky. This lesson is the exam version: the marks, the scaffold and its traps, and the notebook's own tests.
 
 </Note>
 
@@ -205,23 +205,14 @@ The notebook was built with <Term def="An autograder for Jupyter notebooks. Hidd
 
 ## Part 1: four one-line building blocks (8 marks)
 
-The model starts from one constant guess and improves it step by step. A <Term def="A number that measures how wrong a prediction is. Training tries to make the average loss small.">loss</Term> $L(y, \hat y)$ measures how wrong a prediction $\hat y$ is for a true value $y$. The task gives two:
+The model starts from one constant guess, $F_0$, and improves it step by step. The task gives two losses, $L_2(y, \hat y) = \tfrac12 (y - \hat y)^2$ and $L_1(y, \hat y) = \lvert y - \hat y \rvert$; averaged over the samples, they are half the MSE and the MAE that the test cells print. The [gradient boosting lesson](#/learn/trees-and-ensembles/gradient-boosting) derived each <Term def="Minus the derivative of the loss with respect to the prediction. It says which way, and how strongly, to move the prediction to make the loss smaller.">negative gradient</Term> and best starting constant in its section *Why "gradient"? Pseudo-residuals*. The four answers:
 
-$$
-\begin{aligned}
-L_2(y, \hat y) &= \tfrac12 (y - \hat y)^2 \\
-L_1(y, \hat y) &= \lvert y - \hat y \rvert
-\end{aligned}
-$$
+- **Q1.1** `l1_negative_gradient` returns `np.sign(y - y_pred)`: $+1$, $-1$, or 0 where $y = \hat y$ (the notebook allows any value in $[-1, 1]$ there).
+- **Q1.2** `l2_negative_gradient` returns `y - y_pred`, the plain residual.
+- **Q1.3** `l1_initial_prediction` returns `np.median(y)`, as one `np.float64`.
+- **Q1.4** `l2_initial_prediction` returns `np.mean(y)`, as one `np.float64`.
 
-Averaged over all the samples, the L1 loss is the <Term def="Mean absolute error: the average size of the misses, ignoring their sign.">MAE</Term> and the L2 loss is half the <Term def="Mean squared error: the average of the squared misses. Big misses count much more than small ones.">MSE</Term>, the scores the notebook's test cells print.
-
-The <Term def="Minus the derivative of the loss with respect to the prediction. It says which way, and how strongly, to move the prediction to make the loss smaller.">negative gradient</Term> $-\frac{\partial L}{\partial \hat y}$ says which way to nudge the prediction to make the loss smaller, and how hard.
-
-- **L2.** By the chain rule, $\frac{\partial}{\partial \hat y}\tfrac12(y - \hat y)^2 = (y - \hat y) \times (-1)$. So the negative gradient is $y - \hat y$, the plain <Term def="Truth minus prediction, y − ŷ: how far, and in which direction, the prediction missed.">residual</Term>. A far-away point pulls hard.
-- **L1.** The slope of $\lvert y - \hat y \rvert$ is $-1$ when the prediction is too small and $+1$ when it is too big. So the negative gradient is $\operatorname{sign}(y - \hat y)$: $+1$, $-1$, or $0$ when $y = \hat y$. At that one point the slope is undefined, and the notebook allows any value in $[-1, 1]$ (a <Term def="A stand-in for the derivative at a corner where the true derivative does not exist. For |x| at 0, any value between −1 and 1 is allowed.">sub-gradient</Term>). `np.sign` gives 0. Every point pulls with the same strength, however far away it is.
-
-Before any tree, the model needs one constant for every sample, $F_0$. The best constant is the one where all the pulls cancel. Try it:
+The best constant is the one where all the pulls cancel. Try it:
 
 <BestConstant />
 
@@ -258,8 +249,6 @@ The notebook's tests feed these functions arrays of shape (3, 5). `np.median(Y)`
   explain="$y - \hat y = [4 - 6, 6 - 6] = [-2, 0]$, and `np.sign` turns that into $[-1, 0]$. `[-2. 0.]` is the L2 answer (no sign), `[1. 0.]` is the gradient instead of the negative gradient, and `[-1. 1.]` wrongly treats a zero difference as positive."
 />
 
-<PastPaperQuestion paper="final2026" n={2} />
-
 ## Part 2: the class and the fit loop (12 marks)
 
 Here is the whole algorithm. Each line is one of the TODOs.
@@ -294,26 +283,7 @@ The class just organises one loop. fit: start at $F_0$; repeat (a) compute the n
 
 <GBStepper />
 
-<Steps title="Two rounds by hand: x = 1, 2, 3, 4 and y = 3, 1, 2, 10 (L2, one-split trees, η = 0.1)">
-  <Step title="Initial prediction">
-    $F_0 = (3 + 1 + 2 + 10) / 4 = 4$ for every sample. MSE $= (1 + 9 + 4 + 36)/4 = 12.5$.
-  </Step>
-  <Step title="a. Residuals">
-    $r = y - F_0 = [-1, -3, -2, 6]$.
-  </Step>
-  <Step title="c. Fit a one-split tree">
-    The best single split is $x \le 3.5$. The left leaf predicts the mean of $-1, -3, -2$, which is $-2$, and the right leaf predicts $6$. Putting the big residual alone in a leaf leaves the smallest squared error.
-  </Step>
-  <Step title="d. Update every row">
-    $F_1 = F_0 + 0.1 \times [-2, -2, -2, 6] = [3.8, 3.8, 3.8, 4.6]$. MSE $= (0.64 + 7.84 + 3.24 + 29.16)/4 = 10.22$.
-  </Step>
-  <Step title="Round 2">
-    New residuals $[-0.8, -2.8, -1.8, 5.4]$, same split, leaves $-1.8$ and $5.4$: $F_2 = [3.62, 3.62, 3.62, 5.14]$, MSE $= 8.37$.
-  </Step>
-  <Step title="After 100 trees">
-    $F_{100} = [2.88, 1.24, 1.98, 9.90]$ and MSE $= 0.02$. One hundred small, corrected steps have almost reached $y$.
-  </Step>
-</Steps>
+The [gradient boosting lesson](#/learn/trees-and-ensembles/gradient-boosting) worked two rounds of exactly this loop on $y = 3, 1, 2, 10$ (MSE $12.5 \to 10.22 \to 8.37$). Re-read it if the loop is not yet automatic.
 
 <QuickCheck
   q="$F_0 = 10$ and `learning_rate = 0.1`. Three stored trees predict $20$, $-10$ and $5$ for a sample. What does `predict` return for it?"
@@ -376,7 +346,7 @@ return self
 
 <Note title="Why the L1 model scores so badly (it is not a bug)">
 
-The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops below 1,800. The exam did not ask for it: in the exam's algorithm, switching to L1 changes only the targets, `sign(y - F)`, which is why the Final's MCQ above has the answer "Line A only". The leaf-median line search is an optional improvement, not a required change.
+The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops below 1,800. The exam did not ask for it: in the exam's algorithm, switching to L1 changes only the targets, `sign(y - F)`, which is why the 2026 Final's MCQ on this (Question 2, worked in the gradient boosting lesson) has the answer "Line A only". The leaf-median line search is an optional improvement, not a required change.
 
 </Note>
 
@@ -479,3 +449,5 @@ The {FINAL.dateLabel} Final again has three Python tasks. If one of them is clas
 - A bad L1 score is expected: sign targets move predictions at most $\eta$ per tree.
 
 </Takeaways>
+
+Next, [Final lab II](#/learn/final-lab-pytorch/torch-exam-patterns) covers those two PyTorch tasks, starting with the habits that catch shape bugs.

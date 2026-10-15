@@ -13,7 +13,7 @@ You post a question in your CCA group chat: "Which hawker centre near school has
 
 ## What the notebook gives you
 
-This lesson rebuilds Parts 1 and 2 exactly as the notebook asked, line by line, with the notebook's real test output. If attention itself is new to you, work through [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition) and [Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) first; here the focus is on typing it correctly, against the clock, so that hidden tests pass.
+This lesson rebuilds Parts 1 and 2 exactly as the notebook asked, line by line, with the notebook's real test output. You have already written this function ([Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention)) and this module ([Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)). Here you type them into the notebook's stubs against the clock and check them against the hidden-test traps.
 
 Every tensor in Task 3 has four axes, and the docstrings name them. We use short capital letters, as in [PyTorch patterns for the Final](#/learn/final-lab-pytorch/torch-exam-patterns):
 
@@ -227,9 +227,7 @@ Use the notebook's own template ("When $d_k$ is large…, this causes softmax to
 
 </ExamTip>
 
-The 2026 Final's multiple-choice section asked the same idea from the other side: spotting the missing scale in someone else's code.
-
-<PastPaperQuestion paper="final2026" n={16} />
+The 2026 Final's multiple-choice section asked the same idea from the other side (Q16, which you solved in [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)): a self-attention module gave very peaked weights, and the missing line was `/ math.sqrt(self.head_dim)` on the scores, for exactly the reasons above. Dividing by `head_dim` itself would overshoot and make the weights nearly uniform.
 
 ## Q3.3 and Q3.4: the multi-head module
 

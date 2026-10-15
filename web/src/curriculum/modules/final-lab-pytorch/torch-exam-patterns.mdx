@@ -5,15 +5,11 @@ import BugCatcherGrid from './visuals/torch-exam-patterns/BugCatcherGrid'
 
 The Final on {FINAL.dateLabel} ends with three Python programming tasks, and in 2026 two of them (55 of the 80 programming marks) were PyTorch. Many ways to lose those marks were **shape** mistakes (a feature map a few pixels too big, a head axis in the wrong place); others were value mistakes that keep every shape right, such as a softmax along the wrong dimension or a missing $\sqrt{d_k}$.
 
-<Analogy title="Label every box when you move house">
-
-When your family moves to a new HDB flat, you could throw everything into unmarked boxes and sort it out later. Then you spend the first evening opening twenty boxes to find the kettle. Writing "kitchen: kettle, mugs" on each box takes a few seconds and saves the whole evening. A shape comment is that label. Typing `# (B, h, T, d_k)` after a line of tensor code takes five seconds, and when something breaks, it tells you what should be inside every box.
-
-</Analogy>
-
 This lesson sets up three habits that the rest of the module uses on every line: write the shape of every tensor as a comment, translate NumPy into PyTorch without thinking, and test tiny cases yourself before you trust the notebook's test cell.
 
 ## Habit 1: a shape comment on every line
+
+You built this habit in [Speed drills: shapes and code traps](#/learn/prelim-speed-toolkit/drill-shapes-and-code); now apply it to every line of a Final task.
 
 A tensor's **shape** is the list of its sizes, one per axis: `torch.zeros(2, 5, 12)` has shape `(2, 5, 12)`. In exam code every axis *means* something, and we give each meaning a short capital-letter name:
 
@@ -21,7 +17,7 @@ A tensor's **shape** is the list of its sizes, one per axis: `torch.zeros(2, 5, 
 - **T**: the sequence length, how many <Term def="The pieces a text is split into before a model reads it: words, parts of words or punctuation. Each token becomes one vector.">tokens</Term> each sequence has;
 - **d** (or `d_model`): how many numbers describe each token;
 - **h**: the number of attention heads, and **d_k** $= d / h$, the numbers per head;
-- **C, H, W**: the channels, height and width of an image, as in `(B, C, H, W)`.
+- **C, H, W**: the channels, height and width of an image, as in `(N, C, H, W)`; the CNN lessons call the batch axis N, and B and N mean the same thing.
 
 A <Term def="A comment such as # (B, T, d) written after a line of tensor code. It states the shape you expect the result to have, using letters that say what each axis means.">shape comment</Term> after each line says what you expect. Then you check: `print(x.shape)` while you work, or an `assert`, which stops the cell the moment a shape is wrong. The visual below runs a small function from the attention task, which turns a batch of token vectors into attention weights. Step through it, then inject a bug.
 
@@ -33,22 +29,7 @@ Write the shape you expect **before** you run a line, then check it. A shape com
 
 </KeyIdea>
 
-You should be able to do every one of those comments in your head. Here are the trickiest lines, traced by hand with $B = 2$, $T = 5$, $d = 12$, $h = 3$, so $d_k = 12 / 3 = 4$.
-
-<Steps title="Tracing the head split and the scores by hand">
-  <Step title="Split each token into heads: view(B, T, h, d_k)">
-    `x @ W_q` is $(B, T, d) = (2, 5, 12)$. `view(2, 5, 3, 4)` cuts each token's 12 numbers into 3 groups of 4, one group per head. Check that nothing is lost: $2 \times 5 \times 12 = 120 = 2 \times 5 \times 3 \times 4$.
-  </Step>
-  <Step title="Bring the heads forward: transpose(1, 2)">
-    Swap axis 1 ($T = 5$) with axis 2 ($h = 3$): $(2, 3, 5, 4) = (B, h, T, d_k)$. Now each head is its own $(T, d_k) = (5, 4)$ matrix, ready for matrix multiplication.
-  </Step>
-  <Step title="Scores: Q @ K.transpose(-2, -1)">
-    `transpose(-2, -1)` swaps only the last two axes of K: $(2, 3, 4, 5)$. The `@` multiplies the last two dims as matrices, a $(5 \times 4)$ matrix times a $(4 \times 5)$ matrix giving $(5 \times 5)$, and keeps $(2, 3)$ in front: $(B, h, T, T) = (2, 3, 5, 5)$. One score for every (query token, key token) pair, in every head of every sequence.
-  </Step>
-  <Step title="Softmax keeps the shape">
-    `torch.softmax(scores, dim=-1)` is still $(2, 3, 5, 5)$. `dim=-1` means each **row** (one query's 5 scores) becomes 5 weights that add up to 1.
-  </Step>
-</Steps>
+You should be able to do every one of those comments in your head. The head split was traced step by step in [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention) for $B = 2$, $T = 5$, $d = 12$, $h = 3$: `(2, 5, 12)` → view `(2, 5, 3, 4)` → transpose `(2, 3, 5, 4)` → scores `(2, 3, 5, 5)`.
 
 Here is the same function the way you would type it in the exam: a shape comment for every tensor line and one `assert` at the step most likely to go wrong. When a line of code is long, put its comment on its own line just above it, as here, so the shape stays in view.
 
@@ -140,9 +121,9 @@ print(v.indices)`}
   explain="With a dim, max returns both the largest values (9 and 8, one per row) and where they are. Row 0's maximum 9 is at index 1 and row 1's maximum 8 is at index 0, so v.indices is tensor([1, 0]). tensor([9, 8]) is v.values; tensor([8, 9, 5]) is the maximum of each column, which dim=0 would give."
 />
 
-One more creation trap appears in the Prelim: `torch.tensor` (small t) is a function that copies your data and **infers** the dtype from it, while `torch.Tensor` (capital T) is the tensor class, and calling it always gives the default float32.
+One more creation trap, from [Tensors](#/learn/pytorch/tensors): `torch.tensor` (small t) is a function that copies your data and **infers** the dtype from it, while `torch.Tensor` (capital T) is the tensor class, and calling it always gives the default float32. And in the notebooks the weight matrices above are layers: `self.W_q = nn.Linear(d_model, d_model)` stores a weight and a bias and computes `x @ W.T + b`. Layers live in `torch.nn`, imported as `nn`, not directly under `torch`:
 
-<PastPaperQuestion paper="prelim2026" n={118} />
+<PastPaperQuestion paper="prelim2026" n={114} />
 
 The last conversion matters in every metric function. A sum or a count over a tensor is still a tensor, just one with zero axes, written like `tensor(3)`. The method <Term def="Tensor.item() returns the single number stored in a one-element tensor as a plain Python int or float, with no gradient tracking and no device.">`.item()`</Term> turns it into a plain Python number, which is what a <Term def="The text in triple quotes just under a def line that says what the function takes, what it must do and what it returns. Exam notebooks put the task's rules there.">docstring</Term> that says "Returns: float" wants:
 
@@ -232,7 +213,7 @@ all checks passed
 
 <Takeaways>
 
-- Name every axis (B, T, d, h, d_k; B, C, H, W) and write the expected shape as a comment on every tensor line; check with `print(x.shape)` or `assert x.shape == (…), x.shape`.
+- Name every axis (B, T, d, h, d_k; N, C, H, W for images) and write the expected shape as a comment on every tensor line; check with `print(x.shape)` or `assert x.shape == (…), x.shape`.
 - A shape comment flags the line that **causes** a bug; PyTorch's error usually appears a line or two later. Some bugs (a missing transpose after splitting heads, softmax on the wrong dim) keep every shape right and need a value test.
 - NumPy translates almost word for word (`np.` to `torch.`, `axis` to `dim`); learn the traps: float32 default, `keepdim`, `max(dim)` returns values and indices, `mean` needs floats, `numel`, `math.sqrt` for plain numbers, and `.item()` for a Python number.
 - Test tiny before the test cell: all sizes different, random input with a seed, and `torch.allclose` against a slow loop version.

@@ -18,7 +18,7 @@ const questions: QuizQuestion[] = [
     options: ['128', '64', '200', '256'],
     answer: 0,
     explanation:
-      '`dim=1` is the channel axis of `(B, C, H, W)`, so the channels add: $64 + 64 = 128$, and the joined map is `(1, 128, 100, 100)`. 64 forgets that the join doubles the channels, and 200 adds the heights, which would be `dim=2`. In the 2026 task the same rule gave $128 + 128 = 256$ for `dec1_1`.',
+      '`dim=1` is the channel axis of `(N, C, H, W)`, so the channels add: $64 + 64 = 128$, and the joined map is `(1, 128, 100, 100)`. 64 forgets that the join doubles the channels, and 200 adds the heights, which would be `dim=2`. In the 2026 task the same rule gave $128 + 128 = 256$ for `dec1_1`.',
     difficulty: 'beginner',
   },
   {

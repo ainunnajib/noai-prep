@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Underfitting means the model does badly even on its own training data, with only a small gap to validation: 68% and 67%. A 28- or 36-point train–validation gap is high variance (overfitting). The 99.8% / 92% / 64% set has a modest train–validation gap but collapses only on later data, which is distribution drift.',
+      'Underfitting means the model does badly even on its own training data, with only a small gap to validation: 68% and 67%. A 28- or 36-point train–validation gap is high variance (overfitting). The 99.8% / 92% / 64% set has a modest train–validation gap but collapses only on later data, which is distribution shift.',
     difficulty: 'beginner',
   },
   {
