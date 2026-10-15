@@ -126,7 +126,8 @@ export default function ModelFamilySorter() {
                 border: `1.5px solid ${a === null ? 'var(--rule)' : ok ? 'var(--ok)' : 'var(--bad)'}`,
                 borderRadius: 10,
                 padding: '0.55rem 0.65rem 0.6rem',
-                background: a === null ? 'var(--surface)' : `color-mix(in srgb, ${KIND_COL[c.kind]} 7%, var(--surface))`,
+                // the card's tint shows right or wrong; the true class is the small chip below
+                background: a === null ? 'var(--surface)' : `color-mix(in srgb, ${ok ? 'var(--ok)' : 'var(--bad)'} 8%, var(--surface))`,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.35rem',
@@ -145,9 +146,21 @@ export default function ModelFamilySorter() {
                 </div>
               ) : (
                 <div style={{ fontSize: '0.8125rem', color: 'var(--ink)', lineHeight: 1.4 }} aria-live="polite">
-                  <div style={{ fontWeight: 700, color: ok ? 'var(--ok)' : 'var(--bad)' }}>
-                    {i === 0 ? 'Example: ' : ok ? 'Yes: ' : 'Not quite: '}
-                    <span style={{ color: KIND_COL[c.kind] }}>{KIND_LABEL[c.kind]}</span>
+                  <div style={{ fontWeight: 700, color: ok ? 'var(--ok)' : 'var(--bad)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem' }}>
+                    <span aria-hidden="true">{ok ? '✓' : '✗'}</span>
+                    <span>{i === 0 ? 'Example:' : ok ? 'Yes:' : `Not quite: you said ${KIND_LABEL[a]}; it is`}</span>
+                    <span
+                      style={{
+                        padding: '0 0.45em',
+                        borderRadius: 999,
+                        fontSize: '0.75rem',
+                        color: 'var(--ink)',
+                        background: `color-mix(in srgb, ${KIND_COL[c.kind]} 22%, var(--surface))`,
+                        border: `1px solid ${KIND_COL[c.kind]}`,
+                      }}
+                    >
+                      {KIND_LABEL[c.kind]}
+                    </span>
                   </div>
                   <div style={{ margin: '0.15rem 0' }}>
                     <span style={{ color: 'var(--ink-2)' }}>learns </span>

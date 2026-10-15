@@ -120,8 +120,17 @@ export default function AnomalyDetector() {
             </Label>
           </>
         )}
-        <DraggablePoint x={thr} y={0} lockY r={8} color="var(--viz-neg)" label="" onChange={(nx) => setThr(Math.round(Math.max(0.005, Math.min(XMAX, nx)) * 1000) / 1000)} />
         <Axes xTicks={5} yTicks={4} xLabel="reconstruction error" yLabel="number of real test digits" tickFormat={(v) => (v === 0 ? '0' : v < 1 ? v.toFixed(2) : String(v))} />
+        {/* drawn after the axes so the axis line and tick labels never sit on top of the handle */}
+        <DraggablePoint
+          x={thr}
+          y={0}
+          lockY
+          r={8}
+          color="var(--viz-neg)"
+          ariaLabel={`threshold, ${thr.toFixed(3)}`}
+          onChange={(nx) => setThr(Math.round(Math.max(0.005, Math.min(XMAX, nx)) * 1000) / 1000)}
+        />
       </Plot>
 
       <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center', margin: '0.5rem 0 0.3rem' }}>Pick an input</div>

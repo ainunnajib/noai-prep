@@ -138,7 +138,7 @@ $$
 \mathrm{KL} = \tfrac12\left(\mu^2 + \sigma^2 - 1 - \ln \sigma^2\right)
 $$
 
-with one such term for each of the $k$ latent numbers, added up. Read it piece by piece. $\mu^2$ charges for a centre far from 0. $\sigma^2 - 1 - \ln\sigma^2$ is 0 when $\sigma = 1$ and grows when $\sigma$ is either smaller or larger, and very fast as $\sigma$ shrinks towards 0 (because $\ln \sigma^2$ plunges towards $-\infty$). So the KL is zero only for $\mu = 0, \sigma = 1$.
+with one such term for each of the $k$ latent numbers, added up. Read it piece by piece. $\mu^2$ charges for a centre far from 0. $\sigma^2 - 1 - \ln\sigma^2$ is 0 when $\sigma = 1$ and grows when $\sigma$ is either smaller or larger. As $\sigma$ shrinks towards 0 it keeps growing without limit (because $\ln \sigma^2$ heads to $-\infty$), slowly but surely (with $\mu = 0$ the KL is about 1.8 at $\sigma = 0.1$ and 4.1 at $\sigma = 0.01$). So a VAE can never afford a perfectly sharp code. So the KL is zero only for $\mu = 0, \sigma = 1$.
 
 <ReparamKL />
 
@@ -273,7 +273,7 @@ The reconstruction term falls as training goes on while the KL term rises from a
 
 <ExamTip>
 
-What NOAI asks about autoencoders fits on one card. **Encoder → bottleneck (latent) → decoder**, trained to reconstruct the input, with **no labels** needed. A **smaller bottleneck** forces compression (like PCA, but non-linear). A **high reconstruction error** flags an anomaly, after training on normal data only. A **VAE** outputs **$\mu$ and $\sigma$**, samples **$z = \mu + \sigma\varepsilon$**, and minimises **reconstruction + KL**, which makes the latent space smooth enough to **sample** from. Stable Diffusion runs in a **VAE's latent space**.
+The traps NOAI sets here: autoencoders need **no labels** (the input is its own target), so they are unsupervised, not supervised. A **bigger** bottleneck is not better: it lets the network copy instead of compress. For anomaly detection, train on **normal data only** and flag a **high** reconstruction error. A VAE's encoder outputs **$\mu$ and $\sigma$**, not a single code, and the **KL** term (not the reconstruction loss) is what makes the latent space smooth enough to sample from.
 
 </ExamTip>
 

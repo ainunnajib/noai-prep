@@ -13,47 +13,56 @@ Drop a sugar sculpture of the Merlion into warm water. Minute by minute it blurs
 
 ## The forward process: adding noise
 
-Think of an image as a list of numbers $x_0$, the pixel values scaled to the range $-1$ to $1$. The forward process makes it a little noisier at each of $T$ steps, typically $T = 1000$:
+Think of an image as a list of numbers $x_0$, the pixel values scaled to the range $-1$ to $1$. Each forward step does two simple things: it **shrinks the picture a little** and **sprinkles in a little fresh noise**. After about 1000 steps nothing of the picture is left: only noise. Slide through the steps and watch it dissolve.
+
+<ForwardNoising />
+
+The slider uses one formula that jumps straight to any step $t$:
 
 $$
-x_t = \sqrt{1 - \beta_t}\; x_{t-1} + \sqrt{\beta_t}\; \varepsilon, \qquad \varepsilon \sim \mathcal N(0, I)
+x_t = \sqrt{\bar\alpha_t}\; x_0 + \sqrt{1 - \bar\alpha_t}\; \varepsilon
 $$
+
+- $\varepsilon$ ("epsilon") is a <Term def="Random numbers drawn from the bell curve (normal distribution) with mean 0 and standard deviation 1, one for every pixel.">Gaussian noise</Term> image: one random number per pixel, drawn from the bell curve with mean 0 and standard deviation 1.
+- $\sqrt{\bar\alpha_t}$ (read "root alpha-bar t") says how much of the **original image** $x_0$ survives at step $t$. It starts at 1 and falls towards 0.
+- $\sqrt{1 - \bar\alpha_t}$ says how much **noise** there is. It starts at 0 and rises towards 1.
+
+So $x_t$ is just a weighted mix of the clean image and one noise image, and you can reach *any* step in one line. Where does $\bar\alpha_t$ come from? From looking at one step at a time.
+
+### One step at a time
+
+The forward process makes the image a little noisier at each of $T$ steps, typically $T = 1000$:
+
+$$
+x_t = \sqrt{1 - \beta_t}\; x_{t-1} + \sqrt{\beta_t}\; \varepsilon
+$$
+
+where each $\varepsilon \sim \mathcal N(0, I)$ is fresh noise (the "$\sim \mathcal N(0, I)$" means "drawn from the standard bell curve, independently for every pixel").
 
 - $x_{t-1}$ is the image after step $t - 1$ and $x_t$ the slightly noisier image after step $t$.
-- $\varepsilon$ ("epsilon") is fresh <Term def="Random numbers drawn from the bell curve (normal distribution) with mean 0 and standard deviation 1, one for every pixel.">Gaussian noise</Term>: one random number per pixel, drawn from the bell curve with mean 0 and standard deviation 1.
 - $\beta_t$ ("beta") is a small number saying how much noise step $t$ adds. The list $\beta_1, \dots, \beta_T$ is the <Term def="The fixed list of noise amounts β₁ … β_T that says how much noise each forward step adds.">noise schedule</Term>. The original DDPM paper let it grow in a straight line from $0.0001$ to $0.02$.
 
 The two square roots are there for a reason. Shrinking the old image by $\sqrt{1 - \beta_t}$ while adding noise scaled by $\sqrt{\beta_t}$ keeps the overall size of the numbers steady, because $(\sqrt{1 - \beta_t})^2 + (\sqrt{\beta_t})^2 = 1$. So the image does not blow up; it slowly *turns into* noise.
 
 Each step only looks at the step just before it, which makes the forward process a <Term def="A sequence of random steps in which each step depends only on the step just before it, not on the whole history.">Markov chain</Term>. This is the setting of **DDPM**, *Denoising Diffusion Probabilistic Models* (Ho, Jain and Abbeel, 2020): a fixed forward Markov chain that adds noise, and a learned reverse chain that removes it.
 
-### Jumping straight to step t
-
-Adding noise 600 times to reach step 600 would be slow. Luckily the steps combine into one formula. Write $\alpha_t = 1 - \beta_t$ and multiply them up: $\bar\alpha_t = \alpha_1 \alpha_2 \cdots \alpha_t$ (read "alpha-bar t"). Then
-
-$$
-x_t = \sqrt{\bar\alpha_t}\; x_0 + \sqrt{1 - \bar\alpha_t}\; \varepsilon
-$$
-
-- $\sqrt{\bar\alpha_t}$ says how much of the **original image** $x_0$ survives at step $t$. It starts at 1 and falls towards 0.
-- $\sqrt{1 - \bar\alpha_t}$ says how much **noise** there is. It starts at 0 and rises towards 1.
-- $\varepsilon$ is a single noise image, drawn once.
-
-So $x_t$ is just a weighted mix of the clean image and one noise image, and you can jump to *any* step in one line.
+Adding noise 600 times to reach step 600 would be slow, but the steps combine. Write $\alpha_t = 1 - \beta_t$ and multiply them up: $\bar\alpha_t = \alpha_1 \alpha_2 \cdots \alpha_t$. That product is exactly the $\bar\alpha_t$ in the jump formula above.
 
 <Reveal label="Why do the steps combine like that? (two steps by hand)">
 
 Start from $x_0$. Step 1 gives $x_1 = \sqrt{\alpha_1}\,x_0 + \sqrt{1-\alpha_1}\,\varepsilon_1$. Step 2 gives
 
 $$
-x_2 = \sqrt{\alpha_2}\,x_1 + \sqrt{1-\alpha_2}\,\varepsilon_2 = \sqrt{\alpha_1\alpha_2}\,x_0 + \underbrace{\sqrt{\alpha_2(1-\alpha_1)}\,\varepsilon_1 + \sqrt{1-\alpha_2}\,\varepsilon_2}_{\text{two independent noises}}
+\begin{aligned}
+x_2 &= \sqrt{\alpha_2}\,x_1 + \sqrt{1-\alpha_2}\,\varepsilon_2 \\
+&= \sqrt{\alpha_1\alpha_2}\,x_0 + \sqrt{\alpha_2(1-\alpha_1)}\,\varepsilon_1 \\
+&\quad + \sqrt{1-\alpha_2}\,\varepsilon_2
+\end{aligned}
 $$
 
-When you add independent Gaussian noises, their **variances add**: $\alpha_2(1 - \alpha_1) + (1 - \alpha_2) = 1 - \alpha_1\alpha_2$. So the two noise terms together are the same as one noise $\varepsilon$ scaled by $\sqrt{1 - \alpha_1 \alpha_2}$, and $x_2 = \sqrt{\bar\alpha_2}\,x_0 + \sqrt{1 - \bar\alpha_2}\,\varepsilon$ with $\bar\alpha_2 = \alpha_1\alpha_2$. The same argument works for every step.
+The last two terms are two independent noises. When you add independent Gaussian noises, their **variances add**: $\alpha_2(1 - \alpha_1) + (1 - \alpha_2) = 1 - \alpha_1\alpha_2$. So the two noise terms together are the same as one noise $\varepsilon$ scaled by $\sqrt{1 - \alpha_1 \alpha_2}$, and $x_2 = \sqrt{\bar\alpha_2}\,x_0 + \sqrt{1 - \bar\alpha_2}\,\varepsilon$ with $\bar\alpha_2 = \alpha_1\alpha_2$. The same argument works for every step.
 
 </Reveal>
-
-<ForwardNoising />
 
 <KeyIdea>
 
@@ -69,8 +78,6 @@ The **forward process** is fixed and involves no learning: it mixes the image wi
 />
 
 <PastPaperQuestion paper="prelim2026" n={241} />
-
-<PastPaperQuestion paper="prelim2026" n={245} />
 
 ## The reverse process: learning to predict the noise
 
@@ -133,6 +140,10 @@ The price is speed. DDPM needs one full U-Net pass **per step**, 1000 of them fo
 A diffusion model trains one network to **predict the noise** in $x_t$, with a simple MSE loss at random steps $t$. To **generate**, it starts from pure noise and calls that network once per step, removing a little noise each time. Many steps give high quality and variety, but make sampling slow.
 
 </KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={242} />
+
+<PastPaperQuestion paper="prelim2026" n={245} />
 
 ## In PyTorch
 
@@ -256,7 +267,7 @@ In an exam, what CFG is **for** is steering samples towards the prompt (better p
 
 <ExamTip>
 
-Keyword map. "Adds noise gradually", "fixed", "Markov chain" → forward process. "Learns to denoise", "predicts the noise" → reverse process. "Many iterative steps" → why diffusion is slower than a GAN. "Compressed latent space", "VAE" → latent diffusion / Stable Diffusion. "Guidance scale", "steer towards the prompt" or the formula $\varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$ → classifier-free guidance. "Same model, fewer deterministic steps" → DDIM. For calculations, remember that the forward coefficients are square roots whose squares add to 1, so $\bar\alpha_t = 0.64$ gives 0.8 and 0.6, and $\bar\alpha_t = 0.36$ gives 0.6 and 0.8.
+Keyword map. "Adds noise gradually", "fixed", "Markov chain" → forward process. "Learns to denoise", "predicts the noise" → reverse process. "Many iterative steps" → why diffusion is slower than a GAN. "Compressed latent space", "VAE" → latent diffusion / Stable Diffusion. "Guidance scale", "steer towards the prompt" or the formula $\varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$ → classifier-free guidance. Asked what CFG *does*, pick "steers generation towards the prompt": "no classifier needed" only explains its name. "Same model, fewer deterministic steps" → DDIM. For calculations, remember that the forward coefficients are square roots whose squares add to 1, so $\bar\alpha_t = 0.64$ gives 0.8 and 0.6, and $\bar\alpha_t = 0.36$ gives 0.6 and 0.8.
 
 </ExamTip>
 

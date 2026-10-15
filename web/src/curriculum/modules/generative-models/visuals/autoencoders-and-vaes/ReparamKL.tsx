@@ -20,10 +20,10 @@ function eps(seed: number): number {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
 }
 
-const area = (f: (x: number) => number): [number, number][] => {
+const area = (f: (x: number) => number, n = 200): [number, number][] => {
   const pts: [number, number][] = [[-4, 0]]
-  for (let i = 0; i <= 200; i++) {
-    const x = -4 + (8 * i) / 200
+  for (let i = 0; i <= n; i++) {
+    const x = -4 + (8 * i) / n
     pts.push([x, Math.min(YTOP * 1.5, f(x))])
   }
   pts.push([4, 0])
@@ -44,6 +44,8 @@ export default function ReparamKL() {
   const z = mu + sigma * e
   const K = kl(mu, sigma)
   const q = (x: number) => pdf(x, mu, sigma)
+  // sample finely enough that even a σ = 0.01 spike is drawn (step ≤ σ/4)
+  const qSamples = Math.max(240, Math.ceil(32 / sigma))
   const prior = (x: number) => pdf(x, 0, 1)
   const hist = epsList.slice(-30)
 
@@ -54,17 +56,17 @@ export default function ReparamKL() {
         <>
           For one input, the encoder outputs a mean <M>{'\\mu'}</M> and a spread <M>{'\\sigma'}</M>: not one code, but a bell curve of possible codes (purple). Press{' '}
           <b>Sample ε</b>: a random <M>{'\\varepsilon'}</M> is drawn from the fixed grey curve and turned into a code by <M>{'z = \\mu + \\sigma\\varepsilon'}</M>. Now find
-          the settings that make the KL price zero, then shrink <M>{'\\sigma'}</M> towards 0.1 and watch the price shoot up: a VAE is charged for squeezing each input
-          into a tiny, private spot.
+          the settings that make the KL price zero, then shrink <M>{'\\sigma'}</M> towards 0.01 and watch the price keep climbing. It never stops growing as <M>{'\\sigma'}</M> heads to 0, so a VAE
+          is always charged for squeezing an input into a tiny, private spot.
         </>
       }
     >
       <Plot x={[-4, 4]} y={[0, YTOP]} width={520} height={250} minHeight={220} margin={{ left: 40, bottom: 30, top: 12 }} ariaLabel="The prior bell curve N(0, 1) and the encoder's bell curve N(mu, sigma squared), with the latest sample">
         <Grid xTicks={8} yTicks={4} />
         <Path points={area(prior)} closed fill="color-mix(in srgb, var(--viz-muted) 22%, transparent)" color="none" width={0} />
-        <Path points={area(q)} closed fill="color-mix(in srgb, var(--viz-5) 22%, transparent)" color="none" width={0} />
+        <Path points={area(q, qSamples)} closed fill="color-mix(in srgb, var(--viz-5) 22%, transparent)" color="none" width={0} />
         <FnPath f={prior} color="var(--viz-muted)" width={2.2} dash="6 4" />
-        <FnPath f={q} color="var(--viz-5)" width={2.8} />
+        <FnPath f={q} color="var(--viz-5)" width={2.8} samples={qSamples} />
         <VLine x={mu} color="var(--viz-5)" dash="3 3" />
         <Label x={-2.35} y={0.17} anchor="middle" color="var(--ink-2)" size={12}>
           prior N(0, 1)
@@ -103,7 +105,7 @@ export default function ReparamKL() {
       </div>
       <Controls>
         <Slider label={<>mean <M>{'\\mu'}</M></>} value={mu} min={-3} max={3} step={0.05} onChange={setMu} format={(v) => v.toFixed(2)} />
-        <Slider label={<>spread <M>{'\\sigma'}</M></>} value={sigma} min={0.1} max={2} step={0.05} onChange={setSigma} format={(v) => v.toFixed(2)} />
+        <Slider label={<>spread <M>{'\\sigma'}</M></>} value={sigma} min={0.01} max={2} step={0.01} onChange={setSigma} format={(v) => v.toFixed(2)} />
         <Button primary onClick={() => setN((k) => k + 1)}>
           Sample ε
         </Button>

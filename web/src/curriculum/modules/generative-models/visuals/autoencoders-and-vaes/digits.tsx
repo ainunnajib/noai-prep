@@ -87,9 +87,11 @@ export function DigitImg({
       shapeRendering="crispEdges"
       style={{ display: 'block', background: 'var(--surface)', borderRadius: 3, outline: outline ?? '1px solid var(--rule)', outlineOffset: outline ? 1 : 0, flex: 'none', ...style }}
     >
-      {px.map((v, i) =>
-        v > 0.02 ? <rect key={i} x={i % SIDE} y={Math.floor(i / SIDE)} width={1.02} height={1.02} style={{ fill: colour, fillOpacity: Math.min(1, v) }} /> : null,
-      )}
+      {px.map((v, i) => {
+        // error maps use a square-root gain so small errors stay visible (on navy too) while big ones still look bigger
+        const a = tone === 'error' ? Math.min(1, 1.6 * Math.sqrt(v)) : Math.min(1, v)
+        return a > 0.02 ? <rect key={i} x={i % SIDE} y={Math.floor(i / SIDE)} width={1.02} height={1.02} style={{ fill: colour, fillOpacity: a }} /> : null
+      })}
     </svg>
   )
 }

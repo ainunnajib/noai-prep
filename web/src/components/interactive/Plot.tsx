@@ -493,6 +493,7 @@ export function DraggablePoint({
   color = 'var(--viz-2)',
   r = 9,
   label,
+  ariaLabel,
   constrain,
   lockX,
   lockY,
@@ -503,6 +504,8 @@ export function DraggablePoint({
   color?: string
   r?: number
   label?: string
+  /** accessible name when the visible label is empty or too terse */
+  ariaLabel?: string
   constrain?: (x: number, y: number) => [number, number]
   lockX?: boolean
   lockY?: boolean
@@ -543,7 +546,7 @@ export function DraggablePoint({
       className="plot-drag"
       tabIndex={0}
       role="slider"
-      aria-label={label ?? 'draggable point'}
+      aria-label={ariaLabel || label || 'draggable point'}
       aria-valuetext={`x ${x.toFixed(2)}, y ${y.toFixed(2)}`}
       onKeyDown={onKey}
       onPointerDown={(e) => {

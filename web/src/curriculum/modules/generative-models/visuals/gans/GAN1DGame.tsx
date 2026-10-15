@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Figure,
   Controls,
   Readout,
   Slider,
+  Segmented,
   Button,
   Plot,
   Axes,
@@ -44,6 +45,8 @@ export default function GAN1DGame() {
   const [lrD, setLrD] = useState(3)
   const [lrG, setLrG] = useState(0.2)
   const [st, setSt] = useState<GanState>(() => initialState(1))
+  const [speed, setSpeed] = useState<'slow' | 'fast'>('slow')
+  const acc = useRef(0)
   const [hist, setHist] = useState<Hist>(() => {
     const s = stats(initialState(1))
     return { lossD: [s.lossD], lossG: [s.lossG] }
@@ -72,7 +75,15 @@ export default function GAN1DGame() {
     if (s.round >= MAX_ROUNDS || s.diverged) setPlaying(false)
   }
 
-  useAnimationFrame(() => advance(1), playing)
+  // a fixed number of rounds per second, whatever the screen's refresh rate, so the pushes can be watched
+  useAnimationFrame((dt) => {
+    acc.current += dt * (speed === 'slow' ? 6 : 30)
+    const n = Math.floor(acc.current)
+    if (n > 0) {
+      acc.current -= n
+      advance(n)
+    }
+  }, playing)
 
   const restart = (newSeed: number) => {
     const s0 = initialState(newSeed)
@@ -170,6 +181,15 @@ export default function GAN1DGame() {
           </Button>
           <Button onClick={() => restart(seed + 1)}>New seed</Button>
         </div>
+        <Segmented<'slow' | 'fast'>
+          label="speed"
+          value={speed}
+          onChange={setSpeed}
+          options={[
+            { value: 'slow', label: 'slow' },
+            { value: 'fast', label: 'fast' },
+          ]}
+        />
         <Slider label="discriminator learning rate" value={lrD} min={0} max={6} step={0.1} onChange={setLrD} format={(v) => v.toFixed(1)} />
         <Slider label="generator learning rate" value={lrG} min={0} max={2.5} step={0.05} onChange={setLrG} format={(v) => v.toFixed(2)} />
         <Readout

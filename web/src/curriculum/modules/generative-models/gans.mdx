@@ -171,6 +171,8 @@ step 4000: fakes mean 3.39 std 0.37 | D(real) 0.47 D(fake) 0.47
 
 Read the output closely. Within a thousand steps the fakes' mean is near 3 and the discriminator scores real and fake numbers alike, just under 0.5. Yet the spread keeps swinging: 0.38, 1.07, 0.46, 0.37, against the real data's 0.7. That is GAN instability in miniature. With noisy mini-batches the game circles around the equilibrium instead of settling on it, and a discriminator that says about 0.5 to everything does not prove the fakes are right. (The figure above did settle, because it used exact averages instead of random mini-batches and a discriminator whose curve shape suits this problem perfectly.)
 
+<Reveal label="Going further: DCGAN for images">
+
 For images, the same loop works with convolutional networks. The classic design, <Term def="Deep Convolutional GAN (2015): a GAN whose generator upsamples noise into an image with transposed convolutions and whose discriminator is a convolutional classifier.">DCGAN</Term>, turns a noise vector into an image with **transposed convolutions** (the upsampling layers from the U-Net lesson), and its discriminator is a CNN classifier that runs the other way:
 
 ```python
@@ -204,6 +206,8 @@ torch.Size([16, 3, 32, 32]) torch.Size([16, 1])
 ```
 
 Each `ConvTranspose2d(k=4, s=2, p=1)` doubles the size, because its output is $(n - 1)s - 2p + k = (n - 1) \cdot 2 - 2 + 4 = 2n$. The final `Tanh` keeps pixel values in $[-1, 1]$, so real images are scaled to the same range before training.
+
+</Reveal>
 
 <Mistake title="Three classic GAN bugs">
 
