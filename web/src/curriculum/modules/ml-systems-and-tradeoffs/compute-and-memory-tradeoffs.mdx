@@ -5,6 +5,12 @@ import DataParallelDiagram from './visuals/compute-and-memory-tradeoffs/DataPara
 
 A training run can waste your time in two ways: it crashes with `CUDA out of memory`, or it runs while the expensive GPU sits idle most of the time. Both have standard fixes, and every fix trades something away: speed, memory, or a change to how the model learns. Knowing the price of each fix is what NOAI's optimisation and trade-off questions test, and it decides how much you can train in a timed IOAI task.
 
+<Analogy title="A hawker's counter">
+
+A hawker's counter is a fixed size. The woks and utensils (the weights, gradients and optimiser state) always take the same space. What crowds the counter is how many plates are being prepared at once (the batch). You could cook fewer plates at a time, use smaller plates, or wash and reuse plates during the rush, but each choice costs you something: time, or how the food comes out.
+
+</Analogy>
+
 ## A quick recap: what fills GPU memory
 
 From the PyTorch module: during a training step the GPU holds the **weights**, their **gradients**, the **optimiser state** (one extra number per weight for SGD with momentum, two for Adam), and the **activations**, the outputs of every layer that autograd keeps for the backward pass. With $P$ parameters in 32-bit floats (4 bytes each), batch size $B$ and $A$ bytes of activations per example:
@@ -16,12 +22,6 @@ $$
 Here $M$ is the memory needed, written for SGD with momentum (Adam adds another $4P$). The first three terms are fixed; only the last one grows with the batch. For a ResNet-50 ($P \approx 25.6$ million) fine-tuned on 224×224 images, the fixed part is $12 \times 25.6$ million bytes $\approx 0.31$ GB, while the activations are roughly $0.12$ GB per image, so a batch of 128 needs about $15.4$ GB of activations alone. Add about 1 GB that CUDA itself uses and the total, about $16.7$ GB, does not fit on a 16 GB GPU.
 
 ## Every out-of-memory fix has a price
-
-<Analogy title="A hawker's counter">
-
-A hawker's counter is a fixed size. The woks and utensils (the weights, gradients and optimiser state) always take the same space. What crowds the counter is how many plates are being prepared at once (the batch). You could cook fewer plates at a time, use smaller plates, or wash and reuse plates during the rush, but each choice costs you something: time, or how the food comes out.
-
-</Analogy>
 
 Two words first. <Term def="How much training work gets done per second, usually counted in examples (images) processed per second.">Throughput</Term> is examples processed per second. A <Term def="A slice of a batch small enough to fit in memory. Several micro-batches can be run one after another and their gradients added up.">micro-batch</Term> is a slice of a batch small enough to fit in memory. Now the five standard fixes and what each one costs:
 

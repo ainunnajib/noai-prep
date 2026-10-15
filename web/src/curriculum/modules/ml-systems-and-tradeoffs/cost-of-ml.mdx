@@ -99,6 +99,10 @@ $$
 
 A layer from 1024 to 1024 on a batch of 32 costs $32 \times 1024 \times 1024 = 2^5 \times 2^{10} \times 2^{10} = 2^{25} = 33{,}554{,}432$, about 33.5 million multiply-adds, and has $1024 \times 1024 + 1024 = 1{,}049{,}600$ parameters. For one example it does one multiply-add per weight: every weight is used exactly once.
 
+Try the counter now: pick **Dense** and check the 1024 → 1024 example above, then come back to it for the conv and attention layers below.
+
+<FLOPCounter />
+
 **Convolutional layer.** A conv layer slides each $k \times k$ filter over the input. The input has $C_{\text{in}}$ <Term def="The separate layers of numbers stacked at each pixel position: 3 for an RGB image (red, green, blue), and one per filter in the output of a conv layer.">channels</Term>, so each output number is a dot product between a $k \times k \times C_{\text{in}}$ patch and a filter of the same shape: $k^2 C_{\text{in}}$ multiply-adds. The output <Term def="The grid of numbers a conv layer produces: height × width × channels, with one channel per filter.">feature map</Term> has $H_{\text{out}} \times W_{\text{out}}$ positions and $C_{\text{out}}$ channels, one per filter:
 
 $$
@@ -125,7 +129,6 @@ $$
 
 The parameter count has no $T$ in it: the same weights handle 10 tokens or 10,000. Splitting attention into $h$ heads does not change the totals either, since each head works with $d/h$ dimensions and $h \times T^2 \times d/h = T^2 d$.
 
-<FLOPCounter />
 
 <KeyIdea>
 

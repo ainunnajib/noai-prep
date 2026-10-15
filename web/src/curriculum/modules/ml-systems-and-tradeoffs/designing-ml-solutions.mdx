@@ -80,7 +80,7 @@ A giant model trained from scratch is the most expensive way to start and often 
 
 </Mistake>
 
-When the time budget is strict, the architecture itself must be chosen for speed. Object detection is the classic example: a two-stage detector proposes regions and then classifies each one, while a single-stage detector predicts every box in one forward pass.
+When the time budget is strict, the architecture itself must be chosen for speed. Object detection is the classic example. A **two-stage** detector such as R-CNN (or Faster R-CNN) first proposes about 2,000 candidate regions and then classifies each one: accurate but slow. A **single-stage** detector such as YOLO ("You Only Look Once") predicts every box in one forward pass: fast enough for live video. The rule for exam questions: real-time or edge device → YOLO; best possible accuracy with time to spare → a two-stage detector. (ResNet is a classifier backbone and an LSTM is a sequence model; neither is a detector on its own.)
 
 <PastPaperQuestion paper="prelim2026" n={257} />
 
