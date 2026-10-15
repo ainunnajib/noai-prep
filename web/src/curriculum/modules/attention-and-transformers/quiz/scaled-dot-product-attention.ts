@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'attention-and-transformers.scaled-dot-product-attention.1',
     prompt: 'Which expression is scaled dot-product attention for queries $Q$, keys $K$ and values $V$, with key dimension $d_k$?',
     options: [
-      '$\\operatorname{softmax}\\!\\left(QK^\\top / \\sqrt{d_k}\\right) V$',
-      '$\\operatorname{softmax}\\!\\left(Q^\\top K / \\sqrt{d_k}\\right) V$',
-      '$\\operatorname{softmax}\\!\\left(QK^\\top / d_k\\right) V$',
-      '$\\operatorname{softmax}\\!\\left(QK^\\top V\\right) / \\sqrt{d_k}$',
+      '$\\operatorname{softmax}\\!\\left(QK^T / \\sqrt{d_k}\\right) V$',
+      '$\\operatorname{softmax}\\!\\left(Q^T K / \\sqrt{d_k}\\right) V$',
+      '$\\operatorname{softmax}\\!\\left(QK^T / d_k\\right) V$',
+      '$\\operatorname{softmax}\\!\\left(QK^T V\\right) / \\sqrt{d_k}$',
     ],
     answer: 0,
     explanation:
-      'Queries are rows of $Q$ and keys are rows of $K$, so $QK^\\top$ gives the $T \\times T$ table of every query–key dot product. It is divided by $\\sqrt{d_k}$, softmaxed row by row, then multiplied by $V$. $Q^\\top K$ would be a $d_k \\times d_k$ table comparing features, not tokens; dividing by $d_k$ over-shrinks the scores; and the scaling must happen **before** the softmax, not after it.',
+      'Queries are rows of $Q$ and keys are rows of $K$, so $QK^T$ gives the $T \\times T$ table of every query–key dot product. It is divided by $\\sqrt{d_k}$, softmaxed row by row, then multiplied by $V$. $Q^T K$ would be a $d_k \\times d_k$ table comparing features, not tokens; dividing by $d_k$ over-shrinks the scores; and the scaling must happen **before** the softmax, not after it.',
     difficulty: 'beginner',
   },
   {

@@ -117,7 +117,7 @@ Read the formula as (number of output positions) × (number of weights). The sam
 **Self-attention.** On a sequence of $T$ tokens, each a vector of width $d$, the input $X$ is a $(T \times d)$ matrix. Applying the matrix-product rule to each step of attention:
 
 - projecting $X$ into queries, keys and values, plus the output projection: four $(T \times d)(d \times d)$ products, $4Td^2$;
-- the scores $QK^\top$: a $(T \times d)(d \times T)$ product, $T^2 d$;
+- the scores $QK^T$: a $(T \times d)(d \times T)$ product, $T^2 d$;
 - the softmax weights times the values: a $(T \times T)(T \times d)$ product, another $T^2 d$.
 
 $$
@@ -264,7 +264,7 @@ It is tempting to say a k-NN prediction costs $O(kd)$ because only $k$ neighbour
 
 </Mistake>
 
-Matrix-product counting also explains when to avoid a closed-form solution. Linear regression can be solved in one shot with the <Term def="The closed-form least-squares solution w = (XᵀX)⁻¹ Xᵀy for linear regression.">normal equation</Term> $w = (X^\top X)^{-1} X^\top y$. Forming $X^\top X$ is a $(d \times n)(n \times d)$ product, $n d^2$ multiply-adds, and solving the resulting $d \times d$ system takes about $d^3$ more (see [multiple regression](#/learn/linear-regression/multiple-and-polynomial)). That is instant for $d = 100$, but for $d = 100{,}000$ the $d^3 = 10^{15}$ term is hopeless, and cheap gradient-descent steps win.
+Matrix-product counting also explains when to avoid a closed-form solution. Linear regression can be solved in one shot with the <Term def="The closed-form least-squares solution w = (XᵀX)⁻¹ Xᵀy for linear regression.">normal equation</Term> $w = (X^T X)^{-1} X^T y$. Forming $X^T X$ is a $(d \times n)(n \times d)$ product, $n d^2$ multiply-adds, and solving the resulting $d \times d$ system takes about $d^3$ more (see [multiple regression](#/learn/linear-regression/multiple-and-polynomial)). That is instant for $d = 100$, but for $d = 100{,}000$ the $d^3 = 10^{15}$ term is hopeless, and cheap gradient-descent steps win.
 
 The same $d^3$ wall stops <Term def="An optimiser that uses second derivatives (the Hessian) to take a smarter step: w ← w − H⁻¹ ∇L. Few steps, but each one is very expensive for large models.">Newton's method</Term>. Its update $w \leftarrow w - H^{-1}\nabla L$ uses the <Term def="The P × P table of second derivatives of the loss: one row and one column for every parameter of the model.">Hessian</Term> $H$ (from [curvature and convexity](#/learn/calculus-and-gradient-descent/curvature-convexity)), which for a model with $P$ parameters is a $P \times P$ matrix: $P^2$ numbers to store and about $P^3$ operations to solve with. For $P = 10{,}000$ that is $10^8$ entries (400 MB in 32-bit floats) and about $10^{12}$ operations **every step**, while a gradient-descent update touches each of the $10^4$ parameters just once.
 

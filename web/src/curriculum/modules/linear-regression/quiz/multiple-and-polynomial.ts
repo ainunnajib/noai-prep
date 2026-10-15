@@ -4,11 +4,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'linear-regression.multiple-and-polynomial.1',
     prompt:
-      'The design matrix $X$ has shape $(200, 6)$, including a column of 1s for the bias, and $y$ has shape $(200, 1)$. What are the shapes of $X^\\top X$ and $X^\\top y$ in the normal equation?',
+      'The design matrix $X$ has shape $(200, 6)$, including a column of 1s for the bias, and $y$ has shape $(200, 1)$. What are the shapes of $X^T X$ and $X^T y$ in the normal equation?',
     options: ['$(6, 6)$ and $(6, 1)$', '$(200, 200)$ and $(200, 1)$', '$(6, 6)$ and $(200, 1)$', '$(200, 6)$ and $(6, 1)$'],
     answer: 0,
     explanation:
-      '$X^\\top$ is $6 \\times 200$. In $(6 \\times 200)(200 \\times 6)$ the inner 200s match and disappear, giving $6 \\times 6$; in $(6 \\times 200)(200 \\times 1)$ they disappear again, giving $6 \\times 1$, one entry per weight. $(200, 200)$ would be $XX^\\top$, the product in the other order.',
+      '$X^T$ is $6 \\times 200$. In $(6 \\times 200)(200 \\times 6)$ the inner 200s match and disappear, giving $6 \\times 6$; in $(6 \\times 200)(200 \\times 1)$ they disappear again, giving $6 \\times 1$, one entry per weight. $(200, 200)$ would be $XX^T$, the product in the other order.',
     difficulty: 'beginner',
   },
   {
@@ -16,14 +16,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'To predict flat prices you use the columns [1, floor area in m², floor area in ft², age]. Computing `np.linalg.inv(X.T @ X)` either fails with "Singular matrix" or returns enormous, meaningless numbers. What is the cause?',
     options: [
-      'Area in ft² is 10.764 × area in m², so one column is built from another and $X^\\top X$ is singular',
+      'Area in ft² is 10.764 × area in m², so one column is built from another and $X^T X$ is singular',
       'The four columns are measured on very different scales, and a matrix with mixed scales has no inverse',
       'There are many more rows (flats) than columns, so the system has too many equations to be solved exactly',
-      'The column of 1s for the bias is constant, and a constant column stops $X^\\top X$ from having an inverse',
+      'The column of 1s for the bias is constant, and a constant column stops $X^T X$ from having an inverse',
     ],
     answer: 0,
     explanation:
-      '$X^\\top X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well (rounding can hide the exact singularity, so NumPy may return huge numbers instead of an error). Fix it by dropping one of the two area columns (or use `np.linalg.pinv`). Different scales slow gradient descent down but do not stop a matrix being invertible, more rows than columns is the normal situation that least squares is designed for, and the column of 1s is fine because it cannot be built from the other columns.',
+      '$X^T X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well (rounding can hide the exact singularity, so NumPy may return huge numbers instead of an error). Fix it by dropping one of the two area columns (or use `np.linalg.pinv`). Different scales slow gradient descent down but do not stop a matrix being invertible, more rows than columns is the normal situation that least squares is designed for, and the column of 1s is fine because it cannot be built from the other columns.',
     difficulty: 'intermediate',
   },
   {
@@ -55,14 +55,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear regression has $d = 2{,}000{,}000$ features and 50 million examples. Why is it trained with gradient descent rather than the normal equation?',
     options: [
-      'Forming and inverting the $d \\times d$ matrix $X^\\top X$ takes far too much time and memory',
+      'Forming and inverting the $d \\times d$ matrix $X^T X$ takes far too much time and memory',
       'The normal equation only works for a single feature plus a bias, not for millions of features',
       'Gradient descent reaches a lower training MSE than the normal equation on the same data',
-      'With many more examples than features, $X^\\top X$ is always singular and has no inverse',
+      'With many more examples than features, $X^T X$ is always singular and has no inverse',
     ],
     answer: 0,
     explanation:
-      'Inverting a $d \\times d$ matrix costs roughly $d^3$ operations, here about $8 \\times 10^{18}$, and just storing $X^\\top X$ needs $4 \\times 10^{12}$ numbers. Each gradient descent step only needs products with $X$. Both methods aim at the same minimum, so gradient descent cannot beat the exact solution, and having more examples than features is what normally makes $X^\\top X$ invertible.',
+      'Inverting a $d \\times d$ matrix costs roughly $d^3$ operations, here about $8 \\times 10^{18}$, and just storing $X^T X$ needs $4 \\times 10^{12}$ numbers. Each gradient descent step only needs products with $X$. Both methods aim at the same minimum, so gradient descent cannot beat the exact solution, and having more examples than features is what normally makes $X^T X$ invertible.',
     difficulty: 'intermediate',
   },
 ]

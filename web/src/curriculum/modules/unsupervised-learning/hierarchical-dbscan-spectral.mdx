@@ -160,7 +160,7 @@ so it has each node's degree on the diagonal and $-w_{ij}$ off the diagonal. Eve
 **3. Find the eigenvectors with the smallest eigenvalues.** An eigenvector $v$ of $L$ is a list of numbers, one per node, with $Lv = \lambda v$. Three facts make them useful:
 
 - The constant vector $(1, 1, \dots, 1)$ always has eigenvalue $\lambda_1 = 0$, because every row of $L$ adds up to 0.
-- For any vector $v$, $\;v^\top L v = \sum_{\text{edges } i\text{–}j} w_{ij}\,(v_i - v_j)^2$. This is small when nodes joined by strong edges get **similar** numbers. The eigenvectors with the smallest eigenvalues are exactly the "smoothest" ways to give every node a number.
+- For any vector $v$, $\;v^T L v = \sum_{\text{edges } i\text{–}j} w_{ij}\,(v_i - v_j)^2$. This is small when nodes joined by strong edges get **similar** numbers. The eigenvectors with the smallest eigenvalues are exactly the "smoothest" ways to give every node a number.
 - If the graph falls into $c$ separate pieces, $L$ has exactly $c$ zero eigenvalues, and their eigenvectors are constant on each piece. If the pieces are joined by only a few weak edges, the eigenvalues are close to 0 and the eigenvectors are nearly constant on each group.
 
 **4. Cluster the new coordinates.** Give each point the entries of the first $k$ eigenvectors as its new coordinates and run k-means on them. For two clusters, the second eigenvector alone (the <Term def="The eigenvector of the second-smallest eigenvalue of the graph Laplacian. Its signs (or a split of its values) divide a graph into two well-separated groups.">Fiedler vector</Term>) is enough: split its values into a high group and a low group.

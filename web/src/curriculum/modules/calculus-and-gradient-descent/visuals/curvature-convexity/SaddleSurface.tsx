@@ -209,7 +209,7 @@ export default function SaddleSurface() {
       </div>
       <div style={{ width: '100%', display: 'grid', justifyItems: 'center', gap: '0.25rem' }}>
         <div style={{ ...small, fontWeight: 700 }}>
-          Curvature in direction θ: <M>{`u^\\top H u`}</M>, with <M>{`u = [\\cos\\theta, \\sin\\theta]`}</M>
+          Curvature in direction θ: <M>{`u^T H u`}</M>, with <M>{`u = [\\cos\\theta, \\sin\\theta]`}</M>
         </div>
         <Plot
           x={[0, 180]}

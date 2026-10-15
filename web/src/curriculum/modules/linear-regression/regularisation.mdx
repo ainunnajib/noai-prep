@@ -177,7 +177,7 @@ J(w) = {} & \frac{1}{2m}\sum_{i=1}^{m} (\hat{y}_i - y_i)^2 \\
 \end{aligned}
 $$
 
-The ½ cancels the 2 from differentiating (as in the 2025 Final), so the gradient is the data part $\frac{1}{m}X^\top(\hat{y} - y)$ plus $\frac{\lambda}{m}w_j$ for $j \ge 1$ only. With the column of 1s first in $X$, in NumPy:
+The ½ cancels the 2 from differentiating (as in the 2025 Final), so the gradient is the data part $\frac{1}{m}X^T(\hat{y} - y)$ plus $\frac{\lambda}{m}w_j$ for $j \ge 1$ only. With the column of 1s first in $X$, in NumPy:
 
 ```python
 grad = X.T @ (y_hat - y) / m    # data part, every weight
@@ -194,7 +194,7 @@ This 2026 Final question is about logistic regression, but only that shape matte
 
 <Reveal label="Going further: ridge fixes the singular matrix, and L2 is weight decay">
 
-**Ridge fixes the singular matrix.** Writing the ridge loss with the total (not mean) squared error, $\lVert y - Xw \rVert^2 + \lambda \lVert w \rVert^2$, and setting its gradient to zero gives $w = (X^\top X + \lambda I)^{-1} X^\top y$, where $I$ is the identity matrix (1s on the diagonal; use 0 in the bias position to leave it unpenalised). Adding $\lambda > 0$ to the diagonal makes the matrix invertible even when columns are duplicated, the problem from the last lesson.
+**Ridge fixes the singular matrix.** Writing the ridge loss with the total (not mean) squared error, $\lVert y - Xw \rVert^2 + \lambda \lVert w \rVert^2$, and setting its gradient to zero gives $w = (X^T X + \lambda I)^{-1} X^T y$, where $I$ is the identity matrix (1s on the diagonal; use 0 in the bias position to leave it unpenalised). Adding $\lambda > 0$ to the diagonal makes the matrix invertible even when columns are duplicated, the problem from the last lesson.
 
 **L2 is "weight decay".** The gradient of $\lambda \sum w_j^2$ is $2\lambda w$, so a gradient descent step becomes $w \leftarrow w - \eta(\nabla \text{MSE} + 2\lambda w) = (1 - 2\eta\lambda)\,w - \eta\, \nabla\text{MSE}$. Every step first shrinks ("decays") each weight by a factor slightly below 1. In PyTorch, `torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-4)` does this for you: it adds `weight_decay * w` to each gradient, which is the same as a penalty of $\tfrac{1}{2} \cdot 10^{-4} \lVert w \rVert^2$.
 

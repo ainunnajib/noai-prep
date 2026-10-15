@@ -122,12 +122,12 @@ Worse, if you build the optimiser from other parameters that *are* registered, t
 `nn.Linear(in_features, out_features)` is a fully connected layer: every output neuron sees every input feature. For a batch it computes
 
 $$
-y = x\,W^{\top} + b
+y = x\,W^T + b
 $$
 
 - $x$ is the input batch, shape $(N, \text{in})$: $N$ examples, each a row of `in_features` numbers.
 - $W$ is `layer.weight`, stored with shape $(\text{out}, \text{in})$: **one row per output neuron**, and row $j$ holds the weights that neuron $j$ gives to each input.
-- $W^{\top}$ is its transpose, shape $(\text{in}, \text{out})$, so that the shapes chain: $(N, \text{in})$ @ $(\text{in}, \text{out})$ gives $(N, \text{out})$.
+- $W^T$ is its transpose, shape $(\text{in}, \text{out})$, so that the shapes chain: $(N, \text{in})$ @ $(\text{in}, \text{out})$ gives $(N, \text{out})$.
 - $b$ is `layer.bias`, shape $(\text{out},)$: one number per output neuron, added to every row by broadcasting.
 - $y$ is the output, shape $(N, \text{out})$.
 
@@ -173,7 +173,7 @@ The most common error in any PyTorch model comes from the one pair of numbers th
 
 <LinearShapeMatcher />
 
-In `mat1 and mat2 shapes cannot be multiplied (5x6 and 4x8)`, `mat1` is your input ($N \times$ width) and `mat2` is $W^{\top}$ ($\text{in} \times \text{out}$). The **middle two** numbers must be equal. Here the data has 6 features but the layer was built for 4. A layer cares only about the **last** dim of its input, so a sequence batch of shape $(B, T, \text{in})$ works too:
+In `mat1 and mat2 shapes cannot be multiplied (5x6 and 4x8)`, `mat1` is your input ($N \times$ width) and `mat2` is $W^T$ ($\text{in} \times \text{out}$). The **middle two** numbers must be equal. Here the data has 6 features but the layer was built for 4. A layer cares only about the **last** dim of its input, so a sequence batch of shape $(B, T, \text{in})$ works too:
 
 ```python
 layer = nn.Linear(4, 8)
@@ -472,7 +472,7 @@ The Prelim asks these as one-liners: `nn.Module` is the base class for all layer
 
 - A model is a subclass of `nn.Module`: call `super().__init__()` first, create the layers as `self.` attributes in `__init__`, describe the computation in `forward`, and run it with `model(x)`, never `model.forward(x)`.
 - Assigning a module or `nn.Parameter` to `self` registers it, and `model.parameters()` (what the optimiser receives) finds only registered tensors. A plain Python list of layers is invisible: use `nn.ModuleList`.
-- `nn.Linear(in, out)` stores a weight of shape `(out, in)` and a bias of shape `(out,)`, computes $y = xW^{\top} + b$, maps `(…, in)` to `(…, out)`, and has $\text{in} \times \text{out} + \text{out}$ parameters. In `mat1 and mat2 shapes cannot be multiplied (N×a and b×c)`, `a` must equal `b`.
+- `nn.Linear(in, out)` stores a weight of shape `(out, in)` and a bias of shape `(out,)`, computes $y = xW^T + b$, maps `(…, in)` to `(…, out)`, and has $\text{in} \times \text{out} + \text{out}$ parameters. In `mat1 and mat2 shapes cannot be multiplied (N×a and b×c)`, `a` must equal `b`.
 - Save with `torch.save(model.state_dict(), path)`. Load by rebuilding the same class, then `model.load_state_dict(torch.load(path))` and `model.eval()`.
 - `nn.Parameter`: trained, saved, moved. Buffer (`register_buffer`): saved and moved, never trained, as in BatchNorm's running statistics. Plain tensor attribute: none of the three.
 

@@ -118,7 +118,7 @@ db1 = dZ1.sum(axis=0)       # (H,), like b1
 You do not need to memorise these. Three rules write them for you:
 
 1. **Every gradient has the same shape as the thing it is the gradient of.** `dW1` must be $(D, H)$ because `W1` is.
-2. **Weight gradient = (the layer's input)ᵀ @ (the upstream gradient).** For one example, $z_{h} = \sum_d x_{d}W_{dh} + b_h$, so $\frac{\partial z_h}{\partial W_{dh}} = x_d$ and each example contributes $x_d \times dz_h$. Adding over the batch gives $\sum_i X_{id}\,dZ_{ih}$, which is exactly entry $(d, h)$ of $X^\top dZ$. The transpose is what makes the shapes line up, and the matrix product does the sum over examples for you.
+2. **Weight gradient = (the layer's input)ᵀ @ (the upstream gradient).** For one example, $z_{h} = \sum_d x_{d}W_{dh} + b_h$, so $\frac{\partial z_h}{\partial W_{dh}} = x_d$ and each example contributes $x_d \times dz_h$. Adding over the batch gives $\sum_i X_{id}\,dZ_{ih}$, which is exactly entry $(d, h)$ of $X^T dZ$. The transpose is what makes the shapes line up, and the matrix product does the sum over examples for you.
 3. **Bias gradient = upstream gradient summed over the batch**, `.sum(axis=0)`, since $\frac{\partial z_h}{\partial b_h} = 1$ for every example. Going *through* a layer to its input uses the transposed weights (`dZ2 @ W2.T`), and going back through ReLU multiplies by its slope, 1 where $Z_1 > 0$ and 0 elsewhere: the <Term def="An array of 1s (True) and 0s (False) marking which entries to keep; multiplying by it zeroes out the rest.">mask</Term> `(Z1 > 0)`.
 
 <BackwardShapeTrace />

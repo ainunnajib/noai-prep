@@ -51,12 +51,12 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'calculus-and-gradient-descent.partial-derivatives-gradients.5',
-    prompt: 'This code estimates the gradient of $f(w) = w^\\top x + \\lVert w \\rVert^2$ by nudging each weight. What does it print?',
+    prompt: 'This code estimates the gradient of $f(w) = w^T x + \\lVert w \\rVert^2$ by nudging each weight. What does it print?',
     code: 'import numpy as np\n\nx = np.array([3.0, -1.0])\n\ndef f(w):\n    return w @ x + np.sum(w ** 2)\n\nw = np.array([1.0, 2.0])\nh = 1e-4\ngrad = np.array([(f(w + h*e) - f(w - h*e)) / (2*h) for e in np.eye(2)])\nprint(np.round(grad, 3))',
     options: ['`[5. 3.]`', '`[4. 1.]`', '`[2. 4.]`', '`[ 3. -1.]`'],
     answer: 0,
     explanation:
-      'The gradient is $\\nabla(w^\\top x) + \\nabla \\lVert w \\rVert^2 = x + 2w = [3, -1] + [2, 4] = [5, 3]$, and the central-difference estimate matches it to 3 decimals. `[4. 1.]` uses $w$ instead of $2w$ for the squared norm; `[2. 4.]` keeps only the $2w$ part; `[ 3. -1.]` keeps only the $x$ part.',
+      'The gradient is $\\nabla(w^T x) + \\nabla \\lVert w \\rVert^2 = x + 2w = [3, -1] + [2, 4] = [5, 3]$, and the central-difference estimate matches it to 3 decimals. `[4. 1.]` uses $w$ instead of $2w$ for the squared norm; `[2. 4.]` keeps only the $2w$ part; `[ 3. -1.]` keeps only the $x$ part.',
     difficulty: 'intermediate',
   },
 ]

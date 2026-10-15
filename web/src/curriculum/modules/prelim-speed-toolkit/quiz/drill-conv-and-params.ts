@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'prelim-speed-toolkit.drill-conv-and-params.6',
     prompt:
-      'Computing the attention scores $QK^\\top$ for a context of 2,048 tokens takes 10 ms. Keeping the width $d$ the same, roughly how long does it take for 4,096 tokens?',
+      'Computing the attention scores $QK^T$ for a context of 2,048 tokens takes 10 ms. Keeping the width $d$ the same, roughly how long does it take for 4,096 tokens?',
     options: [
       'About 40 ms: there is one score for every pair of tokens, so $n^2$ of them',
       'About 20 ms: each token is scored once, so the work grows in step with $n$',
@@ -68,7 +68,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$QK^\\top$ is $(n \\times d)(d \\times n)$: $n^2$ scores, each a dot product of length $d$, so the cost is $O(n^2 d)$. Doubling $n$ with $d$ fixed multiplies the work by $2^2 = 4$, so about 40 ms. 20 ms would be true of a linear cost such as a feed-forward layer, and $O(n^3)$ is the cost of inverting a matrix, not of multiplying two thin ones; splitting into heads divides $d$, not $n$.',
+      '$QK^T$ is $(n \\times d)(d \\times n)$: $n^2$ scores, each a dot product of length $d$, so the cost is $O(n^2 d)$. Doubling $n$ with $d$ fixed multiplies the work by $2^2 = 4$, so about 40 ms. 20 ms would be true of a linear cost such as a feed-forward layer, and $O(n^3)$ is the cost of inverting a matrix, not of multiplying two thin ones; splitting into heads divides $d$, not $n$.',
     difficulty: 'intermediate',
   },
 ]

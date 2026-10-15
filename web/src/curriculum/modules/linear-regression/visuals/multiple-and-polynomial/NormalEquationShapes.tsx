@@ -341,7 +341,7 @@ export default function NormalEquationShapes() {
       title="The normal equation, shape by shape"
       caption={
         <>
-          Press <b>Play</b> (or Next) to build <M>{'w = (X^\\top X)^{-1} X^\\top y'}</M> one product at a time. The orange edges show the inner sizes that must
+          Press <b>Play</b> (or Next) to build <M>{'w = (X^T X)^{-1} X^T y'}</M> one product at a time. The orange edges show the inner sizes that must
           match. Then change <b>n</b> and <b>d</b>: XᵀX is always a square with one row and one column per column of X, however many rows of data there are. Finally switch on the duplicate column, or drag n below d, and watch det(XᵀX)
           drop to 0.
         </>

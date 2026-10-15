@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
     options: ['$[0.3, 0.5]$', '$[0.6, 1.0]$', '$[-0.3, -0.5]$', '$[0.3, 0.455]$'],
     answer: 0,
     explanation:
-      'Predictions are $[0, 0]$, so the errors $h - y$ are $[-2, -4]$. Gradient $= X^\\top e / m = [(-2 - 4)/2,\\ (-2 - 8)/2] = [-3, -5]$. Then $\\theta = 0 - 0.1 \\times [-3, -5] = [0.3, 0.5]$. Forgetting $/m$ gives $[0.6, 1.0]$; updating $\\theta_0$ first and reusing it for $\\theta_1$ gives $[0.3, 0.455]$.',
+      'Predictions are $[0, 0]$, so the errors $h - y$ are $[-2, -4]$. Gradient $= X^T e / m = [(-2 - 4)/2,\\ (-2 - 8)/2] = [-3, -5]$. Then $\\theta = 0 - 0.1 \\times [-3, -5] = [0.3, 0.5]$. Forgetting $/m$ gives $[0.6, 1.0]$; updating $\\theta_0$ first and reusing it for $\\theta_1$ gives $[0.3, 0.455]$.',
     difficulty: 'intermediate',
   },
   {

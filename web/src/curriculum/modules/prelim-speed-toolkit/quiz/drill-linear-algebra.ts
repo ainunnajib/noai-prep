@@ -3,11 +3,11 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'prelim-speed-toolkit.drill-linear-algebra.1',
-    prompt: '$A$ is $4 \\times 2$, $B$ is $4 \\times 3$ and $C$ is $3 \\times 5$. What is the shape of $A^\\top B C$?',
+    prompt: '$A$ is $4 \\times 2$, $B$ is $4 \\times 3$ and $C$ is $3 \\times 5$. What is the shape of $A^T B C$?',
     options: ['$2 \\times 5$', '$4 \\times 5$', '$2 \\times 3$', 'It cannot be multiplied'],
     answer: 0,
     explanation:
-      'Flip the transpose first: $A^\\top$ is $2 \\times 4$. Then $(2 \\times 4)(4 \\times 3)(3 \\times 5)$: the touching pairs $4 = 4$ and $3 = 3$ match, and the ends give $2 \\times 5$. Forgetting the transpose makes it look like $(4 \\times 2)(4 \\times 3)$, which wrongly suggests "cannot be multiplied".',
+      'Flip the transpose first: $A^T$ is $2 \\times 4$. Then $(2 \\times 4)(4 \\times 3)(3 \\times 5)$: the touching pairs $4 = 4$ and $3 = 3$ match, and the ends give $2 \\times 5$. Forgetting the transpose makes it look like $(4 \\times 2)(4 \\times 3)$, which wrongly suggests "cannot be multiplied".',
     difficulty: 'beginner',
   },
   {

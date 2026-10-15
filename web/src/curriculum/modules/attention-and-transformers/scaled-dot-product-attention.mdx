@@ -2,7 +2,7 @@ import AttentionMatrixStepper from './visuals/scaled-dot-product-attention/Atten
 import SqrtDScaling from './visuals/scaled-dot-product-attention/SqrtDScaling'
 import CausalMaskGrid from './visuals/scaled-dot-product-attention/CausalMaskGrid'
 
-In the last lesson one query looked up one answer. A Transformer does that for **every** token of a sentence at the same time, with two matrix multiplications and a softmax. That one line of maths, $\operatorname{softmax}(QK^\top/\sqrt{d_k})\,V$, is called **scaled dot-product attention**. In the 2026 NOAI Final, Task 3 asked students to code it (8 marks), to explain the $\sqrt{d_k}$ in it (2 marks) and to build a causal mask (5 bonus marks). By the end of this lesson you can do all three.
+In the last lesson one query looked up one answer. A Transformer does that for **every** token of a sentence at the same time, with two matrix multiplications and a softmax. That one line of maths, $\operatorname{softmax}(QK^T/\sqrt{d_k})\,V$, is called **scaled dot-product attention**. In the 2026 NOAI Final, Task 3 asked students to code it (8 marks), to explain the $\sqrt{d_k}$ in it (2 marks) and to build a causal mask (5 bonus marks). By the end of this lesson you can do all three.
 
 ## Every query at once
 
@@ -22,10 +22,10 @@ Picture a class of $T$ students and a big table with one row and one column per 
 
 ### One multiplication computes every score
 
-In [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication) you saw that each entry of a product $AB$ is a dot product of a **row** of $A$ with a **column** of $B$. The rows of $Q$ are already queries, but the keys are also rows. Transposing $K$, written $K^\top$, flips its rows into columns. Then
+In [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication) you saw that each entry of a product $AB$ is a dot product of a **row** of $A$ with a **column** of $B$. The rows of $Q$ are already queries, but the keys are also rows. Transposing $K$, written $K^T$, flips its rows into columns. Then
 
 $$
-S = QK^\top, \qquad S_{ij} = q_i \cdot k_j
+S = QK^T, \qquad S_{ij} = q_i \cdot k_j
 $$
 
 is a $T \times T$ table in which row $i$, column $j$ holds the score of query $i$ against key $j$. A single matrix multiplication has done all $T \times T$ dot products at once, which is exactly what GPUs are fast at.
@@ -33,12 +33,12 @@ is a $T \times T$ table in which row $i$, column $j$ holds the score of query $i
 ### The whole formula
 
 $$
-\text{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+\text{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right) V
 $$
 
 Read it from the inside out:
 
-- $QK^\top$ is the $(T, T)$ table of <Term def="The raw dot products q·k between queries and keys, before softmax. Also called logits.">attention scores</Term>.
+- $QK^T$ is the $(T, T)$ table of <Term def="The raw dot products q·k between queries and keys, before softmax. Also called logits.">attention scores</Term>.
 - $\sqrt{d_k}$ is the square root of the key dimension. Dividing every score by it keeps the scores at a sensible size; the section below shows why this matters.
 - $\operatorname{softmax}$ is applied to **each row on its own** (in code, `dim=-1`, the last dimension). Row $i$ becomes token $i$'s attention weights: all positive, adding up to 1. Call this weight matrix $A$.
 - Multiplying by $V$ blends the values: row $i$ of $AV$ is $\sum_j A_{ij}\, v_j$, the weighted average of the value rows. That is exactly the soft lookup from the last lesson, done for query $i$.
@@ -47,7 +47,7 @@ Read it from the inside out:
 
 <KeyIdea>
 
-Scaled dot-product attention is **two matrix multiplications with a row-wise softmax in between**: $QK^\top$ scores every query against every key, dividing by $\sqrt{d_k}$ keeps the scores moderate, softmax turns each row into weights that add up to 1, and multiplying by $V$ blends the values.
+Scaled dot-product attention is **two matrix multiplications with a row-wise softmax in between**: $QK^T$ scores every query against every key, dividing by $\sqrt{d_k}$ keeps the scores moderate, softmax turns each row into weights that add up to 1, and multiplying by $V$ blends the values.
 
 </KeyIdea>
 
@@ -59,7 +59,7 @@ Shape questions are free marks in the Prelim and the first thing to check when F
 |---|---|---|
 | queries, keys | $Q$, $K$ | $(T, d_k)$ |
 | values | $V$ | $(T, d_v)$ |
-| scores | $QK^\top$: $(T, d_k)$ times $(d_k, T)$ | $(T, T)$ |
+| scores | $QK^T$: $(T, d_k)$ times $(d_k, T)$ | $(T, T)$ |
 | scaled scores | divide by $\sqrt{d_k}$ | $(T, T)$ |
 | weights $A$ | softmax over each row | $(T, T)$ |
 | output | $AV$: $(T, T)$ times $(T, d_v)$ | $(T, d_v)$ |
@@ -105,7 +105,7 @@ $$
 </Columns>
 
 <Steps title="softmax(QKᵀ/√dₖ)V for three tokens">
-  <Step title="Scores $S = QK^\top$">
+  <Step title="Scores $S = QK^T$">
     Each entry is one query row dotted with one key row. For example, row 3 and column 2 (token 3 is "laksa" in the visual, token 2 is "love"): $S_{32} = q_3 \cdot k_2 = 0 \times 0 + 0 \times 0 + 2 \times 1 + 2 \times 1 = 4$. All nine entries make a $3 \times 3$ table:
 
     $$
@@ -443,7 +443,7 @@ print("causal output:\\n", out)`} />
 
 <Takeaways>
 
-- $\text{Attention}(Q, K, V) = \operatorname{softmax}(QK^\top/\sqrt{d_k})\,V$: two matrix multiplications with a row-wise softmax (`dim=-1`) in between.
+- $\text{Attention}(Q, K, V) = \operatorname{softmax}(QK^T/\sqrt{d_k})\,V$: two matrix multiplications with a row-wise softmax (`dim=-1`) in between.
 - Shapes: $(T, d_k)$ queries and keys give a $(T, T)$ table of scores and weights, and the output is $(T, d_v)$; with a batch, $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$.
 - With unit-variance entries, $\operatorname{Var}(q \cdot k) = d_k$. Dividing by $\sqrt{d_k}$ keeps the scores' variance near 1, so softmax does not saturate and gradients do not vanish.
 - Masks set blocked scores to $-\infty$ (or $-10^9$) **before** softmax, so their weights are exactly 0 and each row still sums to 1. Causal masks block the future; padding masks block `[PAD]` keys.

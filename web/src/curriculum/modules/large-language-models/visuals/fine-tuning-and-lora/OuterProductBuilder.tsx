@@ -172,7 +172,7 @@ export default function OuterProductBuilder() {
       caption={
         <>
           <b>Try:</b> press + and − to change <M>u</M> and <M>v</M>, then add rank-1 layers to rebuild each picture. <b>Notice:</b> every row of{' '}
-          <M>{'u v^\\top'}</M> is a copy of <M>v</M> (rank 1); the tartan needs 2 layers, the heart 6, and noise is never rebuilt.
+          <M>{'u v^T'}</M> is a copy of <M>v</M> (rank 1); the tartan needs 2 layers, the heart 6, and noise is never rebuilt.
         </>
       }
     >

@@ -134,10 +134,10 @@ Gamblers talk about <Term def="The probability that something happens divided by
 Real problems have many features. With two features $x_1$ and $x_2$, each with its own weight, the score is
 
 $$
-z = w_1 x_1 + w_2 x_2 + b = \mathbf{w}^\top \mathbf{x} + b
+z = w_1 x_1 + w_2 x_2 + b = \mathbf{w}^T \mathbf{x} + b
 $$
 
-where $\mathbf{w} = (w_1, w_2)$ is the **weight vector** and $\mathbf{w}^\top \mathbf{x}$ is the dot product of the weights with the features (from the vectors module: multiply matching entries and add). With 100 features it is the same formula, just a longer dot product.
+where $\mathbf{w} = (w_1, w_2)$ is the **weight vector** and $\mathbf{w}^T \mathbf{x}$ is the dot product of the weights with the features (from the vectors module: multiply matching entries and add). With 100 features it is the same formula, just a longer dot product.
 
 The <Term def="The set of points where a classifier is exactly undecided (p = 0.5). On one side it predicts class 1, on the other class 0.">decision boundary</Term> is where the model is exactly undecided: $p = 0.5$, which means $z = 0$:
 
@@ -154,7 +154,7 @@ That is the equation of a **straight line**. On the side where $z > 0$ the model
 
 <KeyIdea>
 
-Logistic regression is a **linear classifier**: its decision boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is a straight line (a flat plane, or "hyperplane", with more features), with a smooth confidence map on either side. The direction of $\mathbf{w}$ turns the line, $b$ slides it, and the length of $\mathbf{w}$ sets how confident the model is away from it.
+Logistic regression is a **linear classifier**: its decision boundary $\mathbf{w}^T\mathbf{x} + b = 0$ is a straight line (a flat plane, or "hyperplane", with more features), with a smooth confidence map on either side. The direction of $\mathbf{w}$ turns the line, $b$ slides it, and the length of $\mathbf{w}$ sets how confident the model is away from it.
 
 </KeyIdea>
 
@@ -266,7 +266,7 @@ $$
 \end{aligned}
 $$
 
-Each step updates $w \leftarrow w - \eta\,\frac{\partial L}{\partial w}$ and $b \leftarrow b - \eta\,\frac{\partial L}{\partial b}$, where $\eta$ is the learning rate. This has *exactly* the same shape as linear regression's gradient ("error times input"), except that the prediction is now $p = \sigma(wx + b)$. With many features in a matrix $X$ (one row per example), the weight gradient is $\frac{1}{m} X^\top (\mathbf{p} - \mathbf{y})$. Run it:
+Each step updates $w \leftarrow w - \eta\,\frac{\partial L}{\partial w}$ and $b \leftarrow b - \eta\,\frac{\partial L}{\partial b}$, where $\eta$ is the learning rate. This has *exactly* the same shape as linear regression's gradient ("error times input"), except that the prediction is now $p = \sigma(wx + b)$. With many features in a matrix $X$ (one row per example), the weight gradient is $\frac{1}{m} X^T (\mathbf{p} - \mathbf{y})$. Run it:
 
 <PyRunner packages={['numpy']} code={lrCode} rows={24} />
 
@@ -301,7 +301,7 @@ How NOAI asks about logistic regression:
 
 - **Name trap**: it is used for (binary) **classification**, not for predicting a continuous value.
 - **Sigmoid facts**: $\sigma(0) = 0.5$; the output range is the open interval $(0, 1)$; $\sigma(-z) = 1 - \sigma(z)$; and $\sigma'(z) = \sigma(z)(1 - \sigma(z))$, at most $0.25$.
-- **Decision rule**: $p \ge 0.5 \iff z \ge 0$, so the boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is linear. "Can logistic regression separate a ring?" Not without extra features.
+- **Decision rule**: $p \ge 0.5 \iff z \ge 0$, so the boundary $\mathbf{w}^T\mathbf{x} + b = 0$ is linear. "Can logistic regression separate a ring?" Not without extra features.
 - **Loss**: binary cross-entropy $-[y\ln p + (1-y)\ln(1-p)]$. Anchor costs: $-\ln 0.5 \approx 0.693$, $-\ln 0.9 \approx 0.105$, $-\ln 0.1 \approx 2.303$.
 - **Why not MSE**: with a sigmoid, its gradient carries an extra $p(1-p)$ factor that vanishes for confident mistakes, and the loss is not convex. Cross-entropy's gradient is simply $p - y$.
 
@@ -309,8 +309,8 @@ How NOAI asks about logistic regression:
 
 <Takeaways>
 
-- Logistic regression is a **classifier**: score $z = \mathbf{w}^\top\mathbf{x} + b$, then probability $p = \sigma(z) = \frac{1}{1 + e^{-z}}$, which lies strictly between 0 and 1, with $\sigma(0) = 0.5$.
-- Predict class 1 when $p \ge 0.5$, i.e. when $z \ge 0$. The decision boundary $\mathbf{w}^\top\mathbf{x} + b = 0$ is a straight line (hyperplane); $\mathbf{w}$ is perpendicular to it, and its length sets the confidence.
+- Logistic regression is a **classifier**: score $z = \mathbf{w}^T\mathbf{x} + b$, then probability $p = \sigma(z) = \frac{1}{1 + e^{-z}}$, which lies strictly between 0 and 1, with $\sigma(0) = 0.5$.
+- Predict class 1 when $p \ge 0.5$, i.e. when $z \ge 0$. The decision boundary $\mathbf{w}^T\mathbf{x} + b = 0$ is a straight line (hyperplane); $\mathbf{w}$ is perpendicular to it, and its length sets the confidence.
 - Train with **binary cross-entropy** $L = -[y\ln p + (1-y)\ln(1-p)]$: about 0.105 for $p = 0.9$ on a positive, about 4.6 for $p = 0.01$. Confident mistakes are punished hard.
 - Its gradient with respect to the score is just $p - y$, so learning is strongest when the model is most wrong. Squared error with a sigmoid loses that push.
 - In scikit-learn, `LogisticRegression` is L2-regularised by default; `C` is the *inverse* regularisation strength.

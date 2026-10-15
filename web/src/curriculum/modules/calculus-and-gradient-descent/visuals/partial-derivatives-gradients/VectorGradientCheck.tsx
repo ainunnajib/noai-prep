@@ -124,7 +124,7 @@ export default function VectorGradientCheck() {
             </tbody>
           </table>
           <div style={{ fontSize: '0.875rem', color: 'var(--ink-2)', marginTop: '0.5rem' }}>
-            <M>{mode === 'norm' ? `f(w) = w_1^2 + w_2^2 = ${num(fw, 3)}` : `f(w) = w^\\top x = 2w_1 + w_2 = ${num(fw, 3)}`}</M>
+            <M>{mode === 'norm' ? `f(w) = w_1^2 + w_2^2 = ${num(fw, 3)}` : `f(w) = w^T x = 2w_1 + w_2 = ${num(fw, 3)}`}</M>
           </div>
         </div>
       </div>

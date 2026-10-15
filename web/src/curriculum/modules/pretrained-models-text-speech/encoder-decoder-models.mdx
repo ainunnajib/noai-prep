@@ -40,7 +40,7 @@ Cross-attention is the [scaled dot-product attention](#/learn/attention-and-tran
 What you just saw, written as maths:
 
 $$
-\text{CrossAttn}(H_\text{dec}, H_\text{enc}) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V
+\text{CrossAttn}(H_\text{dec}, H_\text{enc}) = \text{softmax}\!\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
 $$
 
 $$
@@ -54,7 +54,7 @@ $$
 - $H_\text{dec}$ holds the decoder's vectors, one per **output** token written so far ($T$ of them). They make the **queries** $Q$: "what do I need to know to write the next word?"
 - $H_\text{enc}$ is the encoder's memory, one vector per **input** token ($S$ of them). It makes the **keys** $K$ (labels to match against) and the **values** $V$ (the content to mix in).
 - $W_Q$, $W_K$, $W_V$ are learned weight matrices, and $d_k$ is the length of each query and key vector, as before.
-- $QK^\top$ has shape $T \times S$: one row per output token, one column per input token. After the softmax, each row adds up to 1 and says how much that output word draws from each input word.
+- $QK^T$ has shape $T \times S$: one row per output token, one column per input token. After the softmax, each row adds up to 1 and says how much that output word draws from each input word.
 
 Because the queries come from the output side, the result has **one vector per output token**. The model learns by itself which input words matter for each output word, a soft <Term def="Which words of the input correspond to which words of the output, for example 'library' ↔ 'perpustakaan'. Cross-attention learns a soft version, where each output word spreads its attention over several input words.">alignment</Term> between the two sentences.
 

@@ -28,7 +28,7 @@ A <Term def="Large language model: a very large Transformer network (billions of
 Text is first cut into <Term def="The pieces a language model reads and writes: whole words, parts of words or punctuation. A rough rule for English: 1 token ≈ 3/4 of a word.">tokens</Term> (see [tokenisation](#/learn/text-as-data/tokenisation)). Pretraining then asks, at every position of every document: *given the tokens so far, what comes next?* The model outputs a probability for every token in its vocabulary and is scored on the probability it gave the token that really came next. The training loss is the average of $-\ln p$ over all positions (the cross-entropy loss from [likelihood and entropy](#/learn/classification/likelihood-and-entropy)):
 
 $$
-\mathcal{L} = -\frac{1}{T}\sum_{t=1}^{T} \ln p_\theta\left(x_t \mid x_1, \dots, x_{t-1}\right)
+\mathcal{L} = -\frac{1}{T}\sum_{t=1}^T \ln p_\theta\left(x_t \mid x_1, \dots, x_{t-1}\right)
 $$
 
 - $x_1, x_2, \dots, x_T$ are the $T$ tokens of a piece of text.

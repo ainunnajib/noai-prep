@@ -63,10 +63,10 @@ The data cell holds `X = [[2, 2], [2, 4], [2, 6]]`, `y = [2, 4, 6]`, `alpha = 0.
 
 ## Three vectorised lines
 
-The sum over $i$, done for every $j$ at once, is one matrix product. Stack the errors into a vector $\mathbf{e}$ of length $m$. Row $j$ of $X^\top$ ("X transpose", `X.T`: rows and columns swapped) holds column $j$ of `X`, so row $j$ of $X^\top\mathbf{e}$ is exactly $\sum_i e_i\,x_j^{(i)}$. The whole update becomes
+The sum over $i$, done for every $j$ at once, is one matrix product. Stack the errors into a vector $\mathbf{e}$ of length $m$. Row $j$ of $X^T$ ("X transpose", `X.T`: rows and columns swapped) holds column $j$ of `X`, so row $j$ of $X^T\mathbf{e}$ is exactly $\sum_i e_i\,x_j^{(i)}$. The whole update becomes
 
 $$
-\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha\,\frac{1}{m}\,X^\top\left(X\boldsymbol{\theta} - \mathbf{y}\right).
+\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha\,\frac{1}{m}\,X^T\left(X\boldsymbol{\theta} - \mathbf{y}\right).
 $$
 
 Writing whole-array operations like this instead of loops over $i$ and $j$ is called <Term def="Using one NumPy operation on whole arrays instead of a Python loop over their elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>. Step through it on the exam data:

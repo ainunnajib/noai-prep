@@ -129,10 +129,10 @@ Two things to take from the map: where contour lines (drawn at equal height step
 
 With many weights in one vector $w = [w_1, \dots, w_n]$, two gradients come up again and again.
 
-**The dot product.** For a fixed input vector $x$, let $f(w) = w^\top x = w_1 x_1 + w_2 x_2 + \dots + w_n x_n$ (the dot product $w \cdot x$ written as a matrix product; $w^\top$ means $w$ transposed, the same as $w^T$ in [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication)). Differentiating with respect to $w_1$, every term without $w_1$ vanishes and $w_1 x_1$ becomes $x_1$; the same happens for each weight, so
+**The dot product.** For a fixed input vector $x$, let $f(w) = w^T x = w_1 x_1 + w_2 x_2 + \dots + w_n x_n$ (the dot product $w \cdot x$ written as a matrix product; $w^T$ means $w$ transposed, as in [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication)). Differentiating with respect to $w_1$, every term without $w_1$ vanishes and $w_1 x_1$ becomes $x_1$; the same happens for each weight, so
 
 $$
-\nabla_w \big(w^\top x\big) = x .
+\nabla_w \big(w^T x\big) = x .
 $$
 
 The subscript in $\nabla_w$ means "with respect to $w$". At a hawker centre, if $w_i$ is how many plates of dish $i$ you order and $x_i$ its price, one more plate of dish $i$ raises the bill by exactly $x_i$.
@@ -149,7 +149,7 @@ It points straight out from the origin, at right angles to the circular contours
 
 <Reveal label="Answer to the visual's “Why?”">
 
-$\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudge estimate overshoots by exactly $h$. For $w^\top x$ the function is a flat, tilted plane, so every nudge gives the exact slope.
+$\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudge estimate overshoots by exactly $h$. For $w^T x$ the function is a flat, tilted plane, so every nudge gives the exact slope.
 
 </Reveal>
 
@@ -157,20 +157,20 @@ $\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudg
 
 ### Putting them together: the gradient of a loss
 
-Take a linear model with prediction $w^\top x$ for one example $(x, y)$, and the squared error $\ell(w) = (w^\top x - y)^2$. The chain rule says: differentiate the outside (the square gives $2(\text{inside})$), then multiply by the gradient of the inside, which is $x$ ($y$ is a constant). So
+Take a linear model with prediction $w^T x$ for one example $(x, y)$, and the squared error $\ell(w) = (w^T x - y)^2$. The chain rule says: differentiate the outside (the square gives $2(\text{inside})$), then multiply by the gradient of the inside, which is $x$ ($y$ is a constant). So
 
 $$
-\nabla_w\,\ell = 2\,(w^\top x - y)\,x .
+\nabla_w\,\ell = 2\,(w^T x - y)\,x .
 $$
 
-In words: **error × input × 2**. Averaging over $n$ examples gives the mean squared error gradient $\frac{2}{n}\sum_{i} (w^\top x_i - y_i)\,x_i$. Adding <Term def="A penalty λ‖w‖² added to the loss to keep the weights small; λ (lambda) sets how strong the penalty is.">L2 regularisation</Term> $\lambda \lVert w \rVert^2$ simply adds $2\lambda w$.
+In words: **error × input × 2**. Averaging over $n$ examples gives the mean squared error gradient $\frac{2}{n}\sum_{i} (w^T x_i - y_i)\,x_i$. Adding <Term def="A penalty λ‖w‖² added to the loss to keep the weights small; λ (lambda) sets how strong the penalty is.">L2 regularisation</Term> $\lambda \lVert w \rVert^2$ simply adds $2\lambda w$.
 
 <Steps title="One example, by hand">
   <Step title="Set up">
     $w = [1, 2]$, input $x = [3, 1]$, target $y = 4$.
   </Step>
   <Step title="Prediction and error">
-    $w^\top x = 1 \times 3 + 2 \times 1 = 5$, so the error is $5 - 4 = 1$.
+    $w^T x = 1 \times 3 + 2 \times 1 = 5$, so the error is $5 - 4 = 1$.
   </Step>
   <Step title="Gradient of the squared error">
     $2 \times 1 \times [3, 1] = [6, 2]$.
@@ -212,7 +212,7 @@ def grad_numeric(f, w, h=1e-5):
 print("formula:", grad_formula(w))
 print("numeric:", grad_numeric(loss, w))`} />
 
-`X.T @ (X @ w - y)` computes $\sum_i (w^\top x_i - y_i)\,x_i$ in one matrix product. Both lines print about $[0.333,\ 5.333]$ (averages over three examples). In PyTorch, <Term def="Automatic differentiation: the library records each operation as it runs, then applies the chain rule backwards to compute every gradient exactly.">autograd</Term> computes the gradient for you when you call `.backward()`.
+`X.T @ (X @ w - y)` computes $\sum_i (w^T x_i - y_i)\,x_i$ in one matrix product. Both lines print about $[0.333,\ 5.333]$ (averages over three examples). In PyTorch, <Term def="Automatic differentiation: the library records each operation as it runs, then applies the chain rule backwards to compute every gradient exactly.">autograd</Term> computes the gradient for you when you call `.backward()`.
 
 <Reveal label="The hand example in PyTorch">
 
@@ -243,7 +243,7 @@ tensor([7., 4.])
 
 - **Partial derivative**: freeze every other letter; terms without the variable vanish.
 - **Gradient**: a vector, e.g. $\nabla(x^2 + y^2) = [2x, 2y]$, not the sum $2x + 2y$.
-- **Memorise**: $\nabla_w \lVert w \rVert^2 = 2w$ (not $w$) and $\nabla_w (w^\top x) = x$.
+- **Memorise**: $\nabla_w \lVert w \rVert^2 = 2w$ (not $w$) and $\nabla_w (w^T x) = x$.
 - **Direction**: $\nabla f$ points to steepest ascent, $-\nabla f$ to steepest descent, at right angles to the contours; closer contours mean a longer gradient.
 
 </ExamTip>
@@ -253,7 +253,7 @@ tensor([7., 4.])
 - A partial derivative is the slope of a one-input slice: freeze every other input and differentiate as usual.
 - The gradient $\nabla f$ lists all the partial derivatives and has the same shape as the input.
 - The slope in direction $u$ is $\nabla f \cdot u$: $\nabla f$ points straight uphill, its length is the steepest slope, and it is perpendicular to contours.
-- $\nabla_w (w^\top x) = x$ and $\nabla_w \lVert w \rVert^2 = 2w$; with the chain rule they give the squared-error gradient $2(w^\top x - y)\,x$.
+- $\nabla_w (w^T x) = x$ and $\nabla_w \lVert w \rVert^2 = 2w$; with the chain rule they give the squared-error gradient $2(w^T x - y)\,x$.
 - A numerical gradient check catches mistakes in gradient formulas.
 
 </Takeaways>

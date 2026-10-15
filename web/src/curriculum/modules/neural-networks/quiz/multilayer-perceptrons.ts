@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
     options: ['$3 \\times 4$', '$4 \\times 3$', '$3 \\times 1$', '$4 \\times 4$'],
     answer: 0,
     explanation:
-      '$W$ has one row per neuron (3) and one column per input (4), so it is $3 \\times 4$; then $(3 \\times 4)(4 \\times 1)$ gives one value per neuron, $3 \\times 1$. $4 \\times 3$ is the transpose $W^\\top$, which appears when inputs are stored as rows ($XW^\\top$). $3 \\times 1$ is the shape of $\\mathbf{b}$ and of the output, not of $W$.',
+      '$W$ has one row per neuron (3) and one column per input (4), so it is $3 \\times 4$; then $(3 \\times 4)(4 \\times 1)$ gives one value per neuron, $3 \\times 1$. $4 \\times 3$ is the transpose $W^T$, which appears when inputs are stored as rows ($XW^T$). $3 \\times 1$ is the shape of $\\mathbf{b}$ and of the output, not of $W$.',
     difficulty: 'beginner',
   },
   {

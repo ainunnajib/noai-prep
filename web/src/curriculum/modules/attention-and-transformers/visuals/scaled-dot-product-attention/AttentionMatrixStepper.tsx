@@ -245,7 +245,7 @@ export default function AttentionMatrixStepper() {
       title="Attention as matrices, one step at a time"
       caption={
         <>
-          Press <b>Next</b> (or tap a stage) to build <M>{'\\operatorname{softmax}(QK^\\top/\\sqrt{d_k})\\,V'}</M> for three tokens. At each stage, tap
+          Press <b>Next</b> (or tap a stage) to build <M>{'\\operatorname{softmax}(QK^T/\\sqrt{d_k})\\,V'}</M> for three tokens. At each stage, tap
           or hover over any cell to see where its number comes from, and edit Q, K and V in the first stage. Notice the shapes: the scores are a T × T
           table (every query against every key), and the output has one row per token again. The whole thing is just two matrix multiplications with a
           row-wise softmax in between.

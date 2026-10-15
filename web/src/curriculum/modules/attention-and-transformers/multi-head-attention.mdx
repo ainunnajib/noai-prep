@@ -10,7 +10,7 @@ One attention layer gives every word one row of weights: one way of looking at t
 Recall the previous lesson: a query is compared with every key, softmax turns the scores into weights, and the output is the weighted average of the values,
 
 $$
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V .
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V .
 $$
 
 Each row of weights adds up to 1. That is a fixed budget. Take the sentence *"the students who won the quiz cheered"*. The word *cheered* would like to look at *students* (who cheered?) and also at *quiz* (what came just before?). With a single row of weights it has to split its budget between them, and the weighted average it produces is a blur of both.
@@ -68,7 +68,7 @@ A CCA committee of four reviews a stack of camp applications. Every member reads
 
 </Analogy>
 
-Is it expensive to run $h$ attentions? No. The main cost of attention is the score table $QK^\top$, which takes $T \times T \times (\text{vector length})$ multiplications. With $h$ heads of length $d_k$ that is $h \cdot T^2 \cdot d_k = T^2 \cdot d_\text{model}$, the same as one big head. You get $h$ patterns for about the price of one.
+Is it expensive to run $h$ attentions? No. The main cost of attention is the score table $QK^T$, which takes $T \times T \times (\text{vector length})$ multiplications. With $h$ heads of length $d_k$ that is $h \cdot T^2 \cdot d_k = T^2 \cdot d_\text{model}$, the same as one big head. You get $h$ patterns for about the price of one.
 
 ## Following the shapes
 

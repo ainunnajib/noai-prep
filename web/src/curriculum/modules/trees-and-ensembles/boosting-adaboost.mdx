@@ -85,7 +85,7 @@ In symbols, for $n$ training examples and $T$ rounds:
    - compute its weighted error $\varepsilon_t = \sum_{i:\ h_t(x_i) \ne y_i} w_i$, the total weight of the examples it gets wrong (the weights add up to 1, so this is a fraction between 0 and 1);
    - compute its say $\alpha_t = \tfrac12 \ln \frac{1 - \varepsilon_t}{\varepsilon_t}$;
    - **re-weight**: $w_i \leftarrow w_i \, e^{-\alpha_t \, y_i \, h_t(x_i)}$, then divide every weight by the new total so they add up to 1 again.
-3. **Predict** with the weighted vote $H(x) = \operatorname{sign}\left( \sum_{t=1}^{T} \alpha_t \, h_t(x) \right)$: add up each learner's $\pm 1$ answer times its say, and output $+1$ if the total is positive, $-1$ if negative.
+3. **Predict** with the weighted vote $H(x) = \operatorname{sign}\left( \sum_{t=1}^T \alpha_t \, h_t(x) \right)$: add up each learner's $\pm 1$ answer times its say, and output $+1$ if the total is positive, $-1$ if negative.
 
 <KeyIdea>
 

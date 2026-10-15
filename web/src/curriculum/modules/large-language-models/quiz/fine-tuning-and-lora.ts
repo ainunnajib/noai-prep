@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$(4096 \\times 8)(8 \\times 4096)$ gives a $4096 \\times 4096$ matrix, the same shape as $W$, so every weight can change. But $BA = b_1a_1^\\top + \\dots + b_8a_8^\\top$ is a sum of 8 outer products, so its rank is at most 8. All its rows can be non-zero; they are just combinations of the 8 rows of $A$.',
+      '$(4096 \\times 8)(8 \\times 4096)$ gives a $4096 \\times 4096$ matrix, the same shape as $W$, so every weight can change. But $BA = b_1a_1^T + \\dots + b_8a_8^T$ is a sum of 8 outer products, so its rank is at most 8. All its rows can be non-zero; they are just combinations of the 8 rows of $A$.',
     difficulty: 'intermediate',
   },
   {

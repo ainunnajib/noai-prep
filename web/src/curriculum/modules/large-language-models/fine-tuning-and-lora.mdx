@@ -118,7 +118,7 @@ LoRA freezes $W$ and learns $W' = W + BA$ with $B$ of size $d \times r$ and $A$ 
 
 ## What "low rank" really means
 
-Why can two thin matrices describe a useful change? Take the thinnest case, $r = 1$. Then $B$ is a single column $u$ and $A$ a single row $v^\top$, and $BA = uv^\top$ is called an <Term def="The matrix u vᵀ made from a column vector u and a row vector v. Its entry in row i, column j is u_i × v_j, so it is like a times table.">outer product</Term>. Its entry in row $i$, column $j$ is simply $u_i \times v_j$: it is a times table.
+Why can two thin matrices describe a useful change? Take the thinnest case, $r = 1$. Then $B$ is a single column $u$ and $A$ a single row $v^T$, and $BA = uv^T$ is called an <Term def="The matrix u vᵀ made from a column vector u and a row vector v. Its entry in row i, column j is u_i × v_j, so it is like a times table.">outer product</Term>. Its entry in row $i$, column $j$ is simply $u_i \times v_j$: it is a times table.
 
 <Steps title="An outer product by hand: u = [1, 2, 3], v = [2, 0, 1]">
   <Step title="Row 1 is 1 × v">
@@ -128,17 +128,17 @@ Why can two thin matrices describe a useful change? Take the thinnest case, $r =
     $[4, 0, 2]$ and $[6, 0, 3]$
   </Step>
   <Step title="Put it together">
-    $uv^\top = \begin{bmatrix} 2 & 0 & 1 \\ 4 & 0 & 2 \\ 6 & 0 & 3 \end{bmatrix}$. Every row is a multiple of the same row $v$, so the matrix holds only one pattern: its [rank](#/learn/linear-algebra-deeper/span-rank-independence) is 1. Six numbers describe nine entries; for a $4096 \times 4096$ matrix, $8192$ numbers would describe nearly 17 million.
+    $uv^T = \begin{bmatrix} 2 & 0 & 1 \\ 4 & 0 & 2 \\ 6 & 0 & 3 \end{bmatrix}$. Every row is a multiple of the same row $v$, so the matrix holds only one pattern: its [rank](#/learn/linear-algebra-deeper/span-rank-independence) is 1. Six numbers describe nine entries; for a $4096 \times 4096$ matrix, $8192$ numbers would describe nearly 17 million.
   </Step>
 </Steps>
 
 A matrix of rank $r$ is a sum of $r$ such patterns. Multiplying out $BA$ column by row shows that LoRA's update is exactly that:
 
 $$
-BA = b_1 a_1^\top + b_2 a_2^\top + \dots + b_r a_r^\top
+BA = b_1 a_1^T + b_2 a_2^T + \dots + b_r a_r^T
 $$
 
-where $b_i$ is column $i$ of $B$ and $a_i^\top$ is row $i$ of $A$. So **the rank of $BA$ is at most $r$**: LoRA's update can only use $r$ "directions" of change. Build some patterns yourself:
+where $b_i$ is column $i$ of $B$ and $a_i^T$ is row $i$ of $A$. So **the rank of $BA$ is at most $r$**: LoRA's update can only use $r$ "directions" of change. Build some patterns yourself:
 
 <OuterProductBuilder />
 
@@ -164,7 +164,7 @@ No. The model keeps all its weights, and training never changes $W$. After train
 
 ## LoRA in PyTorch
 
-A LoRA layer wraps an ordinary `nn.Linear(k, d)`, which stores a $d \times k$ weight and computes $x W^\top$ for a batch of row vectors $x$; the side path `x @ A.T @ B.T` is $BAx$ written for row vectors.
+A LoRA layer wraps an ordinary `nn.Linear(k, d)`, which stores a $d \times k$ weight and computes $x W^T$ for a batch of row vectors $x$; the side path `x @ A.T @ B.T` is $BAx$ written for row vectors.
 
 ```python
 import torch

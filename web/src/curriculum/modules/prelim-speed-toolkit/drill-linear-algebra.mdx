@@ -33,8 +33,8 @@ $$
 
 Two more rules complete the kit:
 
-- **Transpose swaps the shape:** if $A$ is $m \times n$, then $A^\top$ (rows turned into columns) is $n \times m$. Flip transposes *first*, then line up the dominoes.
-- **Vectors are thin matrices.** A column vector $x$ with $n$ entries is $n \times 1$, so $x^\top$ is $1 \times n$. Then $x^\top y$ is $(1 \times n)(n \times 1) = 1 \times 1$, a single number (the dot product), while $x y^\top$ is $(n \times 1)(1 \times n) = n \times n$, a whole matrix.
+- **Transpose swaps the shape:** if $A$ is $m \times n$, then $A^T$ (rows turned into columns) is $n \times m$. Flip transposes *first*, then line up the dominoes.
+- **Vectors are thin matrices.** A column vector $x$ with $n$ entries is $n \times 1$, so $x^T$ is $1 \times n$. Then $x^T y$ is $(1 \times n)(n \times 1) = 1 \times 1$, a single number (the dot product), while $x y^T$ is $(n \times 1)(1 \times n) = n \times n$, a whole matrix.
 
 <ShapeChainDrill />
 
@@ -46,13 +46,13 @@ Shape questions are pattern matching, not arithmetic: flip any transposes, check
 
 <Steps title="The shape of AᵀBC, when A is 2 × 3, B is 2 × 5 and C is 5 × 1">
   <Step title="Flip the transpose">
-    $A$ is $2 \times 3$, so $A^\top$ is $3 \times 2$.
+    $A$ is $2 \times 3$, so $A^T$ is $3 \times 2$.
   </Step>
   <Step title="Line up the dominoes">
     $(3 \times 2)(2 \times 5)(5 \times 1)$. The touching pairs are $2 = 2$ and $5 = 5$: both match.
   </Step>
   <Step title="Keep the ends">
-    The outer numbers are 3 and 1, so $A^\top B C$ is $3 \times 1$. No entry of any matrix was needed.
+    The outer numbers are 3 and 1, so $A^T B C$ is $3 \times 1$. No entry of any matrix was needed.
   </Step>
 </Steps>
 
@@ -215,7 +215,7 @@ A few more determinant facts are worth knowing cold, because they turn up as one
 | --- | --- |
 | $\det I = 1$ | the identity leaves every area unchanged |
 | $\det(AB) = \det A \cdot \det B$ | doing $B$ then $A$ multiplies the two area factors |
-| $\det A^\top = \det A$ | for a 2 × 2, $ad - cb$ is the same number as $ad - bc$ |
+| $\det A^T = \det A$ | for a 2 × 2, $ad - cb$ is the same number as $ad - bc$ |
 | $\det A^{-1} = 1 / \det A$ | $A^{-1}$ must undo $A$'s area change |
 | $\det(kA) = k^n \det A$ for $n \times n$ | each of the $n$ rows is multiplied by $k$ |
 
@@ -235,7 +235,7 @@ Before computing anything, look at the options. If they are all different, often
 
 <Takeaways>
 
-- **Shapes:** $(m \times n)(n \times p) = m \times p$. Flip transposes first, match every pair of touching numbers, keep the ends. $x^\top y$ is a number; $x y^\top$ is a matrix.
+- **Shapes:** $(m \times n)(n \times p) = m \times p$. Flip transposes first, match every pair of touching numbers, keep the ends. $x^T y$ is a number; $x y^T$ is a matrix.
 - **Dot products:** one running total, left to right. **Norms:** L1 adds sizes; L2 squares, adds and roots, and exam vectors hide triples (3-4-5, 5-12-13, 1-2-2-3, 2-3-6-7). **Cosine:** check for a zero dot product first.
 - **2 × 2:** $\det = ad - bc$, $\operatorname{tr} = a + d$, inverse = swap the diagonal, flip the other signs, divide by det.
 - **Eigenvalues** add to the trace and multiply to the determinant; a zero eigenvalue means $\det = 0$ and no inverse.

@@ -138,19 +138,19 @@ Read the gradient's sign as an instruction. If the errors are positive (the line
 
 ## Vectorised: the whole gradient in one line
 
-Real data has many features. Put the examples in the rows of a matrix $X$ of shape `(n, d)`: $n$ examples, $d$ features, and one weight per feature in the vector $\mathbf{w}$ of shape `(d,)`. Then all the predictions are one matrix product, and the sum $\sum_i e_i x_{ij}$ for every weight $j$ at once is $X^\top \mathbf{e}$ ($X^\top$, "X transpose", is $X$ with rows and columns swapped):
+Real data has many features. Put the examples in the rows of a matrix $X$ of shape `(n, d)`: $n$ examples, $d$ features, and one weight per feature in the vector $\mathbf{w}$ of shape `(d,)`. Then all the predictions are one matrix product, and the sum $\sum_i e_i x_{ij}$ for every weight $j$ at once is $X^T \mathbf{e}$ ($X^T$, "X transpose", is $X$ with rows and columns swapped):
 
 $$
 \begin{aligned}
 \mathbf{e} &= X\mathbf{w} + b - \mathbf{y} \\
-\nabla_{\mathbf{w}} L &= \frac{2}{n}\,X^\top \mathbf{e} \\
+\nabla_{\mathbf{w}} L &= \frac{2}{n}\,X^T \mathbf{e} \\
 \frac{\partial L}{\partial b} &= \frac{2}{n}\sum_i e_i
 \end{aligned}
 $$
 
-Here $\nabla_{\mathbf{w}} L$ ("grad L") is the vector of all the partial derivatives $\partial L/\partial w_j$. Check the shapes: $X^\top$ is `(d, n)` and $\mathbf{e}$ is `(n,)`, so $X^\top\mathbf{e}$ is `(d,)`: one gradient per weight, exactly what the update needs. Writing whole-array operations like this instead of Python loops is called <Term def="Writing one NumPy operation on whole arrays instead of a Python loop over elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>.
+Here $\nabla_{\mathbf{w}} L$ ("grad L") is the vector of all the partial derivatives $\partial L/\partial w_j$. Check the shapes: $X^T$ is `(d, n)` and $\mathbf{e}$ is `(n,)`, so $X^T\mathbf{e}$ is `(d,)`: one gradient per weight, exactly what the update needs. Writing whole-array operations like this instead of Python loops is called <Term def="Writing one NumPy operation on whole arrays instead of a Python loop over elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>.
 
-Here is the full training loop for the rides (one feature, so `np.sum(e * x)` plays the role of $X^\top\mathbf{e}$). Run it, then try `lr = 0.08` and `lr = 0.09`:
+Here is the full training loop for the rides (one feature, so `np.sum(e * x)` plays the role of $X^T\mathbf{e}$). Run it, then try `lr = 0.08` and `lr = 0.09`:
 
 <PyRunner packages={['numpy']} code={loopCode} rows={33} />
 
@@ -231,7 +231,7 @@ The symbols are new, but the idea is identical to ours:
 Three details decide whether you get the official answer `[0.003, 0.9987]`:
 
 1. **The intercept column is already in $X$.** The first column (all 2s) is a constant column, so $\theta_0 \times 2$ is the intercept: $\theta$ already contains the bias. Do not add a separate $b$ or another column of 1s: that gives three numbers, `[0.0005, 0.0011, 0.9994]`.
-2. **1/m, not 2/m.** The task's rule uses $\frac{1}{m}$, which is the gradient of the cost $J(\theta) = \frac{1}{2m}\sum_i (h_\theta(x^{(i)}) - y^{(i)})^2$ that many textbooks use: half the MSE. The $\frac{1}{2}$ is there so the 2 from differentiating the square cancels, leaving $\frac{1}{m}X^\top(X\theta - y)$. Using our plain-MSE $\frac{2}{m}$ is the same as doubling $\alpha$: the walk is faster, and after exactly 1000 steps it rounds to `[0.0, 1.0]` instead. Both head for the same bottom, $\theta = (0, 1)$, but the task asks for the value after exactly 1000 steps.
+2. **1/m, not 2/m.** The task's rule uses $\frac{1}{m}$, which is the gradient of the cost $J(\theta) = \frac{1}{2m}\sum_i (h_\theta(x^{(i)}) - y^{(i)})^2$ that many textbooks use: half the MSE. The $\frac{1}{2}$ is there so the 2 from differentiating the square cancels, leaving $\frac{1}{m}X^T(X\theta - y)$. Using our plain-MSE $\frac{2}{m}$ is the same as doubling $\alpha$: the walk is faster, and after exactly 1000 steps it rounds to `[0.0, 1.0]` instead. Both head for the same bottom, $\theta = (0, 1)$, but the task asks for the value after exactly 1000 steps.
 3. **Update all θⱼ at the same time.** Compute every gradient from the *same* old $\theta$, then change them all.
 
 <Analogy title="A group photo">
@@ -325,7 +325,7 @@ How this is tested:
 </ExamTip>
 
 <QuickCheck
-  q="Your code uses the gradient $\frac{2}{m}X^\top(X\theta - y)$, but the task's rule uses $\frac{1}{m}X^\top(X\theta - y)$ with the same $\alpha$ and 1000 iterations. What happens?"
+  q="Your code uses the gradient $\frac{2}{m}X^T(X\theta - y)$, but the task's rule uses $\frac{1}{m}X^T(X\theta - y)$ with the same $\alpha$ and 1000 iterations. What happens?"
   options={['It acts like the task method with twice the learning rate, so the 4 d.p. answer can differ', 'Nothing changes, because a constant factor in the gradient never changes where gradient descent ends up', 'It heads to a different minimum, because doubling the loss moves the position of its lowest point', 'It diverges, because doubling the step size pushes it past the stability limit']}
   answer={0}
   explain="$\frac{2}{m}$ with $\alpha$ is identical to $\frac{1}{m}$ with $2\alpha$. Both losses have the same lowest point, so the destination is the same, but after a fixed 1000 steps the faster walk is at a different place: on the 2025 data it rounds to $[0.0, 1.0]$ instead of $[0.003, 0.9987]$. It only diverges if $2\alpha$ passes the stability limit, which $0.02$ does not."
@@ -334,9 +334,9 @@ How this is tested:
 <Takeaways>
 
 - For MSE with $\hat{y} = wx + b$ and error $e = \hat{y} - y$: $\partial L/\partial w = \tfrac{2}{n}\sum e_i x_i$ and $\partial L/\partial b = \tfrac{2}{n}\sum e_i$.
-- Vectorised: $\nabla_{\mathbf{w}} L = \frac{2}{n}X^\top(X\mathbf{w} + b - \mathbf{y})$, one line of NumPy: `X.T @ e`.
+- Vectorised: $\nabla_{\mathbf{w}} L = \frac{2}{n}X^T(X\mathbf{w} + b - \mathbf{y})$, one line of NumPy: `X.T @ e`.
 - The training loop is predict, error, gradient, update, repeated; the loss history should fall every step and level off. Rising or `nan` means the learning rate is too high.
-- With a $\frac{1}{2m}$ loss the gradient is $\frac{1}{m}X^\top(X\theta - y)$; that only rescales the learning rate, but it changes a fixed-iteration answer.
+- With a $\frac{1}{2m}$ loss the gradient is $\frac{1}{m}X^T(X\theta - y)$; that only rescales the learning rate, but it changes a fixed-iteration answer.
 - Update all parameters simultaneously, and if $X$ already has an intercept column, $\theta$ already contains the bias.
 
 </Takeaways>

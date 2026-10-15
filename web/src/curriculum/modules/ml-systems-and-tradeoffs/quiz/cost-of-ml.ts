@@ -34,7 +34,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'ml-systems-and-tradeoffs.cost-of-ml.3',
     prompt:
-      "A team raises a Transformer's context length from 2,000 to 8,000 tokens and keeps the model width $d$ the same. By roughly what factor does the work of computing the attention scores $QK^\\top$ grow?",
+      "A team raises a Transformer's context length from 2,000 to 8,000 tokens and keeps the model width $d$ the same. By roughly what factor does the work of computing the attention scores $QK^T$ grow?",
     options: ['16', '4', '64', '8'],
     answer: 0,
     explanation:

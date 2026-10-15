@@ -80,25 +80,25 @@ $$
 where $\lVert \cdot \rVert^2$ means "square every entry and add them up". Its gradient, which you met in the gradient descent lesson, is
 
 $$
-\nabla L = \frac{2}{n} X^\top (Xw - y).
+\nabla L = \frac{2}{n} X^T (Xw - y).
 $$
 
-Here $Xw - y$ is the column of errors, and $X^\top$ is the <Term def="The matrix flipped over its diagonal: row i becomes column i. An n×d matrix becomes d×n.">transpose</Term> of $X$. At the bottom of the bowl the gradient is zero, so
+Here $Xw - y$ is the column of errors, and $X^T$ is the <Term def="The matrix flipped over its diagonal: row i becomes column i. An n×d matrix becomes d×n.">transpose</Term> of $X$. At the bottom of the bowl the gradient is zero, so
 
 $$
 \begin{aligned}
-X^\top X\, w &= X^\top y \\
-\Longrightarrow\quad w &= (X^\top X)^{-1} X^\top y .
+X^T X\, w &= X^T y \\
+\Longrightarrow\quad w &= (X^T X)^{-1} X^T y .
 \end{aligned}
 $$
 
 This is the <Hl>normal equation</Hl>. Symbol by symbol:
 
-- $X^\top X$ is a small $d \times d$ square: entry $(j, k)$ adds up feature $j$ × feature $k$ over all examples.
-- $X^\top y$ is a $d \times 1$ column: entry $j$ adds up feature $j$ × target.
-- $(X^\top X)^{-1}$ is the <Term def="For a square matrix A, the matrix A⁻¹ with A⁻¹A = I (the identity). Multiplying by it undoes multiplying by A, like dividing by a number. It only exists when det(A) ≠ 0.">inverse</Term> of $X^\top X$: multiplying by it undoes multiplying by $X^\top X$, just as dividing by 3 undoes multiplying by 3.
+- $X^T X$ is a small $d \times d$ square: entry $(j, k)$ adds up feature $j$ × feature $k$ over all examples.
+- $X^T y$ is a $d \times 1$ column: entry $j$ adds up feature $j$ × target.
+- $(X^T X)^{-1}$ is the <Term def="For a square matrix A, the matrix A⁻¹ with A⁻¹A = I (the identity). Multiplying by it undoes multiplying by A, like dividing by a number. It only exists when det(A) ≠ 0.">inverse</Term> of $X^T X$: multiplying by it undoes multiplying by $X^T X$, just as dividing by 3 undoes multiplying by 3.
 
-Why "normal"? Setting the gradient to zero says $X^\top(y - Xw) = 0$: the errors are at right angles (*normal*) to every feature column, so no feature can explain any of the leftover error.
+Why "normal"? Setting the gradient to zero says $X^T(y - Xw) = 0$: the errors are at right angles (*normal*) to every feature column, so no feature can explain any of the leftover error.
 
 <NormalEquationShapes />
 
@@ -106,33 +106,33 @@ Why "normal"? Setting the gradient to zero says $X^\top(y - Xw) = 0$: the errors
   <Step title="Build $X$ and $y$">
     One feature plus the column of 1s: $X = \begin{bmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{bmatrix}$ and $y = \begin{bmatrix} 1 \\ 2 \\ 6 \end{bmatrix}$. Shapes: $X$ is $3 \times 2$, so $w$ will be $2 \times 1$ (bias, slope).
   </Step>
-  <Step title="Compute $X^\top X$">
-    Each entry is a column of $X$ dotted with a column of $X$. Ones with ones: $1+1+1 = 3$. Ones with $x$: $0+1+2 = 3$. $x$ with $x$: $0+1+4 = 5$. So $X^\top X = \begin{bmatrix} 3 & 3 \\ 3 & 5 \end{bmatrix}$.
+  <Step title="Compute $X^T X$">
+    Each entry is a column of $X$ dotted with a column of $X$. Ones with ones: $1+1+1 = 3$. Ones with $x$: $0+1+2 = 3$. $x$ with $x$: $0+1+4 = 5$. So $X^T X = \begin{bmatrix} 3 & 3 \\ 3 & 5 \end{bmatrix}$.
   </Step>
-  <Step title="Compute $X^\top y$">
-    Ones with $y$: $1+2+6 = 9$. $x$ with $y$: $0\cdot1 + 1\cdot2 + 2\cdot6 = 14$. So $X^\top y = \begin{bmatrix} 9 \\ 14 \end{bmatrix}$.
+  <Step title="Compute $X^T y$">
+    Ones with $y$: $1+2+6 = 9$. $x$ with $y$: $0\cdot1 + 1\cdot2 + 2\cdot6 = 14$. So $X^T y = \begin{bmatrix} 9 \\ 14 \end{bmatrix}$.
   </Step>
   <Step title="Invert the 2×2 matrix">
-    For $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$ the inverse is $\frac{1}{ad - bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$, where $ad - bc$ is the <Term def="A single number computed from a square matrix. For a 2×2 matrix [[a, b], [c, d]] it is ad − bc. The matrix has an inverse exactly when its determinant is not 0.">determinant</Term>. Here $ad - bc = 3\cdot5 - 3\cdot3 = 6$, so $(X^\top X)^{-1} = \frac{1}{6}\begin{bmatrix} 5 & -3 \\ -3 & 3 \end{bmatrix}$.
+    For $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$ the inverse is $\frac{1}{ad - bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$, where $ad - bc$ is the <Term def="A single number computed from a square matrix. For a 2×2 matrix [[a, b], [c, d]] it is ad − bc. The matrix has an inverse exactly when its determinant is not 0.">determinant</Term>. Here $ad - bc = 3\cdot5 - 3\cdot3 = 6$, so $(X^T X)^{-1} = \frac{1}{6}\begin{bmatrix} 5 & -3 \\ -3 & 3 \end{bmatrix}$.
   </Step>
   <Step title="Multiply to get $w$">
     $w = \frac{1}{6}\begin{bmatrix} 5\cdot9 - 3\cdot14 \\ -3\cdot9 + 3\cdot14 \end{bmatrix} = \frac{1}{6}\begin{bmatrix} 3 \\ 15 \end{bmatrix} = \begin{bmatrix} 0.5 \\ 2.5 \end{bmatrix}$. The best line is $\hat{y} = 0.5 + 2.5x$.
   </Step>
   <Step title="Check">
-    Predictions $0.5, 3, 5.5$; residuals $y - \hat{y} = 0.5, -1, 0.5$. They add up to $0$, and $x$ times error adds up to $0\cdot0.5 + 1\cdot(-1) + 2\cdot0.5 = 0$. That is $X^\top(y - Xw) = 0$, the "normal" condition.
+    Predictions $0.5, 3, 5.5$; residuals $y - \hat{y} = 0.5, -1, 0.5$. They add up to $0$, and $x$ times error adds up to $0\cdot0.5 + 1\cdot(-1) + 2\cdot0.5 = 0$. That is $X^T(y - Xw) = 0$, the "normal" condition.
   </Step>
 </Steps>
 
 <QuickCheck
-  q="$X$ has shape $(500, 3)$. What is the shape of $X^\top X$?"
+  q="$X$ has shape $(500, 3)$. What is the shape of $X^T X$?"
   options={['$3 \\times 3$', '$500 \\times 500$', '$500 \\times 3$', '$3 \\times 500$']}
   answer={0}
-  explain="$X^\top$ is $3 \times 500$ and $X$ is $500 \times 3$. The inner 500s match and disappear, leaving $3 \times 3$. $500 \times 500$ is $XX^\top$, the product in the other order."
+  explain="$X^T$ is $3 \times 500$ and $X$ is $500 \times 3$. The inner 500s match and disappear, leaving $3 \times 3$. $500 \times 500$ is $XX^T$, the product in the other order."
 />
 
 ## When the formula breaks
 
-$(X^\top X)^{-1}$ only exists when $\det(X^\top X) \neq 0$. A square matrix with determinant 0 is called <Term def="A square matrix whose determinant is 0. It has no inverse, because it squashes some directions flat and that cannot be undone.">singular</Term>, and $X^\top X$ is singular exactly when some column of $X$ can be built from the other columns. Two common causes:
+$(X^T X)^{-1}$ only exists when $\det(X^T X) \neq 0$. A square matrix with determinant 0 is called <Term def="A square matrix whose determinant is 0. It has no inverse, because it squashes some directions flat and that cannot be undone.">singular</Term>, and $X^T X$ is singular exactly when some column of $X$ can be built from the other columns. Two common causes:
 
 - **Redundant features.** Height in cm *and* height in m; temperature in °C *and* °F (since $F = 1.8C + 32$ is built from the °C column and the column of 1s); a feature copied twice.
 - **More columns than examples** ($d > n$). Three points cannot pin down five weights.
@@ -144,7 +144,7 @@ When columns are redundant, infinitely many $w$ fit the data equally well. If co
 Three ways out:
 
 1. **Remove the redundant column.** Usually the best fix.
-2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When no column of $X$ can be built from the others (it has *full column rank*), $X^+ = (X^\top X)^{-1}X^\top$ and $w = X^+y$ is just the normal equation. When some can, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
+2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When no column of $X$ can be built from the others (it has *full column rank*), $X^+ = (X^T X)^{-1}X^T$ and $w = X^+y$ is just the normal equation. When some can, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
 3. **Add a small penalty on the weights** (ridge regression, next lesson), which makes the matrix invertible again.
 
 <PastPaperQuestion paper="prelim2026" n={23} />
@@ -266,9 +266,9 @@ You can pick the degree with the lowest validation error, or keep a flexible mod
 <ExamTip>
 
 Prelim questions on this topic are fast recall, so have these ready:
-- **Shapes:** $(a \times k)(k \times c) = a \times c$. $X$ is $n \times d$, $w$ is $d \times 1$, $X^\top X$ is $d \times d$.
-- **Normal equation:** $w = (X^\top X)^{-1}X^\top y.$ It fails when $X^\top X$ is singular (duplicate or perfectly related features, or $d > n$); then use the pseudoinverse, drop a feature, or regularise.
-- **$(X^\top X)^{-1}X^\top$ is the pseudoinverse** only when $X$ has full column rank.
+- **Shapes:** $(a \times k)(k \times c) = a \times c$. $X$ is $n \times d$, $w$ is $d \times 1$, $X^T X$ is $d \times d$.
+- **Normal equation:** $w = (X^T X)^{-1}X^T y.$ It fails when $X^T X$ is singular (duplicate or perfectly related features, or $d > n$); then use the pseudoinverse, drop a feature, or regularise.
+- **$(X^T X)^{-1}X^T$ is the pseudoinverse** only when $X$ has full column rank.
 - **Polynomial regression is still linear regression**: linear in the weights.
 - **Closed form vs gradient descent:** closed form costs about $d^3$; gradient descent scales to huge $d$.
 
@@ -277,8 +277,8 @@ Prelim questions on this topic are fast recall, so have these ready:
 <Takeaways>
 
 - Stack examples as rows of $X$ with a column of 1s: all predictions are $\hat{y} = Xw$, shapes ${(n \times d)(d \times 1)}$.
-- Setting the MSE gradient to zero gives the normal equation $w = (X^\top X)^{-1}X^\top y$: the exact least-squares answer in one step.
-- It needs $X^\top X$ to be invertible. Redundant columns or $d > n$ make it singular; the pseudoinverse `np.linalg.pinv` still returns the shortest best-fitting $w$.
+- Setting the MSE gradient to zero gives the normal equation $w = (X^T X)^{-1}X^T y$: the exact least-squares answer in one step.
+- It needs $X^T X$ to be invertible. Redundant columns or $d > n$ make it singular; the pseudoinverse `np.linalg.pinv` still returns the shortest best-fitting $w$.
 - Polynomial features $x, x^2, x^3, \dots$ fit curves with the same maths, because the model stays linear in $w$.
 - Too high a degree overfits: training error falls to 0 while validation error explodes.
 
