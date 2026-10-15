@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Figure, Controls, Slider, Button, Bars } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Bars, useNarrow } from '../../../../../kit'
 import { TIMELINE } from '../../../../../data/facts'
 import styles from './roadmap.module.css'
 
 /*
   A 17-week plan from Mon 8 Mar 2027 (the Monday after the Final) to Sun 4 Jul 2027 (IOAI starts).
-  Each cell is a 2-hour block. Pick a block type, then click or drag across cells to paint it.
+  Each cell is a 2-hour block. Pick a block type, then tap cells (or drag across them with a mouse).
+  On a phone with 6 or 7 blocks a week the cells show a one-letter code instead of the short name.
   Fixed milestones come from src/data/facts.ts. Checks and the hours-by-area bars update live.
   The plan is remembered in this browser only (a convenience; it works without storage).
 */
@@ -13,14 +14,14 @@ import styles from './roadmap.module.css'
 type Kind = 'cv' | 'nlp' | 'tab' | 'gen' | 'theory' | 'contest' | 'rest'
 type Cell = Kind | null
 
-const KINDS: { k: Kind; label: string; short: string; colour: string }[] = [
-  { k: 'cv', label: 'Vision task (§3)', short: 'CV', colour: 'var(--viz-1)' },
-  { k: 'nlp', label: 'Text or audio task (§4)', short: 'NLP', colour: 'var(--viz-2)' },
-  { k: 'tab', label: 'Tabular ML task (§1)', short: 'ML', colour: 'var(--viz-3)' },
-  { k: 'gen', label: 'Multimodal or generative (§3–4)', short: 'Gen', colour: 'var(--viz-5)' },
-  { k: 'theory', label: 'Reading a syllabus gap', short: 'Read', colour: 'var(--viz-6)' },
-  { k: 'contest', label: 'Timed mini-contest', short: 'Test', colour: 'var(--viz-4)' },
-  { k: 'rest', label: 'Rest or school exams', short: 'Rest', colour: 'var(--viz-muted)' },
+const KINDS: { k: Kind; label: string; short: string; code: string; colour: string }[] = [
+  { k: 'cv', label: 'Vision task (§3)', short: 'CV', code: 'V', colour: 'var(--viz-1)' },
+  { k: 'nlp', label: 'Text or audio task (§4)', short: 'NLP', code: 'T', colour: 'var(--viz-2)' },
+  { k: 'tab', label: 'Tabular ML task (§1)', short: 'ML', code: 'M', colour: 'var(--viz-3)' },
+  { k: 'gen', label: 'Multimodal or generative (§3–4)', short: 'Gen', code: 'G', colour: 'var(--viz-5)' },
+  { k: 'theory', label: 'Reading a syllabus gap', short: 'Read', code: 'R', colour: 'var(--viz-6)' },
+  { k: 'contest', label: 'Timed mini-contest', short: 'Test', code: 'C', colour: 'var(--viz-4)' },
+  { k: 'rest', label: 'Rest or school exams', short: 'Rest', code: '–', colour: 'var(--viz-muted)' },
 ]
 const KIND = Object.fromEntries(KINDS.map((x) => [x.k, x])) as Record<Kind, (typeof KINDS)[number]>
 
@@ -47,7 +48,7 @@ const WEEKS: Week[] = [
   { dates: '31 May–6 Jun', note: 'Sat 5 Jun: NTU training' },
   { dates: '7–13 Jun', note: 'Sat 12 Jun: NTU training' },
   { dates: '14–20 Jun', note: `${fact('Residential camp')?.date ?? '14 – 18 Jun 2027'}: camp`, key: true },
-  { dates: '21–27 Jun', note: 'June: IOAI home task' },
+  { dates: '21–27 Jun', note: 'IOAI at-home tasks (team)' },
   { dates: '28 Jun–4 Jul', note: 'IOAI starts Sun 4 Jul', key: true },
 ]
 const SEL_WEEK = 8 // index of the week holding the Selection Test
@@ -93,9 +94,11 @@ function loadPlan(): { plan: Cell[][]; hours: number } {
 
 export default function WeeklyPlanBuilder() {
   const [{ plan, hours }, setState] = useState(loadPlan)
-  const [brush, setBrush] = useState<Kind | null>('contest')
+  const [brush, setBrush] = useState<Kind | null>('cv')
   const painting = useRef(false)
   const slots = hours / 2
+  const [gridRef, narrow] = useNarrow<HTMLDivElement>(520)
+  const compact = narrow && slots > 5
 
   useEffect(() => {
     try {
@@ -137,9 +140,7 @@ export default function WeeklyPlanBuilder() {
       title="Plan March to July 2027, one 2-hour block at a time"
       caption={
         <>
-          Each row is a week; each cell is a 2-hour block, so the hours slider sets how many cells a week has. Pick a block type, then click or drag across cells. Mark
-          your school's exam weeks as Rest and watch which checks break. The plan is a sample: about four months separate the Final from IOAI, and only the dates in
-          the left column are fixed.
+          Each cell is a 2-hour block. Pick a block type, then tap cells (or drag with a mouse). Clear the sample and build your own plan: the checks below show what is missing.
         </>
       }
       wide
@@ -154,7 +155,9 @@ export default function WeeklyPlanBuilder() {
             className={`${styles.brush}${brush === x.k ? ` ${styles.brushOn}` : ''}`}
             onClick={() => setBrush(x.k)}
           >
-            <span className={styles.brushSwatch} style={{ background: x.colour }} />
+            <span className={styles.brushSwatch} style={{ background: `color-mix(in srgb, ${x.colour} 35%, var(--surface))`, borderColor: x.colour }}>
+              {compact ? x.code : ''}
+            </span>
             {x.label}
           </button>
         ))}
@@ -168,7 +171,7 @@ export default function WeeklyPlanBuilder() {
         <Button onClick={() => setState({ plan: SAMPLE.map((r) => r.slice() as Cell[]), hours })}>Sample plan</Button>
         <Button onClick={() => setState((s) => ({ ...s, plan: s.plan.map((r) => r.map(() => null)) }))}>Clear</Button>
       </Controls>
-      <div className={styles.planGrid} style={{ ['--slots' as string]: slots }} role="grid" aria-label="Weekly plan">
+      <div ref={gridRef} className={styles.planGrid} style={{ ['--slots' as string]: slots }} role="grid" aria-label="Weekly plan">
         {WEEKS.map((w, i) => (
           <div key={w.dates} role="row" className={`${styles.planRow}${w.key ? ` ${styles.planKey}` : ''}`}>
             <div role="rowheader" className={styles.weekLabel}>
@@ -182,7 +185,13 @@ export default function WeeklyPlanBuilder() {
                 role="gridcell"
                 aria-label={`${w.dates}, block ${j + 1}: ${c ? KIND[c].label : 'empty'}`}
                 className={`${styles.cell}${c ? '' : ` ${styles.cellEmpty}`}`}
-                style={c ? { background: c === 'rest' ? 'var(--surface-3)' : `color-mix(in srgb, ${KIND[c].colour} 80%, var(--surface))`, color: c === 'rest' ? 'var(--ink-3)' : 'var(--surface)' } : undefined}
+                style={
+                  c
+                    ? c === 'rest'
+                      ? { background: 'var(--surface-3)', color: 'var(--ink-2)' }
+                      : { background: `color-mix(in srgb, ${KIND[c].colour} 35%, var(--surface))`, borderColor: KIND[c].colour, color: 'var(--ink)' }
+                    : undefined
+                }
                 onPointerDown={(e) => {
                   if (e.pointerType === 'mouse') {
                     e.preventDefault()
@@ -200,7 +209,7 @@ export default function WeeklyPlanBuilder() {
                   }
                 }}
               >
-                {c ? KIND[c].short : ''}
+                {c ? (compact ? KIND[c].code : KIND[c].short) : ''}
               </button>
             ))}
           </div>

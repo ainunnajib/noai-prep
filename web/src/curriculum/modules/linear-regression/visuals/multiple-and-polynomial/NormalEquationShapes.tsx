@@ -279,7 +279,7 @@ export default function NormalEquationShapes() {
     <>{inner(String(D), '1', n, '.')} Entry j adds up (feature j × target) over all examples.</>,
     singular ? (
       <>
-        <b style={{ color: 'var(--viz-neg)' }}>No inverse.</b> det(XᵀX) = 0 because the columns of X are not independent: its rank is {calc.rk} but it has {D}{' '}
+        <b style={{ color: 'var(--viz-neg)' }}>No inverse.</b> det(XᵀX) = 0 because the columns of X are not independent: its rank (the number of truly independent columns) is {calc.rk} but it has {D}{' '}
         columns
         {dup ? ', and the last column copies x₁' : n < D ? `, with only ${n} rows to pin down ${D} weights` : ''}. Infinitely many w fit the data equally well.
       </>

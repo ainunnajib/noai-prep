@@ -7,6 +7,12 @@ At NTU and at IOAI you never start from nothing: every task hands you a <Term de
 
 ## Before you change anything: read the baseline and the rules
 
+<Analogy title="Reading the paper before you write">
+
+In a school exam, the marks people lose for nothing usually go the same way: they start writing before reading the question, and answer a different question beautifully. The few minutes spent reading the paper and its instructions are the best-spent minutes of the exam.
+
+</Analogy>
+
 Spend the first 15 to 20 minutes of a task reading, not coding. It feels slow, and it is the fastest thing you can do.
 
 1. **Run the notebook top to bottom** and write down the score it gets. That number is your starting line, the $\text{Min}$ in IOAI's scoring formula.
@@ -50,7 +56,7 @@ print(open("submission.csv").read())`} />
 
 <QuickCheck
   q="Your notebook saves predictions with `df.to_csv('submission.csv')`, where `df` has exactly the columns `id` and `label`. The grader rejects the file. What went wrong?"
-  options={['pandas wrote no header row, so the column names were lost', 'pandas sorted the rows by label, so the ids came out of order', 'pandas saved the file in Excel format instead of plain text', 'pandas also wrote the row index as an extra, unnamed first column']}
+  options={['pandas wrote no header row, so the column names were lost', 'pandas sorted the rows by label, so the ids came out of order', 'pandas saved the file in Excel format instead of plain text', 'pandas also wrote the row index as an unnamed first column']}
   answer={3}
   explain="By default `to_csv` writes the DataFrame's index too, so the header becomes `,id,label` with an unnamed first column. Pass `index=False`. The header is written by default, rows keep their order, and the file is plain comma-separated text."
 />
@@ -160,13 +166,19 @@ Same seed, same number; new seed, new number. On a GPU, also set `torch.backends
 
 Once you have a good model, an <Term def="Removing one component at a time from your best model and measuring how much the score drops. A big drop means that component matters; no drop means it can go.">ablation</Term> tells you which parts actually carry the score: remove each component in turn and measure the drop.
 
-Build a log yourself. The task below is simulated: a small network trained from scratch scores about 62% validation accuracy, and you can try five changes. A **pretrained ResNet-18** starts from weights already trained on millions of ImageNet photos. **Flip + crop augmentation** shows the model randomly flipped and shifted copies of the training images. A **cosine learning-rate schedule** lowers the learning rate smoothly over training. **Label smoothing** softens the training targets (about 0.9 instead of 1 for the correct class) so the model is less overconfident. **Dropout** randomly switches off units during training.
+Build a log yourself. The task below is simulated: a small network trained from scratch scores about 62% validation accuracy. You can try five common upgrades:
+
+- **Pretrained ResNet-18:** start from weights already trained on millions of ImageNet photos.
+- **Flip + crop augmentation:** train on randomly flipped and shifted copies of the images.
+- **Cosine learning-rate schedule:** lower the learning rate smoothly during training.
+- **Label smoothing:** aim for about 0.9 instead of 1 for the correct class, so the model is less overconfident.
+- **Dropout:** randomly switch off units during training.
 
 <AblationTable />
 
 <Steps title="Is a 0.4-point gain real?">
-  <Step title="Baseline, three seeds">
-    $74.1$, $74.9$ and $74.5$. The mean is $\dfrac{74.1 + 74.9 + 74.5}{3} = \dfrac{223.5}{3} = 74.5$, and single runs wander about $0.4$ either side of it.
+  <Step title="Another task: baseline, three seeds">
+    On a different task from the figure, the baseline scores $74.1$, $74.9$ and $74.5$. The mean is $\dfrac{74.1 + 74.9 + 74.5}{3} = \dfrac{223.5}{3} = 74.5$, and single runs wander about $0.4$ either side of it.
   </Step>
   <Step title="Add label smoothing">
     $74.6$, $75.2$, $74.9$: mean $\dfrac{224.7}{3} = 74.9$. The gain is $74.9 - 74.5 = 0.4$, the same size as the seed-to-seed wobble. Not convincing: run more seeds or move on.
@@ -182,9 +194,7 @@ Change **one** thing, run it on a few seeds, write it down, and keep it only if 
 
 </KeyIdea>
 
-In industry the experiment log becomes software. **Experiment trackers** such as MLflow record every run's settings and scores automatically, and a **model registry** stores every trained version so that any of them can be restored. The 2026 Prelim asked about exactly this:
-
-<PastPaperQuestion paper="prelim2026" n={298} />
+In industry the experiment log becomes software. **Experiment trackers** such as MLflow record every run's settings and scores automatically, and a **model registry** stores every trained version so that any of them can be restored. [The ML lifecycle, deployment and monitoring](#/learn/ml-systems-and-tradeoffs/lifecycle-and-deployment) covers this side of the work.
 
 ## Leaderboard overfitting
 
@@ -233,10 +243,10 @@ Rules of thumb that follow:
 - When the public score and your validation disagree, believe the one computed on more examples.
 
 <QuickCheck
-  q="The public leaderboard uses 200 examples; your cross-validation uses 2,000. Submission A scores 85.1% public and 81.0% in your CV. Submission B scores 84.2% public and 83.0% in your CV. Which should you choose as your final submission?"
-  options={['A, because the public leaderboard uses the real test data', 'A, because its public score is almost a point higher', 'B, because its CV score rests on ten times as many examples', 'Either, because the two are within 1 point on the leaderboard']}
+  q="The public leaderboard uses 200 examples; your cross-validation uses 2,000. Your ResNet submission scores 85.1% public and 81.0% in your CV. Your ViT submission scores 84.2% public and 83.0% in your CV. Which should you choose as your final submission?"
+  options={['The ResNet, because the public leaderboard uses the real test data', 'The ResNet, because its public score is almost a point higher', 'The ViT, because its CV score rests on ten times as many examples', 'Either one, because the two are within 1 point on the leaderboard']}
   answer={2}
-  explain="With $p \approx 0.84$ and $n = 200$, the public standard error is about $\sqrt{0.13/200} \approx 0.026$, so 2.6 points: the 0.9-point public gap is noise. On 2,000 examples the standard error is about $\sqrt{0.82 \times 0.18 / 2000} \approx 0.009$, under 1 point, and B leads by 2.0 points there: more than two standard errors. Public data is real test data, but only a small, noisy sample of it."
+  explain="With $p \approx 0.84$ and $n = 200$, the public standard error is about $\sqrt{0.13/200} \approx 0.026$, so 2.6 points: the ResNet's 0.9-point public lead is noise. On 2,000 examples the standard error is about $\sqrt{0.82 \times 0.18 / 2000} \approx 0.009$, under 1 point, and the ViT leads by 2.0 points there: more than two standard errors. Public data is real test data, but only a small, noisy sample of it."
 />
 
 <PastPaperQuestion paper="prelim2026" n={292} />
@@ -259,7 +269,7 @@ Singapore released its 2024 and 2025 selection-test and camp notebooks, and IOAI
 
 <TaskGallery />
 
-A good routine from March onwards is **one past task a week**: run the baseline, read the rules, set up validation, then improve it with a logged experiment at a time, in a fixed time box (say 3 hours). Afterwards compare your log with the released solution, where there is one. The [next lesson](#/learn/road-to-ioai/ioai-task-techniques) collects the techniques that keep winning these tasks.
+A good routine from March onwards is **one past task a week**: run the baseline, read the rules, set up validation, then improve it with a logged experiment at a time, in a fixed time box (about 4 hours: two 2-hour blocks). Afterwards compare your log with the released solution, where there is one. The [next lesson](#/learn/road-to-ioai/ioai-task-techniques) collects the techniques that keep winning these tasks.
 
 <ExamTip>
 

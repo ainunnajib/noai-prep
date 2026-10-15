@@ -87,13 +87,13 @@ export default function FormatComparison() {
       title="Four stages, four different kinds of test"
       caption={
         <>
-          Hover over or tap any cell for a real example (on a phone, pick a stage first). From the Prelim to IOAI the time per problem grows, the tools get more powerful, and the marking moves from
-          "is this option right?" to "how much better than the baseline is your model?". Each stage is more open-ended than the last.
+          Notice how the marking moves from "is this option right?" to "how much better than the baseline is your model?", and each stage is more open-ended than the last.
         </>
       }
       wide
     >
       <div ref={ref} style={{ width: '100%' }}>
+        <p className={s.hint}>{narrow ? 'Pick a stage, then tap a row for a real example.' : 'Click any cell for a real example from a past paper or task.'}</p>
         {narrow ? (
           <div style={{ display: 'grid', gap: '0.6rem', width: '100%' }}>
             <Segmented
@@ -136,7 +136,6 @@ export default function FormatComparison() {
                       type="button"
                       role="cell"
                       className={`${s.fmtCell} ${on ? s.fmtCellOn : ''}`}
-                      onMouseEnter={() => pick(st.id, r.id)}
                       onFocus={() => pick(st.id, r.id)}
                       onClick={() => pick(st.id, r.id)}
                       aria-pressed={on}
@@ -152,7 +151,8 @@ export default function FormatComparison() {
         )}
       </div>
       <div className={s.example} aria-live="polite">
-        <div className={s.exampleTag} style={{ color: stage.colour }}>
+        <div className={s.exampleTag}>
+          <span className={s.chipDot} style={{ background: stage.colour }} />
           Example · {stage.name} · {rowLabel}
         </div>
         {cell.example}

@@ -36,7 +36,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You want regular, timed, IOAI-style contests with a leaderboard during the months before the Selection Test. Which source fits best?',
     options: [
-      'The AI Community Contest (AICC), which runs monthly IOAI-style contests',
+      'The AI Community Contest (AICC), run monthly in the IOAI style',
       'The NOAI 2026 Prelim paper, which has 300 multiple-choice questions',
       'The IOAI syllabus PDF, which lists every topic with its category',
       'The NOAI 2025 Final notebooks, which ask for from-scratch NumPy code',
@@ -68,7 +68,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The syllabus defines Practice as knowing what a method does, when to use it and how to implement it with library functions and interpret its output, without dissecting its internals. Theory topics are the ones whose inner workings you must understand; and Practice topics are exactly what hands-on IOAI tasks use.',
+      'The syllabus defines Practice as knowing what a method does, when to use it and how to implement it with library functions and interpret its output, without dissecting its internals. Theory topics are the ones whose inner workings you must understand. Practice topics are exactly what hands-on IOAI tasks use.',
     difficulty: 'intermediate',
   },
 ]

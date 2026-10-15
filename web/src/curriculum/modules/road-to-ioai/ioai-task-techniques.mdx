@@ -47,7 +47,7 @@ for tau in [0.5, 0.7, 0.8, 0.9, 0.95, 0.99]:
     print(f"tau {tau:<4}: accuracy {acc:.3f}, "
           f"{added} pseudo-labels ({wrong} wrong)")`
 
-At the NTU selection stage and at IOAI you are handed a real dataset, a baseline notebook and a rule sheet, and the data is rarely friendly: one class is rare, most examples have no label, or the rules forbid the obvious model. The same few techniques keep turning those situations into medals. This lesson teaches four of them properly, with the maths, a picture and the PyTorch you would actually type.
+At NTU and at IOAI you get a real dataset, a baseline notebook and a rule sheet, and the data is rarely friendly: one class is rare, most examples have no label, or the rules forbid the obvious model. The same few techniques keep turning those situations into medals. This lesson teaches five of them, with the maths, a picture and the PyTorch you would actually type.
 
 <Analogy title="A badminton player's few winning strokes">
 
@@ -123,7 +123,7 @@ $$
 - $-\ln p_t$ is the ordinary cross-entropy for that example.
 - $(1 - p_t)^{\gamma}$ is the modulating factor. If the model is confidently right ($p_t$ near 1), $1 - p_t$ is near 0 and the loss is crushed. If the model is wrong ($p_t$ small), the factor is near 1 and the loss is left almost untouched.
 - $\gamma \ge 0$ is the <Term def="The exponent γ in focal loss. γ = 0 gives ordinary cross-entropy; larger γ ignores easy examples more strongly. γ = 2 is the usual default.">focusing parameter</Term>. With $\gamma = 0$ the factor is 1 and focal loss **is** cross-entropy. The original paper's default is $\gamma = 2$.
-- $\alpha_t$ is an optional class weight, exactly like $w_c$ above.
+- $\alpha_t$ is an optional class weight like $w_c$ above, but it interacts with $\gamma$, so tune it on validation (the original paper used $\alpha = 0.25$ for the rare class with $\gamma = 2$).
 
 <FocalLossCurve />
 
@@ -203,12 +203,7 @@ Computing $p_t$ with your own `torch.log(torch.softmax(...))`. When a logit gap 
 
 ## 3. Pseudo-labels: learning from unlabelled data
 
-Labels are expensive and raw data is cheap, so many tasks give a few labelled examples and a large pile without labels. IOAI 2025's *Antique Painting Authentication* task did exactly this, and Singapore's 2025 selection test shipped an `unlabeled.csv` next to its toxic-comment data. Using both is called <Term def="Learning from a small labelled set together with a larger unlabelled set.">semi-supervised learning</Term>, and the simplest recipe is <Term def="Training on labelled data, predicting the unlabelled data, and treating the model's most confident predictions as if they were real labels. Also called self-training.">pseudo-labelling</Term> (self-training):
-
-1. Train a model on the labelled data.
-2. Predict every unlabelled example. Its **confidence** is the probability of its predicted class, $\max_c p_c$.
-3. Keep the examples whose confidence is at least a <Term def="A cut-off τ between 0.5 and 1 (for two classes): only predictions at least this confident become pseudo-labels.">confidence threshold</Term> $\tau$, and give each its predicted class as a **pseudo-label**.
-4. Retrain on labelled plus pseudo-labelled data, and repeat until nothing new passes the threshold.
+Labels are expensive and raw data is cheap, so many tasks give a few labelled examples and a large pile without labels. IOAI 2025's *Antique Painting Authentication* task did exactly this, and Singapore's 2025 selection test shipped an `unlabeled.csv` next to its toxic-comment data.
 
 <Analogy title="Marking with a senior student">
 
@@ -216,9 +211,16 @@ A senior helps mark the juniors' worksheets, but only ticks the answers she is s
 
 </Analogy>
 
+Using labelled and unlabelled data together is called <Term def="Learning from a small labelled set together with a larger unlabelled set.">semi-supervised learning</Term>, and the simplest recipe is <Term def="Training on labelled data, predicting the unlabelled data, and treating the model's most confident predictions as if they were real labels. Also called self-training.">pseudo-labelling</Term> (self-training):
+
+1. Train a model on the labelled data.
+2. Predict every unlabelled example. Its **confidence** is the probability of its predicted class, $\max_c p_c$.
+3. Keep the examples whose confidence is at least a <Term def="A cut-off τ between 0.5 and 1 (for two classes): only predictions at least this confident become pseudo-labels.">confidence threshold</Term> $\tau$, and give each its predicted class as a **pseudo-label**.
+4. Retrain on labelled plus pseudo-labelled data, and repeat until nothing new passes the threshold.
+
 <PseudoLabelLoop />
 
-The threshold is a trade-off you can see in the bars. A **low** $\tau$ adds many pseudo-labels, including wrong ones, and the model then trains on its own mistakes and grows more confident in them. This is called <Term def="When a model trained on its own predictions reinforces its early mistakes instead of correcting them.">confirmation bias</Term>. A **very high** $\tau$ adds only a few, almost certainly correct, labels, so it barely helps. A well-chosen $\tau$ in between adds many correct labels and few wrong ones.
+The threshold is a trade-off you can see in the comparison chart. A **low** $\tau$ adds many pseudo-labels, including wrong ones, and the model then trains on its own mistakes and grows more confident in them. This is called <Term def="When a model trained on its own predictions reinforces its early mistakes instead of correcting them.">confirmation bias</Term>. A **very high** $\tau$ adds only a few, almost certainly correct, labels, so it barely helps. A well-chosen $\tau$ in between adds many correct labels and few wrong ones.
 
 <KeyIdea>
 
@@ -250,9 +252,9 @@ An <Term def="A list of numbers produced by a model's inner layers that captures
 
 Past IOAI winners climbed exactly this way:
 
-- **Help BOBAI (IOAI 2024).** Extend a frozen 5-class text classifier to 7 classes with **no new learned parameters** (averages and distances allowed). The best solution put a 3-nearest-neighbour gate on the cached embeddings in front of the frozen head: if the neighbours say "new class", output it; otherwise trust the old classifier.
+- **Help BOBAI (IOAI 2024).** Extend a frozen 5-class text classifier to 7 classes with **no new learned parameters** (averages and distances allowed). The winning idea was a nearest-neighbour (or nearest-centroid) gate on the cached embeddings in front of the frozen head: if the neighbours say "new class", output it; otherwise trust the old classifier.
 - **Lost in a Hyperspace (IOAI 2024).** Predict properties of a (5, 5, 5, 6) array using **only `LinearRegression`** with at most 300 features. The winning ideas were cheap: augment the data with all 6 orderings of the 3 interchangeable axes, compress with PCA, and add one hand-made feature.
-- **The 2025 Singapore selection test's survey task (tabular).** We re-ran it with five-fold cross-validation: always predicting the majority class scores 0.818, the starter decision tree 0.900, gradient boosting 0.938, and plain logistic regression with one-hot encoded categories also 0.938. The simple model was already as good as the fancy one.
+- **The 2025 Singapore selection test's survey task.** With five-fold cross-validation, the majority class scores 0.818, the starter decision tree 0.900, and both gradient boosting and plain logistic regression 0.938. The simple model was as good as the fancy one.
 
 ```python
 from sklearn.neighbors import KNeighborsClassifier
@@ -269,6 +271,12 @@ print("linear probe:", probe.score(feats_val, y_val))
 
 Caching matters: run the big encoder over the data **once**, save the embeddings, and every later experiment takes seconds instead of minutes.
 
+<Tip title="A new head in PyTorch: the order matters">
+
+To train only a new head on a pretrained network, first freeze the backbone (`for p in net.parameters(): p.requires_grad_(False)`), then replace the head (`net.fc = nn.Linear(512, 10)`, whose new weights are trainable), and only **then** create the optimiser. An optimiser built before the head was replaced keeps updating the old head, so the new one never learns.
+
+</Tip>
+
 <ExamTip title="Read the rules before choosing a model">
 
 At IOAI the rule sheet is part of the problem: "no new learned parameters", "only `LinearRegression`", "only `xlm-roberta-base`", "inference under 2 minutes". Before writing code, list each rule and cross out the ladder rungs it forbids. In the NOAI Prelim the same ideas appear as definitions: transfer learning, freezing layers and fine-tuning are all fair game.
@@ -280,7 +288,7 @@ At IOAI the rule sheet is part of the problem: "no new learned parameters", "onl
 <QuickCheck
   q="A task says: use the provided frozen image encoder; you may not train any new parameters; you have 20 labelled images per class. Which approach obeys the rules?"
   options={[
-    'Average each class’s embeddings into a centroid and label a new image by its nearest centroid',
+    'Average each class’s embeddings into a centroid; label a new image by its nearest centroid',
     'Replace the encoder’s last layer with a new linear layer and train it for a few epochs',
     'Train a small logistic-regression head on the cached embeddings of the 20 images per class',
     'Fine-tune the whole encoder with a low learning rate and strong augmentation',
@@ -330,13 +338,13 @@ This is the <Term def="FGSM: add ε times the sign of the input gradient to ever
   </Step>
 </Steps>
 
-With 3 pixels the effect is small, but a 224 × 224 colour photo has 150,528 numbers, and FGSM collects a little from every one of them. That is why imperceptible changes can flip a large model. Try it on a real (small) trained network:
+With 3 pixels the effect is small, but a 224 × 224 colour photo has 150,528 numbers, and FGSM collects a little from every one of them. That is why imperceptible changes can flip a large model. Try it on a real (small) trained network below; with only 64 pixels, the change has to be big enough to see.
 
 <InputGradientAttack />
 
 <KeyIdea>
 
-`backward()` gives the gradient for whatever has `requires_grad=True`, including the input. Stepping each pixel by $\varepsilon$ in the direction $\operatorname{sign}(\partial L / \partial x)$ raises the loss fastest under an L∞ limit (FGSM); random noise of the same size does far less. The same gradient, drawn as a heat map of $|\partial \text{score} / \partial x|$, is a <Term def="A heat map of how strongly each input pixel affects the model's output, usually the absolute input gradient.">saliency map</Term>: it shows which pixels the model relies on.
+`backward()` gives the gradient for whatever has `requires_grad=True`, including the input. Stepping each pixel by $\varepsilon$ along $\operatorname{sign}(\partial L / \partial x)$ raises the loss fastest under an L∞ limit (FGSM); random noise of the same size does far less. Drawn as a heat map of $|\partial \text{score} / \partial x|$, the same gradient is a <Term def="A heat map of how strongly each input pixel affects the model's output, usually the absolute input gradient.">saliency map</Term>: it shows which pixels the model relies on.
 
 </KeyIdea>
 
@@ -352,7 +360,7 @@ loss = F.cross_entropy(model(x), label)
 loss.backward()                           # fills x.grad (and the weights' .grad)
 print("x.grad shape:", tuple(x.grad.shape))
 
-eps = 0.12
+eps = 0.14
 x_adv = (x + eps * x.grad.sign()).clamp(0, 1).detach()
 with torch.no_grad():
     for name, inp in [("clean", x), ("FGSM ", x_adv)]:
@@ -365,13 +373,19 @@ print("largest pixel change:", round((x_adv - x).abs().max().item(), 2))
 ```text
 x.grad shape: (1, 64)
 clean: predicts 3 with p = 1.000
-FGSM : predicts 9 with p = 0.476
-largest pixel change: 0.12
+FGSM : predicts 9 with p = 0.777
+largest pixel change: 0.14
 ```
 
 `x.grad` has the same shape as `x`, one number per pixel. `clamp(0, 1)` keeps every pixel a valid brightness, and `detach()` cuts the result loose from the graph.
 
-**IOAI 2026's Double Agent Dilemma** was built on exactly this. A ResNet-18 (a CNN) and a ViT-Tiny (a Transformer) both classified a set of photos perfectly. For each photo you had to make two tiny perturbations: one that fools the ViT but not the ResNet, and one the other way round, with smaller perturbations scoring higher. The official hints (published with the hint-enabled GAITE version of the contest) build up to optimising $\delta$ with a combined loss, $\text{CE}(\text{keep model}) - \text{CE}(\text{fool model})$, clipping $|\delta_i|$ to about 0.002 to 0.005. The rules mattered as much as the maths: the perturbation had to match the photo's **original** resolution and was added **before** the fixed resize, crop and normalisation, so a perturbation computed for the 224 × 224 model input was not even a valid submission.
+<Reveal label="Going further: IOAI 2026's Double Agent Dilemma">
+
+This IOAI task was built on exactly this idea. A ResNet-18 (a CNN) and a ViT-Tiny (a Transformer) both classified a set of photos perfectly. For each photo you made two tiny perturbations: one that fools the ViT but not the ResNet, and one the other way round; smaller perturbations scored higher. The official hints optimise $\delta$ to keep one model's loss low while pushing the other's up, with every pixel change kept tiny (about 0.002 to 0.005).
+
+The rules mattered as much as the maths. The perturbation had to be at the photo's **original** size, because it was added **before** the contest's fixed resize, crop and normalisation. A perturbation computed on the resized 224 × 224 input was not even a valid submission.
+
+</Reveal>
 
 <Mistake>
 
@@ -383,7 +397,7 @@ Three classic slips: forgetting `x.requires_grad_(True)`, so `x.grad` is `None`;
 
 <ExamTip>
 
-The NOAI Prelim tests the vocabulary: what `requires_grad=True` does, what freezing means, why ImageNet pretraining transfers. The Final's code-reading MCQs go one step further, showing a transfer-learning or training loop and asking what is wrong with it. For IOAI you need to write these patterns from memory: `CrossEntropyLoss(weight=...)`, a focal loss from `reduction='none'`, a confidence-threshold loop, cached embeddings with k-NN, and `x.requires_grad_(True)` with `x.grad.sign()`.
+The Prelim tests the vocabulary (what `requires_grad=True` does, what freezing means); the Final's code-reading MCQs show a transfer-learning or training loop and ask what is wrong. For IOAI, write these from memory: `CrossEntropyLoss(weight=...)`, a focal loss from `reduction='none'`, a confidence-threshold loop, cached embeddings with k-NN, and `x.requires_grad_(True)` with `x.grad.sign()`.
 
 </ExamTip>
 

@@ -32,6 +32,8 @@ function contest(rnd: () => number, K: number, nPub: number) {
 }
 
 const pct = (v: number, d = 1) => `${(v * 100).toFixed(d)}%`
+/** series colour pulled towards the ink, so small text stays readable in both themes */
+const textOf = (c: string) => `color-mix(in srgb, ${c} 60%, var(--ink))`
 
 /** A bold label with a halo in the background colour, so it stays readable on top of dots. */
 function Tag({ x, y, dx, dy, anchor, colour, children }: { x: number; y: number; dx: number; dy: number; anchor: 'start' | 'end'; colour: string; children: string }) {
@@ -77,21 +79,22 @@ export default function LeaderboardShakeup() {
   const lo = Math.floor(Math.min(...all) * 100 - 1) / 100
   const hi = Math.ceil(Math.max(...all) * 100 + 1) / 100
   const fmtTick = (v: number) => `${Math.round(v * 100)}`
+  // whole-percent ticks only: never ask for more ticks than there are whole points in the range
+  const nTicks = Math.max(2, Math.min(6, Math.round((hi - lo) * 100)))
 
   return (
     <Figure
       title="Choosing by the public leaderboard"
       caption={
         <>
-          Every dot is one submission; all of them are really about equally good (true accuracy near 80%). Left to right is the score the small public leaderboard shows, bottom to top the score on
-          the hidden test that decides the final ranking. Add submissions and shrink the public set: the public scores spread out sideways while the hidden scores barely move, so the "best" public
-          submission is mostly the luckiest one, and it falls back when the hidden scores are revealed.
+          Each dot is a submission, all about equally good. Shrink the public set: the best public pick is mostly luck and falls back on the hidden test. Make it bigger than your 2,000-example
+          validation and the public pick wins: trust whichever uses more examples.
         </>
       }
     >
       <Plot x={[lo, hi]} y={[lo, hi]} width={420} height={360} margin={{ left: 44, bottom: 40, top: 12, right: 14 }} ariaLabel="Scatter plot of public leaderboard score against hidden test score for each submission.">
-        <Grid xTicks={6} yTicks={6} />
-        <Axes xLabel="public leaderboard (%)" yLabel="hidden test (%)" xTicks={6} yTicks={6} tickFormat={fmtTick} />
+        <Grid xTicks={nTicks} yTicks={nTicks} />
+        <Axes xLabel="public leaderboard (%)" yLabel="hidden test (%)" xTicks={nTicks} yTicks={nTicks} tickFormat={fmtTick} />
         <Path points={[[lo, lo], [hi, hi]]} color="var(--viz-muted)" width={1.5} dash="5 4" />
         <Label x={hi} y={hi} dx={-4} dy={14} anchor="end" color="var(--ink-3)" size={11}>
           same score on both
@@ -110,10 +113,10 @@ export default function LeaderboardShakeup() {
           </Tag>
         ) : (
           <>
-            <Tag x={A.pub} y={A.priv} dx={-9} dy={18} anchor="end" colour="var(--viz-neg)">
+            <Tag x={A.pub} y={A.priv} dx={-9} dy={18} anchor="end" colour={textOf('var(--viz-neg)')}>
               best on public
             </Tag>
-            <Tag x={B.pub} y={B.priv} dx={B.pub > (lo + hi) / 2 ? -9 : 9} dy={-9} anchor={B.pub > (lo + hi) / 2 ? 'end' : 'start'} colour="var(--viz-pos)">
+            <Tag x={B.pub} y={B.priv} dx={B.pub > (lo + hi) / 2 ? -9 : 9} dy={-9} anchor={B.pub > (lo + hi) / 2 ? 'end' : 'start'} colour={textOf('var(--viz-pos)')}>
               best on your validation
             </Tag>
           </>
@@ -134,7 +137,7 @@ export default function LeaderboardShakeup() {
         </thead>
         <tbody>
           <tr>
-            <td style={{ color: 'var(--viz-neg)', fontWeight: 700 }}>picked by public, public → hidden</td>
+            <td style={{ color: textOf('var(--viz-neg)'), fontWeight: 700 }}>picked by public, public → hidden</td>
             <td className={s.num}>
               {pct(A.pub)} → {pct(A.priv)}
             </td>
@@ -143,7 +146,7 @@ export default function LeaderboardShakeup() {
             </td>
           </tr>
           <tr>
-            <td style={{ color: 'var(--viz-pos)', fontWeight: 700 }}>picked by your validation, hidden</td>
+            <td style={{ color: textOf('var(--viz-pos)'), fontWeight: 700 }}>picked by your validation, hidden</td>
             <td className={s.num}>{pct(B.priv)}</td>
             <td className={s.num}>{pct(avg.privOfVal)}</td>
           </tr>

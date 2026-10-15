@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, usePlayer, PlayerControls, Bars, mulberry32, M, type DotDatum } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, usePlayer, PlayerControls, usePlot, mulberry32, M, type DotDatum } from '../../../../../kit'
 import styles from './techniques.module.css'
 
 /*
@@ -135,8 +135,46 @@ function line(m: Model, k: number): [number, number][] {
 }
 
 const COMPARE = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]
-const BAR_FLOOR = 0.85
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
+
+interface Final {
+  t: number
+  acc: number
+  wrong: number
+}
+
+/** One row per threshold: its label on the left, a dot at its final test accuracy and the change from the labelled-only model on the right. */
+function ThresholdRows({ rows, base, current }: { rows: Final[]; base: number; current: number }) {
+  const { xs, ys } = usePlot()
+  const [x0, x1] = xs.range()
+  const [yb, yt] = ys.range()
+  return (
+    <g>
+      <line x1={xs(base)} x2={xs(base)} y1={yb} y2={yt - 4} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.5, strokeDasharray: '4 3' }} />
+      <text x={xs(base)} y={yt - 8} textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--ink-2)' }}>
+        4 labels only, {pct(base)}
+      </text>
+      {rows.map((r, i) => {
+        const y = ys(rows.length - 1 - i)
+        const on = Math.abs(r.t - current) < 0.005
+        const d = (r.acc - base) * 100
+        return (
+          <g key={r.t}>
+            <line x1={x0} x2={x1} y1={y} y2={y} style={{ stroke: 'var(--viz-grid)', strokeWidth: 1 }} />
+            <line x1={xs(base)} x2={xs(r.acc)} y1={y} y2={y} style={{ stroke: on ? 'var(--viz-1)' : 'var(--viz-muted)', strokeWidth: 2 }} />
+            <text x={x0 - 8} y={y} dy="0.32em" textAnchor="end" style={{ fontSize: 12, fontWeight: on ? 800 : 500, fill: on ? 'var(--ink)' : 'var(--ink-2)' }}>
+              {`τ = ${r.t}${r.wrong ? ` (${r.wrong} wrong)` : ''}`}
+            </text>
+            <circle cx={xs(r.acc)} cy={y} r={on ? 6 : 4.5} style={{ fill: on ? 'var(--viz-1)' : 'var(--viz-muted)', stroke: 'var(--surface)', strokeWidth: 1.5 }} />
+            <text x={x1 + 6} y={y} dy="0.32em" style={{ fontSize: 11.5, fontWeight: on ? 800 : 600, fill: on ? 'var(--ink)' : 'var(--ink-2)', fontVariantNumeric: 'tabular-nums' }}>
+              {`${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(1)}`}
+            </text>
+          </g>
+        )
+      })}
+    </g>
+  )
+}
 
 export default function PseudoLabelLoop() {
   const [tau, setTau] = useState(0.9)
@@ -146,7 +184,19 @@ export default function PseudoLabelLoop() {
   const st = hist[r]
   const base = hist[0].acc
 
-  const finals = useMemo(() => COMPARE.map((t) => ({ t, h: selfTrain(t) })), [])
+  const finals = useMemo<Final[]>(
+    () =>
+      COMPARE.map((t) => {
+        const h = selfTrain(t)
+        const last = h[h.length - 1]
+        return { t, acc: last.acc, wrong: last.wrong }
+      }),
+    [],
+  )
+  const accs = [base, ...finals.map((f) => f.acc)]
+  const lo = Math.floor(Math.min(...accs) * 100 - 1) / 100
+  const hi = Math.min(1, Math.ceil(Math.max(...accs) * 100 + 1) / 100)
+  const nTicks = Math.max(2, Math.min(5, Math.round((hi - lo) * 100)))
 
   const k = Math.log(tau / (1 - tau)) // the band edge in logit units: |w·x + b| < k stays unlabelled
   const upper = line(st.model, k)
@@ -172,9 +222,8 @@ export default function PseudoLabelLoop() {
       title="Self-training: trust only the confident guesses"
       caption={
         <>
-          Four labelled squares train a first model (the solid line). Every grey point outside the shaded band gets the model's guess as a pseudo-label, the model
-          retrains, and the band moves. Press Play, then try a low threshold (around 0.5: everything is labelled at once, mistakes included) and a very high one
-          (0.99: almost nothing is added). The bars at the bottom compare where each threshold ends up.
+          Press Play: grey points outside the shaded band get the model's guess as a label, and the model retrains. Then try τ near 0.5 and near 0.99, and compare the thresholds in the
+          chart below.
         </>
       }
     >
@@ -232,23 +281,21 @@ export default function PseudoLabelLoop() {
       </Controls>
       <div className={styles.compare}>
         <div className={styles.compareHead}>
-          Test accuracy after self-training stops, for each threshold. The labelled-only model scores {pct(base)}; bars start at {pct(BAR_FLOOR)} to make the
-          differences visible.
+          Test accuracy after self-training stops, for each threshold. The dashed line is the model trained on the 4 labels only; the numbers on the right are the gain over it, in points.
         </div>
-        <Bars
-          ariaLabel="Final test accuracy for each threshold"
-          max={1 - BAR_FLOOR}
-          format={(v) => pct(v + BAR_FLOOR)}
-          data={finals.map(({ t, h }) => {
-            const last = h[h.length - 1]
-            return {
-              label: `τ = ${t}${last.wrong ? ` (${last.wrong} wrong)` : ''}`,
-              value: Math.max(0, last.acc - BAR_FLOOR),
-              strong: Math.abs(t - tau) < 0.005,
-              color: Math.abs(t - tau) < 0.005 ? 'var(--viz-1)' : 'var(--viz-muted)',
-            }
-          })}
-        />
+        <Plot
+          x={[lo, hi]}
+          y={[-0.6, COMPARE.length - 0.4]}
+          width={480}
+          height={250}
+          minHeight={250}
+          margin={{ left: 128, right: 46, top: 24, bottom: 34 }}
+          ariaLabel={`Final test accuracy for each threshold, compared with ${pct(base)} for the labelled-only model`}
+        >
+          <Grid xTicks={nTicks} yTicks={0} />
+          <Axes xLabel="test accuracy (%)" xTicks={nTicks} hideYTicks tickFormat={(v) => `${Math.round(v * 100)}`} />
+          <ThresholdRows rows={finals} base={base} current={tau} />
+        </Plot>
       </div>
     </Figure>
   )

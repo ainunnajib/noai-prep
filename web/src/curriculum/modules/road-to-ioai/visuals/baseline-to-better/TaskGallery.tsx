@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Figure, Segmented } from '../../../../../kit'
+import { Figure, Segmented, useNarrow } from '../../../../../kit'
 import { LINKS } from '../../../../../data/facts'
 import s from './craft.module.css'
 
@@ -30,11 +30,13 @@ interface Task {
 const DOMAINS: { id: Domain; label: string; colour: string }[] = [
   { id: 'vision', label: 'Vision', colour: 'var(--viz-1)' },
   { id: 'language', label: 'Language', colour: 'var(--viz-3)' },
-  { id: 'tabular', label: 'Tabular ML', colour: 'var(--viz-6)' },
+  { id: 'tabular', label: 'Tabular and classic ML', colour: 'var(--viz-6)' },
   { id: 'generative', label: 'Generative', colour: 'var(--viz-4)' },
   { id: 'audio', label: 'Audio & multimodal', colour: 'var(--viz-5)' },
 ]
 const dom = (d: Domain) => DOMAINS.find((x) => x.id === d)!
+/** domain colour pulled towards the ink, so small text stays readable in both themes */
+const textOf = (c: string) => `color-mix(in srgb, ${c} 60%, var(--ink))`
 
 const TASKS: Task[] = [
   {
@@ -229,7 +231,7 @@ const TASKS: Task[] = [
     domain: 'language',
     name: '"Help BOBAI"',
     summary:
-      'Extend a frozen 5-class text classifier to 7 classes without any new learned parameters (averages and distances were allowed). A nearest-neighbour or nearest-centroid check in front of the frozen classifier did the job.',
+      'Extend a frozen 5-class text classifier to 7 classes without any new learned parameters (averages and distances were allowed). A nearest-neighbour (or nearest-centroid) gate on the cached embeddings, in front of the frozen classifier, did the job.',
     skills: ['embeddings as features', 'nearest centroids and k-NN', 'macro-F1'],
     practise: 'Classify sentence embeddings with nearest class centroids and compare with a trained logistic regression.',
     lessons: [
@@ -369,7 +371,7 @@ const TASKS: Task[] = [
     id: 'io26-field',
     group: 'ioai',
     stage: 'IOAI 2026',
-    domain: 'generative',
+    domain: 'tabular',
     name: '"IOAI Field"',
     summary: 'Train a network from scratch, with no pretrained weights, to output a strange "field" value at every point of the IOAI logo, where each letter follows its own rule.',
     skills: ['fitting functions with neural networks', 'designing the loss', 'training from scratch'],
@@ -381,100 +383,133 @@ const TASKS: Task[] = [
   },
 ]
 
+const filterTasks = (group: Group | 'all', domain: Domain | 'all') => TASKS.filter((t) => (group === 'all' || t.group === group) && (domain === 'all' || t.domain === domain))
+
 export default function TaskGallery() {
-  const [group, setGroup] = useState<'sg' | 'ioai' | 'all'>('sg')
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
+  const [group, setGroup] = useState<Group | 'all'>('sg')
   const [domain, setDomain] = useState<Domain | 'all'>('all')
   const [sel, setSel] = useState('sg25-cv')
-  const list = TASKS.filter((t) => (group === 'all' || t.group === group) && (domain === 'all' || t.domain === domain))
+  const detailRef = useRef<HTMLDivElement>(null)
+  const picked = useRef(false)
+  const list = filterTasks(group, domain)
   const task = TASKS.find((t) => t.id === sel)!
   const d = dom(task.domain)
+
+  // keep the open card among the visible ones when a filter changes
+  const refilter = (g: Group | 'all', dm: Domain | 'all') => {
+    const next = filterTasks(g, dm)
+    if (next.length && !next.some((t) => t.id === sel)) setSel(next[0].id)
+  }
+  // bring the details into view (on a phone they open right under the tapped card)
+  useEffect(() => {
+    if (picked.current) detailRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    picked.current = false
+  }, [sel, narrow])
+
+  const detail = (
+    <div ref={detailRef} className={s.detail} style={{ borderLeftColor: d.colour, gridColumn: narrow ? '1 / -1' : undefined }} aria-live="polite">
+      <div className={s.cardStage}>
+        {task.stage} · <span style={{ color: textOf(d.colour) }}>{d.label}</span>
+      </div>
+      <div className={s.detailHead}>{task.name}</div>
+      <p>{task.summary}</p>
+      <p>
+        <span className={s.detailLabel}>Skills tested: </span>
+        {task.skills.join(', ')}.
+      </p>
+      {task.trap && (
+        <p>
+          <span className={s.detailLabel}>Trap: </span>
+          {task.trap}
+        </p>
+      )}
+      <p>
+        <span className={s.detailLabel}>Practise: </span>
+        {task.practise}
+      </p>
+      <div className={s.links}>
+        <span className={s.detailLabel}>In this course:</span>
+        {task.lessons.map(([label, path]) => (
+          <Link key={path} to={`/learn/${path}`}>
+            {label}
+          </Link>
+        ))}
+        {task.group === 'ioai' && (
+          <a href={LINKS.ioaiGithub} target="_blank" rel="noreferrer">
+            task statements and code (IOAI on GitHub)
+          </a>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <Figure
       title="A gallery of past tasks"
       caption={
         <>
-          Filter by where a task was set and by domain, then open a card. Notice how often the same skills come back: transfer learning, choosing the right metric, coping with imbalance or missing
-          labels, and reading the rules carefully. Those are the skills to build next.
+          Filter, then open a card. Notice how often the same skills return: transfer learning, the right metric, imbalance or missing labels, and reading the rules.
         </>
       }
       wide
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', justifyContent: 'center', width: '100%' }}>
-        <Segmented
-          label="Set by"
-          value={group}
-          onChange={setGroup}
-          options={[
-            { value: 'sg', label: 'Singapore selection' },
-            { value: 'ioai', label: 'IOAI' },
-            { value: 'all', label: 'All' },
-          ]}
-        />
-        <Segmented
-          label="Domain"
-          value={domain}
-          onChange={setDomain}
-          options={[{ value: 'all' as const, label: 'All' }, ...DOMAINS.map((x) => ({ value: x.id, label: x.label }))]}
-        />
-      </div>
-
-      <div className={s.detail} style={{ borderLeftColor: d.colour }} aria-live="polite">
-        <div className={s.cardStage}>
-          {task.stage} · <span style={{ color: d.colour }}>{d.label}</span>
+      <div ref={ref} style={{ display: 'grid', gap: '0.75rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', justifyContent: 'center', width: '100%' }}>
+          <Segmented
+            label="Set by"
+            value={group}
+            onChange={(g) => {
+              setGroup(g)
+              refilter(g, domain)
+            }}
+            options={[
+              { value: 'sg', label: 'Singapore selection' },
+              { value: 'ioai', label: 'IOAI' },
+              { value: 'all', label: 'All' },
+            ]}
+          />
+          <Segmented
+            label="Domain"
+            value={domain}
+            onChange={(dm) => {
+              setDomain(dm)
+              refilter(group, dm)
+            }}
+            options={[{ value: 'all' as const, label: 'All' }, ...DOMAINS.map((x) => ({ value: x.id, label: x.label }))]}
+          />
         </div>
-        <div className={s.detailHead}>{task.name}</div>
-        <p>{task.summary}</p>
-        <p>
-          <span className={s.detailLabel}>Skills tested: </span>
-          {task.skills.join(', ')}.
-        </p>
-        {task.trap && (
-          <p>
-            <span className={s.detailLabel}>Trap: </span>
-            {task.trap}
-          </p>
-        )}
-        <p>
-          <span className={s.detailLabel}>Practise: </span>
-          {task.practise}
-        </p>
-        <div className={s.links}>
-          <span className={s.detailLabel}>In this course:</span>
-          {task.lessons.map(([label, path]) => (
-            <Link key={path} to={`/learn/${path}`}>
-              {label}
-            </Link>
+
+        {!narrow && list.some((t) => t.id === sel) && detail}
+
+        <div className={s.count}>
+          {list.length} task{list.length === 1 ? '' : 's'} shown{narrow ? ': tap one for details' : ''}
+        </div>
+        <div className={s.cards} style={narrow ? { gridAutoFlow: 'row dense' } : undefined}>
+          {list.map((t) => (
+            <div key={t.id} style={{ display: 'contents' }}>
+              <button
+                type="button"
+                className={`${s.card} ${t.id === sel ? s.cardOn : ''}`}
+                style={{ borderTopColor: dom(t.domain).colour }}
+                aria-pressed={t.id === sel}
+                aria-expanded={narrow ? t.id === sel : undefined}
+                onClick={() => {
+                  picked.current = true
+                  setSel(t.id)
+                }}
+              >
+                <span className={s.cardStage}>{t.stage}</span>
+                <span className={s.cardName}>{t.name}</span>
+                <span className={s.cardDomain} style={{ color: textOf(dom(t.domain).colour) }}>
+                  {dom(t.domain).label}
+                </span>
+              </button>
+              {narrow && t.id === sel && detail}
+            </div>
           ))}
-          {task.group === 'ioai' && (
-            <a href={LINKS.ioaiGithub} target="_blank" rel="noreferrer">
-              task statements and code (IOAI on GitHub)
-            </a>
-          )}
+          {list.length === 0 && <p style={{ margin: 0, color: 'var(--ink-3)', fontSize: '0.85rem' }}>No task in this combination. Try another domain.</p>}
         </div>
-      </div>
-
-      <div className={s.count}>
-        {list.length} task{list.length === 1 ? '' : 's'} shown
-      </div>
-      <div className={s.cards}>
-        {list.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`${s.card} ${t.id === sel ? s.cardOn : ''}`}
-            style={{ borderTopColor: dom(t.domain).colour }}
-            aria-pressed={t.id === sel}
-            onClick={() => setSel(t.id)}
-          >
-            <span className={s.cardStage}>{t.stage}</span>
-            <span className={s.cardName}>{t.name}</span>
-            <span className={s.cardDomain} style={{ color: dom(t.domain).colour }}>
-              {dom(t.domain).label}
-            </span>
-          </button>
-        ))}
-        {list.length === 0 && <p style={{ margin: 0, color: 'var(--ink-3)', fontSize: '0.85rem' }}>No task in this combination. Try another domain.</p>}
       </div>
     </Figure>
   )

@@ -7,8 +7,9 @@ import s from './craft.module.css'
   trained from scratch) scores about 62% validation accuracy. Each component has a fixed true
   effect, two of them interact with the pretrained backbone, and every run adds seed noise
   (standard deviation 0.45 points) that is deterministic for a given configuration and seed.
-  Toggle components, pick a seed, log the run; the ablation removes one component at a time from
-  the best configuration and averages seeds 1–3.
+  Toggle components, pick a seed, log the run; the ablation takes the logged configuration with the
+  best MEAN over seeds 1–3 (not the luckiest single run), removes one component at a time and
+  averages seeds 1–3 again.
 */
 
 type CompId = 'P' | 'A' | 'S' | 'L' | 'D'
@@ -47,6 +48,8 @@ function score(key: string, seed: number) {
 }
 
 const meanOverSeeds = (key: string) => SEEDS.reduce((a, sd) => a + score(key, sd), 0) / SEEDS.length
+/** colour pulled towards the ink, so small text stays readable in both themes */
+const textOf = (c: string) => `color-mix(in srgb, ${c} 60%, var(--ink))`
 
 interface Run {
   n: number
@@ -75,7 +78,9 @@ export default function AblationTable() {
     const changes = prev ? COMPS.filter((c) => prev.has(c.id) !== cur.has(c.id)).length : 0
     return { ...r, val: score(r.key, r.seed), changes }
   })
-  const best = rows.reduce((a, b) => (b.val > a.val ? b : a), rows[0])
+  // the configuration to ablate: best mean over seeds 1–3, so one lucky seed cannot pick it
+  const bestKey = [...new Set(runs.map((r) => r.key))].reduce((a, k) => (meanOverSeeds(k) > meanOverSeeds(a) ? k : a), runs[0].key)
+  const bestName = bestKey ? COMPS.filter((c) => bestKey.includes(c.id)).map((c) => c.short).join(' + ') : 'baseline'
   const shown = sort === 'score' ? [...rows].sort((a, b) => b.val - a.val) : rows
   const deltas = rows.map((r) => r.val - baseScore)
   const lo = Math.min(-2, ...deltas)
@@ -83,16 +88,16 @@ export default function AblationTable() {
   const zero = (-lo / (hi - lo)) * 100
 
   const ablation = useMemo(() => {
-    const full = setOf(best.key)
-    const fullMean = meanOverSeeds(best.key)
-    const spread = Math.sqrt(SEEDS.reduce((a, sd) => a + (score(best.key, sd) - fullMean) ** 2, 0) / (SEEDS.length - 1))
+    const full = setOf(bestKey)
+    const fullMean = meanOverSeeds(bestKey)
+    const spread = Math.sqrt(SEEDS.reduce((a, sd) => a + (score(bestKey, sd) - fullMean) ** 2, 0) / (SEEDS.length - 1))
     const items = COMPS.filter((c) => full.has(c.id)).map((c) => {
       const without = new Set(full)
       without.delete(c.id)
       return { comp: c, drop: fullMean - meanOverSeeds(keyOf(without)) }
     })
     return { fullMean, spread, items }
-  }, [best.key])
+  }, [bestKey])
   const abMax = Math.max(1, ...ablation.items.map((x) => Math.abs(x.drop)))
 
   const toggle = (id: CompId) => {
@@ -143,8 +148,8 @@ export default function AblationTable() {
       title="An experiment log, then an ablation"
       caption={
         <>
-          Switch components on or off, choose a seed and log the run. Try changing one thing at a time, then several at once, and re-run the same configuration with seeds 1, 2 and 3: runs wobble by
-          about half a point, so smaller gains are not evidence. The ablation removes one component at a time from your best run (averaging three seeds) to show which parts really carry the score.
+          Change one thing, log it, and re-run it with seeds 1, 2 and 3. Notice that runs wobble by about half a point, so smaller gains are not evidence; the ablation shows which parts carry the
+          score.
         </>
       }
     >
@@ -212,7 +217,7 @@ export default function AblationTable() {
                 const left = d >= 0 ? zero : ((d - lo) / (hi - lo)) * 100
                 const width = (Math.abs(d) / (hi - lo)) * 100
                 return (
-                  <tr key={r.n} className={r.n === best.n ? s.best : undefined}>
+                  <tr key={r.n} className={r.key === bestKey ? s.best : undefined}>
                     <td className={s.num}>{r.n}</td>
                     <td>
                       <div className={s.cfg}>
@@ -223,7 +228,7 @@ export default function AblationTable() {
                     <td className={s.num}>{r.seed}</td>
                     <td className={s.num}>{r.val.toFixed(1)}%</td>
                     {narrow ? (
-                      <td className={s.num} style={{ color: d >= 0 ? 'var(--viz-pos)' : 'var(--viz-neg)', fontWeight: 700 }}>
+                      <td className={s.num} style={{ color: textOf(d >= 0 ? 'var(--viz-pos)' : 'var(--viz-neg)'), fontWeight: 700 }}>
                         {d >= 0 ? '+' : '−'}
                         {Math.abs(d).toFixed(1)}
                       </td>
@@ -250,14 +255,14 @@ export default function AblationTable() {
       </div>
 
       <div className={s.panel}>
-        <div className={s.panelTitle}>Ablation of the best run (#{best.n}): remove one component, average seeds 1–3</div>
+        <div className={s.panelTitle}>Ablation of the best configuration ({bestName}), mean of seeds 1–3</div>
         {ablation.items.length === 0 ? (
-          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink-2)' }}>The best run is the baseline itself, so there is nothing to remove yet. Log a run with some components.</p>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--ink-2)' }}>The best configuration is the baseline itself, so there is nothing to remove yet. Log a run with some components.</p>
         ) : (
           <table className={s.log}>
             <tbody>
               {ablation.items.map(({ comp, drop }) => {
-                const verdict = drop > 0.8 ? { t: 'keep: clearly helps', c: 'var(--viz-pos)' } : drop < -0.8 ? { t: 'remove: it hurts', c: 'var(--viz-neg)' } : { t: 'within seed noise', c: 'var(--warn)' }
+                const verdict = drop > 0.8 ? { t: 'keep: clearly helps', c: textOf('var(--viz-pos)') } : drop < -0.8 ? { t: 'remove: it hurts', c: textOf('var(--viz-neg)') } : { t: 'within seed noise', c: 'var(--warn)' }
                 return (
                   <tr key={comp.id}>
                     <td style={{ width: narrow ? '34%' : '32%' }}>

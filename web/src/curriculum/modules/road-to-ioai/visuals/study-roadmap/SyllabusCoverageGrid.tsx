@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Figure, Segmented } from '../../../../../kit'
+import { Figure, Segmented, useNarrow } from '../../../../../kit'
 import { LINKS } from '../../../../../data/facts'
 import styles from './roadmap.module.css'
 
@@ -11,6 +11,8 @@ import styles from './roadmap.module.css'
     2 = solid: concepts and examples; practise more with the library
     1 = introduced: you know what it is; IOAI expects hands-on practice beyond this course
   Filter by section and category; click a cell for lessons, what IOAI adds and a free resource.
+  Depth is shown by shape as well as colour, so it reads the same in light and dark mode:
+  solid fill = in depth, light tint = solid, dashed outline with no fill = introduced only.
 */
 
 type Cat = 'T' | 'P' | 'B'
@@ -108,37 +110,97 @@ const CAT_MEAN: Record<Cat, string> = {
   P: 'Practice: know when to use it and how to run it with a library.',
   B: 'Both: understand it and implement or use it in code.',
 }
-const DEPTH: Record<1 | 2 | 3, { name: string; mix: number }> = {
-  3: { name: 'in depth (theory + code)', mix: 80 },
-  2: { name: 'solid (concepts + examples)', mix: 38 },
-  1: { name: 'introduced (practise beyond the course)', mix: 12 },
+const DEPTH: Record<1 | 2 | 3, { name: string; key: string }> = {
+  3: { name: 'in depth (theory + code)', key: 'solid fill, in depth' },
+  2: { name: 'solid (concepts + examples)', key: 'light tint, solid' },
+  1: { name: 'introduced (practise beyond the course)', key: 'dashed, introduced only' },
 }
+/** cell look for each depth: strong fill, light tint, or no fill (the dashed border comes from .cellIntro) */
+const cellStyle = (d: 1 | 2 | 3) =>
+  d === 3
+    ? { background: 'color-mix(in srgb, var(--viz-1) 85%, var(--surface))', color: 'var(--surface)' }
+    : d === 2
+      ? { background: 'color-mix(in srgb, var(--viz-1) 30%, var(--surface))', color: 'var(--ink)' }
+      : { background: 'var(--surface)', color: 'var(--ink)' }
+
+const matches = (t: Topic, sec: number, cat: 'all' | Cat) => (sec === 0 || t.sec === sec) && (cat === 'all' || t.cat === cat)
 
 export default function SyllabusCoverageGrid() {
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
   const [sec, setSec] = useState<0 | 1 | 2 | 3 | 4>(0)
   const [cat, setCat] = useState<'all' | Cat>('all')
   const [open, setOpen] = useState(TOPICS.findIndex((t) => t.name.startsWith('Fine-tuning')))
+  const panelRef = useRef<HTMLDivElement>(null)
+  const picked = useRef(false)
 
-  const shown = TOPICS.map((t, i) => ({ t, i })).filter(({ t }) => (sec === 0 || t.sec === sec) && (cat === 'all' || t.cat === cat))
+  const shown = TOPICS.map((t, i) => ({ t, i })).filter(({ t }) => matches(t, sec, cat))
   const tally = [3, 2, 1].map((d) => shown.filter(({ t }) => t.depth === d).length)
   const sel = TOPICS[open]
+  const selShown = matches(sel, sec, cat)
+
+  // keep the open topic among the visible ones when a filter changes
+  const refilter = (s2: number, c2: 'all' | Cat) => {
+    if (matches(TOPICS[open], s2, c2)) return
+    const first = TOPICS.findIndex((t) => matches(t, s2, c2))
+    if (first >= 0) setOpen(first)
+  }
+  // bring the details into view (on a phone they open right after the tapped cell's section)
+  useEffect(() => {
+    if (picked.current) panelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    picked.current = false
+  }, [open, narrow])
+
+  const panel = (
+    <div ref={panelRef} className={styles.topicPanel} aria-live="polite">
+      <div className={styles.panelHead} style={{ borderColor: 'var(--viz-1)' }}>
+        <strong>{sel.name}</strong>
+        <span className={styles.when}>
+          §{sel.sec} · {CAT_NAME[sel.cat]}
+        </span>
+      </div>
+      <p>
+        {CAT_MEAN[sel.cat]} This course: <strong>{DEPTH[sel.depth].name}</strong>.
+      </p>
+      <p>
+        <span className={styles.sampleLabel}>Lessons</span>{' '}
+        {sel.lessons.map((l, k) => (
+          <span key={l.to + l.label}>
+            <Link to={l.to}>{l.label}</Link>
+            {k < sel.lessons.length - 1 ? ' · ' : ''}
+          </span>
+        ))}
+      </p>
+      <p>
+        <span className={styles.sampleLabel}>For IOAI</span> {sel.beyond}
+      </p>
+      <p>
+        <span className={styles.sampleLabel}>Free resource</span>{' '}
+        <a href={sel.res[1]} target="_blank" rel="noreferrer">
+          {sel.res[0]}
+        </a>
+      </p>
+    </div>
+  )
 
   return (
     <Figure
       title="The IOAI syllabus, mapped onto this course"
       caption={
         <>
-          All {TOPICS.length} subtopics of the latest IOAI syllabus. Darker cells are covered more deeply here; pale dashed cells are where IOAI expects hands-on
-          practice beyond this course. Filter to Practice and notice where the pale cells cluster, then click any cell for its lessons and a free resource.
+          All {TOPICS.length} subtopics of the latest IOAI syllabus. Filled cells are covered here; dashed outlines need practice beyond this course. Filter to Practice and notice where the dashed
+          cells cluster, then tap any cell.
         </>
       }
       wide
     >
-      <div className={styles.filters}>
+      <div ref={ref} className={styles.filters}>
         <Segmented
           label="Section"
           value={sec}
-          onChange={setSec}
+          onChange={(v) => {
+            setSec(v)
+            refilter(v, cat)
+          }}
           options={[
             { value: 0, label: 'All' },
             { value: 1, label: '§1 ML' },
@@ -150,7 +212,10 @@ export default function SyllabusCoverageGrid() {
         <Segmented
           label="Category"
           value={cat}
-          onChange={setCat}
+          onChange={(v) => {
+            setCat(v)
+            refilter(sec, v)
+          }}
           options={[
             { value: 'all', label: 'All' },
             { value: 'T', label: 'Theory' },
@@ -162,8 +227,8 @@ export default function SyllabusCoverageGrid() {
       <div className={styles.depthKey} aria-hidden="true">
         {([3, 2, 1] as const).map((d, k) => (
           <span key={d}>
-            <span className={`${styles.keyCell}${d === 1 ? ` ${styles.cellIntro}` : ''}`} style={{ background: `color-mix(in srgb, var(--viz-1) ${DEPTH[d].mix}%, var(--surface))` }} />
-            {DEPTH[d].name}: <strong>{tally[k]}</strong>
+            <span className={`${styles.keyCell}${d === 1 ? ` ${styles.cellIntro}` : ''}`} style={{ background: cellStyle(d).background }} />
+            {DEPTH[d].key} (<strong>{tally[k]}</strong>)
           </span>
         ))}
       </div>
@@ -171,7 +236,8 @@ export default function SyllabusCoverageGrid() {
         {[1, 2, 3, 4]
           .filter((s) => shown.some(({ t }) => t.sec === s))
           .map((s) => (
-            <section key={s} className={styles.secBlock} aria-label={`Section ${s}: ${SECTIONS[s - 1]}`}>
+            <div key={s} style={{ display: 'contents' }}>
+            <section className={styles.secBlock} aria-label={`Section ${s}: ${SECTIONS[s - 1]}`}>
               <div className={styles.secTitle}>
                 §{s} {SECTIONS[s - 1]}
               </div>
@@ -185,8 +251,11 @@ export default function SyllabusCoverageGrid() {
                       aria-pressed={open === i}
                       title={`${t.name}: ${CAT_NAME[t.cat]}, ${DEPTH[t.depth].name}`}
                       className={`${styles.topic}${t.depth === 1 ? ` ${styles.cellIntro}` : ''}${open === i ? ` ${styles.topicOpen}` : ''}`}
-                      style={{ background: `color-mix(in srgb, var(--viz-1) ${DEPTH[t.depth].mix}%, var(--surface))`, color: t.depth === 3 ? 'var(--surface)' : 'var(--ink)' }}
-                      onClick={() => setOpen(i)}
+                      style={cellStyle(t.depth)}
+                      onClick={() => {
+                        picked.current = true
+                        setOpen(i)
+                      }}
                     >
                       <span className={styles.topicCat}>{t.cat}</span>
                       {t.name}
@@ -194,38 +263,12 @@ export default function SyllabusCoverageGrid() {
                   ))}
               </div>
             </section>
+            {narrow && selShown && sel.sec === s && panel}
+            </div>
           ))}
         {shown.length === 0 && <p>No subtopic matches both filters.</p>}
       </div>
-      <div className={styles.topicPanel} aria-live="polite">
-        <div className={styles.panelHead} style={{ borderColor: 'var(--viz-1)' }}>
-          <strong>{sel.name}</strong>
-          <span className={styles.when}>
-            §{sel.sec} · {CAT_NAME[sel.cat]}
-          </span>
-        </div>
-        <p>
-          {CAT_MEAN[sel.cat]} This course: <strong>{DEPTH[sel.depth].name}</strong>.
-        </p>
-        <p>
-          <span className={styles.sampleLabel}>Lessons</span>{' '}
-          {sel.lessons.map((l, k) => (
-            <span key={l.to + l.label}>
-              <Link to={l.to}>{l.label}</Link>
-              {k < sel.lessons.length - 1 ? ' · ' : ''}
-            </span>
-          ))}
-        </p>
-        <p>
-          <span className={styles.sampleLabel}>For IOAI</span> {sel.beyond}
-        </p>
-        <p>
-          <span className={styles.sampleLabel}>Free resource</span>{' '}
-          <a href={sel.res[1]} target="_blank" rel="noreferrer">
-            {sel.res[0]}
-          </a>
-        </p>
-      </div>
+      {!narrow && selShown && panel}
       <div className={styles.source}>
         Source: the IOAI 2026 syllabus (<a href={LINKS.ioaiSyllabus} target="_blank" rel="noreferrer">PDF</a>), the latest published as of October 2026. It says
         topics not listed are excluded and that breadth should be prioritised over depth.

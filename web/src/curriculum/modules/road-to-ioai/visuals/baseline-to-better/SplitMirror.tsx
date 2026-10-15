@@ -188,9 +188,8 @@ export default function SplitMirror() {
       title="Does your validation look like the test?"
       caption={
         <>
-          Each patient (60 of them) has 5 scans that look almost the same, and the hidden test set contains <strong>new patients</strong>. Rings are the validation scans of fold 1; each line joins a
-          validation scan to the training scan the 1-nearest-neighbour model copies its answer from. Switch between splitting random rows and splitting whole patients, then press{' '}
-          <em>New data</em> a few times. Splitting rows lets a scan find its own twin in training (red lines), so validation becomes a memory test and overestimates the real score.
+          Switch between splitting random rows and whole patients, and press <em>New data</em> a few times. Notice the red lines: with random rows a scan copies its own patient's twin, so
+          validation turns into a memory test.
         </>
       }
     >
@@ -207,10 +206,12 @@ export default function SplitMirror() {
         <span>
           <span style={{ color: 'var(--viz-2)' }}>●</span> disease
         </span>
+        <span>each dot: one scan, placed by two measurements taken from it</span>
         <span>○ validation scan (fold 1)</span>
         <span>shaded blob: one patient's 5 scans</span>
         {showLinks && (
           <>
+            <span>each line: the training scan the 1-nearest-neighbour model copies</span>
             <span>
               <span style={{ color: 'var(--viz-neg)', fontWeight: 800 }}>—</span> copies its own patient
             </span>
@@ -247,7 +248,7 @@ export default function SplitMirror() {
       <Readout
         items={[
           ['validation scans whose nearest neighbour is the same patient', pct(stats.siblingShare)],
-          ['overestimate', `${gap >= 0 ? '+' : ''}${gap.toFixed(1)} points`],
+          ['CV estimate minus real score', `${gap >= 0 ? '+' : '−'}${Math.abs(gap).toFixed(1)} points`],
         ]}
       />
     </Figure>

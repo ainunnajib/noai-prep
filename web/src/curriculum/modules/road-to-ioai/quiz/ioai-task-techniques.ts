@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
     options: ['$2.5$', '$4$', '$0.625$', '$0.25$'],
     answer: 0,
     explanation:
-      '$w_B = \\dfrac{1000}{2 \\times 200} = 2.5$ (and $w_A = \\dfrac{1000}{2 \\times 800} = 0.625$). Then $200 \\times 2.5 = 500$ matches $800 \\times 0.625 = 500$, so both classes carry equal total weight. $4$ is the raw ratio $800/200$, a different (also common) weighting, not this formula.',
+      '$w_B = \\dfrac{1000}{2 \\times 200} = 2.5$ (and $w_A = \\dfrac{1000}{2 \\times 800} = 0.625$). Then $200 \\times 2.5 = 500$ matches $800 \\times 0.625 = 500$, so both classes carry equal total weight. $4$ is the raw ratio $800/200$, a different (also common) weighting, not this formula, and $0.25 = 200/800$ is the ratio upside down, which would weight the rare class less, not more.',
     difficulty: 'beginner',
   },
   {
@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Focal loss is $-(1 - p_t)^{\\gamma}\\ln p_t$, where $p_t$ is the probability of the true class. With $\\gamma = 2$, how does it treat an example the model already classifies correctly with $p_t = 0.9$?',
     options: [
-      'Its cross-entropy is multiplied by $0.01$, so it adds almost nothing to the loss',
+      'Its cross-entropy is multiplied by $0.01$, so it barely adds to the loss',
       'Its cross-entropy is multiplied by $0.81$, so it keeps most of its loss',
       'Its cross-entropy is multiplied by $100$, because correct examples are rewarded',
       'It is unchanged, because focal loss only changes examples of the rare class',
@@ -61,14 +61,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'An IOAI-style task gives you a frozen 5-class text classifier and its cached embeddings. You must add 2 new classes, and the rules say: no new learned parameters (averages and distances are allowed). Which plan obeys the rules?',
     options: [
-      'Compute each new class’s average embedding and send inputs close to one of those centroids to that class; otherwise use the frozen classifier',
+      'Average each new class’s embeddings into a centroid; send inputs near a centroid to that class, others to the frozen head',
       'Swap the final layer for a new 7-output linear layer and train only that layer on the cached embeddings of all seven classes',
       'Fine-tune the whole classifier on the old and new examples, using focal loss so that the two small new classes are not ignored',
       'Keep the classifier frozen, add small LoRA adapter matrices to its layers and train only those adapters on the new classes',
     ],
     answer: 0,
     explanation:
-      'Averages (centroids) and distances create no learned parameters, so a nearest-centroid or k-NN gate in front of the frozen head is allowed; this is how IOAI 2024’s Help BOBAI task was won. A new linear layer, fine-tuning and LoRA adapters all train new or changed weights, which the rule forbids, however good they might score.',
+      'Averages (centroids) and distances create no learned parameters, so a nearest-neighbour (or nearest-centroid) gate on the cached embeddings, in front of the frozen head, is allowed; that is the idea that won IOAI 2024’s Help BOBAI task. A new linear layer, fine-tuning and LoRA adapters all train new or changed weights, which the rule forbids, however good they might score.',
     difficulty: 'advanced',
   },
 ]

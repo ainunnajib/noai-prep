@@ -10,7 +10,9 @@ import styles from './techniques.module.css'
       g_z = p − onehot(y);  g_h = W2ᵀ g_z ⊙ [h > 0];  g_x = W1ᵀ g_h
     FGSM:  x_adv = clip(x + ε · sign(g_x), 0, 1)
     random: x_adv = clip(x + ε · s), s a fixed random ±1 pattern (same size, random direction)
-    steps: repeat x ← clip(x + 0.01 · sign(g_x(x)), 0, 1), recomputing the gradient each time
+    steps (the basic iterative method, BIM / PGD): repeat
+      δ ← clip(x_k + 0.01 · sign(g_x(x_k)) − x, −ε, ε),  x_k ← clip(x + δ, 0, 1)
+    recomputing the gradient each time but never letting any pixel move more than ε from the original
 */
 
 const H = 32
@@ -84,7 +86,7 @@ function Pixels({ values, diverging, label }: { values: number[]; diverging?: bo
 export default function InputGradientAttack() {
   const [which, setWhich] = useState(0)
   const [mode, setMode] = useState<Mode>('fgsm')
-  const [eps, setEps] = useState(0.12)
+  const [eps, setEps] = useState(0.14)
   const [steps, setSteps] = useState(0)
 
   const ex = EXAMPLES[which]
@@ -102,7 +104,8 @@ export default function InputGradientAttack() {
     let cur = x.slice()
     for (let s = 0; s < steps; s++) {
       const gs = inputGrad(cur, t)
-      cur = cur.map((v, i) => clip01(v + STEP * sign(gs[i])))
+      // one small step, then project back into the ε budget around the original image
+      cur = cur.map((v, i) => clip01(x[i] + Math.max(-eps, Math.min(eps, v + STEP * sign(gs[i]) - x[i]))))
     }
     return cur
   }, [mode, x, g, eps, noise, steps, t])
@@ -127,9 +130,8 @@ export default function InputGradientAttack() {
       title="Attack a real digit classifier with its own gradient"
       caption={
         <>
-          The classifier is a small trained network (98% accurate on unseen digits). The second panel is <M>{'\\partial L / \\partial x'}</M>: orange pixels raise the
-          loss when brightened, blue ones when darkened. Slide <M>{'\\varepsilon'}</M> to push every pixel by at most <M>{'\\varepsilon'}</M> along the sign of that
-          gradient, then switch to random noise of the same size, which barely moves the prediction. "Many small steps" recomputes the gradient after every nudge.
+          Slide <M>{'\\varepsilon'}</M> until the prediction flips, then try random noise of the same size. "Many small steps" (BIM or PGD) recomputes the gradient after each 0.01 nudge,
+          inside the same <M>{'\\varepsilon'}</M> budget.
         </>
       }
       wide
@@ -173,6 +175,10 @@ export default function InputGradientAttack() {
           <span className={styles.panelTitle}>x + δ</span>
         </div>
       </div>
+      <p className={styles.pixelKey}>
+        A small trained network (98% accurate on unseen digits). Gradient and change: <span className={styles.keyOrange}>orange</span> = brighter raises the loss,{' '}
+        <span className={styles.keyBlue}>blue</span> = darker raises it.
+      </p>
       <p className={styles.verdict} aria-live="polite">
         True digit <strong>{t}</strong>. The model now says <strong>{pred}</strong> ({(p[pred] * 100).toFixed(1)}%):{' '}
         {fooled ? <span className={styles.flip}>prediction flipped</span> : <span className={styles.hold}>still correct</span>}.
@@ -184,9 +190,8 @@ export default function InputGradientAttack() {
         data={top.map(({ k, v }) => ({ label: `digit ${k}${k === t ? ' (true)' : ''}`, value: v, color: k === t ? 'var(--viz-pos)' : 'var(--viz-2)', strong: k === pred }))}
       />
       <Controls>
-        {mode !== 'steps' ? (
-          <Slider label={<>perturbation size <M>{'\\varepsilon'}</M></>} value={eps} min={0} max={0.3} step={0.01} onChange={setEps} format={(v) => v.toFixed(2)} />
-        ) : (
+        <Slider label={mode === 'steps' ? <>budget <M>{'\\varepsilon'}</M> (no pixel moves further)</> : <>perturbation size <M>{'\\varepsilon'}</M></>} value={eps} min={0} max={0.3} step={0.01} onChange={setEps} format={(v) => v.toFixed(2)} />
+        {mode === 'steps' && (
           <>
             <Button primary onClick={() => setSteps((s) => s + 1)}>
               Step (+{STEP})

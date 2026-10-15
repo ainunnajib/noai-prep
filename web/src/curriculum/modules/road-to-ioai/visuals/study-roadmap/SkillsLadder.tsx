@@ -80,7 +80,7 @@ const RUNGS: Rung[] = [
   },
   {
     stage: 'IOAI 2027',
-    verb: 'Solve novel, constrained problems',
+    verb: 'Invent under constraints',
     when: '4 – 10 Jul 2027',
     colour: 'var(--viz-4)',
     skills: [
@@ -107,9 +107,15 @@ function load(): boolean[][] {
   }
 }
 
+const nextRung = (t: boolean[][]) => RUNGS.findIndex((r, i) => t[i].filter(Boolean).length < r.skills.length)
+
 export default function SkillsLadder() {
   const [ticks, setTicks] = useState<boolean[][]>(load)
-  const [open, setOpen] = useState(2)
+  // open on the learner's next rung (the lowest one with unticked skills)
+  const [open, setOpen] = useState(() => {
+    const n = nextRung(ticks)
+    return n < 0 ? RUNGS.length - 1 : n
+  })
   useEffect(() => {
     try {
       window.localStorage.setItem(KEY, JSON.stringify(ticks))
@@ -119,8 +125,14 @@ export default function SkillsLadder() {
   }, [ticks])
 
   const done = (i: number) => ticks[i].filter(Boolean).length
-  const next = RUNGS.findIndex((r, i) => done(i) < r.skills.length)
-  const toggle = (i: number, j: number) => setTicks((t) => t.map((row, a) => (a === i ? row.map((v, b) => (b === j ? !v : v)) : row)))
+  const next = nextRung(ticks)
+  const toggle = (i: number, j: number) => {
+    const t = ticks.map((row, a) => (a === i ? row.map((v, b) => (b === j ? !v : v)) : row))
+    setTicks(t)
+    // ticking the last skill of this rung moves the panel up to the new next rung
+    const n = nextRung(t)
+    if (t[i].every(Boolean) && n > i) setOpen(n)
+  }
   const rung = RUNGS[open]
   const suggestions = next < 0 ? [] : RUNGS[next].skills.filter((_, j) => !ticks[next][j]).flatMap((s) => s.lessons)
   const unique = suggestions.filter((s, k) => suggestions.findIndex((t) => t.to === s.to) === k).slice(0, 4)
@@ -130,8 +142,7 @@ export default function SkillsLadder() {
       title="The skills ladder from Prelim to IOAI"
       caption={
         <>
-          Each rung is a stage of the selection, and each needs the one below it. Click a rung, tick the skills you already have, and the ladder marks your next rung
-          and suggests lessons for its missing skills. Notice how the verbs change: recall, implement, improve, learn, invent.
+          Tap a rung and tick the skills you already have: the ladder marks your next rung and suggests lessons. Notice how the verbs change: recall, implement, improve, learn, invent.
         </>
       }
       wide

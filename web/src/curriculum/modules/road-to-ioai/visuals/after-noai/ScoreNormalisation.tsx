@@ -41,11 +41,13 @@ const SILVER = cutAt(1 / 4)
 const BRONZE = cutAt(1 / 2)
 
 const MEDAL = {
-  gold: { name: 'Gold', colour: 'var(--viz-6)' },
-  silver: { name: 'Silver', colour: 'var(--ink-3)' },
+  gold: { name: 'Gold', colour: 'color-mix(in srgb, var(--viz-6) 55%, var(--highlight))' },
+  silver: { name: 'Silver', colour: 'color-mix(in srgb, var(--ink-3) 55%, var(--surface))' },
   bronze: { name: 'Bronze', colour: 'var(--viz-2)' },
-  none: { name: 'No medal', colour: 'color-mix(in srgb, var(--viz-axis) 22%, var(--surface))' },
+  none: { name: 'No medal', colour: 'var(--surface-3)' },
 }
+/** series colour pulled towards the ink, so small text stays readable in both themes */
+const textOf = (c: string) => `color-mix(in srgb, ${c} 60%, var(--ink))`
 const medalOf = (t: number) => (t >= GOLD ? MEDAL.gold : t >= SILVER ? MEDAL.silver : t >= BRONZE ? MEDAL.bronze : MEDAL.none)
 
 const TOP = 0.62
@@ -81,7 +83,7 @@ function TagRow({ tags }: { tags: Tag[] }) {
         return (
           <g key={t.text}>
             <line x1={t.px} x2={t.px} y1={ys(TOP) - 6} y2={y + 3} style={{ stroke: t.colour, strokeWidth: 1, opacity: 0.7 }} />
-            <text x={cx} y={y} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: t.bold ? 800 : 650, fill: t.colour, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}>
+            <text x={cx} y={y} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: t.bold ? 800 : 650, fill: textOf(t.colour), paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}>
               {t.text}
             </text>
           </g>
@@ -150,14 +152,13 @@ export default function ScoreNormalisation() {
       title="How one result becomes a task score, and scores become medals"
       caption={
         <>
-          Drag <strong>you</strong> along the accuracy axis and watch where it lands on the 0–100 task-score axis. Then move the baseline up: the same accuracy is worth less, and below the baseline
-          it is worth nothing. The lower chart is a <em>simulated</em> field of {N} contestants (the size of IOAI 2026) with the official medal rule. If you repeat your task score on all six tasks,
-          where do you finish? Compare a steady score with a spiky rival who aces two tasks and stays at the baseline on four.
+          Drag <strong>you</strong>, then raise the baseline: anything at or below it scores 0. Below, a <em>simulated</em> field of {N} shows your medal if you repeat that score on all six tasks;
+          compare it with a spiky rival.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
-        <Plot x={[0, 100]} y={[0, 1]} width={560} height={215} minHeight={280} margin={{ left: 14, right: 16, top: 4, bottom: 26 }} ariaLabel="Two axes: raw accuracy on top, task score 0 to 100 below, with lines showing how the baseline maps to 0 and the maximum score maps to 100.">
+        <Plot x={[0, 100]} y={[0, 1]} width={560} height={215} minHeight={280} margin={{ left: 14, right: 16, top: 4, bottom: 34 }} ariaLabel="Two axes: raw accuracy on top, task score 0 to 100 below, with lines showing how the baseline maps to 0 and the maximum score maps to 100.">
           {/* below-baseline zone */}
           <Rect x0={0} x1={base} y0={TOP - 0.035} y1={TOP + 0.035} fill="color-mix(in srgb, var(--viz-neg) 22%, var(--surface))" />
           {/* the stretch band */}
@@ -182,13 +183,13 @@ export default function ScoreNormalisation() {
           <Label x={0} y={TOP} dy={30} color="var(--ink-2)" size={11.5} weight={700}>
             raw metric: accuracy on the hidden test set
           </Label>
-          <Label x={0} y={BOT} dy={-8} color="var(--ink-2)" size={11.5} weight={700}>
-            task score
+          <Label x={0} y={BOT} dy={30} color="var(--ink-2)" size={11.5} weight={700}>
+            task score, 0 to 100
           </Label>
           <TagRow tags={tags} />
           {/* your mapping */}
           <Path points={[[you, TOP], [score, BOT]]} color="var(--viz-1)" width={2.5} dash="5 3" />
-          <Label x={score} y={BOT} dy={-8} anchor={score > 80 ? 'end' : score < 20 ? 'start' : 'middle'} color="var(--viz-1)" size={13} weight={800}>
+          <Label x={score} y={BOT} dy={-8} anchor={score > 80 ? 'end' : score < 20 ? 'start' : 'middle'} color={textOf('var(--viz-1)')} size={13} weight={800}>
             {score.toFixed(1)}
           </Label>
           <DraggablePoint x={you} y={TOP} lockY onChange={(x) => setYou(Math.round(x * 2) / 2)} color="var(--viz-1)" />
@@ -212,7 +213,7 @@ export default function ScoreNormalisation() {
           list
             .slice()
             .sort((a, b) => a - b)
-            .map((t, i) => <Rect key={`${k}-${i}`} x0={k * binW + 1.5} x1={(k + 1) * binW - 1.5} y0={i + 0.12} y1={i + 0.88} fill={medalOf(t).colour} stroke={t < BRONZE ? 'color-mix(in srgb, var(--viz-axis) 50%, var(--surface))' : undefined} />),
+            .map((t, i) => <Rect key={`${k}-${i}`} x0={k * binW + 1.5} x1={(k + 1) * binW - 1.5} y0={i + 0.12} y1={i + 0.88} fill={medalOf(t).colour} stroke={t < BRONZE ? 'var(--viz-muted)' : undefined} />),
         )}
         <Path points={[[0, 0], [600, 0]]} color="var(--viz-axis)" width={1.5} />
         {[0, 100, 200, 300, 400, 500, 600].map((v) => (
@@ -224,7 +225,7 @@ export default function ScoreNormalisation() {
           total over 6 tasks (simulated field)
         </Label>
         <Path points={[[spiky, 0], [spiky, maxCount + 3]]} color="var(--viz-4)" width={2} dash="4 3" />
-        <Label x={spiky} y={maxCount + 3} dy={-3} anchor="end" dx={-3} color="var(--viz-4)" size={11.5} weight={700}>
+        <Label x={spiky} y={maxCount + 3} dy={-3} anchor="end" dx={-3} color={textOf('var(--viz-4)')} size={11.5} weight={700}>
           spiky rival 200
         </Label>
         <Path points={[[total, 0], [total, maxCount + 6]]} color="var(--viz-1)" width={2.5} />
@@ -235,7 +236,7 @@ export default function ScoreNormalisation() {
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.3rem 0.9rem', fontSize: '0.8rem', color: 'var(--ink-2)' }} aria-hidden="true">
         {Object.values(MEDAL).map((m) => (
           <span key={m.name} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-            <span style={{ width: '0.8rem', height: '0.8rem', borderRadius: 2, background: m.colour, display: 'inline-block' }} />
+            <span style={{ width: '0.8rem', height: '0.8rem', borderRadius: 2, background: m.colour, display: 'inline-block', boxSizing: 'border-box', border: m === MEDAL.none ? '1px solid var(--viz-muted)' : undefined }} />
             {m.name}
           </span>
         ))}

@@ -137,14 +137,14 @@ $(X^\top X)^{-1}$ only exists when $\det(X^\top X) \neq 0$. A square matrix with
 - **Redundant features.** Height in cm *and* height in m; temperature in °C *and* °F (since $F = 1.8C + 32$ is built from the °C column and the column of 1s); a feature copied twice.
 - **More columns than examples** ($d > n$). Three points cannot pin down five weights.
 
-In floating point an exactly or nearly redundant column (two features that are almost copies, called <Term def="Two or more features that are (almost) linear combinations of each other, such as area in m² and area in ft². It makes XᵀX singular or nearly singular.">multicollinearity</Term>) often gives **no error at all**, just huge, unstable weights. Check with `np.linalg.matrix_rank(X)` (fewer than the number of columns means redundant) or `np.linalg.cond(X.T @ X)` (enormous, like $10^{15}$ or more, means trouble).
+In floating point an exactly or nearly redundant column (two features that are almost copies, called <Term def="Two or more features that are (almost) linear combinations of each other, such as area in m² and area in ft². It makes XᵀX singular or nearly singular.">multicollinearity</Term>) often gives **no error at all**, just huge, unstable weights. Check with `np.linalg.matrix_rank(X)`, which counts how many columns are truly independent (its *rank*, covered properly in [Span, linear independence and rank](#/learn/linear-algebra-deeper/span-rank-independence)): fewer than the number of columns means redundant. Or use `np.linalg.cond(X.T @ X)`: an enormous value, like $10^{15}$ or more, means trouble.
 
 When columns are redundant, infinitely many $w$ fit the data equally well. If columns 1 and 2 are identical, only $w_1 + w_2$ matters: $(1, 1)$, $(2, 0)$ and $(5, -3)$ all give the same predictions, so there is no single answer to "invert" towards.
 
 Three ways out:
 
 1. **Remove the redundant column.** Usually the best fix.
-2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When the columns of $X$ are independent (it has *full column rank*), $X^+ = (X^\top X)^{-1}X^\top$ and $w = X^+y$ is just the normal equation. When they are not, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
+2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When no column of $X$ can be built from the others (it has *full column rank*), $X^+ = (X^\top X)^{-1}X^\top$ and $w = X^+y$ is just the normal equation. When some can, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
 3. **Add a small penalty on the weights** (ridge regression, next lesson), which makes the matrix invertible again.
 
 <PastPaperQuestion paper="prelim2026" n={23} />
@@ -249,15 +249,15 @@ Powers blow up quickly: $x = 100$ gives $x^3 = 1{,}000{,}000$. Columns of wildly
 
 ## How many powers? Too few and too many
 
-More powers always let the curve bend more, so the error on the training data can only go down (or stay the same). But the point of a model is to predict **new** data. That is why we hold back a <Term def="Data kept aside during training and used only to check how well the model predicts examples it has not seen.">validation set</Term> and watch its error too.
+More powers always let the curve bend more, so the error on the training data can only go down (or stay the same). But the point of a model is to predict **new** data. That is why we hold back a **validation set** and watch its error too.
 
 <DegreeSweep />
 
-- Degree 0 to 2: the curve is too stiff and misses the pattern even on the training points. This is <Term def="The model is too simple to capture the pattern, so both training and validation error are high.">underfitting</Term>.
+- Degree 0 to 2: the curve is too stiff and misses the pattern even on the training points. This is **underfitting**.
 - Degree 3 to 7: both errors are low. Degree 3 has the lowest validation error.
-- Degree 8 and 9: the curve swings wildly between the points. At degree 9 its 10 weights can thread all 10 training points exactly (just as 2 points fix a line), so the training error drops to 0 while the validation error explodes. This is <Term def="The model learns the noise in the training data, so training error is low but error on new data is high.">overfitting</Term>, and notice the giant weights it needs.
+- Degree 8 and 9: the curve swings wildly between the points. At degree 9 its 10 weights can thread all 10 training points exactly (just as 2 points fix a line), so the training error drops to 0 while the validation error explodes. This is **overfitting**, and notice the giant weights it needs.
 
-Statisticians name these two failure modes. A model with high <Term def="Error that comes from the model being too simple to represent the pattern (underfitting). Not the same thing as the bias term b.">bias</Term> is too simple: it makes the same systematic mistakes whatever data you train it on. A model with high <Term def="Error that comes from the model being so flexible that it changes a lot when the training data changes slightly (overfitting).">variance</Term> is so flexible that a slightly different training sample would give a completely different curve. Raising the degree lowers the bias but raises the variance: that is the **bias-variance trade-off**, and the best model sits in between. (This "bias" is a kind of error, not the bias term $b$.)
+These are the two failure modes from [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): high **bias** (too simple) and high **variance** (too flexible). Raising the degree lowers the bias but raises the variance: that is the **bias-variance trade-off**, and the best model sits in between. (This "bias" is a kind of error, not the bias term $b$.)
 
 You can pick the degree with the lowest validation error, or keep a flexible model and **punish large weights** so it cannot swing wildly. That second idea, regularisation, is the next lesson.
 

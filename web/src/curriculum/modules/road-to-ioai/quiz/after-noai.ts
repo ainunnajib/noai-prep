@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'road-to-ioai.after-noai.1',
     prompt: 'About the top 60 NOAI 2027 finalists are invited to the NTU stage. Which sequence matches the published 2027 timeline?',
     options: [
-      'Selection Test on Sat 8 May, four Saturday training sessions, then a residential camp on 14–18 June',
+      'Selection Test on Sat 8 May, four Saturday training sessions, then a camp on 14–18 June',
       'Residential camp on 14–18 June, then a Selection Test on Sat 8 May for the best campers',
       'Selection Test on Fri 5 March, results in early April, then the residential camp in May',
       'Four Saturday training sessions in April, the Selection Test in June, then IOAI in August',
@@ -19,7 +19,7 @@ const questions: QuizQuestion[] = [
     id: 'road-to-ioai.after-noai.2',
     prompt: 'Based on the tests NTU released from 2024 and 2025, what is the Selection Test most likely to ask you to do?',
     options: [
-      'Complete the missing lines of a working baseline notebook, improve its model on a real dataset using a GPU, and explain your choices',
+      'Complete the missing lines of a working baseline notebook, improve it on a real dataset with a GPU, and explain your choices',
       'Answer harder multiple-choice questions on the same five domains as the Prelim, in 90 minutes, without a calculator or notes',
       'Implement three classic algorithms from scratch in NumPy on a CPU, with each function checked against fixed expected outputs',
       'Present a research project you prepared at home to a panel of NTU professors, who mark its originality and presentation',
@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     options: ['60', '90', '30', '120'],
     answer: 0,
     explanation:
-      'Gold: $360 \\div 12 = 30$. Gold or silver together: $360 \\div 4 = 90$, so silver is $90 - 30 = 60$. 90 forgets that the quarter already includes the golds, and 120 is $360 \\div 3$, which is not one of the rule\'s fractions.',
+      'Gold: $360 \\div 12 = 30$. Gold or silver together: $360 \\div 4 = 90$, so silver is $90 - 30 = 60$. 90 forgets that the quarter already includes the golds, 30 is the number of golds, not silvers, and 120 is $360 \\div 3$, which is not one of the rule\'s fractions.',
     difficulty: 'intermediate',
   },
   {

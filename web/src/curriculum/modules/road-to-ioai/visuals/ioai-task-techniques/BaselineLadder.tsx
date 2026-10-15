@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Figure, Toggle } from '../../../../../kit'
+import { useEffect, useRef, useState } from 'react'
+import { Figure, Toggle, useNarrow } from '../../../../../kit'
 import styles from './techniques.module.css'
 
 /*
@@ -16,6 +16,8 @@ interface Rung {
   short: string
   score: number // expected test accuracy, %
   scoreLabel: string
+  /** a short caveat shown under the score on the rung itself */
+  scoreNote?: string
   cost: string
   needs: Need[]
   what: string
@@ -88,7 +90,8 @@ print(probe.score(feats_test, y_test))           # about 0.96`,
     name: 'Fine-tune a pretrained ResNet-18 for 1 epoch',
     short: 'fine-tuned',
     score: 88,
-    scoreLabel: '≈ 88%',
+    scoreLabel: '≈ 88% after 1 epoch (well above 90% with more)',
+    scoreNote: 'after 1 epoch',
     cost: '1 epoch · needs a GPU',
     needs: ['pretrained', 'learns', 'gpu'],
     what: 'Start from ResNet-18 weights learned on ImageNet, swap the 1,000-class head for a 10-class one and train everything for one epoch. The early layers already detect edges, textures and parts, so one epoch is enough to get close to 90%; more epochs typically go well above 90%.',
@@ -122,82 +125,98 @@ const RULES: { key: Need; label: string; why: string }[] = [
 const NEED_LABEL: Record<Need, string> = { pretrained: 'pretrained model', learns: 'trains parameters', gpu: 'GPU' }
 
 export default function BaselineLadder() {
+  const [ref, narrow] = useNarrow<HTMLDivElement>(560)
   const [banned, setBanned] = useState<Record<Need, boolean>>({ pretrained: false, learns: false, gpu: false })
   const [open, setOpen] = useState(2)
+  const detailRef = useRef<HTMLDivElement>(null)
+  const picked = useRef(false)
 
   const allowed = (r: Rung) => r.needs.every((n) => !banned[n])
   const best = RUNGS.reduce((b, r, i) => (allowed(r) && (b < 0 || r.score > RUNGS[b].score) ? i : b), -1)
   const sel = RUNGS[open]
   const broken = sel.needs.filter((n) => banned[n])
 
+  // bring the details into view (on a phone they open right under the tapped rung)
+  useEffect(() => {
+    if (picked.current) detailRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    picked.current = false
+  }, [open, narrow])
+
+  const detail = (
+    <div ref={detailRef} className={styles.detail} aria-live="polite">
+      <strong>
+        Rung {open + 1}: {sel.name}
+      </strong>{' '}
+      <span style={{ color: 'var(--ink-3)' }}>· expected accuracy {sel.scoreLabel}</span>
+      {broken.length > 0 && <p className={styles.ruledOut}>Ruled out: it {broken.map((n) => RULES.find((c) => c.key === n)!.why).join(' and ')}.</p>}
+      <p>{sel.what}</p>
+      <pre className={styles.code}>{sel.code}</pre>
+      <div className={styles.source}>{sel.source}</div>
+    </div>
+  )
+
   return (
     <Figure
       title="The baseline ladder: CIFAR-10 photos, ten classes"
       caption={
         <>
-          Rungs go from cheapest (top) to most expensive (bottom); the accuracies are what Singapore's official selection and camp notebooks tell students to
-          expect. Click a rung for its code, then switch on the task rules. Notice that the cheapest strong rung, frozen pretrained embeddings, beats paying for a
-          full training run from scratch, and that a single rule can knock out the rung you were planning to use.
+          Rungs are ordered by cost, not accuracy. Tap a rung for its code, then switch on task rules. Notice that cheap frozen embeddings beat a costly run from scratch, and one rule can knock out
+          your plan.
         </>
       }
     >
-      <div className={styles.constraints} role="group" aria-label="Task rules">
-        <span className={styles.constraintsHead}>Task rules (switch on to apply):</span>
-        {RULES.map((c) => (
-          <Toggle key={c.key} label={c.label} checked={banned[c.key]} onChange={(v) => setBanned((b) => ({ ...b, [c.key]: v }))} />
-        ))}
-      </div>
-      <div className={styles.ladder}>
-        {RUNGS.map((r, i) => {
-          const ok = allowed(r)
-          return (
-            <button
-              key={r.name}
-              type="button"
-              aria-pressed={open === i}
-              className={`${styles.rung}${open === i ? ` ${styles.rungActive}` : ''}${ok ? '' : ` ${styles.rungOut}`}${i === best ? ` ${styles.rungBest}` : ''}`}
-              onClick={() => setOpen(i)}
-            >
-              <span className={styles.rungNum}>{i + 1}</span>
-              <span>
-                <span className={styles.rungName}>
-                  {r.name}
-                  {i === best ? ' · best allowed' : ''}
-                </span>
-                <span className={styles.rungMeta}>{r.cost}</span>
-                <span style={{ display: 'block' }}>
-                  {r.needs.length === 0 && <span className={styles.badge}>needs nothing</span>}
-                  {r.needs.map((n) => (
-                    <span key={n} className={`${styles.badge}${banned[n] ? ` ${styles.badgeBad}` : ''}`}>
-                      {banned[n] ? '✕ ' : ''}
-                      {NEED_LABEL[n]}
+      <div ref={ref} style={{ width: '100%' }}>
+        <div className={styles.constraints} role="group" aria-label="Task rules">
+          <span className={styles.constraintsHead}>Task rules (switch on to apply):</span>
+          {RULES.map((c) => (
+            <Toggle key={c.key} label={c.label} checked={banned[c.key]} onChange={(v) => setBanned((b) => ({ ...b, [c.key]: v }))} />
+          ))}
+        </div>
+        <div className={styles.ladder}>
+          {RUNGS.map((r, i) => {
+            const ok = allowed(r)
+            return (
+              <div key={r.name} style={{ display: 'contents' }}>
+                <button
+                  type="button"
+                  aria-pressed={open === i}
+                  aria-expanded={narrow ? open === i : undefined}
+                  className={`${styles.rung}${open === i ? ` ${styles.rungActive}` : ''}${ok ? '' : ` ${styles.rungOut}`}${i === best ? ` ${styles.rungBest}` : ''}`}
+                  onClick={() => {
+                    picked.current = true
+                    setOpen(i)
+                  }}
+                >
+                  <span className={styles.rungNum}>{i + 1}</span>
+                  <span>
+                    <span className={styles.rungName}>{r.name}</span>
+                    <span className={styles.rungMeta}>{r.cost}</span>
+                    <span style={{ display: 'block' }}>
+                      {i === best && <span className={`${styles.badge} ${styles.badgeBest}`}>best allowed</span>}
+                      {!ok && <span className={`${styles.badge} ${styles.badgeOut}`}>ruled out</span>}
+                      {r.needs.length === 0 && <span className={styles.badge}>needs nothing</span>}
+                      {r.needs.map((n) => (
+                        <span key={n} className={`${styles.badge}${banned[n] ? ` ${styles.badgeBad}` : ''}`}>
+                          {banned[n] ? '✕ ' : ''}
+                          {NEED_LABEL[n]}
+                        </span>
+                      ))}
                     </span>
-                  ))}
-                </span>
-              </span>
-              <span className={styles.rungScore}>
-                <span className={styles.scoreNum}>{r.score}%</span>
-                <span className={styles.scoreBar} aria-hidden="true">
-                  <span className={styles.scoreFill} style={{ width: `${r.score}%`, background: ok ? 'var(--viz-1)' : 'var(--viz-muted)' }} />
-                </span>
-              </span>
-            </button>
-          )
-        })}
-      </div>
-      <div className={styles.detail} aria-live="polite">
-        <strong>
-          Rung {open + 1}: {sel.name}
-        </strong>{' '}
-        <span style={{ color: 'var(--ink-3)' }}>· expected accuracy {sel.scoreLabel}</span>
-        {broken.length > 0 && (
-          <p style={{ color: 'var(--viz-neg)' }}>
-            Ruled out: it {broken.map((n) => RULES.find((c) => c.key === n)!.why).join(' and ')}.
-          </p>
-        )}
-        <p>{sel.what}</p>
-        <pre className={styles.code}>{sel.code}</pre>
-        <div className={styles.source}>{sel.source}</div>
+                  </span>
+                  <span className={styles.rungScore}>
+                    <span className={styles.scoreNum}>{r.score}%</span>
+                    {r.scoreNote && <span className={styles.scoreNote}>{r.scoreNote}</span>}
+                    <span className={styles.scoreBar} aria-hidden="true">
+                      <span className={styles.scoreFill} style={{ width: `${r.score}%`, background: ok ? 'var(--viz-1)' : 'var(--viz-muted)' }} />
+                    </span>
+                  </span>
+                </button>
+                {narrow && open === i && detail}
+              </div>
+            )
+          })}
+        </div>
+        {!narrow && detail}
       </div>
     </Figure>
   )

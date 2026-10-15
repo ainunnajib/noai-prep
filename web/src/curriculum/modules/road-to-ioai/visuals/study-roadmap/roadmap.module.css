@@ -61,9 +61,12 @@
 .rung:hover {
   border-color: var(--rung);
 }
-.rungOpen {
-  background: color-mix(in srgb, var(--rung) 14%, var(--surface));
-  border-color: var(--rung);
+.rungOpen,
+.rungOpen:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-left-color: var(--rung);
+  outline: 1px solid var(--accent);
 }
 .rungIdx {
   display: grid;
@@ -71,8 +74,9 @@
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 50%;
-  background: var(--rung);
-  color: var(--surface);
+  background: color-mix(in srgb, var(--rung) 30%, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--rung);
+  color: var(--ink);
   font-weight: 700;
   font-size: 0.88rem;
 }
@@ -223,10 +227,16 @@
   font-weight: 600;
 }
 .brushSwatch {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
   border-radius: 3px;
+  border: 1.5px solid transparent;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
 }
 .planGrid {
   display: grid;
@@ -256,17 +266,21 @@
   font-variant-numeric: tabular-nums;
 }
 .weekNote {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--ink-3);
 }
 .cell {
+  min-width: 0;
   min-height: 2rem;
   padding: 0;
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--rule);
   border-radius: 5px;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -305,7 +319,7 @@
   color: var(--ink);
 }
 .checkOk > span:first-child {
-  color: var(--viz-pos);
+  color: color-mix(in srgb, var(--viz-pos) 60%, var(--ink));
   font-weight: 700;
 }
 .checkBad {
@@ -359,7 +373,7 @@
 }
 .topic {
   position: relative;
-  padding: 0.3rem 0.5rem 0.3rem 1.55rem;
+  padding: 0.3rem 0.5rem 0.3rem 1.75rem;
   border: 1.5px solid transparent;
   border-radius: 6px;
   font: inherit;
@@ -369,10 +383,10 @@
   cursor: pointer;
 }
 .cellIntro {
-  border: 1.5px dashed var(--viz-muted);
+  border: 1.5px dashed var(--viz-axis);
 }
 .topicOpen {
-  outline: 2.5px solid var(--highlight);
+  outline: 2.5px solid var(--accent);
   outline-offset: 1px;
 }
 .topicCat {
@@ -380,12 +394,12 @@
   left: 0.3rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 1rem;
-  height: 1rem;
+  width: 1.15rem;
+  height: 1.15rem;
   display: grid;
   place-items: center;
   border-radius: 3px;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background: var(--surface);
   color: var(--ink-2);

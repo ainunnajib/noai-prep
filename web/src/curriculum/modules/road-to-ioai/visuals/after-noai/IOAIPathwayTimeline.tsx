@@ -105,7 +105,7 @@ const MILESTONES: Milestone[] = [
     above: false,
     y2027: { days: [[6, 1], [6, 30]], fuzzy: true, label: 'June 2027' },
     y2026: { days: [[7, 1], [7, 31]], fuzzy: true, label: 'July 2026' },
-    what: 'IOAI releases a few tasks to every team about a month before the contest. They do not count towards medals, but the first contest day is linked to them.',
+    what: 'IOAI releases a few tasks to every team about a month before the contest; Singapore’s team, picked at the camp, works on them in late June. They do not count towards medals, but the first contest day is linked to them.',
     prep: 'Solve them properly, as if they were scored. Day 1 of the contest builds on their topics or methods.',
     then2026: 'July 2026: 3 at-home problems, about a month before IOAI 2026.',
   },
@@ -129,6 +129,8 @@ const LANES: { id: Lane; label: string; colour: string }[] = [
   { id: 'ioai', label: 'IOAI', colour: 'var(--viz-2)' },
 ]
 const laneOf = (l: Lane) => LANES.find((x) => x.id === l)!
+/** lane colour darkened (light mode) or lightened (dark mode) towards the ink, for readable text */
+const textOf = (c: string) => `color-mix(in srgb, ${c} 60%, var(--ink))`
 
 /** day offset from 1 March of the same year (both years have 28 days in February) */
 const CUM = [0, 31, 61, 92, 122, 153] // Mar, Apr, May, Jun, Jul, Aug
@@ -168,7 +170,7 @@ export default function IOAIPathwayTimeline() {
       return (
         <g key={`${ms.id}${year}`} onClick={click} style={common}>
           {pts.map((p, i) => (
-            <circle key={i} cx={X(p)} cy={y} r={ghost ? 3.2 : on ? 5.5 : 4.5} style={{ fill: ghost ? 'var(--surface)' : c, stroke: c, strokeWidth: ghost ? 1.5 : 2 }} />
+            <circle key={i} cx={X(p)} cy={y} r={narrow ? (ghost ? 2.6 : on ? 4 : 3.5) : ghost ? 3.2 : on ? 5.5 : 4.5} style={{ fill: ghost ? 'var(--surface)' : c, stroke: c, strokeWidth: ghost ? 1.5 : narrow ? 1.5 : 2 }} />
           ))}
         </g>
       )
@@ -222,12 +224,22 @@ export default function IOAIPathwayTimeline() {
       title="From the Final to IOAI 2027"
       caption={
         <>
-          Tap a milestone or its chip to see what happens and how to prepare. Then switch on the 2026 cycle: IOAI 2027 is four weeks earlier in the calendar, so the gap between the NTU test and IOAI
-          shrinks from {Math.floor(gap26b / 7)} weeks to {Math.floor(gap27b / 7)}. The NTU stage tests practical skills that the NOAI papers do not, so your preparation has to carry on straight
-          after the Final.
+          Tap a milestone or its chip for what happens and how to prepare. Then switch on the 2026 cycle: the gap from the NTU test to IOAI shrinks from {Math.floor(gap26b / 7)} weeks to{' '}
+          {Math.floor(gap27b / 7)}.
         </>
       }
     >
+      {narrow && (
+        <div className={s.laneKey} aria-hidden="true">
+          <span className={s.laneKeyHint}>Lanes, top to bottom:</span>
+          {LANES.map((l) => (
+            <span key={l.id}>
+              <span className={s.chipDot} style={{ background: l.colour }} />
+              {l.label}
+            </span>
+          ))}
+        </div>
+      )}
       <div ref={ref} style={{ width: '100%' }}>
         <svg className="plot" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Timeline from March to August 2027 in three lanes: AI Singapore runs the NOAI Final and results, NTU runs the selection test, Saturday training and camp, and IOAI runs the at-home tasks and the contest.">
           {/* month grid */}
@@ -248,12 +260,8 @@ export default function IOAIPathwayTimeline() {
             return (
               <g key={l.id}>
                 <line x1={padL} x2={W - padR} y1={y} y2={y} style={{ stroke: l.colour, strokeWidth: 1.5, opacity: 0.45 }} />
-                {narrow ? (
-                  <text x={W - padR} y={y + 28} textAnchor="end" style={{ fontSize: 10.5, fontWeight: 800, fill: l.colour, letterSpacing: '0.03em' }}>
-                    {l.label.toUpperCase()}
-                  </text>
-                ) : (
-                  <text x={padL - 10} y={y + 4} textAnchor="end" style={{ fontSize: 12, fontWeight: 800, fill: l.colour }}>
+                {!narrow && (
+                  <text x={padL - 10} y={y + 4} textAnchor="end" style={{ fontSize: 12, fontWeight: 800, fill: textOf(l.colour) }}>
                     {l.label}
                   </text>
                 )}
@@ -299,7 +307,7 @@ export default function IOAIPathwayTimeline() {
                 y={y}
                 textAnchor="middle"
                 onClick={() => setSel(ms.id)}
-                style={{ cursor: 'pointer', fontSize: narrow ? 11.5 : 12.5, fontWeight: on ? 800 : 650, fill: on ? 'var(--ink)' : laneOf(ms.lane).colour }}
+                style={{ cursor: 'pointer', fontSize: narrow ? 11.5 : 12.5, fontWeight: on ? 800 : 650, fill: on ? 'var(--ink)' : textOf(laneOf(ms.lane).colour) }}
               >
                 {text}
               </text>
@@ -315,7 +323,6 @@ export default function IOAIPathwayTimeline() {
             key={ms.id}
             type="button"
             className={`${s.chip} ${ms.id === sel ? s.chipOn : ''}`}
-            style={ms.id === sel ? { borderColor: laneOf(ms.lane).colour } : undefined}
             aria-pressed={ms.id === sel}
             onClick={() => setSel(ms.id)}
             onKeyDown={onKey(ms.id)}
@@ -330,7 +337,8 @@ export default function IOAIPathwayTimeline() {
         <div className={s.cardHead}>
           <span className={s.cardTitle}>{m.name}</span>
           <span className={s.cardWhen}>{m.y2027.label}</span>
-          <span className={s.cardWho} style={{ color: c }}>
+          <span className={s.cardWho}>
+            <span className={s.chipDot} style={{ background: c }} />
             run by {laneOf(m.lane).label}
           </span>
         </div>
@@ -365,10 +373,6 @@ export default function IOAIPathwayTimeline() {
           }
         />
       </Controls>
-      <p className={s.note}>
-        Team size for 2027: from 2027 IOAI allows one national team per country (up to 4 contestants under its rules). Whether the host may send more has not been announced; Singapore sent 8 students
-        in 2024, 2025 and 2026.
-      </p>
     </Figure>
   )
 }

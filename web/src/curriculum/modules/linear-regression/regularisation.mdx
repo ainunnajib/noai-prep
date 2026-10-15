@@ -281,7 +281,7 @@ It acts like the squared error for small residuals (smooth, easy to optimise) an
 <ExamTip>
 
 Regularisation questions in the Prelim are quick recall. Know these cold:
-- **L1 = lasso = $\lambda\sum|w_j|$ = sparse, many exact zeros, feature selection.** **L2 = ridge = $\lambda\sum w_j^2$ = small, non-zero weights = weight decay** (exactly equal for plain SGD; with Adam they differ, which is why AdamW applies decoupled weight decay). **Elastic net = L1 + L2.**
+- **L1 = lasso = $\lambda\sum|w_j|$ = sparse, many exact zeros, feature selection.** **L2 = ridge = $\lambda\sum w_j^2$ = small, non-zero weights = weight decay** (exactly equal for plain SGD; with Adam, an optimiser you will meet in [Momentum, RMSProp and Adam](#/learn/training-deep-networks/momentum-and-adam), they differ, which is why AdamW applies decoupled weight decay). **Elastic net = L1 + L2.**
 - Why L1 gives zeros: its slope stays at $\pm\lambda$ near 0 (diamond corners); L2's slope $2\lambda w$ fades to 0.
 - **Bigger $\lambda$ → simpler model → underfitting; $\lambda = 0$ → no regularisation.** scikit-learn's **C is the inverse**: smaller C = stronger regularisation.
 - The **bias is not regularised** (in code: `grad[1:] += lam / m * w[1:]`); **standardise** features before regularising.

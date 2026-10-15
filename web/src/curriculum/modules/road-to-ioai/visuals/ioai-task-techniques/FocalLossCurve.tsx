@@ -38,9 +38,8 @@ export default function FocalLossCurve() {
       title="Focal loss turns down the easy examples"
       caption={
         <>
-          Each curve is the loss of one example against <M>{'p'}</M>, the probability the model gives its true class. Slide <M>{'\\gamma'}</M> and drag the two
-          examples. At <M>{'\\gamma = 0'}</M> (cross-entropy) an easy example still costs something, and thousands of them drown out the few hard ones. Raising{' '}
-          <M>{'\\gamma'}</M> squashes the right-hand end of the curve, so the batch's loss (and its gradient) comes mostly from the hard examples.
+          Slide <M>{'\\gamma'}</M> and drag the easy and hard examples. Notice that raising <M>{'\\gamma'}</M> flattens the right-hand end of the curve, so the batch's loss comes mostly from the
+          hard examples.
         </>
       }
     >
@@ -102,8 +101,8 @@ export default function FocalLossCurve() {
               <span className={styles.shareHard} style={{ width: `${(1 - row.s) * 100}%` }} />
             </span>
             <span className={styles.shareNums}>
-              <span style={{ color: 'var(--viz-3)' }}>easy {Math.round(row.s * 100)}%</span> ·{' '}
-              <span style={{ color: 'var(--viz-2)' }}>hard {Math.round((1 - row.s) * 100)}%</span>
+              <span style={{ color: 'color-mix(in srgb, var(--viz-3) 60%, var(--ink))', fontWeight: 700 }}>easy {Math.round(row.s * 100)}%</span> ·{' '}
+              <span style={{ color: 'color-mix(in srgb, var(--viz-2) 60%, var(--ink))', fontWeight: 700 }}>hard {Math.round((1 - row.s) * 100)}%</span>
             </span>
           </div>
         ))}
