@@ -3,11 +3,11 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'trees-and-ensembles.decision-trees.1',
-    prompt: 'A node contains four classes in proportions $\\tfrac12$, $\\tfrac14$, $\\tfrac18$ and $\\tfrac18$. What is its entropy, using $\\log_2$?',
-    options: ['1.75 bits', '1.5 bits', '2 bits', '0.656 bits'],
+    prompt: 'A node contains five classes in proportions $\\tfrac14$, $\\tfrac14$, $\\tfrac14$, $\\tfrac18$ and $\\tfrac18$. What is its entropy, using $\\log_2$?',
+    options: ['2.25 bits', '2 bits', '2.32 bits', '0.781 bits'],
     answer: 0,
     explanation:
-      'Use $-\\log_2 \\tfrac12 = 1$, $-\\log_2 \\tfrac14 = 2$ and $-\\log_2 \\tfrac18 = 3$: $H = \\tfrac12(1) + \\tfrac14(2) + \\tfrac18(3) + \\tfrac18(3) = 0.5 + 0.5 + 0.375 + 0.375 = 1.75$ bits. 2 bits is the maximum, reached only when all four classes are equally likely; 1.5 comes from taking $-\\log_2 \\tfrac18$ as 2; and 0.656 is the Gini impurity of this node, not its entropy.',
+      'Use $-\\log_2 \\tfrac14 = 2$ and $-\\log_2 \\tfrac18 = 3$: $H = 3 \\times \\tfrac14(2) + 2 \\times \\tfrac18(3) = 1.5 + 0.75 = 2.25$ bits. About 2.32 bits ($\\log_2 5$) is the maximum, reached only when all five classes are equally likely; 2 comes from taking $-\\log_2 \\tfrac18$ as 2; and 0.781 is the Gini impurity of this node, not its entropy.',
     difficulty: 'intermediate',
   },
   {
