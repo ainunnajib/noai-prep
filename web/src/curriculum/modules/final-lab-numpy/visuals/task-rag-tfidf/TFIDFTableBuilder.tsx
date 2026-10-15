@@ -19,8 +19,8 @@ const STEPS = [
 ]
 
 const IDF_TEX: Record<IdfVariant, string> = {
-  smooth: '\\mathrm{idf} = \\ln\\frac{1+N}{1+\\mathrm{df}} + 1',
-  plain: '\\mathrm{idf} = \\ln\\frac{N}{\\mathrm{df}}',
+  smooth: '\\mathrm{idf} = \\ln\\dfrac{1+N}{1+\\mathrm{df}} + 1',
+  plain: '\\mathrm{idf} = \\ln\\dfrac{N}{\\mathrm{df}}',
   none: '\\mathrm{idf} = 1 \\text{ (TF only)}',
 }
 

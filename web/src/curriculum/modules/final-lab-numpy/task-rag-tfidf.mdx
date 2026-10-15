@@ -74,7 +74,13 @@ for doc in top_documents:
 print("\\nGenerated Response:")
 print(response)`
 
-Question 3 of the 2025 Final was worth **40 of the 80 programming marks**, half of Section 2, and it was the only task with no function to fill in. You got five sentences, one question and a print cell waiting for two variables. In this lesson you rebuild it from an empty cell using only NumPy and the standard library. You will check your printout against the notebook's expected output and write the "thought process" answer the notebook asks for. If TF-IDF or RAG are new to you, read [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf) first; here we focus on doing the whole task under exam conditions.
+Question 3 of the 2025 Final was worth **40 of the 80 programming marks**, and it was the only task with no function to fill in: five sentences, one question and a print cell waiting for two variables. In this lesson you rebuild it from an empty cell with only NumPy and the standard library, check your printout against the notebook's expected output, and write the "thought process" answer the notebook asks for.
+
+<Note title="Before you start">
+
+If TF-IDF or RAG are new to you, read [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf) first. This lesson focuses on doing the whole task under exam conditions.
+
+</Note>
 
 <Analogy title="The index at the back of your textbook">
 
@@ -110,7 +116,7 @@ print("\nGenerated Response:")
 print(response)
 ```
 
-Read that print cell as a **contract**. Your code must create exactly two names: `top_documents`, a list of document strings with the best match first, and `response`, a string. If either name is missing, the protected cell stops with a `NameError` and prints no answer at all, however good your code above it was. The story tells you which documents to expect ("the second and fourth ones"). The notebook also prints a sample answer, *"Machine learning is a subset of artificial intelligence that enables systems to learn from data. It involves techniques like statistics and algorithms, often used in data science."* A final cell asks you to **share your thought process**. The only allowed tools were the Python 3.9 standard library and NumPy: no scikit-learn and no language model.
+Read that print cell as a **contract**. Your code must create exactly two names: `top_documents`, a list of document strings with the best match first, and `response`, a string. If either name is missing, the protected cell stops with a `NameError` and prints no answer at all, however good your code above it was. The story tells you which documents to expect ("the second and fourth ones"). Under "Expected output", the notebook also shows a sample answer, *"Machine learning is a subset of artificial intelligence that enables systems to learn from data. It involves techniques like statistics and algorithms, often used in data science."* A final cell asks you to **share your thought process**. The only allowed tools were the Python 3.9 standard library and NumPy: no scikit-learn and no language model.
 
 ## The plan in six steps
 
@@ -203,20 +209,20 @@ Let's work through the official settings by hand. They are whitespace tokens, st
 
 The official code also put the query's own words ("how", "does", "work?") into the vocabulary. That makes $\lVert \mathbf{q} \rVert = \sqrt{5}$ instead of $\sqrt{2}$ and multiplies every score by the same factor $\sqrt{2/5} \approx 0.63$. So you would see 0.316, 0.158 and 0.169 printed, but the order does not change.
 
-Now the clean pipeline. Rounded to 3 decimal places, the IDFs are 1.693 for machine, 1.405 for learning and 2.099 for a word found in only one document. Their squares are about 2.87, 1.97 and 4.41.
+Now the clean pipeline. Rounded to 3 decimal places, the IDFs are 1.693 for machine, 1.405 for learning and 2.099 for a word found in only one document. Their squares are about 2.867, 1.975 and 4.404.
 
 <Steps title="Clean TF-IDF: the same two winners, with a clear lead">
   <Step title="The query">
-    $\mathbf{q}$ = machine 1.693, learning 1.405, so $\lVert \mathbf{q} \rVert = \sqrt{2.87 + 1.97} = \sqrt{4.84} = 2.20$.
+    $\mathbf{q}$ = machine 1.693, learning 1.405. Its squared length is $2.867 + 1.975 = 4.842$, so $\lVert \mathbf{q} \rVert \approx 2.20$.
   </Step>
   <Step title="Documents 2 and 4 have the same dot product">
-    Each contains machine and learning once, so both dot products are $2.87 + 1.97 = 4.84$.
+    Each contains machine and learning once, so both dot products are $2.867 + 1.975 = 4.842$.
   </Step>
   <Step title="But different lengths">
-    d2 also has subset (one document) plus artificial and intelligence (two documents each, like machine): $\lVert \mathbf{d}_2 \rVert = \sqrt{4.84 + 4.41 + 2.87 + 2.87} = \sqrt{14.99} \approx 3.87$. d4 also has four one-document words (data, science, involves, statistics): $\lVert \mathbf{d}_4 \rVert = \sqrt{4.84 + 4 \times 4.41} = \sqrt{22.48} \approx 4.74$.
+    d2 also has subset (one document) plus artificial and intelligence (two documents each, like machine): $\lVert \mathbf{d}_2 \rVert = \sqrt{4.842 + 4.404 + 2.867 + 2.867} = \sqrt{14.980} \approx 3.87$. d4 also has four one-document words (data, science, involves, statistics): $\lVert \mathbf{d}_4 \rVert = \sqrt{4.842 + 4 \times 4.404} = \sqrt{22.458} \approx 4.74$.
   </Step>
   <Step title="Scores">
-    $\cos(\mathbf{q}, \mathbf{d}_2) \approx \frac{4.84}{2.20 \times 3.87} \approx 0.57$ and $\cos(\mathbf{q}, \mathbf{d}_4) \approx \frac{4.84}{2.20 \times 4.74} \approx 0.46$. d3 shares only "learning" and has six one-document words, so it scores about 0.17. The lead of d4 over d3 grows from 0.017 to about 0.30.
+    $\cos(\mathbf{q}, \mathbf{d}_2) \approx \frac{4.842}{2.20 \times 3.87} \approx 0.57$ and $\cos(\mathbf{q}, \mathbf{d}_4) \approx \frac{4.842}{2.20 \times 4.74} \approx 0.46$. d3 shares only "learning" and has six one-document words, so it scores about 0.17. The lead of d4 over d3 grows from 0.017 to about 0.30.
   </Step>
 </Steps>
 

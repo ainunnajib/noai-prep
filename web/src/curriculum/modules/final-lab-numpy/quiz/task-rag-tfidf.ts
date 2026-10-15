@@ -18,11 +18,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'final-lab-numpy.task-rag-tfidf.2',
     prompt:
-      'Over the vocabulary `[machine, learning, data, science]`, a query has count vector $\\mathbf{q} = [1, 1, 0, 0]$ and a document has $\\mathbf{d} = [1, 1, 1, 1]$. What is their cosine similarity?',
-    options: ['$\\frac{1}{\\sqrt{2}} \\approx 0.71$', '$0.5$', '$2$', '$1$'],
+      'Over the vocabulary `[machine, learning, data, science]`, a query has count vector $\\mathbf{q} = [1, 1, 0, 0]$ and a document has $\\mathbf{d} = [1, 1, 1, 1]$. What is their cosine similarity, to 2 decimal places?',
+    options: ['0.71', '0.50', '2.00', '1.00'],
     answer: 0,
     explanation:
-      'Dot product $= 1 + 1 + 0 + 0 = 2$. Lengths: $\\lVert \\mathbf{q} \\rVert = \\sqrt{2}$ and $\\lVert \\mathbf{d} \\rVert = \\sqrt{4} = 2$. So $\\cos = \\frac{2}{2\\sqrt{2}} = \\frac{1}{\\sqrt{2}} \\approx 0.71$. The answer 2 is the dot product without dividing by the lengths, 0.5 forgets a square root, and 1 would need both vectors to point the same way, but the document also contains "data" and "science".',
+      'Dot product $= 1 + 1 + 0 + 0 = 2$. Lengths: $\\lVert \\mathbf{q} \\rVert = \\sqrt{2}$ and $\\lVert \\mathbf{d} \\rVert = \\sqrt{4} = 2$. So $\\cos = \\frac{2}{2\\sqrt{2}} = \\frac{1}{\\sqrt{2}} \\approx 0.71$. The answer 2.00 is the dot product without dividing by the lengths, 0.50 forgets the square root of $\\lVert \\mathbf{q} \\rVert^2 = 2$, and 1.00 would need both vectors to point the same way, but the document also contains "data" and "science".',
     difficulty: 'intermediate',
   },
   {
@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your RAG pipeline always returns 2 documents. For "What is quantum computing?" every cosine score is 0, but it still prints two unrelated documents and builds an answer from them. What is the best fix?',
     options: [
-      'Keep only documents whose score is above 0 (or a threshold), and answer "I don\'t know" when none are left',
+      'Keep only documents that score above 0, and answer "I don\'t know" if none are left',
       'Increase k to 5 so that the right document is more likely to be among those returned',
       'Replace cosine similarity with the raw dot product so that the scores are no longer exactly 0',
       'Remove the IDF weighting so that common words such as "is" can match the query',

@@ -164,7 +164,7 @@ const DECOMP: [string, string, string[]][] = [
   ['In $A = U\\Sigma V^\\top$ (SVD), what is $\\Sigma$?', 'a diagonal matrix of singular values', ['an orthogonal matrix of eigenvectors', 'the covariance matrix', 'an upper-triangular matrix']],
   ['In $A = QR$, what is $R$?', 'an upper-triangular matrix', ['an orthogonal matrix', 'a diagonal matrix of eigenvalues', 'a symmetric matrix']],
   ['In PCA, the principal directions are the eigenvectors of which matrix?', 'the covariance matrix', ['the data matrix itself', 'the identity matrix', 'the Hessian of the loss']],
-  ['If $Av = \\lambda v$ with $v \\neq 0$, what is $v$?', 'an eigenvector, scaled by $\\lambda$', ['an eigenvalue of $A$', 'a row of $A$', 'the inverse of $A$']],
+  ['If $Av = \\lambda v$ with $v \\neq 0$, what is $v$?', 'an eigenvector of $A$, with eigenvalue $\\lambda$', ['an eigenvalue of $A$', 'a row of $A$', 'the inverse of $A$']],
 ]
 const genDecomp = (r: () => number): Variant => {
   const [q, a, ws] = pick(r, DECOMP)
@@ -191,7 +191,7 @@ const genPartial = (r: () => number): Variant => {
 
 const genChain = (r: () => number): Variant => {
   const w = int(r, 1, 3)
-  const x = int(r, 1, 3)
+  const x = int(r, 2, 3) // x = 1 would make "forgot the inner factor x" equal to the right answer
   let y = int(r, 0, 6)
   if (y === w * x) y += 2
   const yh = w * x
@@ -257,7 +257,7 @@ const genProb = (r: () => number): Variant => {
   const k = int(r, 2, 6)
   const ans = frac(7 - k, 6)
   const o = pack(r, ans, [frac(6 - k, 6), frac(k, 6), '\\tfrac{1}{6}', frac(k - 1, 6), '\\tfrac{1}{2}'])
-  return { prompt: `A fair six-sided die is rolled. What is $P(\\text{roll} \\ge ${k})$?`, ...o, kind: 'math', why: `Count the faces ${k} to 6: there are ${7 - k} of them, so $${7 - k}/6 = ${ans}$. “At least ${k}” includes ${k} itself.` }
+  return { prompt: `A fair six-sided die is rolled. What is $P(\\text{roll} \\ge ${k})$?`, ...o, kind: 'math', why: `${k === 6 ? 'Only the face 6 counts' : `Count the faces ${k} to 6: there are ${7 - k} of them`}, so $${7 - k}/6 = ${ans}$. “At least ${k}” includes ${k} itself.` }
 }
 
 const genMetric = (r: () => number): Variant => {

@@ -111,7 +111,7 @@ const KWS: Kw[] = [
   { id: 'gap', label: 'train 98%, validation 72%', to: ['over'], seen: 'Q261, Q266' },
   { id: 'low', label: 'train ≈ validation, both low', to: ['under'], seen: 'Q266' },
   { id: 'chance', label: 'validation at chance (10% on 10 classes)', to: ['bug'], seen: 'Q273' },
-  { id: 'time', label: 'trained on 2023, tested on 2025', to: ['drift'], seen: 'Q275, Q300' },
+  { id: 'time', label: 'trained on 2023, used in 2024–25', to: ['drift'], seen: 'Q275, Q300' },
   { id: 'late', label: 'outputs shifting while labels arrive months later', to: ['drift'], seen: 'Q299' },
   { id: 'rare', label: 'rare positives (1–2%: fraud, rare disease)', to: ['metric'], seen: 'Q263, Q265' },
 ]

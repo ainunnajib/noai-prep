@@ -13,10 +13,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.scaling-and-normalisation.2',
     prompt: 'In the training set a feature ranges from 10 to 50. After min-max scaling, what does the value 20 become?',
-    options: ['0.25', '0.4', '0.5', '0.2'],
+    options: ['0.25', '0.40', '0.50', '0.20'],
     answer: 0,
     explanation:
-      '$x\' = (x - x_{\\min})/(x_{\\max} - x_{\\min}) = (20 - 10)/(50 - 10) = 10/40 = 0.25$. Dividing by the maximum without subtracting the minimum gives $20/50 = 0.4$; dividing by the range without subtracting the minimum gives $20/40 = 0.5$; and subtracting the minimum but dividing by the maximum gives $10/50 = 0.2$.',
+      '$x\' = (x - x_{\\min})/(x_{\\max} - x_{\\min}) = (20 - 10)/(50 - 10) = 10/40 = 0.25$. Dividing by the maximum without subtracting the minimum gives $20/50 = 0.40$; dividing by the range without subtracting the minimum gives $20/40 = 0.50$; and subtracting the minimum but dividing by the maximum gives $10/50 = 0.20$.',
     difficulty: 'beginner',
   },
   {
@@ -33,10 +33,10 @@ const questions: QuizQuestion[] = [
     prompt: 'What is wrong with this code?',
     code: 'from sklearn.preprocessing import StandardScaler\n\nscaler = StandardScaler()\nX_train_s = scaler.fit_transform(X_train)\nX_test_s = scaler.fit_transform(X_test)',
     options: [
-      'The test set is scaled with its own statistics, not the training mean and std',
+      'The test rows must be scaled with the training mean and std, not their own',
       'The training set should use `transform`, because `fit_transform` leaks its data',
       '`StandardScaler` may only be applied to training data, so the test set stays raw',
-      'The scaler must be fitted after the model is trained, using its predictions',
+      'The scaler should be fitted after the model is trained, using its predictions',
     ],
     answer: 0,
     explanation:
@@ -48,10 +48,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A k-NN classifier uses two features: age (18 to 80 years) and annual income (\\$20,000 to \\$500,000). Changing a customer’s age from 20 to 70 hardly ever changes the prediction. What is the most likely reason?',
     options: [
-      'Income gaps are far bigger numbers than age gaps, so they dominate the distance',
+      'The income gaps are far bigger numbers, so they dominate the distance',
       'k-NN automatically gives a lower weight to any feature measured in years',
       'Age is unrelated to the label, so k-NN learned to ignore it during training',
-      'k is too small, so only one neighbour’s income decides every prediction',
+      'k is too small, so a single neighbour’s income decides each prediction',
     ],
     answer: 0,
     explanation:

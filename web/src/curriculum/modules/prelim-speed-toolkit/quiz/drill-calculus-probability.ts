@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'prelim-speed-toolkit.drill-calculus-probability.1',
     prompt: 'Why do deep networks with sigmoid activations in every hidden layer tend to suffer from vanishing gradients?',
     options: [
-      'The sigmoid’s slope $\\sigma(1 - \\sigma)$ is at most 0.25, and backpropagation multiplies one such factor per layer',
-      'The sigmoid’s outputs lie between 0 and 1, so the loss can never be larger than 1 for any example',
-      'The sigmoid has no derivative at 0, so the gradient is undefined whenever an input lands exactly there',
-      'The sigmoid needs an exponential, which takes too long to compute for gradients to reach the early layers',
+      'The sigmoid’s slope $\\sigma(1 - \\sigma)$ never exceeds 0.25, and backpropagation multiplies one such factor per layer',
+      'The sigmoid’s outputs lie between 0 and 1, so the loss can never be larger than 1 and there is little error to pass back',
+      'The sigmoid has no derivative at exactly 0, so the gradient is undefined whenever an input lands on that one point',
+      'The sigmoid needs an exponential, which is slow to compute, so the gradient takes too long to reach the early layers',
     ],
     answer: 0,
     explanation:
-      '$\\sigma\'(x) = \\sigma(x)(1 - \\sigma(x))$ peaks at $0.5 \\times 0.5 = 0.25$ when $x = 0$. The chain rule multiplies one such factor per layer, so after 10 layers the gradient has been scaled by at most $0.25^{10}$, about a millionth. Having no derivative at 0 is ReLU’s quirk, not the sigmoid’s, and computing time does not shrink a gradient.',
+      '$\\sigma\'(x) = \\sigma(x)(1 - \\sigma(x))$ peaks at $0.5 \\times 0.5 = 0.25$ when $x = 0$. The chain rule multiplies one such factor per layer, so after 10 layers the gradient has been scaled by at most $0.25^{10}$, about a millionth. Having no derivative at 0 is ReLU’s quirk, not the sigmoid’s; computing time does not shrink a gradient; and hidden outputs between 0 and 1 put no cap on the loss.',
     difficulty: 'intermediate',
   },
   {
@@ -37,10 +37,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'prelim-speed-toolkit.drill-calculus-probability.4',
     prompt: 'A spam filter gives TP = 30, FP = 10, FN = 20 and TN = 40. What is its F1 score?',
-    options: ['$\\frac{2}{3}$', '$0.675$', '$0.70$', '$0.75$'],
+    options: ['$\\frac{2}{3}$', '$\\frac{27}{40}$', '$\\frac{7}{10}$', '$\\frac{3}{4}$'],
     answer: 0,
     explanation:
-      'By counts, $F_1 = \\frac{2TP}{2TP + FP + FN} = \\frac{60}{60 + 10 + 20} = \\frac{60}{90} = \\frac23$. Precision is $\\frac{30}{40} = 0.75$ and recall $\\frac{30}{50} = 0.6$; their ordinary average, 0.675, is the classic trap. 0.70 is the accuracy, $\\frac{30 + 40}{100}$.',
+      'By counts, $F_1 = \\frac{2TP}{2TP + FP + FN} = \\frac{60}{60 + 10 + 20} = \\frac{60}{90} = \\frac23$. Precision is $\\frac{30}{40} = \\frac34$ and recall $\\frac{30}{50} = \\frac35$; their ordinary average, $\\frac{27}{40} = 0.675$, is the classic trap. $\\frac{7}{10}$ is the accuracy, $\\frac{30 + 40}{100}$, and $\\frac34$ is the precision on its own.',
     difficulty: 'intermediate',
   },
   {

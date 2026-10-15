@@ -150,7 +150,7 @@ For a plain linear model (with no penalty on big weights), scaling does not chan
 |---|---|---|
 | k-NN, k-means, SVMs | Yes | They compare points by distance |
 | Linear and logistic regression, neural networks (trained by gradient descent) | Yes | Unscaled features make a long, narrow valley |
-| Models with a penalty on big weights (Ridge and Lasso, in the Linear regression module); PCA (later in the course) | Yes | The penalty, or PCA's search for the direction of biggest spread, depends on units |
+| Models with a penalty on big weights (Ridge and Lasso, coming in the linear regression module); PCA (later in the course) | Yes | The penalty, or PCA's search for the direction of biggest spread, depends on units |
 | Decision trees, random forests, gradient boosting (e.g. XGBoost) | No | Each split looks at one feature at a time |
 
 Why are trees immune? A tree asks questions like "is income below \$5,000?". Standardising income turns that into "is the income z-score below 0.37?", which sends exactly the same people left and right. Scaling stretches the number line but never changes the **order** of the values, and the order is all a split depends on.
@@ -158,7 +158,7 @@ Why are trees immune? A tree asks questions like "is income below \$5,000?". Sta
 <QuickCheck
   id="data-and-features.scaling.qc-tree"
   q="You standardise all the features before training a decision tree. What happens to the tree's predictions?"
-  options={['They stay the same: the splits just move to the new scale', 'They improve, because the features are now comparable', 'They get worse, because z-scores can be negative', 'The tree can no longer be trained on negative values']}
+  options={['They stay the same; only the split thresholds change', 'They improve, because the features are now comparable', 'They get worse, because z-scores can be negative', 'The tree can no longer be trained on negative values']}
   answer={0}
   explain="Standardising is a stretch and shift that keeps the order of every feature's values, so each split separates exactly the same samples, only at a rescaled threshold. Trees never compare one feature's size with another's, so they gain nothing from scaling (and negative values are no problem)."
 />

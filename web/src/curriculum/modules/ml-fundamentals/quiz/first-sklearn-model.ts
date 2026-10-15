@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.first-sklearn-model.3',
     prompt: 'What does this code print?',
     code: 'from sklearn.linear_model import LinearRegression\nmodel = LinearRegression()\nmodel.fit([[0], [1], [2]], [-1, 2, 5])\nprint(model.predict([[4]]))',
-    options: ['`[11.]`', '`[12.]`', '`[13.]`', 'A `ValueError`, because the feature list must be one-dimensional'],
+    options: ['`[11.]`', '`[12.]`', '`[13.]`', 'A `ValueError`, because `fit` expects a one-dimensional list of features'],
     answer: 0,
     explanation:
       'The points $(0, -1)$, $(1, 2)$, $(2, 5)$ lie exactly on $y = 3x - 1$, so `fit` learns `coef_` $= 3$ and `intercept_` $= -1$. Then $3 \\times 4 - 1 = 11$, printed as the float array `[11.]`. Forgetting the intercept gives 12. The input is correctly 2-D (one row per sample), so there is no error; a 1-D list such as `[4]` is what would raise one.',
@@ -41,16 +41,16 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'ml-fundamentals.first-sklearn-model.4',
-    prompt: 'You fit a `LinearRegression` and a `KNeighborsClassifier(n_neighbors=5)` on the same 1,000 training rows. What does each model keep after `fit`?',
+    prompt: 'You fit a `LinearRegression` and a `KNeighborsClassifier(n_neighbors=5)`, each on 1,000 training rows with 3 features. What does each model keep after `fit`?',
     options: [
-      'Linear regression keeps a weight and an intercept; k-NN keeps the training rows and labels',
-      'Both keep only a few learned numbers; k-NN stores 5 weights, one for each neighbour',
-      'Both keep a full copy of the training rows, because every model needs them to predict',
-      'Linear regression keeps the training rows; k-NN keeps a learned boundary line and its slope',
+      'Linear regression keeps 3 weights and an intercept; k-NN keeps all 1,000 rows and labels',
+      'Both keep a few learned numbers; k-NN keeps 5 weights, one for each of its 5 neighbours',
+      'Both keep a full copy of the 1,000 rows, because a model needs them to make predictions',
+      'Linear regression keeps the 1,000 rows; k-NN keeps a learned boundary line and its slope',
     ],
     answer: 0,
     explanation:
-      'A linear model compresses the data into its parameters: one weight per feature plus an intercept. k-NN does no fitting work beyond storing the data; at prediction time it searches those stored rows for the 5 nearest and lets them vote. The number 5 is a hyperparameter, not 5 learned weights.',
+      'A linear model compresses the data into its parameters: one weight per feature plus an intercept, so 4 numbers here, and it no longer needs the rows. k-NN does no fitting work beyond storing the data; at prediction time it searches those stored rows for the 5 nearest and lets them vote. The number 5 is a hyperparameter, not 5 learned weights.',
     difficulty: 'intermediate',
   },
   {

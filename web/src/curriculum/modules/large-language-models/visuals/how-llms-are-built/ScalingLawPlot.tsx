@@ -104,8 +104,26 @@ function LogGrid() {
   )
 }
 
+/** A soft ring around the draggable dot, plus a "drag" hint until the learner has moved it. */
+function DragHalo({ x, y, hint }: { x: number; y: number; hint: boolean }) {
+  const { xs, ys } = usePlot()
+  const cx = xs(x)
+  const cy = ys(y)
+  return (
+    <g aria-hidden="true" style={{ pointerEvents: 'none' }}>
+      <circle cx={cx} cy={cy} r={15} style={{ fill: 'color-mix(in srgb, var(--viz-ink) 10%, transparent)', stroke: 'var(--viz-ink)', strokeOpacity: 0.55, strokeWidth: 1.5, strokeDasharray: '3 3' }} />
+      {hint && (
+        <text className="plot-label" x={cx} y={cy + 30} textAnchor="middle" style={{ fontSize: 12, fontWeight: 800 }}>
+          ◂ drag ▸
+        </text>
+      )}
+    </g>
+  )
+}
+
 export default function ScalingLawPlot() {
   const [lc, setLc] = useState(20.1) // log10 of the compute budget
+  const [moved, setMoved] = useState(false)
   const C = 10 ** lc
   const N = nStar(C)
   const D = TOKENS_PER_PARAM * N
@@ -123,12 +141,8 @@ export default function ScalingLawPlot() {
       title="Scaling laws: drag the compute budget"
       caption={
         <>
-          Each coloured curve is one model size trained on more and more tokens: its loss falls, then levels off when the model is too small to
-          learn more. The dashed line touches the lowest curve at every budget: the best you can do with that much compute. Drag the dot along it.
-          On log–log axes the frontier is a <b>straight line</b>: every 10× more compute multiplies the loss by the same factor (here ×
-          {(10 ** (-ALPHA / 2)).toFixed(2)}), so a lab can predict a big run from small ones. The bars show why bigger is not automatically better at a
-          fixed budget: a huge model gets too few tokens. (Illustrative curves with the shape of the 2022 Chinchilla fit; real fits also level off
-          at a floor.)
+          <b>Try:</b> drag the dot along the dashed line. <b>Notice:</b> the best possible loss is a straight line on log–log axes, and the bars show
+          that at a fixed budget the biggest model is rarely the winner. (Illustrative curves.)
         </>
       }
     >
@@ -149,7 +163,11 @@ export default function ScalingLawPlot() {
           <Label x={lc} y={Y0} dx={lc > 23.5 ? -5 : 5} dy={-6} anchor={lc > 23.5 ? 'end' : 'start'} color="var(--ink-2)" size={12}>
             budget
           </Label>
-          <DraggablePoint x={lc} y={Math.log10(L)} onChange={(x) => setLc(snap(x)[0])} constrain={(x) => snap(x)} color="var(--viz-ink)" label={`best: ${fmtCount(N)}`} />
+          <DragHalo x={lc} y={Math.log10(L)} hint={!moved} />
+          <DraggablePoint x={lc} y={Math.log10(L)} onChange={(x) => {
+            setMoved(true)
+            setLc(snap(x)[0])
+          }} constrain={(x) => snap(x)} color="var(--viz-ink)" label={`best: ${fmtCount(N)}`} />
         </Plot>
 
         <div className={s.legend} aria-hidden="true">
@@ -189,7 +207,7 @@ export default function ScalingLawPlot() {
 
         <Controls>
           <span className={s.hint} style={{ margin: 0 }}>
-            Keyboard: focus the dot and use ← →. Rule of thumb used here: compute ≈ 6 × N × D, best split ≈ 20 tokens per parameter.
+            Keyboard: focus the dot and use ← →. The curves have the shape of the 2022 Chinchilla fit (compute ≈ 6 × N × D, best split ≈ 20 tokens per parameter); real curves also level off at a floor.
           </span>
         </Controls>
       </div>

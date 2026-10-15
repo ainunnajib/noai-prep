@@ -194,7 +194,7 @@ const CARDS: Card[] = [
     ask: 'What is printed?',
     options: ['tensor(9.)', 'tensor(3.)', 'tensor(6.)', 'tensor(27.)'],
     answer: 0,
-    why: '.backward() ADDS to .grad. Three calls each add d(3w)/dw = 3, giving 9. That is why a training loop calls optimiser.zero_grad() every step.',
+    why: '.backward() ADDS to .grad. Three calls each add d(3w)/dw = 3, giving 9. That is why a training loop calls optimizer.zero_grad() every step.',
   },
   {
     id: 'eval',
@@ -204,7 +204,7 @@ const CARDS: Card[] = [
     ask: 'What is printed?',
     options: ['tensor([1., 1., 1., 1.])', 'tensor([0.5000, 0.5000, 0.5000, 0.5000])', 'About half 0s, the rest 2s', 'tensor([2., 2., 2., 2.])'],
     answer: 0,
-    why: 'In eval mode dropout does nothing. In train mode it zeroes about half and doubles the rest (to keep the average). Forgetting model.eval() makes test predictions random.',
+    why: 'In eval mode dropout does nothing. In train mode it zeroes about half and doubles the rest (to keep the average). Forgetting model.eval() makes test predictions noisy (dropout still drops) and dependent on the batch (batch norm uses the batch’s own statistics instead of its running averages).',
   },
   {
     id: 'softmaxce',
@@ -325,7 +325,7 @@ export default function CodePredictDrill() {
   const hits = marks.filter(Boolean).length
   const chart = (Object.keys(TRAP_LABEL) as Trap[])
     .filter((t) => tally[t]?.seen)
-    .map((t) => ({ label: `${TRAP_LABEL[t]} (${tally[t].missed}/${tally[t].seen})`, value: tally[t].missed, color: 'var(--viz-neg)' }))
+    .map((t) => ({ label: `${TRAP_LABEL[t]} (seen ${tally[t].seen})`, value: tally[t].missed, color: 'var(--viz-neg)' }))
     .sort((a, b) => b.value - a.value)
   const ok = picked !== null && picked === right
 
@@ -407,7 +407,7 @@ export default function CodePredictDrill() {
         {chart.length > 0 && (
           <div style={{ width: '100%', display: 'grid', gap: '0.4rem' }}>
             <div className={s.spread}>
-              <span className={s.label}>Your misses by trap (missed / seen)</span>
+              <span className={s.label}>Your misses by trap (bar = number missed)</span>
               <button
                 type="button"
                 className={s.chip}

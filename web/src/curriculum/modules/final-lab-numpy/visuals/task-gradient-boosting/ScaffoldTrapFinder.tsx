@@ -123,7 +123,7 @@ const TRAPS: Trap[] = [
     test: "Test cell: criterion='l2', 100 trees, max_depth 3, learning_rate 0.1",
     out: '  MSE: 1267.7653',
     tone: 'ok',
-    why: <>About the same as scikit-learn&apos;s own GradientBoostingRegressor (1268.7214). Always predicting the mean would give 17109.5225.</>,
+    why: <>About the same as scikit-learn&apos;s own GradientBoostingRegressor (1268.7214 in the notebook&apos;s run; it sets no random_state, so reruns vary slightly). Always predicting the mean would give 17109.5225.</>,
   },
   {
     id: 'lr',
@@ -176,7 +176,7 @@ const TRAPS: Trap[] = [
     wrong: '# self.trees.append(tree)   <- missing',
     right: 'self.trees.append(tree)',
     test: "Test cell: criterion='l2'",
-    out: '  MSE: 17109.5225\n  (len(gb.trees) is 0, so the check len(gb.trees) == 10 fails)',
+    out: '  MSE: 17109.5225\n  (len(gb.trees) is 0, so the autograder test q1.5_6,\n   which fits 10 trees and checks len(gb.trees) == 10, fails)',
     tone: 'bad',
     why: <>The trees were trained and thrown away. predict() has only F0, so you get exactly the always-predict-the-mean score.</>,
   },

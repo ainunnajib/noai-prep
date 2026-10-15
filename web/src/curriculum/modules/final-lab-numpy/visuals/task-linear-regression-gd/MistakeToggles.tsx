@@ -85,7 +85,7 @@ const VARIANTS: Variant[] = [
     edits: { 6: ['        theta = np.round(theta - alpha * gradient, 4)'] },
     signature: (
       <>
-        <strong>Signature: wrong in the 3rd decimal</strong> (0.012, 0.9946). From iteration 705 each step is smaller than 0.00005, rounds away to nothing, and θ freezes
+        <strong>Signature: wrong in the 2nd and 3rd decimals</strong> (0.012, 0.9946). From iteration 705 each step is smaller than 0.00005, rounds away to nothing, and θ freezes
         before it arrives.
       </>
     ),

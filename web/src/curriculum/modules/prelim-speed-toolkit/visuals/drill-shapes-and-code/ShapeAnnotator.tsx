@@ -34,7 +34,7 @@ const SNIPPETS: Snippet[] = [
       { code: 'x = torch.randn(32, 3, 28, 28)', shape: [32, 3, 28, 28], given: true },
       { code: 'conv = nn.Conv2d(3, 16, kernel_size=3)' },
       { code: 'h = conv(x)', shape: [32, 16, 26, 26], why: 'C becomes 16, the number of filters. H and W: (28 + 0 − 3)/1 + 1 = 26.' },
-      { code: 'h = F.max_pool2d(h, 2)', shape: [32, 16, 13, 13], why: 'Pooling keeps N and C and halves H and W: 26 → 13.' },
+      { code: 'h = nn.MaxPool2d(2)(h)', shape: [32, 16, 13, 13], why: 'Pooling keeps N and C and halves H and W: 26 → 13.' },
       { code: 'h = h.flatten(1)', shape: [32, 2704], why: 'flatten(1) keeps dim 0 (the batch) and multiplies the rest: 16 × 13 × 13 = 2704.' },
       { code: 'out = nn.Linear(2704, 10)(h)', shape: [32, 10], why: 'A Linear layer replaces only the last dimension: 2704 → 10.' },
       { code: 'pred = out.argmax(dim=1)', shape: [32], why: 'argmax over dim 1 removes that dimension: one class index per image.' },

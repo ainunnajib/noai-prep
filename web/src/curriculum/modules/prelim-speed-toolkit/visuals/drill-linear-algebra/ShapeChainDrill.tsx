@@ -250,12 +250,16 @@ function ChainView({ chain, reveal }: { chain: Chain; reveal: boolean }) {
           <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
             <span style={{ display: 'inline-grid', justifyItems: 'center', gap: '0.1rem' }}>
               <span className={`${d.domino}${m.t && !reveal ? ` ${d.dominoT}` : ''}`}>
+                {m.t && !reveal && <span className={d.times}>(</span>}
                 <span className={`${d.dimBox} ${leftCls}`}>{showR}</span>
                 <span className={d.times}>×</span>
-                <span className={`${d.dimBox} ${rightCls}`}>
-                  {showC}
-                  {m.t && !reveal && <sup className={d.supT}>T</sup>}
-                </span>
+                <span className={`${d.dimBox} ${rightCls}`}>{showC}</span>
+                {m.t && !reveal && (
+                  <>
+                    <span className={d.times}>)</span>
+                    <sup className={d.supT}>T</sup>
+                  </>
+                )}
               </span>
               <span className={d.muted} style={{ fontSize: '0.75rem', fontWeight: 700 }}>
                 {NAMES[i]}
@@ -288,7 +292,7 @@ function Explain({ chain }: { chain: Chain }) {
         </>
       ) : (
         <>
-          Touching numbers: {pairs.join(', ')}, so they cancel. The outer numbers {chain.mats[0].r} and {chain.mats[k - 1].c} survive: {chain.mats[0].r} × {chain.mats[k - 1].c}.
+          Touching numbers: {pairs.join(', ')}: they match and drop out. The outer numbers {chain.mats[0].r} and {chain.mats[k - 1].c} survive: {chain.mats[0].r} × {chain.mats[k - 1].c}.
         </>
       )}
     </>

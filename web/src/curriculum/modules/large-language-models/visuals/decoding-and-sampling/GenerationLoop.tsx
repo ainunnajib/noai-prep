@@ -112,10 +112,8 @@ export default function GenerationLoop() {
       title="The decoding loop: predict, choose, append, repeat"
       caption={
         <>
-          A toy model that only looks at the last word (a real LLM reads the whole context, but the loop is the same). Step through with{' '}
-          <b>Back</b>/<b>Next</b>: each step shows the next-token probabilities and the token chosen. <b>Greedy</b> always takes the top bar, so it
-          says the same thing every time, and here it falls into a loop it can never leave. Switch to <b>sample</b> and press <b>New sample</b>: each
-          run differs and usually reaches a full stop.
+          <b>Try:</b> step with <b>Back</b>/<b>Next</b>, then switch to <b>sampling</b> and press <b>New sample</b>. <b>Notice:</b> greedy always takes
+          the top bar, so it repeats itself and here gets stuck in a loop. (A toy model that reads only the last word.)
         </>
       }
     >
@@ -154,7 +152,7 @@ export default function GenerationLoop() {
               {i === step && i > 0 ? <b>{t}</b> : <span style={{ color: loopAt >= 0 && i >= loopAt ? 'var(--viz-neg)' : 'var(--ink)' }}>{t}</span>}
             </span>
           ))}
-          {step === nSteps && !ended && <span style={{ color: 'var(--ink-3)' }}> … (stopped at {MAX} tokens)</span>}
+          {step === nSteps && !ended && <span style={{ color: 'var(--ink-3)' }}> … (stopped after {nSteps} generated tokens)</span>}
         </div>
 
         {cur ? (
@@ -182,7 +180,7 @@ export default function GenerationLoop() {
             ) : (
               <>
                 <b style={{ color: 'var(--viz-neg)' }}>Stuck in a loop:</b> the red words repeat a phrase already written. Greedy decoding will
-                repeat it forever, so generation was cut off at {MAX} tokens.
+                repeat it forever, so generation was cut off after {nSteps} generated tokens.
               </>
             )}{' '}
             Press <b>Restart</b> to watch it token by token.

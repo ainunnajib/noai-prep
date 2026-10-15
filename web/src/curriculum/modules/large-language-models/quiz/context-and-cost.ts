@@ -5,8 +5,8 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.context-and-cost.1',
     prompt: "What does an LLM's **context window** limit?",
     options: [
-      'The number of tokens it can attend to at once, counting the prompt, the history so far and its reply',
-      'The number of words it learned during pretraining, which caps how many facts it can know',
+      'How many tokens it can attend to at once, counting the prompt, the history and its reply',
+      'The number of words it learned during pretraining, which caps how many facts it can ever know',
       'The number of past conversations it can remember between separate chat sessions',
       'The number of attention heads that can run in parallel inside each Transformer layer',
     ],
@@ -54,15 +54,25 @@ const questions: QuizQuestion[] = [
     prompt:
       "A school's chatbot app is billed per token. Each student question is about 100 tokens and each reply about 300 tokens, yet the bill per conversation grows much faster than the number of turns. What is the most likely reason?",
     options: [
-      'Every turn re-sends the whole conversation so far as input, so later turns send far more tokens',
+      'Each turn re-sends the whole chat so far as input, so later turns carry far more tokens',
       'The KV cache is billed as extra output tokens, and it grows by one row with every turn',
-      "The model's vocabulary grows during a chat, so each new token costs a little more",
+      "The model's vocabulary grows during a chat, so each new token costs a little more to produce",
       'Later replies are sampled at a higher temperature, which uses more compute per token',
     ],
     answer: 0,
     explanation:
       'The model has no memory between calls, so turn $k$ sends all $k - 1$ earlier exchanges plus the new question: about $400(k-1) + 100$ input tokens. Summed over the turns, that grows like the square of the number of turns. The KV cache is internal memory, not billed tokens, and neither the vocabulary nor the temperature changes during a chat.',
     difficulty: 'beginner',
+  },
+  {
+    id: 'large-language-models.context-and-cost.6',
+    prompt:
+      'A model has a 4,096-token context window. You want to paste in an English document and leave 1,000 tokens for the reply. About how many **words** of document fit? (Use 1 token ≈ ¾ of a word.)',
+    options: ['About 2,300 words', 'About 3,100 words', 'About 4,100 words', 'About 5,500 words'],
+    answer: 0,
+    explanation:
+      'The reply must fit in the window too, so the document gets $4{,}096 - 1{,}000 = 3{,}096$ tokens. Each token is about ¾ of a word, so that is $3{,}096 \\times \\tfrac34 \\approx 2{,}300$ words. Answering 3,100 treats tokens as words (or forgets the reply); 4,100 converts the wrong way ($\\times \\tfrac43$), as if there were fewer tokens than words; 5,500 converts the wrong way and forgets the reply.',
+    difficulty: 'intermediate',
   },
 ]
 

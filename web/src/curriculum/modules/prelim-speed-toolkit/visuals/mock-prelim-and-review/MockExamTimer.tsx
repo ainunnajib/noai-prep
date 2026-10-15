@@ -51,7 +51,7 @@ const QS: MQ[] = [
     dom: 'Computing',
     kind: 'recall',
     q: 'In a PyTorch training loop, which call clears the gradients left over from the previous step?',
-    options: ['optimiser.zero_grad()', 'loss.backward()', 'optimiser.step()', 'model.eval()'],
+    options: ['optimizer.zero_grad()', 'loss.backward()', 'optimizer.step()', 'model.eval()'],
     answer: 0,
     why: '.backward() adds to the stored gradients, so zero_grad() must reset them every step. step() applies the update; eval() switches dropout and batch norm to test mode.',
   },
@@ -172,6 +172,7 @@ export default function MockExamTimer() {
   const [flags, setFlags] = useState<boolean[]>(() => Array(N).fill(false))
   const [spent, setSpent] = useState<number[]>(() => Array(N).fill(0))
   const [seenCheckpoint, setSeenCheckpoint] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const curRef = useRef(0)
   curRef.current = cur
 
@@ -196,6 +197,7 @@ export default function MockExamTimer() {
     setFlags(Array(N).fill(false))
     setSpent(Array(N).fill(0))
     setSeenCheckpoint(false)
+    setConfirming(false)
   }
 
   const answered = answers.filter((a) => a !== null).length
@@ -207,7 +209,29 @@ export default function MockExamTimer() {
   const right = answers.filter((a, i) => a === QS[i].answer).length
 
   let banner: ReactNode = null
-  if (running && left <= 60) {
+  if (running && confirming && blanks > 0) {
+    banner = (
+      <div className={`${m.banner} ${m.bannerBad}`} role="status">
+        <strong>
+          {blanks} question{blanks === 1 ? ' has' : 's have'} no answer.
+        </strong>{' '}
+        A guess on each is worth ¼ of a mark on average; a blank scores 0.{' '}
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={() => {
+            setConfirming(false)
+            setCur(answers.findIndex((a) => a === null))
+          }}
+        >
+          Guess them first
+        </button>{' '}
+        <button type="button" className="btn btn-small" onClick={() => setPhase('done')}>
+          Submit anyway
+        </button>
+      </div>
+    )
+  } else if (running && left <= 60) {
     banner = (
       <div className={`${m.banner} ${blanks ? m.bannerBad : m.bannerGood}`} role="status">
         <strong>One minute left: sweep.</strong> {blanks ? `${blanks} question${blanks === 1 ? ' has' : 's have'} no answer yet. Put a best guess on every one: a blank always scores 0.` : 'Every question has an answer. Use the time on your flags.'}
@@ -251,7 +275,7 @@ export default function MockExamTimer() {
           <div className={m.banner}>
             {over ? (
               <>
-                {over} question{over === 1 ? '' : 's'} took longer than 36 s. The slowest was Q{slow[1] + 1} ({Math.round(slow[0])} s, {QS[slow[1]].kind}). Over 150 questions, every extra 10 s on one question is a question you may not reach.
+                {over} question{over === 1 ? '' : 's'} took longer than 36 s. The slowest was Q{slow[1] + 1} ({Math.round(slow[0])} s, {QS[slow[1]].kind}). On the full paper, every 36 s spent beyond pace is one question you may not reach.
               </>
             ) : blanks > 0 ? (
               <>
@@ -344,7 +368,7 @@ export default function MockExamTimer() {
             answered {answered}/{N} · flagged {flags.filter(Boolean).length}
           </span>
           {running ? (
-            <Button primary onClick={() => setPhase('done')}>
+            <Button primary onClick={() => (blanks > 0 && !confirming ? setConfirming(true) : setPhase('done'))}>
               Submit
             </Button>
           ) : (
@@ -369,6 +393,11 @@ export default function MockExamTimer() {
           ))}
         </div>
         {banner}
+        {!running ? (
+          <div className={m.qcard} style={{ textAlign: 'center', color: 'var(--ink-2)', minHeight: '9rem', alignContent: 'center' }}>
+            The questions stay hidden until the clock starts, as in the real paper.
+          </div>
+        ) : (
         <div className={m.qcard}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className={m.tag} style={{ color: 'var(--ink-3)' }}>
@@ -419,6 +448,7 @@ export default function MockExamTimer() {
             </Button>
           </div>
         </div>
+        )}
         {!running && <div style={{ fontSize: '0.86rem', color: 'var(--ink-3)', textAlign: 'center' }}>Have scrap paper and a pen ready, no calculator. The clock starts when you press Start.</div>}
       </div>
     </Figure>

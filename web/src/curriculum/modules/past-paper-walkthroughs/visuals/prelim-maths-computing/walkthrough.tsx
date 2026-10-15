@@ -150,6 +150,8 @@ export function Walkthrough({ items, storageKey, stepNames }: { items: WalkItem[
   const timedDone = st.filter((x) => x.time != null)
   const timeUsed = timedDone.reduce((a, x) => a + (x.time ?? 0), 0)
   const timeTarget = st.reduce((a, x, i) => a + (x.time != null ? items[i].target : 0), 0)
+  // a clock that ran out at three times the target only knows a lower bound for that item
+  const capped = st.some((x, i) => x.time != null && x.time >= items[i].target * 3)
 
   // error log grouped by tag
   const groups = new Map<string, number[]>()
@@ -224,7 +226,7 @@ export function Walkthrough({ items, storageKey, stepNames }: { items: WalkItem[
               {cur.time != null ? (
                 <>
                   {' '}
-                  in <strong className="tabular">{cur.time.toFixed(1)} s</strong> (target {item.target} s).
+                  in <strong className="tabular">{cur.time >= cap ? `more than ${cap} s` : `${cur.time.toFixed(1)} s`}</strong> (target {item.target} s).
                 </>
               ) : (
                 '.'
@@ -270,7 +272,7 @@ export function Walkthrough({ items, storageKey, stepNames }: { items: WalkItem[
           {timedDone.length > 0 && (
             <>
               {' '}
-              · clock: {timeUsed.toFixed(0)} s used for a target of {timeTarget} s
+              · clock: {capped ? 'at least ' : ''}{timeUsed.toFixed(0)} s used for a target of {timeTarget} s
             </>
           )}
         </span>

@@ -237,7 +237,7 @@ export default function MathsComputingWalkthrough() {
       title="Answer first, then reveal: seven 2026 items"
       caption={
         <>
-          Press <strong>Start the clock</strong>, answer, then reveal the solution one step at a time. Notice how often the answer comes from <em>one fact</em>, and how every wrong option is that same fact with one step skipped or swapped. All seven together have a target of {totalTarget} s, under the {7 * 36} s that seven questions get at the 2027 pace.
+          Press <strong>Start the clock</strong>, answer, then reveal the solution one step at a time. Notice how often the answer comes from <em>one fact</em>, and how many of the wrong options are that same fact with one step skipped or swapped; the rest are neighbouring ideas or fillers. All seven together have a target of {totalTarget} s, under the {7 * 36} s that seven questions get at the 2027 pace.
         </>
       }
     >

@@ -195,9 +195,9 @@ To switch models, change only the import and the line that creates the model. Th
   code={`scaler = StandardScaler()
 X_train_s = scaler.fit_transform(X_train)
 X_test_s = scaler.fit_transform(X_test)`}
-  options={['Nothing: fit_transform is the right way to scale every dataset', 'fit_transform should never be used on the training set, only on test data', 'The test set is rescaled with its own mean and standard deviation', 'X_test_s will contain exactly the same numbers as X_train_s']}
+  options={['Nothing: fit_transform is the right way to scale every dataset', 'fit_transform belongs on the test data, and transform on the training data', 'The test set is rescaled with its own mean and standard deviation', 'X_test_s will contain exactly the same numbers as X_train_s']}
   answer={2}
-  explain="The second `fit_transform` re-fits the scaler, so the test data is measured with a different ruler (its own mean and standard deviation) from the one the model was trained with. The fix is `X_test_s = scaler.transform(X_test)`. Using `fit_transform` on the training set is exactly right."
+  explain="The second `fit_transform` re-fits the scaler, so the test data is measured with a different ruler (its own mean and standard deviation) from the one the model was trained with. The fix is `X_test_s = scaler.transform(X_test)`. Using `fit_transform` on the training set is exactly right; it is the test set that should only be transformed."
 />
 
 ## Where the recipe sits in a project

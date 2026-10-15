@@ -75,7 +75,7 @@ Size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits
   </Step>
 </Steps>
 
-The last step shows the mental trick for the big multiplications: split the smaller number into tens and units ($32 = 30 + 2$) and add the two easy products.
+For the big multiplications, split the smaller number into tens and units and add the two easy products: $145 \times 32 = 145 \times 30 + 145 \times 2 = 4350 + 290 = 4640$.
 
 <ConvDrill />
 
@@ -85,7 +85,7 @@ The four slips the drill catches most: forgetting the $+1$; rounding up instead 
 
 </Mistake>
 
-The parameter formula also explains a classic "why" question. Two stacked $3 \times 3$ convs see the same $5 \times 5$ patch as one $5 \times 5$ conv. With $C$ channels in and out (ignoring biases), the stack costs $2 \times 9C^2 = 18C^2$ weights, against $25C^2$ for the single big kernel, and it adds an extra nonlinearity in between.
+The parameter formula also explains a classic "why" question. Two stacked $3 \times 3$ convs see the same $5 \times 5$ patch as one $5 \times 5$ conv. With $C$ channels in and out (ignoring biases), the stack costs $2 \times 9C^2 = 18C^2$ weights, against $25C^2$ for the single big kernel, and it adds an extra <Term def="An activation function such as ReLU between two layers. Without one, two stacked linear layers collapse into a single linear layer.">nonlinearity</Term> in between.
 
 <PastPaperQuestion paper="prelim2026" n={204} />
 
@@ -97,7 +97,7 @@ Some students write a formula sheet the night before a test and then never look 
 
 </Analogy>
 
-**Parameters.** Every count below is "size of each weight matrix, plus one bias per output".
+**Parameters.** Most counts below are "the weights, plus one bias per output"; Embedding, LoRA, the norms and the parameter-free layers are the exceptions, explained on their lines.
 
 - `nn.Linear(in, out)`: $\text{in} \cdot \text{out} + \text{out}$. The weight matrix, plus one bias per output.
 - `nn.Conv2d(C_in, C_out, k)`: $(k^2 C_\text{in} + 1)\,C_\text{out}$. One $k \times k \times C_\text{in}$ filter plus a bias, per output channel.
@@ -118,7 +118,7 @@ Two of these deserve a closer look.
 | --- | --- | --- |
 | $(n \times m)$ matrix times $(m \times p)$ matrix | $O(nmp)$ | $np$ entries, each a dot product of length $m$ |
 | attention scores $QK^\top$, $n$ tokens of width $d$ | $O(n^2 d)$ | double the context, **four times** the work |
-| Hessian of a model with $p$ parameters | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids Newton's method |
+| <Term def="The p × p table of all second derivatives of the loss with respect to the p parameters: how the slope in each direction changes along every other direction.">Hessian</Term> of a model with $p$ parameters | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids <Term def="An optimiser that uses the Hessian to jump straight towards the minimum in one big step, instead of taking many small gradient steps.">Newton's method</Term> |
 | brute-force $k$-NN, one query | $O(nd)$ | fast to train, slow to predict |
 | binary search / sorting $n$ items | $O(\log n)$ / $O(n \log n)$ | a million items: about 20 comparisons |
 

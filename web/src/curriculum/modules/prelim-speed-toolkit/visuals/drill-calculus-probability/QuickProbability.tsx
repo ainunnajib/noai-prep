@@ -111,7 +111,7 @@ function Dice() {
         </svg>
         <div style={{ display: 'grid', gap: '0.4rem', minWidth: 0, maxWidth: '16rem' }}>
           <div className={d.prompt} style={{ textAlign: 'left' }}>
-            P({comp ? `not ${name}` : name}) = {shown}/36 {frac(shown, 36) !== `${shown}/36` ? `= ${frac(shown, 36)}` : ''}
+            P({comp ? (ev === 'six' ? 'no 6' : `not ${name}`) : name}) = {shown}/36 {frac(shown, 36) !== `${shown}/36` ? `= ${frac(shown, 36)}` : ''}
           </div>
           {comp && (
             <div className={d.small}>
@@ -176,7 +176,7 @@ function Bayes() {
             P(ill | positive) = {TP}/{TP + FP} {TP + FP > 0 ? `≈ ${Math.round(grid * 100)}%` : ''}
           </div>
           <div className={d.small}>
-            Out of {TP + FP} positive tests, only {TP} belong to people who are ill.{' '}
+            Out of {TP + FP} positive tests, only {TP} {TP === 1 ? 'belongs' : 'belong'} to people who are ill.{' '}
             {Math.abs(exact - grid) > 0.005 && <>The exact value (without rounding people) is {Math.round(exact * 100)}%.</>}
           </div>
         </div>
@@ -190,7 +190,7 @@ function Bayes() {
         items={[
           ['P(ill)', `${prev}%`],
           ['P(positive | ill)', `${sens}%`],
-          ['P(ill | positive)', `${Math.round(exact * 100)}%`],
+          ['P(ill | positive), exact', `${Math.round(exact * 100)}%`],
         ]}
       />
     </>

@@ -41,7 +41,7 @@ Try the default settings first. An average of 34 seconds on a normal question so
 
 <KeyIdea>
 
-Check the clock every 15 minutes against **25 questions per 15 minutes** (must-hit: Q50 at 30:00, Q100 at 60:00) and **question = 2 × minutes** (target). Below the must-hit line at any checkpoint, switch to speed mode immediately: cap every question at about 30 seconds.
+Check the clock every 15 minutes against **25 questions per 15 minutes** (must-hit: Q50 at 30:00, Q100 at 60:00) and **question = 2 × minutes** (target). Below the must-hit line at any checkpoint, switch to **speed mode** immediately: any question still unsolved after about 30 seconds gets your best guess and a flag, and you move on.
 
 </KeyIdea>
 
@@ -53,7 +53,7 @@ Check the clock every 15 minutes against **25 questions per 15 minutes** (must-h
     You have just finished Q68. That is $75 - 68 = 7$ questions behind the must-hit line.
   </Step>
   <Step title="What does the rest of the paper need?">
-    $150 - 68 = 82$ questions are left in $45 \times 60 = 2700$ seconds. Since $82 \times 33 = 2706$, you need about **33 seconds** each from now on, with no spare time at all. That is faster than you have been going, so switch to speed mode now: cap hard questions, guess and flag them.
+    $150 - 68 = 82$ questions are left in $45 \times 60 = 2700$ seconds. Since $82 \times 33 = 2706$, you need about **33 seconds** each from now on, with no spare time at all. That is faster than you have been going, so switch to speed mode now: any question still unsolved after about 30 s gets your best guess and a flag.
   </Step>
 </Steps>
 
@@ -97,7 +97,7 @@ The Prelim is a Google Form, so do not count on a "flag" button. Keep your own f
 
 <QuickCheck
   q="At the 30:00 checkpoint you have just finished Q41. What should you do?"
-  options={['Switch to speed mode now: cap hard questions at about 30 s, guess and flag them', 'Keep the same pace and plan to catch up during the last 15 minutes of the paper', 'Go back over Q1–41 to make sure those answers are right before moving on', 'Skip straight to the last block of questions, since they are worth more marks']}
+  options={['Switch to speed mode: guess and flag any question still unsolved after about 30 s', 'Keep the same pace and plan to catch up during the last 15 minutes of the paper', 'Go back over Q1–41 to make sure those answers are right before moving on', 'Skip straight to the last block of questions, since those are worth more marks each']}
   answer={0}
   explain="The must-hit line at 30:00 is Q50 (25 questions per 15 minutes), so you are 9 behind. Act now, while 60 minutes remain. Catching up at the end fails because the last questions are usually the longest, and every question is worth the same 1 mark."
 />
@@ -148,7 +148,7 @@ Try both techniques on two real questions. The first is pure elimination; for th
 
 **Q270:** three options contain "never", "only" and "always". Strike them and one is left, before you think about generative models at all.
 
-**Q273:** the decisive number is **10% validation accuracy on a 10-class problem**: exactly what random guessing gives ($1 \div 10$). Overfitting gives validation accuracy *below* training accuracy, but still well above chance; vanishing gradients would stop the training loss from falling, which clashes with "decreases smoothly to 0.01". Only a mismatch between the training and validation labels makes a model that has truly learnt something score exactly chance.
+**Q273:** the decisive number is **10% validation accuracy on a 10-class problem**: exactly what random guessing gives ($1 \div 10$). Overfitting gives validation accuracy *below* training accuracy, but still well above chance; vanishing gradients would stop the training loss from falling, which clashes with "decreases smoothly to 0.01". Leakage in the training set would make the scores look too good, not leave validation stuck at exactly chance. Only a mismatch between the training and validation labels makes a model that has truly learnt something score exactly chance.
 
 </Reveal>
 

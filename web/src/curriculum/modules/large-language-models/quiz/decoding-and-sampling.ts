@@ -19,10 +19,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'large-language-models.decoding-and-sampling.2',
     prompt: 'At $T = 1$ a model gives three tokens probabilities $0.5$, $0.25$ and $0.25$. What are their probabilities at $T = 0.5$?',
-    options: ['$\\tfrac23, \\tfrac16, \\tfrac16$', '$0.41, 0.29, 0.29$', '$0.5, 0.25, 0.25$', '$1, 0, 0$'],
+    options: ['$0.67, 0.17, 0.17$', '$0.41, 0.29, 0.29$', '$0.5, 0.25, 0.25$', '$1, 0, 0$'],
     answer: 0,
     explanation:
-      'Since $e^{z/T} = (e^z)^{1/T}$, temperature 0.5 squares the odds: $0.5^2 : 0.25^2 : 0.25^2 = 0.25 : 0.0625 : 0.0625 = 4 : 1 : 1$, giving $\\tfrac46, \\tfrac16, \\tfrac16$. The flatter $0.41, 0.29, 0.29$ is what $T = 2$ gives (square roots). Only $T \\to 0$ gives $1, 0, 0$.',
+      'Since $e^{z/T} = (e^z)^{1/T}$, temperature 0.5 squares the odds: $0.5^2 : 0.25^2 : 0.25^2 = 0.25 : 0.0625 : 0.0625 = 4 : 1 : 1$, giving $\\tfrac46, \\tfrac16, \\tfrac16 \\approx 0.67, 0.17, 0.17$. The flatter $0.41, 0.29, 0.29$ is what $T = 2$ gives (square roots). Only $T \\to 0$ gives $1, 0, 0$.',
     difficulty: 'intermediate',
   },
   {
@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Generating two tokens. Step 1: token A has probability 0.6 and token B 0.4. Step 2: the best token after A has probability 0.3, and the best token after B has probability 0.9. What does beam search with $b = 2$ return?',
     options: [
-      'B then its best token, with total probability 0.36 (greedy would give 0.18)',
+      'B then its best token, total probability 0.36, while greedy gets 0.18',
       'A then its best token, with total probability 0.18, the same as greedy',
       'B then its best token, with total probability 0.9, judged on the last step',
       'A then its best token, with total probability 0.9, from adding 0.6 and 0.3',

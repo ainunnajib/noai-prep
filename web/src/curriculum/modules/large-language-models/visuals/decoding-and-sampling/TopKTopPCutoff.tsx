@@ -80,9 +80,8 @@ export default function TopKTopPCutoff() {
       title="Top-k and top-p: cut off the unlikely tail"
       caption={
         <>
-          Choose a filter and slide it, then switch between the confident and the uncertain prompt. Top-k always keeps exactly k tokens. Top-p keeps
-          tokens, most likely first, until their probabilities add up to at least p: compare how many survive p = 0.9 on each prompt. The survivors
-          are <b>renormalised</b> (divided by the probability they cover) so that they add up to 1 again; then one is sampled.
+          <b>Try:</b> choose a filter, slide it, and switch between the confident and the uncertain prompt. <b>Notice:</b> top-k always keeps k
+          tokens, but at p = 0.9 top-p keeps few on one prompt and many on the other. Survivors are renormalised.
         </>
       }
     >

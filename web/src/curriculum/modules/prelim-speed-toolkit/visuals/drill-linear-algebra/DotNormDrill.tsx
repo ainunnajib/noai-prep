@@ -260,6 +260,10 @@ export default function DotNormDrill() {
               setMode(v)
               setRunning(false)
               setOver(false)
+              // a fresh round, so Start always gives the full minute
+              setGame((g) => g + 1)
+              setIdx(0)
+              setLog([])
             }}
             options={[
               { value: 'mixed', label: 'Mixed' },
@@ -276,9 +280,12 @@ export default function DotNormDrill() {
               setDiff(v)
               setRunning(false)
               setOver(false)
+              setGame((g) => g + 1)
+              setIdx(0)
+              setLog([])
             }}
             options={[
-              { value: 'easy', label: '3-D, positive' },
+              { value: 'easy', label: '3-D, mostly positive' },
               { value: 'hard', label: '3–4-D, signs' },
             ]}
           />

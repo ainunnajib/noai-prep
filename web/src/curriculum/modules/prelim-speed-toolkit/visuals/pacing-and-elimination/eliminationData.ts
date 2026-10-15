@@ -71,7 +71,7 @@ export const TRAINER: TrainerQuestion[] = [
     answer: 0,
     options: [
       { text: 'Requires computing and inverting the Hessian (O(n³))', why: 'A specific, checkable reason: with n = 10 million parameters, an n × n matrix cannot even be stored, let alone inverted.' },
-      { text: "Doesn't find minima", tag: 'empty', why: 'Overclaims the opposite of the truth: near a minimum Newton’s method converges very fast.' },
+      { text: "Doesn't find minima", tag: 'empty', why: 'No mechanism, only a bare verdict, and a false one: near a minimum Newton’s method converges very fast.' },
       { text: 'Only works for convex functions', tag: 'absolute', why: '“Only”: it runs on any twice-differentiable function, it just is not guaranteed to head downhill.' },
       { text: 'Slower than SGD', tag: 'empty', why: 'Restates “rarely used” without a mechanism. Slower why? The correct option names the cause.' },
     ],
@@ -132,7 +132,7 @@ export const TRAINER: TrainerQuestion[] = [
     answer: 3,
     options: [
       { text: 'Training speed increases 4x because gradients are computed in parallel across accumulation steps', tag: 'clash', why: 'The four micro-batches run one after another on the same GPU. Nothing in the stem adds parallel hardware.' },
-      { text: 'Memory usage decreases by 75% because gradients are discarded after each micro-batch', tag: 'clash', why: '“Accumulation” means the gradients are added up, not discarded. The option contradicts the name of the technique.' },
+      { text: 'Memory usage decreases by 75% because gradients are discarded after each micro-batch', tag: 'clash', why: 'The stem names the technique: in gradient “accumulation” the gradients are added up across micro-batches, not discarded.' },
       { text: 'Model accuracy improves because gradient accumulation acts as implicit regularisation through gradient noise', tag: 'offtopic', why: 'The stem’s problems are memory and unstable training, not overfitting. This answers a question nobody asked.' },
       { text: 'Effective batch size becomes 32 (8×4) while maintaining 8-sample memory footprint; gradients averaged across 4 micro-batches before optimiser step', why: 'Ties straight to the stem’s numbers: 8 × 4 = 32, exactly the batch that did not fit.' },
     ],

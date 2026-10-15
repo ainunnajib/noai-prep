@@ -36,14 +36,15 @@ export default function ChatCostMeter() {
   const [r, setR] = useState(300)
   const [strat, setStrat] = useState<Strategy>('all')
   const wanted = turnWanted(turns, u, r, strat)
-  const inputs = wanted.map((x) => Math.min(x, WINDOW)) // anything longer is cut to fit the window
+  const room = WINDOW - r // the reply must fit in the window too
+  const inputs = wanted.map((x) => Math.min(x, room)) // anything longer is cut to fit
   const totalIn = inputs.reduce((a, b) => a + b, 0)
   const totalOut = turns * r
   const costPer1000 = ((totalIn * PRICE_IN + totalOut * PRICE_OUT) / 1e6) * 1000
   const last = inputs[inputs.length - 1]
   const ttft = last / READ_SPEED
   const replyTime = r / WRITE_SPEED
-  const overflowTurn = wanted.findIndex((x) => x > WINDOW)
+  const overflowTurn = wanted.findIndex((x) => x > room)
   const yMax = WINDOW * 1.15
   let cum = 0
   const cumPts: [number, number][] = inputs.map((x, i) => {
@@ -57,10 +58,8 @@ export default function ChatCostMeter() {
       title="Why long chats cost more: the whole history is input, every turn"
       caption={
         <>
-          The model remembers nothing between calls, so the app re-sends the conversation each turn. Each bar is one turn's input: it grows every turn,
-          so the <b>total</b> billed grows like the square of the number of turns, and eventually the history no longer fits in the context window
-          (dashed line, 8,192 tokens here); then the oldest messages are cut (red bars). Switch to <b>summary + last exchange</b> to keep the input flat. Output tokens cost more per token and arrive
-          one at a time, so long replies are slow. (Prices and speeds are illustrative; real ones vary by model and change often.)
+          <b>Try:</b> add turns, then switch to <b>summary + last exchange</b>. <b>Notice:</b> each turn re-sends the whole history, so the total bill
+          grows like the square of the number of turns, and old messages are cut once the window is full (red bars).
         </>
       }
     >
@@ -93,10 +92,10 @@ export default function ChatCostMeter() {
                 y0={0}
                 y1={x}
                 rx={2}
-                fill={wanted[i] > WINDOW ? 'var(--viz-neg)' : strat === 'all' ? 'var(--viz-1)' : 'var(--viz-3)'}
+                fill={wanted[i] > room ? 'var(--viz-neg)' : strat === 'all' ? 'var(--viz-1)' : 'var(--viz-3)'}
               />
             ))}
-            <HLine y={WINDOW} color="var(--viz-2)" dash="6 4" width={2} label="context window" />
+            <HLine y={room} color="var(--viz-2)" dash="6 4" width={2} label={`context window minus reply = ${fmt(room)}`} />
           </Plot>
         </div>
 
@@ -126,12 +125,12 @@ export default function ChatCostMeter() {
         <p className={s.note}>
           {overflowTurn >= 0 ? (
             <>
-              From turn <b>{overflowTurn + 1}</b> the history no longer fits in the window (red bars): the app must cut the oldest messages, so the model
-              forgets the start of the chat.{' '}
+              From turn <b>{overflowTurn + 1}</b> the history plus the reply no longer fit in the {fmt(WINDOW)}-token window (red bars): the app must cut
+              the oldest messages, so the model forgets the start of the chat.{' '}
             </>
           ) : null}
           Assumptions: ${PRICE_IN} per million input tokens, ${PRICE_OUT} per million output tokens; the model reads {fmt(READ_SPEED)} prompt tokens/s and
-          writes {WRITE_SPEED} tokens/s; the summary is {SUMMARY} tokens.
+          writes {WRITE_SPEED} tokens/s; the summary is {SUMMARY} tokens. Prices and speeds are illustrative and change often.
         </p>
       </div>
     </Figure>

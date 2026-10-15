@@ -11,6 +11,12 @@ import s from './lora.module.css'
 const SIZES = [128, 256, 512, 768, 1024, 2048, 4096, 8192]
 const RANKS = [1, 2, 4, 8, 16, 32, 64, 128]
 const MIN_T = 4 // thinnest drawn thickness (px) for B and A
+const LABEL_GAP = 12 // smallest gap (px) between neighbouring labels
+/** rough rendered width of a label line: 13px bold title, 11.5px numbers */
+const labelWidth = (title: string, sub: string) => Math.max(title.length * 8, sub.length * 6.8)
+/** text versions of the B and A colours, mixed towards the ink for readable contrast */
+const TEXT_B = 'color-mix(in srgb, var(--viz-2) 55%, var(--ink))'
+const TEXT_A = 'color-mix(in srgb, var(--viz-3) 60%, var(--ink))'
 
 const fmt = (n: number) => n.toLocaleString('en-GB')
 const pct = (x: number) => {
@@ -25,6 +31,7 @@ export default function LoRAMatrixViz() {
   const [ri, setRi] = useState(3) // 8
   const [stage, setStage] = useState<'start' | 'trained'>('trained')
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(560)
+  const started = stage === 'start'
 
   const d = SIZES[di]
   const k = SIZES[ki]
@@ -46,17 +53,31 @@ export default function LoRAMatrixViz() {
   const trueT = r * sc
   const t = Math.max(MIN_T, trueT)
   const exaggeration = t / trueT
-  const xW = pad
-  const xB = xW + wW + opGap
-  const xA = xB + t + opGap
+  // Labels sit in their own columns: when a block is very thin, it moves right so that its label never collides
+  // with its neighbour's (block sizes stay to scale; only the gaps between blocks grow).
+  const showInside = wW >= 70 && wH >= 46
+  const titleW = showInside ? 'W' : 'W (frozen)'
+  const titleB = started ? 'B = 0' : 'B'
+  const subW = `${fmt(d)} × ${fmt(k)}`
+  const subB = `${fmt(d)} × ${r}`
+  const subA = `${r} × ${fmt(k)}`
+  const lw0 = labelWidth(titleW, subW)
+  const lw1 = labelWidth(titleB, subB)
+  const lw2 = labelWidth('A', subA)
+  const cW = Math.max(pad + wW / 2, lw0 / 2 + 2)
+  const xW = cW - wW / 2
+  const xB = Math.max(xW + wW + opGap, cW + lw0 / 2 + LABEL_GAP + lw1 / 2 - t / 2)
+  const cB = xB + t / 2
+  const xA = Math.max(xB + t + opGap, cB + lw1 / 2 + LABEL_GAP + lw2 / 2 - wW / 2)
+  const cA = xA + wW / 2
+  const plusX = (xW + wW + xB) / 2
+  const timesX = (xB + t + xA) / 2
   const yA = top + Math.max(0, (wH - t) / 2)
   const labelY = top + wH + 18
   const H = labelY + 34
   const midY = top + wH / 2
-  const started = stage === 'start'
   const bFill = started ? 'var(--surface)' : 'color-mix(in srgb, var(--viz-2) 75%, var(--surface))'
   const aFill = 'color-mix(in srgb, var(--viz-3) 75%, var(--surface))'
-  const showInside = wW >= 70 && wH >= 46
   const barMax = Math.max(full, lora)
 
   return (
@@ -65,10 +86,8 @@ export default function LoRAMatrixViz() {
       title="LoRA to scale: a frozen W and two thin trainable matrices"
       caption={
         <>
-          The grey block is a pretrained weight matrix <M>W</M> with <M>d</M> rows and <M>k</M> columns; it stays frozen. LoRA learns only{' '}
-          <M>B</M> (<M>d \times r</M>) and <M>A</M> (<M>r \times k</M>), and adds their product to <M>W</M>. Slide the rank <M>r</M> and the
-          matrix size: at <M>d = k = 4096</M> and <M>r = 8</M> the trainable part is 1/256 of the matrix. Switch to <b>start of training</b> to see
-          why the model is unchanged on step 0: <M>B</M> is all zeros, so <M>BA = 0</M>.
+          <b>Try:</b> slide the rank <M>r</M> and the matrix size, then switch to <b>start of training</b>. <b>Notice:</b> at <M>d = k = 4096</M>,{' '}
+          <M>r = 8</M> the trainable part is 1/256 of <M>W</M>, and at the start <M>B = 0</M>, so <M>BA = 0</M>.
         </>
       }
     >
@@ -92,15 +111,15 @@ export default function LoRAMatrixViz() {
                 </text>
               </>
             )}
-            <text x={xW + wW / 2} y={labelY} textAnchor="middle" className={s.blockLabel}>
-              {showInside ? 'W' : 'W (frozen)'}
+            <text x={cW} y={labelY} textAnchor="middle" className={s.blockLabel}>
+              {titleW}
             </text>
-            <text x={xW + wW / 2} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
-              {fmt(d)} × {fmt(k)}
+            <text x={cW} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
+              {subW}
             </text>
 
             {/* + */}
-            <text x={xW + wW + opGap / 2} y={midY} dy="0.35em" textAnchor="middle" className={s.op}>
+            <text x={plusX} y={midY} dy="0.35em" textAnchor="middle" className={s.op}>
               +
             </text>
 
@@ -113,28 +132,34 @@ export default function LoRAMatrixViz() {
               rx={1.5}
               style={{ fill: bFill, stroke: 'var(--viz-2)', strokeWidth: 1.5, strokeDasharray: started ? '3 2' : undefined }}
             />
-            <text x={xB + t / 2} y={labelY} textAnchor="middle" className={s.blockLabel} style={{ fill: 'var(--viz-2)' }}>
-              {started ? 'B = 0' : 'B'}
+            <text x={cB} y={labelY} textAnchor="middle" className={s.blockLabel} style={{ fill: TEXT_B }}>
+              {titleB}
             </text>
-            <text x={xB + t / 2} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
-              {fmt(d)} × {r}
+            <text x={cB} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
+              {subB}
             </text>
 
             {/* × */}
-            <text x={xB + t + opGap / 2} y={midY} dy="0.35em" textAnchor="middle" className={s.op}>
-              ·
+            <text x={timesX} y={midY} dy="0.35em" textAnchor="middle" className={s.op}>
+              ×
             </text>
 
             {/* A */}
             <rect x={xA} y={yA} width={wW} height={t} rx={1.5} style={{ fill: aFill, stroke: 'var(--viz-3)', strokeWidth: 1.5 }} />
-            <text x={xA + wW / 2} y={labelY} textAnchor="middle" className={s.blockLabel} style={{ fill: 'var(--viz-3)' }}>
+            <text x={cA} y={labelY} textAnchor="middle" className={s.blockLabel} style={{ fill: TEXT_A }}>
               A
             </text>
-            <text x={xA + wW / 2} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
-              {r} × {fmt(k)}
+            <text x={cA} y={labelY + 15} textAnchor="middle" className={s.blockSub}>
+              {subA}
             </text>
           </svg>
         </div>
+
+        <Controls>
+          <Slider label={<>rows <M>d</M></>} value={di} min={0} max={SIZES.length - 1} step={1} onChange={setDi} format={(v) => fmt(SIZES[v])} />
+          <Slider label={<>columns <M>k</M></>} value={ki} min={0} max={SIZES.length - 1} step={1} onChange={setKi} format={(v) => fmt(SIZES[v])} />
+          <Slider label={<>rank <M>r</M></>} value={ri} min={0} max={RANKS.length - 1} step={1} onChange={setRi} format={(v) => RANKS[v]} />
+        </Controls>
 
         <p className={s.note}>
           {exaggeration > 1.05 ? (
@@ -190,11 +215,6 @@ export default function LoRAMatrixViz() {
           </p>
         </div>
 
-        <Controls>
-          <Slider label={<>rows <M>d</M></>} value={di} min={0} max={SIZES.length - 1} step={1} onChange={setDi} format={(v) => fmt(SIZES[v])} />
-          <Slider label={<>columns <M>k</M></>} value={ki} min={0} max={SIZES.length - 1} step={1} onChange={setKi} format={(v) => fmt(SIZES[v])} />
-          <Slider label={<>rank <M>r</M></>} value={ri} min={0} max={RANKS.length - 1} step={1} onChange={setRi} format={(v) => RANKS[v]} />
-        </Controls>
         <Controls>
           <Segmented
             label="Show"

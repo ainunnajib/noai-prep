@@ -135,12 +135,13 @@ export default function FinalTimePlanner() {
           Drag the two handles to split the 3 hours, and tap a part to rate it <strong>confident → maybe → hard</strong>. The bottom row of the bar shows the order you would
           work in. Compare the two projected scores: same student, same time, different order. Model (our assumption, not official data): a confident part takes our estimated
           time and succeeds 90% of the time; "maybe" takes 1.8× as long at 60%; "hard" takes 3× at 30%; a half-finished part earns half its expected marks; a careful MCQ takes
-          1.5 min and is right 70% of the time, a rushed guess 25%.
+          1.5 min and is right 70% of the time, a rushed guess 25%. Tasks 2 and 3 are the 2026 PyTorch tasks, which Final lab II rebuilds; here only their marks, minutes
+          and your confidence matter.
         </>
       }
       wide
     >
-      <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.8rem' }}>
+      <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.8rem', userSelect: 'none', WebkitUserSelect: 'none' }}>
         <Plot x={[0, TOTAL]} y={[0, 2.1]} width={720} height={150} minHeight={140} margin={{ left: 10, right: 12, top: 8, bottom: 24 }} ariaLabel="A three-hour bar split into MCQs, notebooks and a final check, with the order of notebook parts below">
           <Rect x0={0} x1={b1} y0={1.15} y1={2} fill="color-mix(in srgb, var(--viz-1) 30%, var(--surface))" rx={4} />
           <Rect x0={b1} x1={b2} y0={1.15} y1={2} fill="color-mix(in srgb, var(--viz-3) 26%, var(--surface))" rx={4} />
@@ -173,8 +174,8 @@ export default function FinalTimePlanner() {
                   fill={`color-mix(in srgb, ${TASK_COLOR[sl.part.task]} ${full ? 55 : 22}%, var(--surface))`}
                   stroke="var(--surface)"
                 />
-                {x1 - x0 >= (narrow ? 9 : 6) && (
-                  <Label x={(x0 + x1) / 2} y={0.55} anchor="middle" dy={4} size={10.5} weight={700}>
+                {x1 - x0 >= (narrow ? 10 : 6) && (
+                  <Label x={(x0 + x1) / 2} y={0.55} anchor="middle" dy={4} size={11} weight={700}>
                     {sl.part.id}
                   </Label>
                 )}

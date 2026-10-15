@@ -17,9 +17,9 @@ const questions: QuizQuestion[] = [
       'You are building a model to forecast next week\'s daily MRT ridership from two years of daily records. Which way of choosing validation data gives the most trustworthy estimate?',
     options: [
       'Train on the earlier days and validate on the most recent weeks',
-      'Shuffle all the days and hold out a random 20% of them',
+      'Shuffle the days and hold out a random 20% of them',
       'Stratify the split so that each part has the same mix of weekdays',
-      'Validate on the first 20% of days and train on all the later days',
+      'Validate on the first 20% of days and train on the later days',
     ],
     answer: 0,
     explanation:
@@ -31,10 +31,10 @@ const questions: QuizQuestion[] = [
     prompt: 'What is wrong with this workflow?',
     code: 'scaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\nX_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)\nmodel.fit(X_train, y_train)\nprint(model.score(X_test, y_test))',
     options: [
-      'The scaler was fitted on the test rows as well, so test information leaked into training',
+      'The scaler was fitted on all rows, so information from the test rows leaked into training',
       'The scaler should be fitted on the test rows only, since the score is measured on those rows',
       'Nothing is wrong: scaling never uses the labels, so it cannot cause any kind of leakage',
-      'StandardScaler must come after train_test_split because it cannot transform two arrays',
+      'StandardScaler has to come after train_test_split because it cannot transform two arrays',
     ],
     answer: 0,
     explanation:
@@ -62,8 +62,8 @@ const questions: QuizQuestion[] = [
       'Why does passing `make_pipeline(StandardScaler(), SelectKBest(k=10), LogisticRegression())` to `cross_val_score(pipe, X, y, cv=5)` prevent preprocessing leakage?',
     options: [
       'In every round, the scaler and selector are fitted on the training folds only',
-      'The pipeline removes every feature that is known only after the outcome',
-      'The pipeline scales and selects once on all rows, so every fold uses the same columns',
+      'The pipeline automatically drops any feature that is known after the outcome',
+      'The pipeline scales and selects once on all rows, so each fold uses the same columns',
       'The pipeline holds back an extra test set, so the cross-validation folds stay unused',
     ],
     answer: 0,

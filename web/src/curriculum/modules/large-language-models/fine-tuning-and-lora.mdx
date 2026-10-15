@@ -2,7 +2,7 @@ import ForgettingLandscape from './visuals/fine-tuning-and-lora/ForgettingLandsc
 import LoRAMatrixViz from './visuals/fine-tuning-and-lora/LoRAMatrixViz'
 import OuterProductBuilder from './visuals/fine-tuning-and-lora/OuterProductBuilder'
 
-A pretrained LLM knows a lot, but not *your* job: marking Sec 3 essays in your school's rubric, replying in your company's style, or reading medical notes. Teaching it means more training, and training every one of its billions of weights takes a data centre. **LoRA**, the trick in this lesson, lets you adapt the same model on a single GPU by training well under 1% of the numbers. NOAI asks what it is, and IOAI tasks use it again and again.
+A pretrained LLM knows a lot, but not *your* job: marking Sec 3 essays in your school's rubric, replying in your company's style, or reading medical notes. Teaching it means more training, and training every one of its billions of weights takes a data centre. **LoRA**, the trick in this lesson, lets you adapt the same model on a single GPU by training well under 1% of the numbers. NOAI asks what it is, and the IOAI syllabus lists parameter-efficient fine-tuning as a skill you should be able to use.
 
 <Analogy title="A booklet of corrections">
 
@@ -20,7 +20,16 @@ Fine-tuning is not the same as prompting. A prompt changes only the *input*; fin
 
 The obvious way is <Term def="Fine-tuning in which every weight of the model is updated by gradient descent.">full fine-tuning</Term>: let gradient descent update every weight. For an LLM this has two big problems.
 
-**Problem 1: cost.** Training a weight needs much more memory than storing it. With the [Adam optimiser](#/learn/training-deep-networks/momentum-and-adam) and 16-bit numbers, a common rule of thumb is **about 16 bytes per trainable weight**: 2 bytes for the weight, 2 for its gradient, and 12 for Adam's bookkeeping (a 32-bit master copy of the weight and two running averages, 4 bytes each). For a 7-billion-weight model that is $7 \times 10^9 \times 16 \text{ bytes} = 112$ GB, before counting the activations: more than most single GPUs can hold (a gaming GPU has 8 to 24 GB). And every fine-tuned version is a full 14 GB copy of the model ($7 \times 10^9$ weights × 2 bytes).
+**Problem 1: cost.** Training a weight needs much more memory than storing it. With the [Adam optimiser](#/learn/training-deep-networks/momentum-and-adam) and 16-bit numbers, a common rule of thumb is **about 16 bytes per trainable weight**:
+
+| Stored for each trainable weight | Bytes |
+|---|---|
+| the weight itself (16-bit) | 2 |
+| its gradient (16-bit) | 2 |
+| Adam's bookkeeping: a 32-bit master copy and two running averages | 12 |
+| **total** | **16** |
+
+For a 7-billion-weight model that is $7 \times 10^9 \times 16 \text{ bytes} = 112$ GB, before counting the activations: more than a single GPU usually holds (a gaming GPU has about 8 to 32 GB). And every fine-tuned version is a full 14 GB copy of the model ($7 \times 10^9$ weights × 2 bytes).
 
 **Problem 2: forgetting.** Push a model hard enough on new data and it can lose what it used to know.
 
@@ -28,7 +37,7 @@ The obvious way is <Term def="Fine-tuning in which every weight of the model is 
 
 <Term def="When training on a new task changes the weights so much that a network loses abilities it had before, such as general knowledge or fluent conversation.">Catastrophic forgetting</Term> is what happens when training on a new task overwrites the weights that an old skill depended on. Fine-tune a chatbot hard on legal contracts and it may write excellent contract summaries but stumble on simple arithmetic or casual chat that it handled before.
 
-Why does it happen? The new task's loss only measures the new task. Gradient descent follows that loss downhill and has no reason to stay where the old skill lives. You can see this in a model with only two weights.
+Why does it happen? The new task's loss only measures the new task. Gradient descent follows that loss downhill and has no reason to stay where the old skill lives. You can see this in a model with only two weights: each point of the plot below is one setting of the two weights, the blue rings show the old task's loss (a long valley where many settings work), and the orange rings show the new task's loss around its best point.
 
 <ForgettingLandscape />
 
@@ -37,6 +46,8 @@ The picture holds the whole story. Usually many weight settings are good for the
 - **Small learning rate and few epochs**, so the weights do not travel far.
 - **Mix some old or general data** into the fine-tuning set (often called replay), so the loss itself rewards keeping the old skill.
 - **Freeze most of the weights** and train only a small part. LoRA, below, does exactly this, and its original weights are never changed at all.
+
+Freezing reduces forgetting rather than preventing it: while the LoRA update is switched on, the model computes with the changed weights and can still lose some old skills. The difference is that you can always switch the update off and get the original model back.
 
 <Mistake title="Forgetting is not overfitting">
 
@@ -135,7 +146,7 @@ Structured pictures need few layers; random noise needs many. LoRA's bet is that
 
 <Reveal label="Check: what is the largest possible rank of BA when B is 4096 × 8 and A is 8 × 4096?">
 
-At most **8**. $BA$ is a sum of 8 outer products, and each adds at most one new pattern. It is a $4096 \times 4096$ matrix, but it can never have rank 4096. In PyTorch, `torch.linalg.matrix_rank(B @ A)` for random $B$ (512 × 8) and $A$ (8 × 512) prints `tensor(8)`.
+At most **8**. $BA$ is a sum of 8 outer products, and each adds at most one new pattern. It is a $4096 \times 4096$ matrix, but it can never have rank 4096. In PyTorch, `torch.linalg.matrix_rank(B @ A)` for random $B$ (512 × 8) and $A$ (8 × 512) prints `tensor(8)` (checked on this smaller example so it runs quickly; the limit of 8 is the same).
 
 </Reveal>
 
@@ -164,11 +175,13 @@ class LoRALinear(nn.Module):
     def __init__(self, base: nn.Linear, r=8, alpha=16):
         super().__init__()
         self.base = base
+        # freeze W (and its bias)
         for p in self.base.parameters():
-            p.requires_grad = False                    # freeze W (and its bias)
+            p.requires_grad = False
         d, k = base.out_features, base.in_features
-        self.A = nn.Parameter(torch.randn(r, k) * 0.01)  # r x k, small random numbers
-        self.B = nn.Parameter(torch.zeros(d, r))         # d x r, all zeros
+        # A: r x k, small random numbers.  B: d x r, all zeros.
+        self.A = nn.Parameter(torch.randn(r, k) * 0.01)
+        self.B = nn.Parameter(torch.zeros(d, r))
         self.scale = alpha / r
 
     def forward(self, x):
@@ -178,11 +191,14 @@ torch.manual_seed(0)
 layer = LoRALinear(nn.Linear(4096, 4096), r=8)
 
 total = sum(p.numel() for p in layer.parameters())
-trainable = sum(p.numel() for p in layer.parameters() if p.requires_grad)
-print(f"trainable: {trainable:,} of {total:,} ({100 * trainable / total:.2f}%)")
+trainable = sum(p.numel() for p in layer.parameters()
+                if p.requires_grad)
+print(f"trainable: {trainable:,} of {total:,} "
+      f"({100 * trainable / total:.2f}%)")
 
 x = torch.randn(2, 4096)
-print("same output as the frozen layer?", torch.allclose(layer(x), layer.base(x)))
+print("same output as the frozen layer?",
+      torch.allclose(layer(x), layer.base(x)))
 ```
 
 ```text
@@ -198,8 +214,10 @@ Now train for a few steps (random stand-in data here), then merge the update int
 
 ```python
 W_before = layer.base.weight.clone()
-opt = torch.optim.Adam([p for p in layer.parameters() if p.requires_grad], lr=1e-3)
-inputs, targets = torch.randn(64, 4096), torch.randn(64, 4096)   # stand-in for task data
+params = [p for p in layer.parameters() if p.requires_grad]
+opt = torch.optim.Adam(params, lr=1e-3)
+# random stand-in for real task data
+inputs, targets = torch.randn(64, 4096), torch.randn(64, 4096)
 for step in range(20):
     loss = ((layer(inputs) - targets) ** 2).mean()
     opt.zero_grad()
@@ -209,11 +227,14 @@ for step in range(20):
 print("W changed?", not torch.equal(layer.base.weight, W_before))
 print("B still zero?", torch.all(layer.B == 0).item())
 
-with torch.no_grad():                                # merge: W' = W + (alpha/r) B A
+# merge: W' = W + (alpha / r) B A
+with torch.no_grad():
     merged = nn.Linear(4096, 4096)
-    merged.weight.copy_(layer.base.weight + layer.scale * layer.B @ layer.A)
+    merged.weight.copy_(layer.base.weight
+                        + layer.scale * layer.B @ layer.A)
     merged.bias.copy_(layer.base.bias)
-print("merged layer gives the same output?", torch.allclose(merged(x), layer(x), atol=1e-5))
+same = torch.allclose(merged(x), layer(x), atol=1e-5)
+print("merged layer gives the same output?", same)
 ```
 
 ```text
@@ -227,9 +248,12 @@ $W$ did not move, $B$ learned, and the merged layer is an ordinary `nn.Linear` w
 ```python
 from peft import LoraConfig, get_peft_model
 
-config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"])
-model = get_peft_model(model, config)   # freezes the model, adds B and A to every q_proj and v_proj
-model.print_trainable_parameters()      # for a 7B Llama-style model: about 4.2 million trainable
+config = LoraConfig(r=8, lora_alpha=16,
+                    target_modules=["q_proj", "v_proj"])
+# freezes the model and adds B and A to every q_proj and v_proj
+model = get_peft_model(model, config)
+# for a 7B Llama-style model: about 4.2 million trainable
+model.print_trainable_parameters()
 ```
 
 ## The parameter-efficient family
@@ -243,7 +267,7 @@ LoRA belongs to a family called <Term def="Parameter-efficient fine-tuning: meth
 | Adapters | small extra layers inserted between existing layers | a little: the extra layers must run |
 | Prompt or prefix tuning | a few learned vectors placed in front of the input | a little: a longer input |
 | **LoRA** | thin matrices $B$, $A$ beside chosen weight matrices | none once merged |
-| **QLoRA** | LoRA on a base model stored in 4-bit numbers | as LoRA; the base needs a quarter of the memory |
+| **QLoRA** | LoRA on a base model stored in 4-bit numbers (a quarter of the 16-bit memory, so a 7B model can be fine-tuned on one gaming GPU) | a little: keep the adapter separate, or convert the base back to 16-bit to merge |
 
 <ExamTip>
 
@@ -254,7 +278,7 @@ Learn the formula pair: **LoRA trains $r(d + k)$, full fine-tuning trains $dk$.*
 <Takeaways>
 
 - Fine-tuning continues training a pretrained model on task data; full fine-tuning updates every weight, which is costly (about 16 bytes per trained weight with Adam) and risks **catastrophic forgetting**.
-- Forgetting happens because the new task's loss ignores the old task; small learning rates, mixing in old data and freezing weights all help.
+- Forgetting happens because the new task's loss ignores the old task; small learning rates, mixing in old data and freezing weights all reduce it.
 - LoRA freezes $W$ and learns $W' = W + BA$, with $B$: $d \times r$ (initialised to 0) and $A$: $r \times k$ (small random), training $r(d + k)$ instead of $dk$ numbers.
 - $BA$ is a sum of $r$ outer products, so its rank is at most $r$: a few simple patterns, which is usually enough to adapt a model.
 - In PyTorch, freezing is `requires_grad = False`; the update can be merged into $W$, so LoRA adds no inference delay.

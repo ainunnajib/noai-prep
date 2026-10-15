@@ -4,10 +4,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'calculus-and-gradient-descent.partial-derivatives-gradients.1',
     prompt: 'What is $\\dfrac{\\partial f}{\\partial y}$ for $f(x, y) = 3x^2 y + y^3$?',
-    options: ['$3x^2 + 3y^2$', '$6xy$', '$6xy + 3y^2$', '$3x^2 + y^3$'],
+    options: ['$3x^2 + 3y^2$', '$6xy$', '$6xy + 3y^2$', '$3x^2 y + 3y^2$'],
     answer: 0,
     explanation:
-      'Freeze $x$, so $3x^2$ is just a coefficient: $3x^2 y$ becomes $3x^2$, and $y^3$ becomes $3y^2$. Total: $3x^2 + 3y^2$. $6xy$ is $\\partial f/\\partial x$ (differentiating in the wrong variable), and $6xy + 3y^2$ mixes the two partial derivatives together.',
+      'Freeze $x$, so $3x^2$ is just a coefficient: $3x^2 y$ becomes $3x^2$, and $y^3$ becomes $3y^2$. Total: $3x^2 + 3y^2$. $6xy$ is $\\partial f/\\partial x$ (differentiating in the wrong variable), $6xy + 3y^2$ mixes the two partial derivatives together, and $3x^2 y + 3y^2$ leaves the $3x^2 y$ term untouched, as if freezing $x$ meant not differentiating that term at all.',
     difficulty: 'beginner',
   },
   {

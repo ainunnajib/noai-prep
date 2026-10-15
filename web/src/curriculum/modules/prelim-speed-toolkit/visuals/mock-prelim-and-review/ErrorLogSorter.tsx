@@ -18,7 +18,7 @@ const TYPES: { id: ErrType; title: string; hint: string; colour: string; fix: st
   { id: 'gap', title: 'Knowledge gap', hint: 'Still stuck untimed, with no notes', colour: 'var(--viz-1)', fix: 'Study the lesson behind it, then re-test yourself on it after 3 days and again after a week.' },
   { id: 'misread', title: 'Misread', hint: 'Knew it, answered a different question', colour: 'var(--viz-5)', fix: 'Read the question line first; circle NOT, EXCEPT, maximum and units; re-read the stem before you click.' },
   { id: 'slip', title: 'Calculation slip', hint: 'Right method, wrong arithmetic', colour: 'var(--viz-2)', fix: 'Do the speed drills, and write every intermediate number on scrap paper; check signs and the +1s.' },
-  { id: 'time', title: 'Time pressure', hint: 'Rushed it, or never reached it', colour: 'var(--viz-4)', fix: 'Pacing: check the clock every 15 minutes; cap hard questions at about 30 s, guess and flag them.' },
+  { id: 'time', title: 'Time pressure', hint: 'Rushed it, or never reached it', colour: 'var(--viz-4)', fix: 'Pacing: check the clock every 15 minutes; when behind, give any question still unsolved after about 30 s a best guess and a flag.' },
 ]
 const DOMS: Dom[] = ['Maths', 'Computing', 'AI/ML/DL', 'GenAI', 'Problem solving']
 const typeOf = (id: ErrType) => TYPES.find((t) => t.id === id)!
@@ -133,12 +133,12 @@ const CARDS: Card[] = [
   {
     n: 70,
     dom: 'AI/ML/DL',
-    q: 'Training accuracy is 62% and validation accuracy is 60%. What is the most likely problem?',
+    q: 'On a 2-class task where a simple baseline already scores 60%, training accuracy is 62% and validation accuracy is 60%. What is the most likely problem?',
     you: 'Overfitting',
     ans: 'Underfitting',
-    note: 'I saw two numbers with a gap and jumped to overfitting, without noticing that both were low.',
+    note: 'I saw two numbers with a gap and jumped to overfitting, without noticing that both were barely above the baseline.',
     type: 'misread',
-    why: 'A 2-point gap with both scores low is underfitting, and the student knows the two signatures. The stem was skimmed, not read.',
+    why: 'A 2-point gap with both scores barely above the baseline is underfitting, and the student knows the two signatures. The stem was skimmed, not read.',
   },
   {
     n: 52,

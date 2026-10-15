@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.how-llms-are-built.1',
     prompt: 'The "P" in GPT stands for *pre-trained*, and this pretraining stage is described as **self-supervised**. Why?',
     options: [
-      'The label for each position is the next token, taken from the text itself, so nobody has to label the data',
+      'Each position\'s label is the next token, taken from the text itself, so nobody has to label the data',
       'The model checks its own answers against a reward model, so no human feedback is needed at this stage',
       'People label a small sample of the text, and the model then labels the remaining text by itself',
       'The model is trained without any loss function, simply by reading the text many times over',
@@ -18,17 +18,17 @@ const questions: QuizQuestion[] = [
   {
     id: 'large-language-models.how-llms-are-built.2',
     prompt:
-      'A team downloads a model that has only been pretrained. Asked "List three tips for revising for the O-levels.", it replies: "List three tips for revising for the A-levels. List three tips for revising for PSLE." What is the best explanation?',
+      'Classic RLHF trains a reward model on human comparisons, then improves the LLM with reinforcement learning. What does **DPO** (direct preference optimisation) change?',
     options: [
-      'It was trained only to continue text and has not been fine-tuned on prompt–response examples',
-      'Its sampling temperature is set too low, so it keeps repeating the most likely phrase',
-      'Its pretraining data contained no text about exams, so it has nothing to say about them',
-      'Its context window is too short to hold the whole question, so it starts again',
+      'It learns from the same comparisons directly, with no reward model and no reinforcement learning',
+      'It swaps the human comparisons for scores from a reward model trained on pretraining text instead',
+      'It skips supervised fine-tuning and aligns the base model with comparisons straight after pretraining',
+      'It drops the comparisons and trains only on ideal replies written by people, just as SFT does',
     ],
     answer: 0,
     explanation:
-      'A base model is a text continuer: on the web, a question like this is often followed by more questions in a list, so that is the likely continuation. Supervised fine-tuning on prompt and ideal-response pairs teaches it that a request should be followed by an answer. Temperature changes how randomly it picks tokens, not whether it understands that it should answer.',
-    difficulty: 'beginner',
+      'DPO turns the comparisons into an ordinary loss on the LLM itself: raise the probability of the preferred answer relative to the rejected one, while staying close to the SFT model. So the separate reward model and the reinforcement-learning loop disappear, but the human comparisons stay. It still starts from an SFT model, and it does not go back to copying hand-written replies.',
+    difficulty: 'intermediate',
   },
   {
     id: 'large-language-models.how-llms-are-built.3',
@@ -56,7 +56,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'With $D = 20N$: $6 \\cdot N \\cdot 20N = 120N^2 = 1.2 \\times 10^{20}$, so $N^2 = 10^{18}$ and $N = 10^9$ (1 billion), giving $D = 2 \\times 10^{10}$ (20 billion tokens). Every option spends the same budget (check: $6 \\times 10^{10} \\times 2 \\times 10^{9} = 1.2 \\times 10^{20}$ too), but only the first has 20 tokens per parameter; the 10-billion-parameter model would be badly undertrained.',
+      'With $D = 20N$: $6 \\cdot N \\cdot 20N = 120N^2 = 1.2 \\times 10^{20}$, so $N^2 = 10^{18}$ and $N = 10^9$ (1 billion), giving $D = 2 \\times 10^{10}$ (20 billion tokens). Every option spends the same budget (check: $6 \\times 10^{10} \\times 2 \\times 10^{9} = 1.2 \\times 10^{20}$ too), but only 1 billion parameters on 20 billion tokens has 20 tokens per parameter. The 10-billion-parameter plan gets only 0.2 tokens per parameter and would be badly undertrained.',
     difficulty: 'intermediate',
   },
   {
@@ -64,7 +64,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Researchers plot the best pretraining loss they can reach against training compute, both on log scales, and the points lie on a straight line sloping down. What does this tell them?',
     options: [
-      'Every 10× more compute multiplies the loss by the same factor, so a bigger run can be predicted from small ones',
+      'Every 10× more compute multiplies the loss by the same factor, so big runs can be predicted from small ones',
       'Every extra FLOP lowers the loss by the same fixed amount, so the loss will reach zero at a predictable budget',
       'Model size has stopped mattering, so from now on only the number of training steps affects the loss',
       'The model is overfitting, because a training loss that keeps falling means it is memorising its data',
@@ -72,6 +72,21 @@ const questions: QuizQuestion[] = [
     answer: 0,
     explanation:
       'A straight line on log–log axes is a power law, $L \\approx a C^{-k}$: multiplying $C$ by 10 always multiplies $L$ by $10^{-k}$. That predictability is what lets labs plan big training runs. A fixed drop per FLOP would be a straight line on ordinary (linear) axes, and a power law never reaches zero.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'large-language-models.how-llms-are-built.6',
+    prompt:
+      'A lab trains a reasoning model on maths problems. The model writes out its working, and it gets reward 1 if its final answer matches the known answer and 0 otherwise. How does this reward differ from classic RLHF?',
+    options: [
+      'A program checks the final answer automatically; no reward model trained on human preferences is needed',
+      'People still compare pairs of the model\'s answers, exactly as in RLHF, but only on maths questions',
+      'It is the next-token loss on the working, so this stage is really another round of pretraining on maths text',
+      'It is copied from ideal worked solutions that people wrote, so this stage is really supervised fine-tuning',
+    ],
+    answer: 0,
+    explanation:
+      'The reward is computed by checking the answer (a *verifiable* reward), so nobody compares answers and no reward model is trained. It is still reinforcement learning: the model is updated to make high-reward answers more likely. It does not copy written solutions (that would be SFT) or predict the next token of existing text (that is pretraining).',
     difficulty: 'intermediate',
   },
 ]

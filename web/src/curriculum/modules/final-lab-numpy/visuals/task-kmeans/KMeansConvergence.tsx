@@ -45,6 +45,9 @@ export default function KMeansConvergence() {
   const maxMove = (f: { moves: number[] }) => (f.moves.some(Number.isNaN) ? NaN : Math.max(...f.moves))
   const finalOut = `[${round4(last.after).map(pyTuple).join(', ')}]`
   const firstEmpty = frames.findIndex((f) => f.empty.length > 0)
+  const emptyIdx = firstEmpty >= 0 ? frames[firstEmpty].empty[0] : -1
+  const emptyName = `C${emptyIdx + 1}`
+  const staysEmpty = emptyIdx >= 0 && last.empty.includes(emptyIdx)
 
   const bars = frames.map((f, k) => {
     const m = maxMove(f)
@@ -123,7 +126,7 @@ export default function KMeansConvergence() {
             ))}
             {bars.map((b) =>
               b.m === 0 ? (
-                <Label key={`z${b.k}`} x={b.k} y={LOG_LO} dy={-8} anchor="middle" size={10} color="var(--ink-3)">
+                <Label key={`z${b.k}`} x={b.k} y={LOG_LO} dy={-8} anchor="middle" size={11} color="var(--ink-3)">
                   {converged && b.k === frames.length ? '0: stop' : '0'}
                 </Label>
               ) : converged && b.k === frames.length ? (
@@ -153,16 +156,28 @@ export default function KMeansConvergence() {
         {firstEmpty >= 0 && (
           <Note tone="bad" title={`Empty cluster in iteration ${firstEmpty + 1}.`}>
             {rule === 'keep' ? (
-              <>
-                C3 started where no point is nearest, so it has no members. Keeping its old position (the exam's suggestion) avoids a crash, but C3 stays empty forever and
-                only two real clusters remain. Re-starting it at a random data point is a common alternative.
-              </>
+              staysEmpty ? (
+                <>
+                  {emptyName} started where no point is nearest, so it has no members. Keeping its old position (the exam&apos;s suggestion) avoids a nan centroid, but{' '}
+                  {emptyName} stays empty to the end and only two real clusters remain. Re-starting it at a random data point is a common alternative.
+                </>
+              ) : (
+                <>
+                  {emptyName} had no members in iteration {firstEmpty + 1}. Keeping its old position (the exam&apos;s suggestion) avoids a nan centroid, and on this seed{' '}
+                  {emptyName} later wins points back, so the run still ends with three clusters. On other seeds it stays empty to the end.
+                </>
+              )
             ) : (
               <>
                 The mean of no points is <code>nan</code> (NumPy warns "Mean of empty slice"). Every distance to a nan centroid is nan, and <code>np.argmin</code> picks a nan as
                 the "smallest", so whole clusters jump around and more centroids turn into nan. The run never converges.
               </>
             )}
+          </Note>
+        )}
+        {forceEmpty && firstEmpty < 0 && (
+          <Note title="No empty cluster on this seed.">
+            Even from (11.3, 11.3), C3 is the nearest centroid for some points in iteration 1, so it never goes empty here. Try seed 1 or 2 to see an empty cluster.
           </Note>
         )}
         {firstEmpty < 0 && tol >= 0.5 && converged && frames.length < 4 &&

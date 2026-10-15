@@ -31,14 +31,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A wearable heart-rate monitor records one reading per second and occasionally drops a few readings. A model must raise an alarm in real time, using each new reading as it arrives. How should dropped readings be filled?',
     options: [
-      'Forward-fill: repeat the last reading that arrived',
-      'Linear interpolation between the readings before and after the gap',
-      'The mean heart rate of the whole recording',
-      'Drop every second that has a missing reading, together with the whole recording',
+      'Forward-fill, because only the readings before the gap have arrived',
+      'Linear interpolation, because it uses the readings on both sides of the gap',
+      'The recording’s mean, because one typical value is the safest guess',
+      'Zero, because a dropped reading means that no heartbeat was detected',
     ],
     answer: 0,
     explanation:
-      'Neighbouring readings in time are the best guide, and in real time only the past is available, so forward-fill is the right choice. Interpolation is excellent for cleaning stored data but needs the reading after the gap, which has not arrived yet. The global mean ignores time and needs the future too.',
+      'Neighbouring readings in time are the best guide, and in real time only the past is available, so forward-fill is the right choice. Interpolation is excellent for cleaning stored data but needs the reading after the gap, which has not arrived yet. The mean of the whole recording ignores time and needs the future too. A zero is not a fill at all: a dropped reading is a sensor gap, not a stopped heart, and zeros would set off false alarms.',
     difficulty: 'intermediate',
   },
   {
@@ -55,10 +55,10 @@ const questions: QuizQuestion[] = [
     prompt: 'What is wrong with this preprocessing code?',
     code: 'from sklearn.impute import SimpleImputer\nfrom sklearn.model_selection import train_test_split\n\nimp = SimpleImputer(strategy="mean")\nX_all = imp.fit_transform(X_all)\nX_train, X_test, y_train, y_test = train_test_split(X_all, y)',
     options: [
-      'The imputer learns the column means from the test rows too, leaking test data',
+      'The imputer learns its means from all rows, so the test rows leak into training',
       'Mean imputation is wrong here; `SimpleImputer` only works with the median',
       '`fit_transform` fails on NaN values, so the imputer must come after the split',
-      'Imputation must happen after training the model, so the test set stays untouched',
+      'Imputation should happen after training the model, so the test set stays untouched',
     ],
     answer: 0,
     explanation:

@@ -65,8 +65,6 @@ Generation has two phases:
 1. **Prefill**: the whole prompt is processed in one pass. All its tokens are handled in parallel, so this is fast per token, but a longer prompt still means a longer wait before the first word appears (the *time to first token*).
 2. **Decode**: the model then produces the answer **one token per pass**, each new token depending on all the ones before. This is [autoregressive generation](#/learn/large-language-models/decoding-and-sampling), and it cannot be done in parallel: token 50 depends on token 49.
 
-<PastPaperQuestion paper="prelim2026" n={228} />
-
 Here is the problem. To produce token $t$, attention needs the keys and values of all $t - 1$ earlier tokens, in every layer. A naive implementation would push the whole text through the model again on every pass, recomputing everything it already computed on the previous pass.
 
 ## The KV cache
@@ -114,10 +112,10 @@ In a long maths problem you do not redo lines 1 to 9 every time you write line 1
 The cache costs memory. Each token stores a key and a value (2 vectors) of length $d_\text{model}$ in each of the $L$ layers:
 
 $$
-\text{KV cache} = 2 \times L \times T \times d_\text{model} \times b
+\text{KV cache} = 2 \times L \times T \times d_\text{model} \times (\text{bytes per number})
 $$
 
-Here the 2 counts one key and one value, $L$ is the number of layers, $T$ the number of tokens cached, $d_\text{model}$ the width of the keys and values summed over all heads, and $b$ the number of bytes used to store each number. For a 7-billion-parameter model like Llama 2 7B ($L = 32$, $d_\text{model} = 4{,}096$, 16-bit numbers = 2 bytes), one token takes $2 \times 32 \times 4{,}096 \times 2 = 524{,}288$ bytes, about **0.5 MB**. A 4,096-token conversation needs about **2 GB**, and 32,768 tokens about **16 GB**: more than the model's own weights ($7 \times 10^9 \times 2$ bytes $= 14$ GB). This is why long contexts are memory-hungry, and why newer models let groups of attention heads share keys and values to shrink the cache.
+Here the 2 counts one key and one value, $L$ is the number of layers, $T$ the number of tokens cached, and $d_\text{model}$ the width of the keys and values summed over all heads. For Llama 2 7B ($L = 32$, $d_\text{model} = 4{,}096$, 16-bit numbers = 2 bytes each), one token takes $2 \times 32 \times 4{,}096 \times 2 = 524{,}288$ bytes, about **0.5 MB**. Its full 4,096-token window needs about **2.1 GB**. A model of the same shape with a 32,768-token window would need about **17 GB** for one full conversation: more than the model's own weights (about $6.7 \times 10^9 \times 2$ bytes $\approx 13.5$ GB). This is why long contexts are memory-hungry, and why newer models let groups of attention heads share keys and values to shrink the cache.
 
 <QuickCheck
   q="During generation, why does the KV cache store keys and values, but not queries?"

@@ -7,14 +7,14 @@ const questions: QuizQuestion[] = [
       'This loop accumulates gradients over 8 micro-batches but never divides the loss. Compared with training on one real batch 8 times as large, the gradient used at each optimiser step is:',
     code: 'accumulation_steps = 8\nfor i, (x, y) in enumerate(loader):\n    loss = criterion(model(x), y)   # mean over the micro-batch\n    loss.backward()\n    if (i + 1) % accumulation_steps == 0:\n        optimiser.step()\n        optimiser.zero_grad()',
     options: [
-      '8 times too large, as .backward() adds the 8 mean-gradients',
+      '8 times too large, since .backward() always adds onto .grad',
       'Exactly right, because .backward() averages its calls automatically',
-      '8 times too small, because each micro-batch holds only 1/8 of the data',
-      'Zero, because the gradients are cleared after every single micro-batch',
+      '8 times too small, because each micro-batch holds 1/8 of the data',
+      'Zero, because the gradients are cleared after each micro-batch',
     ],
     answer: 0,
     explanation:
-      'Each `.backward()` adds onto `.grad`, and `zero_grad()` only runs after every 8th micro-batch, so the step uses the **sum** of 8 mean-gradients: 8 times the gradient of one big batch (the same effect as an 8× learning rate). Dividing each loss by `accumulation_steps` turns the sum into the average. PyTorch never averages across separate `.backward()` calls.',
+      'Each `.backward()` adds onto `.grad`, and `zero_grad()` only runs after every 8th micro-batch, so the step uses the **sum** of 8 mean-gradients: 8 times the gradient of one big batch (with plain SGD, the same effect as an 8× learning rate). Dividing each loss by `accumulation_steps` turns the sum into the average. PyTorch never averages across separate `.backward()` calls.',
     difficulty: 'intermediate',
   },
   {
@@ -40,11 +40,11 @@ const questions: QuizQuestion[] = [
       'A shape error: `std` has shape (32,), which cannot broadcast with (32, 10)',
       'It runs correctly, because broadcasting matches `std` to the rows of `x`',
       'It runs, but `mean` should use `dim=1` so that it matches `std`',
-      'It runs, but the result must still be divided by `std` a second time to finish',
+      'It runs, but each example is divided by its own std instead of each feature',
     ],
     answer: 0,
     explanation:
-      '`x.mean(dim=0)` averages down the rows, giving one mean per feature, shape (10,), which is right. `x.std(dim=1)` gives one value per example, shape (32,). Broadcasting aligns trailing dimensions, so (32, 10) against (32,) compares 10 with 32 and PyTorch raises a RuntimeError. Both statistics must be taken over `dim=0`; changing the mean to `dim=1` would standardise each example instead of each feature.',
+      '`x.mean(dim=0)` averages down the rows, giving one mean per feature, shape (10,), which is right. `x.std(dim=1)` gives one value per example, shape (32,). Broadcasting aligns trailing dimensions, so (32, 10) against (32,) compares 10 with 32 and PyTorch raises a RuntimeError; it never quietly matches (32,) to the rows, which would need shape (32, 1). The fix is `x.std(dim=0)`; moving the mean to `dim=1` would only make the subtraction fail as well.',
     difficulty: 'intermediate',
   },
   {
@@ -66,10 +66,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your per-class IoU function returns `inter / union`, and the mean IoU over 5 classes sometimes comes out as `nan`, but only on images where one class is missing. What is the most likely cause?',
     options: [
-      'A class missing from both prediction and target makes IoU 0/0',
+      'A class missing from both prediction and target always gives 0/0',
       'The learning rate is too high, so the predicted class indices became NaN',
-      'Integer division rounds every IoU below 1 down to 0 before averaging',
-      'IoU must be computed from softmax probabilities, not from class indices',
+      'Integer division rounds each IoU below 1 down to 0 before averaging',
+      'IoU is undefined on class indices and needs softmax probabilities',
     ],
     answer: 0,
     explanation:

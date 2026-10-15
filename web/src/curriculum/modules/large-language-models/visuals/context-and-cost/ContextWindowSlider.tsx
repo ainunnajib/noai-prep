@@ -83,6 +83,9 @@ export default function ContextWindowSlider() {
   const x = (tok: number) => pad + (tok / TOTAL) * (SW - 2 * pad)
   const barY = 30
   const barH = 22
+  const winLabel = `window: ${inWindow} of ${end} tokens`
+  const winLabelW = winLabel.length * 6.6
+  const winLabelStart = Math.min(x(end), SW - 2) - winLabelW < pad
 
   const segText = (sg: Seg, k: number): ReactNode => {
     if (typeof sg === 'string') return <Fragment key={k}>{sg}</Fragment>
@@ -100,10 +103,8 @@ export default function ContextWindowSlider() {
       title="The context window: what the model can still see"
       caption={
         <>
-          The strip is the whole chat, oldest on the left; the frame is the context window, the most recent W tokens. Everything left of the frame
-          has <b>fallen out</b>: the model cannot use it at all. With the default window, Wei Ling's allergy is gone and the answer to her last
-          question is dangerous. Slide the window wider until the allergy is back inside, or press <b>Restart</b> and <b>Play</b> to watch the
-          conversation push old messages out. The plot shows the price: attention scores grow with the <b>square</b> of the window size.
+          <b>Try:</b> slide the window until Wei Ling's allergy is back inside the frame, or press <b>Restart</b> then <b>Play</b>. <b>Notice:</b>{' '}
+          anything left of the frame has fallen out, and the attention cost grows with the <b>square</b> of the window.
         </>
       }
     >
@@ -111,6 +112,7 @@ export default function ContextWindowSlider() {
         <Controls>
           <Slider label="context window W (tokens)" value={W} min={40} max={300} step={10} onChange={setW} />
         </Controls>
+        <PlayerControls player={player} label={(i) => (i >= MSGS.length ? 'Answer generated' : `Message ${i + 1} of ${MSGS.length}`)} />
 
         <div ref={ref} style={{ width: '100%' }}>
           <svg className={s.strip} viewBox={`0 0 ${SW} ${barY + barH + 22}`} role="img" aria-label={`Conversation strip of ${end} tokens; the window covers the last ${inWindow}.`}>
@@ -158,8 +160,13 @@ export default function ContextWindowSlider() {
               rx={5}
               style={{ fill: 'none', stroke: 'var(--viz-2)', strokeWidth: 2.5 }}
             />
-            <text x={Math.min(x(end), SW - 2)} y={barY - 16} textAnchor="end" style={{ fill: 'var(--ink)', fontSize: 11.5, fontWeight: 800 }}>
-              window: {inWindow} of {end} tokens
+            <text
+              x={winLabelStart ? pad : Math.min(x(end), SW - 2)}
+              y={barY - 16}
+              textAnchor={winLabelStart ? 'start' : 'end'}
+              style={{ fill: 'var(--ink)', fontSize: 11.5, fontWeight: 800 }}
+            >
+              {winLabel}
             </text>
             <text x={pad} y={barY + barH + 16} style={{ fill: 'var(--ink-3)', fontSize: 11 }}>
               ← start of chat
@@ -238,8 +245,6 @@ export default function ContextWindowSlider() {
             />
           </div>
         </div>
-
-        <PlayerControls player={player} label={(i) => (i >= MSGS.length ? 'Answer generated' : `Message ${i + 1} of ${MSGS.length}`)} />
       </div>
     </Figure>
   )

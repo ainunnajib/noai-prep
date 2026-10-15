@@ -12,20 +12,20 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'prelim-speed-toolkit.drill-conv-and-params.2',
-    prompt: 'How many learnable parameters does `nn.Conv2d(16, 32, kernel_size=3)` have?',
-    options: ['4,640', '4,608', '4,624', '320'],
+    prompt: 'How many learnable parameters does `nn.Conv2d(8, 32, kernel_size=3)` have?',
+    options: ['2,336', '2,304', '2,312', '320'],
     answer: 0,
     explanation:
-      'Each filter has $3 \\cdot 3 \\cdot 16 = 144$ weights plus 1 bias, and there are 32 filters: $145 \\times 32 = 4350 + 290 = 4640$. 4,608 forgets the 32 biases; 4,624 adds one bias per *input* channel (16) instead of per filter; 320 $= (9 + 1) \\times 32$ forgets that each filter spans all 16 input channels.',
+      'Each filter has $3 \\cdot 3 \\cdot 8 = 72$ weights plus 1 bias, and there are 32 filters: $73 \\times 32 = 2190 + 146 = 2336$. 2,304 forgets the 32 biases; 2,312 adds one bias per *input* channel (8) instead of per filter; 320 $= (9 + 1) \\times 32$ forgets that each filter spans all 8 input channels.',
     difficulty: 'intermediate',
   },
   {
     id: 'prelim-speed-toolkit.drill-conv-and-params.3',
     prompt: 'Compare `nn.MultiheadAttention(embed_dim=512, num_heads=1)` with `nn.MultiheadAttention(embed_dim=512, num_heads=8)`. How do their parameter counts compare?',
     options: [
-      'They are equal: the heads split the 512 dimensions, so the four 512 × 512 projections keep their size',
-      'The 8-head layer has 8 times as many: every head owns a separate set of four 512 × 512 projections',
-      'The 8-head layer has 8 times fewer: each head only ever touches 64 of the 512 dimensions',
+      'They are equal: the heads split the 512 dimensions, so all four projections stay 512 × 512',
+      'The 8-head layer has 8 times as many: each head owns its own full set of four 512 × 512 projections',
+      'The 8-head layer has 8 times fewer: each head works on just 64 of the 512 dimensions, so its matrices shrink',
       'The 8-head layer has slightly more: each extra head adds its own 512-long bias vector to the output',
     ],
     answer: 0,
@@ -55,6 +55,21 @@ const questions: QuizQuestion[] = [
     explanation:
       '`MaxPool2d(2)` uses a $2 \\times 2$ window with stride 2 (the stride defaults to the kernel size), so $\\lfloor (32 - 2)/2 \\rfloor + 1 = 16$ on each side. Pooling works on each channel separately, so the 16 channels stay 16, and taking a maximum needs no weights at all: 0 parameters. 31 is what a stride of 1 would give.',
     difficulty: 'beginner',
+  },
+  {
+    id: 'prelim-speed-toolkit.drill-conv-and-params.6',
+    prompt:
+      'Computing the attention scores $QK^\\top$ for a context of 2,048 tokens takes 10 ms. Keeping the width $d$ the same, roughly how long does it take for 4,096 tokens?',
+    options: [
+      'About 40 ms: there is one score for every pair of tokens, so $n^2$ of them',
+      'About 20 ms: each token is scored once, so the work grows in step with $n$',
+      'About 80 ms: forming the scores costs $O(n^3)$, like inverting an $n \\times n$ matrix',
+      'About 10 ms: the extra tokens are shared out between the heads, which run in parallel',
+    ],
+    answer: 0,
+    explanation:
+      '$QK^\\top$ is $(n \\times d)(d \\times n)$: $n^2$ scores, each a dot product of length $d$, so the cost is $O(n^2 d)$. Doubling $n$ with $d$ fixed multiplies the work by $2^2 = 4$, so about 40 ms. 20 ms would be true of a linear cost such as a feed-forward layer, and $O(n^3)$ is the cost of inverting a matrix, not of multiplying two thin ones; splitting into heads divides $d$, not $n$.',
+    difficulty: 'intermediate',
   },
 ]
 

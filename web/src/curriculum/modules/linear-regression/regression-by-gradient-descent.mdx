@@ -198,7 +198,7 @@ The bottom chart, the <Term def="The list of loss values recorded after every it
 - **It should go down every iteration.** For full-batch gradient descent on the MSE with a sensible learning rate, the loss falls at every single step.
 - **Flattening out means converged.** A common stopping rule is a fixed number of iterations, or stopping once the loss improves by less than a small tolerance.
 - **Fast drop, then a slow crawl** is the long valley from the last lesson. The first few steps fix the slope; then the dot creeps along the valley floor, adjusting $w$ and $b$ together.
-- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see the lesson *Curvature* in the calculus module), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
+- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see the [curvature lesson](#/learn/calculus-and-gradient-descent/curvature-convexity) in the calculus module), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
 
 <Mistake title="More iterations will not rescue a diverging run">
 
@@ -326,7 +326,7 @@ How this is tested:
 
 <QuickCheck
   q="Your code uses the gradient $\frac{2}{m}X^\top(X\theta - y)$, but the task's rule uses $\frac{1}{m}X^\top(X\theta - y)$ with the same $\alpha$ and 1000 iterations. What happens?"
-  options={['It acts like the task method with twice the learning rate, so the 4 d.p. answer can differ', 'Nothing changes, because a constant factor in the gradient never changes where gradient descent ends up', 'It heads to a different minimum, because doubling the loss moves the position of its lowest point', 'It always diverges, because every step is now twice as large as the stability limit allows']}
+  options={['It acts like the task method with twice the learning rate, so the 4 d.p. answer can differ', 'Nothing changes, because a constant factor in the gradient never changes where gradient descent ends up', 'It heads to a different minimum, because doubling the loss moves the position of its lowest point', 'It diverges, because doubling the step size pushes it past the stability limit']}
   answer={0}
   explain="$\frac{2}{m}$ with $\alpha$ is identical to $\frac{1}{m}$ with $2\alpha$. Both losses have the same lowest point, so the destination is the same, but after a fixed 1000 steps the faster walk is at a different place: on the 2025 data it rounds to $[0.0, 1.0]$ instead of $[0.003, 0.9987]$. It only diverges if $2\alpha$ passes the stability limit, which $0.02$ does not."
 />

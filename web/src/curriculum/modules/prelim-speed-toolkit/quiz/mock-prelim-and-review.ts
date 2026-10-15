@@ -37,7 +37,7 @@ const questions: QuizQuestion[] = [
     options: ['6', '36', '0.24', '15'],
     answer: 0,
     explanation:
-      '$150 \\times 0.6 \\times 0.4 = 36$ and $\\sqrt{36} = 6$. So about 95% of sittings land within $\\pm 12$ marks of your true level. 36 is the variance (you forgot the square root) and 0.24 is just $p(1-p)$.',
+      '$150 \\times 0.6 \\times 0.4 = 36$ and $\\sqrt{36} = 6$. So about 95% of sittings land within $\\pm 12$ marks of your true level. 36 is the variance (you forgot the square root), 0.24 is just $p(1-p)$, and 15 is 10% of 150, a guess rather than the formula.',
     difficulty: 'intermediate',
   },
   {
@@ -57,12 +57,12 @@ const questions: QuizQuestion[] = [
     options: [
       'Study the GenAI lessons behind the gaps, and do timed arithmetic drills for Maths',
       'Sit more full mocks each week, since enough practice fixes every kind of error',
-      'Re-study every Maths lesson from the start, since slips show weak understanding',
+      'Do timed drills for GenAI, and re-study the Maths lessons from the very beginning',
       'Spread revision evenly over all five domains so that no domain gets neglected',
     ],
     answer: 0,
     explanation:
-      'The log says where the marks are lost (GenAI, then Maths) and why: GenAI misses are mostly missing knowledge, which needs lessons; Maths misses are mostly slips, which need execution drills. More mocks repeat the same errors, and even revision ignores the evidence.',
+      'The log says where the marks are lost (GenAI, then Maths) and why: GenAI misses are mostly missing knowledge, which needs lessons; Maths misses are mostly slips, which need execution drills. Swapping the two fixes treats a gap with drills and slips with lessons; more mocks repeat the same errors; and even revision ignores the evidence.',
     difficulty: 'intermediate',
   },
 ]

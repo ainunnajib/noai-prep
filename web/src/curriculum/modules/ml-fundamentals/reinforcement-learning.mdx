@@ -106,7 +106,7 @@ The expected return when you start in a state and then follow your policy is tha
   q="With discount $\gamma = 0.5$, an agent's next three rewards are 4, 4 and 8. What is the return $G$?"
   options={['16', '8', '10', '6']}
   answer={1}
-  explain="$G = 4 + 0.5 \times 4 + 0.5^2 \times 8 = 4 + 2 + 2 = 8$. Adding without discounting gives 16, and using $\gamma$ instead of $\gamma^2$ for the third reward gives $4 + 2 + 4 = 10$: each step further away gets one more factor of $\gamma$."
+  explain="$G = 4 + 0.5 \times 4 + 0.5^2 \times 8 = 4 + 2 + 2 = 8$. Adding without discounting gives 16, and using $\gamma$ instead of $\gamma^2$ for the third reward gives $4 + 2 + 4 = 10$: each step further away gets one more factor of $\gamma$. Stopping after the first two rewards gives 6."
 />
 
 ## Watching an agent learn
@@ -193,7 +193,7 @@ You need some exploration to discover the best option, but every exploring step 
   q="A diner's estimate for every stall starts at 0. On day 1 they try chicken rice and score 6. With ε = 0, what happens next?"
   options={['They try each of the other stalls once, then settle on the best one', 'They eat chicken rice every day: 6 beats every other estimate of 0', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
   answer={1}
-  explain="With ε = 0 the diner always exploits: chicken rice's estimate of 6 is higher than the untried stalls' 0, so they never try anything else, even though nasi lemak (average 8) is better. Trying each stall once is a different strategy; it needs exploration built in."
+  explain="With ε = 0 the diner always exploits: chicken rice's estimate of 6 is higher than the untried stalls' 0, so they never try anything else, even though nasi lemak (average 8 in the visual above) is better. Trying each stall once is a different strategy; it needs exploration built in."
 />
 
 Here is the same experiment in NumPy. One detail: `np.argmax` picks the *first* of several equal values, so with $\varepsilon = 0$ this diner always starts at, and then sticks with, stall 0 (chicken rice, average 6), scoring about 600.

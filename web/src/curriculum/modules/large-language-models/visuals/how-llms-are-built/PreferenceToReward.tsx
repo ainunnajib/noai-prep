@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Readout, M } from '../../../../../kit'
+import { Figure, Controls, Slider, Readout } from '../../../../../kit'
 import s from './built.module.css'
 
 /*
@@ -66,11 +66,8 @@ export default function PreferenceToReward() {
       title="RLHF in miniature: comparisons → reward model → better answers"
       caption={
         <>
-          You are the human labeller. In panel 1, click the better answer of each pair (the defaults are one sensible set). Panel 2 fits a reward
-          model to your choices: one score per answer such that <M>{'P(\\text{A beats B}) = \\sigma(r_A - r_B)'}</M>. Panel 3 shows the LLM before and
-          after reinforcement learning. Slide <b>push towards reward</b>: at 0 the model is unchanged; higher values let it drift further from the SFT
-          model to chase reward. Try preferring the myth <b>C</b> over everything and watch the model learn to repeat it: RLHF learns what the labellers
-          reward, right or wrong.
+          <b>Try:</b> you are the labeller: click the better answer in each pair, then slide <b>push towards reward</b>. <b>Notice:</b> prefer the
+          myth <b>C</b> every time and the model learns to repeat it. RLHF learns what labellers reward, right or wrong.
         </>
       }
     >
@@ -182,7 +179,7 @@ export default function PreferenceToReward() {
         </div>
 
         <Controls>
-          <Slider label="push towards reward (1/β)" value={push} min={0} max={3} step={0.1} onChange={setPush} format={(v) => v.toFixed(1)} />
+          <Slider label="push towards reward" value={push} min={0} max={3} step={0.1} onChange={setPush} format={(v) => v.toFixed(1)} />
           <Readout
             items={[
               ['top-reward answer', ANSWERS[best].id],

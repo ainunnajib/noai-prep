@@ -40,10 +40,8 @@ export default function NextTokenPairs() {
       title="One sentence, many free training examples"
       caption={
         <>
-          Click any word to make it the <b>label</b>: everything before it is the <b>input</b>. A sentence of {n} tokens gives {n - 1} examples, and
-          nobody had to label them. Compare the losses: they are small where knowledge pins down the answer (<i>Tokyo</i>, <i>five</i>) and large
-          where many words would fit (<i>Japan</i>). Tick <b>untrained model</b> to see where training starts: every token gets about{' '}
-          <M>{'1/50\\,000'}</M>, a loss of 10.8 each.
+          <b>Try:</b> click any word to make it the <b>label</b> (everything before it is the input), then tick <b>untrained model</b>.{' '}
+          <b>Notice:</b> {n} tokens give {n - 1} free examples, and the loss is small where knowledge pins down the answer (<i>Tokyo</i>).
         </>
       }
     >

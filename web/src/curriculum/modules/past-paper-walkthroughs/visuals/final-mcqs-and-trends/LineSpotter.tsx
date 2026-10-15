@@ -165,8 +165,8 @@ const SNIPPETS: Snippet[] = [
       2: <>One raw score (logit) per object: fine.</>,
       3: (
         <>
-          <b>The bug: softmax for a multi-label task.</b> Softmax makes the 5 probabilities add up to 1, so two objects cannot both be likely: logits [4, 4, −3]
-          become [0.50, 0.50, 0.00]. A sigmoid per label gives [0.98, 0.98, 0.05].
+          <b>The bug: softmax for a multi-label task.</b> Softmax makes the 5 probabilities add up to 1, so two objects cannot both be likely: logits [4, 4, −3, −3, −3]
+          become [0.50, 0.50, 0.00, 0.00, 0.00]. A sigmoid per label gives [0.98, 0.98, 0.05, 0.05, 0.05].
         </>
       ),
       4: <>Binary cross-entropy per label is the right loss for multi-label, once the probabilities come from a sigmoid.</>,

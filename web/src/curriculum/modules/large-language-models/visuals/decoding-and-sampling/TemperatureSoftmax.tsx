@@ -58,10 +58,8 @@ export default function TemperatureSoftmax() {
       title="Temperature reshapes the next-token distribution"
       caption={
         <>
-          Slide T and press <b>Resample</b>. Below 1 the bars sharpen until only <i>chicken</i> is left (that is greedy decoding); above 1 they
-          flatten and odd choices like <i>homework</i> start to appear. The thin tick marks each token's probability at T = 1. Notice that the{' '}
-          <b>order of the bars never changes</b>: temperature only changes how strongly the top tokens dominate. Entropy (in bits) measures how
-          unpredictable the next token is.
+          <b>Try:</b> slide T and press <b>Resample</b>. <b>Notice:</b> as T falls, the bars sharpen until only <i>chicken</i> is left (greedy); above 1 odd choices like{' '}
+          <i>durian</i> and <i>pizza</i> appear (<i>homework</i> stays rare). The <b>order of the bars never changes</b>.
         </>
       }
     >
@@ -103,7 +101,7 @@ export default function TemperatureSoftmax() {
           <Readout
             items={[
               ['P(top token)', top.toFixed(3)],
-              ['entropy', `${H.toFixed(2)} bits`],
+              ['unpredictability (entropy)', `${H.toFixed(2)} bits`],
             ]}
           />
         </Controls>

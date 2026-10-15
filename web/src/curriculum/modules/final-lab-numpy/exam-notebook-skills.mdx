@@ -41,6 +41,7 @@ The programming tasks arrive as <Term def="A document made of cells. Text cells 
 
 | | 2025 Final | 2026 Final |
 |---|---|---|
+| Length | 2.5 hours, MCQs included | 3 hours, MCQs included |
 | Tasks | 3 questions: 15 + 25 + 40 = 80 marks | 3 tasks: 25 + 20 + 35 = 80 marks, including 10 bonus marks |
 | What you write | one function or one short pipeline per question | several numbered parts per task, each worth 2–10 marks |
 | Libraries | Python standard library and NumPy only | listed per task (NumPy, scikit-learn trees, PyTorch); some are banned |
@@ -75,7 +76,7 @@ Renaming a parameter (`alpha` to `lr`), reordering parameters, changing the func
 
 <QuickCheck
   q="Your function ends with `print(np.round(theta, 4))` and has no `return`. You run the protected cell that calls it. What happens?"
-  options={['The array is printed, but the function returns None, so a check on its returned value fails', 'Nothing is printed, because Jupyter only shows the value of the last line of a cell', 'The array is printed and returned, because print also passes its value back to the caller', 'Python raises an error, because a function with type hints must end with a return']}
+  options={['The array is printed, but the function returns None, so any check on the result fails', 'Nothing is printed, because Jupyter only shows the value of the last line of a cell', 'The array is printed and returned, because print also passes its value back to the caller', 'Python raises an error, because a function with type hints must end with a return']}
   answer={0}
   explain="`print` shows text on the screen and gives back `None`. A function without `return` also returns `None`, which Jupyter does not display. So you see `[0.003  0.9987]` and think it worked, but any code that uses the returned value gets `None`. Always `return` the answer; print only to debug."
 />
@@ -115,9 +116,18 @@ Round **once**, on the value you return. Rounding inside a loop throws away a li
 
 </Mistake>
 
-<PastPaperQuestion paper="prelim2026" n={127} />
+When a cell crashes, read the **last line** of the error first: it names the kind of error, and the lines above it show where it happened.
+
+- `NameError`: a name that does not exist yet, from a typo or a cell you have not run.
+- `TypeError`: the wrong kind of value, such as `(2, 4) - (2, 2)` on tuples, or a call that uses a renamed parameter.
+- `IndexError`: an index that is ≥ the length, often from `range(len(x) + 1)`.
+- `ValueError`: array shapes that do not fit together.
+
+If the cause is still unclear, put `print(len(x))` or `print(x.shape)` just before the failing line to see what the variable really holds, then delete the print. [Exceptions and debugging](#/learn/python-toolkit/exceptions-debugging) has more examples of each error.
 
 <PastPaperQuestion paper="prelim2026" n={126} />
+
+<PastPaperQuestion paper="prelim2026" n={127} />
 
 ## The kernel remembers everything
 

@@ -54,7 +54,7 @@ export default function GDRegressionRunner() {
         <>
           At the exam's settings (α = 0.01, 1000 iterations) the output matches the official answer. Now move the sliders: set iterations to 1 to see the hand-calculated
           first step, push iterations up to watch θ crawl along the valley floor to (0, 1), and raise α until the path zig-zags (0.09) or blows up (0.1). Notice that
-          the 4-decimal answer depends on the exact α and iteration count.
+          the 4-decimal answer depends on the exact α and iteration count. The cost plot uses a log scale: each labelled tick is 1,000 times smaller than the one above it.
         </>
       }
       wide

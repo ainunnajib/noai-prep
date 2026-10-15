@@ -40,10 +40,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'You train linear regression with full-batch gradient descent and print the MSE after each iteration: 40.8, 51.9, 66.1, 84.2, 107.3, 136.8, … What should you do?',
     options: [
-      'Lower the learning rate, because each step overshoots further than the last',
-      'Train for more iterations, because the loss has simply not converged yet',
-      'Raise the learning rate, because the model is learning far too slowly',
-      'Add more training examples, because the model is overfitting the data',
+      'Lower the learning rate, because every step overshoots further than the one before',
+      'Train for more iterations, because the loss has simply not had time to converge yet',
+      'Raise the learning rate, because the model is learning far too slowly to converge',
+      'Add more training examples, because the model is overfitting the training data',
     ],
     answer: 0,
     explanation:
@@ -55,8 +55,8 @@ const questions: QuizQuestion[] = [
     prompt: 'This loop is meant to implement the update $\\theta_j := \\theta_j - \\alpha\\frac{1}{m}\\sum_i (h_\\theta(x^{(i)}) - y^{(i)})\\,x_j^{(i)}$ for every $j$. What is wrong with it?',
     code: 'for _ in range(iterations):\n    for j in range(n):\n        error = X @ theta - y\n        theta[j] -= alpha * np.sum(error * X[:, j]) / m',
     options: [
-      'Later θ values use errors computed after earlier θ values changed, so the update is not simultaneous',
-      'Dividing by m is wrong here, because np.sum already averages the products over all examples',
+      'The error is recomputed inside the j loop, so not every θⱼ is updated from the same old θ',
+      'Dividing by m is wrong here, because np.sum already averages the products over the examples',
       'The minus sign should be a plus, because the gradient already points towards the minimum',
       'The error should be y - X @ theta, because the update rule needs truth minus prediction',
     ],

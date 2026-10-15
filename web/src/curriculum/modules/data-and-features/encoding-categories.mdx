@@ -58,9 +58,9 @@ Integer codes tell the model that categories have an order and equal spacing. Us
 <QuickCheck
   id="data-and-features.encoding.qc-onehot-dist"
   q="A colour column has the categories red, green and blue, and is one-hot encoded. What is the Euclidean distance between the encoded vectors for red and blue?"
-  options={['$\\sqrt{2}$', '$1$', '$2$', '$0$']}
+  options={['$\\sqrt{2}$', '$\\sqrt{3}$', '$2$', '$1$']}
   answer={0}
-  explain="Red is $[1, 0, 0]$ and blue is $[0, 0, 1]$. They differ in two positions by 1 each, so the distance is $\sqrt{1^2 + 0^2 + 1^2} = \sqrt{2}$. The answer 2 is what label codes red = 0, blue = 2 would give: exactly the fake spacing that one-hot encoding avoids."
+  explain="Red is $[1, 0, 0]$ and blue is $[0, 0, 1]$. They differ in two positions by 1 each, so the distance is $\sqrt{1^2 + 0^2 + 1^2} = \sqrt{2}$. $\sqrt{3}$ would need all three positions to differ, but both vectors have a 0 in the green column. The answer 2 is what label codes red = 0, blue = 2 would give: exactly the fake spacing that one-hot encoding avoids."
 />
 
 ## What a linear model can do with each encoding
@@ -123,7 +123,7 @@ One-hot encoding adds one column per category. That is fine for a few dozen HDB 
 
 - **Group rare categories** into a single `"other"` category.
 - **Frequency encoding**: replace each category by how often it occurs.
-- **Target encoding**: replace each category by the average target value for that category. This is powerful but leaks the answer unless the averages are computed on training rows only (see the next lesson).
+- **Target encoding**: replace each category by the average target value for that category. This is powerful but leaks the answer unless the averages are computed on training rows only (see the lesson on splitting and leakage).
 - **Embeddings**: let a neural network learn a short, dense vector for each category (you will meet these with text, below).
 
 Watch out for categories that *look* like numbers. Postal codes, phone numbers and student IDs are digits, but 560123 is not "more" than 460123. They are nominal categories, and treating them as quantities invents an order.

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Grid, Axes, Path, Dots, Label, useAnimationFrame, usePlot, mulberry32 } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Toggle, Button, Plot, Grid, Axes, Path, Dots, Label, useAnimationFrame, usePlot, useNarrow, mulberry32 } from '../../../../../kit'
 import { PRELIM } from '../../../../../data/facts'
 import s from './pe.module.css'
 
@@ -89,6 +89,7 @@ export default function PaceCheckpoints() {
   const [clock, setClock] = useState(TOTAL)
   const [playing, setPlaying] = useState(false)
   const [pausedAt, setPausedAt] = useState<number | null>(null) // checkpoint index we are paused at
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
 
   const paper = useMemo(() => makePaper(2027), [])
   const speedFrom = speedAt === null ? Infinity : CHECK_MIN[speedAt] * 60
@@ -171,11 +172,12 @@ export default function PaceCheckpoints() {
         <>
           Press <strong>Play the exam</strong>. The simulated student stops at every 15-minute checkpoint; compare the dot with the two lines and decide whether to speed up. Above the
           dashed green line (30 s a question) you are ahead; below the red line (36 s a question, 25 questions every 15 minutes) you will not reach Q{N}. Try a slower average or
-          more hard questions, then compare speeding up at 15:00 with speeding up at 60:00.
+          more hard questions, then compare speeding up at 15:00 with speeding up at 60:00. In speed mode the simulated student gives any hard question a best guess and a flag after
+          30 s, and is about 15% quicker on the rest from no longer re-reading options already struck out.
         </>
       }
     >
-      <div className={s.wrap}>
+      <div className={s.wrap} ref={wrapRef}>
         <Plot x={[0, 90]} y={[0, N]} width={560} height={330} minHeight={260} margin={{ left: 54, right: 14, top: 26, bottom: 38 }} ariaLabel={`Questions answered against time. With your settings the student reaches question ${finalQ} by 90 minutes.`}>
           <Grid xTicks={6} yTicks={6} />
           {/* behind zone: under the red line */}
@@ -187,8 +189,10 @@ export default function PaceCheckpoints() {
           {CHECK_MIN.map((m) => (
             <Path key={m} points={[[m, 0], [m, N]]} color="var(--viz-muted)" width={1} dash="2 4" />
           ))}
-          {CHECK_MIN.map((m) => (
-            <Label key={`f${m}`} x={m} y={N} dy={-8} anchor={m === 90 ? 'end' : 'middle'} color="var(--viz-neg)" size={11} weight={700}>
+          {/* must-hit flags along the top, in a quiet colour so they are not mistaken for the student's (red when behind) labels;
+              on a phone only every other one, so they do not run together */}
+          {CHECK_MIN.filter((m) => !narrow || m % 30 === 0).map((m) => (
+            <Label key={`f${m}`} x={m} y={N} dy={-8} anchor={m === 90 ? 'end' : 'middle'} color="var(--ink-2)" size={11} weight={700}>
               {`Q${Math.round(redLine(m))}`}
             </Label>
           ))}
@@ -201,9 +205,9 @@ export default function PaceCheckpoints() {
             <g key={m} style={{ opacity: reached ? 1 : 0.3 }}>
               <Dots points={[{ x: m, y: Math.min(q, N), color: STATUS_COLOUR[st], r: 6 }]} />
               {reached && (
-                <Label x={m} y={Math.min(q, N)} dx={m === 90 ? -9 : 9} dy={m === 90 ? -9 : 14} anchor={m === 90 ? 'end' : 'start'} color={STATUS_COLOUR[st]} size={11} weight={750}>
+                <HaloLabel x={m} y={Math.min(q, N)} dx={m === 90 ? -10 : 9} dy={m === 90 ? -10 : 14} anchor={m === 90 ? 'end' : 'start'} color={STATUS_COLOUR[st]}>
                   {`Q${q}`}
-                </Label>
+                </HaloLabel>
               )}
             </g>
           ))}
@@ -224,7 +228,7 @@ export default function PaceCheckpoints() {
         {pk && (
           <div className={`${s.panel} ${pk.st === 'behind' ? s.panelBehind : pk.st === 'ok' ? s.panelOk : s.panelAhead}`} role="status">
             <div>
-              <strong>Checkpoint {pk.m}:00.</strong> You are on <strong>Q{pk.q}</strong>. The must-hit line says Q{Math.round(redLine(pk.m))}; the target says Q{targetLine(pk.m)}.{' '}
+              <strong>Checkpoint {pk.m}:00.</strong> You have finished <strong>Q{pk.q}</strong>. The must-hit line says Q{Math.round(redLine(pk.m))}; the target says Q{targetLine(pk.m)}.{' '}
               {pk.st === 'behind' && (
                 <>
                   You are <strong>{Math.round(redLine(pk.m)) - pk.q} behind</strong> the must-hit line: at this pace you will not reach the end.
@@ -299,6 +303,21 @@ export default function PaceCheckpoints() {
         </div>
       </div>
     </Figure>
+  )
+}
+
+/** A data label with a halo in the background colour, so it stays readable where it crosses a line. */
+function HaloLabel({ x, y, dx, dy, anchor, color, children }: { x: number; y: number; dx: number; dy: number; anchor: 'start' | 'end'; color: string; children: string }) {
+  const { xs, ys } = usePlot()
+  return (
+    <text
+      x={xs(x) + dx}
+      y={ys(y) + dy}
+      textAnchor={anchor}
+      style={{ fill: color, fontSize: 11, fontWeight: 750, stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke', strokeLinejoin: 'round' }}
+    >
+      {children}
+    </text>
   )
 }
 

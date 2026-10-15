@@ -6,13 +6,13 @@ const questions: QuizQuestion[] = [
     prompt: 'Which statement best describes the **curse of dimensionality**?',
     options: [
       'Adding features makes data sparse and distances less useful, so far more data is needed',
-      "Adding features always makes training slower, but it always improves the model's accuracy",
+      "Adding more features slows training down, but it always improves the model's accuracy",
       'Arrays with more than two dimensions cannot be passed to scikit-learn models for training',
-      'Adding features always makes every model too simple, so it underfits the training data',
+      'Adding features makes each model too simple, so it underfits even its own training data',
     ],
     answer: 0,
     explanation:
-      'The volume of the space grows exponentially with the number of features, so a fixed dataset becomes sparse, nearest and farthest points end up at similar distances, and models overfit. More features do not always improve accuracy, and the problem has nothing to do with NumPy array `ndim`.',
+      'The volume of the space grows exponentially with the number of features, so a fixed dataset becomes sparse, nearest and farthest points end up at similar distances, and models overfit. More features do not always improve accuracy, and they make a model more flexible, not simpler, so the risk is overfitting rather than underfitting. The problem also has nothing to do with NumPy array `ndim`.',
     difficulty: 'beginner',
   },
   {
@@ -29,14 +29,14 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.curse-of-dimensionality.3',
     prompt: 'Why does k-nearest neighbours often work badly when every point has hundreds of features?',
     options: [
-      'Distances to the nearest and farthest points become almost equal, so "nearest" means little',
+      'Distances from a query to all other points become almost equal, so "nearest" means little',
       'Euclidean distance cannot be computed with more than three features, so k-NN has to switch metric',
-      'k-NN must store one separate model per feature, so it runs out of memory with hundreds of features',
-      'k-NN needs k to be larger than the number of features, so every prediction becomes a vote of the whole dataset',
+      'k-NN stores one separate model per feature, so it runs out of memory with hundreds of features',
+      'k-NN needs k to be larger than the number of features, so each vote involves most of the dataset',
     ],
     answer: 0,
     explanation:
-      'Each feature adds a squared term to the distance; with many features the distances all become similar (nearest ÷ farthest approaches 1), so the chosen neighbours are hardly closer than random points. Euclidean distance works in any number of dimensions, and k has no link to the number of features.',
+      'Each feature adds a squared term to the distance; with many features the distances all become similar (nearest ÷ farthest approaches 1), so the chosen neighbours are hardly closer than random points. Euclidean distance works in any number of dimensions, k-NN stores the training rows rather than one model per feature, and k has no link to the number of features.',
     difficulty: 'intermediate',
   },
   {

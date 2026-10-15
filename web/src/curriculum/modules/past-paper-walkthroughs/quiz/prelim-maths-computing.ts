@@ -3,11 +3,11 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'past-paper-walkthroughs.prelim-maths-computing.1',
-    prompt: 'A $2 \\times 2$ matrix has eigenvalues $5$ and $-2$. What is its determinant?',
-    options: ['$-10$', '$3$', '$10$', '$7$'],
+    prompt: 'A $2 \\times 2$ matrix has eigenvalues $-5$ and $-2$. What is its determinant?',
+    options: ['$10$', '$-7$', '$-10$', '$3$'],
     answer: 0,
     explanation:
-      'The determinant is the product of the eigenvalues: $5 \\times (-2) = -10$. The sum $5 + (-2) = 3$ is the trace, a different quantity. $10$ drops the minus sign, and $7$ is $5 - (-2)$. Since $-10 \\neq 0$, the matrix is invertible.',
+      'The determinant is the product of the eigenvalues: $(-5) \\times (-2) = 10$, positive because the two minus signs cancel. The sum $(-5) + (-2) = -7$ is the trace, a different quantity. $-10$ keeps a minus sign that should have cancelled, and $3$ is the difference $(-2) - (-5)$. Since $10 \\neq 0$, the matrix is invertible.',
     difficulty: 'beginner',
   },
   {
@@ -39,10 +39,15 @@ const questions: QuizQuestion[] = [
     id: 'past-paper-walkthroughs.prelim-maths-computing.4',
     prompt:
       'A training loop calls `loss.backward()` and `optimiser.step()` every iteration but never calls `optimiser.zero_grad()`. Each iteration on its own would give the weight $w$ a gradient of $0.3$. What gradient does `optimiser.step()` use for $w$ in the third iteration?',
-    options: ['$0.9$', '$0.3$', '$0$, because the gradients cancel out', 'None: PyTorch raises an error on the second iteration'],
+    options: [
+      '$0.9$, since `backward()` always adds onto `.grad`',
+      '$0.3$, since each `backward()` replaces `.grad`',
+      '$0$, since the three gradients cancel each other out',
+      'No value: PyTorch raises an error on iteration 2',
+    ],
     answer: 0,
     explanation:
-      '`backward()` adds into `.grad`, so after three iterations `w.grad` $= 0.3 + 0.3 + 0.3 = 0.9$, and the step is three times too big. There is no error, because each iteration builds a fresh graph with a new forward pass. That is why `zero_grad()` belongs at the start of every step.',
+      '`backward()` adds into `.grad`, so after three iterations `w.grad` $= 0.3 + 0.3 + 0.3 = 0.9$, and with plain SGD the step is three times too big. Nothing replaces the old value: only `zero_grad()` clears it. There is no error, because each iteration builds a fresh graph with a new forward pass. That is why `zero_grad()` belongs at the start of every step.',
     difficulty: 'intermediate',
   },
   {
@@ -61,7 +66,7 @@ const questions: QuizQuestion[] = [
     options: ['$\\tfrac{1}{6}$', '$\\tfrac{7}{36}$', '$\\tfrac{1}{11}$', '$\\tfrac{1}{12}$'],
     answer: 0,
     explanation:
-      'Count outcomes: the two dice give $6 \\times 6 = 36$ equally likely ordered pairs, and six of them total 7: (1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1). So $P = 6/36 = 1/6$. $\\tfrac{1}{11}$ wrongly treats the 11 possible totals (2 to 12) as equally likely, and $\\tfrac{1}{12}$ counts only the 3 unordered pairs.',
+      'Count outcomes: the two dice give $6 \\times 6 = 36$ equally likely ordered pairs, and six of them total 7: (1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1). So $P = 6/36 = 1/6$. $\\tfrac{1}{11}$ wrongly treats the 11 possible totals (2 to 12) as equally likely, $\\tfrac{1}{12}$ counts only the 3 unordered pairs, and $\\tfrac{7}{36}$ confuses the target total 7 with the number of ways to make it (6).',
     difficulty: 'beginner',
   },
 ]

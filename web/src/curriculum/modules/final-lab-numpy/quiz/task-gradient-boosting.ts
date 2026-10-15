@@ -40,7 +40,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'With `subsample=0.8`, a student writes step d as `current_pred[indices] += self.learning_rate * tree.predict(X[indices])`. What goes wrong?',
     options: [
-      'Rows left out of the sample miss this tree’s correction, so the predictions in fit() drift away from what predict() computes',
+      'Rows outside the sample never get this tree’s correction, so fit() drifts away from what predict() computes',
       'Nothing goes wrong: rows a tree was not fitted on should keep their old prediction, which is the purpose of subsampling',
       'The tree cannot predict rows it was not fitted on, so the full update with tree.predict(X) would raise an error',
       'The update is correct, but the learning rate must be divided by 0.8 to make up for the rows that were left out',

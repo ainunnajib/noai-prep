@@ -11,6 +11,9 @@ import s from './lim.module.css'
 */
 
 const BAND: Record<0 | 1, number> = { 0: 1.45, 1: 0.45 }
+/** Text versions of the group colours, darkened (or lightened in dark mode) towards the ink for readable contrast. */
+const TEXT_A = 'color-mix(in srgb, var(--viz-1) 80%, var(--ink))'
+const TEXT_B = 'color-mix(in srgb, var(--viz-2) 55%, var(--ink))'
 const pctf = (x: number) => `${Math.round(x * 100)}%`
 
 function Pair({ title, a, b, note }: { title: string; a: number; b: number; note?: string }) {
@@ -20,12 +23,12 @@ function Pair({ title, a, b, note }: { title: string; a: number; b: number; note
       <div className={s.metricTitle}>{title}</div>
       {(
         [
-          ['A', a, 'var(--viz-1)'],
-          ['B', b, 'var(--viz-2)'],
+          ['A', a, 'var(--viz-1)', TEXT_A],
+          ['B', b, 'var(--viz-2)', TEXT_B],
         ] as const
-      ).map(([g, v, c]) => (
+      ).map(([g, v, c, tc]) => (
         <div key={g} className={s.pairRow}>
-          <span className={s.pairLabel} style={{ color: c }}>
+          <span className={s.pairLabel} style={{ color: tc }}>
             {g}
           </span>
           <span className={s.pairTrack}>
@@ -58,6 +61,8 @@ export default function BiasAmplifier() {
     return { x: p.score, y, color: 'var(--viz-muted)', r: 3, hollow: true }
   })
   const flipped = res.train.filter((p) => p.g === 1 && p.qualified && !p.label).length
+  const qualifiedB = res.train.filter((p) => p.g === 1 && p.qualified).length
+  const recordMissB = flipped / Math.max(1, qualifiedB)
 
   const thrMark = (g: 0 | 1, m: GroupMetrics) => {
     const t = Math.max(0, Math.min(100, m.threshold))
@@ -91,11 +96,8 @@ export default function BiasAmplifier() {
       title="Bias in, bias out: a model trained on unfair past decisions"
       caption={
         <>
-          Each dot is one past applicant, placed by test score. Both groups are <b>equally able</b> (same score spread), but past reviewers rejected
-          some qualified group-B applicants (red rings). A logistic-regression model learns from these records; the black bar shows the score above
-          which it approves each group. Slide the bias up and watch the model turn a tendency in the data into a hard rule. Then turn on{' '}
-          <b>reweighting</b>, which gives each (group, decision) pair a weight so that group and approval are no longer linked in the training data.
-          Because the data are simulated, we know who was really qualified, so the cards below grade the model against the truth.
+          <b>Try:</b> slide the bias in past decisions, then turn on <b>reweighting</b>. <b>Notice:</b> both groups are equally able, yet the model
+          learns a higher cut-off (solid bar) for B. Overall accuracy hides this; the per-group cards show it.
         </>
       }
     >
@@ -106,10 +108,10 @@ export default function BiasAmplifier() {
           <Dots points={dots} />
           {thrMark(0, A)}
           {thrMark(1, B)}
-          <Label x={1} y={1.97} dy={10} color="var(--viz-1)" weight={800}>
+          <Label x={1} y={1.97} dy={10} color={TEXT_A} weight={800}>
             Group A (240)
           </Label>
-          <Label x={1} y={0.97} dy={10} color="var(--viz-2)" weight={800}>
+          <Label x={1} y={0.97} dy={10} color={TEXT_B} weight={800}>
             Group B (80)
           </Label>
           <Axes xLabel="test score" xTicks={5} hideYTicks />
@@ -128,6 +130,10 @@ export default function BiasAmplifier() {
             qualified but rejected ({flipped} in group B)
           </span>
           <span>
+            <span className={s.swatch} style={{ borderLeft: '3px solid var(--viz-ink)', borderRadius: 0, width: '0.5rem' }} />
+            model's cut-off
+          </span>
+          <span>
             <span className={s.swatch} style={{ borderLeft: '2px dashed var(--viz-muted)', borderRadius: 0, width: '0.5rem' }} />
             fair cut-off (score 50)
           </span>
@@ -136,9 +142,11 @@ export default function BiasAmplifier() {
           <Slider label="Bias in past decisions (qualified B applicants rejected)" value={skew} min={0} max={0.8} step={0.05} onChange={setSkew} format={(v) => pctf(v)} />
           <Toggle label="Reweight the training data" checked={reweigh} onChange={setReweigh} />
         </Controls>
+        <p className={s.small}>The data are simulated, so we know who was really qualified: the cards grade the model on 2,000 new applicants against the truth.</p>
         <div className={s.metricGrid}>
           <Pair title="Approved by the model" a={A.approval} b={B.approval} note="equal ability" />
           <Pair title="Qualified but rejected" a={A.missed} b={B.missed} />
+          <Pair title="Unqualified but approved" a={A.falseApproval} b={B.falseApproval} />
           <Pair title="Accuracy (vs the truth)" a={A.accuracy} b={B.accuracy} />
         </div>
         <Readout
@@ -155,8 +163,11 @@ export default function BiasAmplifier() {
             </>
           ) : (
             <>
-              Overall accuracy is <b>{pctf(res.overallAccuracy)}</b>, which sounds fine, because group B is only a quarter of the applicants. Measured
-              per group, B is {B.missed > A.missed + 0.05 ? <b>rejected when qualified {pctf(B.missed)} of the time, against {pctf(A.missed)} for A</b> : <>treated much more like A</>}.{' '}
+              In the training records, past reviewers rejected <b>{pctf(recordMissB)}</b> of qualified B applicants ({flipped} of {qualifiedB}). The model
+              {reweigh ? ' trained on reweighted data' : ''} rejects <b>{pctf(B.missed)}</b> of qualified B applicants, against {pctf(A.missed)} for A
+              (scores are noisy, so some qualified A applicants miss out too).{' '}
+              {B.missed > A.missed + 0.05 ? <>It has copied the bias and made it a fixed rule.</> : <>B is now treated much more like A.</>} Overall accuracy
+              is <b>{pctf(res.overallAccuracy)}</b>, which sounds fine, because group B is only a quarter of the applicants.{' '}
               {histHigher && (
                 <>
                   And if you graded the model against the same biased records, B's accuracy would look like <b>{pctf(hist.B.accuracy)}</b> instead

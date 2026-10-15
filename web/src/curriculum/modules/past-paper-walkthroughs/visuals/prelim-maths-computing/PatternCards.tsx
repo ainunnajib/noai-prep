@@ -89,7 +89,12 @@ export default function PatternCards() {
         <Segmented<Filter>
           label="Show"
           value={filter}
-          onChange={setFilter}
+          onChange={(f) => {
+            setFilter(f)
+            // keep the open card inside the filtered set
+            const inView = TEMPLATES.filter((x) => f === 'all' || x.domain === f)
+            if (!inView.some((x) => x.id === sel)) select(inView[0].id)
+          }}
           options={[
             { value: 'all', label: 'All 26' },
             { value: 'maths', label: 'Maths topics' },

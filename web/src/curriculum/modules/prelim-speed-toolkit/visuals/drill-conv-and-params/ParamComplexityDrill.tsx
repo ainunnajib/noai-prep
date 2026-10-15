@@ -46,7 +46,8 @@ const PARAMS: Gen[] = [
       prompt: 'How many parameters?',
       code: `nn.Linear(${i}, ${o})`,
       right: fmtInt(i * o + o),
-      wrong: [fmtInt(i * o), fmtInt(i * o + i), fmtInt((i + 1) * (o + 1))],
+      // when in = out, 'one bias per input' equals the answer and is dropped, so a fourth slip stands by
+      wrong: [fmtInt(i * o), fmtInt(i * o + i), fmtInt((i + 1) * (o + 1)), fmtInt(i + o)],
       why: `Linear: in × out weights + out biases = ${fmtInt(i)} × ${o} + ${o} = ${fmtInt(i * o + o)}.`,
     }
   },
@@ -58,7 +59,7 @@ const PARAMS: Gen[] = [
       prompt: 'How many parameters?',
       code: `nn.Linear(${i}, ${o}, bias=False)`,
       right: fmtInt(i * o),
-      wrong: [fmtInt(i * o + o), fmtInt(i + o), fmtInt(i * o + i)],
+      wrong: [fmtInt(i * o + o), fmtInt(i + o), fmtInt(i * o + i), fmtInt(i * o + 1)],
       why: `bias=False leaves only the weight matrix: ${i} × ${o} = ${fmtInt(i * o)}.`,
     }
   },
@@ -99,7 +100,8 @@ const PARAMS: Gen[] = [
     return {
       prompt: `LoRA with rank r = ${rank} on one ${d} × ${k} weight matrix. How many trainable parameters?`,
       right: fmtInt(rank * (d + k)),
-      wrong: [fmtInt(d * k), fmtInt(rank * d * k), fmtInt((d * k) / rank)],
+      // d·k / r equals the answer for 512 × 512 at r = 16, so 'only B' stands by
+      wrong: [fmtInt(d * k), fmtInt(rank * d * k), fmtInt((d * k) / rank), fmtInt(rank * d)],
       why: `LoRA trains B (${d} × ${rank}) and A (${rank} × ${k}): r(d + k) = ${rank} × ${fmtInt(d + k)} = ${fmtInt(rank * (d + k))}, instead of all ${fmtInt(d * k)} entries of W.`,
     }
   },
@@ -113,7 +115,7 @@ const PARAMS: Gen[] = [
       prompt: 'How many parameters?',
       code: `nn.Conv2d(${ci}, ${co}, kernel_size=${k})`,
       right: fmtInt((per + 1) * co),
-      wrong: [fmtInt(per * co), fmtInt((k * k + 1) * co), fmtInt(per * co + ci)],
+      wrong: [fmtInt(per * co), fmtInt((k * k + 1) * co), fmtInt(per * co + ci), fmtInt(per * co + 1)],
       why: `(k·k·C_in + 1)·C_out = (${k}·${k}·${ci} + 1)·${co} = ${per + 1} × ${co} = ${fmtInt((per + 1) * co)}.`,
     }
   },
@@ -198,7 +200,8 @@ const BIGO: Gen[] = [
     return {
       prompt: `About how many multiplications does (${n} × ${m}) @ (${m} × ${p}) need?`,
       right: fmtInt(n * m * p),
-      wrong: [fmtInt(n * p), fmtInt(n * m + m * p), fmtInt(m * m * m)],
+      // m³ equals the answer when n·p = m², so 'only m × p' stands by
+      wrong: [fmtInt(n * p), fmtInt(n * m + m * p), fmtInt(m * m * m), fmtInt(m * p)],
       why: `${n}·${p} entries × ${m} multiplications each = ${fmtInt(n * m * p)}.`,
     }
   },
@@ -335,21 +338,22 @@ export default function ParamComplexityDrill() {
   const [log, setLog] = useState<Done[]>([])
   const startRef = useRef<HTMLDivElement>(null)
 
-  const lastKey = useRef('')
+  // every question asked in this sprint, so none comes up twice in one round
+  const seen = useRef(new Set<string>())
   const item = useMemo(() => {
-    // avoid showing the same question twice in a row
     const base = 7907 * (run + 1) + 131 * qn + cats.length * 17 + (cats.includes('sched') ? 5 : 0)
     let it = makeItem(base, cats)
-    for (let k = 1; k < 6 && it.prompt + it.code === lastKey.current; k++) it = makeItem(base + 1000 * k, cats)
+    for (let k = 1; k < 40 && seen.current.has(it.prompt + it.code); k++) it = makeItem(base + 1000 * k, cats)
     return it
   }, [run, qn, cats])
   useEffect(() => {
-    lastKey.current = item.prompt + item.code
+    seen.current.add(item.prompt + item.code)
   }, [item])
 
   const left = useCountdown(RUN, state === 'running', () => setState('done'), run)
 
   const start = () => {
+    seen.current = new Set()
     setRun((x) => x + 1)
     setQn(0)
     setLog([])

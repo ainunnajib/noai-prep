@@ -76,7 +76,7 @@ Comparing the wrong numbers. $(3 \times 2)(3 \times 2)$ looks "the same", but th
 
 <Analogy title="Adding up a hawker bill">
 
-At a hawker centre you do not write all the prices down and add them at the end. You keep a running total in your head: chicken rice 4, plus kopi 1.50 is 5.50, plus a drink 2 is 7.50. Dot products work the same way: one multiplication at a time, always carrying a single running total.
+At a hawker centre you do not write all the prices down and add them at the end. You keep a running total in your head: chicken rice 4, plus kopi 1.50 is 5.50, plus a dessert 2 is 7.50. Dot products work the same way: one multiplication at a time, always carrying a single running total.
 
 </Analogy>
 
@@ -103,7 +103,7 @@ $$
 - $\lVert a \rVert_2$ (the **L2 norm**, or length) is Pythagoras in any number of dimensions: square, add, square-root.
 - $\cos\theta$ (the **cosine similarity**) is the cosine of the angle $\theta$ between the two arrows: $1$ for the same direction, $0$ for perpendicular (<Term def="At right angles to each other. Two vectors are orthogonal exactly when their dot product is 0.">orthogonal</Term>), $-1$ for opposite directions.
 
-**Running totals.** For $[1, 2, 3] \cdot [4, 5, 6]$, say it as you go: "4, plus 10 is 14, plus 18 is **32**". You never hold more than one number in your head.
+**Running totals.** For $[2, 3, 4] \cdot [5, 1, 2]$, say it as you go: "10, plus 3 is 13, plus 8 is **21**". You never hold more than one number in your head.
 
 **Hidden triples.** Exam vectors are built so that lengths come out whole, which means they hide <Term def="Whole numbers a, b, c with a² + b² = c², such as 3-4-5. They are the sides of a right-angled triangle with whole-number sides.">Pythagorean triples</Term>. Learn these and most L2 norms are instant:
 
@@ -122,7 +122,7 @@ Signs and order do not matter for a length: $[-12, 3, 4]$ also has length 13.
 <DotNormDrill />
 
 <Steps title="Cosine similarity of a = [1, 2, 2] and b = [2, 3, 6]">
-  <Step title="Dot product as a running total">
+  <Step title="Running total">
     $1 \times 2 = 2$, plus $2 \times 3 = 6$ makes 8, plus $2 \times 6 = 12$ makes **20**. Not zero, so the lengths are needed.
   </Step>
   <Step title="Spot the lengths">
@@ -150,9 +150,9 @@ Mixing up the norms. The **L1** norm adds sizes ($|3| + |4| = 7$); the **L2** no
 
 ## 2 × 2 shortcuts
 
-<Analogy title="Quick sums at the checkout">
+<Analogy title="A speedcuber's move sequences">
 
-At a supermarket checkout you do not get a calculator out to work out the change from a ten-dollar note. You know a few patterns by heart and apply them. A 2 × 2 matrix has four numbers and four patterns worth knowing by heart.
+Speedcubers do not work out a Rubik's cube move by move. They learn a handful of fixed move sequences, each one matched to a pattern they recognise at a glance, and fire the right one without thinking. A 2 × 2 matrix has four such sequences: the determinant, the trace, the inverse and the eigenvalues. Spot which one the question wants, then run it.
 
 </Analogy>
 
@@ -166,7 +166,7 @@ $$
 A^{-1} = \frac{1}{ad - bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}
 $$
 
-- The **determinant** $\det A$ is "down-right diagonal minus up-right diagonal". It measures how much $A$ scales areas. If $\det A = 0$, $A$ squashes the whole plane onto a line, and no matrix can undo that: $A$ is **singular** (it has no inverse).
+- The **determinant** $\det A$ is "down-right diagonal minus up-right diagonal". Its size $\lvert \det A \rvert$ is how much $A$ scales areas, and a negative sign means $A$ also flips the plane over, like a mirror. If $\det A = 0$, $A$ squashes the whole plane onto a line (or even a single point), and no matrix can undo that: $A$ is **singular** (it has no inverse).
 - The **trace** $\operatorname{tr} A$ is the sum of the main diagonal.
 - The **inverse** $A^{-1}$ (the matrix that undoes $A$, so $AA^{-1} = I$): **swap** the two diagonal entries, **flip the signs** of the other two, **divide** by the determinant.
 
@@ -176,7 +176,19 @@ $$
 \lambda_1 + \lambda_2 = \operatorname{tr} A \qquad \lambda_1 \lambda_2 = \det A
 $$
 
-This comes from the equation every eigenvalue solves, $\det(A - \lambda I) = 0$. Expanding it: $(a - \lambda)(d - \lambda) - bc = \lambda^2 - (a + d)\lambda + (ad - bc)$. A quadratic whose roots are $\lambda_1$ and $\lambda_2$ always looks like $\lambda^2 - (\lambda_1 + \lambda_2)\lambda + \lambda_1\lambda_2$; matching the two gives the rules. So, for small integer matrices: **find two numbers that add to the trace and multiply to the determinant.** And if the matrix is triangular (a 0 in a corner off the diagonal), the eigenvalues are simply the diagonal entries.
+So, for small integer matrices: **find two numbers that add to the trace and multiply to the determinant.** If no whole numbers fit, solve the quadratic: $\lambda = \frac{1}{2}\bigl(\operatorname{tr} A \pm \sqrt{(\operatorname{tr} A)^2 - 4 \det A}\bigr)$; if the number under the root is negative, the eigenvalues are not real numbers at all (a rotation matrix is the classic case). And if the matrix is triangular (a 0 in a corner off the diagonal), the eigenvalues are simply the diagonal entries.
+
+<Reveal label="Why do the eigenvalues add to the trace and multiply to the determinant?">
+
+Every eigenvalue solves $\det(A - \lambda I) = 0$. Expanding it gives
+
+$$
+(a - \lambda)(d - \lambda) - bc = \lambda^2 - (a + d)\lambda + (ad - bc)
+$$
+
+A quadratic whose roots are $\lambda_1$ and $\lambda_2$ always has the form $\lambda^2 - (\lambda_1 + \lambda_2)\lambda + \lambda_1\lambda_2$. Matching the two lines term by term: $\lambda_1 + \lambda_2 = a + d$ and $\lambda_1 \lambda_2 = ad - bc$.
+
+</Reveal>
 
 The same two facts hold for any square matrix: the trace is the **sum** of all the eigenvalues and the determinant is their **product**. So one zero eigenvalue makes the determinant 0, and the matrix singular.
 
@@ -197,7 +209,15 @@ $\det = ad - bc$, $\operatorname{tr} = a + d$, inverse = swap, flip, divide. The
 
 </KeyIdea>
 
-A few more determinant facts are worth knowing cold, because they turn up as one-line questions: $\det I = 1$; $\det(AB) = \det A \cdot \det B$; $\det A^\top = \det A$; $\det A^{-1} = 1 / \det A$; and for an $n \times n$ matrix, $\det(kA) = k^n \det A$ (every one of the $n$ rows gets multiplied by $k$).
+A few more determinant facts are worth knowing cold, because they turn up as one-line questions:
+
+| Fact | Why, in one line |
+| --- | --- |
+| $\det I = 1$ | the identity leaves every area unchanged |
+| $\det(AB) = \det A \cdot \det B$ | doing $B$ then $A$ multiplies the two area factors |
+| $\det A^\top = \det A$ | for a 2 × 2, $ad - cb$ is the same number as $ad - bc$ |
+| $\det A^{-1} = 1 / \det A$ | $A^{-1}$ must undo $A$'s area change |
+| $\det(kA) = k^n \det A$ for $n \times n$ | each of the $n$ rows is multiplied by $k$ |
 
 <PastPaperQuestion paper="prelim2026" n={15} />
 

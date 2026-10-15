@@ -101,7 +101,8 @@ const WALKS: Walk[] = [
         text: (
           <>
             Line D. The textbook update multiplies mistakes by <M>{'e^{+\\alpha}'}</M> and correct points by <M>{'e^{-\\alpha}'}</M>. Here correct points stay at{' '}
-            <M>{'\\times 1'}</M>, so hard points gain only half the intended weight. <code>2*incorrect - 1</code> turns 0/1 into −1/+1 and restores the symmetric
+            <M>{'\\times 1'}</M>, so a mistake ends up only <M>{'e^{\\alpha}'}</M> times heavier than a correct point instead of <M>{'e^{2\\alpha}'}</M>: half the
+            intended effect on a log scale. <code>2*incorrect - 1</code> turns 0/1 into −1/+1 and restores the symmetric
             rule.
           </>
         ),
@@ -135,7 +136,7 @@ const WALKS: Walk[] = [
       { lines: [8], text: <><code>loss.backward()</code> <b>adds</b> new gradients onto <code>.grad</code>; nothing is cleared until line 12.</> },
       {
         lines: [10, 11, 12],
-        text: <>The optimiser steps only every 4 micro-batches, so <code>.grad</code> then holds the <b>sum</b> of 4 mean-gradients: 4× too big, like a 4× learning rate.</>,
+        text: <>The optimiser steps only every 4 micro-batches, so <code>.grad</code> then holds the <b>sum</b> of 4 mean-gradients: 4× too big. With plain SGD that is exactly a 4× learning rate (Adam largely cancels a constant scale, but gradient clipping and weight decay still see the wrong size).</>,
       },
       {
         lines: [7],

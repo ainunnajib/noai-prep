@@ -6,7 +6,8 @@ import m from './mp.module.css'
   Score projector. Weekly full-mock scores (out of 150) over an 18-week run-up to the Prelim.
   Drag any week's score; the least-squares trend, the ±2 SD noise of a single sitting
   (SD = √(150·p·(1 − p))) and a projected range on Prelim day update. Planned study hours scale
-  the future trend; questions reached plus guessing adds (150 − reached)/4 expected marks.
+  the future trend; guessing the blanks left in the last mock adds (150 − answered)/4 expected marks,
+  drawn as a step on Prelim day.
   The trend uses the last four mocks, so an early jump followed by a plateau projects flat. Its slope is
   capped at 3 marks a week, and the fan widens with the uncertainty of the fitted level and slope, so
   one wild mock makes the fan balloon instead of making the projection leap.
@@ -135,20 +136,21 @@ export default function ScoreProjector() {
     s = s + f * (150 - s)
     proj.push([w, s])
   }
-  const withBonus = proj.map(([w, v], i) => [w, Math.min(150, v + (bonus * i) / Math.max(1, proj.length - 1))] as [number, number])
-  const final = withBonus[withBonus.length - 1][1]
+  // the guessing bonus is a one-off on the day, not learning, so it is drawn as a step at the end rather than folded into the trend
+  const trendEnd = proj[proj.length - 1][1]
+  const final = Math.min(150, trendEnd + bonus)
   // chance noise of one sitting, plus the uncertainty of the trend itself carried forward (w − n) weeks
   const half = (w: number, v: number) =>
     Math.sqrt((2 * sd(v)) ** 2 * (1 + Math.max(0, w - n) / Math.max(2, n)) + (w > n ? (2 * seLevel) ** 2 + trendHalf(w) ** 2 : 0))
   const band: [number, number][] = [
-    ...withBonus.map(([w, v]) => [w, Math.min(150, v + half(w, v))] as [number, number]),
-    ...withBonus
+    ...proj.map(([w, v]) => [w, Math.min(150, v + half(w, v))] as [number, number]),
+    ...proj
       .slice()
       .reverse()
       .map(([w, v]) => [w, Math.max(0, v - half(w, v))] as [number, number]),
   ]
-  const lo = Math.max(0, final - half(WEEKS, final))
-  const hi = Math.min(150, final + half(WEEKS, final))
+  const lo = Math.max(0, final - half(WEEKS, trendEnd))
+  const hi = Math.min(150, final + half(WEEKS, trendEnd))
   // the example split is scaled so it always adds up to the latest score (a saved mock's own split is used as it is)
   const rawSum = domains.reduce((p, q) => p + q, 0)
   const latest = scores[n - 1]
@@ -162,7 +164,7 @@ export default function ScoreProjector() {
       caption={
         <>
           Drag any week’s score. The grey dashed line is the trend of your last four mocks; the shaded fan is where your score on 19 February would probably land, if you keep improving at that rate (scaled by your planned
-          hours). Error bars show ±2 SD of chance alone for a single sitting. Drag one point far from the others: the fan balloons, because one mock says little about the trend. A model, not a promise: real progress
+          hours). The short step at the end is the guessing bonus for blanks, a one-off on the day rather than progress. Error bars show ±2 SD of chance alone for a single sitting. Drag one point far from the others: the fan balloons, because one mock says little about the trend. A model, not a promise: real progress
           is lumpier. On a phone, type the scores in the boxes under the chart instead of dragging.
         </>
       }
@@ -189,7 +191,17 @@ export default function ScoreProjector() {
               width={2}
             />
           )}
-          <Path points={withBonus} color="var(--viz-1)" width={2.5} dash="2 4" />
+          <Path points={proj} color="var(--viz-1)" width={2.5} dash="2 4" />
+          {final - trendEnd > 0.05 && (
+            <Path
+              points={[
+                [WEEKS, trendEnd],
+                [WEEKS, final],
+              ]}
+              color="var(--viz-4)"
+              width={4}
+            />
+          )}
           {noise &&
             scores.map((v, i) => (
               <Path
@@ -247,15 +259,15 @@ export default function ScoreProjector() {
           items={[
             ['latest mock', `${scores[n - 1]} / 150`],
             ['trend', n >= 2 ? `${rawB >= 0 ? '+' : '−'}${Math.abs(rawB).toFixed(1)} a week${Math.abs(rawB) > MAX_SLOPE ? ` (projected at most ${MAX_SLOPE})` : ''}` : '–'],
-            ['projected on 19 Feb', `${Math.round(final)} (likely ${Math.round(lo)}–${Math.round(hi)})`],
+            ['projected on 19 Feb', `${Math.round(final)} (likely ${Math.round(lo)}–${Math.round(hi)})${final - trendEnd > 0.05 ? `, incl. +${(final - trendEnd).toFixed(1)} from guessing` : ''}`],
           ]}
         />
         <Controls>
           <Slider label={`Study hours a week from now (so far: ${PAST_HOURS})`} value={hours} min={1} max={15} step={1} onChange={setHours} format={(v) => `${v} h`} />
-          <Slider label="Questions reached in your last mock" value={reached} min={100} max={150} step={1} onChange={setReached} format={(v) => `${v}`} />
+          <Slider label="Questions answered in your last mock (the rest left blank)" value={reached} min={100} max={150} step={1} onChange={setReached} format={(v) => `${v}`} />
         </Controls>
         <div className={m.formRow}>
-          <Toggle label={`Guess every blank on the day (+${((150 - reached) / 4).toFixed(1)} expected)`} checked={guess} onChange={setGuess} />
+          <Toggle label={`Guess those blanks on the day (+${((150 - reached) / 4).toFixed(1)} expected)`} checked={guess} onChange={setGuess} />
           <Toggle label="Show ±2 SD noise bars" checked={noise} onChange={setNoise} />
         </div>
         <div className={m.formRow}>

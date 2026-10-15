@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Toggle, PlayerControls, Plot, Grid, Axes, FnPath, Dots, mulberry32, hashString } from '../../../../../kit'
+import { Figure, Controls, Toggle, PlayerControls, Plot, Grid, Axes, FnPath, Dots, VLine, Label, mulberry32, hashString } from '../../../../../kit'
 import { useStepper } from './useStepper'
 import s from './ctx.module.css'
 
@@ -21,9 +21,10 @@ function vec(tag: string): number[] {
   return Array.from({ length: D }, () => Math.round((r() * 2 - 1) * 100) / 100)
 }
 
+/** Neutral grey ramp (light = low, dark = high), so that orange and blue mean only "computed now" and "cached". */
 function cellColour(v: number) {
-  const t = Math.min(1, Math.abs(v))
-  return `color-mix(in srgb, ${v < 0 ? 'var(--viz-1)' : 'var(--viz-2)'} ${Math.round(15 + t * 65)}%, var(--surface))`
+  const t = (Math.max(-1, Math.min(1, v)) + 1) / 2
+  return `color-mix(in srgb, var(--ink-2) ${Math.round(10 + t * 60)}%, var(--surface))`
 }
 
 function Vec({ v, cls, label }: { v: number[]; cls?: string; label: string }) {
@@ -62,10 +63,8 @@ export default function KVCacheStepper() {
       title="The KV cache: compute keys and values once, reuse them"
       caption={
         <>
-          Each <b>pass</b> produces one new token. The newest token's query <b>q</b> is compared with the key <b>k</b> of every token so far (the
-          weights column), then the values <b>v</b> are averaged. Earlier tokens can never look at later ones (the causal mask), so their k and v never
-          change. With the cache on, only the orange rows are computed; blue rows are read from memory. Switch the cache off: every row is recomputed
-          on every pass, and the work grows like the square of the length. The cache trades that repeated work for memory.
+          <b>Try:</b> press <b>Next</b> to generate each token, then switch the cache off. <b>Notice:</b> with the cache only the row tagged{' '}
+          <b>new</b> (orange) is computed and <b>cached</b> rows (blue) are reused, so the work grows in a straight line, not a curve.
         </>
       }
     >
@@ -79,6 +78,8 @@ export default function KVCacheStepper() {
           <span className={s.gen}>{GEN[pass - 1] === '.' ? '“.”' : GEN[pass - 1]}</span>
         </div>
 
+        <PlayerControls player={player} label={(i) => `Pass ${i + 1} of ${GEN.length}`} />
+
         <div className={s.twoCols}>
           <div>
             <div className={s.kv}>
@@ -91,7 +92,7 @@ export default function KVCacheStepper() {
                 const cls = fresh ? s.vecNew : s.vecCached
                 return (
                   <div key={`${t}${i}`} style={{ display: 'contents' }}>
-                    <span className={s.kvTok}>
+                    <span className={`${s.kvTok} ${fresh ? s.kvTokNew : s.kvTokCached}`}>
                       {t}
                       <span className={`${s.tag} ${fresh ? s.tagNew : s.tagCache}`}>{fresh ? (cache ? 'new' : 'redo') : 'cache'}</span>
                     </span>
@@ -118,17 +119,24 @@ export default function KVCacheStepper() {
 
           <div>
             <p className={s.subhead}>Token positions pushed through the model, in total</p>
-            <Plot x={[1, 40]} y={[0, 900]} width={300} height={190} minHeight={170} margin={{ left: 40, right: 12, top: 12 }} ariaLabel="Total work without the cache grows quadratically with the number of generated tokens; with the cache it grows linearly">
-              <Grid xTicks={4} yTicks={3} />
-              <Axes xLabel="tokens generated" xTicks={4} yTicks={3} />
+            <Plot x={[1, 8]} y={[0, 56]} width={300} height={190} minHeight={170} margin={{ left: 36, right: 12, top: 12 }} ariaLabel="Total work without the cache grows quadratically with the number of generated tokens; with the cache it grows linearly">
+              <Grid xTicks={7} yTicks={4} />
+              <Axes xLabel="tokens generated" xTicks={7} yTicks={4} />
+              <VLine x={pass} color="var(--viz-muted)" />
               <FnPath f={workNoCache} color="var(--viz-2)" width={2.6} />
               <FnPath f={workCache} color="var(--viz-1)" width={2.6} />
               <Dots
                 points={[
-                  { x: pass, y: workNoCache(pass), color: 'var(--viz-2)', r: cache ? 4 : 6 },
-                  { x: pass, y: workCache(pass), color: 'var(--viz-1)', r: cache ? 6 : 4 },
+                  { x: pass, y: workNoCache(pass), color: 'var(--viz-2)', r: cache ? 4.5 : 6.5 },
+                  { x: pass, y: workCache(pass), color: 'var(--viz-1)', r: cache ? 6.5 : 4.5 },
                 ]}
               />
+              <Label x={pass} y={workNoCache(pass)} dx={8} dy={-6} size={12} weight={800}>
+                {workNoCache(pass)}
+              </Label>
+              <Label x={pass} y={workCache(pass)} dx={8} dy={-6} size={12} weight={800}>
+                {workCache(pass)}
+              </Label>
             </Plot>
             <div className={s.legend}>
               <span>
@@ -156,8 +164,6 @@ export default function KVCacheStepper() {
           <b>{toks.length}</b> rows × 2 vectors × {D} numbers = <b>{toks.length * 2 * D}</b> numbers, per layer (and per head). It grows by one row
           per generated token.
         </p>
-
-        <PlayerControls player={player} label={(i) => `Pass ${i + 1} of ${GEN.length}`} />
       </div>
     </Figure>
   )

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Plot, Grid, Axes, DraggablePoint, Button, mulberry32, useContainerWidth } from '../../../../../kit'
+import { Figure, Plot, Grid, Axes, DraggablePoint, Button, Label, mulberry32, useContainerWidth } from '../../../../../kit'
 import { Notebook, NbCell, CodeLines, Note, nbStyles as s } from '../exam-notebook-skills/nb'
 import { pyTuple } from '../exam-notebook-skills/pyfmt'
 import { Mat } from '../task-linear-regression-gd/Mat'
@@ -59,6 +59,7 @@ function shuffledData(seed: number): Pt[] {
 export default function LoopVsVectorKMeans() {
   const [pts, setPts] = useState<Pt[]>(EXAM_POINTS.map((p) => [...p]))
   const [seed, setSeed] = useState(0)
+  const [touched, setTouched] = useState(false)
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>(720)
   const narrow = width < 560
 
@@ -69,7 +70,10 @@ export default function LoopVsVectorKMeans() {
   const outV = `[${vecOut.map(pyTuple).join(', ')}]`
   const same = outL === outV
 
-  const move = (i: number, x: number, y: number) => setPts((ps) => ps.map((p, k) => (k === i ? [snap(x), snap(y)] : p)))
+  const move = (i: number, x: number, y: number) => {
+    setTouched(true)
+    setPts((ps) => ps.map((p, k) => (k === i ? [snap(x), snap(y)] : p)))
+  }
 
   return (
     <Figure
@@ -77,14 +81,16 @@ export default function LoopVsVectorKMeans() {
       caption={
         <>
           Drag any point (or shuffle the data) and both versions run again on the new data, starting from the exam's centroids (2, 2) and (10, 1). The matrix shows the
-          vectorised version's first distance matrix <code>D</code>: one row per point, one column per centroid, with each row's smallest entry (the <code>argmin</code>)
-          outlined. Notice the two outputs always agree.
+          vectorised version&apos;s first distance matrix <code>D</code>: one row per point, one column per starting centroid, with each row&apos;s smallest entry (the{' '}
+          <code>argmin</code>) outlined in the colour of the cluster it picks. Notice the two outputs always agree.
         </>
       }
       wide
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.7rem' }}>
-        <div style={{ display: 'grid', gap: '0.7rem', width: '100%', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', alignItems: 'center' }}>
+        <div
+          style={{ display: 'grid', gap: '0.7rem', width: '100%', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', alignItems: 'center', userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
           <Plot x={[0, 12]} y={[-1, 11]} width={360} height={340} ariaLabel="Six points you can drag, coloured by their final cluster">
             <Grid xTicks={6} yTicks={6} />
             <Axes xTicks={6} yTicks={6} />
@@ -99,6 +105,11 @@ export default function LoopVsVectorKMeans() {
               const lab = d.indexOf(Math.min(...d))
               return <DraggablePoint key={i} x={p[0]} y={p[1]} r={7} color={CLUSTER_COLORS[lab]} onChange={(x, y) => move(i, x, y)} />
             })}
+            {!touched && seed === 0 && (
+              <Label x={pts[0][0]} y={pts[0][1]} dx={12} dy={4} size={11} color="var(--ink-3)">
+                drag any point
+              </Label>
+            )}
           </Plot>
           <div style={{ display: 'grid', justifyItems: 'center', gap: '0.4rem' }}>
             <Mat
@@ -106,6 +117,13 @@ export default function LoopVsVectorKMeans() {
               label="D = distances in iteration 1, shape (6, 2)"
               format={(v) => v.toFixed(2)}
               cells={vec.firstLabels.map((l, i) => [i, l] as [number, number])}
+              cellColor={(_, j) => CLUSTER_COLORS[j]}
+              colLabels={EXAM_INIT.map((_, j) => (
+                <span key={j} style={{ color: CLUSTER_COLORS[j], fontWeight: 700 }}>
+                  to C{j + 1}
+                </span>
+              ))}
+              rowLabels={pts.map((p) => `(${p[0]}, ${p[1]})`)}
             />
             <div className={s.mono} style={{ fontSize: '0.82rem' }}>
               labels = D.argmin(axis=1) = [{vec.firstLabels.join(' ')}]

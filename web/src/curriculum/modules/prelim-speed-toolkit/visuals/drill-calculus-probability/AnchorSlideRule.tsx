@@ -49,7 +49,7 @@ const f2 = (v: number) => {
 }
 const tickFmt = (v: number) => (Number.isInteger(v) ? String(v) : String(v)).replace('-', '−')
 
-const LOG_X: Scale = { name: 'x', toP: Math.log, fromP: Math.exp, ticks: [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50, 100], narrowTicks: [0.1, 0.5, 1, 2, 5, 10, 100], fmt: f2 }
+const LOG_X: Scale = { name: 'x', toP: Math.log, fromP: Math.exp, ticks: [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50, 100], narrowTicks: [0.1, 0.5, 1, 2, 5, 10, 20, 100], fmt: f2 }
 const LIN_LN: Scale = { name: 'ln x', toP: (v) => v, fromP: (p) => p, ticks: [-2, -1, 0, 1, 2, 3, 4], fmt: f2 }
 
 const MODES: Record<ModeId, ModeDef> = {
@@ -115,7 +115,7 @@ const MODES: Record<ModeId, ModeDef> = {
     ],
     challenges: [
       { q: '\\log_2 1024', answer: 10, recipe: '2¹⁰ = 1024, so exactly 10' },
-      { q: '\\log_2 1000', answer: Math.log2(1000), recipe: '1000 is just under 1024, so just under 10 (≈ 9.97 = 3 × 3.32)' },
+      { q: '\\log_2 1000', answer: Math.log2(1000), recipe: '1000 is just under 1024, so just under 10: 3 × log₂ 10 ≈ 3 × 3.322 ≈ 9.97' },
       { q: '\\log_2 10', answer: Math.log2(10), recipe: 'Between 3 (8) and 4 (16): ≈ 3.32' },
       { q: '\\log_2 100', answer: Math.log2(100), recipe: 'log₂ 100 = 2 log₂ 10 ≈ 6.64' },
       { q: '\\log_2 0.5', answer: -1, recipe: '½ = 2⁻¹, so −1' },
@@ -282,7 +282,7 @@ export default function AnchorSlideRule() {
           <div className={d.spread}>
             <span className={d.label}>Challenge · estimate from the anchors</span>
             <span className={`${d.small} tabular`}>
-              score {score.pts} from {score.n}
+              {score.pts} point{score.pts === 1 ? '' : 's'} from {score.n} question{score.n === 1 ? '' : 's'}
             </span>
           </div>
           {!challenge ? (
@@ -333,11 +333,11 @@ function Rule({ mode, narrow }: { mode: ModeDef; narrow: boolean }) {
   const ticks = (sc: Scale) => (narrow && sc.narrowTicks ? sc.narrowTicks : sc.ticks).filter((v) => inRange(sc.toP(v)))
   return (
     <g>
-      <text x={x0} y={ys(0.97)} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700 }}>
-        {mode.top.name}
+      <text x={x0} y={ys(0.97)} style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 700 }}>
+        {`top: ${mode.top.name}`}
       </text>
-      <text x={x0} y={ys(0.03)} style={{ fill: 'var(--ink-3)', fontSize: 11, fontWeight: 700 }}>
-        {mode.bottom.name}
+      <text x={x0} y={ys(0.03)} style={{ fill: 'var(--ink-2)', fontSize: 12, fontWeight: 700 }}>
+        {`bottom: ${mode.bottom.name}`}
       </text>
       <rect x={x0} y={yTop} width={x1 - x0} height={yBot - yTop} rx={6} style={{ fill: 'color-mix(in srgb, var(--accent) 5%, transparent)' }} />
       <line x1={x0} x2={x1} y1={yTop} y2={yTop} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.5 }} />
@@ -377,5 +377,6 @@ function Rule({ mode, narrow }: { mode: ModeDef; narrow: boolean }) {
 
 function Cursor({ p }: { p: number }) {
   const { xs, ys } = usePlot()
-  return <line x1={xs(p)} x2={xs(p)} y1={ys(0.86)} y2={ys(0.14)} style={{ stroke: 'var(--accent)', strokeWidth: 2.5 }} />
+  // only between the two rails (plus the tick marks), so it never strikes through a tick label
+  return <line x1={xs(p)} x2={xs(p)} y1={ys(0.68) - 8} y2={ys(0.32) + 8} style={{ stroke: 'var(--accent)', strokeWidth: 2.5 }} />
 }

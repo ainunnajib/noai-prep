@@ -88,11 +88,8 @@ export default function ForgettingLandscape() {
       title="Catastrophic forgetting on a model with just two weights"
       caption={
         <>
-          Each point is one setting of the model's two weights. Blue rings: the <b>old task</b>'s loss, a long valley where many settings work.
-          Orange rings: the <b>new task</b>'s loss around its best point. Fine-tuning starts at the pretrained weights and follows gradient descent.
-          With <b>new data only</b>, nothing in the loss mentions the old task, so the weights walk straight out of the valley. Switch to{' '}
-          <b>new + old data</b>: the walk now slides along the valley to a point that is good at both. Drag the orange point onto the valley and
-          forgetting almost vanishes: tasks that need similar weights do not fight.
+          <b>Try:</b> switch between <b>new data only</b> and <b>new + old data</b>, then drag the orange point onto the blue valley.{' '}
+          <b>Notice:</b> with new data only, gradient descent walks straight out of the old task's valley; mixing in old data keeps it inside.
         </>
       }
     >
@@ -123,8 +120,11 @@ export default function ForgettingLandscape() {
             onChange={(x, y) => setB([Math.round(x * 20) / 20, Math.round(y * 20) / 20])}
             color="var(--viz-2)"
             r={7}
-            label="new task's best"
+            ariaLabel="new task's best point (drag me)"
           />
+          <Label x={b[0]} y={b[1]} dx={12} dy={-9} color="color-mix(in srgb, var(--viz-2) 55%, var(--ink))" weight={800}>
+            new task's best
+          </Label>
         </Plot>
         <div className={s.legend}>
           <span>

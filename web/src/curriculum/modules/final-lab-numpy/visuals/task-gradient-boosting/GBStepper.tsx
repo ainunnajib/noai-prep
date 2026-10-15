@@ -236,7 +236,7 @@ export default function GBStepper() {
           top plot shrink: every tree is fitted to <i>what is still wrong</i>, and only a fraction (the learning rate) of its answer is added. Switch
           to <b>L1</b> and the targets become ±1, so each tree can move a point by at most the learning rate; notice how the outlier at x = 7.1
           pulls the L2 model up but hardly moves the L1 one. With <b>subsample</b> below 1, hollow points are left out of that tree&apos;s fit but
-          still move in step d.
+          still move in step d. The learning rate starts at 0.3 so the fit shows after fewer trees; the exam task uses 0.1.
         </>
       }
     >

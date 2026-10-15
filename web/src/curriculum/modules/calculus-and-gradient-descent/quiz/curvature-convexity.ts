@@ -20,14 +20,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'Gradient descent stops at a point where $\\nabla L = 0$. The Hessian there is $H = \\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\end{bmatrix}$. What has it found?',
     options: [
-      'A saddle point: $\\det H < 0$, so the eigenvalues have opposite signs',
+      'A saddle point: $\\det H < 0$, so the eigenvalues must have opposite signs',
       'A local minimum: every entry of $H$ is positive, so it curves up',
-      'A local maximum: $\\det H < 0$, so it curves down in every direction',
+      'A local maximum: $\\det H < 0$, so the surface bends downwards',
       'A global minimum: a zero gradient means the lowest point has been reached',
     ],
     answer: 0,
     explanation:
-      '$\\det H = 1 \\times 1 - 2 \\times 2 = -3 < 0$, and $\\det H$ is the product of the eigenvalues, so one is positive and one negative (they are $3$ and $-1$): a saddle point. Positive entries are not enough for a minimum; you need positive eigenvalues (positive definite). A zero gradient only says the ground is flat.',
+      '$\\det H = 1 \\times 1 - 2 \\times 2 = -3 < 0$, and $\\det H$ is the product of the eigenvalues, so one is positive and one negative (they are $3$ and $-1$): a saddle point. A maximum would need $\\det H > 0$ and a negative trace. Positive entries are not enough for a minimum; you need positive eigenvalues (positive definite). A zero gradient only says the ground is flat.',
     difficulty: 'intermediate',
   },
   {

@@ -24,7 +24,7 @@ print(l1_negative_gradient(y, y_pred))
 print(l2_negative_gradient(y, y_pred))
 print(repr(l1_initial_prediction(y)), repr(l2_initial_prediction(y)))
 
-Y = np.array([[1.0, 9.0, 2.0], [4.0, 3.0, 8.0]])   # a 2-D input, like the hidden tests
+Y = np.array([[1.0, 9.0, 2.0], [4.0, 3.0, 8.0]])   # a 2-D input, like the test cells
 print(repr(l1_initial_prediction(Y)), repr(np.median(Y, axis=0)))`
 
 export const gbFullCode = `import numpy as np
@@ -177,7 +177,13 @@ gb_es = GBREarlyStop(n_estimators=500, learning_rate=0.1, max_depth=3, criterion
 gb_es.fit(X_tr, y_tr, X_val, y_val, patience=1)
 print(f"Early stopping: kept {gb_es.n_estimators} trees, test MSE {mean_squared_error(y_test, gb_es.predict(X_test)):.4f}")`
 
-Task 1 of the 2026 Final asked you to build a **gradient boosting regressor** from scratch: 25 marks, made of 8 for four one-line functions, 12 for a class and its training loop, and 5 bonus marks for early stopping. The only tools were NumPy and scikit-learn's ready-made decision tree; no XGBoost and no `GradientBoostingRegressor`. Almost every line you write is one idea from this lesson, and the easiest marks to lose go to a misread scaffold, a flipped sign or a missing `learning_rate`. If boosting itself is new, read [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting) first; here we rebuild the exam task line by line.
+Task 1 of the 2026 Final asked you to build a **gradient boosting regressor** from scratch: 25 marks, made of 8 for four one-line functions, 12 for a class and its training loop, and 5 bonus marks for early stopping. The only tools were NumPy and scikit-learn's ready-made decision tree (no XGBoost, no `GradientBoostingRegressor`), and the easiest marks to lose went to a misread scaffold, a flipped sign or a missing `learning_rate`.
+
+<Note title="Before you start">
+
+If boosting itself is new to you, read [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting) first. This lesson rebuilds the exam task line by line.
+
+</Note>
 
 <Analogy title="Golf, the notebook's own picture">
 
@@ -207,6 +213,8 @@ L_2(y, \hat y) &= \tfrac12 (y - \hat y)^2 \\
 L_1(y, \hat y) &= \lvert y - \hat y \rvert
 \end{aligned}
 $$
+
+Averaged over all the samples, the L1 loss is the <Term def="Mean absolute error: the average size of the misses, ignoring their sign.">MAE</Term> and the L2 loss is half the <Term def="Mean squared error: the average of the squared misses. Big misses count much more than small ones.">MSE</Term>, the scores the notebook's test cells print.
 
 The <Term def="Minus the derivative of the loss with respect to the prediction. It says which way, and how strongly, to move the prediction to make the loss smaller.">negative gradient</Term> $-\frac{\partial L}{\partial \hat y}$ says which way to nudge the prediction to make the loss smaller, and how hard.
 
@@ -260,7 +268,7 @@ $$
 \begin{aligned}
 F_0 &= \text{mean (L2) or median (L1) of } y \\
 r_i &= -\frac{\partial L(y_i, \hat y)}{\partial \hat y}\Big|_{\hat y = F_{m-1}(x_i)} \\
-h_m &= \text{a small tree fitted to the pairs } (x_i, r_i) \\
+h_m &= \text{a small tree fitted to } (x_i, r_i) \\
 F_m(x) &= F_{m-1}(x) + \eta \, h_m(x)
 \end{aligned}
 $$
@@ -335,17 +343,11 @@ c.add(2)          # inside add, self is c
 print(c.total)    # 7
 ```
 
-The scaffold works the same way: `__init__` stores the settings on `self`, and your `fit` and `predict` methods read them back as `self.learning_rate` and add trees to `self.trees`.
+The scaffold works the same way: `__init__` stores the settings on `self`, and your `fit` and `predict` methods read them back as `self.learning_rate` and add trees to `self.trees`. For a longer introduction, see [Classes and objects](#/learn/python-toolkit/classes-objects).
 
 </Reveal>
 
 The notebook hands you a half-built <Term def="A blueprint for objects: it bundles data (attributes, stored as self.name) with the functions (methods) that use them.">class</Term> hierarchy. `BaseGradientBoosting` is an <Term def="A class marked ABC that is never used directly. It holds shared code and declares methods (marked @abstractmethod) that every subclass must write.">abstract base class</Term>. It provides the helper methods `_compute_negative_gradient`, `_compute_initial_prediction` and `_subsample_indices`, and it declares an abstract `fit`. `GradientBoostingRegressor` <Term def="A subclass gets every method of its parent class for free and can replace (override) any of them with its own version.">inherits</Term> from it, gets `__init__` already written, and leaves you `fit` and `predict`. Every setting lives on `self`, so inside a method you write `self.learning_rate` and `self.trees`.
-
-<Analogy title="Flat-pack furniture">
-
-Before you build an IKEA wardrobe, you lay out the parts and check which ones arrive pre-assembled. You also notice where the instruction sheet has a mistake ("step 5: attach the door", when the door is already on). Then you avoid the screws that look right but do not fit. The 2026 scaffold has all three: given helper methods, a misleading heading (Q1.5) and look-alike lines that cost marks.
-
-</Analogy>
 
 <ScaffoldTrapFinder />
 
@@ -374,7 +376,7 @@ return self
 
 <Note title="Why the L1 model scores so badly (it is not a bug)">
 
-The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops to about 1,779. The exam did not ask for it.
+The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 test MSE is about 16,000, only a little below the 17,110 baseline of predicting the mean, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops below 1,800. The exam did not ask for it: in the exam's algorithm, switching to L1 changes only the targets, `sign(y - F)`, which is why the Final's MCQ above has the answer "Line A only". The leaf-median line search is an optional improvement, not a required change.
 
 </Note>
 
@@ -452,7 +454,7 @@ Early stopping: kept 124 trees, test MSE 1229.9257
 
 The runner on this page uses the browser build of scikit-learn, so its numbers can differ a little: for example L2 test MSE 1266.65 and "kept 176 trees, test MSE 1076.45". Both outputs are correct. The two builds break ties between equally good splits differently, and with `patience=1` one tiny difference in the validation loss changes where training stops. If your own code matches the runner here, it is right.
 
-The L2 score sits next to scikit-learn's own `GradientBoostingRegressor` (1268.7214 in the notebook's comparison cell). On the training rows the two models give identical predictions; small differences on the test rows come only from how the two libraries break ties between equally good splits.
+The L2 score sits next to scikit-learn's own `GradientBoostingRegressor`: the notebook's comparison cell printed 1268.7214, but it sets no `random_state`, so a rerun gives a slightly different value, anywhere from about 1,255 to 1,270. On the training rows the two models give identical predictions; small differences on the test rows come only from how the two libraries break ties between equally good splits.
 
 <ExamTip>
 

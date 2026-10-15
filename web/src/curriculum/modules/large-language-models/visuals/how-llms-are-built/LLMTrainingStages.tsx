@@ -40,10 +40,10 @@ const STAGES: Stage[] = [
   {
     short: '2 · SFT',
     title: 'Stage 2 · Supervised fine-tuning (SFT) → follows instructions',
-    data: 'About 10,000 to 100,000 example conversations',
-    sample: 'User: Summarise this email…\nAssistant: (ideal reply written by a person)',
+    data: 'Tens of thousands to a few million example conversations, including some refusals',
+    sample: 'User: Summarise this email…\nAssistant: (an ideal reply)',
     goal: 'Predict the next token of the ideal reply',
-    labels: 'People write the ideal replies',
+    labels: 'People write the ideal replies, or a stronger model drafts them and they are checked',
     result: 'An instruction-following model: it now answers questions instead of continuing them.',
   },
   {
@@ -57,14 +57,15 @@ const STAGES: Stage[] = [
   },
 ]
 
-const PROMPTS: { key: string; label: string; prompt: string; replies: string[] }[] = [
+const PROMPTS: { key: string; label: string; prompt: string; replies: string[]; notes?: (string | null)[] }[] = [
   {
     key: 'fact',
     label: 'A fact',
     prompt: 'What is the capital of Australia?',
+    notes: [null, 'It knows the answers, but it treats your question as the start of a quiz and keeps writing more of it.', null, null],
     replies: [
       'koala 7 the Canb ,, ingly of of mango Ave seven ?',
-      'What is the capital of New Zealand?\nWhat is the capital of Fiji?\nWhat is the capital of Papua New Guinea?\n[Geography quiz, set 3. Answers on page 12.]',
+      'Canberra.\nWhat is the capital of New Zealand? Wellington.\nWhat is the capital of Fiji? Suva.\nWhat is the capital of Papua New Guinea? Port Moresby.\n[Geography quiz, set 3]',
       'The capital of Australia is Canberra.',
       'Canberra. Many people guess Sydney, the biggest city, but Canberra was built to be the capital, and Parliament has met there since 1927.',
     ],
@@ -84,10 +85,11 @@ const PROMPTS: { key: string; label: string; prompt: string; replies: string[] }
     key: 'harm',
     label: 'A bad request',
     prompt: 'Write a mean post about my classmate that will embarrass her.',
+    notes: [null, null, 'Its SFT examples included some refusals, so it hesitates, but it still half-complies: not yet reliable.', null],
     replies: [
       'mean mean post the her ,, classmate 4 ly ly zebra',
       "Write a mean post about my classmate that will embarrass her.\n12 replies · Teen Advice forum\nReply 1: Don't do it, people will screenshot it and…",
-      'Sure! Here is a post: "Everyone in 3E knows that ___ is the most…"  (it simply does what it is told)',
+      'I\'d rather not be mean about someone. But here is a gentler version: "Some people in 3E really need to learn to be kinder…"',
       "I won't help write something meant to embarrass someone: it can really hurt, and posts get screenshotted. If something happened between you two, I can help you work out what to say to her, or how to raise it with a teacher.",
     ],
   },
@@ -97,17 +99,19 @@ const SKILLS: { label: string; from: number }[] = [
   { label: 'Writes fluent English', from: 1 },
   { label: 'Knows facts (capitals, science…)', from: 1 },
   { label: 'Answers instead of continuing the text', from: 2 },
+  { label: 'Refuses some harmful requests', from: 2 },
   { label: 'Pitches the answer at the asker', from: 3 },
-  { label: 'Declines harmful requests', from: 3 },
+  { label: 'Refuses reliably, offers help', from: 3 },
 ]
 
 export default function LLMTrainingStages() {
-  const player = usePlayer({ steps: STAGES.length, interval: 2200 })
+  const player = usePlayer({ steps: STAGES.length, interval: 5000 })
   const [pk, setPk] = useState('fact')
   const st = player.step
   const stage = STAGES[st]
   const prompt = PROMPTS.find((p) => p.key === pk) ?? PROMPTS[0]
   const reply = prompt.replies[st]
+  const note = prompt.notes?.[st] ?? null
   const who = ['Random model', 'Base model', 'SFT model', 'Aligned assistant'][st]
 
   return (
@@ -116,9 +120,8 @@ export default function LLMTrainingStages() {
       title="From random weights to a chat assistant"
       caption={
         <>
-          Press <b>Next</b> (or click a stage) and watch the same prompt answered after each stage. Switch prompts. Notice that facts appear
-          already in the <b>base model</b>: knowledge comes from pretraining, which uses about 98% of the compute. The two later stages are tiny
-          by comparison, yet they turn a text-continuer into an assistant. (Replies are illustrative, written to show typical behaviour.)
+          <b>Try:</b> press <b>Next</b> or a stage, and switch prompts. <b>Notice:</b> the base model already knows the capitals but only continues
+          text; the two small later stages turn it into an assistant. (Replies are illustrative.)
         </>
       }
     >
@@ -202,6 +205,7 @@ export default function LLMTrainingStages() {
             <span className={s.who}>{who}</span>
             <span className={st === 0 ? s.gibberish : undefined}>{reply}</span>
           </div>
+          {note && <p className={s.chatNote}>{note}</p>}
         </div>
 
         <ul className={s.skills} aria-label="What the model can do after this stage">

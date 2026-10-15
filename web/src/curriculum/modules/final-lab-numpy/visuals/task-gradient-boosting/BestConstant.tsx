@@ -44,7 +44,11 @@ export default function BestConstant() {
         </>
       }
     >
-      <div ref={wrapRef} className={`${s.two} ${s.twoEven}`} style={narrow ? { gridTemplateColumns: 'minmax(0, 1fr)' } : undefined}>
+      <div
+        ref={wrapRef}
+        className={`${s.two} ${s.twoEven}`}
+        style={{ userSelect: 'none', WebkitUserSelect: 'none', ...(narrow ? { gridTemplateColumns: 'minmax(0, 1fr)' } : {}) }}
+      >
         <div>
           <p className={s.panelLabel}>The targets and the constant guess c</p>
           <Plot x={[0.3, 5]} y={[-1, 16]} width={360} height={300} minHeight={240} ariaLabel="Four target values, a horizontal line for the constant guess c, and arrows showing each negative gradient">

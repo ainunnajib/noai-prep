@@ -6,10 +6,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear regression predicts flat prices. The `town` column is label-encoded alphabetically (Ang Mo Kio = 0, Bedok = 1, Clementi = 2, …). What is the main problem?',
     options: [
-      'The codes act as amounts, which invents an order and equal gaps between towns',
+      'The codes act as amounts, so every town gets an invented order and equal gaps',
       'Linear regression needs float features, and integer codes make training fail',
       'Label encoding creates one new column per town, which is far too many columns',
-      'The codes are fine but must be standardised first, or the weights will explode',
+      'The codes are fine but need standardising first, or the weights will explode',
     ],
     answer: 0,
     explanation:
@@ -40,14 +40,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A dataset has a `postal_code` column with about 20,000 distinct values, most of which appear only once or twice. What is the best way to use it in a logistic regression?',
     options: [
-      'Group rare codes into an “other” category, or use frequency or target encoding',
-      'Feed the postal code in as a number, since it already consists only of digits',
+      'Group the rare codes into one “other” category, then one-hot encode the rest',
+      'Feed the postal code in as a number, since it is already made up of digits',
       'Standardise the postal code to mean 0 and standard deviation 1, then train',
       'One-hot encode all 20,000 codes, since one-hot encoding never invents an order',
     ],
     answer: 0,
     explanation:
-      'This is a high-cardinality feature: plain one-hot creates 20,000 mostly-empty columns, each seen too rarely to learn a weight from, so rare codes are grouped or replaced by a frequency or (carefully fitted) target encoding. Postal codes are labels, not amounts, so using or standardising them as numbers invents an order.',
+      'This is a high-cardinality feature: plain one-hot creates 20,000 mostly-empty columns, each seen too rarely to learn a weight from, so the rare codes are grouped into one “other” category, leaving a manageable number of columns (a frequency or carefully fitted target encoding also works). Postal codes are labels, not amounts, so using or standardising them as numbers invents an order.',
     difficulty: 'intermediate',
   },
   {

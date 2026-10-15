@@ -113,7 +113,7 @@ const TOUR: { cell: CellId; lines: number[]; title: string; body: ReactNode }[] 
     body: (
       <>
         The call uses keywords (<code>alpha=alpha</code>), so renaming a parameter to <code>lr</code> makes this line crash with <code>TypeError</code>. The value of the last
-        line is what Jupyter displays, and it is what gets checked.
+        line is what Jupyter displays, and most likely what the marker compared (no marking scheme was published).
       </>
     ),
   },

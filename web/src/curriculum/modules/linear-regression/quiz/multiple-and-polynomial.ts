@@ -16,28 +16,28 @@ const questions: QuizQuestion[] = [
     prompt:
       'To predict flat prices you use the columns [1, floor area in m², floor area in ft², age]. Computing `np.linalg.inv(X.T @ X)` either fails with "Singular matrix" or returns enormous, meaningless numbers. What is the cause?',
     options: [
-      'Area in ft² is area in m² times 10.764, so one column is built from another and $X^\\top X$ has determinant 0',
+      'Area in ft² is 10.764 × area in m², so one column is built from another and $X^\\top X$ is singular',
       'The four columns are measured on very different scales, and a matrix with mixed scales has no inverse',
       'There are many more rows (flats) than columns, so the system has too many equations to be solved exactly',
-      'The column of 1s for the bias must be removed before $X^\\top X$ can ever be inverted',
+      'The column of 1s for the bias is constant, and a constant column stops $X^\\top X$ from having an inverse',
     ],
     answer: 0,
     explanation:
-      '$X^\\top X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well (rounding can hide the exact singularity, so NumPy may return huge numbers instead of an error). Different scales slow gradient descent down but do not stop a matrix being invertible, and having more rows than columns is the normal situation that least squares is designed for. Fix it by dropping one of the two area columns (or use `np.linalg.pinv`).',
+      '$X^\\top X$ is singular exactly when some column of $X$ can be built from the others; here column 3 = 10.764 × column 2, so infinitely many weight vectors fit equally well (rounding can hide the exact singularity, so NumPy may return huge numbers instead of an error). Fix it by dropping one of the two area columns (or use `np.linalg.pinv`). Different scales slow gradient descent down but do not stop a matrix being invertible, more rows than columns is the normal situation that least squares is designed for, and the column of 1s is fine because it cannot be built from the other columns.',
     difficulty: 'intermediate',
   },
   {
     id: 'linear-regression.multiple-and-polynomial.3',
     prompt: 'Why is the model $\\hat{y} = w_0 + w_1x + w_2x^2 + w_3x^3$ still called *linear* regression?',
     options: [
-      'The prediction is a weighted sum of fixed features $1, x, x^2, x^3$, so it is linear in the weights',
+      'Each weight only multiplies a fixed feature such as $x^2$, so the model is linear in the weights',
       'For small $x$ the terms $x^2$ and $x^3$ are tiny, so the fitted curve is close to a straight line',
       'It is trained with the same mean squared error loss that is used for fitting straight lines',
-      'Only the input $x$ appears in it, and $x$ is multiplied by the single weight $w_1$',
+      'It has a single input $x$, and any model with just one input variable counts as linear',
     ],
     answer: 0,
     explanation:
-      '"Linear" refers to the weights: each $w_k$ multiplies a column you can compute before training ($x^2$, $x^3$), so $\\hat{y} = Xw$ and the normal equation apply unchanged. The curve itself can bend a lot (it is not close to a straight line), and using MSE is not what makes a model linear: a neural network can also be trained with MSE.',
+      '"Linear" refers to the weights: each $w_k$ multiplies a column you can compute before training ($x^2$, $x^3$), so $\\hat{y} = Xw$ and the normal equation apply unchanged. The curve itself can bend a lot (it is not close to a straight line), and using MSE is not what makes a model linear: a neural network can also be trained with MSE. Having one input is not enough either: $\\hat{y} = w_0 + e^{w_1 x}$ has one input but is not linear in $w_1$.',
     difficulty: 'beginner',
   },
   {
@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear regression has $d = 2{,}000{,}000$ features and 50 million examples. Why is it trained with gradient descent rather than the normal equation?',
     options: [
-      'Forming and inverting the $d \\times d$ matrix $X^\\top X$ is far too slow and needs too much memory',
+      'Forming and inverting the $d \\times d$ matrix $X^\\top X$ takes far too much time and memory',
       'The normal equation only works for a single feature plus a bias, not for millions of features',
       'Gradient descent reaches a lower training MSE than the normal equation on the same data',
       'With many more examples than features, $X^\\top X$ is always singular and has no inverse',

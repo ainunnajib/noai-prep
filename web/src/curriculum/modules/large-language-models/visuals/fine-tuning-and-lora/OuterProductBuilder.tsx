@@ -160,7 +160,7 @@ export default function OuterProductBuilder() {
   const layers = layersByTarget[target].slice(0, r)
   const approx = T.map((row, i) => row.map((_, j) => layers.reduce((acc, L) => acc + L[i][j], 0)))
   const err = frob(T.map((row, i) => row.map((x, j) => x - approx[i][j]))) / frob(T)
-  const cell = narrow ? 30 : 34
+  const cell = narrow ? 32 : 34
   const px = narrow ? 8 : 11
   const thumb = narrow ? 4 : 5
   const tableMax = Math.max(1, ...u.flatMap((a) => v.map((b) => Math.abs(a * b))))
@@ -171,10 +171,8 @@ export default function OuterProductBuilder() {
       title="Rank-1 building blocks: from a times table to a picture"
       caption={
         <>
-          <b>Top:</b> press + and − to change the column <M>u</M> and the row <M>v</M>. Each cell of <M>{'u v^\\top'}</M> is just{' '}
-          <M>{'u_i \\times v_j'}</M>, like a times table, so every row is a scaled copy of <M>v</M> and every column a scaled copy of <M>u</M>: one
-          pattern, rank 1. <b>Bottom:</b> add rank-1 layers one at a time. The tartan and plus sign are rebuilt exactly with 2 layers and the heart
-          with 6, but random noise is not: it has no simple structure to capture.
+          <b>Try:</b> press + and − to change <M>u</M> and <M>v</M>, then add rank-1 layers to rebuild each picture. <b>Notice:</b> every row of{' '}
+          <M>{'u v^\\top'}</M> is a copy of <M>v</M> (rank 1); the tartan needs 2 layers, the heart 6, and noise is never rebuilt.
         </>
       }
     >
@@ -260,7 +258,8 @@ function Row({ a, i, v, cell, tableMax, onChange }: { a: number; i: number; v: n
       {v.map((b, j) => {
         const p = a * b
         const t = Math.min(1, Math.abs(p) / tableMax)
-        const bg = p === 0 ? 'var(--surface-2)' : `color-mix(in srgb, ${p < 0 ? 'var(--viz-1)' : 'var(--viz-2)'} ${Math.round(12 + t * 60)}%, var(--surface))`
+        // capped at 45% so the number on top stays readable in both themes
+        const bg = p === 0 ? 'var(--surface-2)' : `color-mix(in srgb, ${p < 0 ? 'var(--viz-1)' : 'var(--viz-2)'} ${Math.round(10 + t * 35)}%, var(--surface))`
         return (
           <div key={j} className={s.cell} style={{ width: cell, height: cell, background: bg }} aria-label={`u${i + 1} times v${j + 1} = ${p}`}>
             {p}

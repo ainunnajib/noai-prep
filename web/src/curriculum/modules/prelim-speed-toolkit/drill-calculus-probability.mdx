@@ -21,7 +21,7 @@ A <Term def="The slope of a function at a point: how fast the output changes whe
 | --- | --- | --- |
 | $x^n$ | $n\,x^{n-1}$ | power rule; covers $x^2 \to 2x$, $\frac1x \to -\frac{1}{x^2}$, $\sqrt x \to \frac{1}{2\sqrt x}$ |
 | $e^x$ | $e^x$ | its own slope |
-| $\ln x$ | $\frac1x$ | inside every log-loss gradient |
+| $\ln x$ | $\frac1x$ | inside every <Term def="The usual classification loss: minus the natural log of the probability the model gave to the true class. It is 0 when that probability is 1 and grows without limit as it falls towards 0.">cross-entropy</Term> (log-loss) gradient |
 | $\sigma(x) = \frac{1}{1 + e^{-x}}$ | $\sigma(x)\bigl(1 - \sigma(x)\bigr)$ | at most $0.25$, at $x = 0$ |
 | $\tanh x$ | $1 - \tanh^2 x$ | at most $1$, at $x = 0$ |
 | $\operatorname{ReLU}(x) = \max(0, x)$ | $0$ for $x < 0$, $1$ for $x > 0$ | undefined at exactly 0 |
@@ -56,6 +56,12 @@ Forgetting the inner derivative. $\frac{\partial}{\partial w}(wx - y)^2$ is **no
 
 </Mistake>
 
+<KeyIdea>
+
+Chain rule = outer derivative × inner derivative, every time. Most derivative questions are one table entry plus one chain-rule step.
+
+</KeyIdea>
+
 ## Quick probability
 
 <Analogy title="A pilot's pre-flight checklist">
@@ -66,11 +72,12 @@ Pilots do not decide afresh each morning how to check an aircraft. They run the 
 
 The probability checklist:
 
-1. **Count.** When all outcomes are equally likely, $P(\text{event}) = \dfrac{\text{outcomes in the event}}{\text{all outcomes}}$. Two dice have $6 \times 6 = 36$ outcomes, so $P(\text{sum} = 7) = \frac{6}{36} = \frac16$.
-2. **Complement for "at least one".** $P(\text{at least one}) = 1 - P(\text{none})$. At least one head in 3 coin tosses: $1 - \left(\frac12\right)^3 = \frac78$.
-3. **Multiply for independent events.** Two events are <Term def="Knowing whether one happened tells you nothing about the other, so P(A and B) = P(A) × P(B).">independent</Term> when $P(A \text{ and } B) = P(A)\,P(B)$.
-4. **Bayes: use 100 people, not the formula.** Turn every percentage into a count of people, then count the people you care about.
-5. **z-scores:** $z = \dfrac{x - \mu}{\sigma}$, where $\mu$ (mu) is the mean and $\sigma$ (sigma) the standard deviation. In words: how many standard deviations $x$ sits above the mean. With $\mu = 10$, $\sigma = 2$, $x = 14$: $z = \frac{4}{2} = 2$. For a normal distribution, about 68% of values lie within $z = \pm 1$, 95% within $\pm 2$ and 99.7% within $\pm 3$.
+1. **Describe a small list.** Mean = sum ÷ number of values; median = the middle value after sorting; variance = the mean of the squared distances from the mean; standard deviation = $\sqrt{\text{variance}}$. A long tail to the right pulls the mean above the median.
+2. **Count.** When all outcomes are equally likely, $P(\text{event}) = \dfrac{\text{outcomes in the event}}{\text{all outcomes}}$. Two dice have $6 \times 6 = 36$ outcomes, so $P(\text{sum} = 7) = \frac{6}{36} = \frac16$.
+3. **Complement for "at least one".** $P(\text{at least one}) = 1 - P(\text{none})$. At least one head in 3 coin tosses: $1 - \left(\frac12\right)^3 = \frac78$.
+4. **Multiply for independent events.** Two events are <Term def="Knowing whether one happened tells you nothing about the other, so P(A and B) = P(A) × P(B).">independent</Term> when $P(A \text{ and } B) = P(A)\,P(B)$.
+5. **Bayes: use 100 people, not the formula.** Bayes' theorem, $P(A \mid B) = \dfrac{P(B \mid A)\,P(A)}{P(B)}$, turns $P(\text{positive} \mid \text{ill})$ into $P(\text{ill} \mid \text{positive})$. Instead of plugging in, turn every percentage into a count of people, then count the people you care about.
+6. **z-scores:** $z = \dfrac{x - \mu}{\sigma}$, where $\mu$ (mu) is the mean and $\sigma$ (sigma) the standard deviation. In words: how many standard deviations $x$ sits above the mean (negative means below). With $\mu = 50$, $\sigma = 5$, $x = 35$: $z = \frac{-15}{5} = -3$, three standard deviations below. For a normal distribution, about 68% of values lie within $z = \pm 1$, 95% within $\pm 2$ and 99.7% within $\pm 3$.
 
 <QuickProbability />
 
@@ -85,6 +92,12 @@ The probability checklist:
     18 people test positive and 9 of them are ill: $P(\text{ill} \mid \text{positive}) = \frac{9}{18} = 50\%$. A "90% accurate" test is right only half the time when it says yes, because the condition is rare.
   </Step>
 </Steps>
+
+<KeyIdea>
+
+When a condition is rare, many of the positive tests are false alarms. Count people, not percentages, and the answer falls out.
+
+</KeyIdea>
 
 <PastPaperQuestion paper="prelim2026" n={54} />
 
@@ -131,6 +144,12 @@ $$
 
 <PastPaperQuestion paper="prelim2026" n={57} />
 
+<KeyIdea>
+
+Write $TP$, $FP$, $FN$ and $TN$ first. Then precision and recall share the numerator $TP$, and $F_1 = \frac{2TP}{2TP + FP + FN}$ needs no fractions inside fractions.
+
+</KeyIdea>
+
 <Mistake>
 
 Swapping precision and recall. Tie each to its question: **precision** is about the **predictions** ("when it says yes, is it right?"), **recall** is about the **real positives** ("did it find them all?"). Both share the numerator $TP$; only the second count in the denominator differs.
@@ -139,9 +158,9 @@ Swapping precision and recall. Tie each to its question: **precision** is about 
 
 ## The anchor values
 
-<Analogy title="MRT travel times between interchanges">
+<Analogy title="Estimating a supermarket trolley">
 
-If you know roughly how long the MRT takes between a few big interchanges (Jurong East, Buona Vista, City Hall, Tanah Merah), you can estimate almost any journey by adding up legs, without opening an app. A few memorised anchor values do the same job for logarithms and exponentials.
+If you know roughly what a loaf of bread, a carton of milk and a tray of eggs cost at the supermarket, you can estimate a whole trolley before you reach the till: two loaves, three cartons, add them up. You never memorise the price of every combination. A few memorised anchor values do the same job for logarithms and exponentials: everything else is a sum or a multiple of them.
 
 </Analogy>
 
@@ -153,7 +172,7 @@ Without a calculator, every log, exponential, square root or sigmoid in a questi
 | $\ln 3$ | $\approx 1.10$ | 3-class problems |
 | $\ln 10$ | $\approx 2.30$ | so $-\ln 0.1 \approx 2.30$; initial loss of a 10-class model |
 | $\log_2 1024$ | $= 10$ | bits, tree depths, $2^{10} \approx 10^3$ |
-| $e$, $e^2$, $e^{-1}$ | $\approx 2.72$, $7.39$, $0.37$ | softmax and sigmoid arithmetic |
+| $e$, $e^2$, $e^{-1}$ | $\approx 2.72$, $7.39$, $0.37$ | <Term def="The function that turns a list of scores into probabilities: raise e to each score, then divide each result by their total.">softmax</Term> and sigmoid arithmetic |
 | $\sqrt2$, $\sqrt3$ | $\approx 1.41$, $1.73$ | norms such as $\lVert [1, 1] \rVert = \sqrt2$ |
 | $\sigma(0)$, $\sigma(2)$, $\sigma(-2)$ | $0.5$, $\approx 0.88$, $\approx 0.12$ | sigmoid outputs; $\sigma(-z) = 1 - \sigma(z)$ |
 
@@ -162,10 +181,10 @@ Combine them with two log rules: $\ln(ab) = \ln a + \ln b$ and $\ln(a^k) = k \ln
 <AnchorSlideRule />
 
 <Steps title="Two loss values without a calculator">
-  <Step title="Cross-entropy when the true class gets probability 0.25">
-    The loss is $-\ln 0.25 = \ln 4 = 2 \ln 2 \approx 2 \times 0.69 = 1.39$.
+  <Step title="Loss at p = 0.25">
+    When the true class gets probability 0.25, the cross-entropy loss is $-\ln 0.25 = \ln 4 = 2 \ln 2 \approx 2 \times 0.69 = 1.39$.
   </Step>
-  <Step title="The loss of a freshly initialised 10-class classifier">
+  <Step title="A fresh 10-class model">
     Before training, a sensible model spreads its probability evenly: $\frac{1}{10}$ for every class. Its cross-entropy is $-\ln \frac{1}{10} = \ln 10 \approx 2.30$. If your first logged loss is far from 2.30, something in the set-up is wrong.
   </Step>
 </Steps>
@@ -178,14 +197,14 @@ Look at how far apart the options are before you compute. If they are 0.69, 1.39
 
 <KeyIdea>
 
-A short fixed list does almost all the work: about a dozen derivatives, one counting routine for probabilities, "write the four counts first" for metrics, and a dozen anchor values combined with $\ln(ab) = \ln a + \ln b$. Drill them until each takes under five seconds.
+A dozen anchor values plus two log rules, $\ln(ab) = \ln a + \ln b$ and $\ln a^k = k \ln a$, replace the calculator: every log, exponential, root or sigmoid value in a question is built from them in one or two steps.
 
 </KeyIdea>
 
 <Takeaways>
 
 - **Derivatives:** $x^n \to nx^{n-1}$, $e^x \to e^x$, $\ln x \to \frac1x$, $\sigma' = \sigma(1 - \sigma) \le 0.25$, $\tanh' = 1 - \tanh^2$, ReLU' is 0 or 1, $\nabla \lVert x \rVert^2 = 2x$, $\frac{\partial}{\partial w}(wx - y)^2 = 2(wx - y)x$.
-- **Probability:** count equally likely outcomes, use $1 - P(\text{none})$ for "at least one", multiply independent events, do Bayes with 100 people, and $z = \frac{x - \mu}{\sigma}$.
+- **Probability:** describe a list (mean, median, variance, SD), count equally likely outcomes, use $1 - P(\text{none})$ for "at least one", multiply independent events, do Bayes with 100 people, and $z = \frac{x - \mu}{\sigma}$.
 - **Metrics:** write $TP, FP, FN, TN$ first; precision $\frac{TP}{TP + FP}$, recall $\frac{TP}{TP + FN}$, $F_1 = \frac{2TP}{2TP + FP + FN}$, accuracy $\frac{TP + TN}{\text{total}}$.
 - **Anchors:** $\ln 2 \approx 0.69$, $\ln 10 \approx 2.30$, $e \approx 2.72$, $e^2 \approx 7.39$, $\sqrt2 \approx 1.41$, $\sigma(0) = 0.5$, $\sigma(\pm 2) \approx 0.88 / 0.12$; build everything else with the log rules.
 

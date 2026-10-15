@@ -47,9 +47,17 @@ Ask a chatbot the same question twice and you may get two different answers, yet
 
 ## The decoding loop
 
+<Analogy title="Your phone keyboard">
+
+Type a word on your phone and the keyboard suggests the next one. Tap a suggestion and it suggests another, based on everything typed so far. An LLM writes in exactly this way, one token at a time; the decoding rule decides which suggestion to tap.
+
+</Analogy>
+
 At each step an LLM outputs one <Term def="Raw scores, one per token in the vocabulary, produced by the model's last layer. Softmax turns them into probabilities; a bigger logit means a more likely token.">logit</Term> $z_i$ for every token $i$ in its vocabulary (often 50,000 to over 100,000 of them). [Softmax](#/learn/classification/softmax-and-multiclass) turns the logits into probabilities. A <Term def="The rule for choosing the next token from the model's probabilities: always the top one (greedy), a random draw (sampling, possibly reshaped by temperature, top-k or top-p), or a search over whole sequences (beam search).">decoding strategy</Term> then chooses one token, which is appended to the text, and the whole thing runs again with the longer text. Generating one token at a time, each conditioned on the ones before, is called <Term def="Generating a sequence one element at a time, where each new element depends on the ones already generated. GPT-style LLMs are autoregressive.">autoregressive</Term> generation.
 
 <GenerationLoop />
+
+<PastPaperQuestion paper="prelim2026" n={228} />
 
 The simplest strategy is <Term def="Decoding that always picks the single most likely next token. It is deterministic: the same prompt always gives the same output.">greedy decoding</Term>: always take the top token. It is fast and **deterministic** (the same prompt always gives the same output), which suits questions with one right answer. But it has two weaknesses you just saw or will see: it tends to **repeat itself**, and it is **short-sighted**, because the most likely next token is not always the start of the most likely sentence. The alternative is <Term def="Choosing the next token at random, with each token's chance equal to its probability. A token with probability 0.3 is chosen about 30% of the time.">sampling</Term>: draw the next token at random, so a token with probability 0.3 is chosen about 30% of the time. The rest of this lesson is about controlling that randomness, and about a smarter alternative to greedy.
 
@@ -98,7 +106,7 @@ Temperature divides the logits before softmax. **$T < 1$: sharper, safer, more r
 
 <Mistake title="Temperature does not make a model smarter or more truthful">
 
-Temperature only changes *how the model picks* from what it already predicts. A low temperature makes the model repeat its favourite answer more reliably, including a wrong favourite. Also, $T = 0$ cannot literally be used (you would divide by zero); libraries and APIs treat "temperature 0" as plain greedy decoding.
+Temperature only changes *how the model picks* from what it already predicts. A low temperature makes the model repeat its favourite answer more reliably, including a wrong favourite. Also, $T = 0$ cannot literally be used (you would divide by zero). Many chat APIs accept "temperature 0" and treat it as greedy decoding, while in Hugging Face you switch sampling off instead (`do_sample=False`); passing `temperature=0` with sampling on is an error.
 
 </Mistake>
 
@@ -139,7 +147,7 @@ Top-k: "only consider the 3 stalls I like most", every night, whatever the mood.
 
 <PastPaperQuestion paper="prelim2026" n={230} />
 
-In practice the settings are combined: temperature reshapes the logits, then top-k and/or top-p cut the tail, then one token is sampled. In Hugging Face's `model.generate(...)`, `do_sample=True` switches sampling on, with `temperature=…`, `top_k=…` and `top_p=…` as the knobs (`num_beams=…` controls the beam search coming next). The library's own default is greedy decoding (`do_sample=False`, `num_beams=1`), although a model can ship its own generation settings that override it.
+In practice the settings are combined: temperature reshapes the logits, then top-k and/or top-p cut the tail, then one token is sampled. In Hugging Face's `model.generate(...)`, `do_sample=True` switches sampling on, with `temperature=…`, `top_k=…` and `top_p=…` as the knobs (`num_beams=…` controls the beam search coming next). The library's own default is greedy decoding (`do_sample=False`, `num_beams=1`), although a model can ship its own generation settings that override it. One surprise: unless those settings say otherwise, Hugging Face also applies `top_k=50` when sampling, so pass `top_k=0` if you want plain sampling.
 
 ## Greedy versus beam search
 
@@ -158,12 +166,12 @@ P(y_1, \dots, y_n) &= \prod_{t=1}^{n} p(y_t \mid y_1, \dots, y_{t-1}) \\[4pt]
 \end{aligned}
 $$
 
-The product $\prod$ multiplies the $n$ conditional probabilities. Because these products get tiny very quickly, programs add their logs instead (a <Term def="The logarithm of a probability. It is 0 for probability 1 and negative otherwise; adding log-probabilities is the same as multiplying probabilities, without numbers becoming too small for the computer.">log-probability</Term> is 0 for certainty and negative otherwise; higher is better). <Term def="A search that keeps the b highest-probability partial sequences at each step, extends each by every possible next token, and keeps the best b again; it finally returns the sequence with the highest total probability. b is the beam width; b = 1 is greedy.">Beam search</Term> with beam width $b$ works like this:
+The product $\prod$ multiplies the $n$ conditional probabilities. Because these products get tiny very quickly, programs add their logs instead (a <Term def="The logarithm of a probability. It is 0 for probability 1 and negative otherwise; adding log-probabilities is the same as multiplying probabilities, without numbers becoming too small for the computer.">log-probability</Term> is 0 for certainty and negative otherwise; higher is better). <Term def="A search that keeps the b highest-probability partial sequences at each step, extends each by every possible next token, and keeps the best b again; it finally returns the highest-probability sequence left in the beam. It is a heuristic: it can still miss the most probable sequence of all. b is the beam width; b = 1 is greedy.">Beam search</Term> with beam width $b$ works like this:
 
 1. Start with the prompt as the only partial sentence.
 2. Extend every kept sentence by each possible next token and compute each new sentence's total (log-)probability.
 3. Keep only the $b$ best and throw the rest away (prune them).
-4. Repeat until the sentences end; return the one with the highest total probability.
+4. Repeat until the sentences end; return the kept sentence with the highest total probability.
 
 With $b = 1$ this is exactly greedy decoding.
 
@@ -183,6 +191,8 @@ With $b = 1$ this is exactly greedy decoding.
     Now *at Maxwell* (0.16) also survives step 2, and *at Maxwell tonight* $= 0.16 \times 0.95 = 0.152$ is the best sentence of all. A wider beam searches more, at more cost.
   </Step>
 </Steps>
+
+So beam search is not guaranteed to find the best sentence: with $b = 2$ it missed the one with 0.152. It only searches more widely than greedy does.
 
 <PastPaperQuestion paper="noai2025" n={18} />
 
@@ -209,7 +219,7 @@ Above about $T = 1.5$ most models start producing nonsense. And none of these se
 
 - "Higher temperature = more random/diverse; lower = more deterministic/focused." Temperature divides the **logits** (not the probabilities) and never changes the ranking.
 - Top-k: the **k most likely** tokens. Top-p: the **smallest set with cumulative probability ≥ p**, so its size changes with the model's confidence. Both renormalise.
-- Beam search: keeps $b$ best partial **sequences** to maximise the **total sequence probability**; $b = 1$ is greedy. Greedy and beam search are deterministic; sampling is not.
+- Beam search: keeps the $b$ best partial **sequences**, aiming for a high **total sequence probability** (it can still miss the very best); $b = 1$ is greedy. Greedy and beam search are deterministic; sampling is not.
 - Quick computation: $T = 0.5$ squares the probability ratios; $T = 2$ square-roots them.
 
 </ExamTip>

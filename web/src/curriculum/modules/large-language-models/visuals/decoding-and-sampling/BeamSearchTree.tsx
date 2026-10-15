@@ -130,10 +130,8 @@ export default function BeamSearchTree() {
       title="Greedy versus beam search"
       caption={
         <>
-          Press <b>Next</b> to decode one token at a time. At every step beam search scores all the extensions of the sentences it kept, then keeps
-          the <b>b</b> with the highest total probability (crossed-out nodes are pruned; faint ones are never even looked at). Set b = 1 for greedy:
-          it grabs <i>chicken</i> (0.5) first and ends with total probability 0.070. With b = 3 the search keeps <i>at Maxwell</i> alive and finds a
-          sentence more than twice as likely. The best first word is not always the start of the best sentence.
+          <b>Try:</b> press <b>Next</b> for each token, then set b = 1 (greedy) and b = 3. <b>Notice:</b> greedy grabs <i>chicken</i> and ends on
+          0.070; b = 3 keeps <i>at Maxwell</i> alive and finds 0.152. Crossed-out nodes are pruned.
         </>
       }
     >
@@ -201,7 +199,7 @@ export default function BeamSearchTree() {
                   <text x={x + nodeW / 2} y={y + 14} textAnchor="middle" style={{ fill: st === 'pruned' ? 'var(--ink-3)' : 'var(--ink)', fontSize: narrow ? 11.5 : 12.5, fontWeight: 800 }}>
                     {n.tok === '.' ? '“.”' : n.tok}
                   </text>
-                  <text x={x + nodeW / 2} y={y + 28} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: narrow ? 10 : 11, fontFamily: 'var(--font-mono)' }}>
+                  <text x={x + nodeW / 2} y={y + 28} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 11, fontFamily: 'var(--font-mono)' }}>
                     {faint && st === 'future' ? '' : st === 'unseen' ? 'not scored' : valueText(n)}
                   </text>
                   {st === 'pruned' && (

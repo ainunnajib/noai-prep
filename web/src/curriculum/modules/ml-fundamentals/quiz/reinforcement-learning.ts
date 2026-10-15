@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.reinforcement-learning.1',
     prompt: 'What best distinguishes **reinforcement learning** from **supervised learning**?',
     options: [
-      'The agent learns from rewards for its own actions, not from examples labelled with the right answer',
-      'The agent needs a much larger labelled dataset, because every action must come with its correct answer',
-      'The agent groups unlabelled data points into clusters, without receiving any feedback at all',
-      'The agent can only be used for image tasks, while supervised learning handles every other kind of data',
+      'The agent is never shown the right answer; it learns from the rewards its own actions earn',
+      'The agent needs a larger labelled dataset, because every action must come with its correct answer',
+      'The agent groups unlabelled data points into clusters and gets no feedback on its groupings',
+      'The agent copies a fixed set of expert moves, just as a supervised model copies its labels',
     ],
     answer: 0,
     explanation:
-      'In RL nobody provides the correct action: the agent acts, receives a reward saying how good the outcome was, and learns from that. Needing labels describes supervised learning, and clustering without feedback is unsupervised learning.',
+      'In RL nobody provides the correct action: the agent acts, receives a reward saying how good the outcome was, and learns from that. Needing a correct answer for every action describes supervised learning, and copying expert moves is also learning from labelled examples. Clustering without feedback is unsupervised learning.',
     difficulty: 'beginner',
   },
   {
@@ -23,7 +23,7 @@ const questions: QuizQuestion[] = [
       'Its position, battery level and which patches are already clean',
       'The +1 it receives for each patch of floor that it manages to clean',
       'Moving forward, turning left or right, or heading back to the dock',
-      'The rule it has learned for choosing a move in every situation',
+      'The rule it has learned for choosing a move in each situation',
     ],
     answer: 0,
     explanation:

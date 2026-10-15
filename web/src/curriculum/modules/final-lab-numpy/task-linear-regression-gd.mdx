@@ -29,11 +29,11 @@ print(np.round(np.linalg.lstsq(X, y, rcond=None)[0], 4))
 # check 3: more iterations head there
 print(linear_regression_gradient_descent(X, y, 0.01, 3000))`
 
-Question 1 of the 2025 Final was worth 15 marks and asked for one function: linear regression trained by gradient descent, in NumPy, with the answer rounded to 4 decimal places. You met the algorithm in the linear regression module. This lesson rebuilds it the way you would in the exam: read the task, write three vectorised lines, prove the answer is right without being told it, and recognise the mistakes that cost marks.
+Question 1 of the 2025 Final was worth 15 marks and asked for one function: linear regression trained by gradient descent, in NumPy, with the answer rounded to 4 decimal places. You met the algorithm in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent). This lesson rebuilds it the way you would in the exam: read the task, write three vectorised lines, prove the answer is right without being told it, and recognise the mistakes that cost marks.
 
 <Analogy title="The downhill walk, written as code">
 
-In the gradient descent lesson you walked downhill in the fog: feel the slope under your feet, take a small step the other way, repeat. In the exam the walk becomes four lines of a loop. Predict, measure the errors, average them into a slope, step. The skill now is writing those lines without a slip and checking where you ended up.
+In the [gradient descent lesson](#/learn/calculus-and-gradient-descent/gradient-descent) you walked downhill in thick haze: feel the slope under your feet, take a small step the other way, repeat. In the exam the walk becomes a short loop: predict, measure the errors, average them into a slope, step. The skill now is writing those lines without a slip and checking where you ended up.
 
 </Analogy>
 
@@ -52,6 +52,15 @@ Read it symbol by symbol:
 - $x^{(i)}$ is row $i$ of `X`, and $x_j^{(i)}$ is the number in row $i$, column $j$. $y^{(i)}$ is that row's target.
 - $h_\theta(x^{(i)}) = \theta_0 x_0^{(i)} + \theta_1 x_1^{(i)}$ is the model's prediction for row $i$, so $h_\theta(x^{(i)}) - y^{(i)}$ is its error.
 - The whole fraction is the **average of (error × the input in column $j$)**: the slope of the cost in the $\theta_j$ direction.
+- Careful: the 2025 notebook calls $h_\theta(x^i)$ "the hypothesis function at iteration $i$", but in the formula $i$ counts training examples (rows), not iterations.
+
+The <Term def="One number that measures how badly the model fits the data. Gradient descent tries to make it small.">cost</Term> behind this rule is half the mean squared error:
+
+$$
+J(\theta) = \frac{1}{2m}\sum_{i=1}^{m}\left(h_\theta(x^{(i)}) - y^{(i)}\right)^2
+$$
+
+The $\frac12$ cancels the 2 that comes from differentiating the square, so $\frac{\partial J}{\partial \theta_j}$ is exactly the task's average. At $\theta = 0$ the errors are $-2, -4, -6$, so $J = \frac{4 + 16 + 36}{6} \approx 9.33$.
 
 The data cell holds `X = [[2, 2], [2, 4], [2, 6]]`, `y = [2, 4, 6]`, `alpha = 0.01` and `iterations = 1000`. Three things are *not* said, and you should decide them before typing:
 
@@ -77,7 +86,7 @@ Writing whole-array operations like this instead of loops over $i$ and $j$ is ca
 
 <KeyIdea>
 
-Predictions `X @ theta`, errors minus `y`, gradient `X.T @ errors / m`, update `theta - alpha * gradient`. Three lines in a loop, all coefficients updated together, round at the end.
+Predictions `X @ theta`, errors minus `y`, gradient `X.T @ errors / m`, update `theta - alpha * gradient`. Three lines in a loop (four if you give the predictions their own name), all coefficients updated together, round at the end.
 
 </KeyIdea>
 
@@ -138,7 +147,7 @@ array([0.003 , 0.9987])
 ```
 
 - **Check 1, one step by hand.** With θ = 0 every prediction is 0, the errors are −2, −4, −6, the gradient is $\left(\frac{-24}{3}, \frac{-56}{3}\right) = (-8, -18.667)$, and θ becomes $(0.08, 0.1867)$. The code agrees.
-- **Check 2, the exact answer.** The data lie exactly on the line $y = x$, and `np.linalg.lstsq` (the least-squares solver) gives θ = (0, 1). The `-0.` is a tiny negative number rounded to zero; it equals 0.
+- **Check 2, the exact answer.** The data lie exactly on the line $y = x$, and `np.linalg.lstsq` (the least-squares solver) gives θ = (0, 1). Depending on your computer the first value prints as `-0.` or `0.`: a tiny rounding error, negative or positive, rounded to zero. Both equal 0.
 - **Check 3, convergence.** With 3000 iterations gradient descent reaches (0, 1) to 4 decimal places. With 1000 it is close but not there, and that unfinished answer is what the task asks for.
 
 <GDRegressionRunner />
@@ -189,8 +198,8 @@ Every one of these produces an answer that looks reasonable at a glance. The tri
 
 - **Last digit off** (0.0027, 0.9988): you updated θ₀ before computing θ₁'s gradient. Compute the whole gradient first.
 - **Exactly (0, 1)**: you used the sum instead of the mean (no `/ m`), or a factor of 2: you walked faster than the task's rule.
-- **A table instead of two numbers**, or a "broadcast" error: mixed shapes, `(n, 1)` against `(n,)`. Keep everything 1-D.
-- **Nothing printed**: no `return`. **Three numbers**: an extra bias column. **Eight decimals**: no rounding. **Off in the 3rd decimal**: rounding inside the loop.
+- **A table instead of two numbers**, or a "broadcast" error: mixed shapes, predictions of shape `(m, 1)` against `y` of shape `(m,)`. Keep everything 1-D.
+- **Nothing printed**: no `return`. **Three numbers**: an extra bias column. **Eight decimals**: no rounding. **Off in the 2nd or 3rd decimal** (0.012, 0.9946): rounding inside the loop.
 
 </Mistake>
 

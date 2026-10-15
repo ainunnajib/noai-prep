@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Points of class A lie at $|x| < 1$ and points of class B at $|x| > 2$ on a number line. Logistic regression on $x$ alone fails, but after adding the column $x^2$ it separates them perfectly. Why?',
     options: [
-      'In the features $(x, x^2)$ a straight boundary splits the classes, and that boundary is two cuts on $x$',
+      'The model is still linear, but one straight cut on $x^2$ is the same as two cuts on $x$',
       'Squaring removes the negative values, which logistic regression cannot handle as inputs',
       'Adding any second feature makes a linear model non-linear, so $2x$ would have worked too',
       'Squaring makes the values larger, so gradient descent takes bigger steps and converges',
@@ -29,10 +29,10 @@ const questions: QuizQuestion[] = [
   {
     id: 'data-and-features.feature-engineering.3',
     prompt: 'How many columns does `PolynomialFeatures(degree=2)` (default settings, so the bias column is included) produce from 3 input features?',
-    options: ['10', '9', '6', '7'],
+    options: ['10', '9', '13', '7'],
     answer: 0,
     explanation:
-      'Count them: the bias $1$, the 3 originals, the 3 squares $x_1^2, x_2^2, x_3^2$ and the 3 products $x_1x_2, x_1x_3, x_2x_3$, giving $1 + 3 + 3 + 3 = 10 = \\binom{5}{2}$. Forgetting the bias gives 9; forgetting the products gives 7.',
+      'Count them: the bias $1$, the 3 originals, the 3 squares $x_1^2, x_2^2, x_3^2$ and the 3 products $x_1x_2, x_1x_3, x_2x_3$, giving $1 + 3 + 3 + 3 = 10 = \\binom{5}{2}$. Forgetting the bias gives 9; forgetting the products gives 7; and counting $x_1x_2$ and $x_2x_1$ as different columns (all 9 ordered products $x_ix_j$) gives $1 + 3 + 9 = 13$.',
     difficulty: 'intermediate',
   },
   {
@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
     id: 'data-and-features.feature-engineering.5',
     prompt: 'Which statement about using PCA as a feature-engineering step is correct?',
     options: [
-      'It makes a few new features, each a weighted sum of the originals, without using the labels',
+      'It makes a few new features, each a weighted sum of all the columns, ignoring the labels',
       'It keeps the $k$ original columns that are most strongly correlated with the label',
       'It adds squared and product columns so that a linear model can fit curved boundaries',
       'It uses the labels to find the directions that best separate the classes from each other',

@@ -23,7 +23,7 @@ In almost every case one line (occasionally two) decides the answer. Call it the
 
 The 2026 Final bugs fall into six families. Learn the family and you know where to look.
 
-1. **Sign or formula error.** A line contradicts a formula you know: the AdaBoost weight update, which must raise mistakes by $e^{+\alpha}$ and lower correct points by $e^{-\alpha}$ (Q5), or the pseudo-residual of gradient boosting (Q2).
+1. **Sign or formula error.** A line contradicts a formula you know: the AdaBoost weight update, whose textbook form multiplies mistakes by $e^{+\alpha}$ and correct points by $e^{-\alpha}$ (Q5's code does only the first half), or the pseudo-residual of gradient boosting (Q2).
 2. **Wrong normalisation.** Dividing by the wrong thing, or forgetting to divide: $\sqrt{d_k}$ in attention (Q16), `loss / accumulation_steps` (Q10).
 3. **<Term def="Information from the validation or test data sneaking into training, so the measured score is better than the model really is.">Data leakage</Term>.** Something learns from data it should not see: feature selection outside the cross-validation loop (Q3).
 4. **Wrong function choice.** Softmax where each label needs its own sigmoid (Q6).
@@ -74,6 +74,10 @@ The real question below has the opposite symptom. Decide which direction the sca
 Here are four real 2026 Final questions. Some of them are imperfect, and the walkthrough says so: two carry caveats, where a second option is defensible or the example does not quite trigger the bug. That is useful too. In the exam, pick the option that names the textbook rule broken by the decisive line.
 
 <CodeMCQWalkthrough />
+
+### One more state bug: BatchNorm's running statistics (Q8)
+
+Q8 is worth a paragraph because its bug never shows in the training loss. In training mode BatchNorm normalises with the current batch's mean and variance, but after `model.eval()` it uses `running_mean` and `running_var`: <Term def="Tensors stored inside a module and saved with it, but not trained by the optimiser.">buffers</Term> that it nudges towards each batch's statistics at every training step. If those buffers are wrong, training looks fine and evaluation is poor, which is exactly Q8's symptom. The textbook update writes into the buffers in place and outside autograd, `with torch.no_grad(): self.running_mean.mul_(1 - m).add_(m * mean)`. Q8's code re-assigns a brand-new tensor instead, which happens to work in an ordinary single-GPU loop but is lost when the module runs as a temporary copy (for example under `nn.DataParallel`), so the keyed answer, "update in place", is right in spirit but shaky as printed.
 
 ### Check Q3 and Q10 yourself
 
@@ -157,7 +161,7 @@ You have now read four Final questions in depth. The other sixteen follow the sa
 | [2](#/papers/final2026#q2) | Gradient boosting, Line A `residuals = y - F` | For L1 loss the pseudo-residual becomes `sign(y - F)`; only Line A changes |
 | [3](#/papers/final2026#q3) | Leakage: `fit_transform(X, y)` on every row | Approach B's 78% is the honest estimate |
 | [4](#/papers/final2026#q4) | L2 logistic regression: `gradient[1:]` leaves the bias out | Option D: no penalty on the bias, λ scaled by 1/m |
-| [5](#/papers/final2026#q5) | AdaBoost, Line D `np.exp(alpha * incorrect)` | Correct points must also shrink: `np.exp(alpha * (2*incorrect - 1))` |
+| [5](#/papers/final2026#q5) | AdaBoost, Line D `np.exp(alpha * incorrect)` | Correct points must also shrink: `np.exp(alpha * (2*incorrect - 1))` (flawed: dropping the 0.5 from alpha, AdaBoost.M1, is equivalent) |
 | [6](#/papers/final2026#q6) | Multi-label loss, the softmax in Option C | Sigmoid + BCE (A) and BCE-with-logits (B) are equivalent; softmax assumes one label |
 | [7](#/papers/final2026#q7) | Gradient norms: 0.0001 at layer 1, 1.23 at layer 10 | Vanishing gradients: add residual connections |
 | [8](#/papers/final2026#q8) | BatchNorm: `self.running_mean = ...` re-assigns the buffer | Update the running statistics in place (shaky: works on one GPU) |

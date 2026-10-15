@@ -15,14 +15,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'At the 30:00 checkpoint you have just finished Q38. You have been solving every question fully before moving on. What is the best change of plan?',
     options: [
-      'Cap each question at about 30 s from now: if it is not done, leave a best guess, note its number and move on',
+      'Switch to speed mode: after about 30 s on any question, always leave a best guess, flag it and move on',
       'Keep solving every question fully, then use the final 15 minutes of the paper to catch up on the rest',
       'Leave the slow questions blank so that no time is wasted choosing answers you are unsure about',
       'Return to Q1 and double-check the first 38 answers, since accuracy matters more than reaching the end of the paper',
     ],
     answer: 0,
     explanation:
-      'The must-hit line at 30:00 is Q50, so you are 12 questions behind with 60 minutes left. Capping time per question gets you to the end, and a guess left behind is worth $\\frac14$ of a mark on average while a blank is worth 0. Catching up at the end fails because the final questions tend to be the longest.',
+      'The must-hit line at 30:00 is Q50, so you are 12 questions behind with 60 minutes left. Speed mode gets you to the end, and a guess left behind is worth $\\frac14$ of a mark on average while a blank is worth 0. Catching up at the end fails because the final questions tend to be the longest.',
     difficulty: 'intermediate',
   },
   {

@@ -21,13 +21,13 @@ const questions: QuizQuestion[] = [
     prompt: 'As you raise the degree of a polynomial model, why does the **training** error keep going down even after the model starts to overfit?',
     options: [
       'A more flexible model can always fit its own training points at least as well',
-      'Higher-degree models generalise better, so every kind of error goes down together',
+      'Higher-degree models generalise better, so training and validation error both fall',
       'The noise in the training labels gets smaller when the model has more weights',
       'The validation set is used during training and pulls the training error down',
     ],
     answer: 0,
     explanation:
-      'Every degree-$d$ polynomial is also a degree-$(d+1)$ polynomial (with the extra weight set to 0), so the best fit can only stay the same or improve on the training points. Past the sweet spot, the improvement comes from fitting noise, which is why the validation error rises at the same time. The noise in the labels is fixed; the model cannot change it.',
+      'Every degree-$d$ polynomial is also a degree-$(d+1)$ polynomial (with the extra weight set to 0), so the best fit can only stay the same or improve on the training points. Past the sweet spot, the improvement comes from fitting noise, which is why the validation error rises at the same time instead of falling with it. The noise in the labels is fixed; the model cannot change it.',
     difficulty: 'beginner',
   },
   {

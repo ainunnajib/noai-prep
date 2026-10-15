@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'The official 2025 solution rounded the centroids to 4 d.p. at the end of every iteration, then tested `np.all(centroids == new_centroids)` to stop early. On the exam data the loop always ran all 10 iterations. Why?',
     options: [
-      'It compared rounded old centroids with unrounded new ones, which are never exactly equal',
+      'It compared rounded old centroids with unrounded new ones, so they never matched',
       'The centroids kept moving slightly until the tenth iteration on the exam data',
       'Ten iterations is the minimum K-means needs, so an earlier stop is never allowed',
       'The `==` operator always returns False when it compares two float arrays',

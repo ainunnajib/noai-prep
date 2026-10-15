@@ -6,14 +6,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'The protected cell calls your function as `linear_regression_gradient_descent(X=X, y=y, alpha=alpha, iterations=iterations)`. You changed the first line of your function to `def linear_regression_gradient_descent(X, y, lr, iterations):`. What happens when the protected cell runs?',
     options: [
-      "`TypeError: ... got an unexpected keyword argument 'alpha'`, so no answer is produced",
+      'It stops with a `TypeError`: the call passes `alpha`, which is no longer a parameter',
       'It runs normally, because Python matches the arguments by their position in the call',
-      '`NameError: name lr is not defined`, raised the first time the loop uses `lr`',
+      'It stops with a `NameError` the first time the loop reaches the undefined name `lr`',
       'It runs, but `lr` silently takes its default value of `None` inside the function',
     ],
     answer: 0,
     explanation:
-      'The call passes arguments **by keyword**, so Python looks for a parameter called `alpha` and finds none: `TypeError`. Position does not help with keyword arguments. Keep the stub\'s parameter names exactly; if you want a shorter name, write `lr = alpha` inside the function.',
+      'The call passes arguments **by keyword**, so Python looks for a parameter called `alpha`, finds none and raises a `TypeError` before the body runs; the loop never gets far enough for a `NameError`. Position does not help with keyword arguments. Keep the stub\'s parameter names exactly; if you want a shorter name, write `lr = alpha` inside the function.',
     difficulty: 'beginner',
   },
   {
@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You find a bug in your function, fix it in its cell, then re-run only the protected test cell. The output has not changed. What is the most likely reason?',
     options: [
-      'The kernel still holds the old function, because the edited cell was not run again',
+      'The kernel still runs the old function, since only the test cell was run again',
       'The test cell caches its last output, so it must be deleted and pasted back in',
       'Jupyter runs cells in page order, so the test cell ran before your function cell',
       'Your fix had no effect, because editing a cell automatically restarts the kernel',

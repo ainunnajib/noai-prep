@@ -50,7 +50,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'A matrix is singular (no inverse) when $\\det = ad - bc = 0$, that is when the two diagonal products match. $2 \\times 9 = 18 = 6 \\times 3$, so the first is singular: its second column is 3 times its first. The others give $16 - 18 = -2$, $54 - 6 = 48$ and $16 - 18 = -2$, all non-zero.',
+      'A matrix is singular (no inverse) when $\\det = ad - bc = 0$, that is when the two diagonal products match. For $\\begin{bmatrix} 2 & 6 \\\\ 3 & 9 \\end{bmatrix}$, $2 \\times 9 = 18 = 6 \\times 3$, so it is singular: its second column is 3 times its first. $\\begin{bmatrix} 2 & 6 \\\\ 3 & 8 \\end{bmatrix}$ gives $16 - 18 = -2$, $\\begin{bmatrix} 6 & 2 \\\\ 3 & 9 \\end{bmatrix}$ gives $54 - 6 = 48$ and $\\begin{bmatrix} 2 & 3 \\\\ 6 & 8 \\end{bmatrix}$ gives $16 - 18 = -2$, all non-zero.',
     difficulty: 'intermediate',
   },
 ]

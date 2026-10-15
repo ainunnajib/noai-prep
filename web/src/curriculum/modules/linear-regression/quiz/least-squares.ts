@@ -31,7 +31,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Positive and negative residuals cancel, so a poor line can still have a plain sum of zero',
       'Squaring makes the fitted line less sensitive to outliers than the plain sum of residuals would be',
-      'The plain sum of residuals can only be computed when every single residual is positive',
+      'The plain sum of residuals cannot be computed when some of the residuals are negative',
       'Squared residuals are always smaller than the residuals themselves, so training is faster',
     ],
     answer: 0,
@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     id: 'linear-regression.least-squares.4',
     prompt: 'For linear regression $\\hat{y} = wx + b$ with MSE loss, what does the loss look like when plotted over every possible pair $(w, b)$?',
     options: [
-      'A convex bowl with a single lowest point, which is the least-squares line',
+      'A convex bowl with only one lowest point, which is the least-squares line',
       'A landscape with many valleys, so the starting guess decides which line you end up with',
       'A flat plane, because the model is linear in $x$',
       'A saddle that curves upwards along $w$ but downwards along $b$',
@@ -60,11 +60,11 @@ const questions: QuizQuestion[] = [
       'Each extra hour of revision raises the predicted score by about 6 marks',
       'A student who revises for 6 hours is predicted to score 42 marks in the test',
       'The predictions are typically about 6 marks away from the true test scores',
-      'Every student who does no revision at all will score exactly 42 marks',
+      'A student who does no revision at all is certain to score exactly 42 marks',
     ],
     answer: 0,
     explanation:
-      'The slope $w = 6$ is the change in the *prediction* per extra unit of $x$: one more hour, 6 more predicted marks. The intercept $42$ is the predicted score at $x = 0$, a prediction rather than a guarantee for every student, since real points scatter around the line. A typical error size would be the RMSE, which the equation does not show; and 6 hours predicts $6 \\times 6 + 42 = 78$.',
+      'The slope $w = 6$ is the change in the *prediction* per extra unit of $x$: one more hour, 6 more predicted marks. The intercept $42$ is the predicted score at $x = 0$, a prediction rather than a guarantee, since real points scatter around the line. A typical error size would be the RMSE, which the equation does not show; and 6 hours predicts $6 \\times 6 + 42 = 78$.',
     difficulty: 'beginner',
   },
 ]

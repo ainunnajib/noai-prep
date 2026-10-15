@@ -6,9 +6,9 @@ const questions: QuizQuestion[] = [
     prompt: 'You meet a 120-word scenario question in the Prelim. Using stem-first reading, what do you read first?',
     options: [
       'The question line, usually the last sentence of the stem',
-      'The first sentence of the stem, then every number in order',
-      'All four options in full, starting with the longest one',
-      'Every number in the stem, before reading any of the text',
+      'The first sentence of the stem, then each number in order',
+      'The four options in full, starting with the longest one',
+      'The numbers in the stem, before reading any of the text',
     ],
     answer: 0,
     explanation:
@@ -60,7 +60,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Run 4 micro-batches of 16, add up their gradients, then take one optimiser step',
       'Train with batch 16 and multiply the learning rate by 4 to make up the difference',
-      'Call torch.cuda.empty_cache() after every backward pass to free the extra memory',
+      'Call torch.cuda.empty_cache() after each backward pass to free the extra memory',
       'Keep batch 64 but train for a quarter of the epochs so that less memory is needed',
     ],
     answer: 0,

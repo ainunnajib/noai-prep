@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'On the 2025 task data, a student\'s function returns `array([5.000e-04, 1.100e-03, 9.994e-01])` instead of `array([0.003 , 0.9987])`. What is the most likely mistake?',
     options: [
-      'A column of 1s was added to `X`, which already had its intercept column',
+      'A column of 1s was added to `X`, which already had its own intercept column',
       'The coefficients were rounded inside the loop instead of once at the end',
       'The gradient was summed over the examples instead of averaged over them',
       'The learning rate was too large, so gradient descent started to diverge',

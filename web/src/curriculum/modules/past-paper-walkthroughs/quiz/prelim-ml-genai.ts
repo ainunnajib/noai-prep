@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Cross-attention, with queries from the text tokens and keys and values from the image patches',
       'Self-attention over the image patches only, with queries, keys and values all from the image',
-      'Causal self-attention over the text tokens only, so each word sees just the earlier words',
+      'Causal self-attention over the text tokens, so each word sees just the earlier words',
       'Cross-attention, with queries from the image patches and keys and values from the text tokens',
     ],
     answer: 0,

@@ -16,7 +16,7 @@ const TRAPS: Record<Trap, { name: string; colour: string; desc: string }> = {
   cause: { name: 'Wrong reason', colour: 'var(--viz-3)', desc: 'a plausible-sounding cause or benefit that is not the real one' },
   true: { name: 'True, but not the point', colour: 'var(--viz-5)', desc: 'a correct or half-correct statement that does not answer what was asked' },
   overclaim: { name: 'Overclaim', colour: 'var(--viz-4)', desc: 'an absolute word: only, always, never, cannot' },
-  slip: { name: 'Half-done working', colour: 'var(--viz-6)', desc: 'the number you get by skipping or swapping one step' },
+  slip: { name: 'Half-done working', colour: 'var(--viz-6)', desc: 'the number you get by skipping, swapping or substituting one step' },
   filler: { name: 'Filler', colour: 'var(--viz-muted)', desc: 'unrelated or empty: a free elimination' },
 }
 const ORDER: Trap[] = ['twin', 'opposite', 'cause', 'true', 'overclaim', 'slip', 'filler']
@@ -48,7 +48,7 @@ const ITEMS: Item[] = [
     answer: 0,
     key: '√(3² + 4²) = √25 = 5.',
     traps: [null, 'slip', 'slip', 'slip'],
-    notes: ['', 'Added the entries without squaring: 3 + 4 = 7, which is the L1 norm.', 'Squared and added but forgot the square root: 9 + 16 = 25.', 'Multiplied the entries: 3 × 4 = 12.'],
+    notes: ['', 'Added the entries without squaring: 3 + 4 = 7, which is the L1 norm.', 'Squared and added but forgot the square root: 9 + 16 = 25.', 'Swapped the operation: multiplied the entries, 3 × 4 = 12, instead of squaring and adding.'],
   },
   {
     n: 56,
