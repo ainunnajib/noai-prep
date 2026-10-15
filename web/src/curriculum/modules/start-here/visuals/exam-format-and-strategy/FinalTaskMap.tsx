@@ -34,7 +34,7 @@ const TASKS: Task[] = [
   {
     id: '25-2',
     year: 2025,
-    name: 'K-means clustering',
+    name: 'k-means clustering',
     marks: 25,
     lib: 'Python standard library and NumPy only',
     plain: "Sort points into groups by repeatedly moving each group's centre to the middle of its points.",

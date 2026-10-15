@@ -37,14 +37,14 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.fit-a-line-by-hand.4',
     prompt: 'Why does the mean squared error square each residual before averaging?',
     options: [
-      'So that positive and negative misses cannot cancel, and big misses are punished more',
-      'So that the loss comes out in the same units as the prices it measures',
-      'So that the best possible line always ends up with a loss of exactly zero',
-      'So that only the single largest miss affects the final value of the loss',
+      'So that positive and negative misses can never cancel, and big misses count more',
+      'So that the loss comes out in thousands of dollars, the same units as the flat prices',
+      'So that the best possible line ends up with a loss of exactly zero, a perfect fit',
+      'So that the single largest miss decides the loss, and the small misses drop out',
     ],
     answer: 0,
     explanation:
-      'Squares are never negative, so a $+50$ miss and a $-50$ miss both count instead of cancelling, and a miss of 50 costs 25 times as much as a miss of 10. Squaring actually changes the units (to dollars squared), the best line usually still has a loss above zero, and every residual contributes, not just the largest.',
+      'Squares are never negative, so a $+50$ miss and a $-50$ miss both count instead of cancelling, and a miss of 50 costs 25 times as much as a miss of 10. Squaring actually changes the units (to thousands of dollars, squared), the best line usually still has a loss above zero, and every residual contributes, not just the largest.',
     difficulty: 'beginner',
   },
   {
@@ -52,14 +52,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'Keeping $b$ fixed, you try five slopes and record the MSE: $w = 2$: 50, $w = 3$: 18, $w = 4$: 6, $w = 5$: 14, $w = 6$: 42. What is the best conclusion?',
     options: [
-      'The best slope is near $w = 4$, at the bottom of the U-shaped loss curve',
-      'The best slope is $w = 6$, because the loss changes fastest there',
-      'The best slope is $w = 2$, because a smaller slope is a simpler model',
-      'No slope is any good, because none of them gives an MSE of zero',
+      'The best slope is near $w = 4$, where the loss curve is at its lowest',
+      'The best slope is $w = 6$, because that is where the loss changes the fastest',
+      'The best slope is $w = 2$, because the smallest slope gives the simplest model',
+      'No slope fits well here, because a well-fitting line has an MSE of zero',
     ],
     answer: 0,
     explanation:
-      'Lower loss means a better fit, so the best of these is $w = 4$ with MSE 6, the lowest point of the valley (the true minimum lies between 3 and 5). The loss rises on both sides, and a minimum above zero is normal: no straight line passes through every data point.',
+      'Lower loss means a better fit, so the best of these is $w = 4$ with MSE 6, the lowest point of the U-shaped valley (the true minimum lies between 3 and 5). The loss rises on both sides, and a minimum above zero is normal: real data almost never lies exactly on one straight line.',
     difficulty: 'beginner',
   },
 ]

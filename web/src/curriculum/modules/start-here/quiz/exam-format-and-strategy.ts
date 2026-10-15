@@ -24,28 +24,28 @@ const questions: QuizQuestion[] = [
     id: 'start-here.exam-format-and-strategy.3',
     prompt: 'Why should you give an answer to every Prelim question, even ones you have no idea about?',
     options: [
-      'A wrong answer costs nothing, so a guess adds about a quarter of a mark on average while a blank adds zero',
-      'Questions left blank are marked as wrong and cost you a quarter of a mark each, so blanks lower your score',
-      'Answering everything makes the marking software treat your paper as complete, which earns a bonus mark',
-      'Guessing is only worthwhile once you can cross out at least two options; otherwise blanks are safer',
+      'A blank always scores 0, while a blind guess among four options earns a quarter of a mark on average',
+      'Blank answers are marked as wrong and cost a quarter of a mark each, so leaving blanks lowers your score',
+      'A fully answered paper is treated as complete by the marking system, which then adds a bonus mark',
+      'Guessing pays only once you can cross out two options; with fewer crossed out, a blank is safer',
     ],
     answer: 0,
     explanation:
-      'The Prelim gives 1 mark per correct answer with no deduction for wrong ones. A blind guess among four options is right 1 time in 4, so it is worth $\\frac14$ of a mark on average; a blank is worth exactly 0. That makes every guess better than a blank, even with nothing crossed out. Blanks are not penalised either: they just earn nothing.',
+      'The Prelim gives 1 mark per correct answer with no deduction for wrong ones. A blind guess among four options is right 1 time in 4, so it is worth $\\frac14$ of a mark on average; a blank is worth exactly 0. That makes every guess better than a blank, even with nothing crossed out (crossing out two only raises it to $\\frac12$). Blanks are not penalised and there is no bonus for a complete paper: blanks just earn nothing.',
     difficulty: 'beginner',
   },
   {
     id: 'start-here.exam-format-and-strategy.4',
     prompt: 'Which description of the NOAI Final is correct?',
     options: [
-      '20 MCQs plus 3 Python programming tasks in Jupyter, implementing algorithms such as K-means from scratch',
+      '20 MCQs plus 3 Python programming tasks in Jupyter, implementing algorithms such as k-means from scratch',
       '150 MCQs in 90 minutes, like the Prelim, but with harder questions on generative AI and problem solving',
       'A one-week take-home project in which you train any model you like on a dataset the organisers provide',
       '3 written essays on AI ethics, followed by an interview with NTU professors about a model of your choice',
     ],
     answer: 0,
     explanation:
-      'The Final has two sections: 20 theory MCQs (often code-reading in 2026) and 3 AI programming tasks in Python. Past tasks included gradient descent, K-means and RAG (2025) and gradient boosting, a U-Net fix with mean IoU, and attention (2026). The 150-MCQ format describes the Prelim, not the Final.',
+      'The Final has two sections: 20 theory MCQs (often code-reading in 2026) and 3 AI programming tasks in Python. Past tasks included gradient descent, k-means and RAG (2025) and gradient boosting, a U-Net fix with mean IoU, and attention (2026). The 150-MCQ format describes the Prelim, not the Final.',
     difficulty: 'beginner',
   },
   {
@@ -53,10 +53,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'You plan on about 30 seconds per question, so "question number ÷ 2 = minutes gone". After 45 minutes you have just finished Q60. What does that tell you, and what should you do?',
     options: [
-      'You are 30 questions (15 minutes) behind: start capping your time, guessing and flagging when stuck',
+      'You are 30 questions (15 minutes) behind: cap your time on every slow question, guess and flag it',
       'You are exactly on schedule, because 60 questions in 45 minutes matches the 36-second average pace',
-      'You are about 15 questions ahead of plan, so you can slow down and double-check every answer from here on',
-      'You are behind, so jump straight to the final block and leave all the questions in between blank',
+      'You are about 15 questions ahead of plan, so you can slow down and double-check each answer from here on',
+      'You are behind, so jump straight to the final block and leave the questions in between blank',
     ],
     answer: 0,
     explanation:

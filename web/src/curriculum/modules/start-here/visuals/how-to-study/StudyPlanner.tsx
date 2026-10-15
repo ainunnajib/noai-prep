@@ -56,7 +56,8 @@ function thisWeek() {
 export default function StudyPlanner() {
   const [minWk] = useState(thisWeek)
   const [startWk, setStartWk] = useState(minWk)
-  const [hpw, setHpw] = useState(5.5)
+  // start at the smallest half-hour load that finishes before the mocks (×1.5 practice), so the first view is a workable plan
+  const [hpw, setHpw] = useState(() => Math.min(15, Math.max(2, Math.ceil((2 * ((LESSON_MIN / 60) * 1.5)) / ((MOCKS_D - minWk * 7) / 7)) / 2)))
   const [mult, setMult] = useState(1.5)
   const [ref, measured] = useContainerWidth<HTMLDivElement>(640)
   const W = Math.max(300, measured)

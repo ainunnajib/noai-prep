@@ -25,7 +25,7 @@ We drop the intercept (fix $b = 0$, since a line through the origin happens to f
 | 7 | 120 | 680 | 1.2 | 6.8 |
 | 8 | 130 | 800 | 1.3 | 8.0 |
 
-For every value of $w$ you can work out the <Term def="Mean squared error: for each example, square the miss (actual minus predicted), then average the squares. Lower means a better fit.">loss</Term> $L(w)$, the mean squared error from the last lesson. Take $w = 1$: it predicts $1 \times 1.3 = 1.3$ (\$130k) for flat 8, which sold for $8.0$ (\$800k), a miss of $6.7$. Square all 8 misses and average them, and you get $L(1) = 25.1$.
+For every value of $w$ you can work out the <Term def="A single number that measures how wrong the model is; lower is better. Here the loss is the mean squared error: square each miss (actual minus predicted), then average the squares.">loss</Term>, the mean squared error from the last lesson. We write it $L(w)$, read "L of w": the loss when the knob is set to $w$, so $L(1)$ is the loss at $w = 1$. Take $w = 1$: it predicts $1 \times 1.3 = 1.3$ (\$130k) for flat 8, which sold for $8.0$ (\$800k), a miss of $6.7$. Square all 8 misses and average them, and you get $L(1) = 25.1$.
 
 <Reveal label="Show all 8 misses for w = 1">
 
@@ -66,10 +66,10 @@ The computer can measure the slope without seeing the curve: nudge $w$ by a tiny
 
 The slope tells you two things:
 
-- Its **sign** says which way is downhill. A *negative* slope means the loss falls as $w$ grows, so make $w$ bigger. A *positive* slope means the loss rises as $w$ grows, so make $w$ smaller. A slope of *zero* means flat ground. On a single U-shaped valley like this one, that is the bottom. (On bumpier loss landscapes, flat ground can also be a hilltop, a plateau, or a dip that is not the lowest one, called a *local minimum*; you will meet these in the calculus module.)
+- Its **sign** says which way is downhill. A *negative* slope means the loss falls as $w$ grows, so make $w$ bigger. A *positive* slope means the loss rises as $w$ grows, so make $w$ smaller. A slope of *zero* means flat ground. On a single U-shaped valley like this one, that is the bottom. (On bumpier loss landscapes, flat ground can also be a hilltop, a plateau, or a dip that is not the lowest one, called a *local minimum*; you will meet these in [the calculus module](#/learn/calculus-and-gradient-descent/gradient-descent).)
 - Its **size** says how steep it is: steep far from the bottom, gentle close to it.
 
-(With calculus you can get a formula for the slope instead of nudging; that is coming in the calculus module. For now, nudging is all you need.)
+(With calculus you can get a formula for the slope instead of nudging; that is coming in [the calculus module](#/learn/calculus-and-gradient-descent/derivatives-as-slopes). For now, nudging is all you need.)
 
 <DownhillBallPreview />
 
@@ -126,7 +126,7 @@ Subtracting a negative slope makes $w$ **bigger**: $1 - 0.1 \times (-10) = 1 + 1
 
 ### Many knobs: the gradient
 
-A line with two knobs, $w$ and $b$, has two slopes: nudge $w$ alone to get one, nudge $b$ alone to get the other. Gradient descent then moves each knob against its own slope, both in the same step. The list of all the slopes is called the <Term def="The list of slopes of the loss, one for each knob (parameter). It points in the direction in which the loss increases fastest.">gradient</Term>. Together, the gradient points in the direction in which the loss rises fastest, straight uphill (the direction of **steepest ascent**). So the *negative* gradient points straight downhill (**steepest descent**), and stepping along it is exactly what gives gradient descent its name.
+A line with two knobs, $w$ and $b$, has two slopes: nudge $w$ alone to get one, nudge $b$ alone to get the other. Gradient descent then moves each knob against its own slope, both in the same step. The list of all the slopes is called the <Term def="The list of slopes of the loss, one for each knob (parameter). It points in the direction in which the loss increases fastest.">gradient</Term>. (Picture a map with $w$ across and $b$ up. The two slopes make an arrow on that map: one number says how far the arrow goes along $w$, the other how far along $b$.) Together, the gradient points in the direction in which the loss rises fastest, straight uphill (the direction of **steepest ascent**). So the *negative* gradient points straight downhill (**steepest descent**), and stepping along it is exactly what gives gradient descent its name.
 
 In exam papers you will see the same rule written with symbols: $w \leftarrow w - \eta\,\frac{dL}{dw}$ for one knob, where $\frac{dL}{dw}$ ("d L by d w") is the slope and $\leftarrow$ means "replace with", or $\theta \leftarrow \theta - \eta\,\nabla L(\theta)$ for all the knobs at once, where $\theta$ ("theta") is the list of knobs and $\nabla L$ ("grad L") is the gradient.
 
@@ -136,7 +136,7 @@ In exam papers you will see the same rule written with symbols: $w \leftarrow w 
 
 <Analogy title="Parking a car">
 
-Creep forward a millimetre at a time and you take forever to reach the parking lot. Stamp on the accelerator and you shoot past it. You want steps that are big enough to make progress but small enough to stop where you mean to.
+Creep forward a millimetre at a time and you take forever to reach the parking space. Stamp on the accelerator and you shoot past it. You want steps that are big enough to make progress but small enough to stop where you mean to.
 
 </Analogy>
 
@@ -167,7 +167,7 @@ In real training, with millions of knobs and noisy data, a learning rate that is
 | jumps up and down, explodes, or becomes NaN | learning rate too large | decrease $\eta$ (try 10 times smaller) |
 | falls fast, then levels off | working as intended | keep training until it is flat |
 
-When an MCQ asks what the learning rate controls, the answer is the **step size**. It is not the number of steps (iterations) or the batch size, which are separate settings.
+When an MCQ asks what the learning rate controls, the answer is the **step size**. It is not the number of steps (iterations) or the batch size (how many examples are used to work out each slope), which are separate settings.
 
 </ExamTip>
 
@@ -194,7 +194,7 @@ Then go back to step 1, often thousands or millions of times, until the loss sto
 
 <TrainingLoopAnimation />
 
-Measuring slopes by nudging one knob at a time works for our single knob, but it would be far too slow for a model with a billion knobs. Real libraries compute all the slopes in one go using calculus, with an algorithm called backpropagation that you will meet later. The loop itself never changes: linear regression (which can also be solved in one go with a formula) and ChatGPT can both be trained by predict, measure, find the slope, nudge. A few methods learn differently: k-nearest neighbours, in the next lesson, just stores the examples, and decision trees are grown by choosing splits.
+Measuring slopes by nudging one knob at a time works for our single knob, but it would be far too slow for a model with a billion knobs. Real libraries compute all the slopes in one go using calculus, with an algorithm called [backpropagation](#/learn/backpropagation/computational-graphs) that you will meet later. The loop itself never changes: linear regression (which can also be solved in one go with a formula) and ChatGPT can both be trained by predict, measure, find the slope, nudge. A few methods learn differently: k-nearest neighbours, in the next lesson, just stores the examples, and decision trees are grown by choosing splits.
 
 <Reveal label="Peek at the code (optional)">
 
@@ -232,10 +232,10 @@ Each line shows the step number, the new $w$ and the new loss: the same $2, 2.8,
 <QuickCheck
   q="A classmate says: “Gradient descent first works out the loss for every possible value of $w$, then picks the lowest one.” What is wrong with this?"
   options={[
-    'Gradient descent only uses the slope at the current $w$; it never maps out the whole curve',
-    'Gradient descent only works out the loss at $w = 0$ and then jumps straight to the answer',
+    'Gradient descent uses only the slope where it stands and never maps the whole curve',
+    'Gradient descent works out the loss at $w = 0$ once, then jumps straight to the answer',
     'Gradient descent picks random values of $w$ and keeps the best one it happens to find',
-    'Nothing is wrong: that is exactly how gradient descent finds the minimum',
+    'Nothing is wrong: that is exactly how gradient descent finds the bottom of the valley',
   ]}
   answer={0}
   explain="Gradient descent is local: at each step it measures only the slope where it stands, then steps downhill. That is why it works for models with millions of knobs, where checking every combination is impossible. Trying random values and keeping the best is a different method (random search)."

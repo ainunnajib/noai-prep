@@ -1,4 +1,4 @@
-import { PRELIM, FINAL } from '../../../data/facts'
+import { PRELIM, FINAL, FUNNEL } from '../../../data/facts'
 import PaceSimulator from './visuals/exam-format-and-strategy/PaceSimulator'
 import GuessValue from './visuals/exam-format-and-strategy/GuessValue'
 import FinalTaskMap from './visuals/exam-format-and-strategy/FinalTaskMap'
@@ -15,7 +15,7 @@ You can raise your Prelim score before you learn any AI at all, just by understa
 | Where | {PRELIM.mode} |
 | Allowed | {PRELIM.materials} |
 | Marking | {PRELIM.marking} |
-| Who goes on | {PRELIM.advance} |
+| Who goes on | About the top {FUNNEL[1].n} go to the Final, ranked on total correct answers (school seat quotas apply; no fixed cut-off) |
 
 Three lines in that table matter most for strategy: the **time**, the **calculator ban** and the **marking**. The rest of this lesson takes them one at a time. Two more facts from the official FAQ: there is no extra time for anyone, and the Prelim alone does not earn a certificate (only finalists get one).
 
@@ -83,7 +83,7 @@ Someone hands you a free lucky-draw ticket. It might win, it might not, but it c
 
 </Analogy>
 
-Every correct answer earns 1 mark and a wrong answer loses nothing, and you are ranked by your total number of correct answers. The official FAQ asks: *are students expected to answer all 150?* Its answer is **yes**. (If students tie, AI Singapore may separate them with predefined criteria, such as performance in particular domains or the time taken.) So what is a guess worth? Use the <Term def="The average result per try if you repeated the same situation many times: each outcome's value times its probability, added up.">expected value</Term>:
+Every correct answer earns 1 mark and a wrong answer loses nothing, and you are ranked by your total number of correct answers. The official FAQ asks: *are students expected to answer all 150?* Its answer is **yes**. (Ties for 150th place are resolved with predefined criteria, such as performance in particular domains and the time taken; where appropriate, all tied students may go through.) So what is a guess worth? Use the <Term def="The average result per try if you repeated the same situation many times: each outcome's value times its probability, added up.">expected value</Term>:
 
 $$
 E = 1 \times P(\text{right}) + 0 \times P(\text{wrong}) = \frac{1}{k}
@@ -142,7 +142,7 @@ Those long scenario questions reward a reading trick: **read the question line f
 
 <Reveal label="How the trick works on this question">
 
-The question line asks for "the primary issue". The deciding detail is the **years**: training and validation data come from 2023, but the test data comes from 2025, and only the test score collapsed (92% down to 64%). Something changed **over time**, so the answer is the one about the data changing with time: *temporal distribution shift*. You will learn the term properly in the problem-solving part of the course; for now, notice that the detail that differed between the data sets pointed straight at it.
+The question line asks for "the primary issue". The deciding detail is the **years**: training and validation data come from 2023, but the test data comes from 2025, and only the test score collapsed (92% down to 64%). Something changed **over time**, so the answer is the one about the data changing with time: *temporal distribution shift*. You will meet the term in [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage) and learn it properly in [Data bugs, leakage and distribution shift](#/learn/debugging-and-diagnosis/data-bugs-and-shift), in the problem-solving part; for now, notice that the detail that differed between the data sets pointed straight at it.
 
 </Reveal>
 
@@ -157,7 +157,7 @@ The theory test gets you in, but you pass the driving test by actually driving. 
 About the top 150 sit the Final on **{FINAL.dateLabel}**. In 2026 it lasted 3 hours at NTU, with no internet, and was out of 100 marks: 20 for the MCQs and 80 for programming. Results come out in early April as an award tier (Gold, Silver, Bronze or Participation), with no scores. The Final has two sections:
 
 - **Section 1: 20 MCQs.** Harder than the Prelim. In 2026 most were scenarios with code: "you're debugging this function", "what does this training loop do wrong?". The paper suggested about 30 minutes for them.
-- **Section 2: 3 programming tasks** in <Term def="A document that mixes text with cells of Python code you can run one at a time. Data scientists use Jupyter for experiments.">Jupyter notebooks</Term>. You implement a classic algorithm **from scratch** (writing the steps yourself instead of calling a library that does it all), using NumPy or PyTorch, inside a notebook that gives you the function names and some tests.
+- **Section 2: 3 programming tasks** in <Term def="A document that mixes text with cells of Python code you can run one at a time. Data scientists use Jupyter for experiments.">Jupyter notebooks</Term>. You implement a classic algorithm **from scratch** (writing the steps yourself instead of calling a library that does it all), using NumPy or PyTorch (the Python libraries for array maths and for neural networks), inside a notebook that gives you the function names and some tests.
 
 The map below shows all six programming tasks from the 2025 and 2026 Finals. You will not know most of these names yet, and that is expected: each card starts with a plain-English line, and by the Final you will have built every one of them in this course.
 
@@ -165,7 +165,7 @@ The map below shows all six programming tasks from the 2025 and 2026 Finals. You
 
 <KeyIdea>
 
-Every past Final task has been a well-known algorithm or building block with a clear recipe (gradient descent, K-means, document retrieval, gradient boosting, attention), plus one debugging job (a broken U-Net, then a score called IoU). That makes the Final very preparable: practise implementing each one from scratch, without AI help, before February.
+Every past Final task has been a well-known algorithm or building block with a clear recipe (gradient descent, k-means, document retrieval, gradient boosting, attention), plus one debugging job (a broken U-Net, then a score called IoU). That makes the Final very preparable: practise implementing each one from scratch, without AI help, before February.
 
 </KeyIdea>
 

@@ -7,7 +7,7 @@ import rc from './regions.module.css'
 /*
   k-nearest neighbours on last year's class. Click (or drag the big marker) to place a new student; lines
   join them to their k nearest classmates and the dashed circle reaches the k-th nearest. The background shows
-  what kNN would predict for a new student at every spot, so you can watch the regions change as k changes.
+  what k-NN would predict for a new student at every spot, so you can watch the regions change as k changes.
   On touch screens only a tap places the student, so a swipe over the map scrolls the page instead of moving it.
 */
 

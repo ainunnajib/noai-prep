@@ -6,7 +6,7 @@ So far our model predicted a number: the price of a flat. Many of the most usefu
 
 ## Two kinds of prediction
 
-Supervised learning tasks come in two main flavours:
+You met regression and classification in [the first lesson of this module](#/learn/ai-first-look/what-is-ai). As a reminder, supervised learning tasks come in two main flavours:
 
 - <Term def="Predicting a number on a continuous scale, such as a price, a temperature or a mark out of 100.">Regression</Term> predicts a **number**. The HDB price model from the last two lessons was regression.
 - <Term def="Predicting which category something belongs to, such as spam or not spam, or pass or fail.">Classification</Term> predicts a **category**, called a <Term def="One of the categories a classifier can choose between, such as 'pass' or 'fail'.">class</Term>. With exactly two classes it is called *binary* classification.
@@ -61,7 +61,7 @@ The model predicts **pass** if $\text{score} > 0$ and **fail** if $\text{score} 
   </Step>
 </Steps>
 
-This rule is close to the line the computer found in the figure. **Training a classifier means finding $w_1$, $w_2$ and $b$** that put the training examples on the correct side as well as possible. The count of correct answers has no useful slope (it jumps in whole steps), so instead the same predict, measure, find the slope, nudge loop from the last lesson minimises a smooth loss called *cross-entropy*. You will meet this method later as logistic regression, one of the most common ways to do binary classification.
+This rule is close to the line the computer found in the figure. **Training a classifier means finding $w_1$, $w_2$ and $b$** that put the training examples on the correct side as well as possible. The count of correct answers has no useful slope (it jumps in whole steps), so instead the same predict, measure, find the slope, nudge loop from the last lesson minimises a smooth loss called *cross-entropy*. You will meet this method later as [logistic regression](#/learn/classification/logistic-regression), one of the most common ways to do binary classification.
 
 <PastPaperQuestion paper="prelim2026" n={139} />
 
@@ -79,7 +79,7 @@ A new family moves into your HDB block and you want to guess which secondary sch
 
 </Analogy>
 
-<Term def="A classifier that labels a new point by a majority vote of the k training points closest to it.">k-nearest neighbours</Term> (kNN) does not draw a line at all. To classify a new point, it:
+<Term def="A classifier that labels a new point by a majority vote of the k training points closest to it.">k-nearest neighbours</Term> (k-NN, also written kNN or KNN) does not draw a line at all. To classify a new point, it:
 
 1. measures the **distance** from the new point to every training point;
 2. picks the **k closest** ones, its k nearest neighbours;
@@ -88,16 +88,16 @@ A new family moves into your HDB block and you want to guess which secondary sch
 The distance is ordinary straight-line distance (also called Euclidean distance), which is just Pythagoras:
 
 $$
-d = \sqrt{(a_1 - b_1)^2 + (a_2 - b_2)^2}
+d = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2}
 $$
 
-Here $A = (a_1, a_2)$ and $B = (b_1, b_2)$ are two students, with feature 1 (revision) first and feature 2 (sleep) second, as in the scoring rule. So $a_1 - b_1$ is how far apart they are across and $a_2 - b_2$ is how far apart they are up; square both, add, and take the square root.
+Here $P = (p_1, p_2)$ and $Q = (q_1, q_2)$ are two students, with feature 1 (revision) first and feature 2 (sleep) second, as in the scoring rule. So $p_1 - q_1$ is how far apart they are across and $p_2 - q_2$ is how far apart they are up; square both, add, and take the square root.
 
-kNN trusts these raw distances, so it works best when the features are on similar scales. Here both are in hours. If one feature were in dollars, its big numbers would swamp the other feature; a later module shows how to rescale features first.
+k-NN trusts these raw distances, so it works best when the features are on similar scales. Here both are in hours. If one feature were in dollars, its big numbers would swamp the other feature; [a later module](#/learn/data-and-features/scaling-and-normalisation) shows how to rescale features first.
 
 <KNNPlayground />
 
-<Steps title="kNN by hand: a new student who revised 5 h and slept 6 h">
+<Steps title="k-NN by hand: a new student who revised 5 h and slept 6 h">
   <Step title="The classmates">
     A $(5, 7)$ failed, B $(7, 6)$ passed, C $(6, 8)$ passed, D $(2, 6)$ failed, E $(9, 3)$ passed. Each pair is (revision, sleep).
   </Step>
@@ -125,11 +125,11 @@ kNN trusts these raw distances, so it works best when the features are on simila
 - With two classes, use an **odd k** so the vote can never tie.
 - $k$ is a hyperparameter, like the learning rate: you choose it; the data does not. The usual way is to try several values and keep the one that does best on data held back from training, for reasons the next section makes clear.
 
-kNN has no real training step: it simply stores the examples, which is why it is called a "lazy" learner. The work happens at prediction time, when it must measure the distance to every stored example. For regression, kNN averages the neighbours' numbers instead of voting.
+k-NN has no real training step: it simply stores the examples, which is why it is called a "lazy" learner. The work happens at prediction time, when it must measure the distance to every stored example. For regression, k-NN averages the neighbours' numbers instead of voting.
 
 <Reveal label="Peek at the code (optional)">
 
-The kNN example by hand, in NumPy. The three steps are one line each: distances, sort, vote.
+The k-NN example by hand, in NumPy. The three steps are one line each: distances, sort, vote.
 
 ```python
 import numpy as np
@@ -157,24 +157,24 @@ for k in (1, 3, 5):
 
 </Reveal>
 
-<ExamTip title="kNN under time pressure">
+<ExamTip title="k-NN under time pressure">
 
-To find nearest neighbours without a calculator, compare **squared** distances and skip the square roots. Spot Pythagorean triples: E above is exactly $\sqrt{16 + 9} = 5$ away. And watch the classic trap: the **k in kNN is the number of neighbours**, while the k in k-means is the number of clusters, a different (unsupervised) algorithm.
+To find nearest neighbours without a calculator, compare **squared** distances and skip the square roots. Spot Pythagorean triples: E above is exactly $\sqrt{16 + 9} = 5$ away. And watch the classic trap: the **k in k-NN is the number of neighbours**, while the k in k-means is the number of clusters, a different (unsupervised) algorithm.
 
 </ExamTip>
 
 <PastPaperQuestion paper="prelim2026" n={140} />
 
 <QuickCheck
-  q="A training set has 30 students who passed and 20 who failed. You run kNN with $k = 50$, so every training student votes. What does it predict for a new student?"
+  q="A training set has 30 students who passed and 20 who failed. You run k-NN with $k = 50$, so every training student votes. What does it predict for a new student?"
   options={[
     'Pass, for every new student, wherever they are',
     'Fail, for every new student, wherever they are',
     'Pass or fail, depending on where the new student is',
-    'Nothing, because k must be smaller than 10',
+    'No answer: $k = 50$ is even, so the pass–fail vote ends in a tie',
   ]}
   answer={0}
-  explain="With $k$ equal to the whole training set, all 50 students vote every time: 30 pass against 20 fail, so the answer is always pass. Where the new student sits no longer matters. This is the extreme of a too-large $k$: the boundary has vanished."
+  explain="With $k$ equal to the whole training set, all 50 students vote every time: 30 pass against 20 fail, so the answer is always pass. Where the new student sits no longer matters. An even $k$ only risks a tie when the votes split exactly in half, and 30 to 20 is a clear majority. This is the extreme of a too-large $k$: the boundary has vanished."
 />
 
 ## Memorising is not learning
@@ -185,9 +185,9 @@ You memorise the answers to last year's paper and score 100% when you redo it. T
 
 </Analogy>
 
-The examples a model learns from are its <Term def="The examples a model learns from.">training set</Term>. What we really care about is how it does on **new** examples, its <Term def="How well a model performs on new examples it was not trained on.">generalisation</Term>. To measure it, we keep some labelled examples hidden during training, the <Term def="Labelled examples kept hidden during training and used only at the end, to check how well the model does on new data.">test set</Term>, and only look at them at the end.
+You met this idea as a study habit in [How to study](#/learn/start-here/how-to-study); here you watch it happen to a model. The examples a model learns from are its <Term def="The examples a model learns from.">training set</Term>. What we really care about is how it does on **new** examples, its <Term def="How well a model performs on new examples it was not trained on.">generalisation</Term>. To measure it, we keep some labelled examples hidden during training, the <Term def="Labelled examples kept hidden during training and used only at the end, to check how well the model does on new data.">test set</Term>, and only look at them at the end.
 
-Here is a trap. kNN with $k = 1$ always scores 100% on its own training data (unless two training points sit on exactly the same spot with different labels), because every training point's nearest neighbour is itself, at distance 0. So a perfect training score tells you nothing about this model. The only fair test is new data.
+Here is a trap. k-NN with $k = 1$ always scores 100% on its own training data (unless two training points sit on exactly the same spot with different labels), because every training point's nearest neighbour is itself, at distance 0. So a perfect training score tells you nothing about this model. The only fair test is new data.
 
 <GeneralisationPeek />
 
@@ -207,6 +207,8 @@ Two common slips: reporting training accuracy as if it were the model's real acc
 
 </Mistake>
 
+<PastPaperQuestion paper="prelim2026" n={143} />
+
 <ExamTip title="Spotting fit problems from numbers">
 
 | Training accuracy | Test (or validation) accuracy | Diagnosis |
@@ -219,13 +221,13 @@ NOAI scenario questions often give exactly these numbers, sometimes with losses 
 
 </ExamTip>
 
-<PastPaperQuestion paper="prelim2026" n={142} />
+You have now trained, measured and tested models without a line of code. Next, [Python from zero](#/learn/python-basics/first-program) teaches you to write that code yourself, so that by the Final you can build these models from scratch.
 
 <Takeaways>
 
 - **Regression** predicts a number; **classification** predicts a class.
 - A classifier splits the inputs into regions, and the border is the **decision boundary**. A straight boundary is a rule: predict pass when $w_1 x_1 + w_2 x_2 + b > 0$ (here $x_1$ is revision and $x_2$ is sleep).
-- **kNN** finds the $k$ nearest training points and takes a majority vote. By hand, compare squared distances. Small $k$ is jumpy, large $k$ is smooth, and odd $k$ avoids ties.
+- **k-NN** finds the $k$ nearest training points and takes a majority vote. By hand, compare squared distances. Small $k$ is jumpy, large $k$ is smooth, and odd $k$ avoids ties.
 - What matters is **generalisation**, accuracy on new data. A model that memorises can score 100% in training and still do worse on new data: that is **overfitting**, so always keep a test set hidden.
 
 </Takeaways>

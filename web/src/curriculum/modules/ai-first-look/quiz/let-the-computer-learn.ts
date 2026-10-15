@@ -32,11 +32,11 @@ const questions: QuizQuestion[] = [
       'P: too small, Q: about right, R: too large',
       'P: too large, Q: about right, R: too small',
       'P: about right, Q: too large, R: too small',
-      'All three used the same rate; only the random start differed',
+      'P: too small, Q: too large, R: much too large',
     ],
     answer: 0,
     explanation:
-      'A tiny learning rate makes safe but tiny steps, so the loss creeps down (P). A good rate reaches a low loss (Q). A rate that is too large overshoots the bottom further each step, so the loss explodes (R): that is divergence. A too-small rate never makes the loss grow, so R cannot be "too small".',
+      'A tiny learning rate makes safe but tiny steps, so the loss creeps down (P). A good rate reaches a low loss quickly (Q): a fast, steady fall is what you want, not a sign that the rate is too large. A rate that is too large overshoots the bottom further each step, so the loss explodes (R): that is divergence, and a too-small rate can never make the loss grow like that.',
     difficulty: 'beginner',
   },
   {
@@ -57,7 +57,7 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.let-the-computer-learn.5',
     prompt: 'The learning rate stays fixed at $0.1$, yet the steps of gradient descent get smaller and smaller as it nears the bottom of the loss valley. Why?',
     options: [
-      'The slope gets closer to zero, and each step is the learning rate times the slope',
+      'The slope shrinks towards 0, and each step is 0.1 times the slope',
       'The computer lowers the learning rate by itself as training goes on',
       'The loss becomes negative near the bottom, which makes each step shrink',
       'The computer can see where the bottom is, so it slows down on purpose',

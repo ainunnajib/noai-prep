@@ -8,6 +8,13 @@ export const LESSON_MIN = modules.filter((m) => m.slug !== 'road-to-ioai').reduc
 export const LESSON_H = Math.round(LESSON_MIN / 60)
 export const PLAN_H = Math.round(LESSON_H * 1.5)
 export const N_LESSONS = modules.filter((m) => m.slug !== 'road-to-ioai').reduce((s, m) => s + m.lessons.length, 0)
+export const WEEK_H = (PLAN_H / 16.6).toFixed(1)
+export const DAY_MIN = Math.round((PLAN_H * 60) / 16.6 / 7 / 5) * 5
+export const PER_WEEK = Math.round(N_LESSONS / 16.6)
+export const AVG_MIN = Math.round(LESSON_MIN / N_LESSONS)
+export const NEW_MIN = PER_WEEK * AVG_MIN
+export const SAT_MIN = Math.max(30, Math.round(((PLAN_H * 60) / 16.6 - NEW_MIN - 35) / 5) * 5)
+export const WEEK_MIN = NEW_MIN + SAT_MIN + 35
 
 Most students study by re-reading their notes and highlighting. It feels productive, but memory research ranks it among the least effective ways to learn. This lesson shows the two habits that work far better, **testing yourself** and **spacing your reviews**, and then helps you build a plan that finishes this course before the Prelim on {PRELIM.dateLabel.split(',')[0]}.
 
@@ -71,7 +78,7 @@ Two things follow: testing beats re-reading, and the best moment to review is wh
     The gaps between reviews grow: **2, 8, 32 days**, four times longer each time. That is spaced review: little and often at first, then rarer and rarer. Three self-tests in 42 days keep a topic that would otherwise have vanished in two weeks.
   </Step>
   <Step title="Exam days">
-    If day 0 is 21 December, the Prelim is day 60: 18 days after the last review, which is only about a seventh of the 128-day half-life, so you still remember $2^{-18/128} \approx 0.91$, or **91%**. The Final is day 74: 32 days after the last review, a quarter of a half-life, so $R = 2^{-1/4} \approx 0.84$, or **84%**.
+    If day 0 is 21 December, the Prelim is day 60: 18 days after the last review, which is only about a seventh of the 128-day half-life, so you still remember $2^{-18/128} \approx 0.91$, or **91%**. The Final is day 74: 32 days after the last review, a quarter of a half-life, so $R = 2^{-1/4} \approx 0.84$, or **84%**. (Why 0.84? Four quarters of a half-life make one whole half-life, so $2^{-1/4}$ is the number that halves $R$ when you multiply by it four times: $0.84^4 \approx 0.5$. You do not need to work this out by hand; [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials) explains powers like this.)
   </Step>
   <Step title="Compare one cram on day 59">
     With no earlier reviews, almost nothing is left by day 59 ($R_\text{b} \approx 0$), so $g \approx 1$: the cram resets $R$ to 100% but the half-life stays at 2 days. One day later, on Prelim day, $R = 2^{-1/2} \approx 71\%$. By the Final, 15 days later, it is $2^{-7.5}$: **under 1%**.
@@ -99,19 +106,19 @@ AI Singapore says the Prelim's time pressure is deliberate: "internalised knowle
 
 ## Study like a model that generalises
 
-Machine learning has a name for the student who memorises answers: **overfitting**. A model <Term def="Fits its training examples so closely, quirks and noise included, that it does badly on new examples it has never seen.">overfits</Term> when it learns its training examples by heart and then fails on new ones. A student who memorises that "2026 Q46 was 6" has learnt nothing that helps with a 2027 question. The cure is the same for models and students: practise on many varied examples, and for every question explain why each *wrong* option is wrong.
+In machine learning (ML), a *model* is a program that learns its behaviour from examples, called its *training data*. A model *generalises* when it also does well on new examples it has never seen. (The next module, [How machines learn: a first look](#/learn/ai-first-look/what-is-ai), shows exactly how.) ML has a name for the student who memorises answers: **overfitting**. A model <Term def="Fits its training examples so closely, quirks and noise included, that it does badly on new examples it has never seen.">overfits</Term> when it learns its training examples by heart and then fails on new ones. A student who memorises that "2026 Q46 was 6" has learnt nothing that helps with a 2027 question. The cure is the same for models and students: practise on many varied examples, and for every question explain why each *wrong* option is wrong.
 
 <PastPaperQuestion paper="prelim2026" n={142} />
 
-ML also has a rule for measuring honestly, and it is a great rule for studying. Models are tuned on a <Term def="Data used to make decisions while building a model, such as which settings (hyperparameters) to use. It is separate from the final test set.">validation set</Term> and scored once at the end on a <Term def="Data kept completely unseen until the very end, used once to estimate how well a finished model does on new data.">test set</Term> that was never touched before. If you keep re-sitting the same mock paper after studying its answers, your score climbs but stops telling you anything: you have tuned yourself to that test set. Keep at least one full mock paper **unseen** and sit it once, under exam conditions, as your honest estimate.
+ML also has a rule for measuring honestly, and it is a great rule for studying. Models are *tuned* (their settings are chosen) on a <Term def="Data used to make decisions while building a model, such as which settings (hyperparameters) to use. It is separate from the final test set.">validation set</Term> and scored once at the end on a <Term def="Data kept completely unseen until the very end, used once to estimate how well a finished model does on new data.">test set</Term> that was never touched before. If you keep re-sitting the same mock paper after studying its answers, your score climbs but stops telling you anything: you have tuned yourself to that test set. Keep at least one full mock paper **unseen** and sit it once, under exam conditions, as your honest estimate.
 
-The question below describes this exact mistake in ML language, and it is long (a Problem-solving scenario from the end of the 2026 paper). A <Term def="A setting you choose before training, such as the learning rate, rather than something the model learns.">hyperparameter</Term> is a setting you choose before training. Ignore the other words you do not know yet and ask one question: **which protocol looked at its test set more than once?**
+The question below describes this exact mistake in ML language, and it is long (a Problem-solving scenario from the end of the 2026 paper). A <Term def="A setting you choose before training, such as how long to train for, rather than something the model learns. The next module meets two: the learning rate and the number of neighbours k.">hyperparameter</Term> is a setting you choose before training. Ignore the other words you do not know yet and ask one question: **which protocol looked at its test set more than once?**
 
 <PastPaperQuestion paper="prelim2026" n={292} />
 
 <Reveal label="How to crack this one">
 
-Protocol A checked its test score 50 times and reported the best one, so it tuned itself to that test set, just like re-sitting one mock paper until your score climbs. Protocol B tuned on a separate validation set and touched its test set once, at the very end, so its 91.8% is the honest number. The lower score is the believable one. The long options are just two ways of saying this (A's score is "optimistically biased") and two tempting wrong reasons; you will learn the exact words in the problem-solving part of the course.
+Protocol A checked its test score 50 times and reported the best one, so it tuned itself to that test set, just like re-sitting one mock paper until your score climbs. Protocol B tuned on a separate validation set and touched its test set once, at the very end, so its 91.8% is the honest number. The lower score is the believable one. The correct option says exactly this in ML words (B's test set stays untouched, and A's score is "optimistically biased"); the other three are tempting wrong reasons. You will learn the exact words in [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting) and [Cross-validation and hyperparameter tuning](#/learn/model-evaluation/cross-validation-and-tuning), in the classical machine learning part.
 
 </Reveal>
 
@@ -144,7 +151,7 @@ $$
     From Monday 12 October 2026 to Friday 5 February 2027 (two weeks before the Prelim) is 116 days, which is about 16.6 weeks.
   </Step>
   <Step title="Divide">
-    {PLAN_H} ÷ 16.6 ≈ **{(PLAN_H / 16.6).toFixed(1)} hours a week**: just over 5 hours, or under an hour a day.
+    {PLAN_H} ÷ 16.6 ≈ **{WEEK_H} hours a week**, or about {DAY_MIN} minutes a day.
   </Step>
   <Step title="Now start in December instead">
     From Monday 7 December there are only 60 days, about 8.6 weeks: {PLAN_H} ÷ 8.6 ≈ **{Math.round(PLAN_H / 8.6)} hours a week**. Waiting eight weeks roughly **doubles the weekly load**.
@@ -153,16 +160,16 @@ $$
 
 Because the Final is only 14 days after the Prelim, the Final labs (from-scratch NumPy and PyTorch tasks) are *inside* this plan, not after it. Once you reach January, do one Final-lab task a week alongside your Prelim revision.
 
-A five-hour week can look like this:
+A week like that can look like this:
 
 | When | What | Time |
 | --- | --- | --- |
-| Mon–Fri | Two new lessons a day, each with its checkpoint (about 40 minutes a day) | 200 min |
-| Saturday | Spaced review: redo the checkpoints from 1 week and 3 weeks ago without notes, then 10 timed MCQs | 60 min |
-| Every day | Flashcards and your mistake log (about 6 minutes a day) | 42 min |
-| **Total** | 200 + 60 + 42 ≈ 300 minutes | **5 h** |
+| Mon–Fri{PER_WEEK > 10 ? ' and Sunday' : ''} | {PER_WEEK} new lessons, each with its checkpoint: two a day on weekdays{PER_WEEK > 10 ? `, ${['one', 'two', 'three', 'four'][PER_WEEK - 11] ?? PER_WEEK - 10} on Sunday` : ''} (about {AVG_MIN} minutes each) | {NEW_MIN} min |
+| Saturday | Spaced review: redo the checkpoints from 1 week and 3 weeks ago without notes, then a set of timed MCQs | {SAT_MIN} min |
+| Every day | Flashcards and your mistake log (about 5 minutes a day) | 35 min |
+| **Total** | {NEW_MIN} + {SAT_MIN} + 35 = {WEEK_MIN} minutes | **≈ {(WEEK_MIN / 60).toFixed(1)} h** |
 
-That is about **{Math.round(N_LESSONS / 16.6)} lessons a week**, the pace that finishes the course on time: there are {N_LESSONS} lessons before the Prelim, about {Math.round(LESSON_MIN / N_LESSONS)} minutes each, and {N_LESSONS} ÷ 16.6 ≈ {(N_LESSONS / 16.6).toFixed(1)}. If you start later, add lessons per day rather than skipping the Saturday review.
+Why {PER_WEEK} lessons a week? It is the pace that finishes the course on time: there are {N_LESSONS} lessons before the Prelim, about {AVG_MIN} minutes each, and {N_LESSONS} ÷ 16.6 ≈ {(N_LESSONS / 16.6).toFixed(1)}. If you start later, add lessons per day rather than skipping the Saturday review.
 
 <Tip>
 
@@ -194,12 +201,14 @@ Six of the twelve. The formal idea, the worked example, the exam tip, the real e
 
 </KeyIdea>
 
+Your first chance to use all of this is the next module, [How machines learn: a first look](#/learn/ai-first-look/what-is-ai), where you train your first models without writing any code. It is full of visuals, so it is the perfect place to practise predicting before you drag.
+
 <Takeaways>
 
 - Re-reading builds a feeling of familiarity; **testing yourself** (retrieval practice) builds memory you can use under time pressure.
 - Memory fades like $R = 2^{-t/h}$. Each review resets it, and a **spaced** self-test, taken when about half is gone, makes the half-life grow most, so reviews can get further and further apart.
 - A cram the night before props up one exam for a day or so; spaced reviews keep the knowledge for the Prelim, the Final two weeks later, and beyond.
-- **Plan backwards**: hours per week = total study hours ÷ weeks available. Starting in October keeps it to just over five hours a week (about ten lessons); the Final labs belong *inside* the plan.
+- **Plan backwards**: hours per week = total study hours ÷ weeks available. Starting in mid-October needs about {WEEK_H} hours a week ({PER_WEEK} lessons); starting in December roughly doubles that. The Final labs belong *inside* the plan.
 - In every lesson, predict before you drag, try each worked step before clicking Next, and redo checkpoints a few days later.
 
 </Takeaways>

@@ -32,7 +32,7 @@ export const SUBTOPIC_LABEL: Record<string, string> = {
   optimisation: 'Optimisation',
   python: 'Python',
   numpy: 'NumPy',
-  pandas: 'Pandas',
+  pandas: 'pandas',
   pytorch: 'PyTorch',
   'data-preprocessing': 'Data preprocessing',
   'code-debugging': 'Debugging code',

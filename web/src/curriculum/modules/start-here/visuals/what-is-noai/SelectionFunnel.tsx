@@ -37,7 +37,7 @@ const STAGES: Stage[] = [
     colour: 'var(--viz-1)',
     where: `${PRELIM.dateLabel}, in your school's computer lab (approved direct-entry students sit it at the AI Singapore office at NUS).`,
     format: `${PRELIM.questions} multiple-choice questions in ${PRELIM.minutes} minutes (about ${PRELIM.secondsPerQuestion} seconds each) on a Google Form. No calculator: pen and paper for rough work only.`,
-    who: `Every eligible student whose school signs up. ${PRELIM.advance}.`,
+    who: `Every eligible student whose school signs up, plus approved direct-entry students. About the top ${FUNNEL[1].n} go on to the Final; there is no fixed cut-off.`,
     rewards: 'Breadth and speed: quick, confident recall across five domains (maths, computing, AI/ML/DL, generative AI and problem solving).',
     prepare: [
       { slug: 'python-basics', label: 'Code from zero' },
@@ -53,8 +53,8 @@ const STAGES: Stage[] = [
     colour: 'var(--viz-3)',
     where: `${FINAL.dateLabel}, two weeks after the Prelim.`,
     format: `${FINAL.format} ${FINAL.lastYear}`,
-    who: `About the top ${FUNNEL[1].n} from the Prelim, ranked on total correct answers, with school seat quotas (not published) so that no single school takes too many seats; tied students may all go through. Results come as an award tier (Gold, Silver, Bronze or Participation).`,
-    rewards: 'Implementation: writing classic algorithms such as gradient descent, K-means or attention from scratch in NumPy or PyTorch, plus harder code-reading MCQs.',
+    who: `About the top ${FUNNEL[1].n} from the Prelim, ranked on total correct answers, with school seat quotas (not published) so that no single school takes too many seats. Ties for 150th place are resolved with predefined criteria, such as performance in particular domains and the time taken; where appropriate, all tied students may go through. Results come as an award tier (Gold, Silver, Bronze or Participation).`,
+    rewards: 'Implementation: writing classic algorithms such as gradient descent, k-means or attention from scratch in NumPy or PyTorch, plus harder code-reading MCQs.',
     prepare: [
       { slug: 'final-lab-numpy', label: 'Final lab I (NumPy)' },
       { slug: 'final-lab-pytorch', label: 'Final lab II (PyTorch)' },

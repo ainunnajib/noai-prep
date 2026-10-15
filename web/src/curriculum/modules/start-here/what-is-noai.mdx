@@ -41,7 +41,7 @@ Thousands of people arrive at the stadium gates. A ticket check lets some throug
 There are four checkpoints between you and the IOAI team:
 
 1. **The Prelim** ({PRELIM.dateLabel}). Every eligible student whose school signs up: {PRELIM.questions} <Term def="Multiple-choice questions: each has four options and exactly one correct answer.">MCQs</Term> in {PRELIM.minutes} minutes.
-2. **The Final** ({FINAL.dateLabel}). About the top 150 from the Prelim, ranked on total correct answers, with school seat quotas so that no single school takes too many seats (the quotas are not published, and tied students may all go through): 20 MCQs plus 3 Python programming tasks.
+2. **The Final** ({FINAL.dateLabel}). About the top 150 from the Prelim, ranked on total correct answers, with school seat quotas so that no single school takes too many seats (the quotas are not published): 20 MCQs plus 3 Python programming tasks. Ties for 150th place are resolved with predefined criteria, such as performance in particular domains and the time taken; where appropriate, all tied students may go through.
 3. **NTU selection and training** (May to June 2027). About the top 60 finalists sit NTU's Selection Test; about 10 reach a week-long residential camp.
 4. **The IOAI team** (4 to 10 July 2027, in Singapore). Between 4 and 8 Singapore Citizens and PRs.
 
@@ -83,7 +83,7 @@ The Prelim spreads its questions across **five domains**. AI Singapore has not p
 <ul>
   {DOMAINS.map((d) => (
     <li key={d.domain}>
-      <strong>{d.title}</strong>: {d.items.join(', ')}
+      <strong>{d.title}</strong>: {d.items.length ? d.items.join(', ') : 'no official sub-list; in 2026 this block was mostly vision, Transformers and large language models'}
     </li>
   ))}
 </ul>
@@ -157,14 +157,14 @@ The table is hard to feel. Drag the marker below to see it as time you actually 
 
 <QuickCheck
   q="A friend plans to start practising Python coding only after she hears she is in the top 150. Why is that risky?"
-  options={['The Final comes two weeks after the Prelim and rewards from-scratch coding, which takes weeks to build', 'The Final is multiple choice only, so practising code before it is wasted effort', 'Finalists are chosen by a separate coding test, so she will never reach the Final', 'Prelim results are released only after the Final has already taken place']}
+  options={['The Final is two weeks after the Prelim and rewards from-scratch coding, which takes weeks to build', 'Finalists are picked by a separate Python coding test after the Prelim, so she needs code to qualify', 'The Prelim itself includes three Python programming tasks, so she needs coding to pass round one', 'The Final takes place the day after the Prelim, so there is no gap between the rounds to learn Python']}
   answer={0}
-  explain="Only 14 days separate the Prelim (19 Feb) from the Final (5 Mar), and the Final's biggest section is three Python programming tasks. Writing algorithms from scratch is a skill built over weeks, so it has to start before the Prelim. The Final is not MCQ-only: it has 20 MCQs and 3 programming tasks."
+  explain="Only 14 days separate the Prelim (19 Feb) from the Final (5 Mar), and the Final's biggest section is three Python programming tasks. Writing algorithms from scratch is a skill built over weeks, so it has to start before the Prelim. Finalists are picked from the Prelim ranking, not by a coding test, and the Prelim itself is all multiple choice."
 />
 
 <Mistake>
 
-Treating the Prelim as the finish line. The Final rewards a different skill, and two weeks is not enough to learn it from scratch. Start the Final labs (from-scratch NumPy and PyTorch) in January, while you are still revising for the Prelim.
+Treating the Prelim as the finish line. The Final rewards a different skill, and two weeks is not enough to learn it from scratch. Start the Final labs (from-scratch coding in NumPy and PyTorch, the two Python libraries the Final uses: NumPy for maths on arrays of numbers, PyTorch for neural networks) in January, while you are still revising for the Prelim.
 
 </Mistake>
 
@@ -203,12 +203,12 @@ IOAI publishes a syllabus that every contest task must follow. The latest is the
 
 | Section | Examples of what is in it |
 | --- | --- |
-| Foundational skills and classical ML | Python, NumPy, pandas, PyTorch; regression, decision trees, K-means, evaluation metrics |
+| Foundational skills and classical ML | Python, NumPy, pandas, PyTorch; regression, decision trees, k-means, evaluation metrics |
 | Neural networks and deep learning | Gradient descent, backpropagation, attention, Transformers, regularisation |
 | Computer vision | Convolutions, segmentation with U-Net, GANs, CLIP, diffusion models |
 | Language and audio | Text classification, BERT, language modelling, Whisper |
 
-Each of its 60 topics is tagged **Theory** (understand how it works), **Practice** (know when to use it and how to call it in code) or **Both**. Two rules in it are worth remembering: "breadth should be prioritized over depth", and topics that are not listed are excluded. The NOAI Prelim adds three areas the IOAI syllabus does not list as sections of their own: **Mathematics**, **Generative AI** (which IOAI spreads across its vision and language sections) and **Problem solving** (debugging and system design). This course covers all of them; the last module, *Beyond NOAI: the road to IOAI 2027*, goes deeper into the NTU and IOAI stages.
+Each of its 60 topics is tagged **Theory** (understand how it works), **Practice** (know when to use it and how to call it in code) or **Both**. Two rules in it are worth remembering: "breadth should be prioritized over depth", and topics that are not listed are excluded. The NOAI Prelim adds three areas the IOAI syllabus does not list as sections of their own: **Mathematics**, **Generative AI** (which IOAI spreads across its vision and language sections) and **Problem solving** (debugging and system design). This course covers all of them; the last module, [Beyond NOAI: the road to IOAI 2027](#/learn/road-to-ioai/after-noai), goes deeper into the NTU and IOAI stages.
 
 <Takeaways>
 

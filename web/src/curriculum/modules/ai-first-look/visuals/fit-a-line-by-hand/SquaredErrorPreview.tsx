@@ -96,7 +96,7 @@ export default function SquaredErrorPreview() {
         </div>
         <div
           role="img"
-          aria-label={`The pink flat contributes ${Math.round(share * 100)} percent of the total squared error`}
+          aria-label={`The pink flat contributes ${Math.round(share * 100)} per cent of the total squared error`}
           style={{ display: 'flex', width: '100%', height: 18, borderRadius: 6, overflow: 'hidden', background: 'var(--surface-3)' }}
         >
           {sq.map((v, i) => (

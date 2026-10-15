@@ -16,7 +16,8 @@ export default function DeepNetSlider() {
       caption={
         <>
           The input circles just hold the input numbers. Every circle after them is a <strong>neuron</strong>: a tiny unit that multiplies each incoming number
-          by a weight, adds them up with a bias, passes the total through a simple non-linear function (an <em>activation</em>) and sends the result on. Each line
+          by a weight, adds them up plus one more learned number (a <em>bias</em>), bends the total with a simple fixed rule (an <em>activation function</em>,
+          which you will meet in the neural networks module) and sends the result on. Each line
           is a <strong>weight</strong>, a number the network learns from data. This network is shallow: slide to add hidden layers between input and output. With
           more than one hidden layer, a network is usually called <em>deep</em>. Real ones are far bigger: GPT-3 has 96 layers and about 175 billion learned numbers.
         </>

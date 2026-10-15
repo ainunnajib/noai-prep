@@ -31,27 +31,27 @@ const questions: QuizQuestion[] = [
       'A team’s hand-written spam rules (“flag any message containing FREE or WIN”) keep making mistakes. What is the best reason to switch to a machine learning model instead?',
     options: [
       'It can pick up clues from labelled examples that nobody thought to write as rules',
-      'It is guaranteed to classify every future message correctly once it is trained',
-      'It needs no examples at all, so it is quicker to build than a rule list',
-      'It has no numbers inside it, so its decisions are easier to explain',
+      'It is guaranteed to classify every future message correctly once it has been trained',
+      'It needs no labelled examples, so it is quicker to build than a long list of rules',
+      'It has no numbers inside it, so its decisions are easier for people to check and explain',
     ],
     answer: 0,
     explanation:
-      'Learning from many labelled messages lets the model find patterns such as “your”, money amounts and web links, which people rarely think to list, and it improves by adding examples rather than rules. It is not guaranteed to be perfect, it needs examples to learn from, and its behaviour lives in learned numbers (parameters).',
+      'Learning from many labelled messages lets the model find patterns such as “your”, money amounts and web links, which people rarely think to list, and it improves by adding examples rather than rules. It is not guaranteed to be perfect, it needs labelled examples to learn from, and its behaviour lives in learned numbers (parameters), which makes it harder, not easier, to explain.',
     difficulty: 'beginner',
   },
   {
     id: 'ai-first-look.what-is-ai.4',
     prompt: 'In machine learning, what is a **model**?',
     options: [
-      'A function with learned numbers inside that turns an input into an output',
-      'The table of labelled examples that is used for training',
-      'A list of if-then rules typed in by a programmer',
-      'The computer hardware on which the training runs',
+      'A function with learned numbers inside that turns inputs into outputs',
+      'The table of labelled examples that the computer studies during training',
+      'A list of if-then rules that a programmer types in to make each decision',
+      'The powerful computer hardware on which the training is carried out',
     ],
     answer: 0,
     explanation:
-      'A model is a function whose behaviour is set by adjustable numbers (parameters) learned during training, such as word scores in a spam filter. The labelled examples are the training data, not the model, and a hand-typed rule list is ordinary programming.',
+      'A model is a function whose behaviour is set by adjustable numbers (parameters) learned during training, such as word scores in a spam filter. The labelled examples are the training data, not the model; a hand-typed rule list is ordinary programming; and the hardware only runs the training.',
     difficulty: 'beginner',
   },
   {

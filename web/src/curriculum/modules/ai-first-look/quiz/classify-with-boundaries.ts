@@ -18,7 +18,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'ai-first-look.classify-with-boundaries.2',
     prompt:
-      'A new photo is compared with a labelled training set. Its five nearest training photos, sorted by distance, are: 0.5 (cat), 0.9 (dog), 1.2 (dog), 1.6 (cat), 2.0 (cat). What does kNN predict with $k = 3$ and with $k = 5$?',
+      'A new photo is compared with a labelled training set. Its five nearest training photos, sorted by distance, are: 0.5 (cat), 0.9 (dog), 1.2 (dog), 1.6 (cat), 2.0 (cat). What does k-NN predict with $k = 3$ and with $k = 5$?',
     options: ['$k = 3$: dog; $k = 5$: cat', '$k = 3$: cat; $k = 5$: cat', '$k = 3$: dog; $k = 5$: dog', '$k = 3$: cat; $k = 5$: dog'],
     answer: 0,
     explanation:
@@ -27,16 +27,16 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'ai-first-look.classify-with-boundaries.3',
-    prompt: 'Compared with a kNN classifier that uses $k = 15$, the same classifier with $k = 1$:',
+    prompt: 'Compared with a k-NN classifier that uses $k = 15$, the same classifier with $k = 1$:',
     options: [
-      'bends its boundary around every training point and scores (almost) 100% in training',
+      'has a jagged boundary that bends around single training points, even unusual ones',
       'averages over more neighbours, giving a smoother boundary that ignores odd points',
       'always scores higher on new data, because it uses the single closest example',
       'needs a much longer training phase before it is able to make any predictions',
     ],
     answer: 0,
     explanation:
-      'With $k = 1$ every prediction copies the single nearest training point, so the boundary bends around every point, including unusual ones, and each training point is classified by itself (100% training accuracy, unless two training points share a spot but have different labels). That jaggedness usually makes it worse, not better, on new data. Smoothing comes from a larger $k$, and kNN has no training phase at all: it just stores the examples.',
+      'With $k = 1$ every prediction copies the single nearest training point, so the boundary bends around every point, including unusual ones, and each training point is classified by itself (100% training accuracy, unless two training points share a spot but have different labels). That jaggedness usually makes it worse, not better, on new data. Smoothing comes from a larger $k$, and k-NN has no training phase at all: it just stores the examples.',
     difficulty: 'beginner',
   },
   {
@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
       'Two models are trained on the same data. Model P: training accuracy 99%, test accuracy 70%. Model Q: training accuracy 88%, test accuracy 86%. Which statement is correct?',
     options: [
       'P is overfitting; Q generalises better and is the one to use',
-      'P is the one to use, because it has the highest accuracy of all',
+      'P is the one to use, because its 99% is the highest score shown',
       'Q is underfitting, because its training accuracy is lower than P’s',
       'P is underfitting, because its test accuracy is the lowest number',
     ],
@@ -58,14 +58,14 @@ const questions: QuizQuestion[] = [
     id: 'ai-first-look.classify-with-boundaries.5',
     prompt: 'Why does a 1-nearest-neighbour classifier always score 100% on its own training data (when no two training points share the same spot)?',
     options: [
-      "Each training point's nearest neighbour is itself, at distance 0, so it copies its own label",
+      'Every training point is its own nearest neighbour (distance 0), so it gets its own label',
       'Its decision boundary is a straight line that is placed to fit the training data exactly',
       'It is trained with gradient descent until the loss on the training data reaches zero',
-      'It ignores the unusual training points, so only the easy, typical points are counted',
+      'It leaves out the unusual training points, so just the easy, typical ones are counted',
     ],
     answer: 0,
     explanation:
-      'When you ask 1-NN about a training point, the closest stored point is that very point (distance 0), so it simply returns the stored label. That is pure memorising, which is why its training accuracy says nothing about how well it generalises. kNN has no straight boundary and no gradient descent; and far from ignoring unusual points, 1-NN builds little islands around them.',
+      'When you ask 1-NN about a training point, the closest stored point is that very point (distance 0), so it simply returns the stored label. That is pure memorising, which is why its training accuracy says nothing about how well it generalises. k-NN has no straight boundary and no gradient descent; and far from ignoring unusual points, 1-NN builds little islands around them.',
     difficulty: 'intermediate',
   },
 ]

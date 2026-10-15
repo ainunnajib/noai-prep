@@ -87,7 +87,7 @@ export const DOMAINS = [
   {
     domain: 'computing' as const,
     title: 'Computing',
-    items: ['Python', 'NumPy / Pandas', 'PyTorch', 'Debugging'],
+    items: ['Python', 'NumPy / pandas', 'PyTorch', 'Debugging'],
     share2026: 59,
   },
   {
