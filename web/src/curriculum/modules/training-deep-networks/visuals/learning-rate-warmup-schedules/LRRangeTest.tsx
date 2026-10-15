@@ -142,7 +142,7 @@ export default function LRRangeTest() {
             { color: 'var(--viz-1)', label: 'range test (smoothed)' },
             { color: 'var(--viz-muted)', label: 'single steps', dot: true },
             { color: 'var(--viz-2)', label: 'your learning rate' },
-            { color: 'var(--viz-3)', label: `lr ${fmtLR(PREVIEWS[14].lr)} for comparison`, dash: true },
+            { color: 'var(--viz-3)', label: `lr ${fmtLR(PREVIEWS[14].lr)} (nearest run to the ÷10 choice)`, dash: true },
           ]}
         />
         <Note tone={v.tone}>

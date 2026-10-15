@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'backpropagation.backprop-step-by-step.1',
     prompt: 'Why does backpropagation visit the nodes of a computational graph in the reverse of the forward order?',
     options: [
-      'Each node needs the finished gradients of the nodes that use its output, which come later',
+      'Each node needs the finished gradients of all the nodes that use its output, which come later',
       'Gradients are smaller near the output, so starting there reduces rounding errors in the arithmetic',
       'The forward pass deletes the intermediate values, so they must be recomputed from the output end',
       'Reversing the order lets the weights be updated during the same sweep that computes the loss',

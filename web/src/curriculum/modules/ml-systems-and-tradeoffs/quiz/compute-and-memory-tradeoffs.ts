@@ -6,9 +6,9 @@ const questions: QuizQuestion[] = [
     prompt: 'What does **activation (gradient) checkpointing** trade?',
     options: [
       'Less activation memory, paid for with about one extra forward pass of compute',
-      'Less compute, paid for with extra memory to store every activation',
-      'Less weight memory, paid for by storing the weights in 16 bits',
-      'Safety against crashes, paid for with time spent saving the model to disk',
+      'Less compute per step, paid for with extra memory to keep each layer\'s activations',
+      'Less weight memory, paid for by storing the weights as 16-bit numbers instead of 32',
+      'Safety against crashes, paid for with the time spent saving the model to disk',
     ],
     answer: 0,
     explanation:
@@ -33,11 +33,11 @@ const questions: QuizQuestion[] = [
       'Mixed precision, which roughly halves activations to about 10 GB and speeds up the matrix maths',
       'Activation checkpointing, which cuts activations to a few GB but adds about one forward pass of compute',
       'Halving the batch size with no accumulation, which halves activations to about 10 GB',
-      'Calling `torch.cuda.empty_cache()` after every backward pass to free the activations',
+      'Calling `torch.cuda.empty_cache()` after each backward pass to free the activations',
     ],
     answer: 0,
     explanation:
-      'With mixed precision the total is about $2 + 10 = 12$ GB, which fits, the batch is unchanged, and Tensor Cores make it faster. Checkpointing also fits but makes each step about a third more expensive. Halving the batch without accumulation changes the effective batch, which was not allowed. `empty_cache()` only releases cached memory that is not in use, so it cannot remove activations the backward pass still needs.',
+      'With mixed precision the total is about $2 + 10 = 12$ GB, which fits, the batch is unchanged, and Tensor Cores make it faster. Checkpointing also fits but makes each step about a third more expensive. Halving the batch without accumulation changes the effective batch, which was not allowed. `empty_cache()` only releases cached memory that is not in use, so it cannot remove activations the backward pass still needs. Unlike the 2026 Prelim\'s ResNet-50 question, which keyed accumulation with checkpointing, this one says the GPU has Tensor Cores and asks for the highest throughput, which favours mixed precision.',
     difficulty: 'intermediate',
   },
   {
@@ -59,9 +59,9 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.compute-and-memory-tradeoffs.5',
     prompt: 'In data-parallel training (PyTorch DDP) on 4 GPUs, what happens in every training step?',
     options: [
-      'Each GPU has a full model copy and its own slice of the batch; gradients are averaged before one identical update',
+      'Every GPU holds a full model copy and a slice of the batch; gradients are averaged before one identical update',
       'Each GPU holds a different quarter of the layers, and activations are passed from GPU to GPU along the network',
-      'Each GPU trains its own model on its own data, and the weights are averaged once at the end of every epoch',
+      'Each GPU trains its own model on its own data, and the weights are averaged once at the end of each epoch',
       'Each GPU computes gradients on the whole batch, and only GPU 0 applies the update and stores the weights',
     ],
     answer: 0,

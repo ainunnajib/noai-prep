@@ -53,10 +53,10 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.momentum-and-adam.5',
     prompt: 'A team adds weight decay by passing `weight_decay=0.01` to `torch.optim.Adam`, which adds $\\lambda w$ to each gradient. Why is `torch.optim.AdamW` usually the better choice?',
     options: [
-      'Adam divides the added $\\lambda w$ by $\\sqrt{\\hat v}$, so weights with big gradients barely decay; AdamW shrinks every weight directly by the same fraction',
-      'AdamW switches off the second moment $v$ whenever weight decay is used, so the decay becomes the only force on the weights and works more strongly',
-      '`torch.optim.Adam` silently ignores the `weight_decay` argument, and AdamW is the only PyTorch optimiser that actually supports weight decay',
-      'AdamW applies weight decay only to the biases and never to the weights, which stops the weights from shrinking too far during long training runs',
+      'Adam divides the added $\\lambda w$ by $\\sqrt{\\hat v}$, so weights with big gradients barely decay; AdamW shrinks all weights by the same fraction',
+      'AdamW switches off the second moment $v$ whenever weight decay is used, so the decay becomes the main force on the weights and acts more strongly',
+      '`torch.optim.Adam` silently ignores the `weight_decay` argument, so AdamW is the PyTorch optimiser you need for weight decay to have any effect',
+      'AdamW applies weight decay to the biases instead of the weights, which stops the weights from shrinking too far during long training runs',
     ],
     answer: 0,
     explanation:

@@ -67,7 +67,7 @@ export default function ComplexityComparator() {
       caption={
         <>
           Both axes are logarithmic: each grid step is 10 times more. Switch between training cost and the cost of one prediction, then drag n. k-NN costs almost nothing to "train" but every
-          prediction scans all n stored examples, so its line climbs with n; a tree answers in about {depth(n)} comparisons whatever n is. In the last view, raise the number of predictions and
+          prediction scans all n stored examples, so its line climbs with n; a tree answers in at most {depth(n)} comparisons (we cap its depth at 10), however large n gets. In the last view, raise the number of predictions and
           watch k-NN go from cheapest to most expensive. Times assume 10⁹ operations per second.
         </>
       }
@@ -111,7 +111,7 @@ export default function ComplexityComparator() {
               <span style={{ display: 'inline-block', width: 11, height: 11, borderRadius: 3, background: m.colour, marginRight: 6, verticalAlign: '-1px' }} />
               {m.name}
               {v === best && <span style={{ marginLeft: 6, fontSize: 11.5, color: 'var(--ok)', fontWeight: 800 }}>cheapest</span>}
-              {v === worst && <span style={{ marginLeft: 6, fontSize: 11.5, color: 'var(--bad)', fontWeight: 800 }}>dearest</span>}
+              {v === worst && <span style={{ marginLeft: 6, fontSize: 11.5, color: 'var(--bad)', fontWeight: 800 }}>most costly</span>}
             </span>
           )
           const mono = { fontFamily: 'var(--font-mono)' }

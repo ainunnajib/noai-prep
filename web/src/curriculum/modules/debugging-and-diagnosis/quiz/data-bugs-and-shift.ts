@@ -48,12 +48,12 @@ const questions: QuizQuestion[] = [
     options: [
       'The app feeds raw 0–255 pixels: a train/serve preprocessing mismatch',
       'Concept drift: what the classes look like changed after deployment',
-      'Overfitting: the model memorised the validation set during training',
+      'Overfitting: the model memorised the validation photos during training',
       'Too few epochs: the model needed more training to generalise',
     ],
     answer: 0,
     explanation:
-      '10% is chance for 10 classes, and "the same label for nearly everything" is the fingerprint of inputs on a completely different scale: pixels 255 times larger than anything seen in training push every image into one class. The photos look alike, so it is not drift, and a 94% validation score rules out a model that simply needed more training. The fix is to run exactly the same preprocessing code in the app.',
+      '10% is chance for 10 classes, and "the same label for nearly everything" is the fingerprint of inputs on a completely different scale: pixels 255 times larger than anything seen in training push every image into one class. The photos look alike, so it is not drift; a model never trains on its validation set, and a 94% validation score rules out a model that simply needed more training. The fix is to run exactly the same preprocessing code in the app.',
     difficulty: 'intermediate',
   },
   {

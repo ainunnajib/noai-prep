@@ -152,7 +152,7 @@ function Confusion({ conf }: { conf: number[][] }) {
           predicted class →
         </text>
         <text transform={`translate(10, ${lab + (cell * K) / 2}) rotate(-90)`} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 11, fontWeight: 650 }}>
-          label in file →
+          label in file
         </text>
         {conf.map((row, i) =>
           row.map((v, j) => {
@@ -208,7 +208,7 @@ const BUG_TEXT: Record<Bug, ReactNode> = {
   ),
   scale: (
     <>
-      Validation inputs reach the model in raw units (around 500) instead of the z-scores it was trained on. They all land far from every
+      Validation inputs reach the model in raw units (around 500) instead of the standardised values (mean 0, spread 1) it was trained on. They all land far from every
       class centre, so the model gives <b>one class for everything</b>: a single full column.
     </>
   ),
@@ -242,7 +242,7 @@ export default function ChanceLevelMeter() {
       title="Validation accuracy at chance level: a pipeline-bug detector"
       caption={
         <>
-          A real nearest-centroid classifier with {K} balanced classes. The bugs change only the <b>validation</b> pipeline, so training
+          A real classifier (it picks the class whose average training example is closest) with {K} balanced classes. The bugs change only the <b>validation</b> pipeline, so training
           accuracy stays at {Math.round(sim.trainAcc * 100)}%. Switch between the bugs: each one drags validation accuracy down to about{' '}
           <M>{'1/K'}</M> (try <M>{'K = 2'}</M> with the class mapping, too), and each leaves its own fingerprint in the confusion matrix. Slide <M>K</M> and watch the chance tick move to{' '}
           <M>{'1/K'}</M>.

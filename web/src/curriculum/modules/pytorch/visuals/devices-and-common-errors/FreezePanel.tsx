@@ -150,7 +150,8 @@ export default function FreezePanel() {
       title="Freeze, build the optimiser, take a step"
       caption={
         <>
-          The three conv blocks are frozen and only the new head trains (try <b>Take a training step</b>). Now unlock <code>conv3</code> to fine-tune it and step again: it gets gradients but its
+          Three training steps have already been run: the three conv blocks are frozen, so only the new head has been updated (<i>updated 3×</i>). Press{' '}
+          <b>Take a training step</b> to run a fourth. Now unlock <code>conv3</code> to fine-tune it and step again: it gets gradients but its
           weights do not move, because the optimiser was built before you unlocked it. Rebuild the optimiser and step once more. Also try building it from <code>model.parameters()</code>: frozen
           weights are then held but skipped, which is harmless.
         </>

@@ -41,10 +41,10 @@ A third special value, `nan` ("not a number"), is the computer's Math ERROR: the
 </KeyIdea>
 
 <QuickCheck
-  q="Which of these gives nan rather than inf?"
+  q="Which of these gives `nan` rather than `inf`?"
   options={['$e^{1000}$ in float32', '$1 / 0$', '$0 \\times \\infty$', '$-\\log 0$']}
   answer={2}
-  explain="$0 \times \infty$ has no sensible answer (is it 0? infinite?), so the result is nan. $e^{1000}$ overflows to inf, $1/0$ is inf, and $-\log 0 = -(-\infty) = \infty$."
+  explain="$0 \times \infty$ has no sensible answer (is it 0? infinite?), so the result is `nan`. $e^{1000}$ overflows to `inf`, $1/0$ is `inf`, and $-\log 0 = -(-\infty) = \infty$."
 />
 
 ## Stable softmax: shift before you exponentiate
@@ -57,7 +57,7 @@ $$
 
 Here $e \approx 2.718$, so $e^{z_i}$ is a positive number that grows quickly with $z_i$. The bottom adds up $e^{z_j}$ over all $K$ classes. Dividing by that total makes the $p_i$ add up to 1.
 
-Now try logits $(1000, 999, 998)$. That is a perfectly ordinary situation for a confident model, but $e^{1000}$ is far past $e^{88.7}$, so all three exponentials overflow to `inf`, and every probability is $\infty / \infty =$ `nan`.
+Now try logits $(1000, 999, 998)$. Trained models usually give logits in the tens, but unnormalised inputs, huge weights or unscaled attention scores easily push them into the hundreds or thousands. And $e^{1000}$ is far past $e^{88.7}$, so all three exponentials overflow to `inf`, and every probability is $\infty / \infty =$ `nan`.
 
 <Analogy title="Measuring from the tallest building">
 
@@ -102,9 +102,9 @@ Every number in the table below is computed in `float32`, the way PyTorch does i
 
 <QuickCheck
   q="Why can the stable softmax never divide by zero?"
-  options={['After the shift, one exponential is exactly $e^0 = 1$, so the sum is at least 1', 'After the shift, every logit is positive, so each exponential is above 1', 'float32 has no exact zero, so a sum of exponentials can never be 0', 'The probabilities are rounded to two decimal places before the division']}
+  options={['One shifted logit is exactly 0, and $e^0 = 1$, so the sum is always at least 1', 'After the shift, every logit is positive, so each exponential is bigger than 1', 'float32 cannot store an exact zero, so a sum of exponentials can never be 0', 'The probabilities are rounded to two decimal places before the final division']}
   answer={0}
-  explain="After subtracting the max, one shifted logit is exactly 0 and $e^0 = 1$ is in the sum, so the sum is at least 1. The shifted logits are $\le 0$, not positive, which is exactly why none of them overflows."
+  explain="After subtracting the max, one shifted logit is exactly 0 and $e^0 = 1$ is in the sum, so the sum is at least 1. The shifted logits are $\le 0$, not positive, which is exactly why none of them overflows. And float32 does store an exact 0: that is what underflow produces."
 />
 
 ### Log-sum-exp: never take the log of a tiny probability
@@ -146,7 +146,7 @@ Almost every `nan` in practice comes from one of a handful of places:
 | Division by 0 | dividing by a standard deviation, norm or count that can be 0 (a constant feature, an empty mask) | divide by `std + eps` |
 | $\sqrt{x}$ at or below 0 | distances and norms (the slope of $\sqrt{x}$ at 0 is infinite) | `torch.sqrt(x + eps)` |
 | Weights blowing up | learning rate too high, exploding gradients | lower the learning rate, clip gradients, normalisation |
-| float16's small range | mixed-precision training | loss scaling (below), or bfloat16 |
+| float16's small range | mixed-precision training | loss scaling (below), or <Term def="A 16-bit number format with the same range as float32 (up to about 3.4 × 10³⁸) but fewer significant digits, so it rarely overflows or underflows.">bfloat16</Term> |
 | Bad data | missing values (`NaN`) in the inputs or labels | check with `torch.isnan(x).any()` before training |
 
 The <Term def="A tiny positive constant (often written eps or ε, e.g. 1e-8 or 1e-5) added to keep an operation away from a forbidden value such as log 0 or division by 0.">epsilon</Term> trick deserves one worked example.
@@ -180,15 +180,15 @@ The first class has target $y_1 = 0$, so its term *should* contribute nothing. B
 
 <Reveal label="Going further: loss scaling, the fix for float16 underflow">
 
-In mixed-precision training, the gradients are stored in `float16`, where anything smaller than about $6 \times 10^{-8}$ becomes 0. Many real gradients are that small, so they silently vanish and those weights stop learning. The fix is <Term def="Multiplying the loss by a big factor S before backward() so the float16 gradients are S times bigger and do not underflow; the gradients are divided by S again (in float32) before the weight update.">loss scaling</Term>: multiply the loss by a big number $S$ before `backward()`. By the chain rule every gradient is then multiplied by $S$ too. Before the weight update, divide the gradients by $S$ again, in `float32`. For example, a gradient of $10^{-8}$ becomes $10^{-8} \times 65\,536 \approx 6.6 \times 10^{-4}$, which `float16` stores easily, and dividing by $65\,536$ afterwards gives back $10^{-8}$.
+In mixed-precision training, much of the backward pass runs in `float16`, where anything smaller than about $6 \times 10^{-8}$ becomes 0 (the weights and their `.grad` stay in `float32`). Many real gradients are that small, so they silently vanish and those weights stop learning. The fix is <Term def="Multiplying the loss by a big factor S before backward() so the float16 gradients are S times bigger and do not underflow; the gradients are divided by S again (in float32) before the weight update.">loss scaling</Term>: multiply the loss by a big number $S$ before `backward()`. By the chain rule every gradient is then multiplied by $S$ too. Before the weight update, divide the gradients by $S$ again, in `float32`. For example, a gradient of $10^{-8}$ becomes $10^{-8} \times 65\,536 \approx 6.6 \times 10^{-4}$, which `float16` stores easily, and dividing by $65\,536$ afterwards gives back $10^{-8}$.
 
 <LossScaleWindow />
 
-If $S$ is too big, the largest gradients overflow to `inf`. PyTorch's `GradScaler` handles both sides automatically: it skips any step whose gradients contain `inf` or `nan` and halves $S$, and it slowly raises $S$ again while all is well. (The lesson on [gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale) has the full training loop.)
+If $S$ is too big, the largest gradients overflow to `inf`. PyTorch's `GradScaler` handles both sides automatically: it skips any step whose gradients contain `inf` or `nan` and halves $S$, and it slowly raises $S$ again while all is well. One catch: until the scaler divides them back, the gradients are $S$ times too big, so if you clip gradients, call `scaler.unscale_(optimizer)` before `clip_grad_norm_`; otherwise the clipping threshold is compared with the scaled gradients. (The lesson on [gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale) has the full training loop.)
 
 </Reveal>
 
-## How one nan takes over a whole network
+## How one NaN takes over a whole network
 
 <Analogy title="One drop of food colouring">
 
@@ -202,14 +202,14 @@ Any arithmetic with `nan` gives `nan`. So one bad value spreads in three waves: 
 
 <KeyIdea>
 
-**Find the first nan, not the last.** After one bad step, every weight and every later value is `nan`, so the latest `nan` tells you nothing about the cause. You need to catch the bad value at the moment it is created.
+**Find the first NaN, not the last.** After one bad step, every weight and every later value is `nan`, so the latest `nan` tells you nothing about the cause. You need to catch the bad value at the moment it is created.
 
 </KeyIdea>
 
 Three tools catch it:
 
 1. **Checks** such as `assert torch.isfinite(loss)` every step, or `torch.isfinite(out).all()` after each layer, stop training at the first bad step. Save that batch: is something in its data odd?
-2. **Anomaly detection.** `torch.autograd.set_detect_anomaly(True)` makes the backward pass raise an error at the first operation whose gradient is `nan`, and it prints the line of *your* code that created that operation. It slows training a lot, so switch it on only while debugging.
+2. **Anomaly detection**, which you met in the [PyTorch gotchas lesson](#/learn/debugging-and-diagnosis/pytorch-gotchas): `torch.autograd.set_detect_anomaly(True)` stops at the first backward operation that returns `nan` and names your forward line. Switch it on only while debugging.
 3. **Logging** the loss, the gradient norms (next section) and the largest absolute activation per layer shows which value grew out of control in the steps before the crash.
 
 Here is anomaly detection catching a hand-written binary cross-entropy. The third logit is 120, so the sigmoid rounds to exactly 1.0 and $\log(1 - p) = \log 0$:
@@ -264,9 +264,10 @@ Read it from the bottom (the output layer) up: each layer gets several times (ab
 | Similar sizes in every layer | Healthy | Nothing |
 | Tiny near the input, normal near the output, shrinking layer by layer | Vanishing gradients | ReLU with He initialisation, BatchNorm or LayerNorm, residual connections |
 | Huge (hundreds or more) in every layer, loss spikes then `nan` | Exploding gradients | Lower learning rate, gradient clipping, proper initialisation, normalisation |
-| Exactly 0 in one layer | Dead layer: dead ReLUs, a frozen layer, or a broken graph (`.detach()`, `.item()`) | Check `requires_grad`, Leaky ReLU, keep the loss in PyTorch operations |
+| Exactly 0 in one layer | <Term def="A ReLU unit whose input is negative for every example, so it always outputs 0 and passes back a gradient of 0. Once dead, it never recovers.">Dead ReLUs</Term>, or zero gradient arriving from above | Leaky ReLU (a small slope for negative inputs), better initialisation, a lower learning rate |
+| `p.grad` is `None` | A frozen layer, or a broken graph (`.detach()`, `.item()`) | Check `requires_grad`; keep the loss in PyTorch operations |
 
-<Term def="Rescaling the whole gradient whenever its norm is above a threshold c, so the update keeps its direction but never exceeds length c.">Gradient clipping</Term> deserves a closer look, because the visual shows (exploding, clip at 1) that it keeps exploding training alive without curing it. Clipping by norm with threshold $c$ does this:
+<Term def="Rescaling the whole gradient whenever its norm is above a threshold c, so the update keeps its direction but never exceeds length c.">Gradient clipping</Term> deserves a closer look. Try exploding + clip at 1 in the visual above: clipping keeps training alive but does not cure it. Clipping by norm with threshold $c$ does this:
 
 $$
 \text{if } \lVert g \rVert > c: \quad g \leftarrow g \cdot \frac{c}{\lVert g \rVert}

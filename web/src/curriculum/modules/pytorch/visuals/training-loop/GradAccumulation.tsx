@@ -79,9 +79,12 @@ export default function GradAccumulation() {
           ∂L/∂b
         </Label>
         <Arrow from={[0, 0]} to={G} color="var(--ink-2)" width={2.2} dash="5 4" />
-        <Label x={G[0]} y={G[1]} dx={-12} dy={-9} anchor="end" size={12} weight={700} color="var(--ink-2)">
-          full batch (all 8)
-        </Label>
+        {/* below-left of the dashed arrow's tip, clear of the micro-batch arrows; once the divided sum lands there, the .grad label says it instead */}
+        {!(divide && k === 4) && (
+          <Label x={G[0]} y={G[1]} dx={-10} dy={17} anchor="end" size={12} weight={700} color="var(--ink-2)">
+            full batch (all 8)
+          </Label>
+        )}
         {divide &&
           MICRO.slice(0, k).map((m, i) => {
             const a = MICRO.slice(0, i).reduce<[number, number]>((p, q) => [p[0] + q.g[0], p[1] + q.g[1]], [0, 0])

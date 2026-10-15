@@ -58,6 +58,8 @@ export default function GradNormBars() {
   const hi = Math.max(...first)
 
   const heLabel = problem === 'vanish' ? 'ReLU + He init' : 'He init'
+  // residual connections help vanishing a lot, but leave a large spread between layers
+  const partial = problem === 'vanish' && fix === 'res'
   const chance = run.lastAcc <= 0.26
 
   let verdict: ReactNode
@@ -85,21 +87,22 @@ export default function GradNormBars() {
     verdict = (
       <>
         <b>Survives, but still sick.</b> Clipping caps the length of each update, so the loss never becomes nan (accuracy{' '}
-        {Math.round(run.lastAcc * 100)}% after 50 epochs, loss {run.lastLoss}). The raw norms are still large ({sci(Math.min(...run.last))} to{' '}
+        {Math.round(run.lastAcc * 100)}% after 50 epochs, loss {run.lastLoss}: a few confidently wrong answers keep the average loss high even though most predictions are right). The raw norms are still large ({sci(Math.min(...run.last))} to{' '}
         {sci(Math.max(...run.last))}) because the cause, oversized weights, is untouched. Clipping is a seatbelt, not a repair.
       </>
     )
   } else {
     const what: Record<Fix, ReactNode> = {
       none: null,
-      he: <>He initialisation starts every layer's weights at the right size (standard deviation <M>{'\\sqrt{2/n}'}</M>), and ReLU's slope is 1, so the gradient keeps its size through the layers.</>,
+      he: <>He initialisation starts every layer's weights at the right size (standard deviation <M>{'\\sqrt{2/n}'}</M>). ReLU passes the gradient unchanged through its active units (slope 1) and blocks the rest; He's factor 2 makes up for that blocked half, so the gradient keeps its size through the layers.</>,
       bn: <>BatchNorm rescales every layer's output to mean 0 and spread 1, so the size of the weights stops mattering.</>,
       res: <>Each residual layer computes <M>{'x + f(x)'}</M>, so the gradient has a shortcut back to layer 1 that skips the shrinking.</>,
       clip: null,
     }
     verdict = (
       <>
-        <b>Balanced.</b> {what[fix]} At the first step every layer gets between {sci(lo)} and {sci(hi)}. After 50 epochs: loss{' '}
+        <b>{partial ? 'Much better.' : 'Balanced.'}</b> {what[fix]} At the first step every layer gets between {sci(lo)} and {sci(hi)}
+        {partial ? <>: still a spread of about {sci(ratio)} times, far less than before but not as even as with ReLU + He or BatchNorm</> : null}. After 50 epochs: loss{' '}
         {run.lastLoss}, accuracy {Math.round(run.lastAcc * 100)}%.
       </>
     )
@@ -112,7 +115,7 @@ export default function GradNormBars() {
       caption={
         <>
           Each pair of bars is one layer: outlined, see-through bars = the first mini-batch, solid bars = the average over epoch 50. The scale is
-          logarithmic: each grid line is 100 times the one below (1e−4 means 0.0001). Start with <b>vanishing</b>: the bars fall away towards layer 1 like a staircase. Try each fix.
+          logarithmic: each grid line is 100 times the one below (10⁻⁴ means 0.0001). Start with <b>vanishing</b>: the bars fall away towards layer 1 like a staircase. Try each fix.
           Then switch to <b>exploding</b> and try the same fixes. Two of them disappoint: find out which, and why.
         </>
       }
@@ -225,7 +228,7 @@ function YLogTicks() {
         <g key={t} transform={`translate(${x},${ys(t)})`}>
           <line x2={-5} />
           <text x={-8} dy="0.32em" textAnchor="end">
-            {t === 0 ? '1' : `1e${t}`}
+            {t === 0 ? '1' : `10${[...String(t)].map((c) => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(c)]).join('')}`}
           </text>
         </g>
       ))}

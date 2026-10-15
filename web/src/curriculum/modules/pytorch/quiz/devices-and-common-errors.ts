@@ -52,14 +52,14 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.devices-and-common-errors.5',
     prompt: 'You freeze a pretrained backbone and build `optimizer = Adam([p for p in model.parameters() if p.requires_grad])`. After 5 epochs you unfreeze the last backbone block with `requires_grad_(True)` and keep training. That block\'s weights never change. Why?',
     options: [
-      'The optimiser only updates tensors it was given at creation, and the block was not one of them',
+      'The optimiser only updates the tensors it was built with, and the block was not among them',
       'Gradients cannot flow through a block once it has been frozen, even after it is unfrozen',
-      'Unfreezing resets `requires_grad` only after the next call to `model.train()`',
-      'Adam ignores parameters whose gradients are much smaller than the head\'s',
+      'Unfreezing only takes effect after the next call to `model.train()`, which re-reads `requires_grad`',
+      'Adam skips parameters whose gradients are much smaller than those of the new head',
     ],
     answer: 0,
     explanation:
-      'The block now receives gradients, but the optimiser was built from the trainable parameters at that time, so it does not hold the block and `step()` never touches it. No error is raised. Rebuild the optimiser or use `optimizer.add_param_group(...)`. `requires_grad_` takes effect immediately, and gradients do flow through unfrozen layers.',
+      'The block now receives gradients, but the optimiser was built from the trainable parameters at that time, so it does not hold the block and `step()` never touches it. No error is raised. Rebuild the optimiser or use `optimizer.add_param_group(...)`. `requires_grad_` takes effect immediately, gradients do flow through unfrozen layers, and Adam never skips a parameter for having small gradients.',
     difficulty: 'advanced',
   },
 ]

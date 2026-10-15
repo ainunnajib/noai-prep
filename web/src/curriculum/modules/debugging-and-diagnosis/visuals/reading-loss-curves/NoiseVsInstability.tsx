@@ -40,12 +40,12 @@ export default function NoiseVsInstability() {
   let text: string
   if (run.divergedAt !== null) {
     tone = 'bad'
-    text = `Unstable: with only ${bs} example${bs === 1 ? '' : 's'} per step, η = ${lr} is far too big. One unlucky batch sends the weights flying and the loss overflows by step ${run.divergedAt}.`
+    text = `Unstable: with only ${bs} example${bs === 1 ? '' : 's'} per step, η = ${lr} is far too big. One unlucky batch sends the weights flying and the loss passes a million by step ${run.divergedAt}, where training is stopped.`
   } else if (emaMax > 0.6) {
     tone = 'bad'
     text = `Unstable: even the smoothed curve jumps (up to ${emaMax.toFixed(2)}). Smoothing hides noise, not instability. Lower the learning rate or use bigger batches.`
   } else if (sd > 0.08) {
-    tone = 'warn'
+    tone = 'good'
     text = `Noisy but healthy: each point is the loss on just ${bs} example${bs === 1 ? '' : 's'}, so the raw curve is jagged, but the smoothed curve settles near the best possible loss. Nothing to fix.`
   } else {
     tone = 'good'
@@ -83,8 +83,8 @@ export default function NoiseVsInstability() {
         <Slider label="smoothing β" value={beta} min={0} max={0.99} step={0.01} onChange={setBeta} format={(v) => v.toFixed(2)} />
         <Readout
           items={[
-            ['spread of raw loss', run.divergedAt !== null ? '∞' : sd.toFixed(3)],
-            ['smoothed, last step', run.divergedAt !== null ? 'NaN' : smooth[smooth.length - 1].toFixed(3)],
+            ['spread of raw loss', run.divergedAt !== null ? 'huge' : sd.toFixed(3)],
+            ['smoothed, last step', run.divergedAt !== null ? '> 10⁶ (stopped)' : smooth[smooth.length - 1].toFixed(3)],
           ]}
         />
       </Controls>

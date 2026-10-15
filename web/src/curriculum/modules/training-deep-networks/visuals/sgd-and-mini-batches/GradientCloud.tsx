@@ -24,6 +24,12 @@ function Axes0() {
     <g aria-hidden="true">
       <line x1={x0} x2={x1} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1, opacity: 0.6 }} />
       <line x1={xs(0)} x2={xs(0)} y1={y0} y2={y1} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1, opacity: 0.6 }} />
+      <text x={Math.max(x0, x1) - 2} y={ys(0) + 14} textAnchor="end" style={{ fill: 'var(--viz-muted)', fontSize: 11 }}>
+        step in w
+      </text>
+      <text x={xs(0) + 6} y={Math.min(y0, y1) + 12} textAnchor="start" style={{ fill: 'var(--viz-muted)', fontSize: 11 }}>
+        step in b
+      </text>
     </g>
   )
 }
@@ -121,19 +127,20 @@ export default function GradientCloud() {
         <>
           Each thin orange line (ending in a dot) is the downhill direction suggested by one random mini-batch of {B} example{B > 1 ? 's' : ''}; the thick
           arrow is the true downhill direction, averaged over all {N} examples. Slide the batch size: every time it is multiplied by 4, the
-          spread (dashed circle) roughly halves, while the cost of one estimate goes up 4 times. Then move <b>near the minimum</b>: the true
-          slope is tiny there, so single examples disagree wildly and some even point uphill.
+          spread (dashed circle) roughly halves, while the cost of one estimate goes up 4 times. Then pick <b>near</b> the minimum: the true
+          slope is tiny there, so single examples disagree wildly and some even point uphill. (The view zooms to fit each setting, so
+          compare the fan with its own arrow and circle, not across settings.)
         </>
       }
     >
       <Segmented
-        label="Where are we?"
+        label="How far from the minimum?"
         value={where}
         onChange={setWhere}
         options={[
-          { value: 'far', label: 'far from the minimum' },
+          { value: 'far', label: 'far' },
           { value: 'half', label: 'halfway' },
-          { value: 'near', label: 'near the minimum' },
+          { value: 'near', label: 'near' },
         ]}
       />
       <Plot x={[bx0, bx1]} y={[by0, by1]} width={W} height={H} margin={{ left: PAD, right: PAD, top: PAD, bottom: PAD }} ariaLabel={`Fan of ${K} mini-batch gradient directions with batch size ${B}, ${downhill} of them pointing downhill`}>

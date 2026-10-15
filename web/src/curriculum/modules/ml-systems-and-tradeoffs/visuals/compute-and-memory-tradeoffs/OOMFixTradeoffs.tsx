@@ -77,8 +77,9 @@ export default function OOMFixTradeoffs() {
       const e: Entry = { key, label, mem: total, thr, recipe, note: notes.join('; ') }
       return [...b, e].sort((x, y) => Number(y.recipe) - Number(x.recipe) || y.thr - x.thr)
     })
+    // re-runs after 'clear' (board length changes), so a combination that fits right now stays listed
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, fits])
+  }, [key, fits, board.length])
 
   const toggle = (id: FixId) =>
     setOn((o) => {
@@ -184,11 +185,18 @@ export default function OOMFixTradeoffs() {
       </div>
 
       <div style={{ width: '100%', display: 'grid', gap: 4 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)' }}>Speed (images per second, relative to a GPU big enough to need no fix)</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)' }}>Speed (images per second; ×1 = a GPU big enough to need no fix)</div>
         <div style={{ position: 'relative', height: 22, borderRadius: 6, background: 'var(--surface-2)', border: '1px solid var(--rule)', overflow: 'hidden' }} role="img" aria-label={`Speed ${thr.toFixed(2)} times`}>
           <div style={{ width: `${(thr / 3) * 100}%`, height: '100%', background: `color-mix(in srgb, ${thr >= 1 ? 'var(--viz-3)' : 'var(--viz-4)'} 65%, var(--surface))`, transition: 'width 0.35s ease' }} />
           <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${100 / 3}%`, borderLeft: '1.5px solid var(--ink-2)' }} />
           <span style={{ position: 'absolute', right: 8, top: 2, fontSize: 12.5, fontWeight: 800, fontFamily: 'var(--font-mono)', color: 'var(--ink)' }}>×{thr.toFixed(2)}</span>
+        </div>
+        <div style={{ position: 'relative', height: 15, fontSize: 11.5, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }} aria-hidden="true">
+          {[0.5, 1, 2].map((t) => (
+            <span key={t} style={{ position: 'absolute', left: `${(t / 3) * 100}%`, transform: 'translateX(-50%)', fontWeight: t === 1 ? 800 : 400, color: t === 1 ? 'var(--ink-2)' : undefined }}>
+              ×{t}
+            </span>
+          ))}
         </div>
       </div>
 

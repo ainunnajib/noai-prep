@@ -82,8 +82,9 @@ export default function ClipNormArrow() {
       />
       <Plot x={[-R, R]} y={[-R, R]} width={420} height={420} margin={{ left: 28, right: 28, top: 28, bottom: 28 }} ariaLabel={`Gradient ${vec(g)} with length ${norm.toFixed(2)}. Clipped by norm to ${vec(gn)}; clipped by value to ${vec(gv)}.`}>
         <Grid xTicks={10} yTicks={10} />
-        <Axes origin xTicks={5} yTicks={5} />
         <Regions c={c} mode={mode} />
+        {/* tick labels that would sit on the circle or square edge (at ±c) are left out so they are not hidden */}
+        <Axes origin xTicks={5} yTicks={5} tickFormat={(v) => (Math.abs(Math.abs(v) - c) < 0.35 ? '' : String(Number(v.toFixed(2))))} />
         <Arrow from={[0, 0]} to={g} color="var(--viz-1)" width={3.2} />
         {showV && valueChanged && <Arrow from={[0, 0]} to={gv} color="var(--viz-4)" width={3.2} dash="7 4" />}
         {showN && factor < 1 && <Arrow from={[0, 0]} to={gn} color="var(--viz-3)" width={3.6} />}

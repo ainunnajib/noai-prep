@@ -112,7 +112,7 @@ export default function TimeSplitLab() {
         <>
           A spam filter trained on 2023–2024 and used in 2025, while spammers change tactics (the rule turns by the drift speed every month).
           Blue squares: training rows; orange: validation rows; grey: the 2025 future. Compare the validation score (your forecast) with
-          the real 2025 accuracy, first with a <b>random</b> split, then a <b>time-based</b> one. Set the drift to 0: then both splits are
+          the real 2025 accuracy, first with a <b>random</b> split, then a <b>time-based</b> one. Set the speed to none: then both splits are
           honest.
         </>
       }
@@ -128,7 +128,7 @@ export default function TimeSplitLab() {
               { value: 'time', label: 'time-based split' },
             ]}
           />
-          <Slider label="drift speed (degrees per month)" value={drift} min={0} max={4} step={0.5} onChange={setDrift} format={(v) => `${v}°`} />
+          <Slider label="how fast spammers change tactics (rule turns per month)" value={drift} min={0} max={4} step={0.5} onChange={setDrift} format={(v) => (v === 0 ? 'none' : `${v}°`)} />
         </Controls>
 
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: 'block', maxWidth: 640, margin: '0 auto' }} role="img" aria-label="Timeline of 30 months showing which rows are used for training, validation and the future">
@@ -169,7 +169,7 @@ export default function TimeSplitLab() {
             <span>forecast − reality</span>
             <b style={{ color: Math.abs(gap) > 0.04 ? 'var(--viz-neg)' : 'var(--viz-pos)' }}>
               {Math.round(gap * 100) > 0 ? '+' : Math.round(gap * 100) < 0 ? '−' : ''}
-              {Math.abs(Math.round(gap * 100))} points
+              {Math.abs(Math.round(gap * 100))} point{Math.abs(Math.round(gap * 100)) === 1 ? '' : 's'}
             </b>
           </div>
         </div>
@@ -189,6 +189,14 @@ export default function TimeSplitLab() {
             future
           </Label>
         </Plot>
+        <div className={s.legend} aria-hidden="true">
+          <span>
+            <i className={s.line} style={{ borderColor: 'var(--viz-1)' }} /> model accuracy on each month's emails
+          </span>
+          <span>
+            <i className={s.lineDash} style={{ borderColor: 'var(--viz-2)' }} /> forecast (validation score)
+          </span>
+        </div>
         <p className={`${s.note} ${Math.abs(gap) > 0.04 ? s.noteBad : s.noteOk}`} role="status">
           {split === 'random'
             ? drift === 0

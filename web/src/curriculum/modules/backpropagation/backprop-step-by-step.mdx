@@ -14,7 +14,7 @@ Your Project Work group's report is late, and the leader traces the delay backwa
 
 ## One rule, applied over and over
 
-For every node $v$ in the graph, backprop answers one question: if $v$ changed a little, how much would the loss change? That rate is $\frac{\partial L}{\partial v}$, called the <Term def="∂L/∂v: how much the loss L changes per unit change in v. Its sign says which way to move v to lower the loss, and its size says how strongly v matters right now.">gradient</Term> of the loss with respect to $v$. Every gradient comes from the rule you met at the end of the last lesson:
+For every node $v$ in the graph, backprop answers one question: if $v$ changed a little, how much would the loss change? That rate is $\frac{\partial L}{\partial v}$, called the <Term def="∂L/∂v: how much the loss L changes per unit change in v. Its sign says which way to move v to lower the loss, and its size says how strongly v matters right now.">gradient</Term> of the loss with respect to $v$. Every gradient comes from the rule you met in the last lesson:
 
 $$
 \underbrace{\frac{\partial L}{\partial\, \text{input}}}_{\text{wanted}} = \underbrace{\frac{\partial L}{\partial\, \text{output}}}_{\text{upstream}} \times \underbrace{\frac{\partial\, \text{output}}{\partial\, \text{input}}}_{\text{local}}
@@ -200,13 +200,13 @@ Now a real (if tiny) network: one input, two ReLU hidden neurons and one output,
 <QuickCheck
   q="In the network above, why do $w_2$ and $b_2$ get zero gradient on this example?"
   options={[
-    'Neuron 2 has $z_2 \\le 0$, so ReLU\'s local derivative is 0 and blocks the gradient',
+    'ReLU\'s slope at $z_2 = -1$ is $0$, so all the gradient stops at neuron 2\'s ReLU',
     'The weight $w_2 = -1$ is negative, and negative weights get no gradient',
     'The output delta $\\delta = 3$ is positive, so only positive weights change',
-    'Neuron 2 feeds only one output, so its gradient cancels itself out',
+    'Neuron 2 outputs $h_2 = 0$, so the gradient $\\partial L / \\partial h_2$ is $0$ too',
   ]}
   answer={0}
-  explain="The gradient reaching neuron 2 is $\frac{\partial L}{\partial h_2} = 9$, but ReLU's local derivative at $z_2 = -1$ is $0$, so $\delta_2 = 9 \times 0 = 0$ and every weight and bias feeding neuron 2 gets $0$. Negative weights get gradients like any others; with $z_2 > 0$ this neuron would have been updated."
+  explain="The gradient reaching neuron 2 is $\frac{\partial L}{\partial h_2} = v_2 \times 3 = 9$, not 0: a value of 0 does not make its gradient 0. But ReLU's local derivative at $z_2 = -1$ is $0$, so $\delta_2 = 9 \times 0 = 0$ and every weight and bias feeding neuron 2 gets $0$. Negative weights get gradients like any others; with $z_2 > 0$ this neuron would have been updated."
 />
 
 ## The same thing in code
@@ -276,7 +276,7 @@ The numbers match the hand calculation exactly. Note that `L.backward()` only **
 
 ## Why go backwards at all?
 
-You could find each gradient by nudging each weight separately and re-running the forward pass, as in the check at the end of the last lesson. For a network with a million weights, that is about a million extra forward passes (two million with the more accurate central difference) for a single training step. Backprop gets **all** the gradients in one backward sweep, which costs only a small multiple (roughly two to three times) of one forward pass, because each upstream gradient is computed once and then shared by everything below it. This trick is called <Term def="Computing derivatives by recording the computation as a graph and sweeping it once from the output back to the inputs, reusing each upstream gradient. Backpropagation is reverse-mode automatic differentiation applied to a neural network's loss.">reverse-mode automatic differentiation</Term>, and it is what makes training large networks possible.
+You could find each gradient by nudging each weight separately and re-running the forward pass, as in the nudge check in the last lesson. For a network with a million weights, that is about a million extra forward passes (two million with the more accurate central difference) for a single training step. Backprop gets **all** the gradients in one backward sweep, which costs only a small multiple (roughly two to three times) of one forward pass, because each upstream gradient is computed once and then shared by everything below it. This trick is called <Term def="Computing derivatives by recording the computation as a graph and sweeping it once from the output back to the inputs, reusing each upstream gradient. Backpropagation is reverse-mode automatic differentiation applied to a neural network's loss.">reverse-mode automatic differentiation</Term>, and it is what makes training large networks possible.
 
 Automatic differentiation also has a **forward mode**, which carries derivatives along with the values from the inputs to the output and needs one sweep per input. Both modes give exact derivatives; only the cost differs. Reverse mode needs one sweep per output, and training has one output (the loss) but millions of inputs (the weights), so reverse mode wins by a factor of millions.
 
@@ -291,8 +291,8 @@ Automatic differentiation also has a **forward mode**, which carries derivatives
 <QuickCheck
   q="Why does training a neural network use reverse-mode rather than forward-mode automatic differentiation?"
   options={[
-    'There is one output (the loss) and many weights, and reverse mode needs one sweep per output',
-    'Reverse mode gives exact gradients, while forward mode only estimates them from small nudges',
+    'Reverse mode needs one sweep per output, and there is one loss but millions of weights',
+    'Reverse mode gives exact gradients, while forward mode estimates them from small nudges',
     'Forward mode cannot pass through activation functions such as ReLU and sigmoid',
     'Reverse mode needs less memory, because it does not have to keep the forward values',
   ]}

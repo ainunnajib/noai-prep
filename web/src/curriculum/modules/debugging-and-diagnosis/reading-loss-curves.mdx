@@ -12,7 +12,7 @@ In a hospital ward, a nurse records each patient's temperature every few hours a
 
 ## What a loss curve shows
 
-During training, the model makes predictions and a <Term def="A single number that measures how wrong the model's predictions are. Lower is better. Examples: mean squared error for numbers, cross-entropy for classes.">loss function</Term> scores how wrong they are. Training repeats small update <Term def="One update of the weights, using one mini-batch of examples. Also called an iteration.">steps</Term>, and one <Term def="One full pass through the whole training set. With 1,000 examples and batches of 100, one epoch is 10 steps.">epoch</Term> is a full pass through the training data. A loss curve plots the loss (up the side) against steps or epochs (along the bottom).
+During training, the model makes predictions and a <Term def="A single number that measures how wrong the model's predictions are. Lower is better. Examples: mean squared error for numbers, cross-entropy for classes.">loss function</Term> scores how wrong they are. Training repeats small update <Term def="One update of the weights, using one mini-batch (a small random group) of examples. Also called an iteration.">steps</Term>, and one <Term def="One full pass through the whole training set. With 1,000 examples and batches of 100, one epoch is 10 steps.">epoch</Term> is a full pass through the training data. A loss curve plots the loss (up the side) against steps or epochs (along the bottom).
 
 You almost always plot **two** curves:
 
@@ -69,7 +69,7 @@ One more trap: a validation loss slightly **below** the training loss is not aut
 
 <QuickCheck
   q="After 40 epochs, training loss is 0.05 and still falling, while validation loss fell to 0.60 at epoch 12 and has risen to 1.10. What is the best first fix?"
-  options={['Train for another 40 epochs so the validation loss can catch up', 'Use a model with more layers', 'Keep the model from epoch 12 and add regularisation such as dropout', 'Raise the learning rate so training finishes sooner']}
+  options={['Train for another 40 epochs so the validation loss can catch up', 'Use a deeper model so it can fit the validation data as well', 'Keep the epoch-12 model and add regularisation such as dropout', 'Raise the learning rate so that training finishes sooner']}
   answer={2}
   explain="Training loss falling while validation loss rises is overfitting, and the best validation loss was at epoch 12. Early stopping keeps that version; dropout or weight decay make memorising harder. Training longer or adding layers gives the model more room to memorise, so the gap grows."
 />
@@ -94,9 +94,9 @@ Barely touching the accelerator, you creep forward and it takes forever. Floorin
 
 Let's see why, on the simplest possible loss.
 
-<Steps title="Gradient descent on $L(w) = w^2$, starting at $w = 1$">
+<Steps title="Gradient descent on $L(w) = w^2$">
   <Step title="The update rule">
-    The slope of $w^2$ is $2w$, so one step gives $w \leftarrow w - \eta \cdot 2w = (1 - 2\eta)\,w$. Each step **multiplies** $w$ by the same number $m = 1 - 2\eta$, and the loss $w^2$ gets multiplied by $m^2$.
+    Start at $w = 1$. The slope of $w^2$ is $2w$, so one step gives $w \leftarrow w - \eta \cdot 2w = (1 - 2\eta)\,w$. Each step **multiplies** $w$ by the same number $m = 1 - 2\eta$, and the loss $w^2$ gets multiplied by $m^2$.
   </Step>
   <Step title="Too small: $\eta = 0.05$">
     $m = 0.9$, so $w$ goes $1 \to 0.9 \to 0.81 \to 0.729$ and the loss goes $1 \to 0.81 \to 0.66 \to 0.53$. It falls, but slowly: a gentle, nearly straight slope.
@@ -126,7 +126,7 @@ Real loss landscapes are not perfect bowls: they are steep in some directions, f
 
 <Tip title="Try learning rates on a log scale">
 
-Learning rates that matter differ by factors, not by small amounts: 0.001 and 0.002 behave alike, 0.001 and 0.1 do not. So people try values like 0.0001, 0.0003, 0.001, 0.003, 0.01 (each about three times the last) and pick the best. When a run misbehaves, changing the learning rate is usually the first experiment.
+Only big factors matter: 0.001 and 0.0012 behave alike, and even a factor of 2 changes little, but 0.001 and 0.1 behave completely differently. So people try values like 0.0001, 0.0003, 0.001, 0.003, 0.01 (each about three times the last) and pick the best. When a run misbehaves, changing the learning rate is usually the first experiment.
 
 </Tip>
 
@@ -153,9 +153,9 @@ There is one more shape worth knowing. With a constant learning rate, the loss o
 
 <QuickCheck
   q="Your per-batch training loss with batch size 8 looks jagged, but the smoothed curve falls steadily and then levels off. What should you do?"
-  options={['Lower the learning rate immediately', 'Nothing: small batches make the raw loss noisy, and the trend is healthy', 'Add dropout to reduce the noise', 'Switch to a bigger model']}
+  options={['Lower the learning rate at once, because a jagged loss means it is too high', 'Nothing: small batches make the raw loss noisy, and the trend is healthy', 'Add dropout, so that each batch gives a less noisy loss value', 'Switch to a bigger model, so that it fits each small batch better']}
   answer={1}
-  explain="Each point is the loss on only 8 examples, so it jumps around even when training is fine. The smoothed curve, which shows the trend, falls and then settles: healthy. Lowering the learning rate is the fix when the smoothed curve itself jumps or rises."
+  explain="Each point is the loss on only 8 examples, so it jumps around even when training is fine. The smoothed curve, which shows the trend, falls and then settles: healthy. Lowering the learning rate is the fix when the smoothed curve itself jumps or rises, and neither dropout nor a bigger model makes an average over 8 examples less noisy."
 />
 
 <PastPaperQuestion paper="prelim2026" n={286} />

@@ -84,10 +84,14 @@ export default function DistributionShift() {
     return wrong ? { x: a, y: b, r: 4.5, color: 'var(--viz-neg)', shape: 'cross' as const } : { x: a, y: b, r: 4, color: colour(testY[i]) }
   })
 
+  // one condition drives both the colour and the wording of the callout
+  const hurt = testAcc < trainAcc - 0.05
   const verdict =
     mode === 'covariate'
       ? moved
-        ? 'Covariate shift: the inputs moved (P(x) changed) but the rule did not. The model is extrapolating its straight line into a region where the true boundary curves away.'
+        ? hurt
+          ? 'Covariate shift: the inputs moved (P(x) changed) but the rule did not. The model is extrapolating its straight line into a region where the true boundary curves away.'
+          : 'Covariate shift, but harmless here: the inputs moved (P(x) changed), yet in this region the learned line and the true rule still agree. Shift only hurts where they disagree.'
         : 'No shift: the test data come from the same place, and the same rule, as the training data.'
       : ruleChanged
         ? 'Concept drift: the inputs look exactly like the training data (P(x) unchanged), but the rule that labels them has turned (P(y|x) changed). Checking the inputs alone would never reveal this.'
@@ -158,7 +162,7 @@ export default function DistributionShift() {
           </span>
           <span style={{ color: 'var(--viz-neg)', fontWeight: 800 }}>× wrong</span>
         </div>
-        <p className={`${s.note} ${testAcc < trainAcc - 0.08 ? s.noteBad : s.noteOk}`} role="status">
+        <p className={`${s.note} ${hurt ? s.noteBad : s.noteOk}`} role="status">
           {verdict}
         </p>
       </div>

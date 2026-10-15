@@ -20,14 +20,14 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.designing-ml-solutions.2',
     prompt: 'A screening model for a disease that affects 2% of patients reports 98% accuracy on the test set. Why is this not yet evidence that the model is useful?',
     options: [
-      'Predicting "healthy" for every patient also scores 98%, so the model must be compared with that baseline using recall or precision',
-      'Accuracy above 95% on a test set usually means the test data leaked into training, so the true accuracy is much lower',
+      'Always predicting "healthy" also scores 98%, so the model must beat that baseline on recall or precision',
+      'Accuracy above 95% on a test set usually means test data leaked into training, so the true accuracy is much lower',
       'Accuracy cannot be computed for medical data, because the cost of a mistake differs from patient to patient',
-      'A 2% error rate is too high for any medical use, so the model must reach 99.9% accuracy before it is deployed',
+      'A 2% error rate is too high for medical use, so the model should reach 99.9% accuracy before it is deployed',
     ],
     answer: 0,
     explanation:
-      'With 2% positives, the do-nothing baseline that always says "healthy" is right 98% of the time while catching no one. The model might be doing exactly that. Compare it with the baseline on recall (how many sick patients it finds) and precision, which expose a useless model at once. A high accuracy alone does not imply leakage.',
+      'With 2% positives, the do-nothing baseline that always says "healthy" is right 98% of the time while catching no one. The model might be doing exactly that. Compare it with the baseline on recall (how many sick patients it finds) and precision, which expose a useless model at once. A high accuracy alone does not imply leakage, and accuracy can be computed for any labelled test set; it is just the wrong yardstick here.',
     difficulty: 'beginner',
   },
   {
@@ -36,17 +36,17 @@ const questions: QuizQuestion[] = [
     options: ['50 MB', '100 MB', '200 MB', '25 MB'],
     answer: 0,
     explanation:
-      'At 32 bits (4 bytes) per weight the model takes $50 \\text{ million} \\times 4 = 200$ MB. At 8 bits (1 byte) it takes $50 \\text{ million} \\times 1 = 50$ MB, 4 times smaller. 200 MB forgets that each parameter gets smaller even though the number of parameters stays the same; 25 MB would need 4-bit weights.',
+      'At 32 bits (4 bytes) per weight the model takes $50 \\text{ million} \\times 4 = 200$ MB. At 8 bits (1 byte) it takes $50 \\text{ million} \\times 1 = 50$ MB, 4 times smaller. 200 MB forgets that each parameter gets smaller even though the number of parameters stays the same; 100 MB would be 16-bit weights and 25 MB would need 4-bit weights.',
     difficulty: 'beginner',
   },
   {
     id: 'ml-systems-and-tradeoffs.designing-ml-solutions.4',
     prompt: 'Which of these describes knowledge distillation?',
     options: [
-      'Training a small student network to match the softened output probabilities of a large teacher network, as well as the true labels',
-      'Setting the trained network weights that are closest to zero to exactly zero, then fine-tuning the remaining weights',
-      'Storing each trained weight as an 8-bit integer plus one shared scale per layer, instead of as a 32-bit float',
-      'Training the large network on a smaller, cleaner subset of the training data so that it converges in fewer steps',
+      'Training a small student network to match the softened output probabilities of a large teacher, as well as the true labels',
+      'Setting the trained network\'s weights that are closest to zero to exactly zero, then fine-tuning the weights that remain',
+      'Storing each trained weight as an 8-bit integer plus one shared scale per layer, instead of storing it as a 32-bit float',
+      'Training the large network on a smaller, cleaner subset of the training data so that it converges in far fewer update steps',
     ],
     answer: 0,
     explanation:

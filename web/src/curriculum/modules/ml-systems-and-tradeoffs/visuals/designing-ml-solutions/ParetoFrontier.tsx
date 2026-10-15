@@ -155,7 +155,7 @@ function Points({
           x={l.x}
           y={l.y}
           textAnchor={l.anchor}
-          style={{ fontSize: 11.5, fontWeight: l.m === chosen || l.m === selected ? 800 : 600, fill: front.has(l.m) ? 'var(--ink)' : 'var(--ink-3)' }}
+          style={{ fontSize: 11.5, fontWeight: l.m === chosen || l.m === selected ? 800 : 600, fill: front.has(l.m) ? 'var(--ink)' : 'var(--ink-3)', pointerEvents: 'none' }}
         >
           {l.m.name}
         </text>
@@ -193,8 +193,8 @@ export default function ParetoFrontier() {
       title="The trade-off frontier: no single best model"
       caption={
         <>
-          Each mark is a candidate model for a phone app that recognises hawker dishes (illustrative numbers). Filled marks are on the <b>Pareto frontier</b> (the staircase): no other model is both
-          faster and more accurate. Hollow marks are dominated, so never worth deploying. Drag the vertical handle to set the time budget and the horizontal handle to set the accuracy you need: the
+          Each mark is a candidate model for a phone app that recognises hawker dishes (illustrative numbers). Filled marks are on the <b>Pareto frontier</b> (the staircase): no other model is at least
+          as fast and as accurate while beating it on one of the two. Hollow marks are dominated, so never worth deploying. Drag the vertical handle to set the time budget and the horizontal handle to set the accuracy you need: the
           ringed model is the most accurate one in the shaded region. Tap any mark for its details. Then add int8 and distilled versions and watch the frontier move up and to the left.
         </>
       }
@@ -237,9 +237,14 @@ export default function ParetoFrontier() {
           <Points models={visible} front={front} chosen={chosen} selected={selected} onSelect={setSelected} stair={stair} budget={budget} floor={floor} />
           <DraggablePoint x={budget} y={Y1} lockY color="var(--viz-3)" r={8} label={`≤ ${Math.round(L)} ms`} onChange={(x) => setBudget(Math.min(X1, Math.max(X0, x)))} />
           <DraggablePoint x={X1} y={floor} lockX color="var(--viz-3)" r={8} onChange={(_, y) => setFloor(Math.round(Math.min(Y1 - 0.5, Math.max(Y0, y)) * 2) / 2)} />
-          <Label x={X1} y={floor} dx={-14} dy={-8} anchor="end" size={12} weight={700} color="var(--viz-3)">
-            {`≥ ${floor}%`}
-          </Label>
+          <g style={{ pointerEvents: 'none' }}>
+            <Label x={X1} y={floor} dx={-14} dy={-8} anchor="end" size={12} weight={700} color="var(--viz-3)">
+              {`≥ ${floor}%`}
+            </Label>
+            <Label x={X0} y={Y1} dx={-40} dy={-9} size={12.5} weight={700} color="var(--ink-2)">
+              accuracy
+            </Label>
+          </g>
         </Plot>
       </div>
 

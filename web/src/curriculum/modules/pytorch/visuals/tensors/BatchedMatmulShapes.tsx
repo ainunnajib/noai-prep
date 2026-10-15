@@ -249,7 +249,9 @@ function ProductDiagram({ m, k, kb, n, count, ok, innerBad, avail }: { m: number
   const bx = ax + k * s + g
   const by = top + stack * off
   const cy = by + kb * s + g
-  const width = bx + n * s + stack * off + 30
+  // room on the right for the longer of the two labels there ('k=16', '×32'): about 8 px per character at 12 px
+  const rightLabel = Math.max(`k=${kb}`.length, count > 1 ? `×${count}`.length : 0)
+  const width = bx + n * s + stack * off + 10 + 8 * rightLabel
   const height = cy + m * s + 26
   const grid = (x: number, y: number, rows: number, cols: number, colour: string, edge: string, key: string) => (
     <g key={key}>

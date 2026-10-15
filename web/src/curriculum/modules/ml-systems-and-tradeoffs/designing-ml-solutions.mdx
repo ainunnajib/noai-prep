@@ -4,7 +4,7 @@ import CompressionLab from './visuals/designing-ml-solutions/CompressionLab'
 import DistillSoftTargets from './visuals/designing-ml-solutions/DistillSoftTargets'
 import ParetoFrontier from './visuals/designing-ml-solutions/ParetoFrontier'
 
-A model that is 95% accurate but takes two seconds per answer is useless at a payment terminal that must decide in a tenth of a second. Real machine-learning design starts from the problem and its limits, not from the newest architecture. NOAI's Problem Solving questions give you a scenario (the data, its size, a time limit, a device) and ask what you would build; this lesson gives you a short checklist that answers most of them.
+A model that is 95% accurate but takes two seconds per answer is useless at a payment terminal that must decide within about 0.2 seconds. Real machine-learning design starts from the problem and its limits, not from the newest architecture. NOAI's Problem Solving questions give you a scenario (the data, its size, a time limit, a device) and ask what you would build; this lesson gives you a short checklist that answers most of them.
 
 ## Frame the problem before choosing a model
 
@@ -15,7 +15,7 @@ Before writing any code, answer four questions:
 3. **What must you beat?** This is the <Term def="The simplest sensible way to solve the problem, used as the bar every model must clear: for example always predicting the most common class, predicting the average, a simple rule, or a logistic regression.">baseline</Term>.
 4. **What are the limits?** How fast each answer must be (<Term def="The time between a request arriving and its prediction being returned, usually in milliseconds (ms).">latency</Term>), the device's memory, privacy, cost, and whether each decision must be explained.
 
-A classifier can make two kinds of mistake. A <Term def="The model says 'yes' (e.g. fraud) but the truth is 'no': a false alarm.">false positive</Term> is a false alarm; a <Term def="The model says 'no' but the truth is 'yes': a missed case.">false negative</Term> is a missed case. Recall (the share of real cases the model catches) punishes false negatives; precision (the share of alarms that are real) punishes false positives. When the two mistakes have different prices, the most honest metric is often simply the money they cost.
+A classifier can make two kinds of mistake. A <Term def="The model says 'yes' (e.g. fraud) but the truth is 'no': a false alarm.">false positive</Term> is a false alarm; a <Term def="The model says 'no' but the truth is 'yes': a missed case.">false negative</Term> is a missed case. Recall (the share of real cases the model catches) punishes false negatives; precision (the share of alarms that are real) punishes false positives, and <Term def="One score that balances precision and recall (their harmonic mean); it is high only when both are high.">F1</Term> combines the two. When the two mistakes have different prices, the most honest metric is often simply the money they cost.
 
 <MetricBaseline />
 
@@ -59,7 +59,7 @@ Years of competitions and real projects have produced strong starting points:
 
 Reusing a network trained on a huge dataset and adapting it to your task is called <Term def="Starting from a model already trained on a large dataset and adapting it to a new task, instead of training from random weights. You can freeze its layers and train only a new head, or fine-tune everything with a small learning rate.">transfer learning</Term>, and it is the default for images, text and audio because it needs far less labelled data and compute than training from scratch.
 
-Then the **constraints** narrow the choice. With only hundreds of examples, freeze the pretrained layers and train just a new final layer, or use a simpler model. A tight time budget rules out huge models, big ensembles and k-NN over millions of stored points (from the last lesson: $O(nd)$ per prediction). A phone or a microcontroller needs a small or compressed model. And if every decision must be explained, for example a loan refusal, a linear model or shallow trees may beat a black box even at slightly lower accuracy.
+Then the **constraints** narrow the choice. With only hundreds of examples, freeze the pretrained layers and train just a new final layer, or use a simpler model. A tight time budget rules out huge models, big <Term def="Models made of many smaller models whose predictions are combined, such as a random forest or boosted trees. More members usually means better accuracy but slower predictions.">ensembles</Term> and k-NN over millions of stored points (from [the previous lesson](#/learn/ml-systems-and-tradeoffs/cost-of-ml): $O(nd)$ per prediction). A phone or a microcontroller needs a small or compressed model. And if every decision must be explained, for example a loan refusal, a linear model or shallow trees may beat a black box even at slightly lower accuracy.
 
 Finally, the <Term def="The result that no single learning algorithm is best for every possible problem. Averaged over all problems, every algorithm performs the same, so you must test candidates on your own data.">no free lunch</Term> idea says that no model is best for every problem. The defaults above are where you **start**; the winner is decided by comparing candidates against the baseline on your own validation data.
 
@@ -69,7 +69,7 @@ Finally, the <Term def="The result that no single learning algorithm is best for
 
 <QuickCheck
   q="A clinic has 300 labelled retina photos and wants to flag a disease. What is the best starting point?"
-  options={['Fine-tune a pretrained CNN, freezing most of its layers', 'Train a large CNN from scratch on the 300 photos', 'Gradient-boosted trees on the raw pixel values', 'k-NN on the raw pixel values with k = 1']}
+  options={['Fine-tune a pretrained CNN, freezing most of its layers', 'Train a large CNN from scratch on the 300 labelled photos', 'Gradient-boosted trees on the raw pixel values of each photo', 'k-NN with k = 1 on the raw pixel values of each photo']}
   answer={0}
   explain="300 images is far too few to train a big network from scratch: it would memorise them. A pretrained CNN already recognises edges, textures and shapes, so only a small new head needs training. Boosted trees and k-NN on raw pixels ignore the image's spatial structure."
 />
@@ -80,7 +80,9 @@ A giant model trained from scratch is the most expensive way to start and often 
 
 </Mistake>
 
-When the time budget is strict, the architecture itself must be chosen for speed. Object detection is the classic example. A **two-stage** detector such as R-CNN (or Faster R-CNN) first proposes about 2,000 candidate regions and then classifies each one: accurate but slow. A **single-stage** detector such as YOLO ("You Only Look Once") predicts every box in one forward pass: fast enough for live video. The rule for exam questions: real-time or edge device → YOLO; best possible accuracy with time to spare → a two-stage detector. (ResNet is a classifier backbone and an LSTM is a sequence model; neither is a detector on its own.)
+### When speed decides the architecture
+
+When the time budget is strict, the architecture itself must be chosen for speed. <Term def="Finding every object in an image and drawing a labelled box around each one.">Object detection</Term> is the classic example (see [Vision tasks and object detection](#/learn/vision-tasks/vision-tasks-and-detection)). A **two-stage** detector such as R-CNN (or Faster R-CNN) first proposes about 2,000 candidate regions and then classifies each one: accurate but slow. A **single-stage** detector such as YOLO ("You Only Look Once") predicts every box in one forward pass: fast enough for live video. The rule for exam questions: real-time or edge device → YOLO; best possible accuracy with time to spare → a two-stage detector. (ResNet is a classifier backbone and an LSTM is a sequence model; neither is a detector on its own.)
 
 <PastPaperQuestion paper="prelim2026" n={257} />
 
@@ -151,13 +153,15 @@ for bits in [8, 4, 2]:
     print(f"{bits}-bit: {mb:.2f} MB, "
           f"average error {err:.5f}")`} />
 
+Notice the average error. At 8 bits (about 0.0005) it is around 1% of a typical weight, which is about 0.04 in size; at 2 bits (about 0.043) it is as big as the weights themselves.
+
 **Knowledge distillation** trains a small *student* network to imitate a large, accurate *teacher*. The trick is what the student imitates: not just the correct label, but the teacher's full set of output probabilities, softened with a <Term def="A number T that divides the logits before the softmax. T = 1 is the normal output; larger T makes the probabilities flatter, so small differences between the wrong classes become visible.">temperature</Term> $T$:
 
 $$
 p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
 $$
 
-where $z_i$ is the teacher's raw score (logit) for class $i$. At $T = 1$ this is the ordinary softmax; a larger $T$ spreads probability onto the "nearly right" classes. The student is trained to match these soft probabilities as well as the true labels.
+where $z_i$ is the teacher's raw score (logit) for class $i$. At $T = 1$ this is the ordinary softmax; a larger $T$ spreads probability onto the "nearly right" classes. During training the student's own outputs are softened with the same $T$, and its loss mixes matching the teacher's soft probabilities with the ordinary cross-entropy on the true labels. Once trained, the student predicts at $T = 1$.
 
 <DistillSoftTargets />
 
@@ -200,7 +204,7 @@ There is no single best model, only the best model for your constraints. Draw th
 
 - Frame first: the decision, the cost of each kind of mistake (which picks the metric), the baseline to beat, and the limits (latency, memory, privacy, explanations).
 - Accuracy misleads on imbalanced data: compare every model with the majority-class baseline, using recall, precision, F1 or the real cost of mistakes.
-- Strong defaults: gradient-boosted trees for tables, pretrained CNNs or ViTs for images, pretrained Transformers for text and audio. Constraints then narrow the choice; no model wins everywhere.
+- Strong defaults: gradient-boosted trees for tables, pretrained CNNs or ViTs for images, pretrained Transformers for text, and pretrained audio models on spectrograms for sound. Constraints then narrow the choice; no model wins everywhere.
 - To fit a small device: quantise (32 → 8 bits is about 4× smaller), prune small weights, or distil a large teacher into a small student trained on its soft probabilities.
 - Candidates form a Pareto frontier of accuracy against latency or size; requirements choose the point, and dominated models are never worth deploying.
 

@@ -13,7 +13,7 @@ const WHY: string[] = [
   'Only whole numbers, so PyTorch infers int64 (also called "long").',
   "Decimal points make it floating point. PyTorch's default float is float32 (NumPy's is float64).",
   'One decimal is enough: a tensor has a single dtype, so all three numbers become float32.',
-  'Capital T is the tensor class itself. Calling it always gives float32, whatever the data.',
+  'Capital T is the tensor class itself. Called on a list or a NumPy array, it always gives the default float type, float32, whatever the numbers.',
   'True and False give a bool tensor, the kind that comparisons such as x > 0 produce.',
   'Whole-number arguments give int64, just like range(3).',
   'zeros, ones, rand, randn and linspace all default to float32.',

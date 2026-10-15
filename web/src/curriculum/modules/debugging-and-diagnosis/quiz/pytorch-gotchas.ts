@@ -16,29 +16,29 @@ const questions: QuizQuestion[] = [
     prompt: 'A model trained with this custom loss runs without any error, but its accuracy never improves. Why?',
     code: 'def my_loss(pred, y):\n    l = ((pred - y) ** 2).mean().item()\n    return torch.tensor(l, requires_grad=True)',
     options: [
-      '`.item()` returns a plain Python number, which cuts the graph',
+      '`.item()` gives a plain number, so the weights never get a gradient',
       '`requires_grad=True` freezes the loss, so backward() skips it',
       'Mean squared error cannot be used for training a neural network',
       '`torch.tensor` moves the loss to the CPU, away from the model\'s GPU',
     ],
     answer: 0,
     explanation:
-      '`.item()` returns a plain float with no history. The new tensor has `requires_grad=True`, so `backward()` runs, but the graph stops at that tensor: every weight\'s `.grad` stays `None` and `optimizer.step()` changes nothing. Return `((pred - y) ** 2).mean()` directly.',
+      '`.item()` returns a plain float with no history. The new tensor has `requires_grad=True`, so `backward()` runs, but the graph stops at that tensor: every weight\'s `.grad` stays `None` and `optimizer.step()` changes nothing. Return `((pred - y) ** 2).mean()` directly. `requires_grad=True` does not freeze anything, and even with everything on one device the graph would still be cut.',
     difficulty: 'intermediate',
   },
   {
     id: 'debugging-and-diagnosis.pytorch-gotchas.3',
-    prompt: 'This model trains on a GPU server but crashes on a laptop without a GPU. Which change makes it run on both?',
+    prompt: 'This model trains on a GPU server but crashes on a laptop without a GPU. Which change makes it run on both, using the GPU whenever there is one?',
     code: 'class Net(nn.Module):\n    def forward(self, x):\n        x = x.cuda()\n        return self.fc(x)',
     options: [
-      'Remove `x.cuda()`; choose `device` once with `torch.cuda.is_available()` and move the model and each batch with `.to(device)`',
-      'Replace `x.cuda()` with `x.cpu()` in `forward`, so that the whole model always runs on the CPU on every machine',
-      'Wrap the body of `forward` in `torch.no_grad()`, so that no GPU memory has to be allocated for the computation',
-      'Call `model.eval()` before running the model on the laptop, so that it switches to its CPU inference mode',
+      'Remove `x.cuda()`; set `device` from `torch.cuda.is_available()` and use `.to(device)`',
+      'Replace `x.cuda()` with `x.cpu()` in `forward`, so the model always runs on the CPU instead',
+      'Wrap the body of `forward` in `torch.no_grad()`, so that it needs less GPU memory to run',
+      'Call `model.eval()` on the laptop, so that the model switches to its CPU inference mode',
     ],
     answer: 0,
     explanation:
-      'A model should not decide its own device. Choose `device = "cuda" if torch.cuda.is_available() else "cpu"` once, then `model.to(device)` and `x = x.to(device)` in the loop. Hard-coding `.cpu()` runs everywhere but throws the GPU away, and neither `no_grad()` nor `eval()` has anything to do with devices.',
+      'A model should not decide its own device. Choose `device = "cuda" if torch.cuda.is_available() else "cpu"` once, then `model.to(device)` and `x = x.to(device)` in the loop. Hard-coding `.cpu()` throws the GPU away (and crashes on the server if the weights are on the GPU), and neither `no_grad()` nor `eval()` has anything to do with devices.',
     difficulty: 'intermediate',
   },
   {
@@ -63,7 +63,7 @@ const questions: QuizQuestion[] = [
       '`torch.autograd.set_detect_anomaly(True)`; the culprit is a NaN that appears in the loss',
       '`torch.cuda.memory_allocated()` every few hundred steps; the culprit is `total += loss`',
       '`torch.profiler` sorted by CPU time; the culprit is a learning rate that is far too high',
-      '`model.eval()` before every step; the culprit is dropout keeping all its masks in memory',
+      '`model.eval()` before each step; the culprit is dropout keeping its old masks in memory',
     ],
     answer: 1,
     explanation:

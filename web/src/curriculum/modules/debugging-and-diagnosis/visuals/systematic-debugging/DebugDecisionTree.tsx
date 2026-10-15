@@ -17,7 +17,7 @@ const CHECKS: { id: CheckId; q: ReactNode; cost: number; generic: ReactNode }[] 
   { id: 'shapes', q: 'Print the shapes of inputs, outputs, labels and loss. Are they what you expect?', cost: 2, generic: 'Shape bug: a missing flatten, a wrong dim or silent broadcasting.' },
   { id: 'init', q: <>Is the loss at step 0 close to ln K?</>, cost: 1, generic: 'Scale or loss bug: inputs not normalised, huge initial weights, or the wrong loss.' },
   { id: 'overfit', q: 'Can the model drive the loss on one small batch to almost 0?', cost: 5, generic: 'Bug in the model, loss or training loop: nothing else will help until it is fixed.' },
-  { id: 'baseline', q: 'Does the full model beat a simple baseline?', cost: 15, generic: 'No bug, but the model is not earning its keep: read the loss curves and rethink the model.' },
+  { id: 'baseline', q: 'Does the full model beat the simple baselines (the majority class and a simple model such as logistic regression)?', cost: 15, generic: 'No bug, but the model is not earning its keep: read the loss curves and rethink the model.' },
 ]
 
 interface Case {

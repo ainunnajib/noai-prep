@@ -38,10 +38,10 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.sgd-and-mini-batches.4',
     prompt: 'Mini-batch gradients are noisy, yet mini-batch gradient descent still reaches a good minimum. What is the main reason?',
     options: [
-      'Each mini-batch gradient equals the full gradient on average, so the errors cancel out over many steps',
-      'Shuffling the data before each epoch makes every mini-batch gradient exactly equal to the full-batch gradient',
+      'Over all possible batches the gradient estimate averages to the true one, so errors cancel over many steps',
+      'Shuffling the data before each epoch makes each mini-batch gradient exactly equal to the full-batch gradient',
       'The learning rate is small enough to filter the noise out of each mini-batch gradient before the update',
-      'The optimiser stores every previous gradient and uses their exact average in place of the current one',
+      'The optimiser stores the previous gradients and uses their exact average in place of the current one',
     ],
     answer: 0,
     explanation:
@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     options: [
       'B, because a flat minimum stays low when the test data shift the loss surface slightly',
       'A, because a sharp minimum fits the training data more precisely, so it also predicts new data better',
-      'Neither, because two models with equal training loss must also have equal test loss',
+      'Neither, because two models with equal training loss will also have equal test loss',
       'A, because sharp minima have larger gradients, which keep the model improving at test time',
     ],
     answer: 0,

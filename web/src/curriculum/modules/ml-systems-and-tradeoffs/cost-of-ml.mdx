@@ -13,7 +13,7 @@ A school has 30 classrooms with 40 desks each, and wiping a desk takes 20 second
 
 </Analogy>
 
-Machine-learning costs work the same way. Almost every calculation inside a model is a <Term def="Multiply two numbers and add the result to a running total: total += a * b. Also called a MAC (multiply-accumulate). One multiply-add is two FLOPs.">multiply-add</Term>: multiply two numbers and add the result to a running total, `total += a * b`. Hardware speed is quoted in <Term def="Floating-point operations: single additions or multiplications of decimal numbers. FLOP/s (FLOPs per second) measures how fast a chip computes.">FLOPs</Term>, and one multiply-add is two FLOPs (one multiplication, one addition). In this lesson we count multiply-adds and ignore the cheap extras such as adding biases or applying ReLU, which are tiny in comparison.
+Machine-learning costs work the same way. Almost every calculation inside a model is a <Term def="Multiply two numbers and add the result to a running total: total += a * b. Also called a MAC (multiply-accumulate). One multiply-add is two FLOPs.">multiply-add</Term>: multiply two numbers and add the result to a running total, `total += a * b`. Work is often counted in <Term def="Floating-point operations: single additions or multiplications of decimal numbers. FLOP/s (FLOPs per second) measures how fast a chip computes.">FLOPs</Term> (and hardware speed in FLOP/s, FLOPs per second), and one multiply-add is two FLOPs (one multiplication, one addition). In this lesson we count multiply-adds and ignore the cheap extras such as adding biases or applying ReLU, which are tiny in comparison.
 
 ## Matrix multiplication: m · n · p
 
@@ -73,9 +73,9 @@ print("same as A @ B?", np.allclose(C, A @ B))`} />
 
 <QuickCheck
   q="How many multiply-adds does the product of a $10 \times 20$ matrix and a $20 \times 30$ matrix take?"
-  options={['6,000', '300', '600', '800']}
+  options={['6,000', '300', '12,000', '800']}
   answer={0}
-  explain="The answer is $10 \times 30$, so 300 cells, and each cell sums $20$ products: $300 \times 20 = 6{,}000 = m \cdot n \cdot p$. 300 counts only the output cells, and 800 adds the two matrices' sizes ($200 + 600$)."
+  explain="The answer is $10 \times 30$, so 300 cells, and each cell sums $20$ products: $300 \times 20 = 6{,}000 = m \cdot n \cdot p$. 300 counts only the output cells, 800 adds the two matrices' sizes ($200 + 600$), and 12,000 is the FLOP count, two per multiply-add."
 />
 
 <Mistake title="Forgetting the inner size">
@@ -86,7 +86,7 @@ The shared size $n$ disappears from the answer's shape, so it is easy to forget 
 
 ## Every layer is a matrix product
 
-Once you can cost a matrix product, you can cost a whole network, because its layers are matrix products in disguise. Remember that a model's <Term def="The numbers a model learns during training: its weights and biases. They must be stored, so they decide the model's size in memory.">parameters</Term> are the numbers it learns and stores; we will see that the parameter count and the amount of work are two different things.
+Once you can cost a matrix product, you can cost a whole network, because its layers are matrix products in disguise. (Need a refresher on the layers themselves? See [the convolution operation](#/learn/convolutional-networks/convolution), [padding, stride and channels](#/learn/convolutional-networks/padding-stride-shapes) and [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention).) Remember that a model's <Term def="The numbers a model learns during training: its weights and biases. They must be stored, so they decide the model's size in memory.">parameters</Term> are the numbers it learns and stores; we will see that the parameter count and the amount of work are two different things.
 
 **Dense layer.** A dense (fully connected) layer from $d_{\text{in}}$ inputs to $d_{\text{out}}$ outputs stores a $(d_{\text{in}} \times d_{\text{out}})$ weight matrix $W$. A batch of $B$ examples is a $(B \times d_{\text{in}})$ matrix $X$, and the layer computes $XW$, a $(B \times d_{\text{in}})(d_{\text{in}} \times d_{\text{out}})$ product:
 
@@ -162,6 +162,8 @@ Mobile networks such as MobileNet cut the cost of convolutions with a <Term def=
 
 <PastPaperQuestion paper="noai2025" n={14} />
 
+<Reveal label="Going further: count each layer's cost with a PyTorch hook">
+
 In PyTorch you can count each layer's cost with a forward <Term def="A function you attach to a PyTorch layer that runs automatically every time the layer runs, and can look at its inputs and outputs.">hook</Term>, which sees the output shape:
 
 ```python
@@ -206,6 +208,8 @@ Linear  params 81,930   MACs    81,920
 
 The pattern from the KeyIdea is right there. The first conv layer has only 448 parameters but does 442,368 multiply-adds (its 432 weights re-used at $32 \times 32 = 1{,}024$ positions). The linear layer holds 94% of the model's parameters but does about one multiply-add per weight, so it is the *cheapest* layer to run.
 
+</Reveal>
+
 <ExamTip>
 
 Two conventions exist: some sources count multiply-adds, others count FLOPs, which are twice as many. If two options differ by exactly a factor of 2, that is why: check which one the question asks for. For quick arithmetic without a calculator, use powers of two: $1024 = 2^{10} \approx 10^3$, so $1024 \times 1024 \approx$ one million.
@@ -218,7 +222,7 @@ The two parts of attention grow differently. The projections, $4Td^2$, grow in p
 
 <AttentionScaling />
 
-For GPT-2 small, $d = 768$, so the crossover is at $T = 1{,}536$ tokens. At $T = 1{,}024$ the projections cost about 2.4 billion multiply-adds and the scores and weighted sum about 1.6 billion. Make the context 8 times longer, $T = 8{,}192$: the projections grow 8 times, to about 19 billion, but the $T^2$ part grows $8^2 = 64$ times, to about 103 billion.
+For GPT-2 small, $d = 768$, so the crossover is at $T = 1{,}536$ tokens. At $T = 1{,}024$, one attention layer's projections cost about 2.4 billion multiply-adds and its scores and weighted sum about 1.6 billion (GPT-2 small has 12 such layers). Make the context 8 times longer, $T = 8{,}192$ (hypothetically: GPT-2 itself stops at 1,024 tokens): the projections grow 8 times, to about 19 billion, but the $T^2$ part grows $8^2 = 64$ times, to about 103 billion.
 
 <PastPaperQuestion paper="prelim2026" n={219} />
 
@@ -243,6 +247,7 @@ Training happens once (or once a week). <Term def="Using a trained model to make
 | k-NN | almost nothing: store the data | $O(nd)$: distance to all $n$ stored points | all $n \times d$ numbers |
 | Linear or logistic regression | $O(E\,n\,d)$ for $E$ epochs of gradient descent | $O(d)$: one dot product | $d + 1$ numbers |
 | Decision tree of depth $D$ | about $O(n\,d\,D)$ | $O(D)$: $D$ yes/no questions | the tree's nodes |
+| Forest or boosted ensemble of $M$ such trees | about $M$ times one tree | $O(M D)$: every tree answers | all $M$ trees' nodes |
 | Neural network with $P$ parameters | $O(E\,n\,P)$ | $O(P)$ | $P$ numbers |
 
 k-NN is the extreme case. To classify one new point it must measure the distance to **every one** of the $n$ stored points ($d$ multiply-adds each), and only then pick the $k$ closest. With $n = 1{,}000{,}000$ and $d = 100$ that is $10^8$ operations per prediction, around 0.1 seconds on one CPU core. Logistic regression on the same data answers with 100 multiply-adds, a million times fewer.
@@ -257,7 +262,7 @@ The cheapest model to train is not always the cheapest to run. k-NN has no train
 
 <Mistake title="“k-NN only looks at k points”">
 
-It is tempting to say a k-NN prediction costs $O(kd)$ because only $k$ neighbours vote. But to know **which** $k$ points are nearest, brute-force k-NN must compute the distance to all $n$ of them first: $O(nd)$. The value of $k$ only affects the cheap final vote. Special indexes (KD-trees, or approximate nearest-neighbour libraries such as FAISS) avoid checking every point, trading a little exactness for speed.
+It is tempting to say a k-NN prediction costs $O(kd)$ because only $k$ neighbours vote. But to know **which** $k$ points are nearest, brute-force k-NN must compute the distance to all $n$ of them first: $O(nd)$. The value of $k$ only affects the cheap final vote. Special indexes avoid checking every point: KD-trees and ball trees still find the exact neighbours, but help mainly when there are few features, while approximate nearest-neighbour libraries such as FAISS trade a little exactness for large speed-ups.
 
 </Mistake>
 

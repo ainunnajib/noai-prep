@@ -124,7 +124,7 @@ const HL = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)']
 const article = (w: string) => (/^[aeiou]/.test(w) ? 'an' : 'a')
 
 function Message({ c, reveal }: { c: Case; reveal: boolean }) {
-  // split the message into plain text and numbered highlighted parts
+  // split the message into plain text and highlighted parts (no numbers inside the message: they would read as part of it)
   const pieces: ReactNode[] = []
   let rest = c.msg
   let k = 0
@@ -136,7 +136,6 @@ function Message({ c, reveal }: { c: Case; reveal: boolean }) {
       reveal ? (
         <span key={k++} style={{ background: `color-mix(in srgb, ${HL[i]} 24%, var(--surface))`, borderBottom: `2px solid ${HL[i]}`, borderRadius: 3, padding: '0 2px', color: 'var(--ink)' }}>
           {p.match}
-          <sup style={{ fontFamily: 'var(--font-body)', fontWeight: 800, color: HL[i], marginLeft: 1 }}>{i + 1}</sup>
         </span>
       ) : (
         <span key={k++}>{p.match}</span>

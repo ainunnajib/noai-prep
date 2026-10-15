@@ -38,7 +38,7 @@ tensor(12.) tensor(4.) None
 
 Three new words appear here:
 
-- A <Term def="A tensor you created directly (not the result of an operation), such as a weight. Only leaves that require grad get their .grad filled in by backward().">leaf</Term> is a tensor you made yourself, like `w`, rather than the result of an operation. `w.is_leaf` is `True`.
+- A <Term def="A tensor that is not the output of a recorded operation: one you created yourself (like a weight or the data), or any tensor that does not require grad. Only leaves that require grad get their .grad filled in by backward().">leaf</Term> is a tensor that no recorded operation produced, such as `w`, which you made yourself. `w.is_leaf` is `True`.
 - `grad_fn` is the recorded operation that produced a tensor. `L.grad_fn` is `PowBackward0`, the "square" node; it knows how to send a gradient backwards through a square. Tensors you make yourself have `grad_fn=None`.
 - `.grad` is where `backward()` puts $\frac{\partial L}{\partial \text{leaf}}$. Before `backward()` it is `None`. Afterwards `w.grad` is 12 and `b.grad` is 4, and `x.grad` stays `None` because `x` never asked for a gradient.
 
@@ -77,7 +77,7 @@ Each factor is the local derivative of one recorded node; $e$ and $x$ are the va
 
 <KeyIdea>
 
-`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the job of the <Term def="The object that updates the weights. For plain gradient descent it does w -= lr * w.grad for every weight. You will build one in the training-loop lesson.">optimiser</Term>, with `optimizer.step()` (PyTorch spells it the American way, `optimizer`, in code).
+`loss.backward()` computes $\frac{\partial\, \text{loss}}{\partial\, \text{leaf}}$ for every leaf with `requires_grad=True` and stores it in that leaf's `.grad`. It does **not** change any weight. Changing the weights is the job of the <Term def="The object that updates the weights. For plain gradient descent it does w -= lr * w.grad for every weight. You will use one in the training-loop lesson.">optimiser</Term>, with `optimizer.step()` (PyTorch spells it the American way, `optimizer`, in code).
 
 </KeyIdea>
 
@@ -91,9 +91,9 @@ Each factor is the local derivative of one recorded node; $e$ and $x$ are the va
 
 <QuickCheck
   q="`w = torch.tensor(1.0, requires_grad=True)`, then `L = (3 * w) ** 2` and `L.backward()`. What is `w.grad`?"
-  options={['tensor(18.)', 'tensor(9.)', 'tensor(6.)', 'None']}
+  options={['tensor(18.)', 'tensor(9.)', 'tensor(6.)', '`None`: `backward()` fills only `L.grad`']}
   answer={0}
-  explain="$L = (3w)^2 = 9w^2$, so $\frac{dL}{dw} = 18w = 18$ at $w = 1$. Equivalently, the square gives $2 \times 3w = 6$ and the multiply by 3 gives $6 \times 3 = 18$. 9 is the value of $L$ itself, and 6 forgets the inner factor of 3."
+  explain="$L = (3w)^2 = 9w^2$, so $\frac{dL}{dw} = 18w = 18$ at $w = 1$. Equivalently, the square gives $2 \times 3w = 6$ and the multiply by 3 gives $6 \times 3 = 18$. 9 is the value of $L$ itself, and 6 forgets the inner factor of 3. `backward()` fills the `.grad` of the leaves that require grad, such as `w`, not of `L`."
 />
 
 ## Gradients accumulate
@@ -126,23 +126,21 @@ tensor(0.) None
 
 Accumulation across `backward()` calls is deliberate: it lets you add up the gradients of several small batches before taking one step (*gradient accumulation*, in the training-loop lesson). The price is that **you** must clear `.grad` before each new training step. In a training loop that is `optimizer.zero_grad()`, which sets every parameter's `.grad` back to `None`. (Separately, within one backward pass a weight used in two places already gets the sum of both contributions, by the chain rule.)
 
-<PastPaperQuestion paper="prelim2026" n={115} />
-
 <GradAccumulationCounter />
 
 <Mistake title="Forgetting zero_grad">
 
-Without zeroing, step 10 updates the weights with the sum of the gradients from steps 1 to 10, most of them computed for weights that no longer exist. No error is raised; the steps just get bigger and point in stale directions. In the experiment below, the loss bounces around instead of falling.
+Without zeroing, step 10 updates the weights with the sum of the gradients from steps 1 to 10, most of them computed for weights that no longer exist. No error is raised; the steps just get bigger and point in stale directions. In the gradient-descent experiment further down, the loss bounces around instead of falling.
 
 </Mistake>
 
-There is one case where a repeated `backward()` usually *does* raise an error: calling it twice on the **same** loss, without a new forward pass. The first `backward()` frees the values the graph saved (any multiplication or power saves some), so the second one fails with `RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)…`. Passing `retain_graph=True` to the first call keeps them, but you will rarely need that.
+<PastPaperQuestion paper="prelim2026" n={115} />
 
-<PastPaperQuestion paper="prelim2026" n={110} />
+There is one case where a repeated `backward()` usually *does* raise an error: calling it twice on the **same** loss, without a new forward pass. The first `backward()` frees the values the graph saved (any multiplication or power saves some), so the second one fails with `RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)…`. Passing `retain_graph=True` to the first call keeps them, but you will rarely need that.
 
 ### Gradient descent with autograd
 
-Put the pieces together and you have the core of every NOAI Final "implement training from scratch in PyTorch" task. The data were made with $y = 2x + 1$, so the model should learn $w \approx 2$ and $b \approx 1$:
+Put the pieces together and you have the core of a typical NOAI Final "implement training from scratch in PyTorch" task. The data were made with $y = 2x + 1$, so the model should learn $w \approx 2$ and $b \approx 1$:
 
 ```python
 import torch
@@ -192,7 +190,7 @@ step 200  loss 2.2811  w 4.249  b 1.478
 
 Check the first step by hand: with $w = b = 0$ every prediction is 0, the errors are $-3, -5, -7, -9$, and the loss is $\frac{9 + 25 + 49 + 81}{4} = 41$. The gradient for $w$ is the mean of $2 \times \text{error} \times x$, which is $\frac{2(-3 - 10 - 21 - 36)}{4} = -35$, so $w$ becomes $0 - 0.05 \times (-35) = 1.75$, exactly as printed.
 
-Notice `with torch.no_grad():` around the update. The update is bookkeeping, not part of the model's calculation, so it must not be recorded; without it, PyTorch stops with `RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.`
+Notice `with torch.no_grad():` around the update. A `with X:` line switches X on for the indented lines underneath it and switches it off again afterwards. The update is bookkeeping, not part of the model's calculation, so it must not be recorded; without it, PyTorch stops with `RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.`
 
 ## Switching tracking off
 
@@ -245,7 +243,7 @@ Track only what you will differentiate. Use `torch.no_grad()` for evaluation, `.
 <QuickCheck
   q="A validation loop runs `total += loss_fn(model(x), y)` for every batch, without `torch.no_grad()`, and GPU memory grows with every batch until it crashes. What is the best fix?"
   options={[
-    'Wrap the loop in `torch.no_grad()` and add `loss.item()` to the total',
+    'Use `torch.no_grad()` and add `loss.item()` to the total',
     'Call `optimizer.zero_grad()` at the start of every validation batch',
     'Call `loss.backward()` after each batch so the graph is freed',
     'Call `model.eval()` before the loop and change nothing else',

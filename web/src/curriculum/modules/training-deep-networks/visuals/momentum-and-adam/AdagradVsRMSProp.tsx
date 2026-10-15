@@ -55,7 +55,8 @@ export default function AdagradVsRMSProp() {
           The step each rule would take, divided by the learning rate η, on a log scale (each grid line is 10 times the one below). Grey
           is plain SGD, whose step just follows the gradient. <b>Adagrad</b> divides by the square root of the <i>sum</i> of all past squared
           gradients, which only ever grows, so its steps shrink for ever; after the gradient drops at step {SWITCH} it all but stops.{' '}
-          <b>RMSProp</b> divides by a moving average instead, so within a few dozen steps it is back to steps of about η. Its very first steps
+          <b>RMSProp</b> divides by a moving average instead, so within about 60 to 70 steps (at ρ = 0.9; faster with a smaller ρ) it is
+          back to steps of about η. Its very first steps
           are too big because its average starts at 0 (Adam&apos;s bias correction fixes that). Try the other gradient patterns and ρ.
         </>
       }

@@ -45,6 +45,7 @@ interface Run {
   loss: number[]
   norm: number[]
   clipped: number
+  clippedAt: number[]
 }
 
 function run(c: number | null): Run {
@@ -53,6 +54,7 @@ function run(c: number | null): Run {
   const loss: number[] = []
   const norm: number[] = []
   let clipped = 0
+  const clippedAt: number[] = []
   for (let t = 0; t <= T; t++) {
     loss.push(0.5 * (w1 * w1 + 4 * w2 * w2))
     if (t === T) break
@@ -66,11 +68,14 @@ function run(c: number | null): Run {
     const n = Math.hypot(g1, g2)
     norm.push(n)
     const f = c !== null && n > c ? c / n : 1
-    if (f < 1) clipped++
+    if (f < 1) {
+      clipped++
+      clippedAt.push(t)
+    }
     w1 -= LR * f * g1
     w2 -= LR * f * g2
   }
-  return { loss, norm, clipped }
+  return { loss, norm, clipped, clippedAt }
 }
 
 const stepsTo = (loss: number[], th = 0.1) => {
@@ -104,6 +109,10 @@ export default function SpikeClipping() {
   const worstBase = worstAfter(BASE.loss)
   const worstMine = worstAfter(res.loss)
   const pctClipped = (100 * res.clipped) / T
+  // clipped steps that are neither part of the opening run of large early gradients nor a bad batch
+  let earlyRun = 0
+  while (res.clippedAt[earlyRun] === earlyRun) earlyRun++
+  const ordinaryClipped = res.clippedAt.filter((t) => t >= earlyRun && !SPIKE_VEC.has(t)).length
 
   let tone: 'good' | 'bad' | 'warn' | 'plain' = 'plain'
   let msg: string
@@ -116,6 +125,9 @@ export default function SpikeClipping() {
   } else if (worstMine > 1) {
     tone = 'warn'
     msg = `max_norm ${fmtC(c)} is so high that the bad batches still get through partly: the worst jump is to ${worstMine.toFixed(1)} (versus ${worstBase.toFixed(0)} without clipping). Lower the threshold towards the typical gradient size.`
+  } else if (ordinaryClipped > 0) {
+    tone = 'warn'
+    msg = `The spikes are tamed (worst loss ${worstMine.toFixed(2)} instead of ${worstBase.toFixed(0)}), but ${ordinaryClipped} ordinary step${ordinaryClipped > 1 ? 's are' : ' is'} clipped too, on top of the first ${earlyRun} (large but honest gradients) and the three bad batches. Raise the threshold a little so that normal steps pass untouched.`
   } else {
     tone = 'good'
     msg = `Only ${res.clipped} of ${T} steps are clipped: the first few (large but honest gradients) and the three bad batches. The spikes barely move the loss (worst ${worstMine.toFixed(2)} instead of ${worstBase.toFixed(0)}), and ordinary steps are left exactly as they were.`

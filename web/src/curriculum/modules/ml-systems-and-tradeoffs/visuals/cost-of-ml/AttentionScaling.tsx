@@ -73,7 +73,7 @@ export default function AttentionScaling() {
       caption={
         <>
           Left, drawn to scale: the query matrix Q has T × d numbers, but the score matrix has T × T, one score for every pair of tokens. Right: the work in one attention layer. The
-          projections (blue line) grow in proportion to T, the scores and weighted sum (orange curve) grow with T². Drag T past the dashed line at T = 2d and the orange part takes over:
+          projections (blue line) grow in proportion to T, the scores and weighted sum (orange curve) grow with T², and the dashed curve is their total. Drag T past the dashed line at T = 2d and the orange part takes over:
           doubling T then roughly quadruples the cost. Try a small width d to see the crossover come much earlier.
         </>
       }

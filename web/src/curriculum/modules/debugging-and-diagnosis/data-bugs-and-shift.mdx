@@ -21,7 +21,7 @@ If the classes are not equally common, the baseline is the share of the **most c
 
 </Note>
 
-Chance level has a twin for the loss. A freshly initialised classifier that spreads its probability evenly gives each class $1/K$, so its cross-entropy loss is $-\log(1/K) = \ln K$: about $\ln 10 \approx 2.30$ for ten classes. If validation accuracy is stuck at $1/K$ and validation loss is stuck near $\ln K$, the model's validation predictions carry no information at all.
+Chance level has a twin for the loss. A freshly initialised classifier that spreads its probability evenly gives each class $1/K$, so its cross-entropy loss is $-\log(1/K) = \ln K$: about $\ln 10 \approx 2.30$ for ten classes. If validation accuracy is stuck at $1/K$ and validation loss is stuck near $\ln K$, the model's validation predictions carry no information at all. With a pipeline bug, though, the trained model is still confident, so its validation loss is usually far *above* $\ln K$ (confidently wrong), even while accuracy sits at $1/K$.
 
 <Analogy title="The wrong answer key">
 
@@ -75,9 +75,9 @@ Training notebooks divide pixels by 255; the phone app forgets. Training images 
 
 <QuickCheck
   q="A 4-class model reaches training loss 0.05. Validation accuracy is 24.8% and every validation prediction is class 2. What is the most likely cause?"
-  options={['Validation inputs are preprocessed differently from training inputs', 'The model is overfitting and needs more dropout', 'The learning rate is too low to reach the validation set', 'The model needs more layers to separate four classes']}
+  options={['Validation inputs are preprocessed differently from training ones', 'The model is overfitting and needs more dropout and weight decay', 'The learning rate is too low, so the model has not finished learning', 'The model needs more layers to tell the four classes apart']}
   answer={0}
-  explain="Chance for 4 balanced classes is $1/4 = 25\%$, and predicting one class for everything gives exactly that. A model that fits training data this well but gives one answer for every validation input is being fed inputs unlike anything it trained on: a preprocessing mismatch. Overfitting would still leave validation accuracy well above 25%."
+  explain="Chance for 4 balanced classes is $1/4 = 25\%$, and predicting one class for everything gives exactly that. A model that fits training data this well but gives one answer for every validation input is being fed inputs unlike anything it trained on: a preprocessing mismatch. Overfitting would still leave validation accuracy well above 25%, and a training loss of 0.05 shows that neither the learning rate nor the model's size is holding it back."
 />
 
 <PastPaperQuestion paper="prelim2026" n={273} />
@@ -101,7 +101,7 @@ The leaky version reports about 79% on random noise. Choosing the 10 features mo
 
 <QuickCheck
   q="Before splitting, you fill missing values with each column's mean computed over the whole dataset, then split 80/20. What is wrong?"
-  options={['The test rows helped compute the means, so a little test information leaked into training', 'Nothing: the mean is a summary statistic, so it cannot carry any information', 'Means should be replaced by medians, which are always the correct choice', 'Filling missing values always lowers accuracy, so the rows should be dropped']}
+  options={['Test rows helped compute the means, but such statistics must come from training rows only', 'Nothing: the mean is a summary statistic, so it cannot carry any information', 'Means should be replaced by medians, which are always the right choice for missing values', 'Filling in missing values always lowers accuracy, so those rows should be dropped instead']}
   answer={0}
   explain="Any statistic learned from data (a mean, a scaler's standard deviation, a vocabulary, a feature selection) is part of the model, so it must be learned from the training rows only. Computing it over all rows lets the test set influence training. The leak is small for a mean, but huge for feature selection, as the code above shows."
 />
@@ -120,7 +120,7 @@ When either one changes between training and deployment, that is <Term def="Any 
 
 <Analogy title="Dry season, then monsoon">
 
-A weather model trained only on Singapore's drier months has never seen a monsoon surge. When the northeast monsoon arrives, the inputs (wind direction, humidity) move into territory the model never saw: covariate shift. If climate change also alters what a given pattern of wind and humidity *leads to*, the rule itself has drifted: concept drift.
+A weather model trained only on Singapore's drier months has never seen a monsoon surge. When the northeast monsoon arrives, the inputs (wind direction, humidity) move into territory the model never saw: covariate shift. If, instead, the same wind and humidity started to bring different weather from before, the rule itself would have drifted: concept drift.
 
 </Analogy>
 
@@ -135,6 +135,8 @@ Two lessons from the visual. First, covariate shift hurts because the model must
 </KeyIdea>
 
 <PastPaperQuestion paper="prelim2026" n={300} />
+
+Real shifts often mix both kinds. When a question lists changed input statistics (average income, age, the share of gig workers), the expected answer is covariate shift: the inputs moved. Save "concept drift" for when the inputs stay the same and only the outcome for a given input changes.
 
 In practice you **monitor** a deployed model: input statistics, the share of each prediction (a model that approved 40% of loans and now approves 30% is telling you something), and accuracy on fresh labelled samples whenever they arrive. Then retrain on recent data on a schedule, or whenever the monitors fire.
 

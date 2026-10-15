@@ -38,7 +38,7 @@ const REGIME: Record<Regime, { label: string; colour: string; text: string }> = 
   edge: { label: 'on the edge', colour: 'var(--viz-6)', text: 'Fastest start of all, but the curve has started to twitch upwards now and then. Any higher and it bounces.' },
   bouncy: { label: 'too high', colour: 'var(--viz-2)', text: 'Steps overshoot the bottom of the valley: the loss jumps up and down instead of settling.' },
   wild: { label: 'far too high', colour: 'var(--viz-neg)', text: 'Wild jumps to huge values (far off the top of the chart). Training is not converging at all.' },
-  explodes: { label: 'diverges', colour: 'var(--viz-neg)', text: 'Every step overshoots by more than the last: the loss grows exponentially and overflows to infinity (NaN) within a few steps.' },
+  explodes: { label: 'diverges', colour: 'var(--viz-neg)', text: 'Every step overshoots by more than the last: the loss grows exponentially. Left alone it would overflow to inf and then become NaN.' },
 }
 
 // points up to where the curve first leaves the top of the chart; that last point is drawn at the top edge, so a
@@ -84,7 +84,7 @@ export default function LRCurveFamily() {
   const run = runs[k]
   const reg = REGIME[regimes[k]]
   const lr = lrOf(k)
-  const finalLoss = run.divergedAt !== null ? 'NaN' : run.full[STEPS].toFixed(3)
+  const finalLoss = run.divergedAt !== null ? '> 10⁶ (stopped)' : run.full[STEPS].toFixed(3)
   const exit = mode === 'explore' ? exitOf(run) : null
   const startNewMystery = () => {
     nextRound()
@@ -139,7 +139,7 @@ export default function LRCurveFamily() {
         {exit && (
           <Label x={exit.step} y={Y_TOP} dx={exit.step < STEPS / 2 ? 6 : -6} dy={34} anchor={exit.step < STEPS / 2 ? 'start' : 'end'} color={reg.colour} size={12} weight={700}>
             {run.divergedAt !== null
-              ? `↑ ${fmtBig(exit.peak)} by step ${run.divergedAt}, then NaN`
+              ? `↑ ${fmtBig(exit.peak)} by step ${run.divergedAt}, then stopped`
               : `↑ off the chart from step ${exit.step} (up to ${fmtBig(exit.peak)})`}
           </Label>
         )}

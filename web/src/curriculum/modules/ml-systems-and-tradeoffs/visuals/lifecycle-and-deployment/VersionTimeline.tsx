@@ -170,7 +170,7 @@ export default function VersionTimeline() {
               <div style={{ fontWeight: 800, color: 'var(--ink)' }}>
                 Week {week}: {g.title}
               </div>
-              <ul style={{ margin: '4px 0', paddingLeft: '1.1rem' }}>
+              <ul style={{ margin: '4px 0', paddingLeft: 0, listStyle: 'none' }}>
                 {g.needs.map((a) => (
                   <li key={a} style={{ color: has(a, week) ? 'var(--ok)' : 'var(--bad)', fontWeight: 650 }}>
                     {has(a, week) ? '✓' : '✗'} {NAME[a]}

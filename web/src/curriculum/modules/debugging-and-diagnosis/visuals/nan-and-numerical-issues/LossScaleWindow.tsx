@@ -4,8 +4,8 @@ import { f16, F16_MAX, F16_MIN_NORMAL, F16_MIN_SUB, show } from './num'
 import s from './nan.module.css'
 
 /*
-  Mixed-precision training stores gradients in float16, which can only hold positive numbers from
-  about 6e-8 (smaller ones round to 0) up to 65504 (bigger ones become inf).
+  Mixed-precision training runs much of the backward pass in float16, which can only hold positive
+  numbers from about 6e-8 (smaller ones round to 0) up to 65504 (bigger ones become inf).
   48 typical gradient sizes (log-normal around 2.5e-8) are drawn on a log axis. Multiplying the loss
   by S multiplies every gradient by S (chain rule), sliding the whole cloud right.
   S too small: many gradients underflow to 0, so those weights silently stop learning.
@@ -30,7 +30,8 @@ function gradients(): number[] {
 
 const LO = -12
 const HI = 8
-const fmtTick = (v: number) => (v === 0 ? '1' : `1e${v}`)
+const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
+const fmtTick = (v: number) => (v === 0 ? '1' : `10${[...String(v)].map((c) => SUP[c] ?? c).join('')}`)
 
 export default function LossScaleWindow() {
   const [k, setK] = useState(0)
@@ -75,7 +76,7 @@ export default function LossScaleWindow() {
           Grey dots: true gradient sizes (tiny, mostly between <M>{'10^{-10}'}</M> and <M>{'10^{-5}'}</M>). Coloured dots: the same gradients after multiplying the loss
           by <M>S</M>, stored in float16. At <M>S = 1</M>, red crosses have underflowed to 0. Slide <M>S</M> up: the whole cloud moves right
           into the shaded window. Push it too far and the top ones overflow to inf. The default in PyTorch's GradScaler is{' '}
-          <M>{'S = 2^{16} = 65\\,536'}</M>.
+          <M>S</M> = 2¹⁶ = 65,536.
         </>
       }
     >
@@ -110,7 +111,7 @@ export default function LossScaleWindow() {
           <i className={s.sw} style={{ background: 'var(--viz-1)', borderColor: 'var(--viz-1)' }} /> stored normally
         </span>
         <span>
-          <i className={s.sw} style={{ background: 'var(--surface)', borderColor: 'var(--viz-2)' }} /> subnormal: kept, but with fewer digits
+          <i className={s.sw} style={{ background: 'var(--surface)', borderColor: 'var(--viz-2)' }} /> subnormal (below float16's normal range): kept, but with fewer digits
         </span>
         <span>
           <b className={s.crossMark}>×</b> lost: rounded to 0 or to inf

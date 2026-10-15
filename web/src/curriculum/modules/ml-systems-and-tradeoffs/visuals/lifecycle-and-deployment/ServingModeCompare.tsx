@@ -105,7 +105,7 @@ export default function ServingModeCompare() {
       caption={
         <>
           Pick a use case, then flip between <b>batch</b> (one scheduled job at 02:00) and <b>real-time</b> (a server that is always on). Each dot on the top row is a request; the line drops to
-          when its prediction is ready. Notice that batch fails exactly when the input <i>only exists at request time</i>, and that real-time always works but costs 24 machine-hours a day.
+          when its prediction is ready. Notice that batch fails exactly when the input <i>only exists at request time</i>, and that real-time always works but keeps a server running 24 hours a day.
           (Times and costs are round illustrative numbers.)
         </>
       }
@@ -226,7 +226,7 @@ export default function ServingModeCompare() {
           ['required', s.limit],
           ['slowest answer', live ? '≈ 0.05 s' : s.inputAhead ? (scn === 'report' ? '6 h early' : 'instant (lookup)') : `${worst.toFixed(1)} h`],
           ['uses data from', live ? 'right now' : 'last night'],
-          ['compute paid', live ? '24 machine-h / day' : '≈ 1 machine-h / day'],
+          ['compute paid', scn === 'report' ? (live ? '168 machine-h / week' : '≈ 1 machine-h / week') : live ? '24 machine-h / day' : '≈ 1 machine-h / day'],
         ]}
       />
     </Figure>

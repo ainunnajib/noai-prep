@@ -116,7 +116,7 @@ export default function BatchSizePaths() {
       caption={
         <>
           You are looking down on the loss of a line fit with two parameters, <i>w</i> and <i>b</i>; the cross marks the minimum. All three
-          runs use the same learning rate (0.1) and start at the dark dot (drag it). With the <b>same number of steps</b>, the full-batch path
+          runs use the same learning rate (0.1) and start at the dot labelled start (drag it). With the <b>same number of steps</b>, the full-batch path
           is smooth and SGD is jumpy, yet all three reach the valley. Now switch to the <b>same compute</b>: one full-batch step costs as much
           as 200 SGD steps, so with a budget of 2 epochs the full batch has taken only 2 steps while SGD is already rattling around the
           minimum. Try <b>New random batches</b> to see that the noise changes but the destination does not.
@@ -124,14 +124,14 @@ export default function BatchSizePaths() {
       }
     >
       <Segmented
-        label="Compare after"
+        label="Give every run"
         value={mode}
         onChange={(m) => {
           setMode(m)
           stopAnim()
         }}
         options={[
-          { value: 'steps', label: 'the same number of steps' },
+          { value: 'steps', label: 'the same steps' },
           { value: 'compute', label: 'the same compute' },
         ]}
       />

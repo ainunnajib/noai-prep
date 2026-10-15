@@ -37,7 +37,7 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.training-loop.4',
     prompt: 'A student validates a model that contains Dropout, wrapping the code in `with torch.no_grad():` but never calling `model.eval()`. What happens?',
     options: [
-      'Dropout stays on, so the validation scores are noisy and unreliable',
+      'Dropout stays on, so every validation run gives different, noisy scores',
       '`torch.no_grad()` switches the model into eval mode, so the results are correct',
       'PyTorch raises an error because Dropout cannot run without gradients',
       'The weights keep being updated during validation because the model is in train mode',
@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      '$16 \\times 4 = 64$, so accumulate 4 micro-batches and divide each mean loss by 4 so the summed gradient equals the mean over 64 examples. Without the division the gradient is 4 times too large. Zeroing before every `backward()` would throw away the first three micro-batches, leaving an ordinary batch of 16.',
+      '$16 \\times 4 = 64$, so accumulate 4 micro-batches and divide each mean loss by 4 so the summed gradient equals the mean over 64 examples. Without the division the gradient is 4 times too large. Zeroing before every `backward()` throws away the first three micro-batches, so each step uses only the last micro-batch’s gradient, still divided by 4: a batch of 16 at a quarter of the step size.',
     difficulty: 'advanced',
   },
 ]

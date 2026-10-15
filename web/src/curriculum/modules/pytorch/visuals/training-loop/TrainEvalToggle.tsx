@@ -169,13 +169,11 @@ export default function TrainEvalToggle() {
             <Dots key={i} points={[{ x: g.x, y: rowY(g.train), r: 10.5, hollow: true, color: 'var(--ink)' }]} />
           ))}
         <Dots points={groups.map((g) => ({ x: g.x, y: rowY(g.train), r: 6, color: g.train ? 'var(--viz-2)' : 'var(--viz-1)' }))} />
-        {groups
-          .filter((g) => g.n > 1)
-          .map((g, i) => (
-            <Label key={i} x={g.x} y={rowY(g.train)} dx={12} dy={-8} size={12} weight={700} color="var(--ink)">
-              ×{g.n}
-            </Label>
-          ))}
+        {countLabels(groups).map(({ g, below }, i) => (
+          <Label key={i} x={g.x} y={rowY(g.train)} dx={12} dy={below ? 17 : -8} size={12} weight={700} color="var(--ink)">
+            ×{g.n}
+          </Label>
+        ))}
       </Plot>
 
       <Controls>
@@ -205,4 +203,23 @@ export default function TrainEvalToggle() {
       />
     </Figure>
   )
+}
+
+/** Count labels for repeated outputs. Two labelled dots close together in one row (say 1.64 and 1.67) would print their
+ *  labels on top of each other, so every second label in a crowded run goes below its dot instead. */
+function countLabels<G extends { x: number; train: boolean; n: number }>(groups: G[]) {
+  const out: { g: G; below: boolean }[] = []
+  for (const train of [true, false]) {
+    let lastX = -Infinity
+    let below = false
+    groups
+      .filter((g) => g.n > 1 && g.train === train)
+      .sort((a, b) => a.x - b.x)
+      .forEach((g) => {
+        below = g.x - lastX < 0.45 ? !below : false
+        lastX = g.x
+        out.push({ g, below })
+      })
+  }
+  return out
 }

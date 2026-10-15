@@ -116,8 +116,14 @@ function narration(src: Src, fix: boolean, step: number): ReactNode {
     )
   return (
     <>
-      The next batch is perfectly clean, yet every activation and the loss are nan, because the weights are. Training never recovers.
-      Notice that the check table now blames <b>layer 1</b>: by now, the last nan tells you nothing about the cause.
+      The next batch is perfectly clean, yet every activation and the loss are nan, because the weights are. Training never recovers.{' '}
+      {src === 'div0' ? (
+        <>Here the check table happens to point at layer 1, the real source, but only because the first bad value was there too.</>
+      ) : (
+        <>
+          Notice that the check table now blames <b>layer 1</b>: by now, the last nan tells you nothing about the cause.
+        </>
+      )}
     </>
   )
 }
@@ -195,7 +201,7 @@ export default function NaNPropagation() {
       title="Watch one bad value take over a network"
       caption={
         <>
-          Pick where the first bad value comes from and press <b>Replay</b>; use <b>Back</b>/<b>Next</b> to go one step at a time. Watch
+          Pick where the first bad value comes from and press <b>Replay</b> (or <b>Play</b>); use <b>Back</b>/<b>Next</b> to go one step at a time. Watch
           the colour spread forward to the loss, backward into every gradient, then into every weight. Then switch on the fix and replay.
           Compare the check table at the last step with the one at step 2: only the first bad value points at the real cause.
         </>
@@ -364,8 +370,12 @@ export default function NaNPropagation() {
           </div>
         </div>
         <p className={s.small}>
-          Real source: <b>{sourceLabel[src]}</b> in <b>{GROUPS[srcGroup]}</b>.
-          {step === 5 && !fix && srcGroup !== 1 ? <> The table above now blames layer 1: the latest nan hides the real cause.</> : null} In PyTorch,
+          {step === 5 && (
+            <>
+              Real source: <b>{sourceLabel[src]}</b> in <b>{GROUPS[srcGroup]}</b>.{' '}
+            </>
+          )}
+          {step === 5 && !fix && srcGroup !== 1 ? <>The table above now blames layer 1: the latest nan hides the real cause. </> : null}In PyTorch,
           checking <code className={s.code}>torch.isfinite(out).all()</code> after each layer prints this table.
         </p>
       </div>

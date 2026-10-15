@@ -246,8 +246,11 @@ export default function DimPicker() {
           {SHAPE.map((s, i) => (
             <span key={i} className={css.chip} style={{ color: i === dim ? 'var(--accent)' : 'var(--viz-muted)' }}>
               <span className={css.chipNum}>{s}</span>
-              <span className={css.chipName}>{sc.names[i]}</span>
-              <span className={css.chipName} style={{ opacity: 0.8, whiteSpace: 'nowrap' }}>
+              {/* names in ink, not the muted border colour, so they stay readable in dark mode */}
+              <span className={css.chipName} style={i === dim ? undefined : { color: 'var(--ink-2)' }}>
+                {sc.names[i]}
+              </span>
+              <span className={css.chipName} style={{ whiteSpace: 'nowrap', ...(i === dim ? {} : { color: 'var(--ink-2)' }) }}>
                 dim {i}
                 {i === 2 && !narrow ? ' / -1' : ''}
               </span>
@@ -334,6 +337,7 @@ function Grid({
       <div className={css.mono} style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--ink-2)' }}>
         {label}
       </div>
+      {onPick && <div style={{ fontSize: '0.78rem', color: 'var(--ink-3)', marginTop: -2 }}>Tap any result cell to see which numbers made it</div>}
       <div className={css.stage} style={{ width: lay.width, height: lay.height }}>
         {lay.sheetLabels.map((l, j) => (
           <span key={j} className={css.sheetLabel} style={{ transform: `translate(${l.x}px, ${l.y}px)`, transition: 'none' }}>
@@ -360,7 +364,7 @@ function Grid({
                 background: `color-mix(in srgb, ${c} ${hit ? 30 : 12}%, var(--surface))`,
                 border: hit ? '2.5px solid var(--viz-2)' : `1px solid color-mix(in srgb, ${c} 45%, var(--surface))`,
                 opacity: anyFocus && !hit ? 0.6 : 1,
-                fontSize: b.w >= 34 ? 11.5 : b.w >= 28 ? 10.5 : 9.5,
+                fontSize: b.w >= 34 ? 11.5 : 11,
                 cursor: onPick ? 'pointer' : undefined,
                 padding: 0,
                 fontFamily: 'var(--font-mono)',

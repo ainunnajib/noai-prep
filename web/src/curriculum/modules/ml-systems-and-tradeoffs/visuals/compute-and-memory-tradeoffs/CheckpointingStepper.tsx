@@ -74,6 +74,8 @@ export default function CheckpointingStepper() {
   const f = frames[Math.min(player.step, frames.length - 1)]
   const peak = Math.max(...frames.map((x) => x.mem))
   const totalExtra = frames[frames.length - 1].extra
+  // memory bar: kept activations and checkpoints in blue, recomputed ones in orange
+  const nKept = f.act.filter((a) => a === 'kept' || a === 'ckpt').length
 
   const [ref, measured] = useContainerWidth<HTMLDivElement>(560)
   const W = Math.max(300, Math.min(640, measured))
@@ -93,7 +95,7 @@ export default function CheckpointingStepper() {
       title="Activation checkpointing: store less, recompute the rest"
       caption={
         <>
-          A network of 16 layers; each square above a layer is its output (one unit of memory). Choose how often to keep a checkpoint and press Play. Grey outlines were thrown away after
+          A network of 16 layers; each square above a layer is its output (one unit of memory). Choose how often to keep a checkpoint and press Play. Blue squares marked ▼ are the checkpoints kept; grey outlines were thrown away after
           use; orange ones are recomputed during the backward pass. The bar at the bottom is memory in use, with the peak marked. Notice that checkpointing every 4 layers keeps the peak at{' '}
           <b>7</b> units instead of 16, for 12 extra layer-forwards, which is three quarters of one forward pass.
         </>
@@ -142,7 +144,7 @@ export default function CheckpointingStepper() {
                   }}
                 />
                 {(!narrow || i % 4 === 0 || i === 1) && (
-                  <text x={x0(i) + bw / 2} y={yLayer + 13} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: narrow ? 10 : 11, fontWeight: 700 }}>
+                  <text x={x0(i) + bw / 2} y={yLayer + 13} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: narrow ? 11 : 12, fontWeight: 700 }}>
                     {i}
                   </text>
                 )}
@@ -161,7 +163,7 @@ export default function CheckpointingStepper() {
               height={16}
               rx={3}
               style={{
-                fill: k < f.mem ? 'color-mix(in srgb, var(--viz-1) 65%, var(--surface))' : 'var(--surface-2)',
+                fill: k < nKept ? 'color-mix(in srgb, var(--viz-1) 65%, var(--surface))' : k < f.mem ? 'color-mix(in srgb, var(--viz-2) 70%, var(--surface))' : 'var(--surface-2)',
                 stroke: 'var(--rule)',
                 strokeWidth: 1,
               }}

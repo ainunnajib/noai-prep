@@ -92,10 +92,12 @@ Now **forget `zero_grad()`**. The second `backward()` adds $-5$ onto the $-10$ a
 ```python
 x = torch.tensor([[1.0], [2.0]])
 y = torch.tensor([[2.0], [4.0]])
-# (model, criterion, optimizer as above, with the weight set to 0)
+# model, criterion and optimizer as above, then:
+with torch.no_grad():
+    model.weight.zero_()               # start from w = 0
 
 for step in range(3):
-    optimizer.zero_grad()              # delete this line for the second run
+    optimizer.zero_grad()              # second run: rebuild from model = ..., then delete this line
     outputs = model(x)
     loss = criterion(outputs, y)
     loss.backward()
@@ -105,20 +107,33 @@ for step in range(3):
     print(f"step {step+1}: loss {loss.item():.3f}, grad {g:.2f}, new w {w:.2f}")
 ```
 
-<CodeBlock language="text" title="output: with zero_grad()" code={`step 1: loss 10.000, grad -10.00, new w 1.00
+<Tabs>
+  <Tab label="With zero_grad()">
+
+```text
+step 1: loss 10.000, grad -10.00, new w 1.00
 step 2: loss 2.500, grad -5.00, new w 1.50
-step 3: loss 0.625, grad -2.50, new w 1.75`} />
+step 3: loss 0.625, grad -2.50, new w 1.75
+```
 
-<CodeBlock language="text" title="output: zero_grad() deleted" code={`step 1: loss 10.000, grad -10.00, new w 1.00
+  </Tab>
+  <Tab label="zero_grad() deleted">
+
+```text
+step 1: loss 10.000, grad -10.00, new w 1.00
 step 2: loss 2.500, grad -15.00, new w 2.50
-step 3: loss 0.625, grad -12.50, new w 3.75`} />
+step 3: loss 0.625, grad -12.50, new w 3.75
+```
 
-Without `zero_grad()` the weight overshoots to 2.5 and then runs away to 3.75, because every step still carries the old gradients. (`loss.item()` turns a one-number tensor into a plain Python number, the right way to print or log a loss.)
+  </Tab>
+</Tabs>
+
+Without `zero_grad()` the weight overshoots to 2.5 and then runs away to 3.75, because every step still carries the old gradients. Step 3's loss is 0.625 in both runs only by coincidence: $w = 1.5$ and $w = 2.5$ are both 0.5 away from the perfect 2. (`loss.item()` turns a one-number tensor into a plain Python number, the right way to print or log a loss.)
 
 <Mistake title="Two silent killers">
 
 - **Missing `zero_grad()`**: no error, but gradients from every earlier batch pile up, so training is erratic or diverges.
-- **`zero_grad()` between `backward()` and `step()`**, or `step()` before `backward()` right after `zero_grad()`: no error, but `step()` always finds `.grad` empty, so the weights never move. The loss stays flat.
+- **`zero_grad()` placed between `backward()` and `step()`**, or `step()` placed anywhere between `zero_grad()` and `backward()`: no error, but `step()` always finds `.grad` empty, so the weights never move. The loss stays flat.
 
 Neither raises an error, which is why exam questions love them. When the loss will not budge, read the order of these five lines first.
 
@@ -187,6 +202,32 @@ Each example has shape `(1, 28, 28)`; the DataLoader stacks 5 of them into a bat
 
 Why shuffle the training data? Files are often stored in order (all cats, then all dogs; or by date). Without shuffling, the model sees long runs of one kind of example, and each run of updates drags the weights towards that kind before the next run drags them back. Shuffling makes every batch a fair sample of the data. Validation and test data need **no** shuffling: you only measure them.
 
+When your data is not already two tensors (say, image files listed in a CSV), write your own Dataset. It needs only the two methods above, plus `__init__` to store what they use:
+
+```python
+from torch.utils.data import Dataset, DataLoader
+
+class MyData(Dataset):
+    def __init__(self, X, y):
+        self.X, self.y = X, y
+    def __len__(self):                    # how many examples
+        return len(self.X)
+    def __getitem__(self, i):             # example number i, as a pair
+        return self.X[i], self.y[i]
+
+ds = MyData(torch.randn(10, 3), torch.arange(10))
+print(len(ds), ds[2][1])
+for xb, yb in DataLoader(ds, batch_size=4):
+    print(tuple(xb.shape), yb.tolist())
+```
+
+```text
+10 tensor(2)
+(4, 3) [0, 1, 2, 3]
+(4, 3) [4, 5, 6, 7]
+(2, 3) [8, 9]
+```
+
 <KeyIdea>
 
 With $N$ examples and batch size $B$, one epoch has $\lceil N/B \rceil$ iterations, where $\lceil \cdot \rceil$ means "round up" because the last, smaller batch still counts. With `drop_last=True` that smaller batch is thrown away, giving $\lfloor N/B \rfloor$ ("round down").
@@ -216,8 +257,8 @@ train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
 val_loader = DataLoader(val_ds, batch_size=100)
 
 model = nn.Sequential(nn.Linear(2, 16), nn.ReLU(), nn.Dropout(0.2), nn.Linear(16, 2))
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+criterion = nn.CrossEntropyLoss()                            # cross-entropy: the usual loss for classes
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)    # Adam: a smarter optimiser (next module)
 
 for epoch in range(5):
     model.train()                        # dropout ON
@@ -269,7 +310,7 @@ At CCA training the coach runs drills with handicaps: in each drill a few player
 
 What each switch changes:
 
-- **`model.train()`**: Dropout drops units at random and scales the rest by $\frac{1}{1-p}$; BatchNorm uses the current batch's statistics and updates its running averages; autograd records the graph.
+- **`model.train()`**: Dropout drops units at random and scales the rest by $\frac{1}{1-p}$; BatchNorm uses the current batch's statistics and updates its running averages. (Autograd recording does not depend on train or eval mode at all; only `torch.no_grad()` turns it off.)
 - **`model.eval()`**: Dropout is off; BatchNorm uses its stored running averages; autograd *still* records the graph.
 - **`torch.no_grad()`**: Dropout and BatchNorm are unchanged (they follow whichever mode the model is in); autograd records **no** graph.
 
@@ -311,10 +352,10 @@ In train mode about half the ones become 0 and the survivors become $1 \times \f
 <QuickCheck
   q="You are measuring validation accuracy for a network that contains Dropout and BatchNorm. What should the validation code use?"
   options={[
-    'Only `torch.no_grad()`, because it switches off dropout as well as gradient tracking',
-    'Only `model.eval()`, because it also stops autograd recording the graph',
-    'Both `model.eval()` and `torch.no_grad()`',
-    'Neither: just skip `loss.backward()` and `optimizer.step()`',
+    '`torch.no_grad()` alone, since it switches off dropout as well as gradient tracking',
+    '`model.eval()` alone, since it also stops autograd recording the graph',
+    '`model.eval()` for dropout and BatchNorm, plus `torch.no_grad()` to skip the graph',
+    'Neither: skipping `loss.backward()` and `optimizer.step()` is enough',
   ]}
   answer={2}
   explain="`model.eval()` changes how Dropout and BatchNorm behave; `torch.no_grad()` stops autograd recording the graph, which saves memory and time. Neither does the other's job, so validation uses both. Skipping backward and step stops learning but leaves dropout on and wastes memory on an unused graph."
@@ -336,6 +377,8 @@ for i, (inputs, targets) in enumerate(train_loader):    # batches of 8
         optimizer.zero_grad()
 ```
 
+If the number of batches is not a multiple of 4, the last one to three micro-batches never reach a `step()`. Call `optimizer.step()` and `optimizer.zero_grad()` once more after the loop, so their gradients are used instead of leaking into the next epoch.
+
 Why Line A? Each micro-batch loss $L_k$ is already a **mean** over its 8 examples. If the 4 micro-batches are the same size, the mean over all 32 examples is the average of the 4 means, so its gradient is
 
 $$
@@ -349,6 +392,8 @@ where $\nabla L_k$ is the gradient of micro-batch $k$'s loss. Four `backward()` 
 Run in PyTorch, accumulated gradients with Line A match one real batch of 32 exactly:
 
 <Reveal label="Show the check in PyTorch">
+
+Here `model.zero_grad()` does the same job as `optimizer.zero_grad()`: it clears the `.grad` of every parameter of the model.
 
 ```python
 torch.manual_seed(0)

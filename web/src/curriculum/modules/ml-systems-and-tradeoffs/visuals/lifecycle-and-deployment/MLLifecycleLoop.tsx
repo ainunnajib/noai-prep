@@ -143,12 +143,14 @@ export default function MLLifecycleLoop() {
 
   const colourOf = (id: StageId) => (id === 'train' ? 'var(--viz-2)' : id === 'monitor' ? 'var(--viz-4)' : id === 'frame' ? 'var(--viz-5)' : 'var(--viz-1)')
 
-  const Pill = ({ s, x, y }: { s: Stage; x: number; y: number }) => {
+  // a plain function (not a component defined in render), so the pills keep keyboard focus across re-renders
+  const pill = (s: Stage, x: number, y: number) => {
     const on = sel === s.id
     const c = colourOf(s.id)
     const badge = s.id === 'frame' ? null : auto ? 'auto' : s.hours > 0 ? `${s.hours} h` : s.id === 'monitor' ? 'ad hoc' : 'by eye'
     return (
       <g
+        key={s.id}
         role="button"
         tabIndex={0}
         aria-pressed={on}
@@ -180,14 +182,14 @@ export default function MLLifecycleLoop() {
         {badge && (
           <g>
             <rect
-              x={x - 25}
+              x={x - 28}
               y={y + pillH / 2 - 3}
-              width={50}
-              height={16}
+              width={56}
+              height={17}
               rx={8}
               style={{ fill: auto ? 'var(--ok-soft)' : 'var(--warn-soft)', stroke: auto ? 'var(--ok)' : 'var(--warn)', strokeWidth: 1 }}
             />
-            <text x={x} y={y + pillH / 2 + 5} dy="0.35em" textAnchor="middle" style={{ fill: auto ? 'var(--ok)' : 'var(--warn)', fontSize: 10.5, fontWeight: 750 }}>
+            <text x={x} y={y + pillH / 2 + 5} dy="0.35em" textAnchor="middle" style={{ fill: auto ? 'var(--ok)' : 'var(--warn)', fontSize: 11.5, fontWeight: 750 }}>
               {badge}
             </text>
           </g>
@@ -248,10 +250,10 @@ export default function MLLifecycleLoop() {
               the loop on a schedule
             </text>
           )}
-          <Pill s={FRAME} x={cx} y={cy} />
+          {pill(FRAME, cx, cy)}
           {RING.map((s, i) => {
             const [x, y] = pos(i)
-            return <Pill key={s.id} s={s} x={x} y={y} />
+            return pill(s, x, y)
           })}
         </svg>
       </div>

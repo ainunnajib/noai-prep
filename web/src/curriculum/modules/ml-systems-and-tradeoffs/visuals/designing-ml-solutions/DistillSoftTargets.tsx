@@ -8,7 +8,7 @@ import { Figure, Controls, Readout, Slider, Bars, useNarrow } from '../../../../
   (1 and 9 look most like this 7), which is extra information the hard one-hot label does not carry.
 */
 
-const LOGITS = [-1.0, 4.0, 1.0, 0.5, 0.2, -0.5, -2.0, 9.0, 0.0, 3.0]
+const LOGITS = [-1.0, 4.0, 1.0, 0.5, 0.2, -0.5, -4.0, 9.0, 0.0, 3.0]
 
 function softmax(z: number[], T: number) {
   const m = Math.max(...z)
@@ -70,7 +70,7 @@ export default function DistillSoftTargets() {
           Input image. Teacher's raw scores (logits) for 0–9: <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink)' }}>[{LOGITS.join(', ')}]</span>
         </div>
       </div>
-      <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 18 }}>
+      <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 18, columnGap: 32 }}>
         {col('Hard label', 'what the dataset says', hard, 'var(--viz-1)')}
         {col(`Teacher's soft label, T = ${T}`, 'what the student is trained to match', p, 'var(--viz-1)')}
       </div>

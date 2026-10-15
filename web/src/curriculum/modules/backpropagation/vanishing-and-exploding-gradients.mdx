@@ -61,9 +61,9 @@ The sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ has the slope $\sigma'(z) = \sigm
 
 <QuickCheck
   q="In a chain of sigmoid neurons, every weight is 1 and every pre-activation is $z = 0$. The gradient arriving at layer 5 is 1. How big is it when it reaches layer 1, four layers further back?"
-  options={['$1/256 \\approx 0.004$', '$1$', '$0.25$', '$1/16 \\approx 0.06$']}
+  options={['$1/256 \\approx 0.004$', '$1$', '$1/1024 \\approx 0.001$', '$1/16 \\approx 0.06$']}
   answer={0}
-  explain="Each layer multiplies by $w \cdot \sigma'(0) = 1 \times 0.25$. Four layers: $0.25^4 = 1/4^4 = 1/256 \approx 0.004$. The answer 1 comes from adding $0.25$ four times; gradients multiply along a chain, they never add. $0.25$ counts only one layer, and $1/16 = 0.25^2$ only two."
+  explain="Each layer multiplies by $w \cdot \sigma'(0) = 1 \times 0.25$. Four layers: $0.25^4 = 1/4^4 = 1/256 \approx 0.004$. The answer 1 comes from adding $0.25$ four times; gradients multiply along a chain, they never add. $1/1024 = 0.25^5$ counts five factors, but going from layer 5 back to layer 1 crosses only four, and $1/16 = 0.25^2$ counts only two."
 />
 
 <PastPaperQuestion paper="prelim2026" n={44} />

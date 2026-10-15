@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
       'A 10-class image classifier trains for 5 epochs. The loss stays at about 2.30 and the accuracy at 10%. What is the best **first** step?',
     options: [
       'Check a few inputs against their labels, then try to overfit one small batch',
-      'Run an overnight grid search over learning rates, batch sizes and dropout',
+      'Run an overnight grid search over learning rates, batch sizes and dropout rates',
       'Collect twice as much training data and train for 20 more epochs',
       'Replace the model with a deeper network that has more parameters',
     ],
@@ -50,14 +50,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'In the one-batch test, a 10-class model\'s loss falls from 2.30 to about 1.46 and then refuses to go lower, however long you train. The model ends with `nn.Softmax(dim=1)` and the loss is `nn.CrossEntropyLoss()`. What is the most likely explanation?',
     options: [
-      'The batch is too small for the network to memorise all of it',
+      'The batch is too large for the network to memorise all of it',
       'The learning rate is too high, so the loss bounces above its minimum',
-      'Softmax is applied twice, so the loss has a floor above 0',
+      'Softmax is applied twice, so the loss can never get close to 0',
       'The labels have been shuffled separately from the inputs',
     ],
     answer: 2,
     explanation:
-      '`CrossEntropyLoss` applies its own softmax, so it expects raw scores. Fed probabilities between 0 and 1, the best it can give the correct class is $\\frac{e}{e + 9}$, a loss of $\\ln(1 + 9/e) \\approx 1.46$. Remove the `nn.Softmax` layer. Labels re-shuffled at every step would keep the loss wandering near $\\ln 10 \\approx 2.30$, and labels shuffled once would simply be memorised towards 0; neither gives a steady floor at 1.46.',
+      '`CrossEntropyLoss` applies its own softmax, so it expects raw scores. Fed probabilities between 0 and 1, the best it can give the correct class is $\\frac{e}{e + 9}$, a loss of $\\ln(1 + 9/e) \\approx 1.46$. Remove the `nn.Softmax` layer. A network with thousands of weights can memorise one small batch, so size is not the limit. Labels re-shuffled at every step would keep the loss wandering near $\\ln 10 \\approx 2.30$, and labels shuffled once would simply be memorised towards 0; neither gives a steady floor at 1.46.',
     difficulty: 'advanced',
   },
 ]

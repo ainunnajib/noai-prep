@@ -48,14 +48,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student builds the graph for $L = (\\hat y - y)^2$ but writes the local derivative of the subtract node $e = \\hat y - y$ as $1$ for **both** inputs. With $\\hat y = 4$ and $y = 1$, what goes wrong?',
     options: [
-      '$\\partial L / \\partial y$ comes out as $+6$ instead of $-6$',
-      '$\\partial L / \\partial \\hat y$ comes out as $-6$ instead of $+6$',
+      'Only $\\partial L / \\partial y$ is wrong: it comes out as $+6$, not $-6$',
+      'Only $\\partial L / \\partial \\hat y$ is wrong: it comes out as $-6$, not $+6$',
       'Both $\\partial L / \\partial \\hat y$ and $\\partial L / \\partial y$ come out as $0$',
-      'Only the forward value of $L$ changes, from $9$ to $25$',
+      'The gradients are fine, but the forward value of $L$ becomes $25$, not $9$',
     ],
     answer: 0,
     explanation:
-      'The square node sends back $2e = 2 \\times 3 = 6$. The subtract node should pass $6 \\times 1 = 6$ to $\\hat y$ and $6 \\times (-1) = -6$ to $y$; with the wrong rule $y$ gets $+6$, so its gradient has the wrong sign. The forward pass does not use local derivatives at all, so $L = 9$ is unaffected, and $\\partial L / \\partial \\hat y$ is still correct.',
+      'The square node sends back $2e = 2 \\times 3 = 6$. The subtract node should pass $6 \\times 1 = 6$ to $\\hat y$ and $6 \\times (-1) = -6$ to $y$; with the wrong rule $y$ gets $+6$, so its gradient has the wrong sign, while $\\partial L / \\partial \\hat y = 6$ is still correct. The forward pass does not use local derivatives at all, so $L = (4 - 1)^2 = 9$ is unaffected ($25$ would need the node to compute $4 + 1$), and nothing here makes a gradient $0$.',
     difficulty: 'intermediate',
   },
 ]

@@ -15,21 +15,21 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.stability-and-scale.2',
     prompt: 'Why does training in BF16 usually need no loss scaling, while training in FP16 does?',
     options: [
-      'BF16 has 8 exponent bits like FP32, so it can store the same tiny and huge values; FP16 has only 5, so small gradients underflow to 0',
+      'BF16 has 8 exponent bits like FP32, so it covers the same tiny and huge values; FP16 has only 5, so small gradients underflow to 0',
       'BF16 has more mantissa bits than FP16, so it stores every number with more significant digits and small gradients keep their value',
       'BF16 stores each number in 32 bits, the same as FP32, so it has exactly the same range and precision as single precision',
-      'BF16 is used only for the forward pass, while the backward pass always runs in FP32, so gradients never use 16 bits',
+      'BF16 is used just for the forward pass, while the backward pass runs entirely in FP32, so the gradients are not stored in 16 bits',
     ],
     answer: 0,
     explanation:
-      "Range comes from the exponent. BF16 keeps FP32's 8 exponent bits, so values down to about $10^{-38}$ (and below) survive, while FP16's 5 exponent bits stop at about $6 \\times 10^{-8}$. BF16 pays with **fewer** mantissa bits (7 versus FP16's 10), so it is less precise, not more. It is a 16-bit format.",
+      "Range comes from the exponent. BF16 keeps FP32's 8 exponent bits, so values down to about $10^{-38}$ (and below) survive, while FP16's 5 exponent bits stop at about $6 \\times 10^{-8}$. BF16 pays with **fewer** mantissa bits (7 versus FP16's 10), so it is less precise, not more. It is a 16-bit format, and under autocast the backward pass computes in it too.",
     difficulty: 'intermediate',
   },
   {
     id: 'training-deep-networks.stability-and-scale.3',
     prompt:
-      'In this mixed-precision loop, the loss is scaled by a GradScaler whose scale is $65\\,536$. What goes wrong because `scaler.unscale_(optimizer)` is missing before the clip?',
-    code: 'with torch.autocast("cuda", dtype=torch.float16):\n    loss = criterion(model(x), y)\nscaler.scale(loss).backward()\ntorch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)\nscaler.step(optimizer)\nscaler.update()',
+      'In this mixed-precision loop, the loss is scaled by a GradScaler whose scale is $65\\,536$. What goes wrong because `scaler.unscale_(optimiser)` is missing before the clip?',
+    code: 'with torch.autocast("cuda", dtype=torch.float16):\n    loss = criterion(model(x), y)\nscaler.scale(loss).backward()\ntorch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)\nscaler.step(optimiser)\nscaler.update()',
     options: [
       'The clip sees gradients 65,536 times too big, so nearly every step is cut far below its real size and training crawls',
       'Nothing goes wrong: clipping keeps the direction of the gradient, so the scale factor cancels out completely in the update',

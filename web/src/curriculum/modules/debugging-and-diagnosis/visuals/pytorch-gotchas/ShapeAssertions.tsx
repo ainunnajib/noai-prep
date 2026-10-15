@@ -99,7 +99,9 @@ export default function ShapeAssertions() {
       tone: 'bad',
       text: distinct
         ? 'Silent: the bug slipped through. (Switch the asserts on.)'
-        : `Silent, even with asserts: because T and C are both ${T}, the wrong shape (${B}, ${T}) looks exactly like the right one (${B}, ${C}). Use a different size for every dimension when you test.`,
+        : asserts
+          ? `Silent, even with asserts: because T and C are both ${T}, the wrong shape (${B}, ${T}) looks exactly like the right one (${B}, ${C}). Use a different size for every dimension when you test.`
+          : `Silent: no assert and no crash. Switch the asserts on, then notice that even they cannot tell (${B}, ${T}) from (${B}, ${C}) when T = C = ${T}.`,
     }
   else if (tr.message.startsWith('AssertionError'))
     verdict = { tone: 'good', text: `Caught on line ${tr.at! + 1}, the line right after the bug, and the message prints the shape that was actually there.` }

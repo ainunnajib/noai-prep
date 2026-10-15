@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.lifecycle-and-deployment.1',
     prompt:
       'A team automates its daily retraining. Which component\'s job is to run the extract, clean, feature, train and evaluate steps in the right order every night, and to retry a step that fails?',
-    options: ['An orchestrator such as Airflow', 'A model registry such as MLflow\'s registry', 'An experiment tracker such as Weights & Biases', 'A monitoring dashboard such as Grafana'],
+    options: ['An orchestrator such as Apache Airflow', 'A model registry such as MLflow\'s registry', 'An experiment tracker such as Weights & Biases', 'A monitoring dashboard such as Grafana'],
     answer: 0,
     explanation:
       'Scheduling steps, running them in order and retrying failures is orchestration. A model registry stores model versions and their stage (staging, production); an experiment tracker records each run\'s config, seed and metrics; a dashboard displays live metrics. All four are part of MLOps, but only the orchestrator runs the pipeline.',
@@ -16,9 +16,9 @@ const questions: QuizQuestion[] = [
     prompt: 'Which of these predictions needs **real-time** inference rather than a scheduled batch job?',
     options: [
       'Approving or blocking a contactless card payment while it is being tapped',
-      'Forecasting next week\'s passenger numbers for every MRT station',
-      'Choosing which customers to phone in tomorrow\'s retention campaign',
-      'Building each user\'s "recommended for you" list for a morning email',
+      'Forecasting next week\'s passenger numbers at each MRT station from past weeks',
+      'Choosing which customers to phone in tomorrow morning\'s retention campaign',
+      'Building each user\'s "recommended for you" list for tomorrow\'s morning email',
     ],
     answer: 0,
     explanation:
@@ -54,10 +54,10 @@ const questions: QuizQuestion[] = [
     id: 'ml-systems-and-tradeoffs.lifecycle-and-deployment.5',
     prompt:
       'A loan model is monitored weekly. Repayment labels arrive 12 weeks after a loan is approved. In week 10 a downturn makes applicants with the same income default more often, while the applicants\' incomes and the model\'s approval rate stay exactly as before. What is the earliest week in which monitoring can reveal the problem?',
-    options: ['Week 22', 'Week 10', 'Week 11', 'Never, because monitoring only checks inputs and predictions'],
+    options: ['Week 22', 'Week 10', 'Week 11', 'Week 12'],
     answer: 0,
     explanation:
-      'This is concept drift: $P(y \\mid x)$ changed while $P(x)$ did not, so the input and approval-rate monitors stay quiet. Only the outcome (default rate) can show it, and the first affected loans, from week 10, get their labels in week $10 + 12 = 22$. Weeks 10 and 11 would be right for data drift, which is visible in the inputs straight away.',
+      'This is concept drift: $P(y \\mid x)$ changed while $P(x)$ did not, so the input and approval-rate monitors stay quiet. Only the outcome (default rate) can show it, and the first affected loans, from week 10, get their labels in week $10 + 12 = 22$. Week 12 is when the labels of loans made in week 0 arrive, but those loans were made before the change. Weeks 10 and 11 would be right for data drift, which is visible in the inputs straight away.',
     difficulty: 'intermediate',
   },
 ]

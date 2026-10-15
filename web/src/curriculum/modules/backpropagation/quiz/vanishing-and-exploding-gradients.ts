@@ -15,9 +15,9 @@ const questions: QuizQuestion[] = [
     id: 'backpropagation.vanishing-and-exploding-gradients.2',
     prompt: 'He initialisation draws a ReLU layer\'s weights with variance $2/n_{in}$, twice the $1/n_{in}$ that suits tanh. Why the factor of 2?',
     options: [
-      'ReLU zeroes about half its inputs, which halves the signal\'s squared size; doubling the weight variance cancels that',
+      'ReLU passes only about half its inputs, which halves the signal\'s squared size; doubling the variance cancels that',
       'ReLU\'s derivative is 2 for positive inputs, so the weights must double to match it and keep the backward factor at 1',
-      'Larger weights make the gradients grow slightly at every layer, and that small growth speeds up deep ReLU training',
+      'Larger weights make the gradients grow slightly at each layer, and that small growth speeds up deep ReLU training',
       'A ReLU layer keeps separate weights for positive and negative inputs, so the variance is split across the two sets',
     ],
     answer: 0,
@@ -31,7 +31,7 @@ const questions: QuizQuestion[] = [
     options: [
       'The loss jumps from about 2 to 845 and then prints `nan` → clip the gradient norm and lower the learning rate',
       'The first layers of a 40-layer sigmoid network barely change → clip the gradient norm to 1.0 so the layers update evenly',
-      'Gradients vanish in a deep ReLU network initialised with std 0.01 → initialise every weight to exactly 0 instead',
+      'Gradients vanish in a deep ReLU network initialised with std 0.01 → initialise the weights to exactly 0 instead',
       'Gradients grow layer after layer in a deep ReLU network → initialise with even larger weights so the outputs saturate',
     ],
     answer: 0,

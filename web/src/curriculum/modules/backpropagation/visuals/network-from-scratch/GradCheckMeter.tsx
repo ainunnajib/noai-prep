@@ -107,9 +107,9 @@ export default function GradCheckMeter() {
       caption={
         <>
           Each row compares the gradient from backprop with <M>{'\\frac{L(w+\\varepsilon) - L(w-\\varepsilon)}{2\\varepsilon}'}</M> for one
-          parameter (a weight or a bias), and the bar shows their relative error (log scale; shorter is better). Slide <M>\varepsilon</M> to the
-          left: the error first falls, then rises again below about <M>{'10^{-5}'}</M> because the two losses become so close that rounding
-          dominates. The curve below summarises all eight
+          parameter (a weight or a bias), and the bar shows their relative error (log scale; shorter is better). Slide <M>\varepsilon</M> all the
+          way right (<M>{'10^{-1}'}</M>), then move it left: the error falls until about <M>{'10^{-5}'}</M>, then rises again because the two
+          losses become so close that rounding dominates. The curve below summarises all eight
           rows. Switch to one-sided differences and the best possible error is far worse. Then inject a bug: the bad rows fail at every{' '}
           <M>\varepsilon</M>, which is how you tell a real bug from a badly chosen step size.
         </>
@@ -167,7 +167,7 @@ export default function GradCheckMeter() {
           )
         })}
         <div style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>
-          <M>a</M> = backprop, <M>n</M> = numerical{narrow ? ' (tap a row to see them)' : ''}. Bars: relative error <M>{'|a - n| / \\max(|a|, |n|)'}</M> from <M>{'10^{-14}'}</M> (left) to 1 (right); the black tick marks the pass line <M>{'10^{-6}'}</M>.{' '}
+          <M>a</M> = backprop, <M>n</M> = numerical{narrow ? ' (tap a row to see them)' : ''}. Bars: relative error <M>{'|a - n| / \\max(|a|, |n|)'}</M> from <M>{'10^{-14}'}</M> (left) to 1 (right); the vertical tick marks the pass line <M>{'10^{-6}'}</M>.{' '}
           <b style={{ color: passed === rows.length ? 'var(--ok)' : 'var(--bad)' }}>
             {passed} of {rows.length} pass.
           </b>

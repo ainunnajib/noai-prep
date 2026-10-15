@@ -71,7 +71,7 @@ function runLines(X: Mat, Y: Mat, p: Params, bug: Bug, N: number, D: number, H: 
       out: 'dZ2',
       like: 'Z2',
       likeShape: [N, K],
-      shapeText: `${s([N, K])} − ${s([N, K])}${bug === 'noN' ? '' : ` ÷ ${N}`} → ${s([N, K])}`,
+      shapeText: bug === 'noN' ? `${s([N, K])} − ${s([N, K])} → ${s([N, K])}` : `(${s([N, K])} − ${s([N, K])}) ÷ ${N} → ${s([N, K])}`,
       operands: [
         { name: 'P', arr: f.P },
         { name: 'Y', arr: Y, op: '−' },
@@ -189,6 +189,8 @@ export default function BackwardShapeTrace() {
 
   const prob = useMemo(() => makeProblem(1000 + N * 100 + D * 10 + H + K * 1000, N, D, H, K), [N, D, H, K])
   const lines = useMemo(() => runLines(prob.X, prob.Y, prob.p, bug, N, D, H, K), [prob, bug, N, D, H, K])
+  // with some sizes every hidden unit is on for the whole batch, so a missing ReLU mask changes nothing and the check passes
+  const allActive = useMemo(() => forward(prob.X, prob.Y, prob.p).Z1.every((row) => row.every((v) => v > 0)), [prob])
   const checks = useMemo(() => {
     if (step < 7) return null
     const byName: Record<string, LineResult> = Object.fromEntries(lines.map((l) => [l.out, l]))
@@ -210,10 +212,11 @@ export default function BackwardShapeTrace() {
       caption={
         <>
           Step through the seven lines, then a final gradient check (step 8). Each line shows its shape arithmetic and the arrays involved (shaded
-          blue for negative, orange for positive; outlined cells are 0).
+          green for positive, red for negative; outlined cells are 0).
           Notice that <b>every gradient comes out with exactly the shape of the thing it is the gradient of</b>: dW1 like W1, db2 like b2. Change N, D,
           H or K and the shapes follow. Then pick a bug: a missing <code>.T</code> usually crashes with a shape error (unless the sizes happen to
-          match), but a missing ReLU mask or <code>/ N</code> runs happily and only the gradient check on the last step catches it.
+          match), but a missing ReLU mask or <code>/ N</code> runs happily and only the gradient check on the last step catches it (as long as some hidden
+          unit is off for the batch).
         </>
       }
     >
@@ -304,6 +307,12 @@ export default function BackwardShapeTrace() {
             )}
           </>
         )}
+        {bug === 'noMask' && allActive && (
+          <div style={{ width: '100%', fontSize: '0.875rem', color: 'var(--ink)', background: 'var(--surface)', borderRadius: 8, padding: '0.4rem 0.6rem' }}>
+            No hidden unit is off for this batch (every entry of Z1 is positive), so the missing mask changes nothing here and the check
+            passes. Change a size to see it fail.
+          </div>
+        )}
         {checks && (
           <div style={{ width: '100%', display: 'grid', gap: '0.35rem' }}>
             <div style={{ fontWeight: 800, color: 'var(--ink)' }}>Final checks</div>
@@ -327,7 +336,7 @@ export default function BackwardShapeTrace() {
 
       <PlayerControls player={player} label={(s) => (s < 7 ? `Step ${s + 1} of 8: line ${s + 1}` : 'Step 8 of 8: final checks')} />
       <Controls>
-        <Slider label="N (examples in the batch)" value={N} min={1} max={6} onChange={setN} />
+        <Slider label="N (examples in the batch)" value={N} min={2} max={6} onChange={setN} />
         <Slider label="D (input features)" value={D} min={1} max={5} onChange={setD} />
         <Slider label="H (hidden units)" value={H} min={1} max={6} onChange={setH} />
         <Slider label="K (classes)" value={K} min={2} max={4} onChange={setK} />

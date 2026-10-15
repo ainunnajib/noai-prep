@@ -30,14 +30,14 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.modules-and-layers.3',
     prompt: 'Why should you run a model with `model(x)` rather than `model.forward(x)`?',
     options: [
-      '`model(x)` goes through `nn.Module`’s call method, which runs `forward` and also any hooks attached to the model',
+      '`model(x)` runs `forward` through `nn.Module`’s call method, which also runs any hooks attached to the model',
       '`model(x)` also calls `loss.backward()` at the end, so the gradients are ready as soon as the forward pass ends',
       '`model.forward(x)` uses the weights created in `__init__` and ignores every update the optimiser has made since',
       '`model(x)` switches the model to eval mode automatically, while `model.forward(x)` leaves it in training mode',
     ],
     answer: 0,
     explanation:
-      'Calling the module runs `forward` inside a wrapper that also runs any registered hooks (used by tools that record activations, prune or quantise). `model.forward(x)` usually gives the same numbers but silently skips them. Neither form computes gradients (that needs a loss and `backward()`), both use the current weights, and only `model.eval()` changes the mode.',
+      'Calling the module runs `forward` inside a wrapper that also runs any registered hooks (extra helper code that tools attach to a model). `model.forward(x)` usually gives the same numbers but silently skips them. Neither form computes gradients (that needs a loss and `backward()`), both use the current weights, and only `model.eval()` changes the mode.',
     difficulty: 'intermediate',
   },
   {
@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You trained `Net(hidden=128)` and saved it with `torch.save(model.state_dict(), "net.pt")`. In a new notebook you run `model = Net(hidden=64)` and then `model.load_state_dict(torch.load("net.pt"))`. What happens?',
     options: [
-      'A `RuntimeError` that reports a size mismatch for each tensor whose shape depends on `hidden`',
+      'A `RuntimeError` that reports a size mismatch for every tensor whose shape depends on `hidden`',
       'The first 64 hidden units are loaded and the remaining 64 saved units are skipped with a warning',
       'The model is rebuilt with 128 hidden units to match the file, and then the weights are loaded',
       'It loads without an error, but the predictions are random until the model has been trained again',
@@ -59,10 +59,10 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.modules-and-layers.5',
     prompt:
       'A Transformer module needs a fixed positional-encoding table `pe` (computed once with sines and cosines, never learned). It must move to the GPU with `model.to(device)` and be saved in the state_dict. Which line belongs in `__init__`?',
-    options: ["`self.register_buffer('pe', pe)`", '`self.pe = nn.Parameter(pe)`', '`self.pe = pe`', '`self.pe = pe.cuda()`'],
+    options: ["`self.register_buffer('pe', pe)`", '`self.pe = torch.nn.Parameter(pe)`', '`self.pe = pe`', "`self.pe = pe.to('cuda')`"],
     answer: 0,
     explanation:
-      'A buffer is saved in the state_dict and moved by `.to(device)`, but it is not a parameter, so the optimiser never changes it. `nn.Parameter` would hand the table to the optimiser and training would change it. A plain attribute is neither saved nor moved, so it stays on the CPU and causes a device error. `.cuda()` hard-codes one device (it fails on a CPU-only machine) and still is not saved.',
+      'A buffer is saved in the state_dict and moved by `.to(device)`, but it is not a parameter, so the optimiser never changes it. `nn.Parameter` would hand the table to the optimiser and training would change it. A plain attribute is neither saved nor moved, so it stays on the CPU and causes a device error. `pe.to(\'cuda\')` hard-codes one device (it fails on a CPU-only machine), and the result is still a plain attribute, so it is not saved.',
     difficulty: 'intermediate',
   },
 ]

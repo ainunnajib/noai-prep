@@ -163,7 +163,8 @@ export default function StateDictViewer() {
       caption={
         <>
           Save yesterday's trained model, then load the file into <code>model2</code>. It works because every key and shape matches. Now change the class
-          code with ◀ ▶ (− and + on a phone), for example a different <code>hidden</code> size or more classes, or rename the last layer, and load again:
+          code with ◀ ▶ (− and + on a phone), for example a different <code>hidden</code> size or more classes, or click the dashed name <code>fc2</code> in the code to
+          rename the last layer, and load again:
           PyTorch names each key that is missing, unexpected or the wrong size. Try <code>strict=False</code> too: it forgives renamed layers but never a size mismatch.
         </>
       }

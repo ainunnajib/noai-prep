@@ -56,7 +56,7 @@ The school canteen cooks 500 set lunches in advance, cheaply, because it knows w
 </Analogy>
 
 - **Batch inference** scores many inputs together on a schedule (say, every night) and stores the results in a table. Later requests just look up the answer. It is cheap and simple, but every prediction is only as fresh as the last run.
-- **Real-time (online) inference** answers each request the moment it arrives, usually behind an API, within a strict <Term def="The time from sending a request to getting the answer back, often measured in milliseconds (ms).">latency</Term> budget such as 100 ms. It needs a fast model and a server that is always on, which costs more.
+- **Real-time (online) inference** answers each request the moment it arrives, usually behind an <Term def="Application programming interface: a fixed way for one program to send a request to another (often over the internet) and get an answer back.">API</Term>, within a strict <Term def="The time from sending a request to getting the answer back, often measured in milliseconds (ms).">latency</Term> budget such as 100 ms. It needs a fast model and a server that is always on, which costs more.
 
 <ServingModeCompare />
 
@@ -116,7 +116,7 @@ traced:   tensor([-2., -6.])
 scripted: tensor([1., 3.])
 ```
 
-The example input had a positive sum, so the trace only recorded `x * 2`. Given a negative input, the traced model still doubles it and silently returns the wrong answer, while the scripted model takes the correct branch. PyTorch even warns you while tracing.
+The example input had a positive sum, so the trace only recorded `x * 2`. Given a negative input, the traced model still doubles it and silently returns the wrong answer, while the scripted model takes the correct branch. PyTorch even warns you while tracing. (Recent versions also print warnings that `torch.jit` itself is deprecated; see the box below.)
 
 <Mistake title="Tracing a model with data-dependent branches">
 
@@ -136,9 +136,9 @@ A shop owner only learns the month's profit when the accounts close. Waiting tha
 
 The true outcome (the <Term def="The correct answer for an example, e.g. whether a loan was actually repaid. In monitoring, labels often arrive weeks or months after the prediction.">label</Term>) often arrives long after the prediction: whether a loan is repaid is known months later; whether a flagged payment was really fraud is known after an investigation. So teams monitor four kinds of signal:
 
-1. **Inputs**: the distribution of each feature (for example applicants' incomes) compared with the training data.
+1. **Inputs**: the distribution of each feature (for example applicants' incomes) compared with the training data, and data quality, such as missing values or a column that changed units.
 2. **Predictions**: the distribution of the model's outputs, such as the approval rate or the share of payments flagged.
-3. **System health**: latency, error responses, missing values.
+3. **System health**: latency, error responses, throughput.
 4. **Outcomes**: accuracy or error rate, once labels arrive.
 
 Changes come in two kinds. Write $x$ for the inputs and $y$ for the true outcome.
@@ -158,10 +158,10 @@ When labels are slow, watch what you can see **today**: input distributions and 
 
 <Steps title="Reading a dashboard: which drift is it?">
   <Step title="Did the inputs change?">
-    At training time the mean applicant income was \$58k and 40% were approved. In week 12 the mean is \$52k. Yes: $P(x)$ has moved, so this is **data drift**.
+    At training time the mean applicant income was \$58k and 40% were approved. In week 12 the mean is \$54k. Yes: $P(x)$ has moved, so this is **data drift**.
   </Step>
   <Step title="Did the predictions follow?">
-    The approval rate fell from 40% to 30%. That fits: poorer applicants pass the income cut less often. The model is behaving as designed on a different population.
+    The approval rate fell from 40% to 30%. That fits: the model approves anyone above a fixed income cut-off, and poorer applicants clear it less often. The model is behaving as designed on a different population.
   </Step>
   <Step title="What do the (old) labels say?">
     Loans made 3 months ago still default at about 4%, the same as at training. That only describes the *old* population, so a steady error rate here does not mean all is well.
@@ -177,10 +177,10 @@ When labels are slow, watch what you can see **today**: input distributions and 
 <QuickCheck
   q="A spam filter's inputs look unchanged (same mix of senders, lengths and words), but users report far more missed spam, because spammers learned to phrase scams like ordinary emails. What kind of change is this?"
   options={[
-    'Concept drift: the link between an email\'s features and being spam, $P(y \\mid x)$, changed',
-    'Data drift: the distribution of the emails\' features, $P(x)$, changed',
-    'Overfitting: the filter memorised its training emails',
-    'A latency problem: the filter answers too slowly to block spam',
+    'Concept drift: the link between features and being spam, $P(y \\mid x)$, changed',
+    'Data drift: the mix of email features, $P(x)$, moved away from the training data',
+    'Overfitting: the filter memorised its training emails and fails on new ones',
+    'A latency problem: the filter now answers too slowly to block spam in time',
   ]}
   answer={0}
   explain="The inputs look the same, so $P(x)$ has not moved; what changed is which inputs are spam, the relationship $P(y \mid x)$. That is concept drift, and it only shows up in outcomes (user reports, labels). Overfitting would have shown up as a gap between training and validation scores before deployment."
@@ -190,7 +190,7 @@ When labels are slow, watch what you can see **today**: input distributions and 
 
 <ExamTip>
 
-In "which metric alerts you **first**?" questions, look for the phrase about labels taking weeks or months. A metric built from labels (accuracy, error rate, "ground truth") can only describe old predictions. The first warning comes from something measured on today's traffic: the input distributions or the prediction distribution, such as an approval rate sliding from 40% to 30%.
+In "which metric alerts you **first**?" questions, look for the phrase about labels taking weeks or months. A metric built from labels (accuracy, error rate, "ground truth") can only describe old predictions. The first warning comes from something measured on today's traffic: the input distributions or the prediction distribution, such as an approval rate sliding from 40% to 30%. (In Q299 the "error rate" may instead mean system errors; either way it stays flat and cannot react to the change in applicants.)
 
 </ExamTip>
 
@@ -206,8 +206,8 @@ Months after deployment, an auditor asks: "Show us exactly the model that flagge
 
 A trained model is the product of several ingredients. To reproduce it you must **version** (keep a labelled copy of every version of) each one:
 
-- **Data**: the exact training snapshot, or a hash of it that identifies it.
-- **Code**: the commit of the training and preprocessing code.
+- **Data**: the exact training snapshot, or a <Term def="A short fingerprint (a string of letters and digits) computed from a file's contents. Change one byte of the file and the hash changes completely, so it identifies one exact version.">hash</Term> of it that identifies it.
+- **Code**: the <Term def="A saved snapshot of the code in Git, the standard version-control tool. Each commit has its own ID, so you can always return to exactly that version.">commit</Term> of the training and preprocessing code.
 - **Config**: the hyperparameters (learning rate, epochs, model size).
 - **Random seed**: weight initialisation, shuffling and dropout are random, so a different seed gives a different model.
 - **Environment**: library versions (Python, PyTorch, scikit-learn), which can change results slightly.

@@ -15,7 +15,7 @@ const GRID = 30
 const LIM = 2.5
 /* the two classes get their own colour pair, so orange keeps meaning "gradient" elsewhere in the module */
 const C0 = 'var(--viz-4)'
-const C1 = 'var(--viz-6)'
+const C1 = 'var(--viz-3)'
 
 const STAGES = [
   {
@@ -306,7 +306,8 @@ export default function TrainingCycleLoop() {
         <>
           Press <b>Next stage</b> to walk through one loop: the matching NumPy lines light up below, with the shapes of the arrays involved. Then
           press <b>Run 100 loops</b> a few times. Each loop nudges every weight a little; watch the loss fall and the boundary bend between the
-          two curved clusters until (almost) every point is on the right side.
+          two curved clusters until (almost) every point is on the right side. (This is a smaller version of the network further down the
+          page: 100 points and 12 hidden units instead of 200 and 16.)
         </>
       }
     >
@@ -380,7 +381,8 @@ function AxisHint({ hMax, hx, last, n }: { hMax: number; hx: number; last: numbe
   return (
     <g style={{ fontSize: 11.5 }}>
       <circle cx={xs(n)} cy={ys(last)} r={3.5} style={{ fill: 'var(--viz-3)' }} />
-      <text x={xs(0) + 6} y={ys(hMax) + 9} style={{ fill: 'var(--viz-axis)' }}>
+      {/* top right: the loss falls from the top left, so this corner stays clear of the curve */}
+      <text x={xs(hx)} y={ys(hMax) + 9} textAnchor="end" style={{ fill: 'var(--viz-axis)' }}>
         loss per loop
       </text>
       <line x1={xs(0)} x2={xs(hx)} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)' }} />

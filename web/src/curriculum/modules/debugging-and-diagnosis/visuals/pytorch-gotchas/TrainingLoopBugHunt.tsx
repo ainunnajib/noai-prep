@@ -46,14 +46,15 @@ const SNIPPETS: Snippet[] = [
     fix: ['def evaluate(model, loader):', '    model.eval()', '    ...'],
   },
   {
-    title: 'Epoch 1 is fine, then it stalls',
+    title: 'Epoch 1 is fine, then training changes',
     symptom: 'evaluate() (from the last snippet, now fixed) calls model.eval(). After the first epoch the training loss behaves differently and dropout seems to have no effect.',
     lines: ['model.train()', 'for epoch in range(10):', '    for x, y in train_loader:', '        train_step(model, x, y)', '    acc = evaluate(model, val_loader)'],
     bug: [0],
     why: (
       <>
         <code>model.train()</code> runs only once. The first call to <code>evaluate()</code> switches the model to eval mode and nothing switches it back, so epochs 2 to
-        10 train with dropout off and BatchNorm frozen. Set the mode at the start of every epoch.
+        10 train with dropout off (the training loss drops faster and the model overfits more) and with BatchNorm using its stored running statistics, which
+        stop updating. Set the mode at the start of every epoch.
       </>
     ),
     fix: ['for epoch in range(10):', '    model.train()', '    for x, y in train_loader:', '        train_step(model, x, y)', '    acc = evaluate(model, val_loader)'],
@@ -78,7 +79,7 @@ const SNIPPETS: Snippet[] = [
     bug: [3, 4],
     why: (
       <>
-        <code>step()</code> runs before <code>backward()</code>, so it uses gradients that <code>zero_grad()</code> has just set to zero: no update. The fresh gradients
+        <code>step()</code> runs before <code>backward()</code>, so it only sees gradients that <code>zero_grad()</code> has just cleared (set to <code>None</code>): no update. The fresh gradients
         are then wiped by the next <code>zero_grad()</code>. The order is always: zero_grad, forward, backward, step.
       </>
     ),
@@ -149,7 +150,7 @@ export default function TrainingLoopBugHunt() {
       title="Bug hunt: training loops"
       caption={
         <>
-          Each snippet has exactly one bug, and none of them raises an error. Read the symptom, then click the line that causes it. Switch on the clock to practise at
+          Each snippet has exactly one bug, and none of them raises an error at the buggy line. Read the symptom, then click the line that causes it. Switch on the clock to practise at
           Prelim pace: 36 seconds is the time you have per question.
         </>
       }

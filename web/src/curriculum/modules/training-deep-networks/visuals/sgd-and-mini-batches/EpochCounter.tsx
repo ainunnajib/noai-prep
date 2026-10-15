@@ -31,7 +31,9 @@ export default function EpochCounter() {
   const width = Math.max(260, Math.min(680, measured))
   const inner = width - LEFT - RIGHT
   const u = inner / n
-  const segW = b * u
+  // the leftover batch is drawn at least 8 px wide so it stays visible (8 of 1,000 examples would be ~3 px)
+  const remW = rem > 0 ? Math.min(inner, Math.max(rem * u, 8)) : 0
+  const segW = full > 0 ? (inner - remW) / full : b * u
   const rows = Math.min(epochs, MAX_ROWS)
   const height = TOP + rows * (ROW_H + ROW_GAP) + (epochs > MAX_ROWS ? 18 : 0)
   const labelEach = segW >= 26 && perEpoch <= 60
@@ -73,7 +75,7 @@ export default function EpochCounter() {
                   <rect
                     x={LEFT + full * segW}
                     y={y}
-                    width={rem * u}
+                    width={remW}
                     height={ROW_H}
                     rx={3}
                     style={dropLast ? { fill: 'transparent', stroke: 'var(--viz-muted)', strokeDasharray: '3 3', strokeWidth: 1.5 } : { fill: 'var(--viz-2)' }}

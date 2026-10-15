@@ -90,7 +90,7 @@ export default function DriftMonitor() {
         <>
           A model approves loans for applicants with high enough income. Slide <b>today</b> forward and see which panel raises the first alert (red). Then try <b>concept drift</b>: incomes and
           approvals stay calm, and only the default rate moves, 12 weeks late, because repayment labels take that long to arrive. Drop the threshold to 1 and watch the false alarms; raise it to 5
-          and alerts come later. The green band is each signal’s normal range; the pink dashed line marks when the drift begins.
+          and alerts come later. The green band is each signal’s normal range (thin for income, because an average over 1,000 applicants hardly wobbles), the dotted vertical line is today, and the pink dashed line marks when the drift begins.
         </>
       }
     >

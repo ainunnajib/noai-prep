@@ -54,7 +54,7 @@ const questions: QuizQuestion[] = [
     id: 'pytorch.autograd.5',
     prompt: 'In a hand-written gradient descent loop, why is the update `w -= lr * w.grad` placed inside `with torch.no_grad():`?',
     options: [
-      'The update is bookkeeping, not part of the model, so it must not be recorded; PyTorch refuses to record it on such a leaf',
+      'The update must not be recorded: PyTorch raises an error for an in-place change to a leaf that requires grad',
       'Inside `no_grad()` the gradients are zeroed automatically after the update, so `w.grad.zero_()` is no longer needed',
       'Outside `no_grad()` the subtraction would use float64, which does not match the float32 weights and raises a dtype error',
       'The update only reaches the GPU copy of `w` inside `no_grad()`; outside it, only the CPU copy of `w` would change',

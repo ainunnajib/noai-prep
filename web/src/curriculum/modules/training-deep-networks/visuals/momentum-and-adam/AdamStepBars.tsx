@@ -143,8 +143,9 @@ export default function AdamStepBars() {
           noise around 0.1. Plain SGD moves each one in proportion to its gradient, so after {t} steps
           parameter 2 (gradients 100 times smaller) has barely moved. Adam divides the averaged gradient m̂ by √v̂, the typical size of
           that parameter&apos;s own gradients, so a steady gradient of 0.01 and a steady gradient of 1 both give steps of about η. A rarely
-          active parameter gets bigger steps than under SGD when it does fire, and a noisy one (gradients that keep changing sign) gets small,
-          careful steps. Change the patterns and press Play.
+          active parameter moves about 3 times further than under SGD over time: its √v̂ is small because its gradient is usually 0, and
+          momentum keeps it moving between spikes (on the spike step itself its step, about 0.46η, is actually smaller than SGD&apos;s). A
+          noisy one (gradients that keep changing sign) gets small, careful steps. Change the patterns and press Play.
         </>
       }
     >

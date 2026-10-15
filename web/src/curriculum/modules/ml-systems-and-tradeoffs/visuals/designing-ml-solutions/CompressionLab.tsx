@@ -8,7 +8,7 @@ import { Figure, Controls, Readout, Slider, Plot, Axes, Path, Dots, mulberry32, 
   Quantisation (uniform, min–max): 2^b evenly spaced levels from the smallest to the largest kept weight;
     step Δ = (w_max − w_min)/(2^b − 1), each weight is rounded to the nearest level.
   Pruning: the given fraction of weights with the smallest |w| are set to exactly zero.
-  Size counts kept weights × bits (ignoring the small cost of recording which weights were kept).
+  Size counts kept weights × bits, plus a 1-bit-per-weight mask recording which weights were kept when pruning.
 */
 
 const D = 48
@@ -80,12 +80,12 @@ export default function CompressionLab() {
   const acc = useMemo(() => accuracy(q, X, y), [q, X, y])
 
   const kept = keep.filter(Boolean).length
-  const sizeBits = kept * bits
+  const sizeBits = kept * bits + (prune > 0 ? D : 0)
   const fullBits = D * 32
   const err = w.reduce((s, v, i) => s + Math.abs(v - q[i]), 0) / D
   const lo = Math.min(...w)
   const hi = Math.max(...w)
-  const resnetMB = (25.6e6 * (kept / D) * bits) / 8 / 1e6
+  const resnetMB = (25.6e6 * ((kept / D) * bits + (prune > 0 ? 1 : 0))) / 8 / 1e6
 
   const accColour = acc >= base - 0.005 ? 'var(--ok)' : acc >= base - 0.03 ? 'var(--warn)' : 'var(--bad)'
 
@@ -95,9 +95,9 @@ export default function CompressionLab() {
       title="Squeeze a real model: fewer bits, fewer weights"
       caption={
         <>
-          The 48 weights of a trained linear classifier: hollow circles are the original 32-bit values, filled dots are what the compressed model actually uses. Slide the bits down and watch each
+          The 48 weights of a linear classifier: hollow circles are the original 32-bit values, filled dots are what the compressed model actually uses. Slide the bits down and watch each
           weight snap to the nearest of 2<sup>b</sup> levels (dashed lines): 8 bits changes nothing you can see, 2 bits wrecks the model. Then prune: the smallest weights go to zero first, so the
-          first half can go for a small loss in accuracy. Accuracy is measured live on 2,000 test examples.
+          first half can go for a small loss in accuracy. Accuracy is measured live on 2,000 test examples, so differences of a few tenths of a percent are just noise.
         </>
       }
     >
@@ -131,7 +131,7 @@ export default function CompressionLab() {
               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: b.label === 'test accuracy' ? accColour : 'var(--ink)' }}>{b.text}</span>
             </div>
             <div style={{ height: 14, borderRadius: 5, background: 'var(--surface-2)', border: '1px solid var(--rule)', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.max(0.5, b.value * 100)}%`, height: '100%', background: `color-mix(in srgb, ${b.colour} 70%, var(--surface))`, transition: 'width 0.3s ease' }} />
+              <div style={{ width: `${Math.max(0.5, b.value * 100)}%`, height: '100%', background: `color-mix(in srgb, ${b.label === 'test accuracy' ? accColour : b.colour} 70%, var(--surface))`, transition: 'width 0.3s ease' }} />
             </div>
           </div>
         ))}
@@ -145,7 +145,7 @@ export default function CompressionLab() {
         ]}
       />
       {prune > 0 && (
-        <div style={{ width: '100%', fontSize: 12, color: 'var(--ink-3)' }}>Sizes with pruning ignore the small extra cost of recording which weights were kept.</div>
+        <div style={{ width: '100%', fontSize: 12, color: 'var(--ink-3)' }}>With pruning, the size includes a mask of 1 bit per weight recording which weights were kept; at low bit widths that mask is a large share of the model.</div>
       )}
     </Figure>
   )

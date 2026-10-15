@@ -35,14 +35,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'Training was stable for 20 epochs. From step 41,200 onwards the loss prints `nan`, and when you inspect the model every weight is `nan`. What is the most useful next step?',
     options: [
-      'Re-run from a checkpoint with `set_detect_anomaly(True)` and per-layer checks to find the first nan',
-      'Find the layer whose final weights hold the most nan values and rewrite that layer',
-      'Switch the model to float16 so large intermediate values use less GPU memory',
-      'Keep training for more epochs so the optimiser can pull the weights back to normal',
+      'Re-run from a checkpoint with anomaly detection on, to catch the first NaN',
+      'Find the layer whose final weights hold the most NaN values and rewrite it',
+      'Switch the model to float16 so that large values use less GPU memory',
+      'Keep training so the optimiser can pull the weights back to normal values',
     ],
     answer: 0,
     explanation:
-      'One bad value spreads forward to the loss, backward to every gradient, and through the update to every weight, so by now *every* layer is nan and the final weights say nothing about the cause. You must catch the first non-finite value, which is what anomaly detection and per-layer checks do. Training on cannot help (anything minus nan is nan), and float16 overflows sooner, not later.',
+      'One bad value spreads forward to the loss, backward to every gradient, and through the update to every weight, so by now *every* layer is NaN and the final weights say nothing about the cause. You must catch the first non-finite value, which is what anomaly detection (and per-layer `torch.isfinite` checks) do. Training on cannot help (anything minus NaN is NaN), and float16 overflows sooner, not later.',
     difficulty: 'intermediate',
   },
   {
@@ -50,14 +50,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'You log per-layer gradient norms in the first 40 steps of training a 10-layer network:\n\n| Step | Layer 1 | Layer 5 | Layer 10 | Loss |\n|---|---|---|---|---|\n| 1 | 310 | 180 | 95 | 2.3 |\n| 20 | 2,900 | 1,600 | 820 | 48.7 |\n| 40 | nan | nan | nan | nan |\n\nWhat is the most likely problem, and the best first fix?',
     options: [
-      'Exploding gradients: clip the gradient norm and lower the learning rate',
+      'Exploding gradients: clip the gradients and lower the learning rate',
       'Vanishing gradients: add residual connections so early layers learn',
       'Underfitting: add more layers so the model has more capacity',
       'Overfitting: add dropout and stop training at an earlier epoch',
     ],
     answer: 0,
     explanation:
-      'Every layer has norms in the hundreds and thousands, growing each step, and the loss climbs before turning into nan: exploding gradients. Clipping caps each update and a lower learning rate shrinks it. Vanishing gradients would show *tiny* norms near the input (like 0.0003) and a loss that barely moves, and residual connections can even make exploding worse. Under- and overfitting do not produce nan.',
+      'Every layer has norms in the hundreds and thousands, growing each step, and the loss climbs before turning into NaN: exploding gradients. Clipping caps each update and a lower learning rate shrinks it. Vanishing gradients would show *tiny* norms near the input (like 0.0003) and a loss that barely moves, and residual connections can even make exploding worse. Under- and overfitting do not produce NaN.',
     difficulty: 'intermediate',
   },
 ]

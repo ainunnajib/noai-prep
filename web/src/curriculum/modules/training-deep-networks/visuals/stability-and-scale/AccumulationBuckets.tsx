@@ -7,7 +7,8 @@ import { Note } from './parts'
   backward() pours that micro-batch's gradient (divided by k) into the GPU's .grad bucket; nothing is
   updated until the k-th micro-batch. Then the GPUs average their buckets (all-reduce), the optimiser
   takes ONE step, and zero_grad() empties the buckets. The dashed line is the gradient of one real
-  batch of b x k x G examples; with the division the buckets fill exactly to it.
+  batch of b x k x G examples; with the division one GPU's bucket fills exactly to it, and with several
+  GPUs the AVERAGE of their buckets (the all-reduce) equals it exactly.
   Aha: accumulation trades time for memory and gives the same update as one large batch.
 */
 
@@ -168,8 +169,9 @@ export default function AccumulationBuckets() {
         <>
           Press <b>Play</b>. Each chip is a micro-batch of <b>b</b> examples, the most your GPU can hold at once. Every <code>backward()</code> pours that
           micro-batch's gradient (divided by <b>k</b>) into the <code>.grad</code> bucket; only after <b>k</b> micro-batches does the optimiser take one step.
-          The dashed line is the gradient of one real batch of b × k × GPUs examples: the buckets fill exactly to it. Tick <b>Forgot to divide</b> to see
-          them overflow.
+          The dashed line is the gradient of one real batch of b × k × GPUs examples. With one GPU the bucket fills exactly to it; with
+          several, each bucket lands near it and their average (computed by the all-reduce) equals it exactly. Tick <b>Forgot to divide</b> to
+          see them overflow.
         </>
       }
     >
@@ -283,7 +285,7 @@ export default function AccumulationBuckets() {
           items={[
             ['effective batch b × k × GPUs', `${b} × ${k} × ${G} = ${Nbig}`],
             ['passes per update (each GPU)', String(k)],
-            [`linear scaling: lr for batch ${Nbig}`, `${BASE_LR} × ${Nbig}/${BASE_BATCH} = ${String(Number(((BASE_LR * Nbig) / BASE_BATCH).toPrecision(3)))}`],
+            [`lr by linear scaling (next section)`, `${BASE_LR} × ${Nbig}/${BASE_BATCH} = ${String(Number(((BASE_LR * Nbig) / BASE_BATCH).toPrecision(3)))}`],
           ]}
         />
       </Controls>

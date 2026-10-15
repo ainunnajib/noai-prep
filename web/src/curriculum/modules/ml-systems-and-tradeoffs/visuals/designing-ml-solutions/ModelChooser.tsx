@@ -46,6 +46,9 @@ const PRESETS: { name: string; data: Data; size: Size; lat: Lat; target: Target;
   { name: 'Loan decisions a bank must explain', data: 'table', size: 'medium', lat: 'realtime', target: 'cloud', explain: true },
 ]
 
+const DEEP_EXPLAIN =
+  'Deep networks are hard to explain: show which parts of the input mattered (for example saliency maps), and if every decision must be justified in plain terms, compare with a simpler model on hand-made features.'
+
 function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: boolean): Rec {
   const notes: string[] = []
   if (lat === 'relaxed') notes.push('Answers can wait (for example scored overnight in a batch), so a bigger model or an ensemble is affordable.')
@@ -86,6 +89,7 @@ function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: bo
     if (size === 'tiny') notes.push('With a few hundred images, freeze the pretrained layers, train only a new final layer, and use data augmentation (flips, crops, colour changes).')
     if (size === 'large') notes.push('With millions of images, fine-tuning the whole network (or a bigger ViT) pays off.')
     if (target !== 'cloud') notes.push('On a device, shrink the model: int8 quantisation (about 4× smaller), pruning, or distillation from a big teacher.')
+    if (explain) notes.push(DEEP_EXPLAIN)
     return r
   }
   if (data === 'text') {
@@ -113,6 +117,7 @@ function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: bo
       notes,
     }
     if (lat !== 'relaxed') notes.push("Attention costs grow with the sequence length squared, so cap the input length (for example 128 tokens).")
+    if (explain) notes.push(DEEP_EXPLAIN)
     return r
   }
   // audio
@@ -129,6 +134,7 @@ function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: bo
     notes,
   }
   if (size === 'tiny') notes.push('With little data, freeze the pretrained model and train only a small classifier on its embeddings.')
+  if (explain) notes.push(DEEP_EXPLAIN)
   return r
 }
 
@@ -161,6 +167,7 @@ export default function ModelChooser() {
   const revealed = shown || pick !== null
   const ok = pick !== null && rec.accept.includes(pick)
   const kind = data === 'image' ? 'pixels' : data === 'text' ? 'words' : 'sound'
+  const their = data === 'audio' ? 'its' : 'their'
   const feedback = (p: Pick): string => {
     switch (p) {
       case 'scratch':
@@ -168,7 +175,7 @@ export default function ModelChooser() {
       case 'linear':
         return data === 'table'
           ? 'A linear model is the baseline to beat here, but boosted trees usually capture the non-linear patterns in a table better.'
-          : `A linear model on raw ${kind} misses their structure. Use it as a baseline on top of good features instead.`
+          : `A linear model on raw ${kind} misses ${their} structure. Use it as a baseline on top of good features instead.`
       case 'gbdt':
         return `Boosted trees shine on tables of features, but they cannot see the structure in raw ${kind}.`
       case 'cnn':
@@ -305,7 +312,13 @@ export default function ModelChooser() {
         </div>
         {pick !== null && (
           <div role="status" style={{ fontSize: 13.5, fontWeight: 600, color: ok ? 'var(--ok)' : 'var(--bad)' }}>
-            {ok ? (pick === rec.best ? 'Good call: that is the strong default here.' : 'Reasonable: that also works here, though the card below explains the usual first choice.') : feedback(pick)}
+            {ok
+              ? pick === 'cnn' && target === 'micro'
+                ? 'Right family: on a microcontroller it must be a tiny CNN (a ViT will not fit), as the card below explains.'
+                : pick === rec.best
+                  ? 'Good call: that is the strong default here.'
+                  : 'Reasonable: that also works here, though the card below explains the usual first choice.'
+              : feedback(pick)}
           </div>
         )}
       </div>

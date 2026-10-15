@@ -16,7 +16,7 @@ x = torch.randn(4, 3)
 print(x.device)          # cpu: new tensors start on the CPU
 ```
 
-An operation can only combine tensors that live on the same device. PyTorch will not quietly copy one across, because copying between RAM and VRAM is slow and it wants you to decide when it happens.
+An operation can only combine tensors that live on the same device. PyTorch will not quietly copy one across, because copying between RAM and VRAM is slow and it wants you to decide when it happens. (The one exception is a single number: a Python float, or a 0-dim CPU tensor such as `torch.tensor(0.5)`, can be combined with a GPU tensor.)
 
 <Analogy title="Everyone in the same Zoom room">
 
@@ -103,13 +103,13 @@ torch.float64
 <QuickCheck
   q="A student writes `model.to(device)` and `inputs.to(device)` on separate lines (no `=`) before the training loop, on a GPU machine. What happens at `outputs = model(inputs)`?"
   options={[
-    'It runs on the GPU, because both lines moved their objects',
-    'It raises a device error: the model moved to the GPU but `inputs` is still on the CPU',
-    'It raises a device error: neither the model nor `inputs` moved',
-    'It runs on the CPU, because the GPU copies were thrown away',
+    'It runs on the GPU, because both `.to(device)` calls moved their objects in place',
+    'A device error: the model is on the GPU, but `inputs` is still on the CPU',
+    'A device error: `inputs` is on the GPU, but the model is still on the CPU',
+    'It runs on the CPU, because both moved copies were thrown away unused',
   ]}
   answer={1}
-  explain="`model.to(device)` changes a module in place, so the weights are on `cuda:0`. `inputs.to(device)` returns a moved copy that was never stored, so `inputs` is still on the CPU, and the forward pass raises `Expected all tensors to be on the same device`. The fix is `inputs = inputs.to(device)`."
+  explain="`model.to(device)` changes a module in place, so the weights are on `cuda:0`. `inputs.to(device)` returns a moved copy that was never stored, so `inputs` is still on the CPU, and the forward pass raises `Expected all tensors to be on the same device`. It is the tensor, not the model, that must be reassigned: `inputs = inputs.to(device)`."
 />
 
 ## Reading PyTorch error messages
@@ -138,7 +138,7 @@ A cheat sheet of the messages you will meet most:
 - **Shape.** `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)`: make the layer's `in_features` equal B, or flatten the input first. `expected input[...] to have 3 channels, but got 28 channels`: images must be $(N, C, H, W)$, so `x.permute(0, 3, 1, 2)`.
 - **dtype.** `must have the same dtype, but got Long and Float`: `x = x.float()`. `expected target dtype to be Long`: class labels must be integers, `y = y.long()`.
 - **Device.** `Expected all tensors to be on the same device`: `.to(device)` and reassign. `can't convert cuda:0 device type tensor to numpy`: `.cpu()` first.
-- **Conv and recurrent layers word it differently.** Convolutions say `Input type (…) and weight type (…) should be the same` (or `bias type`): two different number types, such as `double` and `float`, mean a dtype bug (`.float()`), while a `cuda` in only one of the two names, as in older versions' `Input type (torch.FloatTensor) and weight type (torch.cuda.FloatTensor)`, means a device bug (`img = img.to(device)`). LSTM and GRU layers say `Input and parameter tensors are not at the same device`.
+- **Conv layers word it differently.** `Input type (…) and weight type (…) should be the same`: `double` against `float` is a dtype bug; `cuda` in only one of the two names is a device bug.
 - **Autograd.** `Can't call numpy() on Tensor that requires grad`: `.detach()` first.
 
 The device message's wording depends on the operation and the PyTorch version (another common form is `...but found at least two devices, cuda:0 and cpu!`), but for most operations it contains *Expected all tensors to be on the same device*.
@@ -155,7 +155,7 @@ UserWarning: Using a target size (torch.Size([4])) that is different to the inpu
 
 <ExamTip>
 
-For `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)` in an `nn.Linear`, A is the batch size, B is what your data actually has, and C is the layer's `in_features` (D is `out_features`). The fix is almost always "make B and C equal", usually by changing `in_features` to B, often after a `flatten`. This is pure reading, no calculation: a quick win in the Prelim.
+For `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)` in an `nn.Linear`, A is the number of rows (the batch size, or batch × sequence length for a 3-D input, because all leading dims are multiplied together), B is what your data actually has, and C is the layer's `in_features` (D is `out_features`). The fix is almost always "make B and C equal", usually by changing `in_features` to B, often after a `flatten`. This is pure reading, no calculation: a quick win in the Prelim.
 
 </ExamTip>
 
@@ -213,13 +213,29 @@ The fixes for an out-of-memory error, roughly in the order to try them:
 4. **Freeze layers** you are not training: no gradients or optimiser state for them, and no saved activations below the first trainable layer.
 5. **Shorter inputs or a smaller model**: shorter texts or smaller images shrink $A$.
 
+Mixed precision takes a few extra lines in the loop. With FP16, a *loss scaler* multiplies the loss up before `backward()`, so that tiny gradients do not round to zero in 16 bits, and divides them back down before the step:
+
+```python
+scaler = torch.amp.GradScaler('cuda')
+for inputs, targets in train_loader:
+    inputs, targets = inputs.to(device), targets.to(device)
+    optimizer.zero_grad()
+    with torch.autocast(device_type='cuda', dtype=torch.float16):
+        loss = criterion(model(inputs), targets)    # forward pass in 16-bit
+    scaler.scale(loss).backward()                   # backward on the scaled-up loss
+    scaler.step(optimizer)                          # unscale the gradients, then step
+    scaler.update()
+```
+
+With `dtype=torch.bfloat16`, a 16-bit format with the same range as FP32, no scaler is needed.
+
 Two things that do *not* help: switching to a "bigger" optimiser (Adam needs more than SGD), and `torch.cuda.empty_cache()`, which only hands back memory PyTorch has cached but is not using.
 
 <PastPaperQuestion paper="prelim2026" n={128} />
 
 <ExamTip>
 
-IOAI's programming tasks run on a GPU (recent IOAI task statements quoted about 16 GB of GPU memory), and NOAI papers ask about exactly these errors and their fixes. A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before activations.** So a 1-billion-parameter model needs about 16 GB just for weights, gradients and Adam, which leaves no room for activations on a 16 GB GPU even at batch size 1. That is why large models are fine-tuned with tricks such as freezing most of the network.
+IOAI's programming tasks run on a GPU (competition GPUs typically have around 16 GB of memory), and NOAI papers ask about exactly these errors and their fixes. A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before activations.** So a 1-billion-parameter model needs about 16 GB just for weights, gradients and Adam, which leaves no room for activations on a 16 GB GPU even at batch size 1. That is why large models are fine-tuned with tricks such as freezing most of the network.
 
 </ExamTip>
 
@@ -253,8 +269,8 @@ def train_step():
     loss.backward()
     optimizer.step()
     for (name, p), b in zip(model.named_parameters(), before):
-        print(f"{name:8} requires_grad={p.requires_grad!s:5}",
-              f" grad? {p.grad is not None!s:5}  changed? {not torch.equal(p, b)}")
+        print(name, "requires_grad:", p.requires_grad,
+              "grad:", p.grad is not None, "changed:", not torch.equal(p, b))
 
 train_step()
 print("--- unfreeze layer 0 but keep the old optimiser ---")
@@ -263,18 +279,24 @@ train_step()
 ```
 
 ```text
-0.weight requires_grad=False  grad? False  changed? False
-0.bias   requires_grad=False  grad? False  changed? False
-2.weight requires_grad=True   grad? True   changed? True
-2.bias   requires_grad=True   grad? True   changed? True
+0.weight requires_grad: False grad: False changed: False
+0.bias requires_grad: False grad: False changed: False
+2.weight requires_grad: True grad: True changed: True
+2.bias requires_grad: True grad: True changed: True
 --- unfreeze layer 0 but keep the old optimiser ---
-0.weight requires_grad=True   grad? True   changed? False
-0.bias   requires_grad=True   grad? True   changed? False
-2.weight requires_grad=True   grad? True   changed? True
-2.bias   requires_grad=True   grad? True   changed? True
+0.weight requires_grad: True grad: True changed: False
+0.bias requires_grad: True grad: True changed: False
+2.weight requires_grad: True grad: True changed: True
+2.bias requires_grad: True grad: True changed: True
 ```
 
-After unfreezing, layer 0 gets gradients (`grad? True`) but never changes, and no error is raised. The fix is to rebuild the optimiser, or to add the new parameters with `optimizer.add_param_group({'params': model[0].parameters()})`. The same trap appears when you replace `model.fc` with a new layer *after* creating the optimiser: the new head is not in it.
+After unfreezing, layer 0 gets gradients (`grad: True`) but never changes, and no error is raised. The fix is to rebuild the optimiser, or to add the new parameters with `optimizer.add_param_group({'params': model[0].parameters()})`. The same trap appears when you replace `model.fc` with a new layer *after* creating the optimiser: the new head is not in it.
+
+<Note title="A slip in this paper question">
+
+In the code as printed, the optimiser is created *after* `model.fc` is replaced, which would train the new head normally. Answer from the symptom (`fc.weight` never changes), as the examiners intended.
+
+</Note>
 
 <PastPaperQuestion paper="final2026" n={14} />
 

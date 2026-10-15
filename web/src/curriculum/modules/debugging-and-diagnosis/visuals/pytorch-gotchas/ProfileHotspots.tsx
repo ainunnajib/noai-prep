@@ -25,7 +25,7 @@ const SLOW: Record<Part, number> = { data: 749, forward: 116, backward: 155, ste
 const FAST: Record<Part, number> = { data: 0, forward: 98, backward: 125, step: 52, other: 73 }
 const total = (r: Record<Part, number>) => PARTS.reduce((t, p) => t + r[p.id], 0)
 
-const SLOW_CODE = ['# rows: 6,400 Python lists of 200 floats', 'for i in range(0, 6400, 64):', '    x = torch.tensor(rows[i:i+64])', '    y = torch.tensor(labels[i:i+64])', '    opt.zero_grad()', '    loss = loss_fn(model(x), y)', '    loss.backward()', '    opt.step()']
+const SLOW_CODE = ['# 6,400 rows as Python lists', 'for i in range(0, 6400, 64):', '    x = torch.tensor(rows[i:i+64])', '    y = torch.tensor(labels[i:i+64])', '    opt.zero_grad()', '    loss = loss_fn(model(x), y)', '    loss.backward()', '    opt.step()']
 const FAST_CODE = ['X = torch.tensor(rows)      # once', 'Y = torch.tensor(labels)', 'for i in range(0, 6400, 64):', '    x, y = X[i:i+64], Y[i:i+64]', '    opt.zero_grad()', '    loss = loss_fn(model(x), y)', '    loss.backward()', '    opt.step()']
 
 const GUESSES: { id: Part; label: string }[] = [

@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt: 'Why does the last line raise `RuntimeError: view size is not compatible with input tensor’s size and stride`?',
     code: 'w = torch.randn(4, 6)\nwt = w.T\nflat = wt.view(24)',
     options: [
-      '`wt` is not contiguous: transposing only changed its strides, so its numbers are not stored in reading order',
+      '`wt` is not contiguous: `.T` only swapped its strides, so its numbers are not stored in reading order',
       '`view` must keep the number of rows, so a (6, 4) tensor can only be viewed as another shape with 6 rows',
       '`view` only works on 1-D tensors, so `wt` has to be flattened with `wt.flatten()` before it can be viewed',
       '`w.T` copies the data into float64, and `view` refuses any tensor whose dtype differs from the original',

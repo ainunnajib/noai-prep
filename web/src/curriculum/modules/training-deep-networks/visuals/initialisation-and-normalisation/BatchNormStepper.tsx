@@ -133,7 +133,7 @@ export default function BatchNormStepper() {
           Rows are 5 examples in a batch; columns are 3 features with very different scales. Step through: BatchNorm works on each
           <b> column</b> separately, subtracting its mean and dividing by its spread, so every feature ends up centred on 0 with spread 1;
           then γ and β let the network choose a new scale and shift. Click any cell to follow it in the formula and to edit it. Each{' '}
-          <b>Next batch</b> is one training step, which moves the stored running averages 10% of the way towards that batch&apos;s
+          <b>Train on 1 batch</b> is one training step, which moves the stored running averages 10% of the way towards that batch&apos;s
           statistics. Switch to <b>eval</b> and the stored averages are used instead, so the result no longer depends on the other examples
           in the batch. After only a few batches the stored averages are still far from the true means, so eval outputs come out badly
           scaled; press <b>+20 batches</b> and they settle.
@@ -178,7 +178,7 @@ export default function BatchNormStepper() {
             true feature means: 5, 50, 1
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center' }}>
-            <Button onClick={() => advance(1)}>Next batch</Button>
+            <Button onClick={() => advance(1)}>Train on 1 batch</Button>
             <Button onClick={() => advance(20)}>+20 batches</Button>
           </div>
         </div>
@@ -189,7 +189,7 @@ export default function BatchNormStepper() {
       <PlayerControls player={player} label={(s) => `Stage ${s + 1} of ${STAGES.length}`} />
       <Controls>
         <Slider
-          label={`selected cell (example ${si + 1}, feature ${sj + 1})`}
+          label={`value of the selected cell (example ${si + 1}, feature ${sj + 1})`}
           value={batch[si][sj]}
           min={RANGE[sj][0]}
           max={RANGE[sj][1]}

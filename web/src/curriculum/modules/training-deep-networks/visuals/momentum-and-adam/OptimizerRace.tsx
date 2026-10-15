@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Figure, Controls, Slider, Button, Plot, Path, Dots, Axes, Label, DraggablePoint, usePlot, useNarrow, useAnimationFrame } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Plot, Path, Dots, Axes, DraggablePoint, usePlot, useNarrow, useAnimationFrame } from '../../../../../kit'
 import { contourSegments } from './contours'
 
 /*
@@ -102,6 +102,21 @@ function Clipped({ children }: { children: ReactNode }) {
   return <g clipPath={`url(#${clipId})`}>{children}</g>
 }
 
+/** "minimum" under the cross, with a surface-coloured halo so the paths running past it do not hide it */
+function MinimumLabel({ x, y }: { x: number; y: number }) {
+  const { xs, ys } = usePlot()
+  return (
+    <text
+      x={xs(x)}
+      y={ys(y) + 24}
+      textAnchor="middle"
+      style={{ fill: 'var(--viz-ink)', fontSize: 12, fontWeight: 600, stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round', paintOrder: 'stroke' }}
+    >
+      minimum
+    </text>
+  )
+}
+
 export default function OptimizerRace() {
   const [step, setStep] = useState(60)
   const [playing, setPlaying] = useState(false)
@@ -130,7 +145,7 @@ export default function OptimizerRace() {
       title="The optimiser race"
       caption={
         <>
-          A long, curved valley seen from above; the cross marks the minimum. All four start at the dark dot (drag it) and each uses a
+          A long, curved valley seen from above; the cross marks the minimum. All four start at the dot labelled start (drag it) and each uses a
           sensible learning rate of its own. Press <b>Play</b> or drag the step slider. <b>SGD</b> zig-zags between the steep walls and
           creeps along the gentle floor. <b>Momentum</b> cancels the zig-zag and speeds along the floor (watch it swing past bends).
           <b> RMSProp</b> gives both directions similar step sizes, so it heads straight for the floor. <b>Adam</b> does both. Push the
@@ -156,9 +171,7 @@ export default function OptimizerRace() {
               })}
           </Clipped>
           <Dots points={[{ x: X_MIN, y: C * X_MIN * X_MIN, r: 7, color: 'var(--viz-ink)', shape: 'cross' }]} />
-          <Label x={X_MIN} y={C * X_MIN * X_MIN} dy={22} anchor="middle" color="var(--viz-ink)" size={12}>
-            minimum
-          </Label>
+          <MinimumLabel x={X_MIN} y={C * X_MIN * X_MIN} />
           <DraggablePoint
             x={start[0]}
             y={start[1]}

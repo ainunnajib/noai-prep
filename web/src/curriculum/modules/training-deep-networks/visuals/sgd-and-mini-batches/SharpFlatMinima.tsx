@@ -76,6 +76,20 @@ export default function SharpFlatMinima() {
             {`+${(flatTest - FLOOR).toFixed(2)}`}
           </Label>
         </Plot>
+        <div aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 1.2rem', justifyContent: 'center', fontSize: 'var(--step--1)', color: 'var(--ink-2)' }}>
+          <span>
+            <svg width="28" height="10" style={{ verticalAlign: 'middle', marginRight: 6 }}>
+              <line x1="2" x2="26" y1="5" y2="5" style={{ stroke: 'var(--viz-1)', strokeWidth: 2.8 }} />
+            </svg>
+            training loss
+          </span>
+          <span>
+            <svg width="28" height="10" style={{ verticalAlign: 'middle', marginRight: 6 }}>
+              <line x1="2" x2="26" y1="5" y2="5" style={{ stroke: 'var(--viz-2)', strokeWidth: 2.2, strokeDasharray: '7 5' }} />
+            </svg>
+            test loss (shifted)
+          </span>
+        </div>
       </div>
       <Controls>
         <Slider label="shift between training and test data" value={shift} min={-0.5} max={0.5} step={0.05} onChange={setShift} format={(v) => v.toFixed(2)} />

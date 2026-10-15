@@ -84,7 +84,7 @@ export default function LossCurveClinic() {
       caption={
         <>
           Six training runs, each with one problem (or none). Pick a run, read its curves, and choose a diagnosis. Then try treatments: the run is
-          redrawn after the change, with the original run faded behind it. The thin dashed line is a healthy run's validation loss, for comparison. The open circle marks the lowest validation loss, the point early stopping
+          redrawn after the change, with the original run faded behind it. The thin dashed line is a healthy run's validation loss, for comparison. Each point is an average over a whole epoch, so a healthy curve here is smooth: bouncing at this scale is a real problem (unlike the per-batch noise in a later figure). The open circle marks the lowest validation loss, the point early stopping
           would keep. The curves are simplified versions of shapes that real training runs produce.
         </>
       }

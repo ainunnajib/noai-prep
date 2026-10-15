@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     id: 'debugging-and-diagnosis.reading-loss-curves.4',
     prompt: 'Why does lowering the learning rate usually stop a training loss that oscillates wildly?',
     options: [
-      'Each update was overshooting the bottom of the valley; smaller steps land nearer the bottom instead of jumping past it',
+      'Each step was jumping past the bottom of the valley to higher ground; smaller steps land closer to it',
       'A lower learning rate acts as regularisation, which stops the model from overfitting the training batches',
       'A lower learning rate makes each mini-batch contain more examples, so the gradient becomes less noisy',
       'A lower learning rate clears the old gradients before each update, the same way that zero_grad() does',

@@ -90,7 +90,7 @@ x, y = torch.randn(64, 32), torch.randint(0, 32, (64,))
 loss = nn.functional.cross_entropy(model(x), y)
 loss.backward()
 for name, p in model.named_parameters():
-    if name.endswith("weight"):
+    if name.endswith("weight") and p.grad is not None:
         print(f"{name:9s} grad norm {p.grad.norm():.1e}")`
 
 export const GRAD_NORMS_OUTPUT = `0.weight  grad norm 1.3e-08

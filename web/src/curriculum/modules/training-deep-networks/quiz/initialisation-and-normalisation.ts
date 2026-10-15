@@ -39,7 +39,7 @@ const questions: QuizQuestion[] = [
       'A CNN with BatchNorm layers is tested on batches of 16 images, but you forgot to call `model.eval()`. The prediction for the same image changes depending on which other images share its batch. Why?',
     options: [
       "In training mode BatchNorm uses each test batch's own mean and variance instead of its stored running statistics",
-      'In training mode BatchNorm resets $\\gamma$ and $\\beta$ to 1 and 0 before every batch, so the learned scale and shift are lost',
+      'In training mode BatchNorm resets $\\gamma$ and $\\beta$ to 1 and 0 before each batch, so the learned scale and shift are lost',
       'In training mode the optimiser keeps training the `running_mean` and `running_var` buffers on every test batch',
       'In training mode BatchNorm normalises each image over its own pixels, so the result depends on the order of the images',
     ],
@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.initialisation-and-normalisation.5',
     prompt: 'Why do Transformers normally use LayerNorm rather than BatchNorm?',
     options: [
-      'It normalises each token over its own features, so it works the same for any batch size or padding',
+      'It normalises each token over its own features, so it behaves the same for every batch size, even 1',
       'It normalises each feature over the whole batch, which gives more accurate statistics for long sequences',
       'It has no learnable parameters at all, so it adds nothing to the size of a very large model',
       'It keeps running averages of the mean and variance for evaluation, which BatchNorm cannot do',

@@ -75,7 +75,7 @@ Create layers in `__init__` (after `super().__init__()`), use them in `forward`,
 
 ### Call model(x), not model.forward(x)
 
-You write a method called `forward`, but you never call it directly. `model(x)` goes through `nn.Module`'s own call method, which runs `forward` **and** any <Term def="Small extra functions attached to a module that run automatically before or after its forward pass, for example to record activations for a visualisation.">hooks</Term> that tools have attached to the model. `model.forward(x)` gives the same numbers in a simple script but silently skips the hooks, so code that relies on them (activation recorders, pruning and quantisation tools) quietly breaks. Always write `model(x)`.
+You write a method called `forward`, but you never call it directly. `model(x)` goes through `nn.Module`'s own call method, which runs `forward` **and** any extra helper code (<Term def="Small extra functions attached to a module that run automatically before or after its forward pass, for example to record activations for a visualisation.">hooks</Term>) that tools have attached to the model. `model.forward(x)` gives the same numbers in a simple script but silently skips the hooks, so the tools quietly stop working. Always write `model(x)`.
 
 <Mistake title="A plain Python list hides your layers">
 

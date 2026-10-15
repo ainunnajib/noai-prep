@@ -50,7 +50,7 @@ tensor(6.) tensor([1., 4.])
 Every tensor has one <Term def="Data type: the kind of number every element is stored as, such as int64 (whole numbers) or float32 (decimals with about 7 significant digits).">dtype</Term>. Two creation functions look almost the same but behave differently:
 
 - **`torch.tensor(data)`** (lowercase) copies your data and *infers* the dtype from it: whole numbers give `int64`, any decimal gives `float32`, and `True`/`False` give `bool`.
-- **`torch.Tensor(data)`** (capital T) is the tensor class itself. Calling it always gives `float32`, whatever you pass in.
+- **`torch.Tensor(data)`** (capital T) is the tensor class itself. Called on a list or a NumPy array, it always gives the default float type, `float32`, whatever numbers are inside.
 
 Generators such as `torch.zeros(2, 3)`, `torch.ones`, `torch.rand` (uniform between 0 and 1), `torch.randn` (normal distribution) and `torch.linspace` give `float32`; `torch.arange(5)` with whole numbers gives `int64`. Notice one difference from NumPy: PyTorch's default float is **float32**, while NumPy's is float64.
 
@@ -84,7 +84,7 @@ Why should you care? Try the combinations yourself:
 
 Three rules come out of it:
 
-1. **Element-wise arithmetic promotes.** `int64 + float32` gives `float32`, so `+`, `-`, `*` and `/` rarely complain.
+1. **Element-wise arithmetic promotes.** `int64 + float32` gives `float32`, so `+`, `-`, `*` and `/` rarely complain. (In-place versions such as `x += y` or `x.add_(y)` cannot change `x`'s dtype, so an integer `x` plus a float `y` raises `result type Float can't be cast to the desired output type Long`.)
 2. **Matrix products and layers do not promote.** `@` and `nn.Linear` need *exactly* the same dtype on both sides. Feeding NumPy data (float64) or integer data into a model gives `mat1 and mat2 must have the same dtype`. The fix is `x.float()`, which converts to float32.
 3. **Gradients need floating point.** `torch.tensor([1, 2], requires_grad=True)` fails, because you cannot nudge an integer by 0.001. (Class labels for a classification loss are the exception: they *should* be `int64`, because they are indices, not things you differentiate.)
 
@@ -138,7 +138,7 @@ Shape operations never change the numbers, only how they are grouped and ordered
     New axis 0 is old axis 2 (C = 3), then old axis 0 (H = 224), then old axis 1 (W = 224). The shape is $(3, 224, 224)$, which is (C, H, W).
   </Step>
   <Step title="Add the batch axis: unsqueeze(0)">
-    Most models (and layers such as BatchNorm) expect a batch axis, so add one even for a single image. A new size-1 axis at position 0 gives $(1, 3, 224, 224)$, which is (N, C, H, W). `squeeze(0)` would take it away again.
+    Models expect a batch axis, so add one even for a single image. A new size-1 axis at position 0 gives $(1, 3, 224, 224)$, which is (N, C, H, W). `squeeze(0)` would take it away again.
   </Step>
   <Step title="Flatten for a linear layer: flatten(1)">
     Merge every axis from 1 onwards and keep the batch axis: $3 \times 224 \times 224 = 3 \times 50176 = 150528$, so the shape is $(1, 150528)$.
@@ -222,11 +222,11 @@ $$
 
 Only the **last two** dims are multiplied as matrices. All the earlier dims are <Term def="Extra leading axes that just say how many separate matrix products to do at once. They are matched with the broadcasting rules: equal, 1, or missing.">batch dims</Term>: they say how many separate products to do, and they are matched with the broadcasting rules (lined up from the right, equal or 1 or missing).
 
-The case you will meet most often is attention, inside every Transformer.
+The case you will meet most often is attention, the core of the <Term def="The network design behind modern language models such as GPT. You will build one in module 27.">Transformer</Term>.
 
 <Note title="A preview of attention">
 
-You will build attention properly in module 27. For now, `Q` (queries) and `K` (keys) are just two stacks of token vectors with shape $(B, h, T, d)$: $B$ sentences in the batch, $h$ <Term def="Attention runs several independent copies side by side, called heads, each with its own smaller vectors. Here they are just one more batch dim.">heads</Term>, $T$ tokens per sentence and $d$ numbers per token. The job is to compare every token in `Q` with every token in `K`.
+You will build attention properly in module 27. For now, `Q` (queries) and `K` (keys) are just two stacks of <Term def="A word or piece of a word. A model turns each token into a vector of numbers.">token</Term> vectors with shape $(B, h, T, d)$: $B$ sentences in the batch, $h$ <Term def="Attention runs several independent copies side by side, called heads, each with its own smaller vectors. Here they are just one more batch dim.">heads</Term>, $T$ tokens per sentence and $d$ numbers per token. The job is to compare every token in `Q` with every token in `K`.
 
 </Note>
 
@@ -283,11 +283,12 @@ For any `@` question, cover the batch dims with your thumb, apply the 2-D rule t
 
 ## Choosing dim
 
-Most operations take a `dim` argument (NumPy calls it `axis`) that says *along which axis* to work. Three families behave differently:
+Most operations take a `dim` argument (NumPy calls it `axis`) that says *along which axis* to work. The common operations treat it in four different ways:
 
 - **Reductions** (`sum`, `mean`, `max`, `argmax`): the dim you name **disappears** from the shape, unless you pass `keepdim=True`, which keeps it with size 1.
 - **Softmax** keeps the shape, and makes the numbers along the named dim positive and sum to 1.
 - **`torch.cat`** joins tensors along an existing dim: that dim **grows**, and every other dim must match.
+- **`torch.stack`** is its cousin that makes a **new** dim instead: two $(3, 4)$ tensors stack to $(2, 3, 4)$ with `dim=0`, and every shape must be identical. This is how a DataLoader turns single examples into a batch.
 
 The danger is that a wrong dim almost never raises an error. Try every dim for each operation and read the verdict:
 
@@ -298,7 +299,7 @@ The dims you will need most often:
 - **Attention weights, one set per query.** Scores $(B, h, T, T)$: `torch.softmax(scores, dim=-1)` keeps the shape.
 - **Join two stacks of images along the channels.** `x` and `skip` are both $(N, C, H, W)$ <Term def="The output of a convolution layer: for each image, a stack of C grids of numbers, one grid per channel. You will meet them in the CNN module.">feature maps</Term>: `torch.cat([x, skip], dim=1)` gives $(N, 2C, H, W)$. This is how a U-Net's <Term def="A U-Net (module 25) is an image network that shrinks a picture and then grows it back. A skip connection carries a copy of an early layer's output forward and joins it to a later one.">skip connection</Term> joins an early layer's output to a later one.
 - **Average token vectors into a sentence vector.** $(B, T, d)$: `x.mean(dim=1)` gives $(B, d)$.
-- **Predicted class per pixel** (segmentation: labelling every pixel). Logits $(N, \text{classes}, H, W)$: `logits.argmax(dim=1)` gives $(N, H, W)$.
+- **Predicted class per pixel** (segmentation: labelling every pixel). <Term def="The raw scores a model gives each class, before softmax turns them into probabilities. The biggest logit is the predicted class.">Logits</Term> $(N, \text{classes}, H, W)$: `logits.argmax(dim=1)` gives $(N, H, W)$.
 - **Predicted class per example.** Logits $(N, \text{classes})$: `logits.argmax(dim=1)` gives $(N,)$.
 
 ```python
@@ -313,6 +314,7 @@ x = torch.zeros(8, 64, 32, 32)
 skip = torch.zeros(8, 64, 32, 32)
 print(torch.cat([x, skip], dim=1).shape)
 print(torch.cat([x, skip], dim=0).shape)
+print(torch.stack([x, skip], dim=0).shape)    # a new dim in front
 ```
 
 ```text
@@ -321,6 +323,7 @@ tensor([0, 1, 1])
 torch.Size([2, 1])
 torch.Size([8, 128, 32, 32])
 torch.Size([16, 64, 32, 32])
+torch.Size([2, 8, 64, 32, 32])
 ```
 
 <Mistake title="The wrong dim fails silently">
@@ -338,13 +341,13 @@ torch.Size([16, 64, 32, 32])
 
 <ExamTip>
 
-In shape questions, write the shape and cross out the dim you name for a reduction, or add the two sizes along it for `cat`. In the Final, add `assert out.shape == (B, T, d)` or a `# (B, T, d)` comment after every line of a from-scratch model: shape bugs are the number one reason a correct-looking implementation fails the hidden tests.
+In shape questions, write the shape and cross out the dim you name for a reduction, or add the two sizes along it for `cat`. In the Final, add `assert out.shape == (B, T, d)` or a `# (B, T, d)` comment after every line of a from-scratch model: shape bugs are one of the most common reasons a correct-looking implementation fails the hidden tests.
 
 </ExamTip>
 
 <Takeaways>
 
-- A tensor is a NumPy-like array with one dtype and a shape. `torch.tensor` infers the dtype (whole numbers → int64, decimals → float32, NumPy floats stay float64); `torch.Tensor` always gives float32. `@` and layers need exactly the same dtype on both sides (a model's weights are float32, so convert inputs with `.float()`), and gradients need a floating-point dtype.
+- `torch.tensor` infers one dtype for the whole tensor (whole numbers → int64, decimals → float32). NumPy floats stay float64, so add `.float()`: `@` and layers need matching dtypes.
 - `unsqueeze(d)` adds a size-1 axis, `squeeze` removes size-1 axes, `permute` reorders axes (each argument is an old position), `transpose` swaps two, `flatten(s)` merges, and `view`/`reshape` regroup in reading order. `view` never copies, so it can refuse after `permute`; `reshape` copies if it must.
 - Image batches are (N, C, H, W). A photo (H, W, C) becomes a batch with `.permute(2, 0, 1).unsqueeze(0)`.
 - `@` multiplies the last two dims and broadcasts the rest: $(B, h, T, d)$ @ $(B, h, d, T)$ → $(B, h, T, T)$, using `K.transpose(-2, -1)`.

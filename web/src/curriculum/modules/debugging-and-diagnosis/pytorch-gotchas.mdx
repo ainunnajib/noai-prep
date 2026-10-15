@@ -67,7 +67,7 @@ tensor([2., 2., 0., 2., 2., 2.])
 tensor([1., 1., 1., 1., 1., 1.])
 ```
 
-In train mode each call zeroes a random half of the values and doubles the rest (to keep the average the same, it multiplies by $\frac{1}{1-p} = \frac{1}{0.5} = 2$). Evaluate in train mode and your predictions are random: run the same validation set twice and you get two different scores.
+In train mode each value is zeroed independently with probability 0.5 (about half of them on average, as the two different outputs show), and the survivors are doubled to keep the average the same: they are multiplied by $\frac{1}{1-p} = \frac{1}{0.5} = 2$. Evaluate in train mode and your predictions are random: run the same validation set twice and you get two different scores.
 
 ### No gradients needed? Say so
 
@@ -134,9 +134,9 @@ The order is always zero_grad, forward, loss, backward, step. Use `model.train()
 
 <QuickCheck
   q="A model with dropout gets 81.2% on the validation set, and 80.4% when you run exactly the same evaluation code again. What is the most likely cause?"
-  options={['The evaluation runs in train mode, so dropout is still active', 'The evaluation is missing torch.no_grad()', 'The validation set is shuffled between runs', 'The learning rate is too high']}
+  options={['The evaluation runs in train mode, so dropout is still active', 'The evaluation is missing torch.no_grad(), so the weights keep changing', 'The validation set is shuffled, so the examples come in a new order', 'The learning rate is too high, so the model is still unstable']}
   answer={0}
-  explain="In train mode dropout switches off a random set of units on every call, so the same inputs give different outputs and the score changes. `model.eval()` fixes it. `no_grad()` only saves memory and does not change any layer's behaviour, and shuffling the order of a fixed set does not change its accuracy."
+  explain="In train mode dropout switches off a random set of units on every call, so the same inputs give different outputs and the score changes. `model.eval()` fixes it. Without `no_grad()` PyTorch only records the graph: no weight changes unless `optimizer.step()` runs. Shuffling the order of a fixed set does not change its accuracy, and the learning rate plays no part in evaluation."
 />
 
 ## Device and graph bugs
@@ -207,25 +207,6 @@ With a learning rate of 0 the weights do not change, but PyTorch still computes 
 
 </Note>
 
-```python
-import torch, torch.nn as nn
-torch.manual_seed(0)
-layer = nn.Linear(3, 2)
-before = layer.weight.clone()
-opt = torch.optim.AdamW(layer.parameters(), lr=0.0, weight_decay=0.1)
-for _ in range(3):
-    opt.zero_grad()
-    layer(torch.randn(5, 3)).sum().backward()
-    opt.step()
-print("weights changed:", not torch.equal(before, layer.weight))
-print("gradient stored:", layer.weight.grad is not None)
-```
-
-```text
-weights changed: False
-gradient stored: True
-```
-
 ## Debugging tools: prints, asserts, anomaly detection, profilers
 
 When reading the code does not reveal the bug, make the program tell you.
@@ -277,9 +258,9 @@ It names the operation and the line. Anomaly detection makes training much slowe
 
 <QuickCheck
   q="After 3,000 steps your loss suddenly becomes NaN. Which tool points you to the operation that first produced NaN gradients?"
-  options={['`set_detect_anomaly(True)` from `torch.autograd`', '`torch.profiler`, sorted by time', '`torch.cuda.memory_allocated()`', '`model.eval()`']}
+  options={['`set_detect_anomaly(True)` from `torch.autograd`', '`torch.profiler`, with its table sorted by CPU time', '`torch.cuda.memory_allocated()`, printed at each step', '`model.eval()`, called just before the forward pass']}
   answer={0}
-  explain="Anomaly detection checks every backward operation and stops at the first one that returns NaN, showing the forward line that created it. The profiler measures time, memory_allocated measures GPU memory, and eval() changes dropout and BatchNorm behaviour."
+  explain="Anomaly detection checks every backward operation and stops at the first one that returns NaN, showing the forward line that created it. The profiler measures time, memory_allocated measures GPU memory, and eval() changes dropout and BatchNorm behaviour: none of them looks at the values of the gradients."
 />
 
 **Profilers** answer "where does the time go?". `cProfile` (built into Python) times every function call; `torch.profiler` times every PyTorch operation. Programmers are famously bad at guessing where time goes, so measure before you optimise:
@@ -296,7 +277,7 @@ x, y = torch.randn(64, 200), torch.randint(0, 10, (64,))
 with profile(activities=[ProfilerActivity.CPU]) as prof:
     for _ in range(20):
         loss = F.cross_entropy(model(x), y)
-        loss.backward()
+        loss.backward()      # gradients pile up here, but we only measure time
 print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=5))
 ```
 

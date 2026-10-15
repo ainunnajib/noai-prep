@@ -30,7 +30,7 @@ Run these checks in this order. Each one is cheap, and each one rules out a whol
 2. **Check the shapes.** Print the shape of the inputs, the model's output, the labels and the loss.
 3. **Check the initial loss.** Before any training, a classifier with $K$ classes should have a loss of about $\ln K$.
 4. **Overfit one small batch.** Train on the same handful of examples over and over. A correct model and training loop drive the loss close to zero.
-5. **Compare with a simple baseline.** Does your model beat a trivial rule, such as always predicting the most common class, or a simple model like logistic regression?
+5. **Compare with simple baselines.** Does your model beat both a trivial rule, such as always predicting the most common class, and a simple model like logistic regression?
 
 Only if all five pass is it time to tune hyperparameters, and then you **change one thing at a time**, so that you know which change caused which effect.
 
@@ -93,9 +93,9 @@ What a wrong first loss tells you:
 
 <QuickCheck
   q="A 4-class classifier logs a loss of 6.2 at step 0, before any training. What should you conclude?"
-  options={['Something is wrong: the loss should start near ln 4 ≈ 1.39, so the outputs are far too large', 'Nothing: a high starting loss just means there is a lot left to learn', 'The model is overfitting already', 'The learning rate is too low']}
+  options={['Something is wrong: it should start near ln 4 ≈ 1.39, not 6.2', 'Nothing: a high first loss just means there is a lot to learn', 'The model is already overfitting its very first batch', 'The learning rate is too low for the loss to fall quickly']}
   answer={0}
-  explain="An untrained 4-class model should be unsure, giving each class about 1/4, so the first loss should be about $\ln 4 = 2 \ln 2 \approx 1.39$. A loss of 6.2 means the untrained model is confidently wrong: check input normalisation, weight initialisation and the loss function. The learning rate cannot matter yet, because no update has happened."
+  explain="An untrained 4-class model should be unsure, giving each class about 1/4, so the first loss should be about $\ln 4 = 2 \ln 2 \approx 1.39$. A loss of 6.2 means the untrained model is confidently wrong: its outputs are far too large, so check input normalisation, weight initialisation and the loss function. Neither the learning rate nor overfitting can matter yet, because no update has happened."
 />
 
 ## Overfit one batch
@@ -260,7 +260,7 @@ Errors cannot catch these bugs, so you need **sanity checks**: quick tests of so
 
 <QuickCheck
   q="`x` has shape (32, 10) and `m = x.mean(dim=0)`. What is the shape of `x - m`, and is it what you want for centring each feature?"
-  options={['(32, 10), and yes: each column has its own mean subtracted', '(32, 32), because broadcasting builds a table', '(10,), because the mean removed the batch dimension', 'It raises an error, because (32, 10) and (10,) do not match']}
+  options={['(32, 10), and yes: every column has its own mean subtracted', '(32, 32), because broadcasting builds a table', '(10,), because the mean removed the batch dimension', 'It raises an error, because (32, 10) and (10,) do not match']}
   answer={0}
   explain="`x.mean(dim=0)` averages over the 32 examples and leaves one mean per feature, shape (10,). Lined up on the right, (32, 10) and (10,) become (32, 10) and (1, 10), so the means are stretched down all 32 rows: each feature has its own mean subtracted. Broadcasting is often exactly what you want; it only bites when the shapes are not the ones you think."
 />

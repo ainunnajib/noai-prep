@@ -48,7 +48,7 @@ export default function DataParallelDiagram() {
         <>
           Press Play to step through one training step on {N} GPU{N > 1 ? 's' : ''}. Each GPU computes a gradient on its own slice; the all-reduce replaces them all by their average,
           which is exactly the gradient of the whole batch of {B}. Below, compare the loss per epoch with one GPU (grey). Switch the learning-rate scaling off and a bigger effective batch falls
-          behind: a batch of B takes B/32 times fewer steps per epoch than batch 32, each of the same size. With 8 GPUs × 128 the scaled rate becomes too big and training blows up.
+          behind: a batch of B takes B/32 times fewer steps per epoch than batch 32, each of the same size. With 8 GPUs × 128 the scaled rate becomes too big and training blows up. (w₂ is one of the model's weights, starting at 0; the speed-up shown ignores the time the all-reduce takes.)
         </>
       }
     >
@@ -145,7 +145,7 @@ export default function DataParallelDiagram() {
       </div>
       <Plot x={[0, EPOCHS]} y={[-2.6, LOG_TOP]} width={600} height={230} minHeight={200} margin={{ left: 48, right: 14, top: 26, bottom: 34 }} ariaLabel="Loss per epoch, log scale, for one GPU and for your data-parallel set-up">
         <Grid xTicks={10} yTicks={4} />
-        <Axes xLabel="epoch" yLabel="loss above best (log)" xTicks={5} hideYTicks />
+        <Axes xLabel="epoch" yLabel="loss above the best (log scale)" xTicks={5} hideYTicks />
         {[-2, -1, 0].map((v) => (
           <Label key={v} x={0} y={v} dx={-7} dy={4} anchor="end" size={12} color="var(--ink-3)">
             {String(10 ** v)}
@@ -171,7 +171,7 @@ export default function DataParallelDiagram() {
           ['effective batch', `${N} × ${b} = ${B}`],
           ['learning rate', scale ? `0.05 × ${B}/32 = ${lr.toFixed(2)}` : `${lr.toFixed(2)} (not scaled)`],
           ['updates per epoch', `${NS} / ${B} = ${NS / B}`],
-          ['time to target vs 1 GPU', diverged ? 'never (diverged)' : speedup ? `${speedup.toFixed(1)}× faster` : `not within ${EPOCHS} epochs`],
+          ['time to target vs 1 GPU', diverged ? 'never (diverged)' : speedup ? `${speedup.toFixed(1)}× faster (ideal)` : `not within ${EPOCHS} epochs`],
         ]}
       />
     </Figure>

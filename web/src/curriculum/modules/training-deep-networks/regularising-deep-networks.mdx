@@ -91,9 +91,9 @@ On average, nothing changes. That is exactly what the running average in the vis
 
 <QuickCheck
   q="A layer uses dropout with $p = 0.2$. During training, a neuron whose normal output is 3.0 is kept. What value does it pass on?"
-  options={['3.75', '2.4', '3.0', '3.6']}
+  options={['3.75', '2.40', '3.00', '3.60']}
   answer={0}
-  explain="Survivors are divided by $1 - p = 0.8$: $3.0 / 0.8 = 3.75$. Multiplying by 0.8 (2.4) scales the wrong way, and 3.6 comes from multiplying by $1 + p$, which is not the same as dividing by $1 - p$."
+  explain="Survivors are divided by $1 - p = 0.8$: $3.0 / 0.8 = 3.75$. Multiplying by 0.8 (2.40) scales the wrong way, 3.00 forgets to rescale the survivors at all, and 3.60 comes from multiplying by $1 + p$, which is not the same as dividing by $1 - p$."
 />
 
 ### Why it works
@@ -166,7 +166,7 @@ $$
 
 Read the second line: first shrink the weight by the factor $1 - \eta\lambda$, a number slightly **less than 1**, then take the usual gradient step. With $\eta = 0.1$ and $\lambda = 0.01$ that factor is $0.999$: every weight loses 0.1% of its size at every step unless the data keeps pushing it back.
 
-For plain gradient descent this is exactly the same as **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. You met the same penalty as ridge regression in [the regularisation lesson](#/learn/linear-regression/regularisation).
+For plain gradient descent this is exactly the same as **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. You met the same penalty as ridge regression in [L1 and L2 regularisation](#/learn/linear-regression/regularisation).
 
 <Steps title="One step with weight decay: w = 5, g = 3, η = 0.1, λ = 0.2">
   <Step title="Shrink factor">
@@ -203,7 +203,7 @@ tensor([4.6000])
 
 ### Adam needs AdamW
 
-Adam (from [the previous lesson](#/learn/training-deep-networks/momentum-and-adam)) gives every weight its own step size: it divides each step by $\sqrt{\hat v}$, the typical size of that weight's recent gradients. If you add $\lambda w$ into the gradient, that decay gets divided too. Picture two weights, both equal to 1: one has gradients of size about 10, the other about 0.1. The extra pull $\lambda w$ is divided by roughly 10 for the first and 0.1 for the second, so the second weight is decayed about **100 times harder**. The decay is no longer the same gentle trim for everyone.
+Adam (from [the momentum and Adam lesson](#/learn/training-deep-networks/momentum-and-adam)) gives every weight its own step size: it divides each step by $\sqrt{\hat v}$, the typical size of that weight's recent gradients. If you add $\lambda w$ into the gradient, that decay gets divided too. Picture two weights, both equal to 1: one has gradients of size about 10, the other about 0.1. The extra pull $\lambda w$ is divided by roughly 10 for the first and 0.1 for the second, so the second weight is decayed about **100 times harder**. The decay is no longer the same gentle trim for everyone.
 
 <Term def="Adam with decoupled weight decay: the shrink (1 − ηλ)w is applied directly to the weights, separately from Adam's adaptive step, so every weight decays at the same rate.">AdamW</Term> ("Adam with decoupled weight decay") fixes this by applying the shrink **separately**, outside Adam's division:
 
@@ -216,13 +216,13 @@ The first term is the normal Adam step; the second, $\eta\lambda w$, shrinks eve
 <QuickCheck
   q="Why do Transformer recipes use AdamW rather than Adam with an L2 penalty added to the loss?"
   options={[
-    "AdamW shrinks every weight by the same factor, while Adam divides an L2 term by each weight's gradient size",
-    "AdamW adds the penalty $\\lambda \\sum |w|$, which makes many weights exactly zero",
-    "AdamW turns weight decay off during training and applies it only at evaluation time",
-    "AdamW replaces the learning rate with $\\lambda$, so there is one fewer hyperparameter",
+    "AdamW shrinks every weight by the same factor; Adam divides an L2 term by each weight's gradient size",
+    "AdamW uses the L1 penalty $\\lambda \\sum |w|$ instead, which pushes many of the weights to exactly zero",
+    "AdamW switches weight decay off during training and applies it once, at evaluation time, to all weights",
+    "AdamW replaces the learning rate with $\\lambda$, so the recipe has one fewer hyperparameter to tune",
   ]}
   answer={0}
-  explain="In Adam, an L2 term added to the gradient is divided by $\sqrt{\hat v}$ like everything else, so weights with large gradients barely decay. AdamW applies $w \leftarrow w - \eta\lambda w$ separately, the same for every weight. The $\sum |w|$ penalty is L1 regularisation, and AdamW still needs a learning rate."
+  explain="In Adam, an L2 term added to the gradient is divided by $\sqrt{\hat v}$ like everything else, so weights with large gradients barely decay. AdamW applies $w \leftarrow w - \eta\lambda w$ separately, the same for every weight. The $\sum |w|$ penalty is L1 regularisation; AdamW decays the weights at every training step (nothing happens at evaluation), and it still needs a learning rate."
 />
 
 ## Early stopping: quit while you are ahead

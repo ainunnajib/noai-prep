@@ -177,7 +177,7 @@ export default function OptimizerParamsView() {
             )
           })}
         </div>
-        {stale && stale.length > 0 && (
+        {stale && stale.length > 0 && !st.step && (
           <Note tone="warn">
             The optimiser still holds the <b>old</b> fc's weights, which are no longer part of the model. Training will "update" tensors that nothing uses.
           </Note>

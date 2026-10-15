@@ -4,7 +4,7 @@ import GradCheckMeter from './visuals/network-from-scratch/GradCheckMeter'
 import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
 import { TRAIN_CODE, TRAIN_OUTPUT, GRADCHECK_CODE, GRADCHECK_OUTPUT } from './visuals/network-from-scratch/snippets'
 
-In PyTorch, one line, `loss.backward()`, computes every gradient for you. In this lesson you write that line yourself: a complete neural-network classifier in about 40 lines of NumPy, trained by gradient descent, with a test that proves its gradients are right. This is exactly the skill the NOAI Final rewards. Its programming tasks ask you to implement algorithms straight from their formulas (in 2025, gradient-descent linear regression in pure NumPy; in 2026, gradient boosting from scratch and attention in PyTorch), and once you have built backprop by hand, nothing in PyTorch is magic any more.
+In PyTorch, one line, `loss.backward()`, computes every gradient for you. In this lesson you write that line yourself: a complete neural-network classifier in about 40 lines of NumPy, trained by gradient descent, with a test that proves its gradients are right. This is exactly the skill the NOAI Final rewards. Its programming tasks ask you to implement algorithms straight from their formulas (in 2025, gradient-descent linear regression in pure NumPy; in 2026, gradient boosting from scratch in NumPy and attention in PyTorch), and once you have built backprop by hand, nothing in PyTorch is magic any more.
 
 <Analogy title="A CCA training session">
 
@@ -37,7 +37,9 @@ $\mathrm{ReLU}(z) = \max(0, z)$ is applied to every entry, and softmax turns eac
 Adding $b_1$, shape $(H,)$, to $XW_1$, shape $(N, H)$, uses NumPy <Term def="NumPy's rule for combining arrays of different shapes: an array of shape (H,) is stretched to (N, H) by repeating it for every row.">broadcasting</Term>: the same bias row is added to every example.
 
 <Figure title="One hidden layer, drawn for D = 3, H = 5, K = 2" caption="Every line is one weight: W1 holds the 3 × 5 = 15 lines on the left and W2 the 5 × 2 = 10 on the right. A batch runs N examples through this picture at once, which is why every array has N rows.">
-  <NeuralNet layers={[3, 5, 2]} layerLabels={['X (D = 3)', 'A1 (H = 5)', 'P (K = 2)']} height={260} />
+  <div style={{ '--viz-muted': 'var(--viz-axis)', width: '100%' }}>
+    <NeuralNet layers={[3, 5, 2]} layerLabels={['X (D = 3)', 'A1 (H = 5)', 'P (K = 2)']} height={260} />
+  </div>
 </Figure>
 
 ## The training cycle
@@ -68,13 +70,15 @@ L &= -\log p_c = -\log \frac{e^{z_c}}{\sum_k e^{z_k}} \\
 \end{aligned}
 $$
 
-Now differentiate with respect to any logit $z_j$. The first term gives $-1$ if $j = c$ and $0$ otherwise, which is exactly $-y_j$. The second term gives $\frac{e^{z_j}}{\sum_k e^{z_k}}$, which is exactly $p_j$ (the slope of $\log u$ is $1/u$ times the slope of $u$, and only the $e^{z_j}$ term of the sum depends on $z_j$). So
+The second line uses two log rules, $\log(a/b) = \log a - \log b$ and $\log e^{z} = z$. Now differentiate with respect to any logit $z_j$. The first term gives $-1$ if $j = c$ and $0$ otherwise, which is exactly $-y_j$. The second term gives $\frac{e^{z_j}}{\sum_k e^{z_k}}$, which is exactly $p_j$ (the slope of $\log u$ is $1/u$ times the slope of $u$, and only the $e^{z_j}$ term of the sum depends on $z_j$). So
 
 $$
 \frac{\partial L}{\partial z_j} = p_j - y_j
 $$
 
 For the whole batch the loss is an average, so every row is divided by $N$: `dZ2 = (P - Y) / N`. In words: **push the true class's logit up by how far its probability falls short of 1, and push every other logit down by the probability it wrongly received.**
+
+The same cancellation happens for a single sigmoid output with binary cross-entropy, $L = -\big[y \log p + (1 - y)\log(1 - p)\big]$ where $p = \sigma(z)$: the sigmoid's slope $p(1 - p)$ cancels, leaving $\frac{\partial L}{\partial z} = p - y$. That is why sigmoid with binary cross-entropy, and softmax with cross-entropy, are the standard pairs.
 
 <Steps title="A worked example: three classes, true class 0">
   <Step title="The prediction">
@@ -140,13 +144,13 @@ Here is everything together: 200 points in two moon-shaped classes (100 each), 1
 
 <NoWrapRunner code={TRAIN_CODE} />
 
-<CodeBlock language="text" code={TRAIN_OUTPUT} />
+<CodeBlock language="text" code={TRAIN_OUTPUT} showLineNumbers={false} />
 
 Two details are worth copying into your own code. The softmax subtracts each row's maximum before `np.exp`: the probabilities are unchanged (the factor $e^{-\max}$ cancels top and bottom) but `exp` can no longer overflow to `inf`. And there is no "zero the gradients" step, because every gradient is recomputed from scratch each loop. PyTorch is different: it *adds* new gradients into `.grad`, which is why a PyTorch loop starts with `optimiser.zero_grad()`.
 
-Here is how each stage of our NumPy loop maps onto PyTorch:
+Here is how each stage of our NumPy loop maps onto PyTorch. You will meet these names properly in the next module; for now, just recognise them.
 
-- **Forward + loss** (`Z1 = X @ W1 + b1` … `loss = …`) becomes `loss = F.cross_entropy(model(X), y)`. Here `model(X)` must return the **logits** `Z2`, with no softmax at the end, because `F.cross_entropy` applies the softmax itself (as log-softmax plus negative log-likelihood). Its targets are the class indices `y`, not the one-hot `Y`.
+- **Forward + loss** (`Z1 = X @ W1 + b1` … `loss = …`) becomes `loss = F.cross_entropy(model(X), y)`. Here `model(X)` must return the **logits** `Z2`, with no softmax at the end, because `F.cross_entropy` applies the softmax itself (as log-softmax plus negative log-likelihood). Its targets are usually the class indices `y` (integers, shape `(N,)`). It also accepts float class probabilities of shape `(N, K)`, such as the one-hot `Y`, but indices are the standard form.
 - **Backward** (our seven lines) becomes `loss.backward()`.
 - **Update** (`W1 -= lr * dW1` …) becomes `optimiser.step()`.
 - **Clear old gradients**, not needed in our code, is `optimiser.zero_grad()`.
@@ -189,7 +193,7 @@ Here is a gradient checker for our network: it nudges every entry of every param
 
 <NoWrapRunner code={GRADCHECK_CODE} />
 
-<CodeBlock language="text" code={GRADCHECK_OUTPUT} />
+<CodeBlock language="text" code={GRADCHECK_OUTPUT} showLineNumbers={false} />
 
 The checker compares a whole array at once, with lengths in place of absolute values: $\frac{\lVert a - n \rVert}{\max(\lVert a \rVert, \lVert n \rVert)}$, where $\lVert \cdot \rVert$ is the square root of the sum of squares (`np.linalg.norm`). Besides giving one number per parameter, this avoids $0/0$ when a single entry's gradient is exactly 0, such as the bias of a ReLU unit that is off for every example.
 

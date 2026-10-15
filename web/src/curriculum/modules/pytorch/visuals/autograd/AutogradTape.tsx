@@ -205,13 +205,18 @@ export default function AutogradTape() {
       </Controls>
 
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr)', gap: 10, width: '100%' }}>
-        <pre className={css.code} style={narrow ? { fontSize: '0.7rem' } : undefined} aria-label="Code being run">
+        <pre className={css.code} style={narrow ? { fontSize: '0.78rem' } : undefined} aria-label="Code being run">
           {lines.map((l, i) => {
             const on = cur.includes(i)
             const dim = i > Math.max(...cur)
             const [code, comment] = l.split('#')
             return (
-              <span key={i} className={`${css.line} ${on ? css.lineOn : ''} ${dim ? css.lineDim : ''}`}>
+              // on a phone, long lines wrap with a hanging indent instead of hiding requires_grad=True off the edge
+              <span
+                key={i}
+                className={`${css.line} ${on ? css.lineOn : ''} ${dim ? css.lineDim : ''}`}
+                style={narrow ? { whiteSpace: 'pre-wrap', paddingLeft: '1.75rem', textIndent: '-1rem' } : undefined}
+              >
                 {narrow ? code.trimEnd() : code}
                 {comment && !narrow && <span className={css.comment}>#{comment}</span>}
               </span>
@@ -241,8 +246,11 @@ export default function AutogradTape() {
               if (!backShown(target) || (e.to !== 'L' && !req[e.to])) return null
               const [x1, y1, x2, y2] = edgeEnd(e.from, e.to)
               const d = Math.hypot(x2 - x1, y2 - y1) || 1
-              const ox = (-(y2 - y1) / d) * 7
-              const oy = ((x2 - x1) / d) * 7
+              // in the wide layout, run the gradient arrow from a leaf above the chain (b) on its upper side, so its label
+              // does not land on the grad_fn name of the node before it
+              const side = !narrow && (NODES.find((nd) => nd.id === e.from)?.v ?? 0) < 0 ? -1 : 1
+              const ox = ((-(y2 - y1) / d) * 7) * side
+              const oy = (((x2 - x1) / d) * 7) * side
               const g = e.to === 'L' ? 1 : GRAD[target]
               const mx = (x1 + x2) / 2 + ox * 3.1
               const my = (y1 + y2) / 2 + oy * 3.1
@@ -284,7 +292,7 @@ export default function AutogradTape() {
                     <text x={cx} y={cy} dy="0.35em" textAnchor="middle" className="nnet-node-label" style={{ fontSize: 13 }}>
                       {n.name} = {n.value}
                     </text>
-                    <text x={cx} y={narrow ? cy - leafH / 2 - 5 : n.v < 0 ? cy - leafH / 2 - 5 : cy + leafH / 2 + 13} textAnchor="middle" style={{ fontSize: 10.5, fontWeight: 700, fill: on ? 'var(--viz-1)' : 'var(--ink-3)' }}>
+                    <text x={cx} y={(narrow ? n.u < 0.5 : n.v < 0) ? cy - leafH / 2 - 5 : cy + leafH / 2 + 13} textAnchor="middle" style={{ fontSize: 10.5, fontWeight: 700, fill: on ? 'var(--viz-1)' : 'var(--ink-3)' }}>
                       {on ? 'requires_grad' : 'data'}
                     </text>
                   </g>
@@ -303,7 +311,7 @@ export default function AutogradTape() {
                   <text className="plot-label" x={lx} y={ly} textAnchor={anchor} style={{ fontSize: 12.5 }}>
                     {n.name} = {n.value}
                   </text>
-                  <text x={lx} y={ly + 13} textAnchor={anchor} style={{ fontSize: 9.5, fontWeight: 600, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+                  <text x={lx} y={ly + 13} textAnchor={anchor} style={{ fontSize: narrow ? 11 : 9.5, fontWeight: 600, fill: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
                     {rec ? n.gradFn : 'grad_fn=None'}
                   </text>
                 </g>
