@@ -4,7 +4,7 @@ A free, beginner-friendly course for Singapore's National Olympiad in Artificial
 
 ## What is in it
 
-- **The course**: 10 parts, 39 modules and 178 lessons, in order from "what is AI?" to the Final programming tasks. Every lesson explains each idea from zero, with an everyday analogy, an interactive visual explainer for each key concept, worked examples, runnable Python where it helps, "common mistake" and "in the exam" notes, and a checkpoint quiz.
+- **The course**: 10 parts, 39 modules and 179 lessons, in order from "what is AI?" to the Final programming tasks. Every lesson explains each idea from zero, with an everyday analogy, an interactive visual explainer for each key concept, worked examples, runnable Python where it helps, "common mistake" and "in the exam" notes, and a checkpoint quiz.
 - **Exam guide** (`#/exam`): the 2027 format, dates and selection path, what the 2026 papers actually asked, and a timing strategy for 150 questions in 90 minutes.
 - **Practice** (`#/practice`): about 2,900 questions (the course checkpoints, a 1,660-question verified bank and every past-paper question), filterable by domain and subtopic.
 - **Mock exams** (`#/mock`): timed papers in the Prelim format (150 questions in 90 minutes) plus shorter sprints, with a domain breakdown at the end.
