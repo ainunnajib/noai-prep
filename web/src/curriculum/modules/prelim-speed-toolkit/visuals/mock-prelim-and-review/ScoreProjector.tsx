@@ -7,8 +7,10 @@ import m from './mp.module.css'
   Drag any week's score; the least-squares trend, the ±2 SD noise of a single sitting
   (SD = √(150·p·(1 − p))) and a projected range on Prelim day update. Planned study hours scale
   the future trend; questions reached plus guessing adds (150 − reached)/4 expected marks.
-  The trend uses the last four mocks, so an early jump followed by a plateau projects flat.
-  The latest mock is broken down by domain. A button loads the mocks saved by this site's
+  The trend uses the last four mocks, so an early jump followed by a plateau projects flat. Its slope is
+  capped at 3 marks a week, and the fan widens with the uncertainty of the fitted level and slope, so
+  one wild mock makes the fan balloon instead of making the projection leap.
+  The latest mock is broken down by domain (the example split is scaled to the latest score). A button loads the mocks saved by this site's
   Mock exam page, if there are any in this browser.
 */
 
@@ -51,8 +53,18 @@ function fit(all: number[], k = 4) {
     sxx += (x - mx) ** 2
   })
   const b = sxx ? sxy / sxx : 0
-  return { b, a: my - b * mx, mean: my, from: start + 1 }
+  const a = my - b * mx
+  // standard error of the slope: large when the points do not sit near one line
+  const rss = scores.reduce((t, y, i) => t + (y - (a + b * xs[i])) ** 2, 0)
+  const s2 = n > 2 ? rss / (n - 2) : 0
+  const se = sxx ? Math.sqrt(s2 / sxx) : 0
+  // standard error of the fitted level at the latest week
+  const xl = start + n
+  const seLevel = sxx ? Math.sqrt(s2 * (1 / n + (xl - mx) ** 2 / sxx)) : 0
+  return { b, a, mean: my, from: start + 1, se, seLevel }
 }
+
+const MAX_SLOPE = 3 // marks a week: faster than this is not sustained for months
 
 interface Saved {
   total: number
@@ -106,11 +118,16 @@ export default function ScoreProjector() {
   }
 
   const n = scores.length
-  const { b, a, mean, from } = fit(scores)
-  const level = n >= 2 ? a + b * n : scores[0]
-  // fraction of the remaining gap closed per week, from the trend, scaled by planned hours
-  const f0 = n >= 2 && b > 0 ? b / Math.max(5, 150 - mean) : 0
-  const f = Math.min(0.1, (f0 * hours) / PAST_HOURS)
+  const { b: rawB, a, mean, from, se, seLevel } = fit(scores)
+  const cap = (v: number) => Math.max(-MAX_SLOPE, Math.min(MAX_SLOPE, v))
+  const b = cap(rawB)
+  const level = n >= 2 ? a + rawB * n : scores[0]
+  // fraction of the remaining gap closed per week, from the (capped) trend, scaled by planned hours
+  const rate = (slope: number) => Math.min(0.1, ((n >= 2 && slope > 0 ? slope / Math.max(5, 150 - mean) : 0) * hours) / PAST_HOURS)
+  const f = rate(b)
+  // the same projection with the slope 2 standard errors lower and higher: how much the trend itself is in doubt
+  const gainAt = (slope: number, weeks: number) => (150 - level) * (1 - (1 - rate(cap(slope))) ** weeks)
+  const trendHalf = (w: number) => Math.abs(gainAt(rawB + 2 * se, w - n) - gainAt(rawB - 2 * se, w - n)) / 2
   const bonus = guess ? (150 - reached) / 4 : 0
   const proj: [number, number][] = [[n, level]]
   let s = level
@@ -120,7 +137,9 @@ export default function ScoreProjector() {
   }
   const withBonus = proj.map(([w, v], i) => [w, Math.min(150, v + (bonus * i) / Math.max(1, proj.length - 1))] as [number, number])
   const final = withBonus[withBonus.length - 1][1]
-  const half = (w: number, v: number) => 2 * sd(v) * Math.sqrt(1 + Math.max(0, w - n) / Math.max(2, n))
+  // chance noise of one sitting, plus the uncertainty of the trend itself carried forward (w − n) weeks
+  const half = (w: number, v: number) =>
+    Math.sqrt((2 * sd(v)) ** 2 * (1 + Math.max(0, w - n) / Math.max(2, n)) + (w > n ? (2 * seLevel) ** 2 + trendHalf(w) ** 2 : 0))
   const band: [number, number][] = [
     ...withBonus.map(([w, v]) => [w, Math.min(150, v + half(w, v))] as [number, number]),
     ...withBonus
@@ -130,8 +149,12 @@ export default function ScoreProjector() {
   ]
   const lo = Math.max(0, final - half(WEEKS, final))
   const hi = Math.min(150, final + half(WEEKS, final))
-  const domSum = domains.reduce((p, q) => p + q, 0)
-  const weakest = domains.indexOf(Math.min(...domains))
+  // the example split is scaled so it always adds up to the latest score (a saved mock's own split is used as it is)
+  const rawSum = domains.reduce((p, q) => p + q, 0)
+  const latest = scores[n - 1]
+  const shown = profile === 'mine' || rawSum === 0 ? domains : domains.map((d) => Math.min(30, Math.round((d * latest) / rawSum)))
+  const domSum = shown.reduce((p, q) => p + q, 0)
+  const weakest = shown.indexOf(Math.min(...shown))
 
   return (
     <Figure
@@ -139,8 +162,8 @@ export default function ScoreProjector() {
       caption={
         <>
           Drag any week’s score. The grey dashed line is the trend of your last four mocks; the shaded fan is where your score on 19 February would probably land, if you keep improving at that rate (scaled by your planned
-          hours). Error bars show ±2 SD of chance alone for a single sitting. Notice how much one mock can wobble, and how the projection moves when you change the trend rather than one point. A model,
-          not a promise: real progress is lumpier.
+          hours). Error bars show ±2 SD of chance alone for a single sitting. Drag one point far from the others: the fan balloons, because one mock says little about the trend. A model, not a promise: real progress
+          is lumpier. On a phone, type the scores in the boxes under the chart instead of dragging.
         </>
       }
     >
@@ -158,7 +181,7 @@ export default function ScoreProjector() {
           {n >= 2 && (
             <Path
               points={[
-                [from, a + b * from],
+                [from, a + rawB * from],
                 [n, level],
               ]}
               color="var(--viz-muted)"
@@ -201,10 +224,29 @@ export default function ScoreProjector() {
             />
           ))}
         </Plot>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(74px, 1fr))', gap: '0.35rem', width: '100%' }} role="group" aria-label="Weekly mock scores">
+          {scores.map((v, i) => (
+            <label key={i} style={{ display: 'grid', gap: 2, fontSize: '0.75rem', color: 'var(--ink-3)' }}>
+              week {i + 1}
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={150}
+                value={v}
+                onChange={(e) => {
+                  const y = Math.round(Math.max(0, Math.min(150, Number(e.target.value) || 0)))
+                  setScores((sc) => sc.map((q, j) => (j === i ? y : q)))
+                }}
+                style={{ width: '100%', minHeight: 32, font: 'inherit', fontSize: '0.9rem', padding: '0.2rem 0.35rem', borderRadius: 6, border: '1px solid var(--rule)', background: 'var(--surface)', color: 'var(--ink)' }}
+              />
+            </label>
+          ))}
+        </div>
         <Readout
           items={[
             ['latest mock', `${scores[n - 1]} / 150`],
-            ['trend', n >= 2 ? `${b >= 0 ? '+' : '−'}${Math.abs(b).toFixed(1)} a week` : '–'],
+            ['trend', n >= 2 ? `${rawB >= 0 ? '+' : '−'}${Math.abs(rawB).toFixed(1)} a week${Math.abs(rawB) > MAX_SLOPE ? ` (projected at most ${MAX_SLOPE})` : ''}` : '–'],
             ['projected on 19 Feb', `${Math.round(final)} (likely ${Math.round(lo)}–${Math.round(hi)})`],
           ]}
         />
@@ -227,17 +269,19 @@ export default function ScoreProjector() {
         </div>
         {msg && <div className={m.banner}>{msg}</div>}
         <div style={{ display: 'grid', gap: '0.35rem', width: '100%' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 750, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Latest mock by domain (out of 30 each)</div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 750, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>
+            Latest mock by domain (out of 30 each{profile === 'mine' ? '' : '; an example split, scaled to the latest score'})
+          </div>
           <Bars
             ariaLabel="Latest mock score per domain, out of 30"
             max={30}
             format={(v) => `${v} / 30`}
-            data={DOMS.map((d, i) => ({ label: d, value: domains[i], color: `var(--viz-${i + 1})`, strong: i === weakest }))}
+            data={DOMS.map((d, i) => ({ label: d, value: shown[i], color: `var(--viz-${i + 1})`, strong: i === weakest }))}
           />
           <div style={{ fontSize: '0.88rem', color: 'var(--ink-2)' }}>
             {domSum > 0 ? (
               <>
-                Most marks still available in <strong>{DOMS[weakest]}</strong>: {30 - domains[weakest]} of 30 missed. Check your error log for that domain before deciding whether it needs lessons (gaps) or
+                Most marks still available in <strong>{DOMS[weakest]}</strong>: {30 - shown[weakest]} of 30 missed. Check your error log for that domain before deciding whether it needs lessons (gaps) or
                 drills (slips).
               </>
             ) : (

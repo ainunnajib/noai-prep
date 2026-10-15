@@ -2,7 +2,7 @@ import type { QuizQuestion } from '../../../types'
 
 const questions: QuizQuestion[] = [
   {
-    id: 'prelim-speed-toolkit.drill-dl-and-code.1',
+    id: 'prelim-speed-toolkit.drill-conv-and-params.1',
     prompt: 'A batch of $64 \\times 64$ images goes through `nn.Conv2d(3, 8, kernel_size=5, stride=2, padding=2)`. What is the output height?',
     options: ['32', '31', '33', '30'],
     answer: 0,
@@ -11,7 +11,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'beginner',
   },
   {
-    id: 'prelim-speed-toolkit.drill-dl-and-code.2',
+    id: 'prelim-speed-toolkit.drill-conv-and-params.2',
     prompt: 'How many learnable parameters does `nn.Conv2d(16, 32, kernel_size=3)` have?',
     options: ['4,640', '4,608', '4,624', '320'],
     answer: 0,
@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'prelim-speed-toolkit.drill-dl-and-code.3',
+    id: 'prelim-speed-toolkit.drill-conv-and-params.3',
     prompt: 'Compare `nn.MultiheadAttention(embed_dim=512, num_heads=1)` with `nn.MultiheadAttention(embed_dim=512, num_heads=8)`. How do their parameter counts compare?',
     options: [
       'They are equal: the heads split the 512 dimensions, so the four 512 × 512 projections keep their size',
@@ -34,28 +34,26 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'prelim-speed-toolkit.drill-dl-and-code.4',
-    prompt: 'What values does `a` hold after this code runs?',
-    code: 'import numpy as np\na = np.array([1, 2, 3, 4])\nb = a[1:3]\nb[0] = 99',
-    options: ['1, 99, 3, 4', '1, 2, 3, 4', '99, 2, 3, 4', '1, 99, 99, 4'],
+    id: 'prelim-speed-toolkit.drill-conv-and-params.4',
+    prompt: 'How many learnable parameters does `nn.Linear(256, 10)` have?',
+    options: ['2,570', '2,560', '2,816', '266'],
     answer: 0,
     explanation:
-      'A basic slice is a **view**: `b` shares memory with `a`, and `b[0]` is the same element as `a[1]`. So `a` becomes `[ 1 99  3  4]`. "1, 2, 3, 4" assumes the slice is a copy (true for Python lists and for fancy indexing like `a[[1, 2]]`, not for NumPy slices); "99, 2, 3, 4" forgets that `b` starts at `a[1]`.',
-    difficulty: 'intermediate',
+      'A Linear layer has one weight per input-output pair plus one bias per output: $256 \\times 10 + 10 = 2{,}570$. 2,560 forgets the biases, 2,816 adds a bias for each of the 256 inputs instead of each of the 10 outputs ($2{,}560 + 256$), and 266 adds the sizes instead of multiplying them.',
+    difficulty: 'beginner',
   },
   {
-    id: 'prelim-speed-toolkit.drill-dl-and-code.5',
-    prompt:
-      'A classifier with dropout layers trained normally. At test time you feed it the same image twice and get two different predicted probabilities. What is the most likely cause?',
+    id: 'prelim-speed-toolkit.drill-conv-and-params.5',
+    prompt: 'A $32 \\times 32$ feature map with 16 channels passes through `nn.MaxPool2d(2)`. What comes out, and how many learnable parameters does the layer have?',
     options: [
-      'The model was never put in evaluation mode with `model.eval()`, so dropout still zeroes random units',
-      '`optimiser.zero_grad()` was never called, so old gradients leaked into the forward pass',
-      'Softmax was applied before `CrossEntropyLoss`, so the probabilities are squashed twice',
-      'The input was built with `torch.tensor` from integers, so it is rounded differently each run',
+      '$16 \\times 16$ with 16 channels, and 0 parameters',
+      '$16 \\times 16$ with 16 channels, and 16 parameters (one per channel)',
+      '$32 \\times 32$ with 8 channels, and 0 parameters',
+      '$31 \\times 31$ with 16 channels, and 4 parameters (one per window cell)',
     ],
     answer: 0,
     explanation:
-      'In training mode, dropout zeroes a random subset of units on every forward pass, so repeated predictions differ; `model.eval()` turns it off. Missing `zero_grad()` and a double softmax harm *training* but are deterministic at test time, and an integer input would make the same (wrong) output every time or raise an error.',
+      '`MaxPool2d(2)` uses a $2 \\times 2$ window with stride 2 (the stride defaults to the kernel size), so $\\lfloor (32 - 2)/2 \\rfloor + 1 = 16$ on each side. Pooling works on each channel separately, so the 16 channels stay 16, and taking a maximum needs no weights at all: 0 parameters. 31 is what a stride of 1 would give.',
     difficulty: 'beginner',
   },
 ]

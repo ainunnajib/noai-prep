@@ -34,7 +34,7 @@ const RUNGS: Rung[] = [
     skills: [
       { text: 'Answer a definition MCQ (overfitting, attention, CLIP, LoRA…) in under 30 seconds', lessons: [L('prelim-speed-toolkit', 'pacing-and-elimination', 'Pacing and elimination'), L('past-paper-walkthroughs', 'prelim-ml-genai', '2026 Prelim: ML and GenAI')] },
       { text: 'Do one-step maths without a calculator: dot products, norms, derivatives, probabilities', lessons: [L('prelim-speed-toolkit', 'drill-linear-algebra', 'Linear-algebra drills'), L('prelim-speed-toolkit', 'drill-calculus-probability', 'Calculus and probability drills')] },
-      { text: 'Read a short NumPy or PyTorch snippet and predict its output or shape', lessons: [L('prelim-speed-toolkit', 'drill-dl-and-code', 'Code-reading drills'), L('numpy', 'broadcasting', 'Broadcasting')] },
+      { text: 'Read a short NumPy or PyTorch snippet and predict its output or shape', lessons: [L('prelim-speed-toolkit', 'drill-shapes-and-code', 'Code-reading drills'), L('numpy', 'broadcasting', 'Broadcasting')] },
       { text: 'Know the vocabulary of all five domains, generative AI and problem solving included', lessons: [L('past-paper-walkthroughs', 'prelim-problem-solving', '2026 Prelim: problem solving'), L('large-language-models', 'how-llms-are-built', 'How LLMs are built')] },
     ],
     sample: '2026 Prelim: "LoRA (Low-Rank Adaptation) enables: …" Four options, about 36 seconds, no calculator.',

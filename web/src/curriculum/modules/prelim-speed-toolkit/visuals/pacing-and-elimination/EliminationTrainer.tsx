@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Figure, Button } from '../../../../../kit'
-import { TRAINER, HEURISTICS, type Heuristic } from './eliminationData'
+import { Figure, Button, shuffled, mulberry32, hashString } from '../../../../../kit'
+import { TRAINER as PAPER_ORDER, HEURISTICS, type Heuristic } from './eliminationData'
 import s from './pe.module.css'
 
 /*
@@ -13,6 +13,13 @@ interface QState {
   struck: boolean[]
   chosen: number | null
 }
+
+// Options are shuffled once, stably per question, so the right answer is not usually on top (as it is in the paper's
+// order). The salt is chosen so each of the four positions holds the right answer for exactly two of the eight questions.
+const TRAINER = PAPER_ORDER.map((q) => {
+  const order = shuffled([0, 1, 2, 3].slice(0, q.options.length), mulberry32(hashString(`elim63-${q.n}`)))
+  return { ...q, options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) }
+})
 
 const fresh = (): QState[] => TRAINER.map((q) => ({ struck: q.options.map(() => false), chosen: null }))
 
@@ -53,7 +60,9 @@ export default function EliminationTrainer() {
     }
   })
 
-  const ev = left > 0 ? `1/${left}` : '0'
+  // a guess is only worth 1/left if the right answer is still among the options left
+  const struckRight = st.struck[q.answer]
+  const ev = struckRight || left === 0 ? '0' : `1/${left}`
   const long = q.stem.length > 260
 
   return (
@@ -72,7 +81,11 @@ export default function EliminationTrainer() {
             Question {idx + 1} of {TRAINER.length} · 2026 Prelim Q{q.n}
           </span>
           <span className={s.small}>
-            options left <strong className="tabular">{left}</strong> · a guess is worth <strong className="tabular">{ev}</strong> mark
+            options left <strong className="tabular">{left}</strong> · a guess is worth{' '}
+            <strong className="tabular" style={struckRight ? { color: 'var(--viz-neg)' } : undefined}>
+              {ev}
+            </strong>{' '}
+            mark{struckRight ? ' (you struck the right answer)' : ''}
           </span>
         </div>
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Figure, Button, Bars, mulberry32, shuffled } from '../../../../../kit'
-import { Stats, TimerBar, fmtInt, useCountdown } from './ddKit'
-import s from './dd.module.css'
+import { Stats, TimerBar, fmtInt, useCountdown } from '../drill-kit/ddKit'
+import s from '../drill-kit/dd.module.css'
 
 /*
   90-second mixed drill on the dozen formulas behind most deep-learning computation questions:

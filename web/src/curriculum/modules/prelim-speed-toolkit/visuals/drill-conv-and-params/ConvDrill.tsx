@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Figure, Segmented, Button, mulberry32, useContainerWidth } from '../../../../../kit'
-import { AnswerBox, History, Stats, TimerBar, avg, fmtInt, parseNum, useCountdown } from './ddKit'
-import s from './dd.module.css'
+import { AnswerBox, History, Stats, TimerBar, avg, fmtInt, parseNum, useCountdown } from '../drill-kit/ddKit'
+import s from '../drill-kit/dd.module.css'
 
 /*
   Conv arithmetic drill. Random Conv2d / MaxPool2d layers; the learner types either the output
@@ -141,11 +141,11 @@ function diagnose(q: Q, given: number): string | null {
   return hit ? hit[1] : null
 }
 
-/** The padded row of one side of the input, with every place the window fits (only for small inputs). */
-function WindowStrip({ q }: { q: Q }) {
+/** The padded row of one side of the input, with every place the window fits (only for small inputs). Also used by WindowExplorer. */
+export function WindowStrip({ q }: { q: { n: number; k: number; p: number; st: number } }) {
   const [ref, width] = useContainerWidth<HTMLDivElement>(480)
   const L = q.n + 2 * q.p
-  const out = q.answer
+  const out = outSize(q.n, q.k, q.p, q.st)
   const rows = Math.min(out, Math.ceil(q.k / q.st))
   const cell = Math.max(10, Math.min(26, Math.floor((width - 8) / L)))
   const W = cell * L + 8

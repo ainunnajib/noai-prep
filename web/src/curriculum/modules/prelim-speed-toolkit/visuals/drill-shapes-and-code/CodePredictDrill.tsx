@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Figure, Segmented, Button, Bars, CodeBlock, mulberry32, shuffled } from '../../../../../kit'
-import { History, Stats, TimerBar, loadLocal, saveLocal, useCountdown } from './ddKit'
-import s from './dd.module.css'
+import { History, Stats, TimerBar, loadLocal, saveLocal, useCountdown } from '../drill-kit/ddKit'
+import s from '../drill-kit/dd.module.css'
 
 /*
   Code-output cards, each built around one classic trap. 30 seconds a card; after answering, the

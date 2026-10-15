@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAnimationFrame } from '../../../../../kit'
 import s from './dd.module.css'
 
-/* Small helpers shared by the timed drills of the drill-dl-and-code lesson (and the mock lesson). */
+/* Small helpers shared by the timed drills (drill-conv-and-params, drill-shapes-and-code) and the mock lesson. */
 
 /** "1216" -> "1,216" (British grouping). */
 export const fmtInt = (v: number) => Math.round(v).toLocaleString('en-GB')

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Figure, Segmented, Button, useNarrow } from '../../../../../kit'
-import { parseShape, sameShape, shapeText } from './ddKit'
-import s from './dd.module.css'
+import { parseShape, sameShape, shapeText } from '../drill-kit/ddKit'
+import s from '../drill-kit/dd.module.css'
 
 /*
   Shape annotator: real NumPy, PyTorch and pandas snippets with an empty shape column. The learner

@@ -205,14 +205,14 @@
       ]
     },
     {
-      "slug": "drill-dl-and-code",
-      "title": "Speed drills: conv sizes, parameter counts and code reading",
-      "summary": "Deep-learning arithmetic done in seconds, and reading Python, NumPy and PyTorch code by annotating shapes and spotting traps.",
-      "minutes": 22,
+      "slug": "drill-conv-and-params",
+      "title": "Speed drills: conv sizes and parameter counts",
+      "summary": "Deep-learning arithmetic done in seconds: conv output sizes, parameter counts and the cost of common operations, without a calculator.",
+      "minutes": 25,
       "objectives": [
-        "You can compute conv output sizes and layer parameter counts in under 20 seconds",
-        "You can annotate tensor shapes line by line",
-        "You can predict the output of short code snippets and spot common traps"
+        "You can compute conv output sizes in under 20 seconds and explain them as counting window positions",
+        "You can count the parameters of conv, linear, embedding and attention layers",
+        "You can match common operations to their cost, such as O(n²d) for attention"
       ],
       "concepts": [
         {
@@ -238,7 +238,25 @@
             "interaction": "Answer as many as possible in 90 seconds; review misses.",
             "aha": "A dozen formulas cover most deep-learning computation questions."
           }
-        },
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "floor((W − K + 2P)/S) + 1",
+        "Linear: in×out + out; conv: (K·K·C_in + 1)·C_out; MHA: 4d² + 4d"
+      ]
+    },
+    {
+      "slug": "drill-shapes-and-code",
+      "title": "Speed drills: shapes and code traps",
+      "summary": "Reading Python, NumPy and PyTorch code at speed: writing the shape on every line and spotting the dozen traps that recur in past papers.",
+      "minutes": 25,
+      "objectives": [
+        "You can annotate tensor shapes line by line",
+        "You can predict the output of short code snippets",
+        "You can name the trap a code question is built around"
+      ],
+      "concepts": [
         {
           "name": "Shape annotation",
           "explain": "For any NumPy or PyTorch snippet, write the shape next to each line: (32, 3, 28, 28) → conv → (32, 16, 26, 26) → flatten → (32, 10816). Most code questions on tensors are answered by the shapes alone.",
@@ -266,8 +284,6 @@
       ],
       "code": "snippet",
       "checkpoint_focus": [
-        "floor((W − K + 2P)/S) + 1",
-        "Linear: in×out + out; conv: (K·K·C_in + 1)·C_out; MHA: 4d² + 4d",
         "Shape annotation",
         "Mutable defaults, integer division, view vs copy, broadcasting traps"
       ]

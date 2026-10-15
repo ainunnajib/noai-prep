@@ -1,12 +1,11 @@
 import { PRELIM } from '../../../data/facts'
-import ConvDrill from './visuals/drill-dl-and-code/ConvDrill'
-import ParamComplexityDrill from './visuals/drill-dl-and-code/ParamComplexityDrill'
-import ShapeAnnotator from './visuals/drill-dl-and-code/ShapeAnnotator'
-import CodePredictDrill from './visuals/drill-dl-and-code/CodePredictDrill'
+import WindowExplorer from './visuals/drill-conv-and-params/WindowExplorer'
+import ConvDrill from './visuals/drill-conv-and-params/ConvDrill'
+import ParamComplexityDrill from './visuals/drill-conv-and-params/ParamComplexityDrill'
 
-Deep-learning questions look as if they need a calculator: "how many parameters?", "what shape comes out?", "what does this print?". In the Prelim you have no calculator and about {PRELIM.secondsPerQuestion} seconds. The good news is that almost all of them come from **two conv formulas, a dozen parameter and cost formulas, one shape habit and about a dozen code traps**. This lesson drills each one until it is automatic.
+Deep-learning questions look as if they need a calculator: "how many parameters?", "what size comes out?", "how does the cost grow?". In the Prelim you have no calculator and about {PRELIM.secondsPerQuestion} seconds. The good news is that almost all of them come from **two conv formulas and a dozen parameter and cost formulas**. This lesson drills each one until it is automatic; the next lesson does the same for shapes and code.
 
-You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes), [attention](#/learn/attention-and-transformers/multi-head-attention) and [PyTorch](#/learn/pytorch/tensors) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
+You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes) and [attention](#/learn/attention-and-transformers/multi-head-attention) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
 
 ## Conv arithmetic: two formulas
 
@@ -35,6 +34,8 @@ $$
 - The $+1$ counts the starting position, before any jump.
 
 In words: **the output size is the number of places the window fits.**
+
+<WindowExplorer />
 
 ### Formula 2: the parameter count
 
@@ -151,169 +152,10 @@ In 2026 these formulas came up mostly as **"why"** questions: why stacks of 3 ×
 
 <PastPaperQuestion paper="prelim2026" n={74} />
 
-## Shape annotation: write the shape on every line
-
-<Analogy title="Platform numbers at an interchange">
-
-Changing lines at Dhoby Ghaut is easy if you wrote down "NS line, platform B, then NE line" before you left. If you did not, you stand there reading signs while the train goes. Shapes are the platform numbers of tensor code: write one next to each line and you never get lost.
-
-</Analogy>
-
-The habit is simple: for every line that makes an array or tensor, write its shape as a comment. Shapes in PyTorch images follow `(N, C, H, W)`: batch size, channels, height, width. You need only a handful of rules:
-
-| Operation | Shape rule |
-| --- | --- |
-| `nn.Conv2d(C_in, C_out, k)` | $C$ becomes $C_\text{out}$; $H, W$ follow the size formula |
-| pooling | $N$ and $C$ stay; $H, W$ shrink (halve for `MaxPool2d(2)`) |
-| `x.flatten(1)` or `nn.Flatten()` | $(N, C, H, W) \to (N, C \cdot H \cdot W)$ |
-| `nn.Linear(in, out)` | only the **last** dimension changes: in → out |
-| `A @ B` | $(\dots, n, m)$ times $(\dots, m, p)$ gives $(\dots, n, p)$ |
-| `sum`, `mean`, `max`, `argmax` over a dim | that dim disappears (`keepdim=True` keeps it as 1) |
-| broadcasting | line shapes up from the right; a 1 stretches to match |
-| `unsqueeze(i)`, `None` | insert a dimension of size 1 |
-| `cat` / `stack` | `cat` grows an existing dim; `stack` adds a new one |
-| `view` / `reshape` | same total count; `-1` means "whatever is left" |
-
-Here is the example from the start of most CNN questions, run for real:
-
-```python
-import torch
-import torch.nn as nn
-
-x = torch.randn(32, 3, 28, 28)          # (N, C, H, W)
-conv = nn.Conv2d(3, 16, kernel_size=3)  # k=3, p=0, s=1
-h = conv(x)
-print(h.shape)                          # (32, 16, 26, 26)
-print(nn.Flatten()(h).shape)            # keeps the batch
-print(torch.flatten(h).shape)           # trap: flattens the batch too
-print(sum(p.numel() for p in conv.parameters()))  # (3*3*3 + 1)*16
-```
-
-```text
-torch.Size([32, 16, 26, 26])
-torch.Size([32, 10816])
-torch.Size([346112])
-448
-```
-
-The conv keeps the batch of 32, sets the channels to 16, and shrinks $28 \to 28 - 3 + 1 = 26$. Flattening each image gives $16 \times 26 \times 26 = 16 \times 676 = 10{,}816$ numbers.
-
-<ShapeAnnotator />
-
-<Mistake>
-
-`torch.flatten(h)` with no second argument flattens **everything**, batch included: 346,112 numbers in one row instead of 32 rows of 10,816. Use `h.flatten(1)` or `nn.Flatten()`. When a model crashes with `mat1 and mat2 shapes cannot be multiplied`, check the flatten and the first `nn.Linear` first.
-
-</Mistake>
-
-<QuickCheck
-  q="`x` has shape (16, 10) and `W` has shape (10, 4). What is the shape of `(x @ W).sum(dim=0)`?"
-  options={['(16,)', '(16, 4)', '(4,)', '(10,)']}
-  answer={2}
-  explain="First the product: (16, 10) @ (10, 4) gives (16, 4). Summing over dim 0 removes the 16, leaving (4,). (16,) is what you get by summing over dim 1 instead; (10,) mixes up the inner dimension, which disappears in the product."
-/>
-
-## The trap catalogue
-
-<Analogy title="Where learners fail the driving test">
-
-Driving instructors in Singapore know the handful of junctions where learners fail most often, and they take you through them again and again. Code questions work the same way: the same dozen traps come back, and spotting the trap is usually the whole question.
-
-</Analogy>
-
-| Trap | What actually happens |
-| --- | --- |
-| `range` and slices | the end is **excluded**: `range(2, 8, 2)` is 2, 4, 6 |
-| `//` and `%` | floor division rounds **down**: `-7 // 2` is −4, and `-7 % 3` is 2 |
-| mutable default, `bag=[]` | the list is made once and **shared** by every call |
-| aliasing, `b = a` | one list with two names; `[[0]*3]*2` repeats one row |
-| views | a NumPy slice or a `view()` **shares memory**: writing to it changes the original |
-| `*` vs `@` | `*` is element-wise; `@` is the matrix product |
-| broadcasting | `(3,)` with `(3, 1)` stretches to `(3, 3)` |
-| `loc` vs `iloc` | `loc[1:2]` includes label 2; `iloc[1:2]` excludes position 2 |
-| integer dtypes | `torch.tensor([1, 2, 3])` is `int64`, so `.mean()` fails and it cannot take gradients; NumPy int arrays truncate 2.9 to 2 |
-| no `zero_grad()` | `.backward()` **adds** to `.grad`, so gradients pile up |
-| no `model.eval()` | dropout keeps dropping and batch norm keeps using batch statistics |
-| softmax before `CrossEntropyLoss` | the loss already applies log-softmax; pass raw <Term def="The raw scores a classifier outputs before softmax turns them into probabilities.">logits</Term> |
-
-Try the NumPy traps yourself. Change the slice to `a[1:3].copy()` and run it again.
-
-<PyRunner packages={['numpy']} code={`import numpy as np
-
-a = np.arange(5)
-b = a[1:3]        # a slice is a view
-b[:] = 0
-print("after slice write:", a)
-
-c = np.arange(5)
-d = c[[1, 2]]     # a list of indices makes a copy
-d[:] = 0
-print("after fancy write:", c)
-
-x = np.array([1, 2, 3])
-print("shape of x + x[:, None]:", (x + x[:, None]).shape)
-
-x[0] = 2.9        # integer array: 2.9 is truncated
-print("x:", x)
-print("7 // 2 =", 7 // 2, "and -7 // 2 =", -7 // 2)`} />
-
-And the two training-loop traps in PyTorch, run for real:
-
-```python
-import torch
-import torch.nn as nn
-
-w = torch.tensor(2.0, requires_grad=True)
-for step in range(3):
-    loss = 3 * w
-    loss.backward()        # no zero_grad: gradients pile up
-    print(step, w.grad)
-
-loss_fn = nn.CrossEntropyLoss()
-logits = torch.tensor([[10.0, 0.0]])   # confident and right
-target = torch.tensor([0])
-print(loss_fn(logits, target))                 # right: raw logits
-print(loss_fn(logits.softmax(dim=1), target))  # trap: softmax twice
-```
-
-```text
-0 tensor(3.)
-1 tensor(6.)
-2 tensor(9.)
-tensor(4.5418e-05)
-tensor(0.3133)
-```
-
-The true gradient of $3w$ is 3 at every step, but without `zero_grad()` the stored gradient grows 3, 6, 9. With the double softmax, a perfect prediction still has a loss of 0.31, so the model keeps being pushed and learns slowly.
-
-<CodePredictDrill />
-
-<QuickCheck
-  q="What does this print?"
-  code={`import numpy as np
-x = np.array([1, 2, 3])
-y = x
-y = y * 2
-print(x)`}
-  options={['[2 4 6]', '[1 2 3]', '[1 2 3 1 2 3]', 'An error']}
-  answer={1}
-  explain="Not every assignment is a trap. `y = x` makes two names for one array, but `y * 2` builds a brand-new array, and `y = ...` just moves the name y to it. x was never changed. Writing `y *= 2` instead would modify the shared array in place and print [2 4 6]."
-/>
-
-<ExamTip>
-
-A three-step routine for any code question: **(1)** name the trap the code is built around (end excluded? view? missing `zero_grad`?); **(2)** run the smallest case in your head, writing values or shapes on scrap paper; **(3)** match the exact print format: `tensor(9.)` is not `9`, and `[2 2 3]` (no commas) is a NumPy array, not a list. In the 2026 Final, 11 of the 20 MCQs were built around reading code like this.
-
-</ExamTip>
-
-<PastPaperQuestion paper="prelim2026" n={118} />
-
 <Takeaways>
 
 - Conv size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits. Conv parameters: $(k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, with no image size in it.
 - Parameter counts: Linear $\text{in} \cdot \text{out} + \text{out}$; Embedding $V d$; multi-head attention $4d^2 + 4d$ whatever the heads; LoRA $r(d + k)$; norms $2d$; ReLU, pooling and dropout 0.
 - Costs: matrix product $O(nmp)$, attention $O(n^2 d)$, Hessian $O(p^3)$. Cosine schedule: the midpoint is the average of max and min, the end is min.
-- Write the shape next to every line of tensor code; a handful of rules (layers change one dim, reductions remove one, 1s broadcast) answer most shape questions.
-- About a dozen traps recur: excluded ends, floor division, shared defaults and aliases, views, `*` vs `@`, broadcasting, `loc` vs `iloc`, integer dtypes, and the training-loop trio of `zero_grad`, `eval` and double softmax.
 
 </Takeaways>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Figure, Segmented, Button, useNarrow } from '../../../../../kit'
-import { loadLocal, saveLocal } from '../drill-dl-and-code/ddKit'
+import { loadLocal, saveLocal } from '../drill-kit/ddKit'
 import m from './mp.module.css'
 
 /*

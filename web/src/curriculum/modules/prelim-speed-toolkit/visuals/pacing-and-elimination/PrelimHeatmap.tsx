@@ -11,7 +11,14 @@ import s from './pe.module.css'
   View 2: every question in paper order, coloured by question style, with the median length of each row.
 */
 
-const STYLE_COLOUR = ['var(--viz-1)', 'var(--viz-5)', 'var(--viz-3)', 'var(--viz-6)', 'var(--viz-2)']
+// Recall is the large majority, so it is a quiet neutral; the minority styles get well-separated hues (checked in both themes)
+const STYLE_COLOUR = [
+  'color-mix(in srgb, var(--viz-muted) 45%, var(--surface))',
+  'var(--viz-4)',
+  'var(--viz-3)',
+  'var(--viz-1)',
+  'var(--viz-2)',
+]
 
 const median = (xs: number[]) => {
   const a = [...xs].sort((p, q) => p - q)
@@ -135,6 +142,9 @@ export default function PrelimHeatmap() {
                   {name} <span className="tabular">({QUESTIONS.filter((q) => q[3] === i).length})</span>
                 </button>
               ))}
+              <span className={s.chip} style={{ cursor: 'default' }}>
+                <span className={s.swatch} style={{ background: 'var(--viz-ink)', width: 3 }} />a new domain block starts
+              </span>
             </div>
           </>
         )}

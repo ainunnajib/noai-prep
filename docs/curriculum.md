@@ -1,6 +1,6 @@
 # NOAI Prep: final curriculum
 
-**39 modules · 179 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
+**39 modules · 180 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
 
 Synthesised from three designs: **A** (beginner pedagogy), **B** (exam coverage) and **C2** (IOAI syllabus, visual-first). The sequencing comes from A, most concept content and visual specs from C2, and the exam part (drills, past-paper walkthroughs, separate NumPy and PyTorch Final labs) from B. A completeness critic pass then audited it against every past-paper question, the IOAI 2026 syllabus and the six Final tasks and made 43 changes (listed near the end). Details are in the rationale and scorecard at the end.
 
@@ -561,8 +561,9 @@ Paper subtopics: linear-algebra, calculus, probability-statistics, optimisation,
 1. **Pacing, triage and elimination** (`pacing-and-elimination`) 16 min · none · 3 concepts. A two-pass plan for 150 questions, where the questions come from, and the elimination heuristics that work on NOAI options.
 2. **Speed drills: shapes, dot products, norms and determinants** (`drill-linear-algebra`) 15 min · none · 3 concepts. Mental shortcuts for the most common linear-algebra computations.
 3. **Speed drills: derivatives, probabilities, metrics and anchor values** (`drill-calculus-probability`) 18 min · none · 3 concepts. Instant recall of derivative facts, quick probabilities, z-scores and classification metrics, and a dozen anchor values that replace a calculator.
-4. **Speed drills: conv sizes, parameter counts and code reading** (`drill-dl-and-code`) 22 min · snippet · 4 concepts. Deep-learning arithmetic done in seconds, and reading Python, NumPy and PyTorch code by annotating shapes and spotting traps.
-5. **Mock Prelims and the review loop** (`mock-prelim-and-review`) 25 min · none · 3 concepts. Sit a timed 150-question mock, then turn every miss into a targeted fix and track your projected score.
+4. **Speed drills: conv sizes and parameter counts** (`drill-conv-and-params`) 25 min · snippet · 2 concepts. Deep-learning arithmetic done in seconds: conv output sizes, parameter counts and the cost of common operations, without a calculator.
+5. **Speed drills: shapes and code traps** (`drill-shapes-and-code`) 25 min · snippet · 2 concepts. Reading Python, NumPy and PyTorch code at speed: writing the shape on every line and spotting the dozen traps that recur in past papers.
+6. **Mock Prelims and the review loop** (`mock-prelim-and-review`) 25 min · none · 3 concepts. Sit a timed 150-question mock, then turn every miss into a targeted fix and track your projected score.
 
 
 ### M36. Past-paper walkthroughs (`past-paper-walkthroughs`)
