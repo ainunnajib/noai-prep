@@ -23,9 +23,10 @@ def top_k_filter(p, k):
 
 def top_p_filter(p, top_p):
     order = np.argsort(p)[::-1]
+    # running totals, e.g. [0.5, 0.25] -> [0.5, 0.75]
     cum = np.cumsum(p[order])
-    # smallest n with cum >= top_p
-    n_keep = np.searchsorted(cum, top_p) + 1
+    # totals still below top_p, plus the one that reaches it
+    n_keep = (cum < top_p).sum() + 1
     keep = order[:n_keep]
     q = np.zeros_like(p)
     q[keep] = p[keep]
@@ -43,7 +44,7 @@ rng = np.random.default_rng(0)
 q = top_p_filter(p, 0.8)
 print("samples:", rng.choice(tokens, size=8, p=q))`
 
-Ask a chatbot the same question twice and you may get two different answers, yet a translation app gives the same output every time. Both use models that output exactly the same kind of thing: a probability for every possible next token. The difference is the **decoding** rule that turns those probabilities into text. A handful of settings (temperature, top-k, top-p, beam width) decide whether the output is robotic, natural or nonsense, and NOAI asks what each one does.
+Ask a chatbot the same question twice and you may get two different answers, yet a translation app gives the same output every time. Both use models that output exactly the same kind of thing: a probability for every possible next token. The difference is the **decoding** rule that turns those probabilities into text. A handful of settings (temperature, top-k, top-p, beam width) decide whether the output is robotic, natural or nonsense, and NOAI asks what each one does. In [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt) you saw GPT write by picking a token, appending it and repeating; this lesson is about how to pick.
 
 ## The decoding loop
 
@@ -69,7 +70,7 @@ Ask one uncle what to order and he always points to his bestseller: reliable, a 
 
 </Analogy>
 
-Before the softmax, the logits are divided by a positive number $T$, the <Term def="A positive number T that the logits are divided by before softmax. T below 1 sharpens the distribution (more predictable), T above 1 flattens it (more random). It never changes which token is most likely.">temperature</Term>:
+Before the softmax, the logits are divided by a positive number $T$, the <Term def="A positive number T that the logits are divided by before softmax. T below 1 sharpens the distribution (more predictable), T above 1 flattens it (more random). It never changes which token is most likely.">temperature</Term> (in this lesson $T$ means temperature, not the number of tokens as in some other lessons):
 
 $$
 p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
@@ -226,7 +227,7 @@ Above about $T = 1.5$ most models start producing nonsense. And none of these se
 
 ## Try it in Python
 
-The functions below are exactly the rules from this lesson, in NumPy. Change the temperature, `k` and `p`, and check the printed probabilities by hand.
+The functions below are exactly the rules from this lesson, in NumPy. One new function appears: `np.cumsum` gives running totals, like the ones you added by hand for top-p. Change the temperature, `k` and `p`, and check the printed probabilities by hand.
 
 <PyRunner packages={['numpy']} code={decodeCode} rows={26} />
 

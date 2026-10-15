@@ -25,7 +25,7 @@ print("bin spacing:", freqs[1], "Hz")
 top2 = np.argsort(spec[0])[-2:]     # two strongest bins in frame 0
 print("strongest:", sorted(freqs[top2].tolist()), "Hz")`
 
-Siri, Whisper and the voice notes you send on Telegram all start by turning sound into numbers: a long list of them, or a picture made from them called a **spectrogram**. This lesson builds both from scratch, so you can work out in your head how many numbers 30 seconds of audio becomes, or why a 5 kHz whistle turned into 3 kHz. Audio is part of the IOAI syllabus, and IOAI 2026 set an audio task.
+So far this part has turned text into numbers, and speech needs the same first step. Siri, Whisper and the voice notes you send on Telegram all start by turning sound into numbers: a long list of them, or a picture made from them called a **spectrogram**. This lesson builds both from scratch, so you can work out in your head how many numbers 30 seconds of audio becomes, or why a 5 kHz whistle turned into 3 kHz. Audio is part of the IOAI syllabus, and IOAI 2026 set an audio task.
 
 ## Sound is a list of numbers
 
@@ -40,16 +40,16 @@ Three words describe it:
 The number of samples is just rate × time:
 
 $$
-N = f_s \times T
+N = f_s \times t
 $$
 
-Here $N$ is the number of samples, $f_s$ the sampling rate in samples per second and $T$ the duration in seconds. Ten seconds of speech at 16 kHz is $16{,}000 \times 10 = 160{,}000$ numbers. A stereo recording has two <Term def="Separate recordings made at the same time, e.g. the left and right microphones of a stereo recording.">channels</Term>, so it stores two such lists. In PyTorch a batch of clips is a tensor of shape `(batch, channels, samples)`. Eight mono 10-second clips at 16 kHz have shape `(8, 1, 160000)`.
+Here $N$ is the number of samples, $f_s$ the sampling rate in samples per second and $t$ the duration in seconds. Ten seconds of speech at 16 kHz is $16{,}000 \times 10 = 160{,}000$ numbers. A stereo recording has two <Term def="Separate recordings made at the same time, e.g. the left and right microphones of a stereo recording.">channels</Term>, so it stores two such lists. In PyTorch a batch of clips is a tensor of shape `(batch, channels, samples)`. Eight mono 10-second clips at 16 kHz have shape `(8, 1, 160000)`.
 
 <QuickCheck
   q="A 3-second voice clip is recorded in mono at 16 kHz. How many samples does it contain?"
   options={['48,000', '16,000', '5,333', '96,000']}
   answer={0}
-  explain="$N = f_s \times T = 16{,}000 \times 3 = 48{,}000$. Dividing instead of multiplying gives 5,333, and 96,000 would be the total for stereo (two channels)."
+  explain="$N = f_s \times t = 16{,}000 \times 3 = 48{,}000$. Dividing instead of multiplying gives 5,333, and 96,000 would be the total for stereo (two channels)."
 />
 
 ## How fast must you sample?
@@ -137,7 +137,7 @@ The clip below holds a rising chirp, a steady 1,000 Hz tone and a click at 0.7 s
 
 <SpectrogramBuilder />
 
-Two numbers control the slicing. The **window length** $W$ is how many samples each slice holds, and the **hop length** $H$ is how far the window moves each time. Speech models usually use a 25 ms window and a 10 ms hop, so neighbouring slices overlap. For a clip of $N$ samples:
+Two numbers control the slicing. The **window length** $W$ is how many samples each slice holds, and the **hop length** $H$ is how far the window moves each time (here $W$ and $H$ are lengths in samples, not weight matrices). Speech models usually use a 25 ms window and a 10 ms hop, so neighbouring slices overlap. For a clip of $N$ samples:
 
 $$
 \text{frames} = 1 + \left\lfloor \frac{N - W}{H} \right\rfloor
@@ -216,13 +216,13 @@ Audio questions in a no-calculator exam are mostly unit conversions. Memorise fo
 
 ## Spectrograms are images, so image models work
 
-Once audio is an image, everything you learned about images applies. A [CNN](#/learn/convolutional-networks/images-as-tensors) can slide its filters over a spectrogram to spot the shape of a dog's bark or a siren. The **Audio Spectrogram Transformer (AST)** cuts a 128-band log-mel spectrogram into 16 × 16 patches and feeds them to a Transformer, as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) does with a photo, except that AST's patches overlap (they start every 10 rows and columns, not every 16).
+Once audio is an image, everything you learned about images applies. A [CNN](#/learn/convolutional-networks/convolution) can slide its filters over a spectrogram to spot the shape of a dog's bark or a siren. The **Audio Spectrogram Transformer (AST)** cuts a 128-band log-mel spectrogram into 16 × 16 patches and feeds them to a Transformer, as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) does with a photo, except that AST's patches overlap (they start every 10 rows and columns, not every 16).
 
-Not every model starts from a spectrogram. HuBERT and wav2vec 2.0 read the raw waveform with a stack of 1-D convolutions that learn their own filters, producing one vector every 20 ms. You will meet them in the next lesson.
+Not every model starts from a spectrogram. HuBERT and wav2vec 2.0 read the raw waveform with a stack of 1-D convolutions (filters that slide along the time axis only) that learn their own filters, producing one vector every 20 ms. You will meet them in the next lesson.
 
 <Takeaways>
 
-- Audio is a list of samples: $N = f_s \times T$. Speech models use 16 kHz, so 10 s is 160,000 numbers; a batch has shape `(batch, channels, samples)`.
+- Audio is a list of samples: $N = f_s \times t$. Speech models use 16 kHz, so 10 s is 160,000 numbers; a batch has shape `(batch, channels, samples)`.
 - A sampling rate $f_s$ captures only frequencies **below** $f_s/2$ (Nyquist). Higher ones alias to $|f - kf_s|$.
 - The Fourier transform measures each frequency by multiplying the sound by a test wave and averaging; the STFT does this for short overlapping windows (e.g. 25 ms, hop 10 ms) to make a spectrogram.
 - Frames ≈ samples ÷ hop and bins $= n_\text{fft}/2 + 1$, usually with $n_\text{fft} = W$. Longer windows give sharper frequency but blurrier time.

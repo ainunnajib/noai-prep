@@ -13,7 +13,7 @@ A student first reads the entire National Library without anyone testing them: *
 
 ## Three stages, one model
 
-A <Term def="Large language model: a very large Transformer network (billions of weights) trained on huge amounts of text to predict the next token. ChatGPT, Gemini, Claude and Llama are LLMs.">large language model (LLM)</Term> is a decoder-only Transformer (the GPT design from [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt)) with billions of <Term def="The numbers inside a network that training adjusts. 'Parameters' and 'weights' mean the same thing here. A '7B model' has about 7 billion of them.">parameters</Term>. The same network is trained in three stages, each with different data and a different goal. Step through the stages below and watch how the answers change.
+A <Term def="Large language model: a very large Transformer network (billions of weights) trained on huge amounts of text to predict the next token. GPT-4, Gemini, Claude and Llama are LLMs; ChatGPT is a chatbot built on GPT models.">large language model (LLM)</Term> is a decoder-only Transformer (the GPT design from [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt)) with billions of <Term def="The numbers inside a network that training adjusts. 'Parameters' and 'weights' mean the same thing here. A '7B model' has about 7 billion of them.">parameters</Term>. The same network is trained in three stages, each with different data and a different goal. Step through the stages below and watch how the answers change.
 
 <LLMTrainingStages />
 
@@ -41,17 +41,7 @@ In words: **make the real next token as likely as possible, everywhere.**
 
 Nobody labelled anything: the "right answer" for each example is simply the next token, already in the text. Training where the labels come from the data itself is called <Term def="Training where the labels are made automatically from the raw data (here, the next token of the text), so no human labelling is needed. That is what makes training on trillions of tokens possible.">self-supervised learning</Term>, and it is why pretraining can use most of the public web: Meta's Llama 3 was pretrained on over 15 trillion tokens.
 
-<Steps title="Scoring a model on three tokens by hand">
-  <Step title="Read off the probabilities">
-    Suppose the model gave the three real next tokens probabilities $\tfrac12$, $\tfrac14$ and $\tfrac18$.
-  </Step>
-  <Step title="Take −ln of each">
-    $-\ln\tfrac12 = \ln 2 \approx 0.69$, then $-\ln\tfrac14 = 2\ln 2 \approx 1.39$, then $-\ln\tfrac18 = 3\ln 2 \approx 2.08$.
-  </Step>
-  <Step title="Average them">
-    $\mathcal{L} = \frac{\ln 2 + 2\ln 2 + 3\ln 2}{3} = 2\ln 2 \approx 1.39$. Each training step nudges the weights so that these probabilities rise and the average falls.
-  </Step>
-</Steps>
+You scored exactly this game by hand in [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt) (where tokens were written $w_t$; here they are $x_t$): if the model gives the three real next tokens probabilities $\tfrac12$, $\tfrac14$ and $\tfrac18$, then $\mathcal{L} = \frac{\ln 2 + 2\ln 2 + 3\ln 2}{3} = 2\ln 2 \approx 1.39$, a perplexity of $e^{\mathcal{L}} = 4$. Each training step nudges the weights so that these probabilities rise and the average falls.
 
 Why does such a simple game teach so much? Because predicting well *requires* knowledge: to continue "The capital of Japan is" the model must know the fact, and to continue a Python function it must follow the code. Over trillions of examples, the only way to keep the loss low is to absorb grammar, facts and patterns of reasoning.
 
@@ -59,7 +49,7 @@ What comes out is a <Term def="An LLM straight after pretraining, before any ins
 
 <PastPaperQuestion paper="prelim2026" n={227} />
 
-This stage gives GPT its name: **Generative Pre-trained Transformer**. *Generative* because it produces text token by token, *pre-trained* because of this first stage, *Transformer* because of the network design.
+This stage gives GPT its name, which you met in the BERT and GPT lesson: **Generative Pre-trained Transformer**. *Generative* because it produces text token by token, *pre-trained* because of this first stage, *Transformer* because of the network design.
 
 <PastPaperQuestion paper="prelim2026" n={226} />
 
@@ -95,7 +85,7 @@ Writing a perfect answer is slow, and most prompts have no single correct reply,
 1. **Sample**: for many prompts, the SFT model writes several answers.
 2. **Compare**: people pick the better answer in each pair.
 3. **Train a reward model**: a separate network learns to give each answer a score $r$ so that preferred answers score higher. It models the chance that a person prefers answer A to answer B as $\sigma(r_A - r_B)$, where $\sigma(z) = \frac{1}{1+e^{-z}}$ is the [sigmoid](#/learn/classification/logistic-regression). Equal scores give $\sigma(0) = 0.5$, a coin flip; the bigger the gap, the more confident the preference.
-4. **Optimise the LLM**: with <Term def="Learning by trial and error to maximise a reward signal, instead of copying correct answers. Here, the LLM writes answers and is updated to make high-reward answers more likely.">reinforcement learning</Term> (usually an algorithm called PPO), the LLM writes answers, the reward model scores them, and the LLM is updated to make high-scoring answers more likely. A penalty for drifting too far from the SFT model stops it producing odd text that merely fools the reward model.
+4. **Optimise the LLM**: with <Term def="Learning by trial and error to maximise a reward signal, instead of copying correct answers. Here, the LLM writes answers and is updated to make high-reward answers more likely.">reinforcement learning</Term> (usually an algorithm called PPO; the idea is introduced in [Reinforcement learning](#/learn/ml-fundamentals/reinforcement-learning)), the LLM writes answers, the reward model scores them, and the LLM is updated to make high-scoring answers more likely. A penalty for drifting too far from the SFT model stops it producing odd text that merely fools the reward model.
 
 <PreferenceToReward />
 

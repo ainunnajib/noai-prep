@@ -279,7 +279,7 @@ A teacher marking a worksheet skips the blank answer spaces at the end of the pa
 
 </Analogy>
 
-PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` have an argument `ignore_index`, and its default value is $-100$. Any position whose label is $-100$ adds nothing to the loss and is **not counted** in the average:
+You met $-100$ in [Tokenisation](#/learn/text-as-data/tokenisation): it marks a label that the loss must skip. PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` have an argument `ignore_index`, and its default value is $-100$. Any position whose label is $-100$ adds nothing to the loss and is **not counted** in the average:
 
 $$
 \mathcal{L} = \frac{1}{|S|} \sum_{i \in S} -\ln p_i(y_i)
@@ -304,7 +304,7 @@ Here is cross-entropy with `ignore_index` written from scratch in NumPy, on 5 po
 
 <PyRunner packages={['numpy']} rows={20} code={ceCode} />
 
-You should see `0.2933`, the average over the 3 real positions only, which is exactly what PyTorch's `F.cross_entropy(logits, labels)` returns, since its `ignore_index` is $-100$ by default. The buggy labels give `0.6154`: each padded row has three equal logits, so it adds a loss of $\ln 3 \approx 1.10$, and the average is now over 5 positions.
+You should see `0.2933`, the average over the 3 real positions only, which is exactly what PyTorch's `F.cross_entropy(logits, labels)` returns, since its `ignore_index` is $-100$ by default. The buggy labels give `0.6154`: each padded row has three equal logits, so it adds a loss of $\ln 3 \approx 1.10$, and the average is now over 5 positions. That is the classic slip of labelling padding with the `[PAD]` id 0: label 0 is a real class (in NER, "O"), so padding gets graded. The pad id belongs in `input_ids`, and $-100$ only in the labels.
 
 <QuickCheck
   q="A tagging batch has 5 positions. The 3 real tokens have losses $-\ln p_i(y_i)$ of 0.2, 0.3 and 0.4, and the 2 padded positions have label $-100$. What does `F.cross_entropy` return?"
@@ -315,7 +315,9 @@ You should see `0.2933`, the average over the 3 real positions only, which is ex
 
 <Reveal label="Going further: lining up word labels with tokens for NER">
 
-For NER, the labels come per **word** but the model sees **tokens**, so you line them up with the tokeniser's `word_ids()`, which says which word each token came from (`None` for special tokens):
+NER labels follow the **BIO** scheme: `B-PER` marks the first word of a person's name, `I-PER` a later word inside the same name, `B-LOC` the first word of a location, and `O` a word outside any name. The model used below, `dslim/bert-base-NER`, numbers its 9 tags from 0 (`O`), so `B-PER` = 3, `I-PER` = 4 and `B-LOC` = 7.
+
+The labels come per **word** but the model sees **tokens**, so you line them up with the tokeniser's `word_ids()`, which says which word each token came from (`None` for special tokens):
 
 ```python
 from transformers import AutoTokenizer
@@ -349,12 +351,6 @@ When batches are padded later, Hugging Face's `DataCollatorForTokenClassificatio
 
 </Reveal>
 
-<Mistake title="Padding id is not a label">
-
-The `[PAD]` **token id** (0 for BERT) goes in `input_ids`. The **label** for a padded position must be $-100$, not 0, because label 0 is a real class (in NER, "O": not a name). And $-100$ must never appear in `input_ids`: it is not a token, and the embedding lookup will crash.
-
-</Mistake>
-
 <ExamTip>
 
 Common NOAI checks: the attention mask is **1 for real tokens, 0 for padding**; padded or special positions in the **labels** are $-100$, the default `ignore_index` of cross-entropy; the loss is averaged over the scored positions only; a freshly added head is **randomly initialised** and must be trained; fine-tuning BERT uses a **small learning rate** ($2 \times 10^{-5}$ to $5 \times 10^{-5}$), and a large one makes validation loss rise as the pretrained knowledge is overwritten.
@@ -374,7 +370,7 @@ There are two ways to use a pretrained language model:
 | Data privacy | your data never leaves your machine | your text is sent to the provider |
 | Cost and size | free weights, but you pay in hardware; size limited by your GPU memory | pay per token; can use the very largest models |
 
-An API call is just an HTTP request with your text and a secret key, and the reply comes back as JSON.
+An API call is just a web request (HTTP, the way a browser fetches a page) carrying your text and a secret key, and the reply comes back as JSON, text laid out like a Python dictionary.
 
 <Reveal label="Going further: what an API request looks like">
 
@@ -398,9 +394,9 @@ At IOAI 2026 the contest machines had **no internet** apart from a whitelist of 
 
 <QuickCheck
   q="A hospital wants to sort patient messages into 4 categories. The messages must not leave the hospital's own servers, and the team has 5,000 labelled examples. What is the most suitable approach?"
-  options={['Fine-tune an open encoder such as DistilBERT on the 5,000 examples, using only the hospital\'s own servers', 'Send each message to a large API-based model and ask it for the category, since a bigger model is more accurate', 'Train a new BERT from random weights on the 5,000 messages, so no outside model is involved at all', 'Use the SST-2 sentiment pipeline as it is, and map positive and negative to the 4 categories']}
+  options={['Download an open encoder such as DistilBERT, add a new 4-class head and fine-tune it on the 5,000 examples', 'Send each message to a large API-based model and ask it for the category, since a bigger model is more accurate', 'Train a new BERT from random weights on the 5,000 messages, so no outside model is involved at all', 'Use the SST-2 sentiment pipeline as it is, and map positive and negative to the 4 categories']}
   answer={0}
-  explain="The privacy rule rules out sending messages to an external API, and 5,000 labelled examples are plenty to fine-tune a pretrained encoder with a new 4-class head. Training BERT from scratch on 5,000 messages throws away pretraining and would perform far worse. A 2-class sentiment model cannot produce 4 categories."
+  explain="The privacy rule rules out sending messages to an external API, while an open model, once downloaded, runs on the hospital's own servers. 5,000 labelled examples are plenty to fine-tune it with a new 4-class head. Training BERT from scratch on 5,000 messages throws away pretraining and would perform far worse. A 2-class sentiment model cannot produce 4 categories."
 />
 
 <Takeaways>

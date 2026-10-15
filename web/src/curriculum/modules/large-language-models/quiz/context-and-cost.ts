@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.context-and-cost.1',
     prompt: "What does an LLM's **context window** limit?",
     options: [
-      'How many tokens it can attend to at once, counting the prompt, the history and its reply',
+      'The most tokens it can attend to at once; prompt, history and reply must all fit inside',
       'The number of words it learned during pretraining, which caps how many facts it can ever know',
       'The number of past conversations it can remember between separate chat sessions',
       'The number of attention heads that can run in parallel inside each Transformer layer',
@@ -54,8 +54,8 @@ const questions: QuizQuestion[] = [
     prompt:
       "A school's chatbot app is billed per token. Each student question is about 100 tokens and each reply about 300 tokens, yet the bill per conversation grows much faster than the number of turns. What is the most likely reason?",
     options: [
-      'Each turn re-sends the whole chat so far as input, so later turns carry far more tokens',
-      'The KV cache is billed as extra output tokens, and it grows by one row with every turn',
+      'Every turn re-sends the whole chat so far as input, so later turns carry far more tokens',
+      'The KV cache is billed as extra output tokens, and it grows longer with each turn of the chat',
       "The model's vocabulary grows during a chat, so each new token costs a little more to produce",
       'Later replies are sampled at a higher temperature, which uses more compute per token',
     ],

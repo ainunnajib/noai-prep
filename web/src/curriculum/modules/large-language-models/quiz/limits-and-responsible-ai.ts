@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Its context window has filled up, so the newest tokens overwrite the correct fact it had stored',
       'It searches the internet as it writes and copies the fact from an unreliable website it found',
-      'It writes probable next tokens, and no step in generating them checks the claim against a source',
+      'It only predicts probable next tokens, and no step in writing them checks a claim against a source',
       'Its temperature is above 0, which adds random errors; at temperature 0 its statements would be true',
     ],
     answer: 2,

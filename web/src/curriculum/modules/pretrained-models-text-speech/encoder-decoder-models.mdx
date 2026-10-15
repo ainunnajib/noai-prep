@@ -2,7 +2,7 @@ import Seq2SeqFlow from './visuals/encoder-decoder-models/Seq2SeqFlow'
 import CrossAttentionAlignment from './visuals/encoder-decoder-models/CrossAttentionAlignment'
 import ModelFamilyMap from './visuals/encoder-decoder-models/ModelFamilyMap'
 
-English into Malay, an article into three lines, speech into subtitles: in each, the output is a **different** sequence from the input, with its own length and word order. The very first Transformer (2017, *Attention Is All You Need*) was built for this, with two halves: an **encoder** that reads and a **decoder** that writes, joined by **cross-attention**.
+English into Malay, an article into three lines, speech into subtitles: in each, the output is a **different** sequence from the input, with its own length and word order. The very first Transformer (2017, *Attention Is All You Need*) was built for this, with two halves: an **encoder** that reads and a **decoder** that writes, joined by **cross-attention**. You met this shape with RNNs in [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms), where the whole input had to squeeze through one context vector. The Transformer version keeps every encoder vector and lets the decoder reach all of them through cross-attention.
 
 ## Two halves and a bridge
 
@@ -21,7 +21,7 @@ A <Term def="A model that turns an input sequence into an output sequence that c
   3. a feed-forward network.
 
   Each is wrapped with a residual connection and LayerNorm, as in the [Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks). GPT's "decoder" blocks are this decoder without the cross-attention sub-layer, because there is no encoder to look at.
-- A final linear layer and softmax turn the decoder's newest vector into probabilities over the **output** vocabulary. The decoder starts from a start token `<s>` and stops when it produces the end token `</s>`.
+- A final linear layer and softmax turn the decoder's newest vector into probabilities over the **output** vocabulary. The decoder starts from a start token `<s>` (the `<BOS>` of [Tokenisation](#/learn/text-as-data/tokenisation); each model family spells its special tokens differently) and stops when it produces the end token `</s>` (`<EOS>`).
 
 <Seq2SeqFlow />
 
@@ -103,7 +103,7 @@ each row sums to 1: True
 
 <Mistake title="Swapping the roles">
 
-It is **queries from the decoder, keys and values from the encoder**. Swap them and the output has one vector per *source* token, which the decoder cannot use to predict its next word. Also, cross-attention needs **no causal mask**: the whole input is known before the decoder starts, so every output word may look at every input word. Only a **padding** mask on the source keys is needed.
+As in [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks): **queries from the decoder, keys and values from the encoder**. Swap them and the output has one vector per *source* token, which the decoder cannot use to predict its next word.
 
 </Mistake>
 
@@ -115,7 +115,7 @@ An encoder-decoder model contains three kinds of attention, and NOAI questions o
 |---|---|---|---|
 | Encoder self-attention | input tokens | input tokens | **no**: every input token sees all others |
 | Decoder self-attention | output tokens | output tokens | **yes**: no peeking at later output words |
-| Cross-attention | output tokens | encoder memory | **no**: the whole input is already known |
+| Cross-attention | output tokens | encoder memory | **no**: the whole input is already known (only a padding mask on the source) |
 
 <QuickCheck
   q="In an encoder-decoder Transformer, which attention layer must use a causal (look-ahead) mask?"
@@ -149,6 +149,7 @@ print("memory:", tuple(memory.shape))
 out_ids = [BOS]
 for step in range(4):                           # greedy decoding, one token per step
     tgt = embed(torch.tensor([out_ids]))
+    # causal mask as floats: 0 = may attend, -inf = future (added to the scores)
     mask = nn.Transformer.generate_square_subsequent_mask(len(out_ids))
     h = model.decoder(tgt, memory, tgt_mask=mask)   # causal self-attn + cross-attn
     next_id = to_vocab(h[0, -1]).argmax().item()    # most likely next token
@@ -189,7 +190,7 @@ The three families use the same building blocks, arranged to fit three task shap
 | Family | Task shape | Typical uses (examples) |
 |---|---|---|
 | **Encoder-only** | text → labels | classification, tagging names (NER), answer spans, sentence embeddings (BERT, RoBERTa, DistilBERT) |
-| **Decoder-only** | text → more text | chatbots, writing, code completion; most LLMs (GPT, Llama, Qwen, Gemma) |
+| **Decoder-only** | text → more text | chatbots, writing, code completion; most large language models, or LLMs (GPT, Llama, Qwen, Gemma) |
 | **Encoder-decoder** | sequence → new sequence | translation, summarisation, speech-to-text, captioning (T5, BART, MarianMT, Whisper) |
 
 Their pretraining games differ too: encoder-only models fill in masked words, decoder-only models predict the next token, and encoder-decoders learn to rebuild or rewrite text.
@@ -213,9 +214,9 @@ One modern twist: today's large decoder-only LLMs can also translate and summari
 
 <QuickCheck
   q="A hospital wants to (1) turn doctors' voice notes into written text, and (2) sort the written notes into 5 departments. Which pair of model families is the classic fit?"
-  options={['(1) encoder-decoder, such as Whisper; (2) encoder-only with a classification head', '(1) encoder-only, such as BERT; (2) encoder-decoder, such as T5', '(1) decoder-only, such as GPT; (2) decoder-only, such as GPT', '(1) encoder-only with one head on `[CLS]`; (2) encoder-decoder with cross-attention']}
+  options={['(1) encoder-decoder, such as Whisper; (2) encoder-only with a classification head', '(1) encoder-only, such as BERT; (2) encoder-decoder, such as T5 or BART', '(1) decoder-only, such as GPT; (2) decoder-only, such as GPT or Llama', '(1) decoder-only, such as GPT-2 or Llama; (2) encoder-only with a classification head']}
   answer={0}
-  explain="Speech-to-text turns one sequence (audio) into a different one (text), the encoder-decoder shape, and Whisper is exactly that. Sorting into 5 departments is classification: text in, one label out, which suits an encoder-only model with a head on `[CLS]`. One `[CLS]` head gives a single label per clip, not a transcript. (Encoder-only models can transcribe if a letter head on every frame is trained with CTC, as with HuBERT, but no option here describes that.)"
+  explain="Speech-to-text turns one sequence (audio) into a different one (text), the encoder-decoder shape, and Whisper is exactly that. Sorting into 5 departments is classification: text in, one label out, which suits an encoder-only model with a head on `[CLS]`. BERT, T5 and text-only decoders such as GPT-2 or Llama all read text tokens, so none of them can take in the voice recording in the first place."
 />
 
 <Takeaways>

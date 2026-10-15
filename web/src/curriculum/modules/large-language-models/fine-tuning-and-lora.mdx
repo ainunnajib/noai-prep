@@ -35,7 +35,7 @@ For a 7-billion-weight model that is $7 \times 10^9 \times 16 \text{ bytes} = 11
 
 ## Catastrophic forgetting
 
-<Term def="When training on a new task changes the weights so much that a network loses abilities it had before, such as general knowledge or fluent conversation.">Catastrophic forgetting</Term> is what happens when training on a new task overwrites the weights that an old skill depended on. Fine-tune a chatbot hard on legal contracts and it may write excellent contract summaries but stumble on arithmetic or casual chat it handled before.
+<Term def="When training on a new task changes the weights so much that a network loses abilities it had before, such as general knowledge or fluent conversation.">Catastrophic forgetting</Term>, which you met in [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation) as the reason for a small learning rate, is what happens when training on a new task overwrites the weights that an old skill depended on. Fine-tune a chatbot hard on legal contracts and it may write excellent contract summaries but stumble on arithmetic or casual chat it handled before.
 
 Why does it happen? The new task's loss only measures the new task, so gradient descent follows it downhill with no reason to stay where the old skill lives. You can see this with only two weights: each point of the plot below is one setting of the two weights, the blue rings show the old task's loss (a long valley where many settings work), and the orange rings the new task's loss around its best point.
 

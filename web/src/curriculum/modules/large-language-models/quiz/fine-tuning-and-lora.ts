@@ -43,10 +43,10 @@ const questions: QuizQuestion[] = [
     id: 'large-language-models.fine-tuning-and-lora.4',
     prompt: 'With $B$ of size $4096 \\times 8$ and $A$ of size $8 \\times 4096$, which statement about the update $\\Delta W = BA$ is true?',
     options: [
-      'It is $4096 \\times 4096$ like $W$, but its rank is at most 8',
-      'It is $8 \\times 8$, so it can only change 64 of the weights in $W$',
+      'It is $4096 \\times 4096$ like $W$, but its rank can never exceed 8',
+      'It is $8 \\times 8$, so it can change at most 64 of the weights in $W$',
       'It is $4096 \\times 4096$ and has rank 4096, like any matrix of that size',
-      'It is $4096 \\times 4096$ but only its first 8 rows can be non-zero',
+      'It is $4096 \\times 4096$, but its rows after the first 8 are zero',
     ],
     answer: 0,
     explanation:

@@ -23,7 +23,7 @@ const questions: QuizQuestion[] = [
       'It learns from the same comparisons directly, with no reward model and no reinforcement learning',
       'It swaps the human comparisons for scores from a reward model trained on pretraining text instead',
       'It skips supervised fine-tuning and aligns the base model with comparisons straight after pretraining',
-      'It drops the comparisons and trains only on ideal replies written by people, just as SFT does',
+      'It drops the comparisons and trains on ideal replies written by people instead, just as SFT does',
     ],
     answer: 0,
     explanation:
@@ -79,7 +79,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A lab trains a reasoning model on maths problems. The model writes out its working, and it gets reward 1 if its final answer matches the known answer and 0 otherwise. How does this reward differ from classic RLHF?',
     options: [
-      'A program checks the final answer automatically; no reward model trained on human preferences is needed',
+      'Only a program checking the final answer decides the reward; no reward model of human preferences is needed',
       'People still compare pairs of the model\'s answers, exactly as in RLHF, but only on maths questions',
       'It is the next-token loss on the working, so this stage is really another round of pretraining on maths text',
       'It is copied from ideal worked solutions that people wrote, so this stage is really supervised fine-tuning',

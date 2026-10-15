@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Mel spacing gives more rows to low frequencies, where hearing is finest, and the log brings quiet and loud sounds to a similar scale',
       'Mel spacing raises the Nyquist limit so that frequencies above half the sampling rate can be kept, and the log removes background noise',
-      'Mel spacing gives more rows to high frequencies, where most speech information sits, and the log makes every frame the same length',
+      'Mel spacing gives more rows to high frequencies, where most speech information sits, and the log makes the frames equal in length',
       'Mel spacing replaces the Fourier transform so no windows are needed, and the log converts the image back into a waveform',
     ],
     answer: 0,

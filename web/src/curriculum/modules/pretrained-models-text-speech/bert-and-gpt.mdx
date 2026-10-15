@@ -38,13 +38,13 @@ This game is called <Term def="BERT's pretraining task: hide some tokens of a se
 What you just saw, written as maths: at each hidden position BERT outputs a probability for each of its 30,522 vocabulary tokens, and the loss is the average <Term def="The loss for one prediction is −log of the probability the model gave to the correct answer: 0 if it was certain and right, large if it gave the right answer a small probability.">cross-entropy</Term> over the hidden positions only:
 
 $$
-\mathcal{L}_\text{MLM} = -\frac{1}{|M|} \sum_{i \in M} \log P\big(x_i \mid \tilde{x}\big)
+\mathcal{L}_\text{MLM} = -\frac{1}{|M|} \sum_{i \in M} \ln P\big(x_i \mid \tilde{x}\big)
 $$
 
 - $M$ is the set of positions that were chosen for prediction, and $|M|$ is how many there are.
 - $x_i$ is the real token at position $i$ (the answer).
 - $\tilde{x}$ is the corrupted sentence BERT actually sees, with the chosen tokens hidden.
-- $P(x_i \mid \tilde{x})$ is the probability BERT gives the right token. The $-\log$ makes the loss small when that probability is near 1.
+- $P(x_i \mid \tilde{x})$ is the probability BERT gives the right token. The $-\ln$ makes the loss small when that probability is near 1. ($\ln$ is the natural logarithm, the one PyTorch's cross-entropy uses.)
 
 <KeyIdea>
 
@@ -203,7 +203,7 @@ The visual below uses a tiny model you can check by hand. It was "trained" by co
 
 <NextTokenBars />
 
-Multiplying these <Term def="A probability that something happens given that something else is already known, written P(A | B).">conditional probabilities</Term> gives the probability of a whole sentence. This is the **chain rule** of probability:
+Multiplying these [conditional probabilities](#/learn/probability-and-statistics/probability-rules) gives the probability of a whole sentence. This is the **chain rule of probability**: the multiplication rule $P(A \cap B) = P(A)\,P(B \mid A)$ from that lesson, applied once per token. (It has nothing to do with the chain rule for derivatives.)
 
 $$
 P(w_1, w_2, \dots, w_n) = \prod_{t=1}^{n} P(w_t \mid w_1, \dots, w_{t-1})
@@ -228,7 +228,7 @@ $$
   </Step>
 </Steps>
 
-GPT works the same way, but each factor comes from a Transformer reading all the earlier tokens, since most long contexts never appear twice and cannot be counted. Pretraining GPT means minimising the average cross-entropy $-\log P(w_t \mid w_{<t})$ over every position. Like BERT's game, this is self-supervised: the next word is the label.
+GPT works the same way, but each factor comes from a Transformer reading all the earlier tokens, since most long contexts never appear twice and cannot be counted. Pretraining GPT means minimising the average cross-entropy $-\ln P(w_t \mid w_{<t})$ over every position. Like BERT's game, this is self-supervised: the next word is the label.
 
 To write text, GPT runs the chain rule forwards: compute the next-token probabilities, pick a token, append it, and repeat. Generating one token at a time, each conditioned on everything generated so far, is called <Term def="Generating a sequence one token at a time, where each new token is predicted from all the tokens before it, including the ones the model just generated.">autoregressive</Term> generation. How to pick (always the most likely, or at random, and how random) is the topic of [decoding strategies](#/learn/large-language-models/decoding-and-sampling).
 
@@ -241,7 +241,7 @@ To write text, GPT runs the chain rule forwards: compute the next-token probabil
 
 ## Perplexity: how surprised is the model?
 
-To compare language models, we use the probability they give to real text they have not seen, averaged per token. The **surprise** of one token is $-\log P$: 0 for a certain token, large for an unexpected one. <Term def="How surprised a language model is by a text: e raised to the average negative log-probability per token. Lower is better. It equals the number of equally likely options the model is effectively choosing between at each step.">Perplexity</Term> is $e$ raised to the average surprise. See it with real GPT-2 numbers:
+To compare language models, we use the probability they give to real text they have not seen, averaged per token. The **surprise** of one token is $-\ln P$: 0 for a certain token, large for an unexpected one. <Term def="How surprised a language model is by a text: e raised to the average negative log-probability per token. Lower is better. It equals the number of equally likely options the model is effectively choosing between at each step.">Perplexity</Term> is $e$ raised to the average surprise. See it with real GPT-2 numbers:
 
 <PerplexityMeter />
 
@@ -287,7 +287,7 @@ block = nn.TransformerEncoderLayer(d, nhead=4, batch_first=True).eval()
 to_vocab = nn.Linear(d, V)
 
 ids = torch.randint(V, (8, T))            # 8 sequences of 12 token ids
-causal = nn.Transformer.generate_square_subsequent_mask(T)
+causal = nn.Transformer.generate_square_subsequent_mask(T)  # 0 = may attend, -inf = future
 h = block(emb(ids) + pos(torch.arange(T)), src_mask=causal, is_causal=True)
 logits = to_vocab(h)                      # (8, 12, 1000)
 loss = F.cross_entropy(
@@ -303,7 +303,7 @@ logits: (8, 12, 1000)
 loss = 7.089, perplexity = 1198
 ```
 
-Notice that GPT's "decoder" block here is PyTorch's `TransformerEncoderLayer` with a causal mask. That is not a typo, and it leads to the most important idea of this lesson.
+The mask here is a float mask, another convention: PyTorch's built-in layers add it to the scores before the softmax, so the $-\infty$ entries block the future just as `masked_fill` does in [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention). Notice too that GPT's "decoder" block is PyTorch's `TransformerEncoderLayer` with a causal mask. That is not a typo, and it leads to the most important idea of this lesson.
 
 ## The real difference is the mask
 
@@ -323,7 +323,7 @@ The causal mask is what makes next-token training honest: without it, GPT could 
 |---|---|---|
 | Attention | full, bidirectional | causal, left to right |
 | Pretraining | masked language modelling (+ next sentence prediction) | next-token prediction |
-| Best at | **understanding**: sentiment and topic classification, named-entity tagging, finding the answer span in a passage, sentence embeddings | **generating**: chatbots, story and code completion, and any task you can phrase as a prompt |
+| Best at | **understanding**: sentiment and topic classification, named-entity recognition (NER: tagging the names of people, places and organisations in a text), finding the answer span in a passage, sentence embeddings | **generating**: chatbots, story and code completion, and any task you can phrase as a prompt |
 | Examples | BERT, RoBERTa, DistilBERT, mBERT | GPT-2, GPT-3/4, Llama, Qwen, Gemma |
 
 Large decoder-only models can also classify by prompting ("Is this review positive or negative?"), but a fine-tuned encoder is often far smaller, faster and cheaper for a fixed understanding task.

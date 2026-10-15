@@ -3,7 +3,7 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'pretrained-models-text-speech.hugging-face-in-practice.1',
-    prompt: 'A BERT tokenizer is called on two sentences with `padding=True`. In the returned `attention_mask`, what does a 0 mean?',
+    prompt: 'A BERT tokeniser is called on two sentences with `padding=True`. In the returned `attention_mask`, what does a 0 mean?',
     options: [
       'That position is padding added to make rows the same length, so attention should ignore it',
       'That position holds the `[CLS]` token, whose vector is reserved for the classification head',
@@ -32,13 +32,13 @@ const questions: QuizQuestion[] = [
       'A student loads `AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=3)` and immediately uses it to classify news headlines into 3 topics, without training. The predictions look random. Why?',
     options: [
       'The 3-class head on top of BERT is newly and randomly initialised, so it must be trained on labelled examples first',
-      'BERT\'s tokenizer was not loaded with `num_labels=3` as well, so the input ids do not match the 3 classes of the model',
+      'BERT\'s tokeniser was not loaded with `num_labels=3` as well, so the input ids do not match the 3 classes of the model',
       'BERT was pretrained only on English and so cannot read news headlines until its embeddings are trained again from scratch',
       'The model needs `return_tensors="pt"` to be passed to `from_pretrained`, otherwise its outputs are NumPy arrays of zeros',
     ],
     answer: 0,
     explanation:
-      '`bert-base-uncased` contains the pretrained encoder but no topic classifier. Asking for `num_labels=3` adds a fresh linear head with random weights (Hugging Face even warns that they are newly initialised), so it must be fine-tuned. The tokenizer has nothing to do with the number of labels.',
+      '`bert-base-uncased` contains the pretrained encoder but no topic classifier. Asking for `num_labels=3` adds a fresh linear head with random weights (Hugging Face even warns that they are newly initialised), so it must be fine-tuned. The tokeniser has nothing to do with the number of labels.',
     difficulty: 'beginner',
   },
   {

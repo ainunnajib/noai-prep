@@ -9,7 +9,7 @@ const questions: QuizQuestion[] = [
       'Nothing changes: dividing by a positive T never changes which logit is largest',
       'It becomes more varied, because a higher temperature flattens the distribution',
       'It becomes more repetitive, because a higher temperature sharpens the distribution',
-      'It raises an error, because temperature only works together with top-k filtering',
+      'It raises an error, because temperature needs top-k filtering switched on as well',
     ],
     answer: 0,
     explanation:

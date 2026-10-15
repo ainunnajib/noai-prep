@@ -99,7 +99,7 @@ In a long maths problem you do not redo lines 1 to 9 every time you write line 1
     A prompt of $p = 1{,}000$ tokens, and we generate $n = 100$ tokens, one per pass. Count how many token positions go through the model in total.
   </Step>
   <Step title="Without the cache">
-    Pass $i$ reprocesses the prompt plus the $i - 1$ tokens generated so far: $1{,}000 + (i - 1)$ positions. Over 100 passes: $100 \times 1{,}000 + (0 + 1 + \dots + 99) = 100{,}000 + 4{,}950 = 104{,}950$.
+    Pass $i$ reprocesses the prompt plus the $i - 1$ tokens generated so far: $1{,}000 + (i - 1)$ positions. Over 100 passes: $100 \times 1{,}000 + (0 + 1 + \dots + 99) = 100{,}000 + \tfrac{99 \times 100}{2} = 104{,}950$ (the same $n(n-1)/2$ count as the handshakes in [the Transformer lesson](#/learn/attention-and-transformers/positional-encoding-and-blocks), with $n = 100$).
   </Step>
   <Step title="With the cache">
     The prompt goes through once (prefill), then each of the other 99 passes processes just one new token: $1{,}000 + 99 = 1{,}099$.
@@ -112,7 +112,10 @@ In a long maths problem you do not redo lines 1 to 9 every time you write line 1
 The cache costs memory. Each token stores a key and a value (2 vectors) of length $d_\text{model}$ in each of the $L$ layers:
 
 $$
-\text{KV cache} = 2 \times L \times T \times d_\text{model} \times (\text{bytes per number})
+\begin{aligned}
+\text{KV cache} &= 2 \times L \times T \times d_\text{model} \\
+&\quad \times (\text{bytes per number})
+\end{aligned}
 $$
 
 Here the 2 counts one key and one value, $L$ is the number of layers, $T$ the number of tokens cached, and $d_\text{model}$ the width of the keys and values summed over all heads. For Llama 2 7B ($L = 32$, $d_\text{model} = 4{,}096$, 16-bit numbers = 2 bytes each), one token takes $2 \times 32 \times 4{,}096 \times 2 = 524{,}288$ bytes, about **0.5 MB**. Its full 4,096-token window needs about **2.1 GB**. A model of the same shape with a 32,768-token window would need about **17 GB** for one full conversation: more than the model's own weights (about $6.7 \times 10^9 \times 2$ bytes $\approx 13.5$ GB). This is why long contexts are memory-hungry, and why newer models let groups of attention heads share keys and values to shrink the cache.
@@ -132,7 +135,7 @@ With or without the cache, the model produces exactly the same output: the cache
 
 ## Cost and latency, counted in tokens
 
-LLM APIs bill **per token**, usually with separate prices for input and output tokens, and output tokens cost several times more. That matches the two phases: input tokens are read in parallel during prefill, while every output token needs its own decode pass. Latency follows the same split:
+LLM APIs bill **per token**, usually with separate prices for input and output tokens, and output tokens cost several times more. That matches the two phases: input tokens are read in parallel during prefill, while every output token needs its own decode pass. Latency (how long the user waits for the answer) follows the same split:
 
 $$
 t_\text{total} \approx t_\text{first} + n_\text{out} \times t_\text{token}
@@ -153,7 +156,7 @@ At 50 output tokens per second, a 500-token answer takes about 10 seconds to wri
     $300(k - 1) + 100$: that is 100, 400, 700, … up to $300 \times 9 + 100 = 2{,}800$ on turn 10.
   </Step>
   <Step title="Add them up">
-    $\sum_{k=1}^{10} \big(300(k-1) + 100\big) = 300 \times (0 + 1 + \dots + 9) + 10 \times 100 = 300 \times 45 + 1{,}000 = 14{,}500$ input tokens, plus $10 \times 200 = 2{,}000$ output tokens.
+    $\sum_{k=1}^{10} \big(300(k-1) + 100\big) = 300 \times (0 + 1 + \dots + 9) + 10 \times 100 = 300 \times \tfrac{9 \times 10}{2} + 1{,}000 = 13{,}500 + 1{,}000 = 14{,}500$ input tokens, plus $10 \times 200 = 2{,}000$ output tokens.
   </Step>
   <Step title="Compare">
     The ten questions themselves are only 1,000 tokens. Re-sending history made the input 14.5 times bigger, and it grows like the square of the number of turns.

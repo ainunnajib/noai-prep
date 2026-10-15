@@ -3,7 +3,7 @@ import WhisperFlow from './visuals/speech-models/WhisperFlow'
 import AudioLLMDiagram from './visuals/speech-models/AudioLLMDiagram'
 import SpeechModelPicker from './visuals/speech-models/SpeechModelPicker'
 
-Meet the three families of pretrained models that read sound: **HuBERT** learns what speech sounds like from audio with no transcripts, **Whisper** writes down what was said in about a hundred languages, and **audio LLMs** such as Qwen-Audio and Voxtral answer questions about any sound. Each reuses an idea you already know (BERT's masked prediction, the encoder-decoder, the large language model), and spotting that reuse is the key to this lesson. IOAI 2026 set an audio task, "Find the Order": put the shuffled turns of a spoken dialogue back in order.
+Meet the three families of pretrained models that read sound: **HuBERT** learns what speech sounds like from audio with no transcripts, **Whisper** writes down what was said in about a hundred languages, and **audio LLMs** such as Qwen-Audio and Voxtral answer questions about any sound. Each reuses an idea you already know: BERT's masked prediction, the encoder-decoder Transformer and the GPT-style decoder (a very large one is called a large language model, or LLM; the next module, [How LLMs are built](#/learn/large-language-models/how-llms-are-built), covers them). Spotting that reuse is the key to this lesson. IOAI 2026 set an audio task, "Find the Order": put the shuffled turns of a spoken dialogue back in order.
 
 ## Why learn from audio without labels?
 
@@ -30,15 +30,15 @@ BERT's masked-word game needs a vocabulary: the model picks the hidden word from
 The training loss is the [cross-entropy](#/learn/classification/softmax-and-multiclass) of the hidden frames' units:
 
 $$
-\mathcal{L} = -\frac{1}{|M|} \sum_{t \in M} \log p\left(z_t \mid \tilde{X}\right)
+\mathcal{L} = -\frac{1}{|M|} \sum_{t \in M} \ln p\left(z_t \mid \tilde{X}\right)
 $$
 
 - $M$ is the set of masked frame positions, and $|M|$ is how many there are.
 - $z_t$ is the hidden unit of frame $t$ (its k-means cluster number): the right answer.
 - $\tilde{X}$ is the input with the masked frames swapped for [MASK].
-- $p(z_t \mid \tilde{X})$ is the probability the model gives the right unit, from a softmax over all units. Taking $-\log$ and averaging means the loss is small only when the model is confident and right on the hidden frames.
+- $p(z_t \mid \tilde{X})$ is the probability the model gives the right unit, from a softmax over all units. Taking $-\ln$ and averaging means the loss is small only when the model is confident and right on the hidden frames.
 
-Only masked frames are scored. A visible frame's unit can be read straight off the frame itself, so it teaches nothing; a hidden frame can only be guessed from its neighbours, which forces the model to learn how speech flows, like a language model for sounds. And the clusters do not need to be "correct" phonemes. They only need to be **consistent**, so that the same sound always gets the same unit. To predict them well, the model still has to learn the structure of speech.
+Only masked frames are scored. A visible frame's unit can be read straight off the frame itself, so it teaches nothing; a hidden frame can only be guessed from its neighbours, which forces the model to learn how speech flows, like a language model for sounds. And the clusters do not need to be "correct" <Term def="The basic sounds a language is built from, such as the /k/, /a/ and /t/ in 'cat'.">phonemes</Term>. They only need to be **consistent**, so that the same sound always gets the same unit. To predict them well, the model still has to learn the structure of speech.
 
 <KeyIdea>
 
@@ -108,7 +108,7 @@ A stenographer listens to a recording and types it out. Before starting, they ar
 
 1. Cut or pad the audio to a **30-second** chunk at 16 kHz: 480,000 samples.
 2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in the last lesson; large-v3 and large-v3-turbo use 128 mel rows instead of 80.
-3. **Encoder:** two 1-D convolutions (width 3; the second has <Term def="How many positions a convolution's filter jumps each time it moves. Stride 2 visits every other position, so the output is about half as long as the input.">stride</Term> 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms.
+3. **Encoder:** two 1-D convolutions (width 3; the second has [stride](#/learn/convolutional-networks/padding-stride-shapes) 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms. A **1-D convolution** is the [convolution](#/learn/convolutional-networks/convolution) you know from images, but its filter slides along one axis only: time. The 80 mel bands play the role of an image's colour channels, so each filter covers all 80 bands across 3 neighbouring frames.
 4. **Decoder:** generates text tokens one at a time. Each block has causal self-attention over the tokens so far, plus **cross-attention**, whose queries come from the text and whose keys and values come from the 1,500 audio vectors.
 5. **Special tokens** start every output: `<|startoftranscript|>`, a language token such as `<|ms|>`, a task token (`<|transcribe|>` or `<|translate|>`) and `<|notimestamps|>`. The output ends with `<|endoftext|>`.
 
@@ -138,7 +138,7 @@ $H_\text{text}$ holds one vector per text token so far, and $H_\text{audio}$ hol
     80 mel rows × 3,000 frames (one per 10 ms): shape `(1, 80, 3000)` with a batch of 1.
   </Step>
   <Step title="Convolutions">
-    Conv 1 (kernel 3, padding 1) maps 80 channels to 384 and keeps the length at 3,000. Conv 2 has stride 2: $\lfloor (3000 + 2 - 3)/2 \rfloor + 1 = 1500$. Shape `(1, 384, 1500)`.
+    Conv 1 (kernel 3, padding 1) maps 80 channels to 384 and keeps the length at 3,000. Conv 2 (kernel 3, padding 1, stride 2) follows the output-size rule $\lfloor (n + 2p - k)/s \rfloor + 1$ from [Padding, stride and shapes](#/learn/convolutional-networks/padding-stride-shapes): $\lfloor (3000 + 2 - 3)/2 \rfloor + 1 = 1500$. Shape `(1, 384, 1500)`.
   </Step>
   <Step title="Encoder blocks">
     Transposed to `(1, 1500, 384)`: 1,500 positions, each a 384-number vector. Attention keeps the shape.
@@ -275,6 +275,8 @@ These calls need real audio files, so no output is shown.
 Prelim questions on speech models test **matching**: HuBERT ↔ self-supervised masked prediction of k-means units; Whisper ↔ encoder-decoder, log-mel input, 680,000 hours of weakly labelled audio (original version), transcribe or translate into English; audio LLM ↔ audio encoder + projector + LLM. Keep these numbers ready: 16 kHz, 30 s windows, 80 × 3,000 log-mel (128 × 3,000 in large-v3), 1,500 encoder positions, 20 ms per HuBERT or Whisper encoder frame. If an option says HuBERT "needs transcripts" or Whisper is "decoder-only", it is a trap.
 
 </ExamTip>
+
+Audio LLMs rest on the large language model inside them. The next module, [How LLMs are built](#/learn/large-language-models/how-llms-are-built), shows how a GPT-style decoder is pretrained at scale, instruction-tuned and turned into a chatbot.
 
 <Takeaways>
 
