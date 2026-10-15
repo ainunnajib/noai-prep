@@ -300,6 +300,18 @@ with profile(activities=[ProfilerActivity.CPU]) as prof:
 print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=5))
 ```
 
+The real table has seven columns. Here are the three that matter, for the same five rows:
+
+| operation | Self CPU % | calls |
+|---|---|---|
+| `aten::mm` (matrix multiply) | **28.78%** | 60 |
+| `aten::cross_entropy_loss` | 9.32% | 20 |
+| `aten::linear` | 3.99% | 40 |
+| `autograd::engine::evaluate_function: AddmmBackward0` | 0.78% | 40 |
+| `AddmmBackward0` | 0.56% | 40 |
+
+<Reveal label="The full table as printed">
+
 ```text
 -------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------
                                                    Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls
@@ -312,6 +324,10 @@ print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=5))
 -------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------
 Self CPU time total: 45.588ms
 ```
+
+`Self CPU %` counts only the time spent inside an operation itself; `CPU total %` also counts everything it calls, which is why the backward wrappers at the top have a big total but a tiny self share.
+
+</Reveal>
 
 Read the `Self CPU %` column, the time spent inside each operation itself: `aten::mm`, the matrix multiplications that compute the Linear layers' gradients, has by far the largest share in this table (28.78%). That is what a healthy loop looks like: the time goes on the model's arithmetic. The exact times change from run to run and machine to machine; look at the proportions. Measuring also explains a surprise: for a tiny model, a GPU can be *slower* than a CPU. Every batch has to be copied to the GPU and every operation launched there, and with small batches that fixed overhead outweighs the fast arithmetic.
 

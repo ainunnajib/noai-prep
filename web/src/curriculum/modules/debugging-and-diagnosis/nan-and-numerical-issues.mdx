@@ -178,13 +178,15 @@ The first class has target $y_1 = 0$, so its term *should* contribute nothing. B
 
 </Reveal>
 
-### Loss scaling: the fix for float16 underflow
+<Reveal label="Going further: loss scaling, the fix for float16 underflow">
 
 In mixed-precision training, the gradients are stored in `float16`, where anything smaller than about $6 \times 10^{-8}$ becomes 0. Many real gradients are that small, so they silently vanish and those weights stop learning. The fix is <Term def="Multiplying the loss by a big factor S before backward() so the float16 gradients are S times bigger and do not underflow; the gradients are divided by S again (in float32) before the weight update.">loss scaling</Term>: multiply the loss by a big number $S$ before `backward()`. By the chain rule every gradient is then multiplied by $S$ too. Before the weight update, divide the gradients by $S$ again, in `float32`. For example, a gradient of $10^{-8}$ becomes $10^{-8} \times 65\,536 \approx 6.6 \times 10^{-4}$, which `float16` stores easily, and dividing by $65\,536$ afterwards gives back $10^{-8}$.
 
 <LossScaleWindow />
 
 If $S$ is too big, the largest gradients overflow to `inf`. PyTorch's `GradScaler` handles both sides automatically: it skips any step whose gradients contain `inf` or `nan` and halves $S$, and it slowly raises $S$ again while all is well. (The lesson on [gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale) has the full training loop.)
+
+</Reveal>
 
 ## How one nan takes over a whole network
 

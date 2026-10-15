@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, Path, HLine, useBump, mulberry32 } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, Path, HLine, Label, useBump, mulberry32 } from '../../../../../kit'
 import { trainToy, bestLoss, type Run } from './lrToy'
 import { Legend, Note } from './ui'
 
@@ -41,13 +41,29 @@ const REGIME: Record<Regime, { label: string; colour: string; text: string }> = 
   explodes: { label: 'diverges', colour: 'var(--viz-neg)', text: 'Every step overshoots by more than the last: the loss grows exponentially and overflows to infinity (NaN) within a few steps.' },
 }
 
+// points up to where the curve first leaves the top of the chart; that last point is drawn at the top edge, so a
+// diverging run is a line climbing out of the chart rather than a few pixels in a corner
 const toPts = (full: number[]): [number, number][] => {
   const pts: [number, number][] = []
   for (let i = 0; i < full.length; i++) {
     const v = full[i]
-    pts.push([i, Number.isFinite(v) ? Math.min(v, 50) : 50])
+    if (!Number.isFinite(v) || v > Y_TOP) {
+      pts.push([i, Y_TOP * 1.02])
+      break
+    }
+    pts.push([i, v])
   }
   return pts
+}
+
+const fmtBig = (v: number) => (v >= 1e4 ? `10^${Math.floor(Math.log10(v))}`.replace(/\^(\d+)/, (_, d: string) => [...d].map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join('')) : v.toFixed(1))
+
+/** Where the run first leaves the chart, and the biggest finite loss it reached. */
+function exitOf(run: Run): { step: number; peak: number } | null {
+  const i = run.full.findIndex((v) => !Number.isFinite(v) || v > Y_TOP)
+  if (i < 0) return null
+  const finite = run.full.filter((v) => Number.isFinite(v))
+  return { step: i, peak: Math.max(...finite) }
 }
 
 export default function LRCurveFamily() {
@@ -69,6 +85,7 @@ export default function LRCurveFamily() {
   const reg = REGIME[regimes[k]]
   const lr = lrOf(k)
   const finalLoss = run.divergedAt !== null ? 'NaN' : run.full[STEPS].toFixed(3)
+  const exit = mode === 'explore' ? exitOf(run) : null
   const startNewMystery = () => {
     nextRound()
     setChecked(null)
@@ -116,9 +133,16 @@ export default function LRCurveFamily() {
         <Grid xTicks={5} yTicks={7} />
         <Axes xLabel="training step" yLabel="training loss" xTicks={5} yTicks={7} />
         <HLine y={best} color="var(--ink-3)" label={`best possible ${best.toFixed(2)}`} />
-        {mode === 'explore' && KS.map((kk) => (kk === k ? null : <Path key={kk} points={toPts(runs[kk].full)} color="var(--viz-muted)" width={1.2} opacity={0.55} />))}
+        {mode === 'explore' && KS.map((kk) => (kk === k ? null : <Path key={kk} points={toPts(runs[kk].full)} color="var(--viz-muted)" width={1.2} opacity={0.25} />))}
         {mode === 'mystery' && <Path points={toPts(runs[hidden].full)} color="var(--viz-4)" width={3} dash="7 5" />}
         <Path points={toPts(run.full)} color={reg.colour} width={3} />
+        {exit && (
+          <Label x={exit.step} y={Y_TOP} dx={exit.step < STEPS / 2 ? 6 : -6} dy={34} anchor={exit.step < STEPS / 2 ? 'start' : 'end'} color={reg.colour} size={12} weight={700}>
+            {run.divergedAt !== null
+              ? `↑ ${fmtBig(exit.peak)} by step ${run.divergedAt}, then NaN`
+              : `↑ off the chart from step ${exit.step} (up to ${fmtBig(exit.peak)})`}
+          </Label>
+        )}
       </Plot>
       <Legend
         items={

@@ -5,7 +5,7 @@ import s from './nan.module.css'
 
 /*
   Per-layer gradient norms of a 10-layer network, from real PyTorch runs (see gradNormData.ts):
-  the first mini-batch (light bars) and the average over epoch 50 (dark bars), on a log scale.
+  the first mini-batch (outlined, see-through bars) and the average over epoch 50 (solid bars), on a log scale.
   Pick a problem (vanishing: deep sigmoid net; exploding: oversized weights) and one fix at a time.
   Aha: the shape of the profile tells you the disease; each fix reshapes it, and some "fixes" do nothing
   (clipping cannot cure vanishing; residual connections make exploding worse).
@@ -111,8 +111,8 @@ export default function GradNormBars() {
       title="Gradient norm per layer: the profile tells the story"
       caption={
         <>
-          Each pair of bars is one layer: light = the first mini-batch, dark = the average over epoch 50. The scale is logarithmic: each grid
-          line is 100 times the one below. Start with <b>vanishing</b>: the bars fall away towards layer 1 like a staircase. Try each fix.
+          Each pair of bars is one layer: outlined, see-through bars = the first mini-batch, solid bars = the average over epoch 50. The scale is
+          logarithmic: each grid line is 100 times the one below (1e−4 means 0.0001). Start with <b>vanishing</b>: the bars fall away towards layer 1 like a staircase. Try each fix.
           Then switch to <b>exploding</b> and try the same fixes. Two of them disappoint: find out which, and why.
         </>
       }
@@ -149,7 +149,7 @@ export default function GradNormBars() {
             return (
               <g key={L}>
                 {Number.isFinite(a) ? (
-                  <Rect x0={L - w} x1={L} y0={LOG_LO} y1={Math.log10(a)} fill="color-mix(in srgb, var(--viz-1) 38%, var(--surface))" stroke="var(--viz-1)" />
+                  <Rect x0={L - w} x1={L} y0={LOG_LO} y1={Math.log10(a)} fill="color-mix(in srgb, var(--viz-1) 16%, transparent)" stroke="var(--viz-1)" />
                 ) : (
                   <NanBar x={L - w / 2} w={w} color="var(--viz-neg)" />
                 )}
@@ -164,16 +164,19 @@ export default function GradNormBars() {
           {lastNan && <NanNote text="epoch 50: every norm is nan" />}
           <Axes xTicks={10} yTicks={7} tickFormat={(v) => String(v)} hideYTicks />
           <YLogTicks />
+          <Label x={0.5} y={LOG_HI} dx={4} dy={14} color="var(--ink-2)" size={11}>
+            gradient norm (log scale)
+          </Label>
           <Label x={10.5} y={LOG_LO} dy={34} anchor="end" color="var(--ink-2)" size={11}>
             layer (1 = input side, 10 = output)
           </Label>
         </Plot>
         <div className={s.legend} aria-hidden="true">
           <span>
-            <i className={s.swBox} style={{ background: 'color-mix(in srgb, var(--viz-1) 38%, var(--surface))', borderColor: 'var(--viz-1)' }} /> first mini-batch
+            <i className={s.swBox} style={{ background: 'color-mix(in srgb, var(--viz-1) 16%, transparent)', borderColor: 'var(--viz-1)' }} /> first mini-batch (outlined)
           </span>
           <span>
-            <i className={s.swBox} style={{ background: 'var(--viz-1)', borderColor: 'var(--viz-1)' }} /> epoch 50 (average)
+            <i className={s.swBox} style={{ background: 'var(--viz-1)', borderColor: 'var(--viz-1)' }} /> epoch 50 average (solid)
           </span>
           <span>
             <i className={s.swBox} style={{ background: 'color-mix(in srgb, var(--viz-neg) 14%, var(--surface))', borderColor: 'var(--viz-neg)', borderStyle: 'dashed' }} /> nan

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Figure, Segmented, Plot, Grid, Axes, Path, Dots, Label, usePlot } from '../../../../../kit'
-import { PATIENTS, DIAGNOSES, REMEDIES, Y_MAX, OSC_FROM, simulate, applyRemedy, type DiagnosisId, type RemedyId, type Curves } from './clinicModel'
+import { PATIENTS, DIAGNOSES, REMEDIES, Y_MAX, OSC_FROM, simulate, treated, type DiagnosisId, type RemedyId, type Curves } from './clinicModel'
 import { Chip, Chips, Legend, Note, Section } from './ui'
 
 /*
@@ -43,6 +43,8 @@ function CurvePair({ c, faint }: { c: Curves; faint?: boolean }) {
   )
 }
 
+const HEALTHY = PATIENTS.find((q) => q.diagnosis === 'healthy') ?? PATIENTS[PATIENTS.length - 1]
+
 export default function LossCurveClinic() {
   const [idx, setIdx] = useState(0)
   const [states, setStates] = useState<RunState[]>(() => PATIENTS.map(() => ({ guess: null, solved: false, remedy: null })))
@@ -51,12 +53,15 @@ export default function LossCurveClinic() {
   const update = (patch: Partial<RunState>) => setStates((all) => all.map((s, i) => (i === idx ? { ...s, ...patch } : s)))
 
   const before = useMemo(() => simulate(p.spec), [p])
-  const after = useMemo(() => (st.remedy ? simulate(applyRemedy(p.spec, st.remedy)) : null), [p, st.remedy])
+  const after = useMemo(() => (st.remedy ? simulate(treated(p, st.remedy)) : null), [p, st.remedy])
   const shown = after ?? before
-  const xMax = Math.max(p.spec.epochs, after ? applyRemedy(p.spec, st.remedy!).epochs : 0)
+  const xMax = Math.max(p.spec.epochs, after ? treated(p, st.remedy!).epochs : 0)
+  // a healthy run, drawn faintly behind every other patient as a reference
+  const reference = useMemo(() => simulate(HEALTHY.spec), [])
+  const showRef = p !== HEALTHY
 
   // lowest validation loss of the curve on top, if it is clearly before the end (early-stopping point)
-  const shownSpec = st.remedy ? applyRemedy(p.spec, st.remedy) : p.spec
+  const shownSpec = st.remedy ? treated(p, st.remedy) : p.spec
   const jumpy = shownSpec.lr > OSC_FROM
   const best = useMemo(() => {
     const v = shown.val
@@ -79,7 +84,7 @@ export default function LossCurveClinic() {
       caption={
         <>
           Six training runs, each with one problem (or none). Pick a run, read its curves, and choose a diagnosis. Then try treatments: the run is
-          redrawn after the change, with the original run faded behind it. The open circle marks the lowest validation loss, the point early stopping
+          redrawn after the change, with the original run faded behind it. The thin dashed line is a healthy run's validation loss, for comparison. The open circle marks the lowest validation loss, the point early stopping
           would keep. The curves are simplified versions of shapes that real training runs produce.
         </>
       }
@@ -93,6 +98,7 @@ export default function LossCurveClinic() {
       <Plot x={[0, xMax]} y={[0, Y_MAX]} width={560} height={290} minHeight={230} margin={{ left: 44, right: 14, top: 18 }} ariaLabel={`Training and validation loss for ${p.name}`}>
         <Grid xTicks={6} yTicks={4} />
         <Axes xLabel="epoch" yLabel="loss" xTicks={6} yTicks={4} />
+        {showRef && <Path points={reference.val.filter(([x]) => x <= xMax)} color="var(--ink-3)" width={1.6} dash="3 4" opacity={0.6} />}
         {after && <CurvePair c={before} faint />}
         <CurvePair c={shown} />
         {shown.nanAt !== null && <NanMarker at={shown.nanAt} />}
@@ -107,6 +113,7 @@ export default function LossCurveClinic() {
         items={[
           { color: TRAIN, label: 'training loss' },
           { color: VAL, label: 'validation loss' },
+          ...(showRef ? [{ color: 'var(--ink-3)', label: 'a healthy run (validation), for reference', dash: true }] : []),
           ...(after ? [{ color: 'var(--ink-3)', label: 'before treatment', faint: true }] : []),
         ]}
       />

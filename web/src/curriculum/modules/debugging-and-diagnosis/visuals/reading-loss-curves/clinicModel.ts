@@ -62,8 +62,9 @@ export function simulate(spec: RunSpec): Curves {
   }
   // too-high learning rate: bounces around a higher level
   const osc = lr > OSC_FROM && lr < DIVERGE_FROM ? Math.min(1, (lr - OSC_FROM) / 3) : 0
-  const oscAmp = osc * (spec.clip ? 0.12 : 0.24)
-  const oscLift = osc * (spec.clip ? 0.12 : 0.2)
+  // big, unmistakable swings (with occasional spikes above 1) unless clipping caps the steps
+  const oscAmp = osc * (spec.clip ? 0.12 : 0.45)
+  const oscLift = osc * (spec.clip ? 0.12 : 0.3)
   const diverges = lr >= DIVERGE_FROM
   // the unstable operation fires at epoch 32 unless the steps are small or gradients are clipped
   const cliff = spec.unstable && !spec.clip && lr > 0.5 ? 32 : null
@@ -179,6 +180,13 @@ export interface Patient {
   /** shown after the right diagnosis */
   confirm: string
   remedies: Record<RemedyId, [Outcome, string]>
+  /** extra changes for one treatment, e.g. a longer x-axis so a delayed effect is visible */
+  remedySpec?: Partial<Record<RemedyId, Partial<RunSpec>>>
+}
+
+/** The run after a treatment, including any patient-specific extras. */
+export function treated(p: Patient, rem: RemedyId): RunSpec {
+  return { ...applyRemedy(p.spec, rem), ...(p.remedySpec?.[rem] ?? {}) }
 }
 
 const base: Omit<RunSpec, 'seed'> = { lr: 1, capacity: 'right', reg: false, unstable: false, clip: false, epochs: 60 }
@@ -202,11 +210,12 @@ export const PATIENTS: Patient[] = [
   {
     name: 'Run 2',
     spec: { ...base, capacity: 'big', seed: 22 },
+    remedySpec: { lower: { epochs: 150 } },
     diagnosis: 'overfit',
     hint: 'Compare the two curves after about epoch 20. Are they moving together or apart?',
     confirm: 'Training loss keeps falling, but validation loss bottoms out near epoch 20 and then climbs. The widening gap is overfitting: the model is memorising the training set.',
     remedies: {
-      lower: ['same', 'Ten times smaller steps make everything ten times slower. The overfitting is not cured, only postponed: the gap opens later.'],
+      lower: ['better', 'Not a cure: overfitting only postponed. Ten times smaller steps make everything ten times slower, so the axis now shows 150 epochs: the gap between the curves still opens, just later.'],
       raise: ['worse', 'Ten times the learning rate: the loss explodes and becomes NaN.'],
       reg: ['fixed', 'Dropout and weight decay make memorising harder: the validation curve no longer climbs and the gap stays small. (Stopping at the lowest validation loss, early stopping, also works.)'],
       bigger: ['worse', 'More capacity means even more memorising: the gap opens sooner and wider.'],

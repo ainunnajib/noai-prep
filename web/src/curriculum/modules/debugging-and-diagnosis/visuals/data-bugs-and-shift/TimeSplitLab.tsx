@@ -194,7 +194,9 @@ export default function TimeSplitLab() {
             ? drift === 0
               ? 'With no drift, every month looks alike, so a random split is honest.'
               : 'Random split: validation rows come from the same months as the training rows, so the model has effectively seen the future. The score is a promise the model cannot keep in 2025.'
-            : 'Time-based split: the model is validated on the most recent months, after the period it trained on, exactly as it will be used. The forecast is close to what really happens in 2025.'}
+            : Math.abs(gap) > 0.04
+              ? 'Time-based split: honest about the past, but the world keeps drifting. By the time the model is used, the validation months are already six months old, so even this forecast is optimistic. Monitor the live accuracy and retrain often.'
+              : 'Time-based split: the model is validated on the most recent months, after the period it trained on, exactly as it will be used. The forecast is close to what really happens in 2025.'}
         </p>
       </div>
     </Figure>
