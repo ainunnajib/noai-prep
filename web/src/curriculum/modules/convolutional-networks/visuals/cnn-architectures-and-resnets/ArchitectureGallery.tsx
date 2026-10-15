@@ -78,7 +78,7 @@ const ARCHS: Arch[] = [
     depth: '34 weight layers; the family goes up to 152',
     params: '21.8 million (ResNet-50: 25.6 million)',
     who: 'He, Zhang, Ren and Sun, Microsoft Research',
-    idea: 'Residual blocks, y = F(x) + x: every pair of 3×3 convs gets a skip connection, so very deep networks still train. It also uses BatchNorm (introduced earlier in 2015 by Ioffe and Szegedy, not by ResNet) and a global-average-pooling head (as in GoogLeNet) instead of big dense layers.',
+    idea: 'Residual blocks, y = F(x) + x: every pair of 3×3 convs gets a skip connection, so very deep networks still train. It also uses BatchNorm (introduced earlier in 2015 by Ioffe and Szegedy, not by ResNet) and ends with global average pooling and one dense layer (as in GoogLeNet) instead of big dense layers.',
     result: 'Won ImageNet 2015 (3.57% top-5 error with an ensemble: several ResNets voting together).',
     skips: true,
     convP: 21284672,

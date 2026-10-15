@@ -31,8 +31,8 @@ Here is the difficulty. To decide **what** a pixel shows, a network needs contex
 
 A U-Net has three parts, drawn as a letter U.
 
-- The <Term def="The first half of the network. It repeatedly applies convolutions and then downsamples, so the feature maps get smaller but have more channels. It works out WHAT is in the image.">encoder</Term> (the left arm, going down). Each level applies two $3 \times 3$ convolutions with ReLU, then a $2 \times 2$ max pool that halves the height and width. The number of channels doubles at each level: 64, 128, 256, 512.
-- The <Term def="The deepest, smallest feature map in the middle of an encoder-decoder network. It has the largest view of the image but the least spatial detail.">bottleneck</Term> (the bottom of the U): the smallest map, which sees the most context.
+- The <Term def="The first half of the network. It repeatedly applies convolutions and then downsamples, so the feature maps get smaller but have more channels. It works out WHAT is in the image. It plays the same role as the pretrained encoders of the transfer-learning lesson (and is often a pretrained ResNet), but here its feature maps are kept at every level instead of being averaged into one vector, because the decoder needs them.">encoder</Term> (the left arm, going down). Each level applies two $3 \times 3$ convolutions with ReLU, then a $2 \times 2$ max pool that halves the height and width. The number of channels doubles at each level: 64, 128, 256, 512.
+- The <Term def="The deepest, smallest feature map in the middle of an encoder-decoder network. It has the largest view of the image but the least spatial detail. Not the same thing as ResNet-50's 'bottleneck' blocks, which squeeze channels with 1 × 1 convolutions; in both cases the word just means 'the narrowest point'.">bottleneck</Term> (the bottom of the U): the smallest map, which sees the most context.
 - The <Term def="The second half of the network. It repeatedly upsamples the feature maps back to full size so that it can make a prediction for every pixel. It works out WHERE things are.">decoder</Term> (the right arm, going up). Each level **upsamples** by 2, joins the result with the encoder map of the same size, and applies two $3 \times 3$ convolutions. A final $1 \times 1$ convolution turns each pixel's channels into $K$ class scores.
 
 The horizontal bridges are the <Term def="In U-Net: a direct path that copies an encoder feature map across to the decoder level of the same size, where it is concatenated with the upsampled map.">skip connections</Term>. They copy each encoder map straight across the U to the decoder level with the same size. Why bother, when the bottleneck has already seen everything? Explore what each level still knows about *where* the object is.
@@ -121,7 +121,7 @@ torch.Size([1, 1, 4, 4])
 
 <Reveal label="Going further: output_padding and checkerboard artefacts">
 
-PyTorch also has an `output_padding` argument that adds extra cells on one side of the output: `nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)` turns 7 into 14. The full formula (with the default dilation of 1) is $(n - 1)s - 2p + k + \text{output\_padding}$. Why is it needed? With $k = 3, s = 2, p = 1$ an ordinary convolution sends both 13 and 14 to 7 (that is the floor at work), so going back from 7 is ambiguous; `output_padding=1` picks 14.
+PyTorch also has an `output_padding` argument that adds extra cells on one side of the output: `nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)` turns 7 into 14. The full formula is $(n - 1)s - 2p + k + \text{output\_padding}$. Why is it needed? With $k = 3, s = 2, p = 1$ an ordinary convolution sends both 13 and 14 to 7 (that is the floor at work), so going back from 7 is ambiguous; `output_padding=1` picks 14.
 
 **Checkerboard artefacts.** When the kernel size is not a multiple of the stride ($k = 3, s = 2$), some output pixels get more stamps than their neighbours, and networks tend to produce faint checkerboard patterns. Two common cures: use $k = 2, s = 2$ as U-Net does, or upsample with a fixed method (`nn.Upsample(scale_factor=2)`) followed by an ordinary convolution.
 
@@ -175,9 +175,9 @@ The official answer to this 2026 Final question blames `ConvTranspose2d`, but th
 
 <QuickCheck
   q="A U-Net with same padding and four 2×2 pooling steps is given a 200×200 image. What happens?"
-  options={['The deepest concatenation fails: skip 25×25, upsampled 24×24', 'It works: 200 is even, so every pool divides exactly', 'The top concatenation fails: skip 200×200, upsampled 192×192', 'It works, but the output is 192×192']}
+  options={['The deepest concatenation fails: skip 25×25, upsampled 24×24', 'It works: 200 is even, so every pool divides exactly', 'The top concatenation fails: skip 200×200, upsampled 192×192', 'It runs, but the output shrinks to 192×192 instead of 200×200']}
   answer={0}
-  explain="Pooling gives $200 \to 100 \to 50 \to 25 \to 12$ (floor of 12.5). The decoder doubles 12 to 24, but the deepest skip map is 25×25, so torch.cat crashes there before any higher level is reached. Being even is not enough: the size must be divisible by $2^4 = 16$, and $200/16 = 12.5$."
+  explain="Pooling gives $200 \to 100 \to 50 \to 25 \to 12$ (floor of 12.5). The decoder doubles 12 to 24, but the deepest skip map is 25×25, so torch.cat crashes there before any higher level is reached. Being even is not enough: the size must be divisible by $2^4 = 16$, and $200/16 = 12.5$. And with same padding no convolution shrinks the map, so nothing ever becomes 192×192."
 />
 
 ## In PyTorch: logits and a tiny U-Net
@@ -296,7 +296,7 @@ Cropping is not the only fix. With **same** padding you can use input sizes divi
 
 <ExamTip>
 
-Prelim questions on U-Net are short recall: U-Net is for **segmentation**, its skip connections **preserve spatial detail for precise localisation**, and transposed convolutions **upsample**. The 2026 Final went deeper: a U-Net with valid padding crashed at `torch.cat`, and students had to write `center_crop(layer, target_shape)`, then mean IoU (next lesson). Trace the sizes with the four rules, write each shape as a comment, and compute the crop from `layer.shape`, never from numbers worked out by hand.
+Prelim questions on U-Net are short recall: U-Net is for **segmentation**, its skip connections **preserve spatial detail for precise localisation**, and transposed convolutions **upsample**. The 2026 Final went deeper: a U-Net with valid padding crashed at `torch.cat`, and students had to write `center_crop(layer, target_shape)`, then mean IoU (next lesson). The exam-style walkthrough is [2026 Task 2 Part 1: Fixing U-Net with center crop](#/learn/final-lab-pytorch/task-unet-center-crop). Trace the sizes with the four rules, write each shape as a comment, and compute the crop from `layer.shape`, never from numbers worked out by hand.
 
 </ExamTip>
 

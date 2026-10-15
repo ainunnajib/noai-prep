@@ -104,7 +104,7 @@ Pooling summarises each small window of a feature map with one number: the **max
 
 <PastPaperQuestion paper="noai2025" n={11} />
 
-Which kind should you use? Max pooling asks "did this feature appear **anywhere** in the window?", which suits detectors: one strong response is what matters. It is the usual choice between convolution blocks (VGG uses it throughout). Average pooling asks "how much of the feature is here **on average**?" and gives smoother maps; the 1998 LeNet used a version of it (its "subsampling" layers averaged each 2×2 window, then applied a learned scale and bias), and modern networks use one big average pool at the very end, as you will see below.
+Which kind should you use? Max pooling asks "did this feature appear **anywhere** in the window?", which suits detectors: one strong response is what matters. It is the usual choice between convolution blocks (VGG, a 2014 network met at the end of this lesson, uses it throughout). Average pooling asks "how much of the feature is here **on average**?" and gives smoother maps; LeNet, an early CNN from 1998 that read handwritten digits, used a version of it (its "subsampling" layers averaged each 2×2 window, then applied a learned scale and bias), and modern networks use one big average pool at the very end, as you will see below.
 
 ## Small shifts, same answer
 
@@ -132,7 +132,7 @@ Pooling gives invariance only approximately, and only for shifts smaller than th
 
 ## Global average pooling: the last pool
 
-At the end of a CNN the last feature maps must become class scores. In ResNet-50, for example, the final maps have shape $(2048, 7, 7)$: 2048 channels, each a $7 \times 7$ grid. There are two ways to hand them to the final dense (fully connected) layer:
+At the end of a CNN the last feature maps must become class scores. In ResNet-50 (a 50-layer ResNet), for example, the final maps have shape $(2048, 7, 7)$: 2048 channels, each a $7 \times 7$ grid. There are two ways to hand them to the final dense (fully connected) layer:
 
 - **Flatten**: line up all $2048 \times 7 \times 7 = 100{,}352$ numbers into one long vector.
 - <Term def="Average each whole feature map down to a single number, turning a (C, H, W) tensor into C numbers. In PyTorch: nn.AdaptiveAvgPool2d(1).">Global average pooling</Term> (GAP): average each $7 \times 7$ map to one number, leaving just 2048 numbers.
@@ -244,7 +244,7 @@ pooling parameters: 0
 
 <ExamTip>
 
-Memorise the patterns so you can answer in seconds: stacked 3×3 convs see $3, 5, 7, 9$ (that is $2L + 1$); two 3×3 vs one 5×5 is $18C^2$ vs $25C^2$; three 3×3 vs one 7×7 is $27C^2$ vs $49C^2$. Pooling questions are usually about its purpose (downsampling, fewer computations, small-shift tolerance) and its **zero** parameters. If an option says pooling "learns features", "adds non-linearity" or "normalises", it is describing convolution, ReLU or BatchNorm.
+Memorise the patterns so you can answer in seconds: stacked 3×3 convs see $3, 5, 7, 9$ (that is $2L + 1$); two 3×3 vs one 5×5 is $18C^2$ vs $25C^2$; three 3×3 vs one 7×7 is $27C^2$ vs $49C^2$. Pooling questions are usually about its purpose (downsampling, fewer computations, small-shift tolerance) and its **zero** parameters. If an option says pooling "learns features", "adds non-linearity" or "normalises", it is describing convolution, ReLU or BatchNorm. (Taking a maximum is technically non-linear, but adding non-linearity is not what pooling is for.)
 
 </ExamTip>
 

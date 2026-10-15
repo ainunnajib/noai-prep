@@ -185,7 +185,7 @@ A convolution from scratch is two loops over positions and one `np.sum(patch * k
 
 The $-3$s mark where the image goes from dark (left) to bright (right): the left column of the patch is darker than the right, so "left minus right" is negative. Where the patch is entirely bright, the output is 0.
 
-PyTorch gives the same numbers. Its conv functions want a batch and channels, so the image becomes $(N, C, H, W) = (1, 1, 4, 5)$ and the kernel $(C_\text{out}, C_\text{in}, k, k) = (1, 1, 3, 3)$:
+PyTorch gives the same numbers. Its conv functions want a batch and channels, so the image becomes $(N, C, H, W) = (1, 1, 4, 5)$ and the kernel $(C_\text{out}, C_\text{in}, k, k) = (1, 1, 3, 3)$, meaning one output channel, one input channel and a 3 × 3 grid (the next lesson explains the two channel counts):
 
 ```python
 import torch

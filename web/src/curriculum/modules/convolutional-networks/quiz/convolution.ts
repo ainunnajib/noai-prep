@@ -17,13 +17,13 @@ const questions: QuizQuestion[] = [
       'An image in which every pixel equals 7 is convolved with the horizontal-edge kernel $\\begin{bmatrix} 1 & 2 & 1 \\\\ 0 & 0 & 0 \\\\ -1 & -2 & -1 \\end{bmatrix}$. What is every output value, and why?',
     options: [
       '0, because the weights add up to 0, so a flat region cancels out',
-      '7, because the kernel keeps the brightness of flat regions',
+      '7, because like a blur the kernel keeps the brightness of flat regions',
       '28, because the positive weights add up to 4 and $4 \\times 7 = 28$',
       '63, because the kernel covers 9 pixels and $9 \\times 7 = 63$',
     ],
     answer: 0,
     explanation:
-      'On a flat region every pixel is the same value $c$, so the output is $c \\times$ (sum of the weights) $= 7 \\times (1 + 2 + 1 - 1 - 2 - 1) = 7 \\times 0 = 0$. Edge detectors respond only where brightness changes. Keeping the value 7 is what a blur (weights summing to 1 after dividing) would do; 28 ignores the negative weights.',
+      'On a flat region every pixel is the same value $c$, so the output is $c \\times$ (sum of the weights) $= 7 \\times (1 + 2 + 1 - 1 - 2 - 1) = 7 \\times 0 = 0$. Edge detectors respond only where brightness changes. Keeping the value 7 is what a blur (weights summing to 1 after dividing) would do; 28 ignores the negative weights, and 63 ignores the weights altogether.',
     difficulty: 'beginner',
   },
   {
@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     prompt: 'In a trained CNN, where do the values of the convolution kernels come from?',
     options: [
       'They are learned from data by gradient descent, starting from random values',
-      'They are fixed edge and blur filters chosen by the network designer',
+      'They are fixed edge, blur and sharpen filters chosen by the network designer',
       'They are copied from patches of the training images before training starts',
       'They are computed from the mean and standard deviation of each image',
     ],

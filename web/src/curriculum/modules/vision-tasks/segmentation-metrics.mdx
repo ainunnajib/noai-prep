@@ -53,7 +53,7 @@ $$
 \text{IoU}_c = \frac{|P_c \cap T_c|}{|P_c \cup T_c|} = \frac{TP}{TP + FP + FN}
 $$
 
-The bars $|\cdot|$ mean "the number of pixels in". In the language of the confusion matrix, for this one class: $TP$ (true positives) are pixels correctly predicted as car, $FP$ (false positives) are pixels predicted as car that are not car, and $FN$ (false negatives) are car pixels the model missed. The intersection is the $TP$ pixels; the union adds every mistake involving car. So IoU is 1 for a perfect match and 0 when the two regions share no pixels (even if they touch). It is the same IoU that detectors use to compare boxes (see the object-detection lesson), except that the shapes are now sets of pixels of any shape, and their sizes are pixel counts instead of rectangle areas. Notice what is **not** in the formula: $TN$, the huge number of pixels that are correctly "not car". That will matter later.
+The bars $|\cdot|$ mean "the number of pixels in". In the language of the confusion matrix, for this one class: $TP$ (true positives) are pixels correctly predicted as car, $FP$ (false positives) are pixels predicted as car that are not car, and $FN$ (false negatives) are car pixels the model missed. The intersection is the $TP$ pixels; the union adds every mistake involving car. So IoU is 1 for a perfect match and 0 when the two regions share no pixels (even if they touch). It is the same IoU that detectors use to compare boxes (see [Vision tasks and object detection](#/learn/vision-tasks/vision-tasks-and-detection)), except that the shapes are now sets of pixels of any shape, and their sizes are pixel counts instead of rectangle areas. Notice what is **not** in the formula: $TN$, the huge number of pixels that are correctly "not car". That will matter later.
 
 <MaskIoUPainter />
 
@@ -79,7 +79,7 @@ $$
 \text{mIoU} = \frac{1}{|C|} \sum_{c \in C} \text{IoU}_c
 $$
 
-Here $C$ is the set of classes being averaged over (which classes belong in it is the subject of the next section), $|C|$ is how many there are, and $\sum$ means "add up over every class $c$ in $C$". Every class gets an equal vote, whether it covers 1% of the image or 90%.
+Here $C$ is the set of classes being averaged over (which classes belong in it is the subject of the next section), $|C|$ is how many there are, and $\sum$ means "add up over every class $c$ in $C$". Every class gets an equal vote, whether it covers 1% of the image or 90%. That makes mean IoU a **macro** average, as in [Regression metrics, IoU and averaging](#/learn/model-evaluation/regression-and-overlap-metrics); frequency-weighted IoU (below) is closer to a micro average.
 
 Here is a small example to work through by hand. The highlighted cells are the three pixels where the two maps disagree.
 
@@ -131,7 +131,7 @@ You may also meet **frequency-weighted IoU**, which multiplies each class's IoU 
 
 <Note title="Per image or over the whole dataset?">
 
-The Final task computed mIoU for one prediction. Big benchmarks (PASCAL VOC, Cityscapes) usually go one step further: for each class they **add up** the intersections and unions over every image in the dataset, and divide only at the end. That way a class that is rare in each image still gets one fair score. Read the task statement to see which one is wanted.
+The Final's `calculate_miou` flattens the whole `(B, H, W)` batch before counting, so it already **adds up** each class's intersections and unions over every image in the batch and divides once. Big benchmarks (PASCAL VOC, Cityscapes) do the same over the entire dataset. Averaging separate per-image mIoUs would give a different number, because a class that is rare in each image would then get many noisy scores instead of one fair one. Read the task statement to see which one is wanted.
 
 </Note>
 
@@ -200,7 +200,7 @@ Check each line by hand. First: class 0 has intersection 1 and union 2 (0.5), cl
 
 <PixelAccuracyTrap />
 
-This is the segmentation version of a trap you may know from classification: on <Term def="A dataset where one class is far more common than the others, such as 99% healthy and 1% sick.">imbalanced</Term> data, accuracy rewards always guessing the majority class. IoU ignores $TN$ (the correctly-ignored background), so a class cannot score well without actually being found.
+This is the segmentation version of a trap you met in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data): on <Term def="A dataset where one class is far more common than the others, such as 99% healthy and 1% sick.">imbalanced</Term> data, accuracy rewards always guessing the majority class. IoU ignores $TN$ (the correctly-ignored background), so a class cannot score well without actually being found.
 
 <PastPaperQuestion paper="prelim2026" n={263} />
 
@@ -245,9 +245,11 @@ For a single mask, a higher IoU always means a higher Dice, because the curve al
 
 <ExamTip>
 
-Prelim questions here are quick recall: IoU is **overlap divided by union**; mIoU **averages over classes**; **accuracy is misleading** when one class dominates; Dice is $2|P \cap T|/(|P| + |T|)$. For conversions, remember one pair: IoU 0.5 ↔ Dice 0.667. In the Final, `calculate_miou` must be vectorised (loop over classes only), skip classes with union 0, avoid `nan`, and return a Python float. Before you submit, run it on a 2×2 example you can check by hand.
+Prelim questions here are quick recall: IoU is **overlap divided by union**; mIoU **averages over classes**; **accuracy is misleading** when one class dominates; Dice is $2|P \cap T|/(|P| + |T|)$. For conversions, remember one pair: IoU 0.5 ↔ Dice 0.667. In the Final, `calculate_miou` must be vectorised (loop over classes only), skip classes with union 0, avoid `nan`, and return a Python float. Before you submit, run it on a 2×2 example you can check by hand. For a timed rehearsal of the real task, see [2026 Task 2 Part 2: Mean IoU from scratch](#/learn/final-lab-pytorch/task-mean-iou).
 
 </ExamTip>
+
+That completes computer vision. The next part, starting with [Tokenisation, vocabularies and padding](#/learn/text-as-data/tokenisation), turns text into tensors, much as this part did with images.
 
 <Takeaways>
 

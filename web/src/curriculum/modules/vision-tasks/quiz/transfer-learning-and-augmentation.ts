@@ -7,27 +7,27 @@ const questions: QuizQuestion[] = [
       'You have 200 labelled photos of four kinds of local fruit, and an ImageNet-pretrained ResNet (ImageNet already contains many fruit photos). What is the most sensible first approach?',
     options: [
       'Freeze the backbone and train only a new 4-class head on its features',
-      'Train the same architecture from random weights on the 200 photos',
-      'Fine-tune every layer with a large learning rate for many epochs',
-      'Keep the 1,000-class ImageNet head and train only the first layer',
+      'Train the same ResNet from random weights on the 200 photos',
+      'Fine-tune every layer with a large learning rate so the new head learns fast',
+      'Keep the 1,000-class ImageNet head and retrain just the first conv layer',
     ],
     answer: 0,
     explanation:
-      'Small data that looks like ImageNet is the textbook case for **feature extraction**: the frozen backbone already describes fruit well, and a new head has few enough weights to fit from 200 images. Training from scratch or fine-tuning everything would overfit badly, and a large learning rate would wipe out the pretrained features.',
+      'Small data that looks like ImageNet is the textbook case for **feature extraction**: the frozen backbone already describes fruit well, and a new head has few enough weights to fit from 200 images. Training from scratch or fine-tuning everything would overfit badly, a large learning rate would wipe out the pretrained features, and the old 1,000-class head cannot output your 4 fruit classes.',
     difficulty: 'beginner',
   },
   {
     id: 'vision-tasks.transfer-learning-and-augmentation.2',
     prompt: 'Why is fine-tuning a pretrained backbone usually done with a small learning rate?',
     options: [
-      'Large updates would overwrite the useful pretrained features (catastrophic forgetting)',
-      'Frozen layers only receive gradients when the learning rate is small enough',
+      'Big updates would overwrite the pretrained features the network already has',
+      'A small learning rate is what lets gradients reach the frozen backbone layers',
       'A small learning rate makes each training epoch finish faster on a GPU',
-      'The optimiser ignores the new head unless the learning rate is small',
+      "The optimiser skips the new head's weights unless the learning rate is small",
     ],
     answer: 0,
     explanation:
-      'The pretrained weights are already good, so they only need small adjustments. Big steps, especially while the new random head still produces large, noisy gradients, destroy what the network learned on ImageNet. The learning rate does not change speed per epoch, and frozen layers (`requires_grad = False`) get no gradients at any learning rate.',
+      'The pretrained weights are already good, so they only need small adjustments. Big steps, especially while the new random head still produces large, noisy gradients, destroy what the network learned on ImageNet: this is called catastrophic forgetting. The learning rate does not change the time per epoch, frozen layers (`requires_grad = False`) get no gradients at any learning rate, and the learning rate has no say in which parameters the optimiser updates.',
     difficulty: 'intermediate',
   },
   {
@@ -46,13 +46,13 @@ const questions: QuizQuestion[] = [
     code: 'train_tf = transforms.Compose([\n    transforms.RandomRotation(10),\n    transforms.RandomVerticalFlip(p=0.5),\n    transforms.ToTensor(),\n])',
     options: [
       'Vertical flips can make a 6 look like a 9, so some labels become wrong',
-      '`RandomRotation(10)` rotates every image by exactly 10 degrees',
-      '`ToTensor()` must come before any random transformation',
-      'The same pipeline should also be applied to the test images',
+      '`RandomRotation(10)` turns each image by exactly 10 degrees, not a random angle',
+      '`ToTensor()` has to come before the random transformations, not after them',
+      'The same random pipeline should also be applied to the test images',
     ],
     answer: 0,
     explanation:
-      'Flipping a 6 top-to-bottom puts its loop at the top, so it looks like a (back-to-front) 9 while still carrying the label 6 (a 180° rotation would give an exact 9): the augmentation breaks the label. `RandomRotation(10)` picks a random angle between −10° and 10°, the order shown is the usual one, and random augmentation belongs on the training set only.',
+      'Flipping a 6 top-to-bottom puts its loop at the top, so it looks like a (back-to-front) 9 while still carrying the label 6 (a 180° rotation would give an exact 9): the augmentation breaks the label. `RandomRotation(10)` picks a random angle between −10° and 10°, the order shown is the usual one (`ToTensor()` after the image transformations), and random augmentation belongs on the training set only.',
     difficulty: 'intermediate',
   },
   {
@@ -60,14 +60,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A model trained on 600 images reaches 99% training accuracy but 72% validation accuracy. Which change is most likely to narrow the gap?',
     options: [
-      'Add random flips, crops and colour jitter to the training images',
-      'Train for more epochs until validation accuracy catches up',
-      'Apply the same random augmentations to the validation images',
-      'Unfreeze the whole backbone and double the learning rate',
+      'Add random flips, crops and colour jitter to the training images only',
+      'Train for more epochs until the validation accuracy catches up with training',
+      'Apply the same random flips and crops to the validation images',
+      'Unfreeze the whole backbone and double the learning rate to learn faster',
     ],
     answer: 0,
     explanation:
-      'A large gap between training and validation accuracy is overfitting. Augmentation is a regulariser: it shows a different version of every image each epoch, so the model cannot memorise exact pixels. More epochs usually widen the gap, randomising the validation set only makes its score noisy, and unfreezing more weights adds capacity to overfit.',
+      'A large gap between training and validation accuracy is overfitting. Augmentation is a regulariser: it shows a different version of every image each epoch, so the model cannot memorise exact pixels. More epochs usually widen the gap, randomising the validation set only makes its score noisy, and unfreezing more weights with a bigger learning rate adds capacity to overfit and risks wiping out the pretrained features.',
     difficulty: 'beginner',
   },
 ]

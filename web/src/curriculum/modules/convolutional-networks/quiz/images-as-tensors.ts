@@ -36,7 +36,7 @@ const questions: QuizQuestion[] = [
     options: [
       "Q's inputs straddle zero, so a neuron's weight gradients can differ in sign",
       "Q's inputs all lie in $[0, 1]$, so no input can dominate the weighted sum",
-      'Q uses different statistics for every image, so each gets the contrast that suits it',
+      'Q uses different statistics for each image, so each gets the contrast that suits it',
       "Q's inputs are larger, so gradients are larger and each step moves the weights further",
     ],
     answer: 0,
@@ -49,8 +49,8 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team classifying chest X-rays switches from dataset-wide z-scoring to standardising each image with its own mean and standard deviation. Validation accuracy drops. What is the most likely cause?',
     options: [
-      'Per-image scaling erases overall brightness, which signalled tissue density',
-      'Per-image scaling leaves every input positive, so the first-layer gradients all share one sign',
+      'Per-image scaling gives every X-ray mean 0, erasing the brightness that signalled density',
+      'Per-image scaling leaves the inputs positive, so the first-layer gradients share one sign',
       'Per-image scaling uses statistics from the test set, which leaks information and causes overfitting',
       'Per-image scaling changes the tensor shape from $(N, C, H, W)$ to $(N, H, W, C)$',
     ],

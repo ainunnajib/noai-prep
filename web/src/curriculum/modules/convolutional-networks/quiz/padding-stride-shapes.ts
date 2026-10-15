@@ -48,14 +48,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'To fit a model on a phone, a team replaces a standard $3 \\times 3$ convolution from 256 to 256 channels with a depthwise separable one (biases ignored). Which statement is correct?',
     options: [
-      'The weights drop from about 590,000 to about 68,000, roughly 9 times fewer',
-      'The weights drop by a factor of 256, one for each input channel',
-      'The weights stay the same; only the number of multiply-adds falls',
-      'The weights drop, but the output shrinks from $H \\times W$ to $H/3 \\times W/3$',
+      'The weights fall from about 590,000 to about 68,000, roughly 9 times fewer',
+      'The weights fall from about 590,000 to about 2,300, exactly 256 times fewer',
+      'The weights stay at about 590,000; just the number of multiply-adds falls',
+      'The weights fall to about 68,000, but the output shrinks to $H/3 \\times W/3$',
     ],
     answer: 0,
     explanation:
-      'Standard: $9 \\times 256 \\times 256 = 589{,}824$. Separable: depthwise $9 \\times 256 = 2{,}304$ plus pointwise $256 \\times 256 = 65{,}536$, total $67{,}840$: about $8.7\\times$ fewer, close to $k^2 = 9$. Multiply-adds fall by the same factor, and with the same padding and stride the output shape does not change.',
+      'Standard: $9 \\times 256 \\times 256 = 589{,}824$. Separable: depthwise $9 \\times 256 = 2{,}304$ plus pointwise $256 \\times 256 = 65{,}536$, total $67{,}840$: about $8.7\\times$ fewer, close to $k^2 = 9$. Counting only the depthwise step gives 2,304, a factor of 256, but the pointwise $1 \\times 1$ step holds most of the weights. Multiply-adds fall by the same factor as the weights, and with the same padding and stride the output shape does not change.',
     difficulty: 'intermediate',
   },
 ]

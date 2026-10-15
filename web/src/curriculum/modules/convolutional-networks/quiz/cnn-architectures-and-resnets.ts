@@ -26,8 +26,8 @@ const questions: QuizQuestion[] = [
     prompt:
       'You fine-tune an ImageNet-pretrained CNN to classify chest X-rays, with only 2,000 labelled images. Which part of the pretrained network is most useful to keep (freeze) as it is?',
     options: [
-      'The early layers, since edge and texture detectors are useful for almost any kind of image',
-      'The last conv layers, since the most complex features always transfer best to a new task',
+      'The early layers, since edge and texture detectors suit almost every kind of image',
+      'The last conv layers, since the most complex features transfer best to a new task',
       'The final dense layer, since it stores which ImageNet classes the photos belonged to',
       'Nothing, since pretrained features only help when the new images contain ImageNet classes',
     ],
@@ -51,14 +51,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team trains plain CNNs (no skip connections) of 18 and 34 layers on the same data with the same settings. The 34-layer network ends with a higher **training** error than the 18-layer one. What is the best explanation and fix?',
     options: [
-      'An optimisation problem (degradation): add residual connections so extra layers can easily act as identity',
+      'Degradation, an optimisation problem: add residual connections so extra layers can act as identity',
       'Overfitting, because the deeper network has more parameters: add dropout and stronger weight decay',
-      'Underfitting, because 34 layers are not enough capacity: make the plain network deeper still',
-      'The receptive field became too large for the images: replace the 3×3 convolutions with 1×1 ones',
+      'Underfitting, because 34 layers still lack capacity: make the plain network deeper, say 50 layers',
+      'A receptive field too large for the images: replace the deeper layers\' 3×3 convolutions with 1×1 ones',
     ],
     answer: 0,
     explanation:
-      'A 34-layer network could copy the 18-layer one and make its extra layers identity mappings, so its best possible training error is no worse. Higher training error therefore means the optimiser fails to find good weights: the degradation problem that ResNet fixed with $F(x) + x$ blocks. Overfitting would show low training error with high test error, so dropout targets the wrong problem; going deeper without skips makes degradation worse.',
+      'A 34-layer network could copy the 18-layer one and make its extra layers identity mappings, so its best possible training error is no worse. Higher training error therefore means the optimiser fails to find good weights: the degradation problem that ResNet fixed with $F(x) + x$ blocks. Overfitting would show low training error with high test error, so dropout targets the wrong problem; going deeper without skips makes degradation worse; and swapping 3×3 for 1×1 convolutions only throws away spatial context.',
     difficulty: 'intermediate',
   },
 ]

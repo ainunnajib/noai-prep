@@ -202,7 +202,7 @@ torch.Size([8, 128, 16, 16])
 
 A $1 \times 1$ kernel ($k = 1$) looks at a **single pixel**, but through all its channels. Each output value is a weighted sum of the $C_\text{in}$ numbers stored at that pixel, plus a bias: exactly a small dense layer, applied to every pixel separately with the same weights. It does not look at neighbours at all; it **mixes channels**.
 
-Its main use is changing the number of channels cheaply. Shrinking 256 channels to 64 with a $1 \times 1$ convolution costs $(1 \times 1 \times 256 + 1) \times 64 = 16{,}448$ parameters, against $(3 \times 3 \times 256 + 1) \times 64 = 147{,}520$ for a $3 \times 3$ layer. Many architectures (GoogLeNet's Inception modules and ResNet's "bottleneck" blocks, both met in the architectures lesson) use $1 \times 1$ layers this way, to squeeze channels before an expensive $3 \times 3$ layer.
+Its main use is changing the number of channels cheaply. Shrinking 256 channels to 64 with a $1 \times 1$ convolution costs $(1 \times 1 \times 256 + 1) \times 64 = 16{,}448$ parameters, against $(3 \times 3 \times 256 + 1) \times 64 = 147{,}520$ for a $3 \times 3$ layer. Many architectures (GoogLeNet, also called Inception, and ResNet-50's "bottleneck" blocks, both mentioned in [the architectures lesson](#/learn/convolutional-networks/cnn-architectures-and-resnets)) use $1 \times 1$ layers this way, to squeeze channels before an expensive $3 \times 3$ layer.
 
 ## Depthwise separable convolutions
 

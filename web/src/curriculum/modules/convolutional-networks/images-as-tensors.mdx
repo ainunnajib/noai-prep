@@ -77,7 +77,7 @@ Collect all the red numbers and you get one grid; the same for green and blue. E
 
 <PixelZoom />
 
-A block of numbers with several axes like this is called a <Term def="A multi-dimensional array of numbers. A vector is a 1-D tensor, a matrix is 2-D, a colour image is 3-D (channels, height, width) and a batch of images is 4-D.">tensor</Term>. A vector is a 1-D tensor, a matrix is 2-D, and a colour image is 3-D. Its **shape** lists the length of each axis. PyTorch puts channels first:
+A block of numbers with several axes like this is a tensor, exactly what you built in [Tensors](#/learn/pytorch/tensors). A vector is a 1-D tensor, a matrix is 2-D, and a colour image is 3-D. Its **shape** lists the length of each axis. As you saw there, PyTorch puts channels first:
 
 $$
 \text{one image: } (C, H, W) \qquad \text{a batch of images: } (N, C, H, W)
@@ -132,7 +132,7 @@ Run this: it builds a tiny $2 \times 3$ colour image, moves its channels first, 
 
 <PyRunner packages={['numpy']} code={npCode} />
 
-The same shape ideas in PyTorch (shown here with its real output; PyTorch does not run in the browser):
+The same shape moves you practised in [Tensors](#/learn/pytorch/tensors), as a short recap with the counts from above (shown with its real output; PyTorch does not run in the browser):
 
 ```python
 import torch
@@ -189,7 +189,7 @@ Raw pixels are whole numbers from 0 to 255. Networks train badly on big, all-pos
 
 **Step 1: divide by 255.** Every value now lies between 0 and 1. This is <Term def="Rescaling values to [0, 1] with x' = (x − min) / (max − min). For 8-bit images min = 0 and max = 255, so it is just x / 255.">min-max scaling</Term>, $x' = (x - \min)/(\max - \min)$, with $\min = 0$ and $\max = 255$.
 
-That fixes the size, but every input is still **positive**, and that slows learning. You met the reason in [Scaling and normalisation](#/learn/data-and-features/scaling-and-normalisation): for one example, each of a neuron's weight gradients is the same error signal times that weight's input, so when every input is positive they all share one sign. Each step moves all the weights up together or all down together, and if the best weights need some to rise and others to fall, gradient descent has to zig-zag to get there.
+That fixes the size, but every input is still **positive**, and that slows learning. You met the reason in [Scaling, normalisation and standardisation](#/learn/data-and-features/scaling-and-normalisation): for one example, each of a neuron's weight gradients is the same error signal times that weight's input, so when every input is positive they all share one sign. Each step moves all the weights up together or all down together, and if the best weights need some to rise and others to fall, gradient descent has to zig-zag to get there.
 
 <Reveal label="Why does centring help? (recap with a demo)">
 
@@ -272,9 +272,9 @@ The 2026 Prelim had a long scenario on 512 × 512 greyscale X-rays comparing min
 <QuickCheck
   q="An X-ray dataset is prepared in two ways. Pipeline 1 divides by 255, then standardises with the training set's mean and standard deviation. Pipeline 2 divides by 255, then standardises each image with its own mean and standard deviation. Which statement is true?"
   options={[
-    'After pipeline 2, a dense X-ray and a clear X-ray have the same mean pixel value',
-    'After pipeline 1, every individual X-ray ends with a mean pixel value of exactly 0',
-    'Pipeline 2 keeps every input positive, just like dividing by 255 alone',
+    'After pipeline 2, every X-ray, dense or clear, has the same mean pixel value',
+    'After pipeline 1, each individual X-ray ends with a mean pixel value of exactly 0',
+    'Pipeline 2 keeps all of its inputs positive, just like dividing by 255 alone',
     'Pipeline 1 erases the brightness difference between a dense and a clear X-ray',
   ]}
   answer={0}

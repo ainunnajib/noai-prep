@@ -30,6 +30,8 @@ Two more words help. Countable objects such as cars and people are called <Term 
 | instance segmentation | $N$ masks of size $H \times W$, each with a class | Mask R-CNN |
 | panoptic segmentation | an $H \times W$ map of class ids plus instance ids | Mask R-CNN-style models with an extra "stuff" branch |
 
+Here $N$ counts objects, not images in a batch as it does in PyTorch shapes such as `(N, C, H, W)`, and $K$ is the number of classes.
+
 <KeyIdea>
 
 The vision tasks differ in how much "where" information they produce: none (classification), a box per object (detection), a class per pixel (semantic), a mask per object (instance), or class and object for every pixel (panoptic).
@@ -53,7 +55,7 @@ The vision tasks differ in how much "where" information they produce: none (clas
 
 A box is usually stored as $(x_1, y_1, x_2, y_2)$, its top-left and bottom-right corners. In images, $y$ points **down**, so $y_1 < y_2$. (YOLO stores boxes as centre, width and height instead; it is the same information.)
 
-To compare two boxes, detectors use <Term def="Intersection over union: the area where two shapes overlap divided by the area they cover together. 1 means identical, 0 means no overlap.">IoU</Term>, which you met in the model-evaluation module:
+To compare two boxes, detectors use <Term def="Intersection over union: the area where two shapes overlap divided by the area they cover together. 1 means identical, 0 means no overlap.">IoU</Term>, which you met in [Regression metrics, IoU and averaging](#/learn/model-evaluation/regression-and-overlap-metrics):
 
 $$
 \text{IoU}(A, B) = \frac{|A \cap B|}{|A \cup B|}
@@ -96,7 +98,7 @@ NMS: keep the best box, delete same-class boxes that overlap it by more than the
 
 </KeyIdea>
 
-"Non-maximum suppression" says what it does: every box that is not the local maximum of its cluster gets suppressed. NMS is run separately for each class, so a person box never deletes a car box.
+"Non-maximum suppression" says what it does: every box that is not the local maximum of its cluster gets suppressed. Detectors normally run NMS separately for each class, so a person box never deletes a car box.
 
 <Analogy title="Echoes in the classroom">
 
@@ -140,6 +142,9 @@ def iou(box, boxes):
     x2 = np.minimum(box[2], boxes[:, 2])
     y2 = np.minimum(box[3], boxes[:, 3])
     inter = np.clip(x2 - x1, 0, None) * np.clip(y2 - y1, 0, None)
+    # b[..., 2] means "column 2 of the last axis, whatever comes
+    # before": it works for one box, shape (4,), and for many
+    # boxes, shape (n, 4)
     area = lambda b: (b[..., 2] - b[..., 0]) * (b[..., 3] - b[..., 1])
     return inter / (area(box) + area(boxes) - inter)
 
@@ -181,7 +186,7 @@ NMS questions usually give you scores and a table of IoUs. Work in score order, 
 
 ## Scoring a detector: AP and mAP
 
-How do you score a detector's final boxes? First decide which predictions are correct. Go through them from the highest score down. A prediction is a **true positive** (TP) if its IoU with a ground-truth box of the same class that has not been matched yet is at least a threshold, usually 0.5. Otherwise it is a **false positive** (FP): a duplicate, the wrong class, or a box in the wrong place. Every ground-truth box left unmatched is a **false negative**: a missed object. After each prediction, track **precision** (the share of predictions so far that were hits) and **recall** (the share of real objects found so far).
+How do you score a detector's final boxes? First decide which predictions are correct. Go through them from the highest score down. A prediction is a **true positive** (TP) if its IoU with a ground-truth box of the same class that has not been matched yet is at least a threshold, usually 0.5. Otherwise it is a **false positive** (FP): a duplicate, the wrong class, or a box in the wrong place. Every ground-truth box left unmatched is a **false negative**: a missed object. After each prediction, track **precision** (the share of predictions so far that were hits) and **recall** (the share of real objects found so far), as in [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics).
 
 <Steps title="AP for two cats">
   <Step title="The setup">
@@ -197,11 +202,11 @@ How do you score a detector's final boxes? First decide which predictions are co
     IoU $0.55 \ge 0.5$ with cat 2: a TP. Precision $2/3$, recall $2/2$.
   </Step>
   <Step title="Average precision">
-    Each TP adds the recall it gained times the precision at that moment: $\tfrac12 \times 1 + \tfrac12 \times \tfrac23 \approx 0.83$. A detector that ranks every hit above every miss and finds every object scores 1.
+    Each TP adds the recall it gained times the precision at that moment: $\tfrac12 \times 1 + \tfrac12 \times \tfrac23 \approx 0.83$. A detector that ranks every hit above every false positive and finds every object scores 1.
   </Step>
 </Steps>
 
-That sum is the area under the precision-recall curve, and it is called the <Term def="Average precision: the area under a detector's precision-recall curve for one class, from 0 (useless) to 1 (perfect).">average precision</Term> (AP). **mAP** (mean average precision) averages AP over the classes. "mAP@0.5" uses an IoU threshold of 0.5; the COCO benchmark's "mAP@[.5:.95]" also averages over the IoU thresholds 0.5, 0.55, …, 0.95, so it rewards tight boxes.
+That sum is the area under the precision-recall curve: the <Term def="Average precision: the area under a detector's precision-recall curve for one class, from 0 (useless) to 1 (perfect).">average precision</Term> (AP) you met as PR-AUC in [ROC and precision-recall curves](#/learn/model-evaluation/roc-and-pr-curves). **mAP** (mean average precision) averages AP over the classes. "mAP@0.5" uses an IoU threshold of 0.5; on COCO (a standard detection dataset of everyday photos with 80 object classes), "mAP@[.5:.95]" also averages over the IoU thresholds 0.5, 0.55, …, 0.95, so it rewards tight boxes.
 
 <QuickCheck
   q="In the two-cat example, suppose NMS had removed the duplicate 0.8 box. What would the AP be?"
@@ -212,7 +217,7 @@ That sum is the area under the precision-recall curve, and it is called the <Ter
 
 ## How detectors find boxes
 
-Most detectors start with a pretrained backbone, usually a CNN as in the previous lesson (Transformer backbones such as Swin or ViT are also used). They differ in how they turn its features into boxes.
+Most detectors start with a pretrained backbone, usually a CNN such as ResNet (Transformer backbones are also used, such as ViT, which you met in the previous lesson, or its variant Swin). They differ in how they turn its features into boxes.
 
 <Analogy title="Two checkpoints or one smart gate">
 
@@ -248,7 +253,7 @@ Click through each pipeline to see what every stage takes in and gives out.
 
 ### How big is YOLO's output?
 
-Each grid cell predicts $B$ boxes with 5 numbers each, $(x, y, w, h, \text{confidence})$, plus $C$ class probabilities, so $5B + C$ numbers per cell. With $S \times S$ cells the output has
+Each grid cell predicts $B$ boxes with 5 numbers each, $(x, y, w, h, \text{confidence})$, plus $C$ class probabilities (here $C$ is the number of classes, as in the YOLO paper, not the number of channels; the table above called it $K$), so $5B + C$ numbers per cell. With $S \times S$ cells the output has
 
 $$
 S \times S \times (5B + C)

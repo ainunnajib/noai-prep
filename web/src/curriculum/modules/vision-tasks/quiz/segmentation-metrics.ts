@@ -45,8 +45,8 @@ const questions: QuizQuestion[] = [
     id: 'vision-tasks.segmentation-metrics.5',
     prompt: 'Why can a model not score a high per-class IoU on a small object class by predicting background everywhere, when it can score high pixel accuracy that way?',
     options: [
-      "A class's IoU ignores true negatives, so it can only be high if that class's pixels are actually found",
-      "A class's IoU weights every pixel by how rare its class is, so small objects count more",
+      "A class's IoU leaves out true negatives, so it is only high if that class's pixels are found",
+      "A class's IoU weights each pixel by how rare its class is, so pixels of small objects count more",
       "A class's IoU is computed only on the boundary pixels of each object, where background guesses fail",
       "A class's IoU squares each pixel error, so missing a small object costs more than in accuracy",
     ],

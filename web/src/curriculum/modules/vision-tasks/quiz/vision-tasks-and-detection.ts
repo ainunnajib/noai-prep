@@ -15,10 +15,10 @@ const questions: QuizQuestion[] = [
     id: 'vision-tasks.vision-tasks-and-detection.2',
     prompt:
       'Four boxes of the same class have scores W = 0.9, X = 0.85, Y = 0.7, Z = 0.6. Their IoUs are: W–X 0.7, W–Y 0.2, W–Z 0.1, X–Y 0.1, X–Z 0.6, Y–Z 0.3. Which boxes does NMS keep with an IoU threshold of 0.5?',
-    options: ['W, Y and Z', 'W and Y only', 'W only', 'W, X and Y'],
+    options: ['W, Y and Z', 'W and Y', 'W and X', 'W, X and Y'],
     answer: 0,
     explanation:
-      'Keep W; X overlaps it by 0.7 > 0.5, so X is suppressed, while Y (0.2) and Z (0.1) stay. Keep Y; Y–Z is 0.3 ≤ 0.5, so Z stays and is kept last. "W and Y only" wrongly lets the already-suppressed X delete Z: suppressed boxes never suppress anything.',
+      'Keep W; X overlaps it by 0.7 > 0.5, so X is suppressed, while Y (0.2) and Z (0.1) stay. Keep Y; Y–Z is 0.3 ≤ 0.5, so Z stays and is kept last. "W and Y" wrongly lets the already-suppressed X delete Z (suppressed boxes never suppress anything), and "W and X" gets the direction backwards: boxes are removed when their IoU is *above* the threshold, not below it.',
     difficulty: 'intermediate',
   },
   {
@@ -27,12 +27,12 @@ const questions: QuizQuestion[] = [
     options: [
       'R-CNN classifies about 2,000 proposed regions one by one; YOLO predicts all boxes in a single pass over a grid',
       'R-CNN predicts all boxes in a single pass over a grid; YOLO classifies about 2,000 proposed regions one by one',
-      'R-CNN labels every pixel with a class; YOLO gives a single label to the whole image',
-      'R-CNN needs no NMS because of one-to-one matching; YOLO relies on a Transformer decoder',
+      'R-CNN labels each pixel with a class through a mask branch; YOLO outputs a single label for the whole image',
+      'R-CNN needs no NMS thanks to one-to-one matching; YOLO turns learned object queries into boxes with a Transformer',
     ],
     answer: 0,
     explanation:
-      'R-CNN is a two-stage detector: selective search proposes about 2,000 regions and a CNN classifies each, which is accurate but slow. YOLO is one-stage: one forward pass predicts boxes and classes for every grid cell at once, fast enough for real time. One-to-one matching with a Transformer decoder describes DETR.',
+      'R-CNN is a two-stage detector: selective search proposes about 2,000 regions and a CNN classifies each, which is accurate but slow. YOLO is one-stage: one forward pass predicts boxes and classes for every grid cell at once, fast enough for real time. One-to-one matching and object queries describe DETR, a mask branch belongs to Mask R-CNN, and a single label for the whole image is classification.',
     difficulty: 'beginner',
   },
   {
@@ -53,11 +53,11 @@ const questions: QuizQuestion[] = [
       'Raise the NMS IoU threshold to about 0.6',
       'Lower the NMS IoU threshold to about 0.1',
       'Raise the confidence cut-off to about 0.9',
-      'Run NMS across all classes at once',
+      'Merge the classes into a single NMS pass',
     ],
     answer: 0,
     explanation:
-      'Boxes of two neighbouring people overlap, and with a threshold of 0.3 the higher-scoring one deletes the other. Raising the threshold means only near-identical boxes count as duplicates. Lowering it would delete even more neighbours, a higher confidence cut-off removes boxes rather than recovering them, and class-agnostic NMS only adds suppression.',
+      'Boxes of two neighbouring people overlap, and with a threshold of 0.3 the higher-scoring one deletes the other. Raising the threshold means only near-identical boxes count as duplicates. Lowering it would delete even more neighbours, a higher confidence cut-off removes boxes rather than recovering them, and merging the classes into one NMS pass can only add suppression (the two people are the same class anyway).',
     difficulty: 'intermediate',
   },
   {
@@ -65,10 +65,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A detector draws one box on a dog, and that box has IoU 0.45 with the true dog box. No other box overlaps the dog. When **mAP@0.5** is computed, how is this prediction counted?',
     options: [
-      'As a false positive, so the dog also counts as missed',
+      'As a false positive, and the dog also counts as a missed object',
       'As a true positive, because any overlap with an object of the right class counts',
-      'As 0.45 of a true positive, because AP weights every box by its IoU',
-      'Not at all, because NMS deletes boxes whose IoU is below 0.5',
+      'As 0.45 of a true positive, because AP weights each box by its IoU',
+      'It is ignored, because NMS deletes boxes whose IoU is below 0.5',
     ],
     answer: 0,
     explanation:

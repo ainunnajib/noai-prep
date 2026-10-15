@@ -71,7 +71,8 @@ model = nn.Sequential(
 x = torch.randn(1, 3, 32, 32)   # one 32x32 colour image, (N, C, H, W)
 for layer in model:
     x = layer(x)
-    print(f"{layer.__class__.__name__:<10}{tuple(x.shape)}")
+    # the layer's name, padded to 10 characters (:<10), then the shape
+    print(f"{type(layer).__name__:<10}{tuple(x.shape)}")
 
 print("parameters:", sum(p.numel() for p in model.parameters()))
 ```
@@ -114,7 +115,7 @@ Nobody programs this: it emerges from training, helped by each layer's receptive
 
 <FeatureHierarchy />
 
-This is also why <Term def="Reusing a network trained on one big task (often ImageNet) as the starting point for a new task, instead of training from scratch.">transfer learning</Term> works so well: edges and textures are useful for almost any image task, so the early and middle layers of a network trained on millions of photos can be reused for X-rays or hawker-food photos, with only the last layers retrained. The vision-tasks module shows how.
+This is also why <Term def="Reusing a network trained on one big task (often ImageNet) as the starting point for a new task, instead of training from scratch.">transfer learning</Term> works so well: edges and textures are useful for almost any image task, so the early and middle layers of a network trained on millions of photos can be reused for X-rays or hawker-food photos, with only the last layers retrained. [Transfer learning and augmentation](#/learn/vision-tasks/transfer-learning-and-augmentation) shows how.
 
 <PastPaperQuestion paper="prelim2026" n={195} />
 
@@ -129,7 +130,7 @@ Four networks mark the milestones. <Term def="A huge collection of labelled phot
 | LeNet-5 | 1998 | conv → pool → conv → pool → dense; read handwritten digits |
 | AlexNet | 2012 | big CNN on GPUs with ReLU, dropout and augmentation; won ImageNet by a huge margin |
 | VGG-16 | 2014 | only 3×3 convs and 2×2 pools, stacked 16 layers deep |
-| ResNet | 2015 | residual (skip) connections; 152 layers; a global average pooling head (as in GoogLeNet) |
+| ResNet | 2015 | residual (skip) connections; 152 layers; global average pooling and one dense layer at the end (as in GoogLeNet) |
 
 <Note title="And GoogLeNet?">
 
@@ -149,13 +150,13 @@ Yet when He and colleagues trained plain 20- and 56-layer networks in 2015, the 
 
 <Mistake title="Degradation is not overfitting">
 
-Overfitting means **low** training error but high test error. Here the deeper plain network is worse on the **training** set itself, so it is not memorising anything. The problem is optimisation: gradient descent cannot find the good weights (such as "copy + identity") that we know exist. Surprisingly, it is not mainly vanishing gradients: the ResNet authors used BatchNorm and checked that their plain networks' gradients were healthy. It is simply hard for a stack of conv-BN-ReLU layers to learn to do nothing. Residual connections fix this, and their "+1" gradient path (below) also helps where gradients would otherwise vanish.
+Overfitting means **low** training error but high test error. Here the deeper plain network is worse on the **training** set itself, so it is not memorising anything. The problem is optimisation: gradient descent cannot find the good weights (such as "copy + identity") that we know exist. This refines what you read in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients): residual connections really do give gradients a highway, but degradation is, surprisingly, not mainly a vanishing-gradient problem. The plain 34-layer network there trained worse than the 18-layer one even though the ResNet authors used BatchNorm and checked that its gradients were healthy. It is simply hard for a stack of conv–BatchNorm–ReLU layers to learn to do nothing. Residual blocks make that easy, as the next section shows, and their "+1" gradient path also helps where gradients would otherwise vanish.
 
 </Mistake>
 
 ## The residual block
 
-ResNet's fix is to stop asking layers to learn the whole mapping. A <Term def="A block that outputs F(x) + x: its layers learn only a correction F to the input, which is added back by a skip connection.">residual block</Term> passes its input $x$ around the layers through a <Term def="A connection that carries a layer's input past one or more layers and adds (or, in U-Net, concatenates) it to their output.">skip connection</Term> and adds it to their output:
+ResNet's fix is to stop asking layers to learn the whole mapping. A <Term def="A block that outputs F(x) + x: its layers learn only a correction F to the input, which is added back by a skip connection.">residual block</Term> passes its input $x$ around the layers through a <Term def="A connection that carries a layer's input past one or more layers and adds (or, in the U-Net segmentation network, concatenates) it to their output.">skip connection</Term> and adds it to their output:
 
 $$
 y = \mathrm{ReLU}\big(F(x) + x\big)
@@ -169,14 +170,14 @@ Improving an essay with tracked changes is easier than rewriting it from scratch
 
 </Analogy>
 
-Outputting zero is easy to learn: it is enough for the last layer's scale to shrink to zero. In ResNet that is the scale $\gamma$ and shift $\beta$ of the final BatchNorm (some implementations even start $\gamma$ at 0). Extra blocks can now easily do no harm, which largely removes the degradation problem: in the ResNet paper, deeper residual networks reached lower training error.
+Outputting zero is easy to learn: it is enough for the last layer's scale and shift to shrink to zero. In ResNet those are the $\gamma$ and $\beta$ of the final BatchNorm ($\beta$ starts at 0, and some implementations start $\gamma$ at 0 too). Extra blocks can now easily do no harm, which largely removes the degradation problem: in the ResNet paper, deeper residual networks reached lower training error.
 
 <QuickCheck
   q="For one residual block, the best thing to do turns out to be leaving its input unchanged. What must its layers $F$ learn to output?"
   options={['Zero: $F(x) = 0$, so $y = x$', 'A copy of the input: $F(x) = x$', 'Minus the input: $F(x) = -x$', 'One: $F(x) = 1$, so the gradient is 1']}
   answer={0}
   id="convolutional-networks.cnn-architectures-and-resnets.qc2"
-  explain="The output is $F(x) + x$, so $F(x) = 0$ gives exactly $x$. Copying the input would output $2x$, and $F(x) = -x$ would output zero. Learning zero is easy: it is enough for the last layer's scale (in ResNet, the final BatchNorm's $\gamma$ and $\beta$) to go to zero, which is why residual blocks can 'switch themselves off'."
+  explain="The output is $F(x) + x$, so $F(x) = 0$ gives exactly $x$. Copying the input would output $2x$, and $F(x) = -x$ would output zero. Learning zero is easy: it is enough for the last layer's scale and shift (in ResNet, the final BatchNorm's $\gamma$ and $\beta$) to go to zero, which is why residual blocks can 'switch themselves off'."
 />
 
 The addition has one strict rule: $F(x)$ and $x$ **must have the same shape**. When a block halves the size with stride 2 or changes the number of channels, the skip connection gets a <Term def="A 1×1 convolution (with the same stride as the main path, usually followed by BatchNorm) on the skip connection that reshapes x so that it can be added to F(x).">projection shortcut</Term>: a 1×1 convolution with the same stride, which reshapes $x$ to match.
@@ -202,25 +203,13 @@ The addition has one strict rule: $F(x)$ and $x$ **must have the same shape**. W
 
 ### Why gradients flow: the "+1"
 
-The skip connection also fixes the backward pass. Differentiate $y = F(x) + x$ (ignoring the final ReLU):
+You met this in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients); here is the one-line recap. Differentiate $y = F(x) + x$ (ignoring the final ReLU):
 
 $$
 \frac{\partial y}{\partial x} = \frac{\partial F}{\partial x} + 1
 $$
 
-The $\frac{\partial F}{\partial x}$ term is the gradient through the layers, which may be tiny; the $+1$ comes from the skip connection, which passes the gradient straight back unchanged.
-
-<Steps title="Two blocks, plain versus residual">
-  <Step title="Set up">
-    Let $z$ be the output of the second block: $x \to$ block 1 $\to$ block 2 $\to z$. Suppose each block's layers have local slope $F' = 0.1$ (small, as in a deep network that is struggling).
-  </Step>
-  <Step title="Plain: multiply the slopes">
-    Two plain blocks: $\frac{\partial z}{\partial x} = F_2' \times F_1' = 0.1 \times 0.1 = 0.01$. With 10 blocks it would be $0.1^{10}$: the gradient vanishes.
-  </Step>
-  <Step title="Residual: multiply (1 + slope)">
-    $\frac{\partial z}{\partial x} = (1 + F_2')(1 + F_1') = 1 + F_1' + F_2' + F_1'F_2' = 1.21$. Expanding the brackets always leaves a **1**: the path that skips both blocks. However small the $F'$ are, the gradient reaches the early layers.
-  </Step>
-</Steps>
+The $\frac{\partial F}{\partial x}$ term is the gradient through the layers, which may be tiny; the $+1$ comes from the skip connection, which passes the gradient straight back unchanged. With slopes of 0.1, two plain blocks pass back $0.1 \times 0.1 = 0.01$ but two residual blocks pass back $(1.1)^2 = 1.21$, because expanding the brackets always leaves the 1 from the skip path.
 
 <KeyIdea>
 
@@ -282,9 +271,11 @@ ResNet-50 and deeper use a cheaper "bottleneck" block instead: a $1 \times 1$ co
 
 <ExamTip>
 
-ResNet's innovation is the **skip connection**, $y = F(x) + x$. Traps in the options: ResNet did *not* invent BatchNorm (it uses it; BatchNorm was published earlier in 2015); identity skips add **no** parameters (they do not "reduce model size" either); and the benefit is that deep networks become **trainable** (gradient flow, easy identity), not that each layer becomes more powerful. If a question shows tiny gradient norms in early layers and healthy ones near the output, the diagnosis is vanishing gradients and residual connections are a standard fix. Do not confuse ResNet's skips (add) with U-Net's (concatenate).
+ResNet's innovation is the **skip connection**, $y = F(x) + x$. Traps in the options: ResNet did *not* invent BatchNorm (it uses it; BatchNorm was published earlier in 2015); identity skips add **no** parameters (they do not "reduce model size" either); and the benefit is that deep networks become **trainable** (gradient flow, easy identity), not that each layer becomes more powerful. If a question shows tiny gradient norms in early layers and healthy ones near the output, the diagnosis is vanishing gradients and residual connections are a standard fix. Do not confuse ResNet's skips (add) with those of U-Net, a segmentation network you will meet in [U-Net segmentation](#/learn/vision-tasks/u-net-segmentation), which concatenate.
 
 </ExamTip>
+
+Next, [Transfer learning and augmentation](#/learn/vision-tasks/transfer-learning-and-augmentation) takes a pretrained ResNet like this one and adapts it to your own small dataset, and the rest of the vision-tasks module moves from one label per image to boxes and pixel-by-pixel masks.
 
 <Takeaways>
 
