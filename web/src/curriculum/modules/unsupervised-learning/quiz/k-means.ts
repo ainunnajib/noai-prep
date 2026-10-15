@@ -12,7 +12,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The update step recomputes every centroid as the **mean** (average) of its assigned points, which is the spot with the smallest total squared distance to them. Giving each point to its nearest centroid is the other half of the loop, the **assign** step. Snapping a centre onto an actual data point is what k-medoids does, not K-means.',
+      'The update step recomputes every centroid as the **mean** (average) of its assigned points, which is the spot with the smallest total squared distance to them. Giving each point to its nearest centroid is the other half of the loop, the **assign** step. Snapping a centre onto an actual data point is what k-medoids (a variant whose centres must be real data points) does, not K-means.',
     difficulty: 'beginner',
   },
   {
@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'unsupervised-learning.k-means.3',
     prompt: 'Why can you **not** choose k for K-means by simply picking the k with the smallest inertia?',
     options: [
-      'Inertia never increases as k grows and reaches 0 when every point is its own cluster, so the smallest inertia always means the largest k',
+      'Inertia never rises as k grows and is 0 when every point has its own centroid, so its minimum always picks the largest k',
       'Inertia changes randomly from run to run, so its smallest value over several k is just noise and cannot be compared fairly',
       'Inertia can only be computed when the true cluster labels are known, and unsupervised data does not come with any labels',
       'Inertia increases as k grows, because every extra centroid adds more squared distances to the total, so it always picks k = 1',
@@ -54,14 +54,29 @@ const questions: QuizQuestion[] = [
     prompt:
       'A dataset has two true groups: points spread evenly around a ring of radius 5, and a tight blob at the centre of that ring. K-means with $k = 2$ splits the data into a left half and a right half. What is the main reason?',
     options: [
-      'Points join the nearest centroid, so K-means can only form round groups split by straight lines, and the ring and blob share a centre',
+      'K-means cuts the plane with straight lines between centroids, so it cannot separate a ring from the blob it surrounds',
       'The two starting centroids were placed badly; with k-means++ seeding K-means would separate the ring from the blob every time',
       'The value of k is too small; with k = 3 K-means would put the ring into one cluster and the central blob into another',
       'The ring has far more points than the blob, so K-means ignores the blob, which is too small to have a centroid of its own',
     ],
     answer: 0,
     explanation:
-      'K-means describes each cluster only by its centre, and every boundary is a straight line halfway between two centroids. A ring and the blob inside it have the same centre, so no placement of centroids can separate them: this is a shape problem, not a starting-point or k problem. A density-based method such as DBSCAN, or spectral clustering, follows the ring instead.',
+      'Every point joins its nearest centroid, so the boundary between two clusters is a straight line halfway between their centroids. No straight line can cut a ring away from the blob it surrounds, so no placement of centroids works: this is a shape problem, not a starting-point or k problem (with k = 3 the ring is still sliced into pieces). A density-based method such as DBSCAN, or spectral clustering, follows the ring instead.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'unsupervised-learning.k-means.6',
+    prompt:
+      'You run K-means with $k = 3$ twice on the same data, each time from different random starting centroids. Both runs converge (nothing changes any more), one with inertia 41 and the other with inertia 128. What is the best explanation?',
+    options: [
+      'The two runs started from different centroids, and the second got stuck in a poorer local minimum',
+      'The second run needs more iterations, after which its inertia would keep falling until it reached 41',
+      'The assign and update steps are random, so even the same start would give a different result each time',
+      'The run with inertia 128 is better, because a higher inertia means more spread-out, distinct clusters',
+    ],
+    answer: 0,
+    explanation:
+      'Given its starting centroids, K-means is completely deterministic, and a converged run never changes again, so the gap comes from the starts: the second run began badly (for example with two centroids in one blob) and stopped in a local minimum. That is why libraries use k-means++ seeding and several restarts (`n_init`) and keep the run with the lowest inertia. Lower inertia means tighter clusters, so 41 is the better result.',
     difficulty: 'intermediate',
   },
 ]

@@ -11,30 +11,30 @@ A preview pops up on your phone, cut off: "…free … lunch … now". Is it fro
 
 </Analogy>
 
-Naive Bayes is <Term def="P(A | B) = P(B | A) P(A) / P(B): it turns how likely the evidence is under each hypothesis into how likely each hypothesis is given the evidence.">Bayes' theorem</Term> (from the [Bayes' theorem lesson](#/learn/probability-and-statistics/bayes-theorem)) turned into a classifier. For a class $c$ and features $x_1, \dots, x_m$ (here, the words of a message):
+Naive Bayes is <Term def="P(A | B) = P(B | A) P(A) / P(B): it turns how likely the evidence is under each hypothesis into how likely each hypothesis is given the evidence.">Bayes' theorem</Term> (from the [Bayes' theorem lesson](#/learn/probability-and-statistics/bayes-theorem)) turned into a classifier. For a class $c$ and $d$ features $x_1, \dots, x_d$ (here, the words of a message):
 
 $$
-P(c \mid x_1, \dots, x_m) = \frac{P(c)\; P(x_1, \dots, x_m \mid c)}{P(x_1, \dots, x_m)}
+P(c \mid x_1, \dots, x_d) = \frac{P(c)\; P(x_1, \dots, x_d \mid c)}{P(x_1, \dots, x_d)}
 $$
 
 - $P(c)$ is the **prior**: how common class $c$ is before you read the message.
-- $P(x_1, \dots, x_m \mid c)$ is the **likelihood**: how probable these features are in a message of class $c$.
-- $P(x_1, \dots, x_m)$, the evidence, is the same for every class, so to *choose* a class you can ignore it. Divide by it only at the end, if you want probabilities that add up to 1.
+- $P(x_1, \dots, x_d \mid c)$ is the **likelihood**: how probable these features are in a message of class $c$.
+- $P(x_1, \dots, x_d)$, the evidence, is the same for every class, so to *choose* a class you can ignore it. Divide by it only at the end, if you want probabilities that add up to 1.
 
 The likelihood is the hard part. A vocabulary of 10,000 words allows $2^{10000}$ different sets of words, so no training set could ever count how often each exact combination appears in spam. Naive Bayes makes one bold simplification, called <Term def="Two features are conditionally independent given the class if, once you know the class, learning one of them tells you nothing more about the other.">conditional independence</Term>: once the class is known, it treats the features as independent of each other, so the likelihood becomes a product of one-feature probabilities:
 
 $$
 \begin{aligned}
-&P(x_1, \dots, x_m \mid c) \\
-&\quad = P(x_1 \mid c)\, P(x_2 \mid c) \cdots P(x_m \mid c) \\
-&\quad = \prod_{i=1}^{m} P(x_i \mid c)
+&P(x_1, \dots, x_d \mid c) \\
+&\quad = P(x_1 \mid c)\, P(x_2 \mid c) \cdots P(x_d \mid c) \\
+&\quad = \prod_{i=1}^{d} P(x_i \mid c)
 \end{aligned}
 $$
 
 The symbol $\prod$ means "multiply all of these", just as $\sum$ means "add all of these". The classifier picks
 
 $$
-\hat{c} = \underset{c}{\arg\max}\; P(c) \prod_{i=1}^{m} P(x_i \mid c)
+\hat{c} = \underset{c}{\arg\max}\; P(c) \prod_{i=1}^{d} P(x_i \mid c)
 $$
 
 where $\arg\max_c$ means "the class $c$ that makes this score largest", and $\hat{c}$ (c-hat) is the predicted class.

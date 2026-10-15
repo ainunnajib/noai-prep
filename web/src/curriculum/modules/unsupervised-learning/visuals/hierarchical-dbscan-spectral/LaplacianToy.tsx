@@ -125,8 +125,6 @@ export default function LaplacianToy() {
           data={L}
           format={fmtNum}
           cellSize={narrow ? 38 : 40}
-          diverging
-          heat
           cells={second ? [[2, 3], [3, 2], [1, 4], [4, 1]] : [[2, 3], [3, 2]]}
           ariaLabel="The 6 by 6 Laplacian matrix: degrees on the diagonal, minus the edge weights off the diagonal"
         />

@@ -6,7 +6,8 @@ import { DataCircle, DragHandle, Note } from '../k-means/parts'
 /*
   DBSCAN, live. Core points are filled discs (with their eps-circle drawn faintly; two core points are
   connected only when one lies inside the other's circle, not when their circles merely overlap); border points are hollow rings; noise points are crosses.
-  Two orange probe points can be dragged anywhere and are clustered like every other point.
+  Two large ringed probe points can be dragged anywhere and are clustered like every other point; each is filled
+  with the colour of the cluster it joined (grey for noise).
   Tap any point to inspect it: its eps-circle and neighbours are highlighted and the read-out says
   why it is core, border or noise. Conventions follow scikit-learn: min_samples counts the point itself.
 */
@@ -141,6 +142,8 @@ export default function DBSCANExplorer() {
   }
 
   const probeKind = (j: number) => KIND_TEXT[res.kinds[base.length + j]]
+  const probeLabel = (j: number) => res.labels[base.length + j]
+  const probeText = (j: number) => `${probeKind(j)}${probeLabel(j) >= 0 ? `, cluster ${probeLabel(j) + 1}` : ''}`
 
   return (
     <Figure
@@ -150,8 +153,8 @@ export default function DBSCANExplorer() {
           Filled discs are <b>core</b> points (at least min_samples points within eps, counting themselves), rings are <b>border</b> points (not core,
           but within eps of a core point) and crosses are <b>noise</b>. The shaded discs are the eps-circles of the core points. A cluster grows from core
           point to core point whenever one lies <i>inside</i> another's circle (distance ≤ eps), and a non-core point inside a core point's circle joins as a
-          border point. Circles that merely overlap do not join clusters: look where the two moons' shading touches but their colours differ. Slide eps down until the moons shatter, then up until they fuse. Drag the two orange probe points into a gap and into a
-          moon. On <b>Mixed density</b>, try to find one eps that keeps the two tight blobs apart <i>and</i> the spread-out blob in one piece.
+          border point. Circles that merely overlap do not join clusters: look where the two moons' shading touches but their colours differ. Slide eps down until the moons shatter, then up until they fuse. Drag the two large ringed probe points into a gap and into a
+          moon: each takes the colour of the cluster it joins. On <b>Mixed density</b>, try to find one eps that keeps the two tight blobs apart <i>and</i> the spread-out blob in one piece.
         </>
       }
     >
@@ -160,19 +163,20 @@ export default function DBSCANExplorer() {
         <Scene pts={pts} labels={res.labels} kinds={res.kinds} eps={eps} showCircles={showCircles} selected={selected} nProbe={probes.length} />
         {probes.map((p, j) => (
           <g key={j}>
+            <ProbeRing p={p} />
             <DragHandle
               x={p[0]}
               y={p[1]}
-              colour="var(--viz-2)"
+              colour={clusterColour(probeLabel(j))}
               r={7}
-              ariaLabel={`Probe point ${j + 1}, currently ${probeKind(j)}`}
-              valueText={`x ${p[0].toFixed(1)}, y ${p[1].toFixed(1)}: ${probeKind(j)}`}
+              ariaLabel={`Probe point ${j + 1}, currently ${probeText(j)}`}
+              valueText={`x ${p[0].toFixed(1)}, y ${p[1].toFixed(1)}: ${probeText(j)}`}
               onChange={(x, y) => {
                 setProbes((ps) => ps.map((q, k) => (k === j ? ([x, y] as Pt) : q)))
                 setSelected(base.length + j)
               }}
             />
-            <ProbeTag p={p} text={probeKind(j)} />
+            <ProbeTag p={p} text={probeKind(j)} colour={probeLabel(j) >= 0 ? clusterColour(probeLabel(j)) : 'var(--viz-ink)'} />
           </g>
         ))}
       </Plot>
@@ -206,11 +210,17 @@ export default function DBSCANExplorer() {
   )
 }
 
-function ProbeTag({ p, text }: { p: Pt; text: string }) {
+/** a thick ink ring that marks a probe as draggable, whatever colour its cluster gives it */
+function ProbeRing({ p }: { p: Pt }) {
+  const { xs, ys } = usePlot()
+  return <circle cx={xs(p[0])} cy={ys(p[1])} r={10.5} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 2, pointerEvents: 'none' }} />
+}
+
+function ProbeTag({ p, text, colour }: { p: Pt; text: string; colour: string }) {
   const { xs, ys } = usePlot()
   const right = xs(p[0]) < xs.range()[1] - 60
   return (
-    <text className="plot-label" x={xs(p[0]) + (right ? 12 : -12)} y={ys(p[1]) - 10} textAnchor={right ? 'start' : 'end'} style={{ fill: 'var(--viz-2)', fontWeight: 700, fontSize: 12 }}>
+    <text className="plot-label" x={xs(p[0]) + (right ? 12 : -12)} y={ys(p[1]) - 10} textAnchor={right ? 'start' : 'end'} style={{ fill: colour, fontWeight: 700, fontSize: 12 }}>
       {text}
     </text>
   )

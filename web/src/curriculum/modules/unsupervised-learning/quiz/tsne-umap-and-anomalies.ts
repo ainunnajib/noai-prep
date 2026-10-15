@@ -35,28 +35,28 @@ const questions: QuizQuestion[] = [
     prompt:
       'A t-SNE map shows three clusters. A and B look the same size, and C is drawn three times farther from A than B is. Which conclusion is justified?',
     options: [
-      'Points within each cluster were close neighbours in the original data',
+      'Points drawn right next to each other were neighbours in the original data',
       'A and B have about the same spread in the original high-dimensional data',
       'C is about three times more different from A than B is in the original data',
       'The original data contains exactly three natural groups of similar size',
     ],
     answer: 0,
     explanation:
-      'Only neighbourhood membership is trustworthy in a t-SNE map. Each point\'s bell-curve width adapts to local density, so dense and sparse clusters come out a similar size, and gaps between clusters are not preserved. Even the number of clusters can change with perplexity or random seed.',
+      'Only who sits right next to whom is trustworthy in a t-SNE map: two points at opposite ends of one big cluster need not have been close. Each point\'s bell-curve width adapts to local density, so dense and sparse clusters come out a similar size, and gaps between clusters are not preserved. Even the number of clusters can change with perplexity or random seed.',
     difficulty: 'intermediate',
   },
   {
     id: 'unsupervised-learning.tsne-umap-and-anomalies.4',
     prompt: 'A student wants to use the 2-D t-SNE coordinates of each training image as input features for a classifier. Why is this usually a bad idea?',
     options: [
-      't-SNE cannot place new test points on an existing map, and reruns give different maps',
+      't-SNE cannot add new test points to an existing map, and every rerun can give a different map',
       't-SNE is supervised, so the coordinates would leak the training labels into the features',
       't-SNE always produces exactly one coordinate per point, which is too little information',
       't-SNE increases the number of dimensions, so the classifier would face the curse of dimensionality',
     ],
     answer: 0,
     explanation:
-      'scikit-learn\'s `TSNE` has no `transform`: new points require rerunning on everything, giving a different map. The output also depends on perplexity and the random start, and its distances are deliberately distorted. t-SNE is unsupervised (no label leakage) and gives 2 or 3 coordinates, fewer than the original features. PCA, or UMAP with care, can transform new points.',
+      'scikit-learn\'s `TSNE` has no `transform`: new points require rerunning on everything, and the new map can look different. The output also depends on perplexity and the random start, and its distances are deliberately distorted. t-SNE is unsupervised (no label leakage) and gives 2 or 3 coordinates, fewer than the original features. PCA, or UMAP with care, can transform new points.',
     difficulty: 'intermediate',
   },
   {

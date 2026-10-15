@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Almost exactly the income axis, since its variance is far larger',
       'Almost exactly the age axis, because age varies more in relative terms than income',
-      'The 45° diagonal, because PCA always weighs every feature equally',
+      'The 45° diagonal, because PCA gives both features the same weight',
       'Undefined, because PCA raises an error when features have different units',
     ],
     answer: 0,
@@ -56,7 +56,7 @@ const questions: QuizQuestion[] = [
       'Points lie on a rolled-up sheet in 3-D (a "Swiss roll"). Reducing them to 2-D with PCA makes points from different layers of the roll land on top of each other. Why?',
     options: [
       'PCA is linear, so it can only rotate and flatten the data, not unroll a curve',
-      'PCA needs labels to know which layer each point belongs to, and none were given',
+      'PCA needs labels to know which layer each point belongs to, and no labels were given',
       'The data was not standardised, so one axis dominated the principal components',
       'PCA can keep only one component when the original data is three-dimensional',
     ],

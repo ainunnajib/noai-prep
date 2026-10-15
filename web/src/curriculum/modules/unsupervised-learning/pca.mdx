@@ -13,6 +13,8 @@ A photo turns a 3-D train into a flat 2-D picture, so something is always lost. 
 
 ## What PCA does
 
+You met the maths of PCA in [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca). This lesson recaps it quickly and then puts it to work: how many components to keep, how to rebuild data from them, and when to standardise first.
+
 PCA is a method for <Term def="Describing each data point with fewer numbers while keeping as much of the useful information as possible.">dimensionality reduction</Term>. Three facts to hold on to from the start:
 
 - It is **unsupervised**: it only looks at the features $X$, never at labels $y$.
@@ -23,21 +25,32 @@ PCA is a method for <Term def="Describing each data point with fewer numbers whi
 
 <PastPaperQuestion paper="noai2025" n={1} />
 
-## The direction of greatest spread
+## Recap: the covariance recipe
 
-Recall that the <Term def="The average squared distance of the values from their mean. Big variance means widely spread values.">variance</Term> of a list of numbers measures how spread out they are. Now take a cloud of 2-D points and draw a line through its centre (the mean point $\boldsymbol\mu$). Drop each point straight onto the line, at right angles. Where it lands is the point's **shadow**, its <Term def="The point on a line (or the position along it) closest to a given point, found by dropping a perpendicular onto the line.">projection</Term>.
-
-If the line's direction is a unit vector $\mathbf u$ (an arrow of length 1), a point's position along the line is one number, its **score**:
+Recap from [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca): centre the data and build the covariance matrix
 
 $$
-z = \mathbf u \cdot (\mathbf x - \boldsymbol\mu) = u_1 (x_1 - \mu_1) + u_2 (x_2 - \mu_2)
+C = \frac{1}{n-1} X_c^{\mathsf T} X_c
 $$
 
-- $\mathbf x = (x_1, x_2)$ is the data point and $\boldsymbol\mu = (\mu_1, \mu_2)$ is the mean of all the points.
-- $\mathbf x - \boldsymbol\mu$ is the arrow from the mean to the point, which is why PCA always **centres** the data first.
-- The dot product with $\mathbf u$ measures how far that arrow reaches along the line.
+where $X_c$ is the $n \times d$ data table with every column's mean subtracted. Its eigenvectors, sorted by eigenvalue, are the principal components, and eigenvalue $\lambda_j$ is the <Term def="The average squared distance of the values from their mean (dividing by n; this lesson and scikit-learn's PCA divide by n − 1). Big variance means widely spread values.">variance</Term> along component $j$. A point's **score** $z = \mathbf u \cdot (\mathbf x - \boldsymbol\mu)$ on a unit direction $\mathbf u$ is the position of its shadow on the line through the mean point $\boldsymbol\mu$.
 
-So a line turns every 2-D point into a single number. Which line keeps the most information? Try it.
+<Note>
+
+[Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca) divided by $n$. Here we divide by $n - 1$ (the sample version from [Describing data](#/learn/probability-and-statistics/describing-data)), as scikit-learn's `PCA` does. The principal components are identical; every eigenvalue just grows by the factor $\frac{n}{n-1}$, so check which divisor a question uses.
+
+</Note>
+
+<QuickCheck
+  q="The covariance matrix of a 2-feature dataset has eigenvalues 4 and 1. What is the variance of the points' scores on PC1?"
+  options={['4', '2', '0.8', '16']}
+  answer={0}
+  explain="Each eigenvalue is the variance of the data along its component, so the PC1 scores have variance 4 (their standard deviation is $\sqrt 4 = 2$, the tempting wrong answer). 0.8 is PC1's explained variance ratio, $4 / (4 + 1)$, and 16 squares the eigenvalue again."
+/>
+
+## Keep the most, lose the least
+
+Turn a line through the mean of a 2-D cloud and keep only each point's score on it, so every point becomes a single number. Which line keeps the most information? Try it.
 
 <PCAProjector />
 
@@ -63,37 +76,9 @@ Linear regression minimises the **vertical** distances from the points to its li
 
 ## PC2, PC3 and beyond
 
-After PC1, PCA looks for the direction of greatest *remaining* spread among all directions at right angles to PC1. That is **PC2**. PC3 is at right angles to both, and so on. With $d$ features there are $d$ components, and together they form a new set of perpendicular axes: PCA simply **rotates** the data to line it up with its own natural directions. Scores on different components are <Term def="Having zero covariance: knowing one tells you nothing (linearly) about the other.">uncorrelated</Term>. To reduce dimensions, keep the scores on the first $k$ components and throw the rest away.
+After PC1, PCA looks for the direction of greatest *remaining* spread among all directions at right angles to PC1. That is **PC2**. PC3 is at right angles to both, and so on. With $d$ features there are $d$ components (if you have fewer samples $n$ than features, only the first $n - 1$ carry any variance, which is why scikit-learn allows at most $\min(n_\text{samples}, n_\text{features})$), and together they form a new set of perpendicular axes: PCA simply **rotates** the data to line it up with its own natural directions. Scores on different components are <Term def="Having zero covariance: knowing one tells you nothing (linearly) about the other.">uncorrelated</Term>. To reduce dimensions, keep the scores on the first $k$ components and throw the rest away.
 
-## Where the components come from
-
-You do not need to try every angle. The answer comes straight out of the **covariance matrix** $C$. For $d$ features it is a $d \times d$ table. Its diagonal holds each feature's variance, and each off-diagonal entry is the <Term def="A measure of how two features move together: positive if they tend to rise together, negative if one rises as the other falls, near zero if unrelated.">covariance</Term> of a pair of features:
-
-$$
-\operatorname{Cov}(x_a, x_b) = \frac{1}{n-1} \sum_{i=1}^{n} (x_{ia} - \mu_a)(x_{ib} - \mu_b)
-$$
-
-Here $x_{ia}$ is feature $a$ of point $i$ and $\mu_a$ is the mean of feature $a$. With $\operatorname{Cov}(x_a, x_a) = \operatorname{Var}(x_a)$ on the diagonal, the whole matrix is one line of matrix maths:
-
-$$
-C = \frac{1}{n-1} X_c^{\mathsf T} X_c
-$$
-
-where $X_c$ is the $n \times d$ data table with every column's mean subtracted. Because $\operatorname{Cov}(x_a, x_b) = \operatorname{Cov}(x_b, x_a)$, the matrix is **symmetric**.
-
-An <Term def="A direction v that a matrix only stretches (or shrinks), without turning it: C v = λ v. The stretch factor λ is the eigenvalue.">eigenvector</Term> of $C$ is a direction $\mathbf v$ that $C$ only stretches, without turning it: $C\mathbf v = \lambda \mathbf v$. The stretch factor $\lambda$ is its **eigenvalue**. The central fact of PCA:
-
-<KeyIdea>
-
-The principal components are the **eigenvectors of the covariance matrix**, sorted by eigenvalue from largest to smallest. Each eigenvalue $\lambda_j$ equals the variance of the data along component $j$. Because $C$ is symmetric, its eigenvectors are perpendicular, which is why the components are orthogonal.
-
-</KeyIdea>
-
-Why? The variance of the scores along any unit direction $\mathbf u$ works out to $\mathbf u^{\mathsf T} C \mathbf u$, and this is largest, equal to $\lambda_1$, when $\mathbf u$ is the top eigenvector. The worked example below checks this with real numbers.
-
-<PastPaperQuestion paper="prelim2026" n={14} />
-
-## Worked example: PCA by hand
+## Practice: the recipe on new numbers
 
 <Steps title="PCA of the points (1, 3), (3, 4), (4, 3), (4, 6)">
   <Step title="Centre the data">
@@ -103,7 +88,7 @@ Why? The variance of the scores along any unit direction $\mathbf u$ works out t
     $\operatorname{Var}(x) = \tfrac{4 + 0 + 1 + 1}{3} = 2$, $\operatorname{Var}(y) = \tfrac{1 + 0 + 1 + 4}{3} = 2$, $\operatorname{Cov}(x, y) = \tfrac{2 + 0 - 1 + 2}{3} = 1$. So $C = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$.
   </Step>
   <Step title="Eigenvalues">
-    For a 2 × 2 matrix $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$ the eigenvalues add up to the **trace** $a + d$ (here $2 + 2 = 4$) and multiply to the **determinant** $ad - bc$ (here $2 \cdot 2 - 1 \cdot 1 = 3$). Two numbers with sum 4 and product 3: $\lambda_1 = 3$, $\lambda_2 = 1$.
+    Use the trace-and-determinant shortcut: the eigenvalues add up to the trace $2 + 2 = 4$ and multiply to the determinant $2 \cdot 2 - 1 \cdot 1 = 3$. Two numbers with sum 4 and product 3: $\lambda_1 = 3$, $\lambda_2 = 1$.
   </Step>
   <Step title="Eigenvectors">
     $C \begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 3 \\ 3 \end{bmatrix} = 3 \begin{bmatrix} 1 \\ 1 \end{bmatrix}$ and $C \begin{bmatrix} 1 \\ -1 \end{bmatrix} = \begin{bmatrix} 1 \\ -1 \end{bmatrix}$. Scaled to length 1: PC1 $= \tfrac{1}{\sqrt 2}(1, 1) \approx (0.707, 0.707)$, the 45° diagonal, and PC2 $= \tfrac{1}{\sqrt 2}(1, -1)$. Their dot product is $1 - 1 = 0$: perpendicular.
@@ -121,13 +106,30 @@ Why? The variance of the scores along any unit direction $\mathbf u$ works out t
 
 <TryIt>
 
-Scroll back to the line-turning figure, switch it to **worked example** and press **Snap to PC1**: the line sits at 45°, with kept 3.00 and lost 1.00.
+Check this on the first figure of the lesson, "Find the line that keeps the most spread": switch it to **worked example** and press **Snap to PC1**. The line sits at 45°, with kept 3.00 and lost 1.00.
 
 </TryIt>
 
 The same steps in NumPy. This "centre, covariance, eigenvectors, sort, project" recipe is exactly what a from-scratch Final task would ask you to write:
 
 <PyRunner packages={['numpy']} code={fromScratchCode} />
+
+```text
+covariance:
+ [[2. 1.]
+ [1. 2.]]
+eigenvalues: [3. 1.]
+PC1: [0.707 0.707]
+explained ratio: [0.75 0.25]
+scores: [-2.121  0.     0.     2.121]
+rebuilt:
+ [[1.5 2.5]
+ [3.  4. ]
+ [3.  4. ]
+ [4.5 5.5]]
+```
+
+Your PC1 may come out as `[-0.707 -0.707]`, with every score's sign flipped. That is the same line pointing the other way, so nothing else changes.
 
 <QuickCheck
   q="The covariance matrix of a dataset has eigenvalues 6, 3 and 1. What share of the total variance do the first two principal components keep?"
@@ -164,6 +166,14 @@ In scikit-learn, `PCA(n_components=10)` keeps 10 components, and `PCA(n_componen
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={sklearnCode} />
 
+```text
+first 5 ratios: [0.149 0.136 0.118 0.084 0.058]
+for 95%: 29
+(1797, 64) -> (1797, 10)
+kept: 0.738
+rebuilt: (1797, 64)
+```
+
 ## Standardise first
 
 PCA chases variance, and variance depends on **units**. A column measured in millimetres has numbers 10 times bigger than the same column in centimetres, so its variance is $10^2 = 100$ times bigger.
@@ -180,6 +190,8 @@ $$
 - Afterwards every feature has variance 1, so none of them dominates because of its units.
 
 You can skip this only when all features already share one scale, like the digit pixels (all 0 to 16).
+
+scikit-learn's `PCA` subtracts the mean for you but does **not** divide by the standard deviation. Chain the two steps, `make_pipeline(StandardScaler(), PCA(n_components=0.95))`, call `.fit` on the training data and then `.transform` on the test data: both steps then learn their numbers from the training data only.
 
 <Mistake title="Three classic PCA errors">
 
@@ -201,7 +213,7 @@ The facts NOAI-style questions test, for instant recall:
 - Explained variance ratio $= \lambda_j / \sum \lambda$. Practise it as mental arithmetic: eigenvalues 5, 3, 2 give 50%, 30%, 20%.
 - **Standardise** first when units differ.
 - You get at most $\min(n_\text{samples}, n_\text{features})$ components.
-- **Via SVD**: if $X_c = U \Sigma V^{\mathsf T}$, the rows of $V^{\mathsf T}$ are the principal components, and each singular value $\sigma_j$ on the diagonal of $\Sigma$ gives $\lambda_j = \sigma_j^2 / (n - 1)$. Libraries such as scikit-learn usually compute PCA this way, because it is more accurate than forming $C$ first.
+- Libraries such as scikit-learn find the same components from the **SVD** of the centred data, which is more accurate than forming $C$ first: see [SVD and special matrices](#/learn/linear-algebra-deeper/svd-and-special-matrices).
 
 </ExamTip>
 

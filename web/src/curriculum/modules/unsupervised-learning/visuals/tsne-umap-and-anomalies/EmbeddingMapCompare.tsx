@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Plot, Path, M, useNarrow, usePlot } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Plot, Path, useNarrow, usePlot } from '../../../../../kit'
 import { digits, roll, type EmbedSet } from './embedData'
 import { DIGIT_COLOURS, rampColour, unflatten, nearest, neighbourKeep, closest, DotCloud, Rings, Frame, type XY } from './shared'
 
@@ -187,7 +187,7 @@ export default function EmbeddingMapCompare() {
         />
       </Controls>
       <div style={{ fontSize: '0.8125rem', color: 'var(--ink-3)', marginTop: 4 }}>
-        <M>{'\\text{neighbours kept}'}</M> = average share of each point's 10 nearest neighbours in the original space that are also among its 10 nearest on the map.
+        <b>neighbours kept</b> = average share of each point's 10 nearest neighbours in the original space that are also among its 10 nearest on the map.
       </div>
     </Figure>
   )

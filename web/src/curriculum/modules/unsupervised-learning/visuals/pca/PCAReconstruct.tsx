@@ -15,6 +15,9 @@ const cum = ratio.reduce<number[]>((acc, r) => {
   return acc
 }, [])
 
+// the bars are drawn 4 times taller than the line's scale so the elbow is visible; the right-hand axis reads them (0 to 25%)
+const BAR_SCALE = 4
+
 const head: CSSProperties = { fontSize: '0.8125rem', fontWeight: 700, color: 'var(--ink-2)', margin: '0.35rem 0 0.25rem', textAlign: 'center' }
 
 function reconstruct(x: number[], k: number): number[] {
@@ -55,21 +58,30 @@ export default function PCAReconstruct() {
       <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 0.9fr) minmax(0, 1.1fr)', gap: '1rem', alignItems: 'start' }}>
         <div style={{ minWidth: 0 }}>
           <div style={head}>
-            Scree plot (% of variance): the first {k} component{k === 1 ? '' : 's'} keep{k === 1 ? 's' : ''} <span style={{ color: 'var(--viz-2)' }}>{(100 * kept).toFixed(1)}%</span>
+            Scree plot: the first {k} component{k === 1 ? '' : 's'} keep{k === 1 ? 's' : ''} <span style={{ color: 'var(--viz-2)' }}>{(100 * kept).toFixed(1)}%</span>
           </div>
-          <Plot x={[0, 65]} y={[0, 100]} width={360} height={250} maxWidth={440} margin={{ left: 42, right: 12, top: 12, bottom: 36 }} ariaLabel={`Scree plot: ${k} components keep ${(100 * kept).toFixed(1)}% of the variance`}>
+          <Plot x={[0, 65]} y={[0, 100]} width={360} height={250} maxWidth={440} margin={{ left: 42, right: 34, top: 12, bottom: 36 }} ariaLabel={`Scree plot: ${k} components keep ${(100 * kept).toFixed(1)}% of the variance`}>
             <Grid xTicks={6} yTicks={5} />
             <HLine y={95} color="var(--viz-3)" />
             <Label x={64} y={95} dy={15} anchor="end" color="var(--viz-3)" weight={700}>
               95%
             </Label>
             {ratio.map((r, j) => (
-              <Rect key={j} x0={j + 0.6} x1={j + 1.4} y0={0} y1={100 * r} fill={j < k ? 'var(--viz-1)' : 'color-mix(in srgb, var(--viz-muted) 55%, transparent)'} />
+              <Rect key={j} x0={j + 0.6} x1={j + 1.4} y0={0} y1={100 * r * BAR_SCALE} fill={j < k ? 'var(--viz-1)' : 'color-mix(in srgb, var(--viz-muted) 55%, transparent)'} />
             ))}
             <Path points={[[0, 0], ...cum.map((c, j) => [j + 1, 100 * c] as [number, number])]} color="var(--viz-2)" width={2.5} />
             <Dots points={[{ x: Math.max(k, 0.0001), y: 100 * kept, color: 'var(--viz-2)', r: 5.5 }]} />
             <Axes xTicks={6} yTicks={5} xLabel="component" tickFormat={(v) => String(Math.round(v))} />
+            {[5, 10, 15, 20, 25].map((v) => (
+              <Label key={v} x={65} y={v * BAR_SCALE} dx={4} dy={4} size={11} color="var(--viz-1)">
+                {`${v}%`}
+              </Label>
+            ))}
           </Plot>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ink-3)', textAlign: 'center' }}>
+            <span style={{ color: 'var(--viz-1)', fontWeight: 700 }}>Bars</span>: each component's share (right scale).{' '}
+            <span style={{ color: 'var(--viz-2)', fontWeight: 700 }}>Line</span>: running total (left scale).
+          </div>
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={head}>Original images (64 numbers each)</div>

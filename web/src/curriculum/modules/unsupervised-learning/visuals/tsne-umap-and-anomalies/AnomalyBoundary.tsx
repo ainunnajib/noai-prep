@@ -131,7 +131,7 @@ export default function AnomalyBoundary() {
           The dots are 90 <b>normal</b> readings of a machine (two operating modes: idle and busy); no anomalies were ever shown to the detector. The
           solid outline is the learned boundary: green inside means normal, red outside means anomaly. Drag A, B and C around. Then slide{' '}
           <M>\nu</M> (nu): a bigger <M>\nu</M> pulls the boundary in tighter, so more normal points are flagged (false alarms, drawn as red rings) but
-          fewer real anomalies slip through. Switch to the k-NN distance score: a different rule, a similar idea.
+          fewer real anomalies slip through. Switch to the k-NN distance score: a different rule, a similar idea. It has no <M>\nu</M>; there the slider sets the threshold so that this share of the normal points is flagged.
         </>
       }
     >
@@ -160,7 +160,7 @@ export default function AnomalyBoundary() {
             { value: 'knn', label: 'k-NN distance' },
           ]}
         />
-        <Slider label={<>tightness ν (nu)</>} value={mi} min={0} max={models.length - 1} step={1} onChange={setMi} format={(i) => models[i].nu.toFixed(2)} />
+        <Slider label={method === 'svm' ? <>tightness ν (nu)</> : <>share of normal points flagged</>} value={mi} min={0} max={models.length - 1} step={1} onChange={setMi} format={(i) => models[i].nu.toFixed(2)} />
         <Readout
           items={[
             ['false alarms', `${nFlag} of ${train.length} (${((100 * nFlag) / train.length).toFixed(0)}%)`],

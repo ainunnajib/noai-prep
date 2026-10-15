@@ -64,7 +64,7 @@ Because single linkage only needs **one** close pair, a few "bridge" points betw
 
 </Mistake>
 
-Hierarchical clustering has no random start, so it gives the same tree every time, and you choose the number of clusters **after** seeing the tree. The price is speed: it compares every pair of points, so the work grows at least with $n^2$, which is fine for thousands of points and too slow for millions. A merge can also never be undone, even if it later looks like a mistake.
+Hierarchical clustering has no random start, so it gives the same tree every time, and you choose the number of clusters **after** seeing the tree. The price is speed: it compares every pair of points, so the work grows at least with $n^2$, which is fine for thousands of points and too slow for millions. A merge can also never be undone, even if it later looks like a mistake. (The opposite, top-down approach, **divisive** clustering, starts with one big cluster and keeps splitting it; it is used much less often.)
 
 ## DBSCAN: clusters are dense regions
 
@@ -85,7 +85,7 @@ Every point then gets one of three roles:
 - A <Term def="In DBSCAN, a point that is not a core point but lies within eps of a core point, so it joins that core point's cluster.">border point</Term> is not core, but lies within eps of a core point.
 - A <Term def="In DBSCAN, a point that is neither core nor border: it lies in a sparse region and belongs to no cluster (label -1 in scikit-learn).">noise point</Term> is neither. scikit-learn labels it $-1$.
 
-A cluster is a chain of core points, each within eps of the next, plus the border points around them. The algorithm floods outwards: start at an unvisited core point, add all its neighbours, keep expanding from every new core point, and stop when the cluster cannot grow. Then start again from the next unvisited core point.
+A cluster is a chain of core points, each within eps of the next, plus the border points around them. The algorithm floods outwards: start at an unvisited core point, add all its neighbours, keep expanding from every new core point, and stop when the cluster cannot grow. Then start again from the next unvisited core point. A border point within eps of core points from two different clusters joins whichever cluster reaches it first, so shuffling the data can move a border point from one cluster to the other, while core points and noise points always end up in the same groups.
 
 <DBSCANExplorer />
 
@@ -120,13 +120,20 @@ DBSCAN defines a cluster by **density**, not by distance to a centre: dense regi
 
 Raising eps (or lowering min_samples) makes more points core, so clusters grow and merge and fewer points are noise. Lowering eps does the opposite: clusters break up and more points become noise. A common way to choose eps is to sort every point's distance to its $k$-th nearest neighbour ($k$ = min_samples) and pick the distance where that curve bends sharply upwards.
 
+<QuickCheck
+  q="In the worked example above (points 1, 2, 3, 6, 7, 8, 8.5, 12), you raise eps from 1 to 3.2 and keep min_samples = 3. How many clusters does DBSCAN find now?"
+  options={['1', '2', '3', '0']}
+  answer={0}
+  explain="Points 3 and 6 are now within eps of each other (distance 3), and both are core points: 3 has 1, 2, 3 and 6 within 3.2, and 6 has 3, 6, 7, 8 and 8.5. So the two groups chain into **one** cluster. Point 12 is 3.5 from its nearest neighbour 8.5, still outside eps, so it stays noise. Answering 2 forgets that a bigger eps can join clusters."
+/>
+
 <PastPaperQuestion paper="prelim2026" n={260} />
 
-DBSCAN's weak spot is **one eps for the whole dataset**. In **Mixed density** above, two tight blobs sit close together and a third blob is spread out. An eps small enough to keep the tight pair apart (about 0.4 or less) turns most of the spread-out blob into noise, and an eps large enough to hold the spread-out blob together (about 0.7) also merges the tight pair. No single eps gets all three right. Extensions such as HDBSCAN and OPTICS handle varying density. Like every distance-based method, DBSCAN also works less well in very high dimensions, where all distances look alike.
+DBSCAN's weak spot is **one eps for the whole dataset**. In **Mixed density** above, two tight blobs sit close together and a third blob is spread out. An eps small enough to keep the tight pair apart (about 0.45 or less) leaves much of the spread-out blob as noise and breaks the rest into small fragments, and an eps large enough to hold the spread-out blob together (about 0.7) also merges the tight pair. No single eps gets all three right. Extensions such as HDBSCAN and OPTICS handle varying density. Like every distance-based method, DBSCAN also works less well in very high dimensions, where all distances look alike.
 
 <ExamTip>
 
-Did we not just say DBSCAN struggles with varying density? Both statements are true. Among the options in that question, K-means assumes round clusters of similar spread and the regressions are not clustering methods at all, so DBSCAN is the best of the four. Exam questions pair DBSCAN with **arbitrary shapes**, **noise/outliers** and **no need to choose k**; if a question asks what DBSCAN *struggles* with, the answer is clusters of **very different densities** (and choosing eps).
+Did we not just say DBSCAN struggles with varying density? Both statements are true. Among the options in that question, K-means assumes round clusters of similar spread and the regressions are not clustering methods at all, so DBSCAN is the best of the four. Exam questions pair DBSCAN with **arbitrary shapes**, **noise/outliers** and **no need to choose k**; if a question asks what DBSCAN *struggles* with, the answer is clusters of **very different densities** (and choosing eps). If HDBSCAN or OPTICS is among the options and the question stresses densities that differ a lot, choose that extension instead.
 
 </ExamTip>
 
@@ -186,7 +193,7 @@ Spectral clustering turns data into a **graph** of similar points, then uses the
 
 <PastPaperQuestion paper="prelim2026" n={25} />
 
-<Note>
+<Note title="Going further">
 
 Real libraries usually use a **normalised** Laplacian, such as $I - D^{-1/2} W D^{-1/2}$, which copes better with groups of different sizes; the idea is the same. Spectral clustering still needs you to choose $k$ and a good similarity (the radius, $\sigma$ or number of neighbours), and an eigen-decomposition of an $n \times n$ matrix is slow for very large $n$. It is used in practice: at IOAI 2025, the reference solution to a task on telling authentic paintings from replicas, where most labels were missing, began with spectral clustering.
 

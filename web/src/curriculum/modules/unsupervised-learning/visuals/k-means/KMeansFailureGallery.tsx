@@ -139,6 +139,33 @@ function TruthBands({ which }: { which: Key }) {
   )
 }
 
+/**
+  Colour index for each found cluster: the true group it overlaps most (greedy, one cluster per group), so that
+  the K-means and DBSCAN panels paint the same true group in the same colour. Extra clusters get the next free colours.
+*/
+function alignToTruth(truth: number[], pred: number[]): (l: number) => number {
+  const T = Array.from(new Set(truth)).sort((a, b) => a - b)
+  const P = Array.from(new Set(pred.filter((l) => l >= 0))).sort((a, b) => a - b)
+  const pairs: [number, number, number][] = []
+  P.forEach((p) => T.forEach((t) => pairs.push([truth.reduce((s, tt, i) => s + (tt === t && pred[i] === p ? 1 : 0), 0), p, t])))
+  pairs.sort((a, b) => b[0] - a[0])
+  const map = new Map<number, number>()
+  const used = new Set<number>()
+  for (const [c, p, t] of pairs)
+    if (c > 0 && !map.has(p) && !used.has(t)) {
+      map.set(p, t)
+      used.add(t)
+    }
+  let next = 0
+  P.forEach((p) => {
+    if (map.has(p)) return
+    while (used.has(next)) next++
+    map.set(p, next)
+    used.add(next)
+  })
+  return (l) => (l < 0 ? l : (map.get(l) ?? l))
+}
+
 function Marks({ points, labels, noise }: { points: Pt[]; labels: number[]; noise?: boolean[] }) {
   const { xs, ys } = usePlot()
   return (
@@ -165,6 +192,8 @@ export default function KMeansFailureGallery() {
   const db = useMemo(() => dbscan(points, spec.eps, spec.minSamples), [points, spec])
   const accK = matchedAccuracy(truth, km.labels)
   const accD = matchedAccuracy(truth, db.labels)
+  const kmColour = useMemo(() => alignToTruth(truth, km.labels), [truth, km])
+  const dbColour = useMemo(() => alignToTruth(truth, db.labels), [truth, db])
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
   const panel = (title: string, body: React.ReactNode, aria: string) => (
@@ -194,9 +223,9 @@ export default function KMeansFailureGallery() {
         {panel(
           `K-means, k = ${k}: ${pct(accK)} grouped correctly`,
           <>
-            <Marks points={points} labels={km.labels} />
+            <Marks points={points} labels={km.labels.map(kmColour)} />
             {km.centroids.map((c, j) => (
-              <CentroidHandle key={j} x={c[0]} y={c[1]} colour={clusterColour(j)} label={`centroid ${j + 1}`} r={6} />
+              <CentroidHandle key={j} x={c[0]} y={c[1]} colour={clusterColour(kmColour(j))} label={`centroid ${j + 1}`} r={6} />
             ))}
           </>,
           `${spec.label} data clustered by K-means with k = ${k}; ${pct(accK)} of points grouped as in the truth`,
@@ -204,7 +233,7 @@ export default function KMeansFailureGallery() {
         {showDb &&
           panel(
             `DBSCAN (eps ${spec.eps}, min_samples ${spec.minSamples}): ${pct(accD)}`,
-            <Marks points={points} labels={db.labels} noise={db.labels.map((l) => l < 0)} />,
+            <Marks points={points} labels={db.labels.map(dbColour)} noise={db.labels.map((l) => l < 0)} />,
             `${spec.label} data clustered by DBSCAN: ${db.nClusters} clusters, ${db.labels.filter((l) => l < 0).length} noise points, ${pct(accD)} grouped as in the truth`,
           )}
       </div>

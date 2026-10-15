@@ -125,7 +125,7 @@ The cut-off 0.5 is called the <Term def="The probability above which a classifie
 
 <Note title="Reading the score as log-odds">
 
-Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. (It is still fitted by maximum likelihood, not by least squares on the log-odds. The name *logistic* comes from the logistic function $\sigma$, which turns the log-odds back into a probability.)
+Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. (It is still fitted by maximum likelihood, an idea the next lesson explains, not by least squares on the log-odds. The name *logistic* comes from the logistic function $\sigma$, which turns the log-odds back into a probability.)
 
 </Note>
 
@@ -160,7 +160,7 @@ Logistic regression is a **linear classifier**: its decision boundary $\mathbf{w
 
 <Steps title="Which side? (w = (2, −1), b = 4)">
   <Step title="The boundary">
-    $2x_1 - x_2 + 4 = 0$, which rearranges to $x_2 = 2x_1 + 4$: a straight line with gradient 2 crossing the $x_2$-axis at 4.
+    $2x_1 - x_2 + 4 = 0$, which rearranges to $x_2 = 2x_1 + 4$: a straight line with slope 2 crossing the $x_2$-axis at 4.
   </Step>
   <Step title="The point (1, 3)">
     $z = 2(1) - 3 + 4 = 3 > 0$, so class 1, with $p = \sigma(3) \approx 0.95$.
@@ -189,7 +189,7 @@ $$
 L = -\big[\, y \ln p + (1 - y) \ln(1 - p) \,\big]
 $$
 
-This is the <Term def="The standard loss for binary classification: L = −[y ln p + (1 − y) ln(1 − p)], averaged over the examples. Also called log loss.">binary cross-entropy</Term> (BCE), also called **log loss**. For a whole dataset, average it over the $m$ examples. (The next lesson explains where the name comes from.)
+This is the <Term def="The standard loss for binary classification: L = −[y ln p + (1 − y) ln(1 − p)], averaged over the examples. Also called log loss.">binary cross-entropy</Term> (BCE), also called **log loss**. (The next lesson explains where the name comes from.) For a whole dataset, average it over the $m$ examples. (We write $m$ for the number of examples here, as many textbooks and the 2025 Final do; it is the $n$ of the linear regression module.)
 
 <LogLossCurve />
 

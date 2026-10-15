@@ -80,13 +80,13 @@ export default function SpectralGraph() {
   const lam2 = res.values[1]
   let story: string
   if (res.pieces > 2)
-    story = `The graph has fallen apart into ${res.pieces} separate pieces, so L has ${res.pieces} zero eigenvalues and the second eigenvector only singles out one piece. Increase r.`
+    story = `The graph has fallen apart into ${res.pieces} separate pieces, so L has ${res.pieces} zero eigenvalues. Any mix of their eigenvectors is equally "smooth", so the second eigenvector is an arbitrary choice and the split is unreliable. Increase r.`
   else if (res.pieces === 2)
     story = `Exactly two separate pieces: λ₂ = 0, and the Fiedler vector takes one constant value on each piece, so the split is perfect.`
   else if (res.acc > 0.95)
     story = `One connected graph, but with only a few edges between the two groups, so λ₂ = ${lam2.toFixed(3)} is small and the Fiedler vector still separates them.`
   else
-    story = `r is so large that edges jump between the groups: the graph has no weak spot left, λ₂ = ${lam2.toFixed(2)} is large, and the split is meaningless.`
+    story = `r is so large that edges jump between the groups: the graph has no clear weak spot left, λ₂ = ${lam2.toFixed(2)} is large, and the split ${res.acc < 0.7 ? 'no longer follows the two groups' : 'starts to cut across them'}.`
 
   const lo = Math.min(...res.fiedler)
   const hi = Math.max(...res.fiedler)
@@ -165,7 +165,7 @@ export default function SpectralGraph() {
           ['edges', String(res.edges.length)],
           ['separate pieces', String(res.pieces)],
           ['zero eigenvalues', String(zeros)],
-          ['spectral: grouped correctly', `${Math.round(res.acc * 100)}%`],
+          ['spectral: grouped correctly', res.pieces > 2 ? '— (graph in pieces)' : `${Math.round(res.acc * 100)}%`],
         ]}
       />
       <Controls>

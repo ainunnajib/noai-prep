@@ -4,7 +4,7 @@ import { blobs, sqDist, clusterColour, type Pt } from './clustering'
 import { CentroidHandle, Note } from './parts'
 
 /*
-  k-means++ seeding, one centre at a time. Each point is drawn with AREA proportional to its chance
+  k-means++ seeding, one centre at a time. Each point is drawn with AREA proportional to its chance (above a 1.5 px floor)
   of becoming the next centre, P(x) = D(x)^2 / sum D^2, where D(x) is the distance to the nearest
   centre chosen so far. The bars compare, blob by blob, the k-means++ chance with a uniform pick.
 */
@@ -79,7 +79,8 @@ function ProbDots({ probs, chosen }: { probs: number[]; chosen: Set<number> }) {
     <g>
       {D.points.map((p, i) => {
         if (chosen.has(i)) return null
-        const r = 2 + 9 * Math.sqrt(probs[i] / pmax)
+        // area proportional to the chance (radius ∝ √p), with a tiny floor so zero-chance points stay visible
+        const r = Math.max(1.5, 11 * Math.sqrt(probs[i] / pmax))
         return (
           <circle
             key={i}

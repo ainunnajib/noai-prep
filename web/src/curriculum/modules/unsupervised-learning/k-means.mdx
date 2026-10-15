@@ -4,7 +4,7 @@ import ElbowPlot from './visuals/k-means/ElbowPlot'
 import KMeansFailureGallery from './visuals/k-means/KMeansFailureGallery'
 import { scratchCode, sklearnCode } from './visuals/k-means/code'
 
-A music app holds millions of songs and not one genre tag. Can a program sort them into groups of similar-sounding songs by itself? That job is called <Term def="Grouping examples so that similar ones end up in the same group, without being told what the groups are.">clustering</Term>, and the most famous way to do it is **K-means**. It is two lines of logic repeated until nothing changes, and it matters for NOAI twice over: the Prelim asks how it works and how to choose k, and the 2025 Final asked students to code it from scratch for 25 marks.
+A music app holds millions of songs and not one genre tag. Can a program sort them into groups of similar-sounding songs by itself? That job is called <Term def="Grouping examples so that similar ones end up in the same group, without being told what the groups are.">clustering</Term>, and the most famous way to do it is **K-means** (also written k-means). It is two lines of logic repeated until nothing changes, and it matters for NOAI twice over: the Prelim asks how it works and how to choose k, and the 2025 Final asked students to code it from scratch for 25 marks.
 
 <Analogy title="Bubble-tea shops in a new estate">
 
@@ -47,6 +47,8 @@ Finding the best clustering directly would mean trying every way of splitting th
    $\mu_j = \frac{1}{|S_j|} \sum_{i \in S_j} x_i$, where $S_j$ is the set of points in cluster $j$ and $|S_j|$ is how many there are.
 4. **Repeat** steps 2 and 3 until an assign step changes nothing. Then the centroids cannot move either: K-means has <Term def="Reached a state where repeating the steps changes nothing, so the algorithm stops.">converged</Term>.
 
+One detail matters when you code it. If no points are assigned to a centroid (an **empty cluster**), the update step has to average zero points, which is undefined: NumPy returns `nan`. The simple fix, and the one the 2025 Final's hints pointed to, is to leave that centroid where it was. (scikit-learn instead moves it to a point far from its current centroid.)
+
 The tinted regions in the visual show where each centroid "wins": every spot in a region is closer to that centroid than to any other. The boundaries are straight lines exactly halfway between two centroids.
 
 <KMeansStepper />
@@ -62,7 +64,7 @@ The inertia keeps falling or stays flat, and there are only finitely many ways t
 
 <KeyIdea>
 
-Each step can only lower the inertia, so K-means **always converges**. It converges to the nearest "valley", though, and which valley you reach depends on where the centroids **start**.
+Neither step can ever raise the inertia (it falls or stays the same), so K-means **always converges**. It converges to the nearest "valley", though, and which valley you reach depends on where the centroids **start**.
 
 </KeyIdea>
 
@@ -134,7 +136,7 @@ The bottom is the sum of $D^2$ over all points, so the chances add up to 1. A po
 
 ## In code
 
-Here is K-means from scratch in NumPy, run on the worked example. The distance table `D` has one row per point and one column per centroid, `argmin(axis=1)` picks each row's nearest centroid, and a boolean mask averages each cluster. Each line prints the round, the labels, the new centroids and the inertia. Run it, then change the starting centroids.
+Here is K-means from scratch in NumPy, run on the worked example. The distance table `D` has one row per point and one column per centroid, `argmin(axis=1)` picks each row's nearest centroid, and a <Term def="An array of True/False values, such as labels == j, used to pick out only the rows where it is True.">boolean mask</Term> picks out each cluster's points to average them. Each line prints the round, the labels, the new centroids and the inertia. Run it, then change the starting centroids.
 
 <PyRunner packages={['numpy']} code={scratchCode} />
 

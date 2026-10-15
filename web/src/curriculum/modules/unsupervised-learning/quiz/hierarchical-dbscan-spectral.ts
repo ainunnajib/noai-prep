@@ -31,7 +31,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'DBSCAN runs with eps = 1 and min_samples = 3 (counting the point itself) on the one-dimensional points $0,\\ 0.8,\\ 1.6,\\ 4,\\ 4.5$. What is the point $1.6$?',
     options: [
-      'A border point: only 2 points lie within eps of it, but one of them, 0.8, is a core point',
+      'A border point: it has only 2 points within eps, but one of them, 0.8, is a core point',
       'A core point: it lies within eps of another point, so its neighbourhood counts as dense',
       'A noise point: fewer than 3 points lie within eps of it, so it cannot join any cluster',
       'A core point: the cluster it ends up in contains 3 points, which meets min_samples',
@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A delivery company runs DBSCAN on customer GPS locations with eps = 50 m and min_samples = 20. It labels 70% of the customers as noise and finds only a few tiny clusters. Which change is most likely to help?',
     options: [
-      'Increase eps (or lower min_samples), so that more points have enough neighbours to be core points',
+      'Increase eps (or lower min_samples), so more points have enough neighbours to be core points',
       'Decrease eps, so that each cluster becomes tighter and the clusters are better separated',
       'Increase min_samples, so that only the truly dense neighbourhoods are allowed to form clusters',
       'Set k to the number of delivery zones first, so that DBSCAN knows how many clusters to find',

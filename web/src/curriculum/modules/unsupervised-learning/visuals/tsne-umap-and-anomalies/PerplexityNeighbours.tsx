@@ -189,7 +189,7 @@ export default function PerplexityNeighbours() {
           ]}
         />
         <Slider label="perplexity" value={perp} min={2} max={30} step={1} onChange={setPerp} />
-        <Readout items={[['σ (circle radius)', sigma.toFixed(2)], ['effective neighbours 2^H', (2 ** H).toFixed(1)]]} />
+        <Readout items={[['σ (circle radius)', sigma.toFixed(2)], [<>effective neighbours <M>{'2^H'}</M></>, (2 ** H).toFixed(1)]]} />
       </Controls>
     </Figure>
   )

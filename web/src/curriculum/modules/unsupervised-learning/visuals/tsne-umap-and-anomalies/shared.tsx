@@ -14,7 +14,7 @@ export const DIGIT_COLOURS = [
   'var(--viz-neg)',
   'var(--viz-ink)',
   'color-mix(in srgb, var(--viz-1) 45%, var(--viz-3))',
-  'var(--viz-muted)',
+  'color-mix(in srgb, var(--viz-muted) 55%, var(--viz-ink))',
 ]
 
 /** colour for a value in [0, 1] along a two-colour ramp (used for the Swiss roll) */

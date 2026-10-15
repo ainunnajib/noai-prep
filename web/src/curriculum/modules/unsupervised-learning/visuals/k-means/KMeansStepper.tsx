@@ -59,6 +59,11 @@ function InertiaChart({ hist, step }: { hist: KStep[]; step: number }) {
       </Label>
       {pts.length > 1 && <Path points={pts} color="var(--viz-1)" width={2.5} />}
       <StepDots pts={pts} hist={hist} />
+      {step === 0 && (
+        <Label x={(Math.max(n, 4) + 1) / 2} y={top * 0.45} anchor="middle" color="var(--viz-muted)" size={12}>
+          Press Next: a dot appears after each step
+        </Label>
+      )}
     </Plot>
   )
 }
