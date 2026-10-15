@@ -1,5 +1,7 @@
 """Estimate realistic lesson times from lesson content and (optionally) write them into each module's index.ts.
 
+Usage: python3 scripts/estimate-minutes.py [--write] [--module <slug>]
+
 minutes = prose words / 150 + 1.5 per interactive visual + 1 per quick check or embedded past-paper question
           + 3 per runnable Python exercise + 4 for the 5-question checkpoint, rounded to the nearest 5 (min 10).
 """
@@ -28,10 +30,11 @@ def estimate(mdx):
 
 def main():
     write = '--write' in sys.argv
+    only = sys.argv[sys.argv.index('--module') + 1] if '--module' in sys.argv else None
     total_old = total_new = 0
     for idx in sorted(glob.glob(MODS + '/*/index.ts')):
         mod = idx.split('/')[-2]
-        if mod.startswith('_'): continue
+        if mod.startswith('_') or (only and mod != only): continue
         src = open(idx).read()
         out = src
         for m in re.finditer(r'slug: "([^"]+)",\n\s+title: "(?:[^"\\]|\\.)*",\n\s+summary: "(?:[^"\\]|\\.)*",\n\s+minutes: (\d+),', src):

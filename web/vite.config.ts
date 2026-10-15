@@ -20,6 +20,8 @@ export default defineConfig({
     react({ include: /\.(mdx|tsx|ts)$/ }),
   ],
   build: {
-    chunkSizeWarningLimit: 1200,
+    // The largest chunk is the practice question bank (about 1.3 MB of JSON, 0.4 MB gzipped), which only
+    // the Practice and Mock exam pages load, on demand.
+    chunkSizeWarningLimit: 1500,
   },
 })

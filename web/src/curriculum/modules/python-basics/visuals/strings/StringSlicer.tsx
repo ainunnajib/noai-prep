@@ -189,7 +189,7 @@ export default function StringSlicer() {
         <rect x={x - 22} y={yRule + 4} width={44} height={30} style={{ fill: 'transparent' }} />
         <path className={s.grip} d={`M${x},${yRule} l9,10 v14 h-18 v-14 z`} style={{ fill: colour, stroke: 'var(--surface)', strokeWidth: 1.5 }} />
         <text x={x} y={yRule + 44} textAnchor="middle" style={{ fill: colour, fontSize: 11.5, fontWeight: 800 }}>
-          {which}
+          {`${which} = ${g}`}
         </text>
       </g>
     )
@@ -264,6 +264,14 @@ export default function StringSlicer() {
             {Array.from({ length: n + 1 }, (_, g) => (
               <line key={g} x1={gapX(g)} x2={gapX(g)} y1={yRule - 4} y2={yRule + 4} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
             ))}
+            {/* gap numbers: the numbers a slice uses (hidden where a handle sits, whose label shows it) */}
+            {Array.from({ length: n + 1 }, (_, g) =>
+              handles && (g === handles.start || g === handles.stop) ? null : (
+                <text key={`gn${g}`} x={gapX(g)} y={yRule + 17} textAnchor="middle" style={{ fill: 'var(--viz-muted)', fontSize: 11, fontWeight: 600 }}>
+                  {g}
+                </text>
+              ),
+            )}
             {handles && [handleEl('start', handles.start), handleEl('stop', handles.stop)]}
           </svg>
         </div>

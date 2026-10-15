@@ -65,8 +65,10 @@ export default function GridIndexer() {
   const sel: Sel = res.ok ? res.sel : { r: null, c: null }
   const cell = narrow ? 44 : 50
 
-  const shade = (v: number) => (pixels ? `color-mix(in srgb, var(--ink) ${Math.round((v / 9) * 85)}%, var(--surface))` : undefined)
-  const ink = (v: number) => (pixels && v >= 5 ? 'var(--surface)' : undefined)
+  // Pixel mode is image data, not page chrome, so it uses a fixed greyscale ramp in both themes (a documented exception
+  // to the theme tokens): 0 is black and 9 is white, matching "0 (black) to 255 (white)" in the lesson.
+  const shade = (v: number) => (pixels ? `hsl(0 0% ${8 + v * 10}%)` : undefined)
+  const ink = (v: number) => (pixels ? (v < 5 ? '#ffffff' : '#111111') : undefined)
 
   return (
     <Figure

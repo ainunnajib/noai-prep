@@ -58,27 +58,12 @@ a = a + b
 b = b - 1
 ```
 
-<Steps title="Trace it line by line">
-  <Step title="Line 1: a = 3">
-    `a` is 3. `b` does not exist yet.
-  </Step>
-  <Step title="Line 2: b = a * 2">
-    Right side first: $3 \times 2 = 6$. Now `a` is 3 and `b` is 6.
-  </Step>
-  <Step title="Line 3: a = a + b">
-    Right side first, using the current values: $3 + 6 = 9$. Now `a` is 9; `b` is still 6.
-  </Step>
-  <Step title="Line 4: b = b - 1">
-    $6 - 1 = 5$. Final values: `a` is 9 and `b` is 5.
-  </Step>
-</Steps>
-
-| After line | `a` | `b` |
-|---|---|---|
-| 1 | 3 | (none) |
-| 2 | 3 | 6 |
-| 3 | 9 | 6 |
-| 4 | 9 | 5 |
+| After line | `a` | `b` | why |
+|---|---|---|---|
+| 1 | 3 | (none) | `b` does not exist yet |
+| 2 | 3 | 6 | right side first: $3 \times 2 = 6$ |
+| 3 | 9 | 6 | right side first, with the current values: $3 + 6 = 9$ |
+| 4 | 9 | 5 | $6 - 1 = 5$ |
 
 <QuickCheck
   q="After these four lines run, what are `n` and `m`?"
@@ -243,19 +228,11 @@ When an expression has several operators, Python follows strict <Term def="The r
   explain="`//` and `*` are on the same level, so go left to right: `8 // 3` is 2, then `2 * 2` is 4. Addition comes last: 7 + 4 = 11. Doing the addition first gives 15 // 3 * 2 = 10, and using `/` instead of `//` gives a float."
 />
 
-### Floats are approximate
+<Note title="Floats are approximate">
 
-```python
-print(0.1 + 0.2)
-print(round(0.1 + 0.2, 2))
-```
+`print(0.1 + 0.2)` shows `0.30000000000000004`. Computers store floats in binary, and 0.1 cannot be written exactly in binary, just as $\tfrac{1}{3}$ cannot be written exactly in decimal, so tiny errors appear in the 16th or 17th digit. Never expect two floats to be *exactly* equal: round them (`round(0.1 + 0.2, 2)` gives `0.3`) or check that they are very close.
 
-```text
-0.30000000000000004
-0.3
-```
-
-This is not a bug in Python. Computers store floats in binary, and 0.1 cannot be written exactly in binary, just as $\tfrac{1}{3}$ cannot be written exactly in decimal ($0.333\ldots$). So most floats are stored as the nearest value the computer can hold, and tiny errors appear in the 16th or 17th digit. The practical rule: never expect two floats to be *exactly* equal; round them, or check that they are very close. Neural networks run on approximate numbers all the time (PyTorch uses 32-bit floats by default), and training copes with these tiny errors.
+</Note>
 
 <PyRunner code={`print(7 / 2, 7 // 2, 7 % 2, 7 ** 2)
 print(-7 // 2, -7 % 2)
