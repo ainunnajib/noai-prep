@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Figure, Controls, Slider, Readout, Plot, usePlot, DraggablePoint } from '../../../../../kit'
-import { metricsOf, fmt2 } from './evalMath'
 import s from './eval.module.css'
 
 /*
@@ -27,7 +26,7 @@ const NEG_C = 'var(--viz-1)'
 
 function Tokens({ t }: { t: number }) {
   const { xs, ys, width } = usePlot()
-  const r = width < 380 ? 8 : 10
+  const r = width < 380 ? 9 : 10
   // rows are stacked up from the bottom axis so the plot has no empty band
   const lane1 = ys(0) - 12 - r
   const lane0 = lane1 - (2 * r + 2)
@@ -59,7 +58,7 @@ function Tokens({ t }: { t: number }) {
           <g key={e.id}>
             <line x1={cx} x2={cx} y1={mid} y2={cy} style={{ stroke: c, strokeWidth: 1.2, opacity: 0.6 }} />
             <circle cx={cx} cy={cy} r={r} style={{ fill: c, stroke: wrong ? 'var(--viz-neg)' : 'var(--surface)', strokeWidth: wrong ? 2.5 : 1.5 }} />
-            <text x={cx} y={cy} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--surface)', fontSize: r + 2, fontWeight: 800 }}>
+            <text x={cx} y={cy} dy="0.35em" textAnchor="middle" className={e.spam ? s.onOrange : undefined} style={{ fill: e.spam ? undefined : 'var(--surface)', fontSize: r + 2, fontWeight: 800 }}>
               {e.id}
             </text>
           </g>
@@ -89,7 +88,6 @@ export default function EmailSorter() {
   const fp = cell(true, false)
   const fn = cell(false, true)
   const tn = cell(false, false)
-  const m = metricsOf({ tp: tp.length, fp: fp.length, fn: fn.length, tn: tn.length })
   const box = (name: string, ids: string[], right: boolean) => (
     <div className={`${s.cell} ${right ? s.cellRight : s.cellWrong}`} role="cell" aria-label={`${name}: ${ids.length} (${ids.join(', ') || 'none'})`}>
       <span className={s.cellName}>{name}</span>
@@ -105,8 +103,8 @@ export default function EmailSorter() {
       title="Sort ten emails into the confusion matrix"
       caption={
         <>
-          Orange tokens are spam, blue tokens are real emails, placed at the filter's score. Everything right of the threshold goes to the spam folder. A red ring
-          marks a mistake. Try thresholds 0.25, 0.50 and 0.75 and compare with the table in the next section.
+          Drag the threshold: every email to its right goes to the spam folder, and a red ring marks a mistake. Try 0.25, 0.50 and 0.75, then compare with
+          the table under “Moving the threshold”.
         </>
       }
     >
@@ -128,6 +126,15 @@ export default function EmailSorter() {
           ring = mistake
         </span>
       </div>
+      <Controls>
+        <Slider label="threshold" value={k} min={0} max={20} step={1} onChange={setK} format={(v) => (v / 20).toFixed(2)} />
+        <Readout
+          items={[
+            ['correct', `${tp.length + tn.length} of ${EMAILS.length}`],
+            ['mistakes', String(fp.length + fn.length)],
+          ]}
+        />
+      </Controls>
       <div className={s.cm} role="table" aria-label="Confusion matrix with the emails in each cell">
         <div className={s.cmCorner} />
         <div className={s.cmColHead}>
@@ -147,16 +154,6 @@ export default function EmailSorter() {
         {box('FN', fn, false)}
         {box('TP', tp, true)}
       </div>
-      <Controls>
-        <Slider label="threshold" value={k} min={0} max={20} step={1} onChange={setK} format={(v) => (v / 20).toFixed(2)} />
-        <Readout
-          items={[
-            ['accuracy', fmt2(m.accuracy)],
-            ['precision', fmt2(m.precision)],
-            ['recall', fmt2(m.recall)],
-          ]}
-        />
-      </Controls>
     </Figure>
   )
 }

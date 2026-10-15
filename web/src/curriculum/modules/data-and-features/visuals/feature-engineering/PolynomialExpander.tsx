@@ -2,10 +2,10 @@ import { useState, type CSSProperties } from 'react'
 import { Figure, Controls, Readout, Slider, Toggle, Bars, M } from '../../../../../kit'
 
 /*
-  What PolynomialFeatures actually builds. The learner picks the number of input features n and
+  What PolynomialFeatures actually builds. The learner picks the number of input features p and
   the degree d, and can switch on interaction_only / include_bias. Every generated column is shown
   as a chip (in scikit-learn's order) with its value for one example row, and the column count is
-  worked out with the formula. A bar chart shows how fast the count explodes as n grows.
+  worked out with the formula. A bar chart shows how fast the count explodes as p grows.
 */
 
 const SUB = ['₁', '₂', '₃', '₄', '₅']
@@ -82,11 +82,11 @@ export default function PolynomialExpander() {
   const formula = interOnly
     ? `\\sum_{k=${bias ? 0 : 1}}^{${d}} \\binom{${n}}{k} = ${total}`
     : bias
-      ? `\\binom{n+d}{d} = \\binom{${n + d}}{${d}} = ${total}`
-      : `\\binom{n+d}{d} - 1 = \\binom{${n + d}}{${d}} - 1 = ${total}`
+      ? `\\binom{p+d}{d} = \\binom{${n + d}}{${d}} = ${total}`
+      : `\\binom{p+d}{d} - 1 = \\binom{${n + d}}{${d}} - 1 = ${total}`
 
   const growth = [2, 5, 10, 20, 50, 100].map((m) => ({
-    label: `n = ${m}`,
+    label: `p = ${m}`,
     value: count(m, d, interOnly, bias),
     color: m === n ? 'var(--viz-2)' : 'var(--viz-1)',
   }))
@@ -104,7 +104,7 @@ export default function PolynomialExpander() {
       }
     >
       <Controls>
-        <Slider label="input features n" value={n} min={1} max={5} onChange={setN} />
+        <Slider label="input features p" value={n} min={1} max={5} onChange={setN} />
         <Slider label="degree d" value={d} min={1} max={4} onChange={setD} />
       </Controls>
       <Controls>

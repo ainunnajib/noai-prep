@@ -56,6 +56,17 @@
   background: color-mix(in srgb, var(--viz-1) 22%, var(--surface));
   border-color: color-mix(in srgb, var(--viz-1) 40%, transparent);
 }
+/* in dark mode a 22% tint almost vanishes against the card: make the training folds stronger */
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .cellTrain {
+    background: color-mix(in srgb, var(--viz-1) 40%, var(--surface));
+    border-color: color-mix(in srgb, var(--viz-1) 75%, transparent);
+  }
+}
+:global(:root[data-theme='dark']) .cellTrain {
+  background: color-mix(in srgb, var(--viz-1) 40%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-1) 75%, transparent);
+}
 .cellVal {
   background: var(--viz-2);
   border-color: var(--viz-2);
@@ -153,10 +164,10 @@
   line-height: 1;
 }
 .ok {
-  color: var(--viz-pos);
+  color: color-mix(in srgb, var(--viz-pos) 70%, var(--ink));
 }
 .bad {
-  color: var(--viz-neg);
+  color: color-mix(in srgb, var(--viz-neg) 70%, var(--ink));
 }
 
 /* ---------- two side-by-side panels that stack on phones ---------- */

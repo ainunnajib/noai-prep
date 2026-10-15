@@ -58,7 +58,7 @@ Three helper rules let you differentiate any polynomial term by term:
   q="What is the derivative of $f(x) = 4x^3 - 6x + 9$?"
   options={['$12x^2 - 6 + 9$', '$12x^2 - 6$', '$12x^3 - 6x$', '$x^4 - 3x^2 + 9x$']}
   answer={1}
-  explain="Term by term: $4 \times 3x^2 = 12x^2$, then $-6x$ gives $-6$, and the constant $9$ gives $0$. Keeping the $+9$ forgets that constants vanish, $12x^3$ forgets to lower the power, and $x^4 - 3x^2 + 9x$ goes the wrong way (that is integrating, not differentiating)."
+  explain="Term by term: $4 \times 3x^2 = 12x^2$, then $-6x$ gives $-6$, and the constant $9$ gives $0$. Keeping the $+9$ forgets that constants vanish, $12x^3$ forgets to lower the power, and $x^4 - 3x^2 + 9x$ goes the wrong way: it undoes a derivative (called *integrating*, which NOAI does not need) instead of taking one."
 />
 
 ## The second derivative
@@ -188,7 +188,9 @@ Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zoom
 - **ReLU**, $\text{ReLU}(x) = \max(0, x)$: slope $0$ for $x < 0$, slope $1$ for $x > 0$, and a kink at $x = 0$ (switch the visual above to ReLU).
 - **Absolute value** $|x|$: slope $-1$ on the left and $+1$ on the right, so its derivative is the <Term def="sign(x) is −1 for negative x, +1 for positive x, and 0 at x = 0.">sign</Term> of $x$, written $\text{sign}(x)$.
 
-Training code still needs *some* number at exactly 0. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; each such slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0:
+Training code still needs *some* number at exactly 0. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; each such slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0.
+
+You will learn PyTorch properly in [its own module](#/learn/pytorch/autograd). Here, `requires_grad=True` asks PyTorch to keep track of `x`, `.sum().backward()` works out the slope of the total with respect to every entry of `x`, and `x.grad` holds those slopes. Each entry changes only its own term of the total, so its slope is simply the ReLU (or $|x|$) slope at that entry. The next lesson, on [the chain rule](#/learn/calculus-and-gradient-descent/chain-rule), shows how `.backward()` works.
 
 ```python
 import torch

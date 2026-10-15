@@ -13,7 +13,8 @@ import s from '../confusion-matrix-and-metrics/eval.module.css'
 */
 
 const D = 2.5
-const SHARES = [0.5, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005]
+// rarest on the left, so sliding right means more positives (like every other slider in the module)
+const SHARES = [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
 const ROC_C = 'var(--viz-1)'
 const PR_C = 'var(--viz-5)'
 const OP_C = 'var(--viz-ink)'
@@ -21,7 +22,7 @@ const OP_C = 'var(--viz-ink)'
 const pctTxt = (v: number) => `${(v * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}%`
 
 export default function ImbalanceROCvsPR() {
-  const [si, setSi] = useState(0)
+  const [si, setSi] = useState(SHARES.length - 1)
   const [recall, setRecall] = useState(0.8)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
 
@@ -41,16 +42,17 @@ export default function ImbalanceROCvsPR() {
   const rocArea: Pt[] = [...curves.roc, [1, 0], [0, 0]]
   const prArea: Pt[] = [[0, 0], ...curves.pr, [1, 0]]
   const size = narrow ? 300 : 330
+  // put the PR-AUC label under the curve while the curve is high; once it sinks through that spot, move the label above it
+  const lowUnderLabel = Math.min(...curves.pr.filter(([r]) => r >= 0.15 && r <= 0.62).map(([, p]) => p))
+  const prLabel = lowUnderLabel > 0.42 ? { x: 0.38, y: 0.3 } : { x: 0.72, y: 0.7 }
 
   return (
     <Figure
       title="Same model, rarer positives: ROC stays, PR sinks"
       caption={
         <>
-          One classifier with ROC-AUC 0.96, tested on populations with fewer and fewer positives. The black dot is the threshold that catches 80% of the
-          positives. Slide the share of positives from 50% down to 0.5%: the ROC curve (left) does not move at all, because TPR and FPR are each computed
-          inside one class. The precision-recall curve (right) sinks towards the dashed baseline, because the same small false positive rate now produces far
-          more false alarms than true catches. The faint curve is the PR curve at 50% for comparison.
+          Slide the share of positives down from 50% to 0.5%: the ROC curve does not move, but the precision-recall curve sinks towards its dashed
+          baseline. The black dot is the threshold for the recall you choose (80% at first).
         </>
       }
     >
@@ -76,19 +78,43 @@ export default function ImbalanceROCvsPR() {
             <Path points={prArea} fill="color-mix(in srgb, var(--viz-5) 14%, transparent)" color="none" width={0} closed />
             <Grid xTicks={5} yTicks={5} />
             <Axes xLabel="recall" yLabel="precision" xTicks={5} yTicks={5} />
-            {si > 0 && <Path points={balanced.pr} color={PR_C} width={1.6} opacity={0.35} />}
-            <HLine y={share} color="var(--viz-muted)" dash="5 5" label={share >= 0.1 ? `baseline = ${pctTxt(share)}` : undefined} />
+            {share < 0.5 && <Path points={balanced.pr} color={PR_C} width={1.6} opacity={0.35} />}
+            <HLine y={share} color="var(--viz-muted)" dash="5 5" />
+            {share >= 0.1 && (
+              <Label x={1} y={share} dx={-4} dy={-5} anchor="end" color="var(--viz-axis)">
+                {`baseline = ${pctTxt(share)}`}
+              </Label>
+            )}
             <Path points={curves.pr} color={PR_C} width={3} />
             <Dots points={[{ x: recall, y: precision, color: OP_C, r: 6 }]} />
-            {/* the PR curve falls to the right, so below-left of the point is under it; near the left edge use the right side */}
-            <HaloLabel x={recall} y={precision} dx={recall < 0.45 ? 10 : -10} dy={precision < 0.15 ? -12 : 18} anchor={recall < 0.45 ? 'start' : 'end'}>
+            {/* the PR curve falls to the right: below-left of the point is under it and above-right is clear of it. Near the left edge use the right
+                side: above it, unless the point is so high that only the (flat) area below has room */}
+            <HaloLabel
+              x={recall}
+              y={precision}
+              dx={recall < 0.45 ? 10 : -10}
+              dy={recall < 0.45 ? (precision > 0.9 ? 18 : -10) : precision < 0.15 ? -12 : 18}
+              anchor={recall < 0.45 ? 'start' : 'end'}
+            >
               {`precision ${precision.toFixed(2)}`}
             </HaloLabel>
-            <Label x={0.38} y={0.3} anchor="middle" color={PR_C} size={13} weight={700}>
+            <Label x={prLabel.x} y={prLabel.y} anchor="middle" color={PR_C} size={13} weight={700}>
               {`PR-AUC = ${curves.ap.toFixed(3)}`}
             </Label>
           </Plot>
         </div>
+      </div>
+      <div className={s.legend}>
+        <span>
+          <span className={`${s.swatchLine} ${s.swatchDash}`} style={{ borderColor: 'var(--viz-muted)' }} />
+          random model
+        </span>
+        {share < 0.5 && (
+          <span>
+            <span className={s.swatchLine} style={{ borderColor: PR_C, opacity: 0.35 }} />
+            PR curve at 50% positives
+          </span>
+        )}
       </div>
       <p className={s.note}>
         Out of {per.toLocaleString('en-GB')} cases with {pctTxt(share)} positives, the threshold for {Math.round(recall * 100)}% recall catches{' '}

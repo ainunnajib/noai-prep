@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Figure, Controls, Segmented, Button, mulberry32, useBump, useContainerWidth } from '../../../../../kit'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Figure, Controls, Segmented, Button, mulberry32, useBump, useContainerWidth, useNarrow } from '../../../../../kit'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from './cv.module.css'
 
 /*
@@ -52,6 +53,7 @@ export default function GridVsRandomSearch() {
   const [budget, setBudget] = useState(9)
   const [mode, setMode] = useState<Mode>('A')
   const [seed, bump] = useBump()
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
 
   const m = Math.round(Math.sqrt(budget))
   const gridTrials: Trial[] = useMemo(() => {
@@ -82,14 +84,12 @@ export default function GridVsRandomSearch() {
       title="Grid search versus random search, same budget"
       caption={
         <>
-          Each panel spends the same number of trials looking for the brightest spot (the best validation score). With "only A matters", the grid
-          tests just {m} different values of A, because its trials line up in columns, so the top strip shows only {m} distinct positions. Random search
-          tests {budget} different values of A and usually lands closer to the peak. Press <b>New random draw</b> a few times: random search is not
-          always better, but it explores the hyperparameter that matters far more thoroughly. Then try "both matter".
+          With “only A” mattering, the grid's trials line up in columns, so it tests just {m} values of A; random search tests {budget}. Press{' '}
+          <b>New random draw</b> a few times, then try “both”.
         </>
       }
     >
-      <div className={s.wrap}>
+      <div className={s.wrap} ref={wrapRef}>
         <Controls>
           <Segmented
             label="Budget (trials)"
@@ -111,7 +111,23 @@ export default function GridVsRandomSearch() {
         </Controls>
         <div className={s.panels}>
           <SearchPanel title="Grid search" kind="grid" trials={gridTrials} mode={mode} margA={margA} margB={margB} bestPossible={bestPossible} />
-          <SearchPanel title="Random search" kind="random" trials={randTrials} mode={mode} margA={margA} margB={margB} bestPossible={bestPossible} />
+          <SearchPanel
+            title="Random search"
+            kind="random"
+            trials={randTrials}
+            mode={mode}
+            margA={margA}
+            margB={margB}
+            bestPossible={bestPossible}
+            extra={
+              // on phones the panels stack, so repeat the button next to the panel it changes
+              narrow ? (
+                <Controls>
+                  <Button onClick={bump}>New random draw</Button>
+                </Controls>
+              ) : null
+            }
+          />
         </div>
       </div>
     </Figure>
@@ -126,7 +142,9 @@ function SearchPanel({
   margA,
   margB,
   bestPossible,
+  extra,
 }: {
+  extra?: ReactNode
   title: string
   kind: 'grid' | 'random'
   trials: Trial[]
@@ -140,8 +158,9 @@ function SearchPanel({
   const L = 24 // left margin (B label)
   const STRIP = 46
   const GAP = 6
-  const S = W - L - GAP - STRIP - 8 // main square side
-  const TOP = 8
+  const RIGHT = 20 // room for the right strip's title, outside the strip
+  const S = W - L - GAP - STRIP - RIGHT // main square side
+  const TOP = 20 // room for the top strip's title, outside the strip
   const H = TOP + STRIP + GAP + S + 26
 
   const x0 = L
@@ -182,7 +201,7 @@ function SearchPanel({
   return (
     <div className={s.panel} ref={ref}>
       <p className={s.panelTitle}>
-        <span className={s.badge} style={{ color: col }}>
+        <span className={s.badge} style={{ color: txt(col) }}>
           {kind === 'grid' ? '■' : '●'} {title}
         </span>
         <span className={s.muted}>{trials.length} trials</span>
@@ -201,7 +220,7 @@ function SearchPanel({
           <line key={`ta${i}`} x1={px(t.a)} x2={px(t.a)} y1={TOP + STRIP} y2={sy(t.s)} style={{ stroke: col, strokeWidth: 1.2, opacity: 0.55 }} />
         ))}
         {trials.map((t, i) => marker(px(t.a), sy(t.s), 3.5, `ma${i}`))}
-        <text x={x0 + 4} y={TOP + 12} className="plot-label" style={{ fontSize: 11 }}>
+        <text x={x0} y={TOP - 6} className="plot-label" style={{ fontSize: 11 }}>
           best score at each A
         </text>
 
@@ -212,7 +231,7 @@ function SearchPanel({
           <line key={`tb${i}`} x1={rx0} x2={sx(t.s)} y1={py(t.b)} y2={py(t.b)} style={{ stroke: col, strokeWidth: 1.2, opacity: 0.55 }} />
         ))}
         {trials.map((t, i) => marker(sx(t.s), py(t.b), 3.5, `mb${i}`))}
-        <text transform={`translate(${rx0 + 12},${y0 + S - 6}) rotate(-90)`} className="plot-label" style={{ fontSize: 11 }}>
+        <text transform={`translate(${rx0 + STRIP + 16},${y0 + S}) rotate(-90)`} className="plot-label" style={{ fontSize: 11 }}>
           best score at each B
         </text>
 
@@ -240,12 +259,13 @@ function SearchPanel({
           <span>values of B tried</span>
         </span>
         <span className={s.stat}>
-          <span className={s.statNum} style={{ color: best.s > bestPossible - 0.05 ? 'var(--viz-pos)' : undefined }}>
+          <span className={s.statNum} style={{ color: best.s > bestPossible - 0.05 ? txt('var(--viz-pos)') : undefined }}>
             {best.s.toFixed(2)}
           </span>
           <span>best found (max {bestPossible.toFixed(2)})</span>
         </span>
       </div>
+      {extra}
     </div>
   )
 }

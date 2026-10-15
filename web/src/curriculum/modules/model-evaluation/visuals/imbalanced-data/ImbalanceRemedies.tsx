@@ -20,7 +20,7 @@ import {
 } from './remedies'
 
 /*
-  Five ways to handle a 5% minority class, on the same training data (228 genuine, 12 fraud).
+  Four remedies (plus the threshold shortcut) for a 5% minority class, on the same training data (228 genuine, 12 fraud).
   The solid line is the logistic-regression boundary learned from the remedied training set; the
   dashed line is the boundary with no fix. Metrics are measured on an untouched test set
   (1,900 genuine + 100 fraud) at threshold 0.5.
@@ -54,7 +54,7 @@ const INFO: Record<Tab, { what: string; pro: string; con: string }> = {
     con: 'Bigger, slower training set of exact duplicates, which encourages memorising those 12 rows.',
   },
   smote: {
-    what: 'New synthetic frauds are placed on the lines between each fraud and its nearest fraud neighbours (faint lines). Slide λ to 0 and every new point lands on top of an original: plain duplication.',
+    what: 'New synthetic frauds are placed on the lines between each fraud and its nearest fraud neighbours (faint lines), each at a random λ. Shrink the range of λ to 0 and every new point lands on top of an original: plain duplication.',
     pro: 'Adds variety instead of exact copies.',
     con: 'Can invent unrealistic points where the classes overlap; only for numeric features; one more step that must be done on the training set only.',
   },
@@ -176,13 +176,11 @@ export default function ImbalanceRemedies() {
 
   return (
     <Figure
-      title="Five remedies for a rare class (plus one shortcut)"
+      title="Four remedies for a rare class (plus a shortcut)"
       caption={
         <>
-          Blue dots are genuine payments, orange dots are frauds (5% of the training data). The solid line is the boundary that logistic regression learns from
-          the remedied training set (orange shading = predicted fraud); the dashed line is the boundary with no fix. The numbers are measured on a separate,
-          untouched test set with the real 5% fraud rate. Click through the tabs: every remedy pushes the boundary into the genuine cloud, trading precision
-          for recall.
+          Click through the tabs. Every remedy pushes the boundary into the genuine cloud: more frauds caught, more false alarms. The table scores each model on
+          an untouched test set with the real 5% fraud rate.
         </>
       }
     >
@@ -201,6 +199,34 @@ export default function ImbalanceRemedies() {
           <Layer tab={tab} model={model} base={base} lam={lam} keep={keep} />
         </Plot>
       </div>
+      <div className={s.legend}>
+        <span>
+          <span className={s.swatch} style={{ background: NEG_C }} />
+          genuine
+        </span>
+        <span>
+          <span className={s.swatch} style={{ background: POS_C }} />
+          fraud (5% of training data)
+        </span>
+        <span>
+          <span className={s.swatchLine} style={{ borderColor: 'var(--viz-ink)' }} />
+          boundary after the remedy
+        </span>
+        {tab !== 'none' && (
+          <span>
+            <span className={`${s.swatchLine} ${s.swatchDash}`} style={{ borderColor: 'var(--viz-muted)' }} />
+            no fix
+          </span>
+        )}
+      </div>
+      {(tab === 'smote' || tab === 'undersample') && (
+        <Controls>
+          {tab === 'smote' && (
+            <Slider label="largest λ (each new point gets a random λ between 0 and this)" value={lam} min={0} max={1} step={0.05} onChange={setLam} format={(v) => v.toFixed(2)} />
+          )}
+          {tab === 'undersample' && <Button onClick={bump}>New random draw</Button>}
+        </Controls>
+      )}
       <table className={s.table} style={{ maxWidth: 460 }}>
         <thead>
           <tr>
@@ -237,14 +263,6 @@ export default function ImbalanceRemedies() {
         <br />
         <b>Good:</b> {info.pro} <b>Watch out:</b> {info.con}
       </p>
-      {(tab === 'smote' || tab === 'undersample') && (
-        <Controls>
-          {tab === 'smote' && (
-            <Slider label="SMOTE spread λ (0 = copies, 1 = real SMOTE)" value={lam} min={0} max={1} step={0.05} onChange={setLam} format={(v) => v.toFixed(2)} />
-          )}
-          {tab === 'undersample' && <Button onClick={bump}>New random draw</Button>}
-        </Controls>
-      )}
     </Figure>
   )
 }

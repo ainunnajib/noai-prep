@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, DraggablePoint, M } from '../../../../../kit'
+import { Figure, Controls, Slider, Toggle, Plot, Grid, Axes, FnPath, Path, Dots, Label, DraggablePoint, M, useNarrow } from '../../../../../kit'
+import { TXT_GREEN } from '../tones'
 import s from './trees.module.css'
 
 /*
@@ -19,13 +20,17 @@ const f4 = (v: number) => String(Math.round(v * 10000) / 10000)
 export default function ImpurityCurves() {
   const [k, setK] = useState(6)
   const [double, setDouble] = useState(false)
+  const [wrapRef, narrow] = useNarrow<HTMLParagraphElement>(440)
   const p = k / N
   const q = 1 - p
   const g = giniP(p)
   const h = entP(p)
   const verdict = k === 0 || k === N ? 'pure: every sweet is the same flavour' : k === N / 2 ? 'a 50-50 mix: the most mixed a two-flavour bag can be' : k < N / 2 ? 'mostly blue' : 'mostly orange'
   const sq = (v: number) => `${f2(v)}^2`
-  const giniTex = `\\text{Gini} = 1 - (${sq(p)} + ${sq(q)}) = 1 - (${f4(p * p)} + ${f4(q * q)}) = ${f3(g)}`
+  // on phones the middle step is dropped so the result never wraps onto a line of its own
+  const giniTex = narrow
+    ? `\\text{Gini} = 1 - (${sq(p)} + ${sq(q)}) = ${f3(g)}`
+    : `\\text{Gini} = 1 - (${sq(p)} + ${sq(q)}) = 1 - (${f4(p * p)} + ${f4(q * q)}) = ${f3(g)}`
   const entTex =
     k === 0 || k === N
       ? `H = -(1 \\cdot \\log_2 1) = 0`
@@ -36,9 +41,8 @@ export default function ImpurityCurves() {
       title="Two ways to score how mixed a bag is"
       caption={
         <>
-          Drag the point along the curve (or use the slider) to change how many of the 20 sweets are orange. Both scores are <b>0</b> when the bag is pure and
-          reach their <b>maximum at 50-50</b>: 0.5 for Gini and 1 bit for entropy. Turn on <b>Gini × 2</b> to see that the two curves have almost the same
-          shape, which is why they nearly always pick the same split.
+          Drag the green point or use the slider to change the mix. Notice both scores are 0 for a pure bag and peak at 50-50; switch on <b>Gini × 2</b>{' '}
+          to see that the curves have almost the same shape.
         </>
       }
     >
@@ -57,8 +61,8 @@ export default function ImpurityCurves() {
           />
         ))}
       </div>
-      <p className={s.status} style={{ textAlign: 'center' }}>
-        <b className={s.high}>{k} orange</b> and <b className={s.low}>{N - k} blue</b>: {verdict}
+      <p ref={wrapRef} className={s.status} style={{ textAlign: 'center' }}>
+        <b className={s.high}>{k} orange</b> and <b className={s.low}>{N - k} blue</b> (p = {f2(p)}): {verdict}
       </p>
       <Plot x={[0, 1]} y={[0, 1.08]} width={460} height={290} minHeight={250} margin={{ top: 24, left: 42, right: 14 }} ariaLabel={`Gini and entropy against the fraction of orange sweets; at p = ${f2(p)}, Gini ${f3(g)} and entropy ${f3(h)}`}>
         <Grid xTicks={10} yTicks={5} />
@@ -70,18 +74,15 @@ export default function ImpurityCurves() {
         <Label x={0.5} y={1} dy={-8} anchor="middle" color="var(--viz-5)" weight={700}>
           entropy (max 1)
         </Label>
-        <Label x={0.5} y={0.5} dy={-8} anchor="middle" color="var(--viz-3)" weight={700}>
+        <Label x={0.5} y={0.5} dy={-8} anchor="middle" color={TXT_GREEN} weight={700}>
           Gini (max 0.5)
         </Label>
         {double && (
-          <Label x={0.22} y={2 * giniP(0.22)} dx={-6} dy={-8} anchor="end" color="var(--viz-3)" size={12}>
+          <Label x={0.22} y={2 * giniP(0.22)} dx={-6} dy={-8} anchor="end" color={TXT_GREEN} size={12} weight={700}>
             Gini × 2
           </Label>
         )}
         <Dots points={[{ x: p, y: h, color: 'var(--viz-5)', r: 6 }]} />
-        <Label x={p} y={0} dx={p > 0.75 ? -8 : 8} dy={-12} anchor={p > 0.75 ? 'end' : 'start'} color="var(--ink-2)" size={12}>
-          {`p = ${f2(p)}`}
-        </Label>
         <DraggablePoint
           x={p}
           y={g}

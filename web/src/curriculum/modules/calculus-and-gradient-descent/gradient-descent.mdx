@@ -4,7 +4,7 @@ import GradientDescentBall from './visuals/gradient-descent/GradientDescentBall'
 import StepMultiplier from './visuals/gradient-descent/StepMultiplier'
 import GD2DContours from './visuals/gradient-descent/GD2DContours'
 
-Every model, from a straight-line fit to a chatbot, learns by adjusting its numbers to shrink a score of how wrong it is. The rule it uses is **gradient descent**: the gradient points uphill, so step the other way. This lesson builds the **loss landscape**, then the rule, then the **learning rate**, the number that most often makes training fail.
+Every model, from a straight-line fit to a chatbot, learns by adjusting its numbers to shrink a score of how wrong it is, using **gradient descent**: the gradient points uphill, so step the other way. You first met this rule and its learning rate $\eta$ in [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn). This lesson adds what was missing there: the **loss landscape** and its traps, the rule for a whole gradient vector, the exact speed limit that curvature sets on the **learning rate**, and why long, narrow valleys make training zig-zag.
 
 <Analogy title="Downhill in thick haze">
 
@@ -111,12 +111,7 @@ where $\leftarrow$ means "replace with". The gradient points in the direction of
 
 ## How big a step? The learning rate
 
-The presets above show four behaviours:
-
-- **Too small** ($\eta = 0.02$): the ball crawls, only 4% closer to the bottom per step.
-- **About right** ($\eta = 0.3$): fast, smooth convergence.
-- **Large but below the limit** ($\eta = 0.85$): each step *overshoots* to the other side, but lands closer: a zig-zag.
-- **Above the limit** ($\eta = 1.05$): every overshoot is bigger than the last. The walk <Term def="Gets further and further from the minimum instead of settling: the loss grows, often until it becomes infinity or NaN.">diverges</Term>.
+The presets above replay the learning-rate race from that first lesson: $\eta = 0.02$ crawls (only 4% closer to the bottom per step), $\eta = 0.3$ converges fast and smoothly, $\eta = 0.85$ *overshoots* to the other side but lands closer each time (a zig-zag), and at $\eta = 1.05$ every overshoot is bigger than the last, so the walk <Term def="Gets further and further from the minimum instead of settling: the loss grows, often until it becomes infinity or NaN.">diverges</Term>.
 
 Why is the limit exactly 1 for $L(w) = w^2$? Put the slope $2w$ into the update rule:
 

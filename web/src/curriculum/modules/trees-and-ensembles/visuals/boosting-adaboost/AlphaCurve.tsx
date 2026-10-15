@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Readout, Plot, Grid, Axes, FnPath, Rect, Label, HLine, VLine, DraggablePoint, usePlot, useNarrow, M } from '../../../../../kit'
 import { alphaOf } from './adaboost'
+import { TXT_ORANGE, TXT_GREEN } from '../tones'
 import s from './boosting.module.css'
 
 /*
@@ -9,14 +10,18 @@ import s from './boosting.module.css'
   adds up the α values instead.
 */
 
+/** colour = marks and fills; text = the same hue, dark/light enough for small text in both themes */
 const LEARNERS = [
-  { key: 'A', colour: 'var(--viz-3)', vote: 1 },
-  { key: 'B', colour: 'var(--viz-5)', vote: -1 },
-  { key: 'C', colour: 'var(--viz-4)', vote: -1 },
+  { key: 'A', colour: 'var(--viz-3)', text: TXT_GREEN, vote: 1 },
+  { key: 'B', colour: 'var(--viz-5)', text: 'var(--viz-5)', vote: -1 },
+  { key: 'C', colour: 'var(--viz-4)', text: 'var(--viz-4)', vote: -1 },
 ] as const
 
 const EPS_MIN = 0.02
 const EPS_MAX = 0.98
+/** y-range of the curve: α(0.02) = −α(0.98) ≈ 1.95, so both ends of the drag range stay inside */
+const A_LO = -2.3
+const A_HI = 2.4
 const snap = (e: number) => Math.round(Math.max(EPS_MIN, Math.min(EPS_MAX, e)) * 100) / 100
 
 function TugOfWar({ alphas }: { alphas: number[] }) {
@@ -35,12 +40,17 @@ function TugOfWar({ alphas }: { alphas: number[] }) {
     const flipped = alphas[i] < 0
     return (
       <g key={i}>
-        <rect x={x0} y={ys(0.8)} width={w} height={ys(-0.8) - ys(0.8)} style={{ fill: `color-mix(in srgb, ${LEARNERS[i].colour} 70%, var(--surface))`, stroke: 'var(--surface)', strokeWidth: 1.5, strokeDasharray: flipped ? '4 3' : undefined }} />
-        {w > 22 && (
-          <text x={x0 + w / 2} y={ys(0) + 4.5} textAnchor="middle" className={s.svgText} style={{ fill: 'var(--viz-ink)', fontSize: 12.5, fontWeight: 700 }}>
-            {LEARNERS[i].key}
-          </text>
-        )}
+        <rect x={x0} y={ys(0.8)} width={w} height={ys(-0.8) - ys(0.8)} style={{ fill: `color-mix(in srgb, ${LEARNERS[i].colour} 40%, var(--surface))`, stroke: LEARNERS[i].colour, strokeWidth: 1.5, strokeDasharray: flipped ? '4 3' : undefined }} />
+        {/* the letter sits inside a wide segment, or just above a narrow one */}
+        <text
+          x={x0 + w / 2}
+          y={w > 22 ? ys(0) + 4.5 : ys(0.8) - 4}
+          textAnchor="middle"
+          className={`plot-label ${s.svgText}`}
+          style={{ fill: w > 22 ? 'var(--ink)' : LEARNERS[i].text, fontSize: w > 22 ? 12.5 : 11.5, fontWeight: 700 }}
+        >
+          {LEARNERS[i].key}
+        </text>
       </g>
     )
   })
@@ -56,7 +66,7 @@ function TugOfWar({ alphas }: { alphas: number[] }) {
         score {total >= 0 ? '+' : '−'}
         {Math.abs(total).toFixed(2)}
       </text>
-      <text x={xs(4.1)} y={ys(1.25)} textAnchor="end" className={s.svgText} style={{ fill: 'var(--viz-2)', fontSize: 12, fontWeight: 700 }}>
+      <text x={xs(4.1)} y={ys(1.25)} textAnchor="end" className={s.svgText} style={{ fill: TXT_ORANGE, fontSize: 12, fontWeight: 700 }}>
         votes for orange →
       </text>
       <text x={xs(-4.1)} y={ys(1.25)} textAnchor="start" className={s.svgText} style={{ fill: 'var(--viz-1)', fontSize: 12, fontWeight: 700 }}>
@@ -69,9 +79,13 @@ function TugOfWar({ alphas }: { alphas: number[] }) {
 export default function AlphaCurve() {
   const [eps, setEps] = useState([0.1, 0.3, 0.35])
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
+  const [dragged, setDragged] = useState(false)
   const alphas = eps.map(alphaOf)
   const score = alphas.reduce((acc, a, i) => acc + a * LEARNERS[i].vote, 0)
-  const set = (i: number) => (x: number) => setEps((old) => old.map((v, j) => (j === i ? snap(x) : v)))
+  const set = (i: number) => (x: number) => {
+    setDragged(true)
+    setEps((old) => old.map((v, j) => (j === i ? snap(x) : v)))
+  }
   const fmt = (a: number) => (a < 0 ? `−${Math.abs(a).toFixed(2)}` : a.toFixed(2))
   const contrib = alphas.map((a, i) => a * LEARNERS[i].vote)
   const sgn = (v: number) => (v < 0 ? `-${Math.abs(v).toFixed(2)}` : `+${v.toFixed(2)}`)
@@ -81,26 +95,24 @@ export default function AlphaCurve() {
       title="How much say does each learner get?"
       caption={
         <>
-          Drag the three learners along the curve <M>{'\\alpha = \\tfrac12\\ln\\frac{1-\\varepsilon}{\\varepsilon}'}</M>. At ε = 0.5 (a coin flip) α is
-          exactly 0: that learner is ignored. As ε falls towards 0, α shoots up, so a nearly perfect learner dominates. Push a learner past 0.5 and α
-          turns negative: AdaBoost would trust the <i>opposite</i> of what it says. In the vote below, A says orange while B and C say blue. Try making A
-          worse (drag it right) until two mediocre learners outvote it.
+          Drag the learners along the curve, and drag A to the right until B and C outvote it. Notice a coin flip (ε = 0.5) gets no say, and a learner
+          worse than chance gets a negative one.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
-        <Plot x={[0, 1]} y={[-1.8, 2.4]} width={560} height={320} minHeight={narrow ? 290 : 0} margin={{ left: 44, right: 14, top: 16, bottom: 38 }} ariaLabel="The curve alpha of epsilon with three draggable learners">
-          <Rect x0={0} x1={0.5} y0={-1.8} y1={2.4} fill="color-mix(in srgb, var(--viz-pos) 8%, transparent)" />
-          <Rect x0={0.5} x1={1} y0={-1.8} y1={2.4} fill="color-mix(in srgb, var(--viz-neg) 7%, transparent)" />
+        <Plot x={[0, 1]} y={[A_LO, A_HI]} width={560} height={330} minHeight={narrow ? 300 : 0} margin={{ left: 44, right: 14, top: 16, bottom: 38 }} ariaLabel="The curve alpha of epsilon with three draggable learners">
+          <Rect x0={0} x1={0.5} y0={A_LO} y1={A_HI} fill="color-mix(in srgb, var(--viz-pos) 8%, transparent)" />
+          <Rect x0={0.5} x1={1} y0={A_LO} y1={A_HI} fill="color-mix(in srgb, var(--viz-neg) 7%, transparent)" />
           <Grid xTicks={10} yTicks={8} />
           <Axes xLabel="weighted error ε" yLabel="say α" xTicks={narrow ? 5 : 10} yTicks={8} />
           <HLine y={0} color="var(--viz-axis)" dash="" width={1.25} />
           <VLine x={0.5} color="var(--viz-muted)" dash="4 4" />
-          <FnPath f={(e) => alphaOf(e)} domain={[0.012, 0.988]} color="var(--viz-1)" width={3} samples={300} />
-          <Label x={0.04} y={-1.4} color="var(--viz-pos)" size={12} weight={700}>
+          <FnPath f={(e) => alphaOf(e)} domain={[0.0101, 0.9899]} color="var(--viz-1)" width={3} samples={300} />
+          <Label x={0.04} y={-1.9} color={TXT_GREEN} size={12} weight={700}>
             better than chance: α &gt; 0
           </Label>
-          <Label x={0.96} y={2.05} anchor="end" color="var(--viz-neg)" size={12} weight={700}>
+          <Label x={0.96} y={2.05} anchor="end" color="color-mix(in srgb, var(--viz-neg) 80%, var(--ink))" size={12} weight={700}>
             worse than chance: α &lt; 0
           </Label>
           <Label x={0.5} y={0} dx={6} dy={-8} color="var(--viz-ink)" size={11.5}>
@@ -110,13 +122,24 @@ export default function AlphaCurve() {
             <HLine key={i} y={a} color={LEARNERS[i].colour} dash="2 4" width={1.2} />
           ))}
           {LEARNERS.map((L, i) => (
-            <DraggablePoint key={L.key} x={eps[i]} y={alphas[i]} color={L.colour} r={8} label={L.key} lockY onChange={(x) => set(i)(x)} />
+            <DraggablePoint key={L.key} x={eps[i]} y={alphas[i]} color={L.colour} r={8} ariaLabel={`learner ${L.key}`} lockY onChange={(x) => set(i)(x)} />
           ))}
+          {/* letters: B to the left of its point, A and C to the right, so close learners never share a spot */}
+          {LEARNERS.map((L, i) => (
+            <Label key={`l${L.key}`} x={eps[i]} y={alphas[i]} dx={L.key === 'B' ? -13 : 13} dy={L.key === 'B' ? -6 : 4} anchor={L.key === 'B' ? 'end' : 'start'} color={L.text} size={13} weight={700}>
+              {L.key}
+            </Label>
+          ))}
+          {!dragged && (
+            <Label x={eps[0]} y={alphas[0]} dx={0} dy={26} anchor="middle" color={TXT_GREEN} size={12} weight={700}>
+              ↔ drag
+            </Label>
+          )}
         </Plot>
       </div>
       <Readout
         items={LEARNERS.map((L, i) => [
-          <span key={L.key} style={{ color: L.colour, fontWeight: 700 }}>
+          <span key={L.key} style={{ color: L.text, fontWeight: 700 }}>
             learner {L.key}
           </span>,
           <span key={`v${L.key}`}>
@@ -127,13 +150,13 @@ export default function AlphaCurve() {
       <p className={s.panelTitle} style={{ width: '100%', marginBottom: 0 }}>
         A new point: A votes orange, B and C vote blue
       </p>
-      <Plot x={[-4.2, 4.2]} y={[-2.6, 1.6]} width={560} height={118} minHeight={112} margin={{ left: 8, right: 8, top: 6, bottom: 6 }} ariaLabel={`Weighted vote: total score ${score.toFixed(2)}, so the team says ${score >= 0 ? 'orange' : 'blue'}`}>
+      <Plot x={[-4.2, 4.2]} y={[-2.15, 1.6]} width={560} height={106} minHeight={100} margin={{ left: 8, right: 8, top: 6, bottom: 6 }} ariaLabel={`Weighted vote: total score ${score.toFixed(2)}, so the team says ${score >= 0 ? 'orange' : 'blue'}`}>
         <TugOfWar alphas={alphas} />
       </Plot>
       <p className={s.note}>
         One learner, one vote: <b>blue wins 2 to 1</b>. AdaBoost adds up α × vote (orange = +1, blue = −1):{' '}
         <M>{`(${sgn(contrib[0])}) + (${sgn(contrib[1])}) + (${sgn(contrib[2])}) = ${sgn(score)}`}</M>, so the team says{' '}
-        <b style={{ color: score >= 0 ? 'var(--viz-2)' : 'var(--viz-1)' }}>{score >= 0 ? 'orange' : 'blue'}</b>.
+        <b style={{ color: score >= 0 ? TXT_ORANGE : 'var(--viz-1)' }}>{score >= 0 ? 'orange' : 'blue'}</b>.
       </p>
       <p className={s.note}>
         Mistakes get multiplied by <M>{'e^{\\alpha}'}</M> at re-weighting time: ×{Math.exp(alphas[0]).toFixed(2)} for A, ×{Math.exp(alphas[1]).toFixed(2)} for B and ×

@@ -121,6 +121,8 @@ Bootstrap samples overlap a lot (each holds about 63% of the same data), so bagg
 - for classification, scikit-learn's default is $\sqrt{p}$ features out of $p$ (for example, 4 out of 16);
 - for regression, scikit-learn's default is all the features, which is plain bagging; values such as $p/3$ are common.
 
+<PastPaperQuestion paper="prelim2026" n={151} />
+
 Each individual tree gets a little **worse**, since it sometimes cannot use the best feature. But the trees become **less correlated**, which lowers the floor $\rho\,\sigma^2$, so the **average** gets better. Try it on the noisy circle from the last lesson:
 
 <ForestAverager />
@@ -131,16 +133,14 @@ Look at the accuracy curve: it rises quickly, then flattens. Adding trees **neve
 
 <QuickCheck
   q="Why does a random forest let each split choose from only a random subset of the features, even though this makes every single tree a little less accurate?"
-  options={['It makes the trees less alike, so their errors are less correlated and the average cancels more of them', 'It makes each tree shallower, which lowers the bias of the forest as a whole', 'It speeds up training, which is the only reason; the accuracy of the average is unaffected', 'It stops the trees from overfitting, so they no longer need bootstrap samples']}
+  options={['It makes the trees less alike, so their errors are less correlated and cancel out more', 'It makes each tree shallower, which lowers the bias of the forest as a whole', 'It speeds up training, which is the only reason; the accuracy of the average is unaffected', 'It stops the trees from overfitting, so they no longer need bootstrap samples']}
   answer={0}
   explain="The variance of an average is $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$, so lowering the correlation $\rho$ between trees lowers the floor that more trees cannot break. Random feature subsets stop every tree from asking the same strong question at the top. Faster training is a side benefit, not the main reason, and the trees are still grown deep on bootstrap samples."
 />
 
-<PastPaperQuestion paper="prelim2026" n={151} />
-
 ## Out-of-bag error: a free validation set
 
-Remember that each tree never saw about 37% of the training rows. That gives a free way to estimate how the forest does on unseen data. For every training row, collect the predictions of only the trees for which that row was **out of bag**, and let those trees vote. Comparing these votes with the true labels gives the <Term def="The error of a bagged ensemble measured on its own training data, where each row is predicted only by the trees that did not see it during training. It estimates the test error without a separate validation set.">out-of-bag (OOB) error</Term>. Because no tree is ever tested on a row it trained on, the OOB error behaves like a validation error, and you did not have to set any data aside. Compare the two readouts in the visual above: with 100 trees the OOB accuracy lands within a few percentage points of the validation accuracy. (With only a handful of trees it is too pessimistic, because each row is judged by just the 37% or so of trees that did not see it.) In scikit-learn, pass `oob_score=True` and read `model.oob_score_` after fitting.
+Remember that each tree never saw about 37% of the training rows. That gives a free way to estimate how the forest does on unseen data. For every training row, collect the predictions of only the trees for which that row was **out of bag**, and let those trees vote. Comparing these votes with the true labels gives the <Term def="The error of a bagged ensemble measured on its own training data, where each row is predicted only by the trees that did not see it during training. It estimates the test error without a separate validation set.">out-of-bag (OOB) error</Term>. Because no tree is ever tested on a row it trained on, the OOB error behaves like a validation error, and you did not have to set any data aside. Compare the two readouts in the visual above: with 100 trees the OOB accuracy lands within a few percentage points of the validation accuracy. (With only a handful of trees it is unreliable: each row is judged by just the 37% or so of trees that did not see it, and some rows by none.) In scikit-learn, pass `oob_score=True` and read `model.oob_score_` after fitting.
 
 <Mistake>
 
@@ -154,15 +154,15 @@ Scoring the forest on its own training rows with **all** the trees is not the OO
 
 A forest of hundreds of trees is hard to read, but it can still tell you which inputs it relies on. Think of crediting each football player by how many goals their passes led to. There are two common ways.
 
-1. **Impurity importance** (mean decrease in impurity, MDI). Every split reduces the impurity: by $n\,I(\text{node}) - n_\text{yes}\,I(\text{yes}) - n_\text{no}\,I(\text{no})$, the weighted drop from the last lesson. Give that amount to the feature the split used, add it up over all the trees, and scale the totals to add up to 1. This is scikit-learn's `feature_importances_`. It is free to compute, but it is measured on the **training** data.
-2. **Permutation importance.** Take held-out data, randomly shuffle one feature's column (which breaks its link to the target while keeping its values realistic), and measure how much the score drops. A big drop means the model really relies on that feature for new data. In scikit-learn: `sklearn.inspection.permutation_importance`.
+1. **Impurity importance** (mean decrease in impurity, MDI). Every split reduces the impurity: by $n\,I(\text{node}) - n_\text{yes}\,I(\text{yes}) - n_\text{no}\,I(\text{no})$, the weighted drop from the last lesson. Give that amount to the feature the split used, scale each tree's totals to add up to 1, then average over all the trees. This is scikit-learn's `feature_importances_`. It is free to compute, but it is measured on the **training** data.
+2. **Permutation importance.** Take held-out data, randomly shuffle one feature's column (which breaks its link to the target while keeping its values realistic), and measure how much the score drops (below, the score is $R^2$: the fraction of the variation in price that the model explains, where 1 is perfect). A big drop means the model really relies on that feature for new data. In scikit-learn: `sklearn.inspection.permutation_importance`.
 
 <ImportanceBars />
 
 What the toggles reveal are the two classic traps:
 
 - **Correlated features share or hide credit.** Two copies of the same information split the impurity credit, so each looks half as important. Under permutation each copy can cover for the other, so both can look unimportant.
-- **Impurity importance favours features with many distinct values.** A feature with many possible thresholds, such as an ID number, gives deep trees many chances to find a split that happens to fit noise. Permutation importance on held-out data is not fooled.
+- **Impurity importance favours features with many distinct values** (high cardinality). A feature with many possible thresholds, such as an ID number, gives deep trees many chances to find a split that happens to fit noise. Permutation importance on held-out data is not fooled.
 
 Importance also says nothing about **cause and effect**: it describes what this model uses, not what drives prices in the real world.
 
@@ -176,14 +176,7 @@ With these seeds, one deep tree scores about 75% on the validation set, bagging 
 
 <ExamTip>
 
-The NOAI favourites, in one place:
-
-- **Bagging reduces variance**; boosting (next lesson) mainly reduces **bias**.
-- Bagged trees are trained **in parallel** and independently; boosted trees are trained **in sequence**.
-- **Random forest = bagging + a random subset of features at each split**, which decorrelates the trees.
-- A bootstrap sample holds about **63.2%** of the distinct rows; the other **36.8%** are out of bag, and the **OOB error** estimates the test error for free.
-- **More trees** give diminishing returns but do **not** cause overfitting.
-- **Impurity importance** is biased towards high-cardinality features and splits credit between correlated features.
+Distractors NOAI likes to use here: "bagging reduces **bias**" (it reduces variance); "a bootstrap sample holds 63.2% of the rows" (it holds all $n$ rows, about 63.2% of them **distinct**); "more trees make a forest overfit" (they only stop helping); and "the forest's random subset is chosen once per tree" (it is drawn afresh at **every split**).
 
 </ExamTip>
 

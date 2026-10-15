@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Rect, Dots, Path, Label, VLine, HLine, FnPath, mulberry32, useNarrow } from '../../../../../kit'
 import { gauss } from '../decision-trees/cart'
+import { TXT_GREEN } from '../tones'
 import s from '../decision-trees/trees.module.css'
 
 /*
@@ -70,7 +71,7 @@ export default function AveragingVariance() {
       <Label x={TRUTH - 186} y={2.62} color="var(--viz-4)" weight={700} size={12}>
         one tree (150 repeats)
       </Label>
-      <Label x={TRUTH - 186} y={0.72} color="var(--viz-3)" weight={700} size={12}>
+      <Label x={TRUTH - 186} y={0.72} color={TXT_GREEN} weight={700} size={12}>
         {`average of ${B} ${B === 1 ? 'tree' : 'trees'}`}
       </Label>
       <Label x={TRUTH} y={2.62} dx={6} color="var(--viz-ink)" size={11}>
@@ -90,23 +91,30 @@ export default function AveragingVariance() {
     </Plot>
   )
 
+  const sliders = (
+    <Controls>
+      <Slider label="number of trees B" value={B} min={1} max={BMAX} step={1} onChange={setB} />
+      <Slider label="correlation between trees ρ" value={rho} min={0} max={0.9} step={0.05} onChange={setRho} format={(v) => v.toFixed(2)} />
+    </Controls>
+  )
+
   return (
     <Figure
       title="Why averaging many trees helps (and what limits it)"
       caption={
         <>
-          Each pink dot is one tree's prediction for the same flat, from a different training sample; each green dot is the <b>average of B trees</b>. Slide{' '}
-          <b>B</b> up with ρ = 0: the green dots squeeze towards the true price, and the variance falls like 1/B. Now raise the correlation <b>ρ</b> (trees
-          that make the same mistakes): however many trees you add, the variance cannot drop below ρ. Making trees less alike is exactly what random forests
-          do.
+          Slide <b>B</b> up with ρ = 0, then raise the correlation <b>ρ</b>. Notice the green averages squeeze towards the true price, but their variance
+          never drops below ρ, however many trees you add.
         </>
       }
     >
+      {/* on phones the sliders sit right under the dots they move */}
       <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1fr 1fr' }}>
         <div>
           <p className={s.panelTitle}>Predictions over 150 repeats of the experiment</p>
           {strip}
         </div>
+        {narrow && sliders}
         <div>
           <p className={s.panelTitle}>Variance of the average (one tree = 1)</p>
           {curve}
@@ -120,10 +128,7 @@ export default function AveragingVariance() {
           ["spread of the average", `±$${sdAvg.toFixed(0)}k`],
         ]}
       />
-      <Controls>
-        <Slider label="number of trees B" value={B} min={1} max={BMAX} step={1} onChange={setB} />
-        <Slider label="correlation between trees ρ" value={rho} min={0} max={0.9} step={0.05} onChange={setRho} format={(v) => v.toFixed(2)} />
-      </Controls>
+      {!narrow && sliders}
     </Figure>
   )
 }

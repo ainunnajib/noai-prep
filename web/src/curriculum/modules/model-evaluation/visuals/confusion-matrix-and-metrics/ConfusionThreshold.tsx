@@ -188,10 +188,8 @@ export default function ConfusionThreshold() {
       title="Slide the threshold: four counts, four metrics"
       caption={
         <>
-          Each dot is one person; its position is the model's score. Healthy people (blue) are stacked upwards, sick people (orange) downwards. Everyone right
-          of the threshold is <b>predicted sick</b>. The four shaded corners are the four cells of the confusion matrix (green = correct, red = mistake; dots
-          with a red ring are mistakes). Drag the threshold right: the model gets pickier, so FP falls and precision rises, but FN grows and recall falls. Then set
-          sick people to <b>5%</b> and drag the threshold all the way right: accuracy climbs to 0.95 while recall collapses to 0.
+          Drag the threshold right: FP falls and precision rises, but FN grows and recall falls. Then set sick people to <b>5 of 100</b> and push the threshold
+          to 1.00: accuracy 0.95, recall 0.
         </>
       }
     >
@@ -230,6 +228,19 @@ export default function ConfusionThreshold() {
           ring = wrong prediction
         </span>
       </div>
+      <Controls>
+        <Slider label="threshold" value={k} min={0} max={BINS} step={1} onChange={setK} format={(v) => (v / BINS).toFixed(2)} />
+        <Slider label="model quality (class separation)" value={d} min={0} max={4} step={0.5} onChange={setD} format={(v) => v.toFixed(1)} />
+        <Slider
+          label="sick people"
+          value={shareIdx}
+          min={0}
+          max={SHARES.length - 1}
+          step={1}
+          onChange={setShareIdx}
+          format={() => `${nPos} of ${N}`}
+        />
+      </Controls>
       <div className={s.panels}>
         <div>
           <ConfusionMatrix counts={counts} negLabel="healthy" posLabel="sick" focus={focusCells[focus]} />
@@ -260,19 +271,6 @@ export default function ConfusionThreshold() {
       <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
         <M>{formula[focus]}</M>
       </div>
-      <Controls>
-        <Slider label="threshold" value={k} min={0} max={BINS} step={1} onChange={setK} format={(v) => (v / BINS).toFixed(2)} />
-        <Slider label="model quality (separation)" value={d} min={0} max={4} step={0.5} onChange={setD} format={(v) => v.toFixed(1)} />
-        <Slider
-          label="sick people"
-          value={shareIdx}
-          min={0}
-          max={SHARES.length - 1}
-          step={1}
-          onChange={setShareIdx}
-          format={() => `${nPos} of ${N}`}
-        />
-      </Controls>
     </Figure>
   )
 }

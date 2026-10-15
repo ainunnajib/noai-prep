@@ -53,6 +53,16 @@ const questions: QuizQuestion[] = [
       'The best loss improves at trees 1, 2, 3 and 5 (6.9 beats 7). Tree 4 (7.2) only raised the counter to 1, and the improvement at tree 5 reset it. Trees 6, 7 and 8 fail to beat 6.9, so the counter reaches 3 after tree 8 and training stops, keeping the 5 trees up to the best round. Stopping at tree 4 would be a patience of 1, and keeping all 8 trees forgets to roll back to the best round.',
     difficulty: 'advanced',
   },
+  {
+    id: 'trees-and-ensembles.gradient-boosting.6',
+    prompt:
+      'A gradient-boosting classifier uses the log-loss, with labels $y = 0$ or $1$ and predicted probability $p = \\sigma(F)$. For one example with $y = 0$, the model currently gives $p = 0.3$. What pseudo-residual does the next tree learn for it?',
+    options: ['$-0.3$', '$+0.3$', '$+0.7$', '$-0.7$'],
+    answer: 0,
+    explanation:
+      'For the log-loss, the negative gradient with respect to the score $F$ is $y - p$, "true label minus predicted probability": $0 - 0.3 = -0.3$, which pushes the score, and so the probability, down. $+0.3$ is $p - y$, the gradient itself with the wrong sign; $+0.7$ is $1 - p$, the answer only if the label were 1; and $-0.7$ is $p - 1$.',
+    difficulty: 'intermediate',
+  },
 ]
 
 export default questions

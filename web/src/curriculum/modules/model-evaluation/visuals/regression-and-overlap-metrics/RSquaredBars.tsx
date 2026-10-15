@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Button, Plot, Grid, Axes, Dots, Path, HLine, Label, DraggablePoint, Bars, M, useNarrow } from '../../../../../kit'
 import { ErrorSquares, ResidualLines } from './shared'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from './reg.module.css'
 
 /*
@@ -55,10 +56,8 @@ export default function RSquaredBars() {
       title="R²: how much better than always guessing the mean?"
       caption={
         <>
-          Each square's side is one prediction's error, so its area is the squared error. On the left, the "model" ignores the distance and always
-          predicts the average ride time, {YBAR} min: its squares add up to <M>{'SS_{tot}'}</M>. On the right, drag the two orange ends of your line:
-          its squares add up to <M>{'SS_{res}'}</M>. R² is the fraction of the left-hand area that your line gets rid of. Press <b>Best fit</b> for the
-          least-squares line, <b>Flat at the mean</b> to see R² = 0 exactly, and <b>Worse than the mean</b> to watch R² go negative.
+          Drag the two orange ends of your line and compare its squares (<M>{'SS_{res}'}</M>) with the mean line's (<M>{'SS_{tot}'}</M>). Then try{' '}
+          <b>Best fit</b>, <b>Flat at the mean</b> (R² = 0) and <b>Worse than the mean</b> (R² below 0).
         </>
       }
     >
@@ -66,7 +65,7 @@ export default function RSquaredBars() {
         <div className={s.panels}>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: blue }}>
+              <span className={s.badge} style={{ color: txt(blue) }}>
                 Baseline: always predict the mean
               </span>
             </p>
@@ -76,7 +75,7 @@ export default function RSquaredBars() {
               <Axes xLabel="distance (km)" yLabel="minutes" xTicks={5} yTicks={5} />
               <ResidualLines pts={meanPts} color={blue} />
               <HLine y={YBAR} color={blue} dash="0" width={2.5} />
-              <Label x={0.3} y={YBAR} dy={-6} color={blue}>
+              <Label x={0.3} y={YBAR} dy={-6} color={txt(blue)}>
                 {`mean ${YBAR}`}
               </Label>
               <Dots points={dataDots} />
@@ -87,7 +86,7 @@ export default function RSquaredBars() {
           </div>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: orange }}>
+              <span className={s.badge} style={{ color: txt(orange) }}>
                 Your model: drag the line's ends
               </span>
             </p>
@@ -99,8 +98,11 @@ export default function RSquaredBars() {
               <ResidualLines pts={modelPts} color={orange} />
               <Path points={[[0, line(0)], [10, line(10)]]} color={orange} width={3} />
               <Dots points={dataDots} />
-              <DraggablePoint x={XL} y={ends[0]} lockX color={orange} label="drag" constrain={(x, y) => [x, snap(y)]} onChange={(_, y) => setEnds(([, b]) => [y, b])} />
-              <DraggablePoint x={XR} y={ends[1]} lockX color={orange} constrain={(x, y) => [x, snap(y)]} onChange={(_, y) => setEnds(([a]) => [a, y])} />
+              <Label x={XL} y={ends[0]} dx={14} dy={-9} color={txt(orange)}>
+                drag
+              </Label>
+              <DraggablePoint x={XL} y={ends[0]} lockX color={orange} ariaLabel="left end of your line" constrain={(x, y) => [x, snap(y)]} onChange={(_, y) => setEnds(([, b]) => [y, b])} />
+              <DraggablePoint x={XR} y={ends[1]} lockX color={orange} ariaLabel="right end of your line" constrain={(x, y) => [x, snap(y)]} onChange={(_, y) => setEnds(([a]) => [a, y])} />
             </Plot>
             <p className={s.small}>
               Total square area <M>{`SS_{res} = ${r1(ssRes)}`}</M>

@@ -80,6 +80,19 @@
   cursor: pointer;
   outline: none;
 }
+/* each example is a button: a card with a border that lights up on hover and keyboard focus */
+.tile {
+  stroke: var(--rule);
+  stroke-width: 1.5;
+  transition: stroke 120ms ease;
+}
+.token:hover .tile {
+  stroke: var(--ink-3);
+}
+.token:focus-visible .tile {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
 .token:focus-visible circle.tokenBody {
   stroke: var(--accent);
   stroke-width: 3;
@@ -94,4 +107,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Inside a figure the grid gap sets the spacing: beat the lesson's `.prose p { margin: 1rem 0 }` (higher specificity). */
+p.note.note,
+p.status.status {
+  margin: 0;
+}
+p.panelTitle.panelTitle {
+  margin: 0 0 4px;
 }

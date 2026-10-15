@@ -65,7 +65,17 @@ $$
 e_i = y_i - \hat{y}_i
 $$
 
-where $y_i$ is the true value for example $i$ and $\hat{y}_i$ ("y hat") is the model's prediction. A ride that took 23 minutes but was predicted at 20 has residual $+3$. To summarise $n$ residuals in one number we cannot just average them, because $+3$ and $-3$ would cancel to a "perfect" 0. There are two standard fixes:
+where $y_i$ is the true value for example $i$ and $\hat{y}_i$ ("y hat") is the model's prediction. A ride that took 23 minutes but was predicted at 20 has residual $+3$. To summarise $n$ residuals in one number we cannot just average them, because $+3$ and $-3$ would cancel to a "perfect" 0.
+
+<Analogy title="Two Grab drivers">
+Two drivers quote arrival times for the same four trips. Driver A is always 3 minutes off. Driver B is spot on twice, 1 minute off once, and 11 minutes late once. Both are 3 minutes off on average, but B's one big miss is the one that makes you late for an exam. A good error measure should be able to tell them apart.
+</Analogy>
+
+There are two standard fixes for the cancelling signs: drop the signs, or square the errors. Drag the predictions below, then press **Add one big miss**.
+
+<ErrorMetricsLab />
+
+In symbols:
 
 $$
 \begin{aligned}
@@ -75,15 +85,11 @@ $$
 \end{aligned}
 $$
 
-- <Term def="Mean absolute error: the average size of the errors, ignoring their signs. Same units as the target.">MAE</Term> (mean absolute error) drops the signs and averages: the typical size of an error, in minutes.
+- <Term def="Mean absolute error: the average size of the errors, ignoring their signs. Same units as the target.">MAE</Term> (mean absolute error) drops the signs and averages: the typical size of an error, in minutes. Both drivers score 3.
 - <Term def="Mean squared error: the average of the squared errors. Its units are the target's units squared.">MSE</Term> (mean squared error) squares each error first. Squares are never negative, and big errors become *very* big: an error of 10 counts as 100.
-- <Term def="Root mean squared error: the square root of the MSE, which brings it back to the target's units.">RMSE</Term> (root mean squared error) takes the square root of the MSE to get back to minutes.
+- <Term def="Root mean squared error: the square root of the MSE, which brings it back to the target's units.">RMSE</Term> (root mean squared error) takes the square root of the MSE to get back to minutes. Driver B's 11-minute miss gives B the bigger RMSE.
 
-Drag the predictions below, then press **Add one big miss**.
-
-<ErrorMetricsLab />
-
-<Steps title="Four rides: true 11, 17, 23, 29 min; predicted 10, 18, 20, 34 min">
+<Steps title="The four rides in the figure: true 11, 17, 23, 29 min; predicted 10, 18, 20, 34 min">
   <Step title="Residuals">
     $11 - 10 = 1$, $\ 17 - 18 = -1$, $\ 23 - 20 = 3$, $\ 29 - 34 = -5$.
   </Step>
@@ -105,7 +111,7 @@ What each one is good for:
 - **MSE** is in squared units (minutes², dollars²), which nobody can picture, so it is rarely reported. It is the standard *training loss* for regression because it is smooth and easy to differentiate, as you saw in the linear regression module.
 
 <Mistake>
-Three classic traps in multiple-choice options: averaging the residuals with their signs (here $\frac{1 - 1 + 3 - 5}{4} = -0.5$, which hides the errors); forgetting the square root (reporting the MSE, 9, as if it were in minutes); and taking the square root of each error before averaging (that just gives the MAE again).
+Three classic traps in multiple-choice options: averaging the residuals with their signs (here $\frac{1 - 1 + 3 - 5}{4} = -0.5$, which hides the errors); forgetting the square root (reporting the MSE, 9, as if it were in minutes); and taking the square root of each squared error before averaging (that just gives the MAE again).
 </Mistake>
 
 <QuickCheck
@@ -142,7 +148,7 @@ $SS_{res}$ ("sum of squares of the residuals") is the total squared error of **y
 
 - $R^2 = 1$: no error left at all.
 - $R^2 = 0$: exactly as good as always predicting the mean.
-- $R^2 < 0$: **worse** than the mean. This happens with a bad model, and quite often on test data. Despite its name, R² is not literally a square (it equals a squared correlation only for a least-squares line scored on its own training data), so it can be negative.
+- $R^2 < 0$: **worse** than the mean. This happens with a bad model, and quite often on test data. Despite its name, R² is not literally a square (it equals a squared correlation only for a least-squares line with an intercept, scored on its own training data), so it can be negative.
 
 <KeyIdea>
 $R^2 = 1 - \frac{SS_{res}}{SS_{tot}}$ is the fraction of the "always predict the mean" squared error that your model removes. RMSE tells you the typical error **in the target's units**; R² tells you how much better than the dumbest sensible baseline you are, **without units**.
@@ -198,12 +204,13 @@ $$
 
 The bars $\lvert \cdot \rvert$ mean "size of" (an area for boxes, a count for sets). $A \cap B$, the **intersection**, is where both boxes are; $A \cup B$, the **union**, is everywhere at least one box is. For sets the same ratio is called the <Term def="The size of the intersection of two sets divided by the size of their union; the same idea as IoU.">Jaccard index</Term>: the CCA sets $\{$chess, robotics, choir$\}$ and $\{$robotics, choir, band, drama$\}$ share 2 items out of 5 different ones, so their Jaccard index is $2/5 = 0.4$.
 
-For two boxes, the overlap is itself a rectangle, so IoU takes four steps:
+For two boxes, the overlap is itself a rectangle, so IoU takes five steps:
 
 1. **Overlap width** $= \min(x_2^A, x_2^B) - \max(x_1^A, x_1^B)$: the left edge of the overlap is the further-right of the two left edges, and its right edge is the further-left of the two right edges. If the result is negative, the boxes miss each other: use 0.
 2. **Overlap height** $= \min(y_2^A, y_2^B) - \max(y_1^A, y_1^B)$, again 0 if negative.
 3. **Overlap area** = width × height.
-4. **Union** = area A + area B − overlap. (Adding the two areas counts the overlap twice, so subtract it once.) Then **IoU = overlap ÷ union**.
+4. **Union** = area A + area B − overlap. (Adding the two areas counts the overlap twice, so subtract it once.)
+5. **IoU** = overlap ÷ union.
 
 Move and resize the boxes, and check each step:
 

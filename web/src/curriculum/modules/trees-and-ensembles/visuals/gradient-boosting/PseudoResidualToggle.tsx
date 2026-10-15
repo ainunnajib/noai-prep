@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Segmented, Button, Plot, Grid, Axes, FnPath, Path, Dots, HLine, Label, Arrow, DraggablePoint, usePlot, useNarrow, M } from '../../../../../kit'
+import { TXT_ORANGE, TXT_GREEN } from '../tones'
 import s from './gb.module.css'
 
 /*
@@ -31,7 +32,9 @@ const fmtBar = (v: number) => {
 
 function PseudoBars({ g, highlight }: { g: number[]; highlight: number }) {
   const { xs, ys } = usePlot()
-  const w = Math.min(26, Math.abs(xs(1) - xs(0)) * 0.55)
+  const slot = Math.abs(xs(1) - xs(0))
+  const w = Math.min(26, slot * 0.55)
+  // labels stay at 11.5 px; when the slots are too narrow for every label, only the outlier keeps one
   return (
     <g>
       {g.map((v, i) => {
@@ -42,9 +45,11 @@ function PseudoBars({ g, highlight }: { g: number[]; highlight: number }) {
         return (
           <g key={i}>
             <rect x={x - w / 2} y={Math.min(y0, y1)} width={w} height={Math.max(1, Math.abs(y1 - y0))} rx={2} style={{ fill: `color-mix(in srgb, ${col} 70%, var(--surface))`, stroke: col, strokeWidth: 1 }} />
-            <text x={x} y={v >= 0 ? y1 - 5 : y1 + 13} textAnchor="middle" className={s.svgText} style={{ fill: 'var(--ink-2)', fontSize: w < 20 ? 10 : 11.5, fontWeight: 700 }}>
-              {fmtBar(v)}
-            </text>
+            {(slot >= 34 || i === highlight) && (
+              <text x={x} y={v >= 0 ? y1 - 5 : y1 + 14} textAnchor="middle" className={s.svgText} style={{ fill: 'var(--ink-2)', fontSize: 11.5, fontWeight: 700 }}>
+                {fmtBar(v)}
+              </text>
+            )}
           </g>
         )
       })}
@@ -55,6 +60,7 @@ function PseudoBars({ g, highlight }: { g: number[]; highlight: number }) {
 export default function PseudoResidualToggle() {
   const [loss, setLoss] = useState<Loss>('l2')
   const [out, setOut] = useState(12)
+  const [moved, setMoved] = useState(false)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
   const ys = [...BASE, out]
   const n = ys.length
@@ -78,7 +84,7 @@ export default function PseudoResidualToggle() {
       <Axes xTicks={9} yTicks={8} xLabel="example" yLabel="y" />
       <HLine y={loss === 'l2' ? med : mu} color="var(--viz-muted)" dash="5 4" width={1.5} />
       <Path points={[[0.3, F0], [9.7, F0]]} color="var(--viz-3)" width={3} />
-      <Label x={0.4} y={F0} dy={-7} color="var(--viz-3)" size={12} weight={700}>
+      <Label x={0.4} y={F0} dy={-7} color={TXT_GREEN} size={12} weight={700}>
         {loss === 'l2' ? `F₀ = mean = ${F0.toFixed(2)}` : `F₀ = median = ${F0.toFixed(2)}`}
       </Label>
       {g.map((v, i) =>
@@ -87,7 +93,24 @@ export default function PseudoResidualToggle() {
         ),
       )}
       <Dots points={BASE.map((y, i) => ({ x: i + 1, y, r: 4.5, color: 'var(--viz-ink)' }))} />
-      <DraggablePoint x={n} y={out} lockX onChange={(_, y) => setOut(Math.round(y * 10) / 10)} color="var(--viz-2)" r={8} label="drag" constrain={(x, y) => [x, Math.max(0.2, Math.min(Y_MAX - 0.5, y))]} />
+      <DraggablePoint
+        x={n}
+        y={out}
+        lockX
+        onChange={(_, y) => {
+          setMoved(true)
+          setOut(Math.round(y * 10) / 10)
+        }}
+        color="var(--viz-2)"
+        r={8}
+        ariaLabel="the outlier: drag it up or down"
+        constrain={(x, y) => [x, Math.max(0.2, Math.min(Y_MAX - 0.5, y))]}
+      />
+      {!moved && (
+        <Label x={n} y={out} dx={-13} dy={4} anchor="end" color={TXT_ORANGE} size={12} weight={700}>
+          ↕ drag
+        </Label>
+      )}
     </Plot>
   )
 
@@ -96,12 +119,9 @@ export default function PseudoResidualToggle() {
       <Grid xTicks={8} yTicks={5} />
       <Axes xTicks={8} yTicks={5} xLabel="prediction F" yLabel={loss === 'l2' ? '½(y − F)²' : '|y − F|'} />
       <FnPath f={lossFn} color="var(--viz-2)" width={2.6} samples={200} />
-      <FnPath f={(F) => LF0 + slope * (F - F0)} domain={[Math.max(0, F0 - 3), Math.min(Y_MAX, F0 + 3)]} color="var(--viz-ink)" width={1.6} dash="5 4" />
+      <FnPath f={(F) => LF0 + slope * (F - F0)} domain={[Math.max(0, F0 - 2), Math.min(Y_MAX, F0 + 2)]} color="var(--viz-ink)" width={1.6} dash="5 4" />
       <Dots points={[{ x: F0, y: LF0, r: 5.5, color: 'var(--viz-3)' }]} />
       <Arrow from={[F0, lossTop * 0.06]} to={[F0 + (loss === 'l2' ? yOut - F0 : sign(yOut - F0)), lossTop * 0.06]} color="var(--viz-2)" width={2.6} head={8} />
-      <Label x={F0} y={lossTop * 0.06} dy={-9} anchor="middle" color="var(--viz-2)" size={11.5} weight={700}>
-        −slope = {f2(-slope)}
-      </Label>
     </Plot>
   )
 
@@ -113,19 +133,48 @@ export default function PseudoResidualToggle() {
     </Plot>
   )
 
+  const controls = (
+    <Controls>
+      <Segmented
+        label="Loss"
+        value={loss}
+        onChange={setLoss}
+        options={[
+          { value: 'l2', label: 'L2: ½(y − F)²' },
+          { value: 'l1', label: 'L1: |y − F|' },
+        ]}
+      />
+      <Button
+        onClick={() => {
+          setMoved(true)
+          setOut(5.6)
+        }}
+      >
+        No outlier
+      </Button>
+      <Button
+        onClick={() => {
+          setMoved(true)
+          setOut(15)
+        }}
+      >
+        Big outlier
+      </Button>
+    </Controls>
+  )
+
   return (
     <Figure
       wide
       title="Pseudo-residuals: what the first tree is asked to learn"
       caption={
         <>
-          Nine examples; drag the orange one to make it an outlier. With <b>L2</b>, the start is the <b>mean</b> and each arrow is the full residual{' '}
-          <M>{'y - F_0'}</M>: drag the outlier up and its arrow (and its pull on the mean) grows without limit. Switch to <b>L1</b>: the start is the{' '}
-          <b>median</b>, which barely notices the outlier, and every pseudo-residual is just <M>{'\\operatorname{sign}(y - F_0) = \\pm 1'}</M>: each point
-          says only "go up" or "go down". The right panel shows why: the pseudo-residual is minus the slope of that point's loss at <M>{'F_0'}</M>.
+          Drag the orange point up to make it an outlier, then switch between <b>L2</b> and <b>L1</b>. Notice that under L1 every pseudo-residual is +1,
+          −1 or 0 (for the point on the median), so the outlier cannot pull harder.
         </>
       }
     >
+      {/* on phones the loss switch sits right under the data plot it changes */}
       <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1.2fr 1fr' }}>
         <div>
           <p className={s.panelTitle}>Data, starting prediction F₀ and pseudo-residual arrows</p>
@@ -139,9 +188,14 @@ export default function PseudoResidualToggle() {
             </span>
           </div>
         </div>
+        {narrow && controls}
         <div>
-          <p className={s.panelTitle}>Loss of the orange point as its prediction F changes</p>
+          <p className={s.panelTitle}>Loss of the orange point as its prediction F changes: the pseudo-residual is minus its slope at F₀</p>
           {lossPlot}
+          {/* the value is written under the plot: inside it, a label always ends up on the curve for some outlier position */}
+          <p className={s.status} style={{ textAlign: 'center' }}>
+            <b style={{ color: TXT_ORANGE }}>→ −slope at F₀ = {f2(-slope)}</b>, the orange point's pseudo-residual
+          </p>
         </div>
       </div>
       <div style={{ width: '100%' }}>
@@ -157,22 +211,10 @@ export default function PseudoResidualToggle() {
           ['sum of all nine', f2(sumG)],
         ]}
       />
-      <Controls>
-        <Segmented
-          label="Loss"
-          value={loss}
-          onChange={setLoss}
-          options={[
-            { value: 'l2', label: 'L2: ½(y − F)²' },
-            { value: 'l1', label: 'L1: |y − F|' },
-          ]}
-        />
-        <Button onClick={() => setOut(5.6)}>No outlier</Button>
-        <Button onClick={() => setOut(15)}>Big outlier</Button>
-      </Controls>
+      {!narrow && controls}
       <p className={s.note}>
-        Notice the last read-out: at the best constant, the pseudo-residuals add up to zero (the residuals balance around the mean; the signs balance
-        around the median). That is exactly why the mean and the median are the best starting points: the total loss has zero slope there.
+        At the best starting constant the pseudo-residuals add up to zero (see the read-out): the residuals balance around the mean, and the signs
+        balance around the median.
       </p>
     </Figure>
   )

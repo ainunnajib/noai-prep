@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, Path, Dots, HLine, VLine, usePlot, usePlayer, PlayerControls, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, Path, Dots, HLine, VLine, usePlot, usePlayer, PlayerControls, useContainerWidth, M } from '../../../../../kit'
 import { TRAIN, boost, stepPoints } from './gb'
 import s from './gb.module.css'
 
@@ -32,6 +32,8 @@ export default function GBResidualStepper() {
   const [lr, setLr] = useState<(typeof LRS)[number]>(0.3)
   const [depth, setDepth] = useState<(typeof DEPTHS)[number]>(1)
   const run = useMemo(() => boost(MMAX, lr, depth), [lr, depth])
+  const [wrapRef, width] = useContainerWidth<HTMLDivElement>(700)
+  const twoUp = width >= 860
   const player = usePlayer({ steps: MMAX, interval: 650 })
   const m = player.step + 1 // tree number shown (1-based)
   const before = run.F[m - 1]
@@ -65,7 +67,7 @@ export default function GBResidualStepper() {
   )
 
   const loss = (
-    <Plot x={[0, MMAX]} y={[0, lossMax]} width={620} height={180} minHeight={170} margin={{ left: 40, right: 10, top: 10, bottom: 38 }} ariaLabel={`Mean squared error after ${m} trees: training ${run.trainMSE[m].toFixed(2)}, validation ${run.valMSE[m].toFixed(2)}`}>
+    <Plot x={[0, MMAX]} y={[0, lossMax]} width={620} height={150} minHeight={140} margin={{ left: 40, right: 10, top: 10, bottom: 38 }} ariaLabel={`Mean squared error after ${m} trees: training ${run.trainMSE[m].toFixed(2)}, validation ${run.valMSE[m].toFixed(2)}`}>
       <Grid xTicks={10} yTicks={4} />
       <Axes xTicks={10} yTicks={4} xLabel="number of trees" yLabel="MSE" />
       <Path points={run.trainMSE.map((v, i) => [i, v] as [number, number])} color="var(--viz-1)" width={2.4} />
@@ -80,16 +82,27 @@ export default function GBResidualStepper() {
     </Plot>
   )
 
+  const player_ = (
+    <Controls>
+      <PlayerControls player={player} label={(st) => `Tree ${st + 1} of ${MMAX}`} />
+      <Slider label="tree" value={m} min={1} max={MMAX} step={1} onChange={(v) => player.setStep(v - 1)} />
+    </Controls>
+  )
+  const settings = (
+    <Controls>
+      <Segmented label="learning rate η" value={lr} onChange={setLr} options={LRS.map((v) => ({ value: v, label: String(v) }))} />
+      <Segmented label="tree depth" value={depth} onChange={setDepth} options={DEPTHS.map((v) => ({ value: v, label: String(v) }))} />
+    </Controls>
+  )
+
   return (
     <Figure
       wide
       title="Gradient boosting: each tree fits what is left over"
       caption={
         <>
-          Press <b>Play</b> or drag the <b>tree</b> slider. The middle panel is the heart of the method: the dots are the residuals{' '}
-          <M>{'y - F_{m-1}(x)'}</M> (what the model still gets wrong), the orange steps are the new tree fitted to them, and the dashed purple steps are
-          the tree times the learning rate, which is what actually gets added. The residuals shrink round by round. Now try <b>depth 3</b> with{' '}
-          <b>η = 1</b>: the training error dives to almost zero within a few trees, but the validation error never gets as low as with gentle settings and soon creeps back up, because the trees are fitting the noise.
+          Press <b>Play</b> or drag the <b>tree</b> slider, then try <b>depth 3</b> with <b>η = 1</b>. Notice the residuals shrink round by round, and the
+          aggressive settings dive to near-zero training error but end with a higher validation error.
         </>
       }
     >
@@ -97,11 +110,13 @@ export default function GBResidualStepper() {
         <b>Tree {m}.</b> <M>{`F_{${m}}(x) = F_{${m - 1}}(x) + ${lr} \\times h_{${m}}(x)`}</M>: the new tree <M>{`h_{${m}}`}</M> (depth {depth}) learns the
         residuals of <M>{`F_{${m - 1}}`}</M>, and a {lr === 1 ? 'full' : `${lr * 100}%`} step of it is added.
       </p>
-      <div className={s.panels}>
+      {/* the player sits right under the data plot; on very wide screens data and residuals sit side by side, player underneath */}
+      <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: twoUp ? '1fr 1fr' : '1fr' }}>
         <div>
           <p className={s.panelTitle}>The data, the model before this tree (dashed) and after it (green)</p>
           {top}
         </div>
+        {!twoUp && player_}
         <div>
           <p className={s.panelTitle}>Tree {m} is trained on the residuals of the model so far</p>
           {middle}
@@ -117,17 +132,18 @@ export default function GBResidualStepper() {
             </span>
           </div>
         </div>
-        <div>
-          <p className={s.panelTitle}>Mean squared error as trees are added</p>
-          {loss}
-          <div className={s.legend}>
-            <span>
-              <i className={s.line} style={{ borderColor: 'var(--viz-1)' }} /> training
-            </span>
-            <span>
-              <i className={s.line} style={{ borderColor: 'var(--viz-4)' }} /> validation (60 new points)
-            </span>
-          </div>
+      </div>
+      {twoUp && player_}
+      <div style={{ width: '100%' }}>
+        <p className={s.panelTitle}>Mean squared error as trees are added</p>
+        {loss}
+        <div className={s.legend}>
+          <span>
+            <i className={s.line} style={{ borderColor: 'var(--viz-1)' }} /> training (40 points)
+          </span>
+          <span>
+            <i className={s.line} style={{ borderColor: 'var(--viz-4)' }} /> validation (60 new points)
+          </span>
         </div>
       </div>
       <Readout
@@ -138,12 +154,7 @@ export default function GBResidualStepper() {
           ['validation MSE', run.valMSE[m].toFixed(3)],
         ]}
       />
-      <Controls>
-        <PlayerControls player={player} label={(st) => `Tree ${st + 1} of ${MMAX}`} />
-        <Slider label="tree" value={m} min={1} max={MMAX} step={1} onChange={(v) => player.setStep(v - 1)} />
-        <Segmented label="learning rate η" value={lr} onChange={setLr} options={LRS.map((v) => ({ value: v, label: String(v) }))} />
-        <Segmented label="tree depth" value={depth} onChange={setDepth} options={DEPTHS.map((v) => ({ value: v, label: String(v) }))} />
-      </Controls>
+      {settings}
     </Figure>
   )
 }

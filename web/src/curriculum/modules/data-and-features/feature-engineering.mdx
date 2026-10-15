@@ -100,13 +100,13 @@ scikit-learn's `PolynomialFeatures(degree=d)` builds every power and product up 
 
 <PolynomialExpander />
 
-How many columns does degree 2 give with $n$ input features? Count them: the bias $1$, the $n$ originals, the $n$ squares, and one product for every pair of different features, $\frac{n(n-1)}{2}$ of them:
+How many columns does degree 2 give with $p$ input features? (We write $p$ here because $n$ usually counts examples and $d$ is already the degree.) Count them: the bias $1$, the $p$ originals, the $p$ squares, and one product for every pair of different features, $\frac{p(p-1)}{2}$ of them:
 
 $$
-1 + n + n + \frac{n(n-1)}{2} = \frac{(n+1)(n+2)}{2}
+1 + p + p + \frac{p(p-1)}{2} = \frac{(p+1)(p+2)}{2}
 $$
 
-For $n = 2$ that is $\frac{3 \times 4}{2} = 6$ columns, namely $1, x_1, x_2, x_1^2, x_1x_2, x_2^2$; for $n = 3$ it is $\frac{4 \times 5}{2} = 10$. Set `include_bias=False` and there is one fewer. For any degree $d$ the count is $\binom{n+d}{d} = \frac{(n+d)!}{n!\, d!}$, read "$n + d$ <Term def="The number of ways to pick k items from n, written C(n, k) or with n above k in brackets. For example, there are 6 ways to pick 2 of 4 items.">choose</Term> $d$", where the factorial $4! = 4 \times 3 \times 2 \times 1$; for $d = 2$ it gives the same answers.
+For $p = 2$ that is $\frac{3 \times 4}{2} = 6$ columns, namely $1, x_1, x_2, x_1^2, x_1x_2, x_2^2$; for $p = 3$ it is $\frac{4 \times 5}{2} = 10$. Set `include_bias=False` and there is one fewer. For any degree $d$ the count is $\binom{p+d}{d} = \frac{(p+d)!}{p!\, d!}$, read "$p + d$ <Term def="The number of ways to pick k items from n, written C(n, k) or with n above k in brackets. For example, there are 6 ways to pick 2 of 4 items.">choose</Term> $d$", where the factorial $4! = 4 \times 3 \times 2 \times 1$; for $d = 2$ it gives the same answers.
 
 ```python
 import numpy as np
@@ -139,7 +139,7 @@ The most valuable features usually come from knowing the problem, not from a for
 - **Date and time parts.** A raw timestamp is one ever-growing number, but taxi demand repeats every day and every week. Extract `hour`, `day_of_week`, `month` and flags such as `is_weekend` or `is_public_holiday`.
 - **Bins.** <Term def="Turning a number into a small number of ranges (categories), for example age into child, teen, adult and senior. Also called discretisation.">Binning</Term> turns a number into ranges, such as age into child / teen / adult / senior. It helps when the effect jumps at known boundaries (concession fares), at the cost of throwing away detail inside each bin.
 
-Clock time has a twist: it wraps around. As numbers, 23:00 and 01:00 are 22 apart, yet they are only two hours apart in real life. The fix is to put the hour on a circle with two features, $\left(\sin \tfrac{2\pi h}{24},\ \cos \tfrac{2\pi h}{24}\right)$, where $h$ is the hour. The angles here are in <Term def="A unit for angles in which a full turn is 2π (about 6.28) instead of 360°. NumPy's sin and cos expect radians.">radians</Term>, where a full turn is $2\pi$ instead of 360°, so $\tfrac{2\pi h}{24}$ is simply $\tfrac{h}{24}$ of a full turn: 15° for every hour (6:00 is 90°, 12:00 is 180°). In degrees the features are $(\sin 15h^\circ,\ \cos 15h^\circ)$: the position of the hour hand on a 24-hour clock.
+Clock time has a twist: it wraps around. As numbers, 23:00 and 01:00 are 22 apart, yet they are only two hours apart in real life. The fix is to put the hour on a circle with two features, $\left(\sin \tfrac{2\pi h}{24},\ \cos \tfrac{2\pi h}{24}\right)$, where $h$ is the hour. Picture a clock hand of length 1 that starts pointing straight up and turns clockwise: <Term def="Turn a hand of length 1 clockwise by an angle θ from straight up. Then sin θ is how far its tip is to the right of the centre and cos θ how far it is above the centre (negative means left or below). So sin 0° = 0 and cos 0° = 1, sin 90° = 1 and cos 90° = 0. This cos is the cosine you met with the dot product.">sin and cos</Term> of the angle it has turned give the x and y positions of its tip. The angles here are in <Term def="A unit for angles in which a full turn is 2π (about 6.28) instead of 360°. NumPy's sin and cos expect radians.">radians</Term>, where a full turn is $2\pi$ instead of 360°, so $\tfrac{2\pi h}{24}$ is simply $\tfrac{h}{24}$ of a full turn: 15° for every hour (6:00 is 90°, 12:00 is 180°). In degrees the features are $(\sin 15h^\circ,\ \cos 15h^\circ)$: the position of the hour hand on a 24-hour clock.
 
 <CyclicHour />
 
@@ -293,7 +293,7 @@ Hand-made features need knowledge; two methods learn features from the data inst
 How NOAI asks about this:
 
 - "Data is not linearly separable" in a question points to one of three fixes: add features (such as $x^2$ or products), use a kernel, or use a non-linear model (trees, neural networks). Transforms like $2x$ or $x + 5$ never help a linear model.
-- Know the column count: `PolynomialFeatures(degree=2)` on $n$ features gives $\frac{(n+1)(n+2)}{2} = \binom{n+2}{2}$ columns, which is 6 for $n = 2$ and 10 for $n = 3$ (one fewer without the bias).
+- Know the column count: `PolynomialFeatures(degree=2)` on $p$ features gives $\frac{(p+1)(p+2)}{2} = \binom{p+2}{2}$ columns, which is 6 for $p = 2$ and 10 for $p = 3$ (one fewer without the bias).
 - `rolling(k)` leaves $k - 1$ leading `NaN`s, and $n$ readings give $n - k + 1$ windows.
 - PCA reduces dimensions and ignores labels; embeddings are dense vectors, unlike sparse one-hot vectors.
 
@@ -302,7 +302,7 @@ How NOAI asks about this:
 <Takeaways>
 
 - A linear model draws straight boundaries in its features. A good new feature ($x^2$, $x_1^2 + x_2^2$, $x_1 x_2$) turns a curved problem into a straight one.
-- Polynomial and interaction features are powers and products; `PolynomialFeatures` makes $\binom{n+d}{d}$ columns, so the count explodes, and more features can mean more overfitting.
+- Polynomial and interaction features are powers and products; `PolynomialFeatures` makes $\binom{p+d}{d}$ columns from $p$ features at degree $d$, so the count explodes, and more features can mean more overfitting.
 - Domain features (ratios, differences, date parts, bins) encode what you know. Clock time belongs on a circle: $(\sin, \cos)$.
 - Sliding windows turn long sequences into fixed-size vectors of rolling statistics (mean, standard deviation, min, max). Windows must not look into the future.
 - PCA and learned embeddings are features too: compact summaries of high-dimensional data.

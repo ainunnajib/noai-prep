@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Segmented, Button, useContainerWidth, M } from '../../../../../kit'
+import { TXT_GREEN } from '../tones'
 import s from './boosting.module.css'
 
 /*
@@ -73,7 +74,7 @@ export default function ReweightCalculator() {
   if (degenerate) {
     maths =
       eps < 1e-9 ? (
-        <>No mistakes marked, so <M>{'\\varepsilon = 0'}</M> and <M>{'\\alpha'}</M> would be infinite: a perfect learner. AdaBoost would simply stop. Click some examples to mark them wrong.</>
+        <>No mistakes marked, so <M>{'\\varepsilon = 0'}</M> and <M>{'\\alpha'}</M> would be infinite: a perfect learner. AdaBoost would simply stop. Tap some examples to mark them wrong.</>
       ) : (
         <>Every example is marked wrong, so <M>{'\\varepsilon = 1'}</M>: flipping this learner's answers would make it perfect. Unmark some examples.</>
       )
@@ -106,13 +107,14 @@ export default function ReweightCalculator() {
       title="Re-weighting, by hand"
       caption={
         <>
-          Ten training examples, each starting with weight 0.1. <b>Click an example</b> to mark it right or wrong for this round's stump, then step through
-          the three stages. With two mistakes, <M>{'\\varepsilon = 0.2'}</M> and <M>{'\\alpha = \\ln 2'}</M>, so the mistakes double and the rest halve.
-          Whatever you mark, look at the bar after stage 2: the mistakes always end up with <b>exactly half</b> of the weight. Then press{' '}
-          <b>Next round</b> and mark new mistakes, starting from the new weights.
+          Tap examples to mark them wrong, step through the three stages, then press <b>Next round</b>. Notice that after stage 3 the mistakes always hold{' '}
+          <b>exactly half</b> of the weight.
         </>
       }
     >
+      <p className={s.panelTitle} style={{ width: '100%', margin: 0 }}>
+        Ten examples, each starting at weight 0.1. Tap an example to mark it right (✓) or wrong (✗) for this round's stump.
+      </p>
       <div ref={ref} style={{ width: '100%' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="group" aria-label={`Ten examples with their weights; ${wrongIdx.length} marked wrong`} className={s.svgText} style={{ display: 'block', overflow: 'visible' }}>
           {shown.map((v, i) => {
@@ -138,7 +140,7 @@ export default function ReweightCalculator() {
                   }
                 }}
               >
-                <rect x={cx - slot / 2 + 2} y={r * rowH + 2} width={slot - 4} height={rowH - 6} rx={8} style={{ fill: bad ? 'color-mix(in srgb, var(--viz-neg) 8%, transparent)' : 'transparent' }} />
+                <rect className={s.tile} x={cx - slot / 2 + 3} y={r * rowH + 3} width={slot - 6} height={rowH - 8} rx={8} style={{ fill: bad ? 'color-mix(in srgb, var(--viz-neg) 8%, var(--surface))' : 'var(--surface)' }} />
                 <text x={cx} y={r * rowH + 16} textAnchor="middle" style={{ fill: 'var(--ink-3)', fontSize: 11.5, fontWeight: 600 }}>
                   #{i + 1}
                 </text>
@@ -148,12 +150,12 @@ export default function ReweightCalculator() {
                   cy={cy}
                   r={rr}
                   style={{
-                    fill: bad ? 'color-mix(in srgb, var(--viz-neg) 75%, var(--surface))' : 'color-mix(in srgb, var(--viz-pos) 60%, var(--surface))',
+                    fill: bad ? 'color-mix(in srgb, var(--viz-neg) 30%, var(--surface))' : 'color-mix(in srgb, var(--viz-pos) 30%, var(--surface))',
                     stroke: bad ? 'var(--viz-neg)' : 'var(--viz-pos)',
                     strokeWidth: 1.5,
                   }}
                 />
-                <text x={cx} y={cy + 4.5} textAnchor="middle" style={{ fill: 'var(--viz-ink)', fontSize: 13, fontWeight: 800, pointerEvents: 'none' }}>
+                <text x={cx} y={cy + 4.5} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: 13, fontWeight: 800, pointerEvents: 'none' }}>
                   {bad ? '✗' : '✓'}
                 </text>
                 <text x={cx} y={r * rowH + 84} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: 12.5, fontWeight: 700 }}>
@@ -172,7 +174,7 @@ export default function ReweightCalculator() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, marginTop: 4 }}>
           <span style={{ color: 'var(--viz-neg)' }}>✗ wrong: {(100 * share).toFixed(1)}%</span>
-          <span style={{ color: 'var(--viz-pos)' }}>✓ right: {(100 * (1 - share)).toFixed(1)}%</span>
+          <span style={{ color: TXT_GREEN }}>✓ right: {(100 * (1 - share)).toFixed(1)}%</span>
         </div>
       </div>
       <div className={s.mathLine}>{maths}</div>

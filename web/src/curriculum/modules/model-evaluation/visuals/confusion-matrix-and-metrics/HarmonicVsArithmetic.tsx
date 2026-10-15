@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, FnPath, Path, Dots, DraggablePoint, M } from '../../../../../kit'
 import { HaloLabel } from './HaloLabel'
+import { txt } from './colors'
 import s from './eval.module.css'
 
 /*
@@ -24,15 +25,17 @@ export default function HarmonicVsArithmetic() {
   const am = (p + r) / 2
   const hm = f1(p, r)
   const lo = Math.min(p, r)
+  // with P = R = 0, F1 = 0/0 is undefined (the curve is drawn as 0 there, its limit along the axis)
+  const undef = p + r === 0
+  const f1Text = undef ? 'F1 undefined (0/0)' : `F1 = ${hm.toFixed(2)}`
 
   return (
     <Figure
       title="Arithmetic mean versus harmonic mean (F1)"
       caption={
         <>
-          The horizontal axis is recall; precision is set by the slider. Drag the olive point (or use the sliders). With precision 1.00 and recall 0.10 the
-          ordinary average is a flattering 0.55, but F1 is only 0.18: it stays close to the <b>weaker</b> of the two (the dotted line). Now make precision and
-          recall equal: the two means meet. F1 is only high when <b>both</b> are high.
+          Drag the olive point along the F1 curve. At precision 1.00 and recall 0.10 the average says 0.55 but F1 says 0.18, close to the weaker value. Now
+          make precision and recall equal: the two means meet.
         </>
       }
     >
@@ -45,17 +48,12 @@ export default function HarmonicVsArithmetic() {
         <Path points={[[r, 0], [r, Math.max(am, hm)]]} color="var(--viz-muted)" width={1.5} dash="3 4" />
         <Path points={[[r, hm], [r, am]]} color="var(--viz-neg)" width={3} />
         <Dots points={[{ x: r, y: am, color: AM_C, r: 6 }]} />
-        {r > 0.6 ? (
-          <HaloLabel x={r} y={am} dx={-10} dy={-10} anchor="end" color={AM_C}>
-            {`average = ${am.toFixed(2)}`}
-          </HaloLabel>
-        ) : (
-          <HaloLabel x={r} y={am} dx={8} dy={-12} anchor="start" color={AM_C}>
-            {`average = ${am.toFixed(2)}`}
-          </HaloLabel>
-        )}
-        <HaloLabel x={r} y={hm} dx={r > 0.6 ? -14 : 14} dy={r > 0.6 ? 20 : 5} anchor={r > 0.6 ? 'end' : 'start'} color={F1_C}>
-          {`F1 = ${hm.toFixed(2)}`}
+        {/* the top-left corner (below the axis title) is always empty: every curve stays below (1 + R)/2 there, so the values never touch a line */}
+        <HaloLabel x={0} y={1} dx={8} dy={32} anchor="start" color={AM_C}>
+          {`● average = ${am.toFixed(2)}`}
+        </HaloLabel>
+        <HaloLabel x={0} y={1} dx={8} dy={50} anchor="start" color={txt(F1_C)}>
+          {`● ${f1Text}`}
         </HaloLabel>
         <DraggablePoint x={r} y={hm} color={F1_C} onChange={(x) => setR(Math.max(0, Math.min(1, round2(x))))} constrain={(x) => [x, f1(p, x)]} />
       </Plot>
@@ -73,14 +71,14 @@ export default function HarmonicVsArithmetic() {
           the smaller of P and R
         </span>
       </div>
-      <M>{`F_1 = \\frac{2PR}{P + R} = \\frac{2 \\times ${p.toFixed(2)} \\times ${r.toFixed(2)}}{${p.toFixed(2)} + ${r.toFixed(2)}} = ${hm.toFixed(2)}`}</M>
+      <M>{`F_1 = \\frac{2PR}{P + R} = \\frac{2 \\times ${p.toFixed(2)} \\times ${r.toFixed(2)}}{${p.toFixed(2)} + ${r.toFixed(2)}} = ${undef ? '\\frac{0}{0}\\text{, undefined}' : hm.toFixed(2)}`}</M>
       <Controls>
         <Slider label="precision P" value={p} min={0} max={1} step={0.01} onChange={setP} format={(v) => v.toFixed(2)} />
         <Slider label="recall R" value={r} min={0} max={1} step={0.01} onChange={setR} format={(v) => v.toFixed(2)} />
         <Readout
           items={[
             ['arithmetic mean', am.toFixed(2)],
-            ['F1', hm.toFixed(2)],
+            ['F1', undef ? '–' : hm.toFixed(2)],
             ['smaller one', lo.toFixed(2)],
           ]}
         />

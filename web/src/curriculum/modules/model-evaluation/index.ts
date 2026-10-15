@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "cross-validation-and-tuning",
       title: "Cross-validation and hyperparameter tuning",
       summary: "k-fold cross-validation, grid and random search, and keeping preprocessing and feature selection inside the folds.",
-      minutes: 40,
+      minutes: 35,
       objectives: ["You can explain k-fold cross-validation and report mean ± standard deviation", "You can compare grid search and random search", "You can explain why feature selection must happen inside each fold", "You can explain why repeatedly tuning on the test set inflates the reported score"],
       load: () => import('./cross-validation-and-tuning.mdx'),
     },

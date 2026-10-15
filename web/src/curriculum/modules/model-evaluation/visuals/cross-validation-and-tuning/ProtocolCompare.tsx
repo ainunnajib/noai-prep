@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Button, usePlayer, Plot, Grid, Axes, Path, Dots, Rect, Label, mulberry32, useBump } from '../../../../../kit'
 import { gauss } from './sim'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from './cv.module.css'
 
 /*
@@ -134,11 +135,8 @@ export default function ProtocolCompare() {
       title="Peeking at the test set: two protocols"
       caption={
         <>
-          Every model tried here is truly between {pct(TRUE_LO)} and {pct(TRUE_HI)} accurate (the shaded band): the tweaks do not really help. Grey
-          dots are the test scores Protocol A looks at after each tweak; they scatter because a test set is a finite sample. A <b>keeps the best of
-          many lucky draws</b>, so its report (red) ratchets upwards with every peek. B's single test score (green) also wobbles, a little above or
-          below the truth, but nothing pushes it up. Press <b>Play</b>, drag the iterations slider, try <b>New run</b>, or switch to 10,000 rows: a
-          bigger test set shrinks the luck, but A is still biased upwards. Notice B's <i>best validation score</i>: it is inflated for exactly the same reason as A's report, which is why B reports the untouched test score instead.
+          A keeps the best of many lucky test scores (grey dots), so its report (red) ratchets up above the shaded band of true accuracies; B's single test
+          score (green) does not. Press <b>Replay</b>, then try <b>New run</b> and 10,000 rows.
         </>
       }
     >
@@ -146,7 +144,7 @@ export default function ProtocolCompare() {
         <div className={s.panels}>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: colA }}>
+              <span className={s.badge} style={{ color: txt(colA) }}>
                 Protocol A
               </span>
             </p>
@@ -157,7 +155,7 @@ export default function ProtocolCompare() {
             <div className={s.small}>Tweak, check the test score, repeat; report the best test score.</div>
             <div className={s.stats}>
               <span className={s.stat}>
-                <span className={s.statNum} style={{ color: colA }}>
+                <span className={s.statNum} style={{ color: txt(colA) }}>
                   {pct(repA)}
                 </span>
                 <span>reported</span>
@@ -170,7 +168,7 @@ export default function ProtocolCompare() {
           </div>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: colB }}>
+              <span className={s.badge} style={{ color: txt(colB) }}>
                 Protocol B
               </span>
             </p>
@@ -182,7 +180,7 @@ export default function ProtocolCompare() {
             <div className={s.small}>Tweak, check the validation score, repeat; test the chosen model once.</div>
             <div className={s.stats}>
               <span className={s.stat}>
-                <span className={s.statNum} style={{ color: colB }}>
+                <span className={s.statNum} style={{ color: txt(colB) }}>
                   {pct(repB)}
                 </span>
                 <span>reported</span>
@@ -192,7 +190,7 @@ export default function ProtocolCompare() {
                 <span>true accuracy</span>
               </span>
               <span className={s.stat}>
-                <span className={s.statNum} style={{ color: 'var(--viz-2)' }}>
+                <span className={s.statNum} style={{ color: txt('var(--viz-2)') }}>
                   {pct(sim.valB[iB])}
                 </span>
                 <span>best validation score</span>
@@ -222,10 +220,10 @@ export default function ProtocolCompare() {
               { x: t, y: repB, r: 5.5, color: colB },
             ]}
           />
-          <Label x={Math.max(t, 14)} y={repA} dx={-4} dy={-10} anchor="end" color={colA}>
+          <Label x={Math.max(t, 14)} y={repA} dx={-4} dy={-10} anchor="end" color={txt(colA)}>
             {`A reports ${pct(repA)}`}
           </Label>
-          <Label x={Math.max(t, 14)} y={repB} dx={-4} dy={repB > repA - 0.012 ? 20 : -10} anchor="end" color={colB}>
+          <Label x={Math.max(t, 14)} y={repB} dx={-4} dy={repB > repA - 0.012 ? 20 : -10} anchor="end" color={txt(colB)}>
             {`B reports ${pct(repB)}`}
           </Label>
         </Plot>
@@ -247,7 +245,7 @@ export default function ProtocolCompare() {
 
         <p className={s.small} style={{ margin: 0 }}>
           Averaged over 400 simulated runs of {t} iteration{t === 1 ? '' : 's'}, reported minus true accuracy is{' '}
-          <b style={{ color: colA }}>{signed(bias.a[t - 1])} points</b> for A and <b style={{ color: colB }}>{signed(bias.b[t - 1])} points</b> for B.
+          <b style={{ color: txt(colA) }}>{signed(bias.a[t - 1])} points</b> for A and <b style={{ color: txt(colB) }}>{signed(bias.b[t - 1])} points</b> for B.
         </p>
 
         <Controls>

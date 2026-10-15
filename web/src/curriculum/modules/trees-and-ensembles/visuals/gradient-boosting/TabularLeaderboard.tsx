@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented } from '../../../../../kit'
+import { Figure } from '../../../../../kit'
+import Choice from '../Choice'
+import { TXT_GREEN } from '../tones'
 import s from './gb.module.css'
 
 /*
@@ -48,22 +50,25 @@ const MODELS: { key: ModelKey; name: string; colour: string; good: string[]; bad
   },
 ]
 
-const DATA: Record<DataKey, { label: string; about: string; metric: string; scores: Record<ModelKey, [number, number]> }> = {
+const DATA: Record<DataKey, { label: string; about: string; verdict: string; metric: string; scores: Record<ModelKey, [number, number]> }> = {
   california: {
     label: 'House prices',
     about: 'California housing: 20,640 districts, 8 numeric features (income, house age, rooms, location…), predict the median house value.',
+    verdict: 'Gradient boosting wins clearly, as it usually does on medium-sized tables.',
     metric: 'R² (1 = perfect)',
     scores: { linear: [0.604, 0.008], forest: [0.81, 0.006], boost: [0.845, 0.005], mlp: [0.794, 0.005] },
   },
   covtype: {
     label: 'Forest cover',
     about: 'Forest cover type: 20,000 plots sampled from 581,012, 54 features (elevation, slope, soil type…), predict which of 7 tree species covers the plot.',
+    verdict: 'The random forest wins, and untuned boosting even falls behind the neural network: boosting has more knobs, and its defaults are not always right.',
     metric: 'accuracy',
     scores: { linear: [0.724, 0.005], forest: [0.833, 0.005], boost: [0.785, 0.019], mlp: [0.803, 0.011] },
   },
   diabetes: {
     label: 'Small and simple',
     about: 'Diabetes progression: only 442 patients, 10 numeric features, predict a disease score a year later. Small, noisy and close to linear.',
+    verdict: 'The linear model edges ahead, though the top three are within each other\'s error bars: on small, nearly linear data a simple model is hard to beat.',
     metric: 'R² (1 = perfect)',
     scores: { linear: [0.49, 0.091], forest: [0.427, 0.098], boost: [0.35, 0.162], mlp: [0.447, 0.106] },
   },
@@ -81,15 +86,15 @@ export default function TabularLeaderboard() {
       title="Which model wins on a table of data?"
       caption={
         <>
-          Real scores we measured for four model families with standard settings and no tuning (5-fold cross-validation, scikit-learn). <b>Tap a
-          bar</b> for that model's strengths and weaknesses, and switch datasets. On house prices, boosting wins. On forest cover, the random forest
-          wins and boosting with untuned settings falls behind even the neural network: boosting has more knobs, and its defaults are not always
-          right. On the tiny, nearly linear diabetes data the plain linear model wins. "The default to beat" does not mean "always wins": try
-          several models and compare them on validation data.
+          Switch datasets and tap a bar for that model's strengths and weaknesses. Notice that boosting is the default to beat, not a guaranteed winner:
+          compare several models on validation data.
         </>
       }
     >
-      <p className={s.status}>{d.about}</p>
+      <Choice label="Dataset" value={ds} onChange={setDs} options={(Object.keys(DATA) as DataKey[]).map((k) => ({ value: k, label: DATA[k].label }))} />
+      <p className={s.status}>
+        {d.about} <span style={{ color: 'var(--ink-3)' }}>Real scores we measured with standard settings and no tuning (5-fold cross-validation, scikit-learn).</span>
+      </p>
       <div style={{ width: '100%', display: 'grid', gap: 8 }} role="group" aria-label={`Scores on ${d.label}, measured as ${d.metric}`}>
         {MODELS.map((x) => {
           const [mean, sd] = d.scores[x.key]
@@ -139,11 +144,14 @@ export default function TabularLeaderboard() {
           <span>1</span>
         </div>
       </div>
+      <p className={s.status}>
+        <b>{d.verdict}</b>
+      </p>
       <div className={s.card} style={{ width: '100%', borderColor: m.colour }}>
         <h4>{m.name}</h4>
         <div className={s.cards} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           <div>
-            <b style={{ color: 'var(--viz-pos)' }}>Strengths</b>
+            <b style={{ color: TXT_GREEN }}>Strengths</b>
             <ul>
               {m.good.map((t) => (
                 <li key={t}>{t}</li>
@@ -151,7 +159,7 @@ export default function TabularLeaderboard() {
             </ul>
           </div>
           <div>
-            <b style={{ color: 'var(--viz-neg)' }}>Weaknesses</b>
+            <b style={{ color: 'color-mix(in srgb, var(--viz-neg) 80%, var(--ink))' }}>Weaknesses</b>
             <ul>
               {m.bad.map((t) => (
                 <li key={t}>{t}</li>
@@ -160,14 +168,6 @@ export default function TabularLeaderboard() {
           </div>
         </div>
       </div>
-      <Controls>
-        <Segmented
-          label="Dataset"
-          value={ds}
-          onChange={setDs}
-          options={(Object.keys(DATA) as DataKey[]).map((k) => ({ value: k, label: DATA[k].label }))}
-        />
-      </Controls>
     </Figure>
   )
 }

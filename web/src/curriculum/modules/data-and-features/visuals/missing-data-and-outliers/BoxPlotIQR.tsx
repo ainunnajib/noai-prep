@@ -3,7 +3,7 @@ import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, Rect, Path
 
 /*
   Box plot + dot plot of nine commute times (minutes). Every dot can be dragged left/right.
-  Quartiles use the method the lesson teaches for exams: Q1 and Q3 are the medians of the
+  Quartiles use the usual by-hand rule (as in Describing data): Q1 and Q3 are the medians of the
   lower and upper halves of the sorted data, leaving the median itself out of both halves
   when n is odd. For the starting nine values every common rule gives Q1 = 15 and Q3 = 21.
   Fences: Q1 − 1.5·IQR and Q3 + 1.5·IQR. Optional: cap (winsorise) at the fences, and compare

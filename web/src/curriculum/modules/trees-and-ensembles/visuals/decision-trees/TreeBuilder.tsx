@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Figure, Controls, Segmented, Button, Plot, Grid, Axes, Rect, Dots, Path, Label, DraggablePoint, usePlot, useNarrow, useContainerWidth } from '../../../../../kit'
 import { FLAT_X, FLAT_Y } from './data'
 import { impurityOf, bestSplit, type ClfCriterion } from './cart'
+import { TXT_ORANGE, TXT_GREEN } from '../tones'
 import s from './trees.module.css'
 
 /*
@@ -51,7 +52,8 @@ function snapT(v: number, f: number, box: Box) {
   if (tmax >= hi) tmax -= 1
   return Math.min(tmax, Math.max(tmin, Math.round(v - 0.5) + 0.5))
 }
-const midCand = (nd: BNode, f: number): Cand => ({ f, t: snapT(f === 0 ? (nd.box[0] + nd.box[1]) / 2 : (nd.box[2] + nd.box[3]) / 2, f, nd.box) })
+/** a new leaf's handle starts a quarter of the way across its box: a deliberately poor question to improve on */
+const startCand = (nd: BNode, f: number): Cand => ({ f, t: snapT(f === 0 ? nd.box[0] + (nd.box[1] - nd.box[0]) / 4 : nd.box[2] + (nd.box[3] - nd.box[2]) / 4, f, nd.box) })
 const splittable = (nd: BNode) => !nd.kids && nd.depth < MAX_DEPTH && impurityOf(countsOf(nd.rows), 'gini') > 0
 
 function tint(c: number[]) {
@@ -155,7 +157,7 @@ function TreeDiagram({ nodes, sel, ghost, onSelect }: { nodes: BNode[]; sel: num
       const mx = x + (x2 - x) * 0.5
       const my = y + nodeH + (y2 - y - nodeH) * 0.5
       edges.push(
-        <text key={`t${k.key}`} className={s.edgeText} x={mx + (j === 0 ? -5 : 5)} y={my} textAnchor={j === 0 ? 'end' : 'start'} dy="0.32em">
+        <text key={`t${k.key}`} className={s.edgeText} x={mx + (j === 0 ? -6 : 6)} y={my - 7} textAnchor={j === 0 ? 'end' : 'start'} dy="0.32em">
           {j === 0 ? 'yes' : 'no'}
         </text>,
       )
@@ -192,7 +194,7 @@ function TreeDiagram({ nodes, sel, ghost, onSelect }: { nodes: BNode[]; sel: num
           <text x={x} y={y + nodeH / 2} dy="0.34em" textAnchor="middle" style={{ fontSize: fs, fontWeight: 700 }}>
             <tspan style={{ fill: 'var(--viz-1)' }}>{v.c[0]}</tspan>
             <tspan style={{ fill: 'var(--ink-3)' }}>{' · '}</tspan>
-            <tspan style={{ fill: 'var(--viz-2)' }}>{v.c[1]}</tspan>
+            <tspan style={{ fill: TXT_ORANGE }}>{v.c[1]}</tspan>
           </text>
         </>
       )
@@ -242,6 +244,7 @@ export default function TreeBuilder() {
   const [cand, setCand] = useState<Cand>(START_CAND)
   const [crit, setCrit] = useState<ClfCriterion>('gini')
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
+  const [dragged, setDragged] = useState(false)
 
   const cur = sel >= 0 ? nodes[sel] : null
   const canSplit = cur ? splittable(cur) : false
@@ -265,7 +268,7 @@ export default function TreeBuilder() {
   const select = (id: number) => {
     if (id === sel || nodes[id].kids) return
     setSel(id)
-    setCand(midCand(nodes[id], cand.f))
+    setCand(startCand(nodes[id], cand.f))
   }
   const selectAt = ([x, y]: [number, number]) => {
     const hit = leaves.find(({ nd }) => x >= nd.box[0] && x <= nd.box[1] && y >= nd.box[2] && y <= nd.box[3])
@@ -294,7 +297,7 @@ export default function TreeBuilder() {
       }
     })
     setSel(pick)
-    if (pick >= 0) setCand(midCand(next[pick], cand.f === 0 ? 1 : 0))
+    if (pick >= 0) setCand(startCand(next[pick], cand.f === 0 ? 1 : 0))
   }
   const undo = () => {
     const last = history[history.length - 1]
@@ -363,21 +366,31 @@ export default function TreeBuilder() {
         <>
           {cand.f === 0 ? (
             <>
-              <Label x={handle[0]} y={handle[1]} dx={-14} dy={4} anchor="end" color="var(--viz-3)" size={12}>
+              <Label x={handle[0]} y={handle[1]} dx={-14} dy={-12} anchor="end" color={TXT_GREEN} size={12} weight={700}>
                 yes
               </Label>
-              <Label x={handle[0]} y={handle[1]} dx={14} dy={4} anchor="start" color="var(--viz-3)" size={12}>
+              <Label x={handle[0]} y={handle[1]} dx={14} dy={-12} anchor="start" color={TXT_GREEN} size={12} weight={700}>
                 no
               </Label>
+              {!dragged && (
+                <Label x={handle[0]} y={handle[1]} dx={0} dy={26} anchor="middle" color={TXT_GREEN} size={12} weight={700}>
+                  ↔ drag
+                </Label>
+              )}
             </>
           ) : (
             <>
-              <Label x={handle[0]} y={handle[1]} dx={0} dy={24} anchor="middle" color="var(--viz-3)" size={12}>
+              <Label x={handle[0]} y={handle[1]} dx={-14} dy={20} anchor="end" color={TXT_GREEN} size={12} weight={700}>
                 yes
               </Label>
-              <Label x={handle[0]} y={handle[1]} dx={0} dy={-16} anchor="middle" color="var(--viz-3)" size={12}>
+              <Label x={handle[0]} y={handle[1]} dx={-14} dy={-11} anchor="end" color={TXT_GREEN} size={12} weight={700}>
                 no
               </Label>
+              {!dragged && (
+                <Label x={handle[0]} y={handle[1]} dx={14} dy={4} anchor="start" color={TXT_GREEN} size={12} weight={700}>
+                  ↕ drag
+                </Label>
+              )}
             </>
           )}
           <DraggablePoint
@@ -388,101 +401,102 @@ export default function TreeBuilder() {
             lockY={cand.f === 0}
             lockX={cand.f === 1}
             constrain={(x, y) => (cand.f === 0 ? [snapT(x, 0, cur.box), y] : [x, snapT(y, 1, cur.box)])}
-            onChange={(x, y) => setCand({ f: cand.f, t: cand.f === 0 ? x : y })}
+            onChange={(x, y) => {
+              setDragged(true)
+              setCand({ f: cand.f, t: cand.f === 0 ? x : y })
+            }}
           />
         </>
       )}
     </Plot>
   )
 
-  return (
-    <Figure
-      title="Grow a tree by hand: 32 HDB resale flats"
-      caption={
-        <>
-          Each point is a flat: blue circles sold for less than $600k, orange squares for $600k or more. Tap a shaded region (or a box in the tree) to choose a
-          leaf, then drag the <b>green handle</b> to move the question's threshold and watch the table. A good question leaves each side as pure (one colour) as
-          possible, which shows up as a large <b>information gain</b>. Press <b>Find best split</b> to let the computer try every threshold on both features, then{' '}
-          <b>Make this split</b>. Notice that every cut is a straight vertical or horizontal line, so the tree carves the plane into rectangles. Did your first
-          guess match the computer's?
-        </>
-      }
-    >
-      <div className={s.legend}>
-        <span>
-          <i className={s.dot} /> under $600k
-        </span>
-        <span>
-          <i className={s.square} /> $600k or more
-        </span>
-        <span>tree boxes show: <b className={s.low}>under</b> · <b className={s.high}>over</b></span>
-      </div>
-      <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1.25fr 1fr' }}>
-        <div>{plot}</div>
-        <div>
-          <p className={s.panelTitle}>The same tree as a diagram</p>
-          <TreeDiagram nodes={nodes} sel={sel} ghost={cur && canSplit && yes.length && no.length ? { yes, no } : null} onSelect={select} />
-          <p className={s.status} style={{ marginTop: 8 }}>
-            Accuracy on these flats (each leaf predicts its majority): <b className={s.strong}>{correct}/32</b> · leaves: <b className={s.strong}>{leaves.length}</b>
-          </p>
-        </div>
-      </div>
-      {cur && canSplit && (
-        <table className={s.table} aria-label="Counts and impurity on each side of the question">
-          <thead>
-            <tr>
-              <th>
-                Question: <span className={s.strong}>{FEAT[cand.f]} ≤ {fmtT(cand.t)}{unit(cand.f)}?</span>
-              </th>
-              <th className={s.low}>under</th>
-              <th className={s.high}>over</th>
-              <th>{critName}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>this leaf ({cur.rows.length} flats)</td>
-              <td>{pc[0]}</td>
-              <td>{pc[1]}</td>
-              <td>{ip.toFixed(3)}</td>
-            </tr>
-            <tr>
-              <td>yes side ({yes.length})</td>
-              <td>{yc[0]}</td>
-              <td>{yc[1]}</td>
-              <td>{iy.toFixed(3)}</td>
-            </tr>
-            <tr>
-              <td>no side ({no.length})</td>
-              <td>{nc[0]}</td>
-              <td>{nc[1]}</td>
-              <td>{ino.toFixed(3)}</td>
-            </tr>
-            <tr>
-              <td>
-                weighted by size ({yes.length}/{n}, {no.length}/{n})
-              </td>
-              <td />
-              <td />
-              <td>{weighted.toFixed(3)}</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>gain = {ip.toFixed(3)} − {weighted.toFixed(3)}</td>
-              <td />
-              <td />
-              <td className={s.gain}>{gain.toFixed(3)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      )}
-      <p className={s.status}>{status}</p>
+  const diagram = (
+    <div>
+      <p className={s.panelTitle}>The same tree as a diagram</p>
+      <TreeDiagram nodes={nodes} sel={sel} ghost={cur && canSplit && yes.length && no.length ? { yes, no } : null} onSelect={select} />
+      <p className={s.status} style={{ marginTop: 8 }}>
+        Accuracy on these flats (each leaf predicts its majority): <b className={s.strong}>{correct}/32</b> · leaves: <b className={s.strong}>{leaves.length}</b>
+      </p>
+    </div>
+  )
+
+  const table =
+    cur && canSplit ? (
+      <table className={s.table} aria-label="Counts and impurity on each side of the question">
+        <thead>
+          <tr>
+            <th>
+              Question: <span className={s.strong}>{FEAT[cand.f]} ≤ {fmtT(cand.t)}{unit(cand.f)}?</span>
+            </th>
+            <th className={s.low}>under</th>
+            <th className={s.high}>over</th>
+            <th>{critName}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>this leaf ({cur.rows.length} flats)</td>
+            <td>{pc[0]}</td>
+            <td>{pc[1]}</td>
+            <td>{ip.toFixed(3)}</td>
+          </tr>
+          <tr>
+            <td>yes side ({yes.length})</td>
+            <td>{yc[0]}</td>
+            <td>{yc[1]}</td>
+            <td>{iy.toFixed(3)}</td>
+          </tr>
+          <tr>
+            <td>no side ({no.length})</td>
+            <td>{nc[0]}</td>
+            <td>{nc[1]}</td>
+            <td>{ino.toFixed(3)}</td>
+          </tr>
+          <tr>
+            <td>
+              weighted by size ({yes.length}/{n}, {no.length}/{n})
+            </td>
+            <td />
+            <td />
+            <td>{weighted.toFixed(3)}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>gain = {ip.toFixed(3)} − {weighted.toFixed(3)}</td>
+            <td />
+            <td />
+            <td className={s.gain}>{gain.toFixed(3)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    ) : null
+
+  const controls = (
+    <>
+      <p className={s.status} aria-live="polite">
+        {status}
+      </p>
+      <Controls>
+        <Button onClick={() => best && setCand({ f: best.f, t: best.t })} disabled={!best || isBest}>
+          Find best split
+        </Button>
+        <Button primary onClick={commit} disabled={!canSplit || !yes.length || !no.length}>
+          Make this split
+        </Button>
+        <Button onClick={undo} disabled={!history.length}>
+          Undo
+        </Button>
+        <Button onClick={reset} disabled={!history.length && sel === 0 && cand.t === START_CAND.t && cand.f === START_CAND.f}>
+          Start again
+        </Button>
+      </Controls>
       <Controls>
         <Segmented
           label="Split on"
           value={cand.f}
-          onChange={(f) => cur && canSplit && setCand(midCand(cur, f))}
+          onChange={(f) => cur && canSplit && setCand(startCand(cur, f))}
           options={[
             { value: 0, label: 'area' },
             { value: 1, label: 'lease' },
@@ -498,20 +512,45 @@ export default function TreeBuilder() {
           ]}
         />
       </Controls>
-      <Controls>
-        <Button onClick={() => best && setCand({ f: best.f, t: best.t })} disabled={!best || isBest}>
-          Find best split
-        </Button>
-        <Button primary onClick={commit} disabled={!canSplit || !yes.length || !no.length}>
-          Make this split
-        </Button>
-        <Button onClick={undo} disabled={!history.length}>
-          Undo
-        </Button>
-        <Button onClick={reset} disabled={!history.length && sel === 0 && cand.t === START_CAND.t && cand.f === START_CAND.f}>
-          Start again
-        </Button>
-      </Controls>
+    </>
+  )
+
+  return (
+    <Figure
+      title="Grow a tree by hand: 32 made-up HDB resale flats"
+      caption={
+        <>
+          Drag the green handle or press <b>Find best split</b>, then <b>Make this split</b>; tap a shaded region to pick another leaf. Notice that every cut
+          is straight, so the tree carves rectangles.
+        </>
+      }
+    >
+      <div className={s.legend}>
+        <span>
+          <i className={s.dot} /> under $600k
+        </span>
+        <span>
+          <i className={s.square} /> $600k or more
+        </span>
+        <span>tree boxes show: <b className={s.low}>under</b> · <b className={s.high}>over</b></span>
+      </div>
+      {/* on phones the buttons sit right under the plot, so the learner sees the cut while choosing it */}
+      <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1.25fr 1fr' }}>
+        <div>{plot}</div>
+        {!narrow && diagram}
+      </div>
+      {narrow ? (
+        <>
+          {controls}
+          {table}
+          {diagram}
+        </>
+      ) : (
+        <>
+          {table}
+          {controls}
+        </>
+      )}
     </Figure>
   )
 }

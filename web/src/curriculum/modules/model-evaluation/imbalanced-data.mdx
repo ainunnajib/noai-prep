@@ -74,7 +74,7 @@ $$
 \text{accuracy} = 1 - \text{prevalence}
 $$
 
-With 1% fraud, that is 99% accuracy, from a model that has never caught a single fraud (recall 0). Slide the fraud rate below and watch accuracy climb as the model stays useless.
+With 1% fraud, that is 99% accuracy, from a model that has never caught a single fraud (recall 0). Slide the fraud rate down in the figure below and watch accuracy climb while the model stays useless.
 
 <AccuracyParadox />
 
@@ -128,11 +128,11 @@ $$
 L = \frac{1}{N}\sum_{i=1}^{N} w_{y_i}\, \ell_i
 $$
 
-Here $N$ is the number of training examples, $\ell_i$ is the ordinary loss of example $i$ (for example its cross-entropy), and $w_{y_i}$ is the weight of its class $y_i$. A common choice is $w_0 = 1$ for the majority class and $w_1 = \frac{n_0}{n_1}$ for the minority class, where $n_0$ and $n_1$ are the class sizes. With 9,800 genuine and 200 fraud payments, $w_1 = \frac{9{,}800}{200} = 49$: every missed fraud now costs 49 times as much, so the 200 frauds weigh as much in total as the 9,800 genuine payments. In scikit-learn this is `class_weight="balanced"`; in PyTorch it is the `pos_weight` or `weight` argument of the loss (code below).
+Here $N$ is the number of training examples, $\ell_i$ is the ordinary loss of example $i$ (for example its cross-entropy), and $w_{y_i}$ is the weight of its class $y_i$. A common choice is $w_0 = 1$ for the majority class and $w_1 = \frac{n_0}{n_1}$ for the minority class, where $n_0$ and $n_1$ are the class sizes. With 9,800 genuine and 200 fraud payments, $w_1 = \frac{9{,}800}{200} = 49$: every missed fraud now costs 49 times as much, so the 200 frauds weigh as much in total as the 9,800 genuine payments. In scikit-learn, `class_weight={0: 1, 1: 49}` sets exactly these weights, and `class_weight="balanced"` sets $w_c = \frac{n}{2 n_c}$ (here about 0.51 and 25), the same 49 : 1 ratio. In PyTorch it is the `pos_weight` or `weight` argument of the loss (code below).
 
 ### Resampling: change the data
 
-**Random oversampling.** <Term def="Duplicating randomly chosen minority examples until the classes are (closer to) balanced.">Random oversampling</Term> copies minority examples until the classes balance. Copying a point 49 times has the same effect on the loss as giving it weight 49, but the dataset grows and the model sees the same few rows over and over, which encourages memorising them.
+**Random oversampling.** <Term def="Duplicating randomly chosen minority examples until the classes are (closer to) balanced.">Random oversampling</Term> copies minority examples until the classes balance. Repeating each fraud so that it appears 49 times (48 extra copies) has the same effect on the loss as giving it weight 49, but the dataset grows and the model sees the same few rows over and over, which encourages memorising them.
 
 **SMOTE.** <Term def="Synthetic Minority Over-sampling TEchnique: creates new minority examples on the straight line between a minority example and one of its k nearest minority neighbours.">SMOTE</Term> (Synthetic Minority Over-sampling Technique) invents *new* minority points instead of copies. For a minority point $x_i$, pick one of its $k$ nearest minority neighbours $x_{nn}$ (the same "nearest neighbours" as in k-NN) and a random number $\lambda$ between 0 and 1. The new point is
 
@@ -140,17 +140,17 @@ $$
 x_{\text{new}} = x_i + \lambda\,(x_{nn} - x_i)
 $$
 
-a point on the straight line from $x_i$ to $x_{nn}$: $\lambda = 0$ gives $x_i$ itself, $\lambda = 1$ gives the neighbour, $\lambda = 0.5$ the midpoint. In the visual, slide $\lambda$ down to 0 and SMOTE turns into plain copying.
+a point on the straight line from $x_i$ to $x_{nn}$: $\lambda = 0$ gives $x_i$ itself, $\lambda = 1$ gives the neighbour, $\lambda = 0.5$ the midpoint. SMOTE draws a fresh random $\lambda$ for each new point. In the visual, shrink the range of $\lambda$ to 0 and SMOTE turns into plain copying.
 
 **Random undersampling.** <Term def="Randomly throwing away majority examples until the classes are (closer to) balanced.">Random undersampling</Term> throws away majority examples. It is fast, but it discards real information: balancing 9,800 genuine against 200 fraud payments means deleting 9,600 genuine ones.
 
 ### Threshold moving: change the decision
 
-You can also leave training alone and **lower the threshold**, exactly as in the previous lesson. For a well-behaved model, weighting the positives by $w$ has roughly the same effect as lowering the threshold to $\frac{1}{1 + w}$. With $w = 49$ that is $\frac{1}{50} = 0.02$, the fraud rate itself. The code at the end of the lesson shows the two giving almost identical results.
+You can also leave training alone and **lower the threshold**, exactly as in the previous lesson. For a well-behaved model, weighting the positives by $w$ has roughly the same effect as lowering the threshold to $\frac{1}{1 + w}$. With $w = 49$ that is $\frac{1}{50} = 0.02$, the fraud rate itself. The code at the end of the lesson shows the two giving almost identical results. (The visual uses 5% fraud, 12 frauds against 228 genuine payments, so there the weight is $228 \div 12 = 19$ and the matching threshold $\frac{1}{20} = 0.05$.)
 
 | remedy | what changes | main risk |
 |---|---|---|
-| class weights | the loss (data unchanged) | probabilities no longer calibrated |
+| class weights | the loss (data unchanged) | scores stop being honest probabilities |
 | random oversampling | the data: more rows (copies) | memorising duplicated rows; slower |
 | SMOTE | the data: more rows (synthetic) | unrealistic points where classes overlap |
 | random undersampling | the data: far fewer rows | throws away information; unstable |
@@ -171,13 +171,13 @@ Split into training and test sets **first**, then resample only the training set
   explain="Class weights multiply the loss of each minority example, so the data are untouched. SMOTE and random oversampling add minority rows, and undersampling deletes majority rows: all three change the data."
 />
 
+<PastPaperQuestion paper="prelim2026" n={264} />
+
 <ExamTip>
 
-Long Prelim scenario questions compare these remedies. The 2026 Prelim had one on a 2% fraud dataset with class weights $w_1 = 49$, random oversampling, SMOTE and undersampling, asking which "best balances practicality and performance"; the official answer was **class weights**: it keeps all the data, adds no training time, encodes the cost of a miss directly in the loss, and is a single argument in most libraries. Learn the one-line drawback of each alternative: duplicates (oversampling), unrealistic synthetic points (SMOTE), discarded data (undersampling).
+Long Prelim scenarios like this one compare the remedies. Learn the one-line trade-off of each: class weights keep all the data, add no training time, put the cost of a miss straight into the loss and are one argument in most libraries; oversampling duplicates rows; SMOTE can invent unrealistic points; undersampling discards data. When a question asks which remedy "best balances practicality and performance", class weights are the expected answer.
 
 </ExamTip>
-
-<PastPaperQuestion paper="prelim2026" n={264} />
 
 ## Choosing the metric by cost
 
@@ -212,17 +212,17 @@ Flag every payment with $p > t^*$. When misses are expensive ($c_{FN}$ large), $
   </Step>
 </Steps>
 
-<Note title="Read the cost carefully">
-The formula charges $c_{FP}$ only when a flagged payment turns out to be genuine. If instead a check costs $c$ on **every** flagged payment, fraud or not, flagging always costs $c$, so you flag when $c < p\,c_{FN}$: the threshold is $c / c_{FN}$ (here $10/90 \approx 0.11$). In general, with a cost for each of the four outcomes, $t^* = \dfrac{C_{FP} - C_{TN}}{(C_{FP} - C_{TN}) + (C_{FN} - C_{TP})}$.
-</Note>
-
 <CostMatrixSlider />
 
 In the visual, the threshold 0.1 catches 165 of the 200 frauds and costs \$5,060 per 10,000 payments, while the default 0.5 catches only 116 and costs \$7,810, even though its **accuracy is higher** (0.989 against 0.977). Accuracy rewards the wrong thing again.
 
+<Note title="For the curious: other cost set-ups">
+The formula charges $c_{FP}$ only when a flagged payment turns out to be genuine. If instead a check costs $c$ on **every** flagged payment, fraud or not, flagging always costs $c$, so you flag when $c < p\,c_{FN}$: the threshold is $c / c_{FN}$ (here $10/90 \approx 0.11$).
+</Note>
+
 <KeyIdea>
 
-Match the metric to the cost of mistakes. When misses are expensive (fraud, disease), prioritise **recall**, but watch **precision** so the alarms do not swamp the people who must check them. Report a threshold-free summary such as **PR-AUC**, *plus* the operating point you chose: its threshold, precision, recall and the F1 at that threshold. (F1 is not threshold-free: it comes from one confusion matrix, so it changes when the threshold moves.)
+Match the metric to the cost of mistakes. When misses are expensive (fraud, disease), prioritise **recall**, but watch **precision** so the alarms do not swamp the people who must check them. Report a threshold-free summary such as **<Term def="The area under the precision-recall curve, also called average precision: one number that summarises how well the model finds the rare class across all thresholds. It is taught in the next lesson.">PR-AUC</Term>** (next lesson), *plus* the operating point you chose: its threshold, precision, recall and the F1 at that threshold. (F1 is not threshold-free: it comes from one confusion matrix, so it changes when the threshold moves.)
 
 </KeyIdea>
 
@@ -232,7 +232,7 @@ Match the metric to the cost of mistakes. When misses are expensive (fraud, dise
 | rare-disease screening (disease) | recall | a missed patient goes untreated; a false alarm costs a follow-up test |
 | confirming a diagnosis before surgery (disease) | precision | a false positive means an unnecessary operation |
 
-When a miss costs far more than a false alarm, and alarms can be reviewed, recall (with a floor on precision) is the main metric. F1 weighs precision and recall equally, so it is not automatically the safe answer, and ROC-AUC can look flattering when positives are rare.
+When a miss costs far more than a false alarm, and alarms can be reviewed, recall (with a floor on precision) is the main metric. F1 weighs precision and recall equally, so it is not automatically the safe answer, and ROC-AUC (next lesson) can look flattering when positives are rare.
 
 <PastPaperQuestion paper="prelim2026" n={265} />
 
@@ -241,6 +241,8 @@ When a miss costs far more than a false alarm, and alarms can be reviewed, recal
 Compare a do-nothing baseline, plain logistic regression, class weights and a lowered threshold on the same imbalanced data. Notice the plain model's high accuracy and weak recall, and how close "class weights" and "threshold 0.02" end up.
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={compareCode} />
+
+Class weights lift recall from 0.42 to 0.90, but F1 falls from 0.51 to 0.23: reweighting buys recall with precision. Whether that trade is worth it depends on the costs, not on F1.
 
 In PyTorch, the weight goes into the loss function. `BCEWithLogitsLoss` takes `pos_weight` (multiply the loss of every positive example); `CrossEntropyLoss` takes one `weight` per class.
 
@@ -275,7 +277,7 @@ SMOTE fits in a dozen lines of NumPy, a typical "implement it from scratch" Fina
 
 <PyRunner packages={['numpy']} code={smoteCode} />
 
-Each printed row is a new "fraud" on the line between two real ones. Because $\lambda$ is random, a new point can land almost on top of its parent: with this seed the last row has $\lambda \approx 0.003$, so it prints as $(2.5, 2.0)$, which is the second real fraud to two decimal places.
+Each printed row is a new "fraud" on the line between two real ones. Because $\lambda$ is random, a new point can land almost on top of its parent: with this seed the last row has $\lambda \approx 0.003$, so it prints as $(2.5, 2.0)$, the second real fraud.
 
 <Takeaways>
 

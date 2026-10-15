@@ -25,9 +25,9 @@ print("average precision (PR-AUC):", round(average_precision_score(y_true, score
 
 Precision, recall and the confusion matrix all depend on one choice: the threshold. Move it and every number changes. So how do you compare two models before anyone has picked a threshold? Draw **every threshold at once**. That picture is the ROC curve, the area under it is the single most quoted number in classification, and its cousin, the precision-recall curve, tells the truth when positives are rare.
 
-<Analogy title="Tuning a metal detector on East Coast beach">
+<Analogy title="Back to the Changi scanner">
 
-You are hunting for coins, but the sand is full of bottle caps. Start with the sensitivity knob at zero: the detector beeps at nothing. Turn it up one notch at a time, and at each notch write down two numbers: what fraction of the coins it now beeps at, and what fraction of the bottle caps. Plot the pairs and you have traced the detector's whole personality, from "silent" to "beeps at everything". A good detector finds most coins while still ignoring most caps.
+Remember the airport scanner's sensitivity knob from the first lesson? Start with it at zero: it beeps at nothing. Turn it up one notch at a time, and at each notch write down two numbers: the fraction of knives it now beeps at, and the fraction of belt buckles. Plot the pairs and you have traced the scanner's whole personality, from "silent" to "beeps at everything". A good scanner catches most knives while still ignoring most buckles.
 
 </Analogy>
 
@@ -43,8 +43,8 @@ $$
 \text{FPR} = \frac{FP}{FP + TN}
 $$
 
-- The <Term def="TP / (TP + FN): the fraction of actual positives that the model flags. The same thing as recall and sensitivity.">true positive rate</Term> (**TPR**) is the fraction of real positives that get flagged. It is exactly **recall**: the coins found.
-- The <Term def="FP / (FP + TN): the fraction of actual negatives that the model wrongly flags. It equals 1 − specificity.">false positive rate</Term> (**FPR**) is the fraction of real negatives that get flagged by mistake: the bottle caps beeped at. It equals $1 - \text{specificity}$.
+- The <Term def="TP / (TP + FN): the fraction of actual positives that the model flags. The same thing as recall and sensitivity.">true positive rate</Term> (**TPR**) is the fraction of real positives that get flagged. It is exactly **recall**: the knives caught.
+- The <Term def="FP / (FP + TN): the fraction of actual negatives that the model wrongly flags. It equals 1 − specificity.">false positive rate</Term> (**FPR**) is the fraction of real negatives that get flagged by mistake: the belt buckles beeped at. It equals $1 - \text{specificity}$.
 
 Because each rate looks inside **one** class only, neither cares how many examples the other class has. Remember this: it is the key to the last part of the lesson.
 
@@ -69,6 +69,8 @@ Take ten examples, five positives (P) and five negatives (N), sorted by score: 0
 | 0.1 | N | 5 | 5 | (1.0, 1.0) |
 
 The rule is simple: every positive you pass steps the point **up** by $\frac{1}{5}$ (one more of the five positives caught), and every negative steps it **right** by $\frac{1}{5}$ (one more false alarm). The result is a staircase from (0, 0) to (1, 1). With thousands of examples the steps become tiny and the staircase looks like a smooth curve.
+
+In the figure below, the score panel shows 40 positives (orange, stacked down) and 40 negatives (blue, stacked up); everything right of the threshold is predicted positive, and a red ring marks a mistake. The ROC panel plots that threshold as one point, (FPR, TPR), on the curve.
 
 <ROCTracer />
 
@@ -110,13 +112,15 @@ Why are the two the same? With 5 positives and 5 negatives, the ROC square is cu
   </Step>
 </Steps>
 
+In the next figure the same 25 pairs are laid out as the ROC square: the columns are the negatives (highest score on the left) and the rows are the positives (highest score at the bottom). The staircase separates the correctly ranked pairs (✓) from the wrong ones (✗).
+
 <AUCPairs />
 
 Because AUC only looks at the **order** of the scores:
 
 - It ignores the threshold entirely, so it compares models before you choose one.
-- Rescaling the scores without changing their order (doubling them, squaring them, taking logs) leaves AUC unchanged.
-- An AUC **below** 0.5 means the model ranks the classes the wrong way round more often than not. Flip its predictions and you get $1 - \text{AUC}$.
+- Rescaling the scores without changing their order (doubling them, or squaring or taking logs of positive scores such as probabilities) leaves AUC unchanged.
+- An AUC **below** 0.5 means the model ranks the classes the wrong way round more often than not. Reverse its ranking (use $1 - \text{score}$ instead of the score) and you get $1 - \text{AUC}$.
 
 <QuickCheck
   q="A model gives two positives the scores 0.8 and 0.4, and three negatives the scores 0.6, 0.3 and 0.1. What is its AUC?"

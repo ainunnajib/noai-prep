@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, VLine, Label, usePlot, mulberry32, useBump } from '../../../../../kit'
 import { gauss, shuffleInPlace } from './sim'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from './cv.module.css'
 
 /*
@@ -163,11 +164,8 @@ export default function CVLeakageCompare() {
       title="Selecting features before cross-validation finds patterns in pure noise"
       caption={
         <>
-          The data are 40 rows of <b>random numbers</b> with random labels, so no model can truly beat a coin flip (0.5). Both workflows keep the 10
-          columns that best separate the labels and use the same simple classifier. Slide the number of columns: workflow A (selection on all rows,
-          then CV) reports better and better accuracy as the number of columns grows, because with more columns there are more that match the labels
-          by luck, <i>including the validation rows' labels</i>. Workflow B never lets the validation fold vote on which columns to keep, so it stays at
-          chance. The lines average 1,000 noise datasets; the hollow rings are the one dataset shown in the boxes above. Press <b>New noise</b> a few times to see how much a single dataset wobbles around its line.
+          Slide the number of noise columns: workflow A's reported accuracy climbs far above the coin-flip 0.5, while B stays at chance. Press{' '}
+          <b>New noise</b> to see one dataset (hollow rings) wobble around the averages.
         </>
       }
     >
@@ -175,7 +173,7 @@ export default function CVLeakageCompare() {
         <div className={s.panels}>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: leakyColor }}>
+              <span className={s.badge} style={{ color: txt(leakyColor) }}>
                 A: select, then cross-validate
               </span>
             </p>
@@ -186,7 +184,7 @@ export default function CVLeakageCompare() {
             </div>
             <div className={s.stats}>
               <span className={s.stat}>
-                <span className={s.statNum} style={{ color: leakyColor }}>
+                <span className={s.statNum} style={{ color: txt(leakyColor) }}>
                   {one.leaky.toFixed(2)}
                 </span>
                 <span>reported accuracy</span>
@@ -195,7 +193,7 @@ export default function CVLeakageCompare() {
           </div>
           <div className={s.panel}>
             <p className={s.panelTitle}>
-              <span className={s.badge} style={{ color: honestColor }}>
+              <span className={s.badge} style={{ color: txt(honestColor) }}>
                 B: select inside each fold
               </span>
             </p>
@@ -206,7 +204,7 @@ export default function CVLeakageCompare() {
             </div>
             <div className={s.stats}>
               <span className={s.stat}>
-                <span className={s.statNum} style={{ color: honestColor }}>
+                <span className={s.statNum} style={{ color: txt(honestColor) }}>
                   {one.honest.toFixed(2)}
                 </span>
                 <span>reported accuracy</span>
@@ -242,16 +240,19 @@ export default function CVLeakageCompare() {
               { x: lg(p), y: one.honest, r: 7, color: honestColor, hollow: true },
             ]}
           />
-          <Label x={lg(P_LIST[P_LIST.length - 1])} y={curve[curve.length - 1].leaky} dx={-6} dy={-12} anchor="end" color={leakyColor}>
+          <Label x={lg(P_LIST[P_LIST.length - 1])} y={curve[curve.length - 1].leaky} dx={-6} dy={-12} anchor="end" color={txt(leakyColor)}>
             A: leaky
           </Label>
-          <Label x={lg(P_LIST[P_LIST.length - 1])} y={curve[curve.length - 1].honest} dx={-6} dy={22} anchor="end" color={honestColor}>
+          <Label x={lg(P_LIST[P_LIST.length - 1])} y={curve[curve.length - 1].honest} dx={-6} dy={22} anchor="end" color={txt(honestColor)}>
             B: honest
           </Label>
         </Plot>
         <div className={s.legend}>
           <span>
-            <span className={s.swatchLine} style={{ borderColor: leakyColor }} /> average of 1,000 noise datasets
+            <span className={s.swatchLine} style={{ borderColor: leakyColor }} /> A: leaky (average of 1,000 datasets)
+          </span>
+          <span>
+            <span className={s.swatchLine} style={{ borderColor: honestColor }} /> B: honest (average of 1,000 datasets)
           </span>
           <span>
             <span className={s.dot} style={{ background: 'var(--surface)', borderColor: 'var(--ink-3)' }} /> this dataset

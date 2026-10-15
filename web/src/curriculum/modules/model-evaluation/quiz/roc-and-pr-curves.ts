@@ -14,7 +14,7 @@ const questions: QuizQuestion[] = [
     id: 'model-evaluation.roc-and-pr-curves.2',
     prompt: 'A classifier has an ROC-AUC of 0.85. Which statement is correct?',
     options: [
-      'A randomly chosen positive gets a higher score than a randomly chosen negative 85% of the time',
+      'A random positive gets a higher score than a random negative 85% of the time',
       'The classifier labels 85% of all examples correctly at its default threshold',
       'At a threshold of 0.5, the classifier finds 85% of the positives',
       '85% of the examples the classifier flags as positive really are positive',
@@ -38,7 +38,7 @@ const questions: QuizQuestion[] = [
     id: 'model-evaluation.roc-and-pr-curves.4',
     prompt: 'On an ROC plot, what does the straight diagonal line from $(0, 0)$ to $(1, 1)$ represent?',
     options: [
-      'A classifier that guesses at random, so its TPR always equals its FPR and its AUC is 0.5',
+      'A classifier that guesses at random: TPR equals FPR, and the AUC is 0.5',
       'A perfect classifier, which finds every positive without any false alarms',
       'A classifier that always predicts the positive class, whatever the input',
       'The best threshold for the model, where precision equals recall',
@@ -60,7 +60,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'With 0.1% fraud there are about 999 genuine transactions per fraud, so even a small false positive rate produces many false alarms per real fraud. ROC-AUC, accuracy and specificity are all dominated by the huge negative class and can look excellent. Precision divides by the alerts themselves, so the PR curve shows directly how many alerts are real.',
+      'With 0.1% fraud there are about 999 genuine transactions per fraud, so even a small false positive rate produces many false alarms per real fraud. Accuracy and specificity are dominated by the huge negative class, and ROC-AUC ignores the class ratio altogether: FPR divides by the huge number of genuine transactions, so thousands of false alarms still look like a tiny FPR. Precision divides by the alerts themselves, so the PR curve shows directly how many alerts are real.',
     difficulty: 'intermediate',
   },
 ]

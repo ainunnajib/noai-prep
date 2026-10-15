@@ -101,25 +101,24 @@ export default function ImportanceBars() {
   let note: string
   if (copy && id)
     note =
-      'Both effects at once: the twins share the impurity credit and hide each other from permutation, while the ID collects a little impurity credit but no permutation importance.'
+      'Both effects at once: the twins share the impurity credit and hide each other from permutation, while the ID still collects impurity credit but no permutation importance.'
   else if (copy)
     note =
       'Impurity importance splits floor area\'s credit between the twins, so each looks about half as important. Permutation is worse: shuffling one twin hardly hurts because the forest still has the other, so both look less important than lease, even though floor area matters most.'
   else if (id)
     note =
-      'The random ID means nothing, yet impurity importance gives it a share close to "km to MRT": with 300 different values, deep trees can always find an ID split that happens to fit some noise. Shuffling the ID changes nothing on new data, so its permutation importance is about 0.'
+      'The random ID means nothing, yet impurity importance ranks it third, above storey and km to MRT: with 300 different values, deep trees can always find an ID split that happens to fit some noise. Shuffling the ID changes nothing on new data, so its permutation importance is about 0.'
   else
     note =
-      'Both methods agree on the order here: floor area, then lease, then storey, then distance to the MRT. Impurity importance adds up each feature\'s drop in squared error over all 30 trees (scaled to 100%); permutation importance is how much the test R² falls when that column is shuffled.'
+      '30 trees predict made-up HDB resale prices from four features. Both methods agree on the order: floor area, then lease, then storey, then distance to the MRT.'
 
   return (
     <Figure
       title="Which features does the forest rely on?"
       caption={
         <>
-          A random forest of 30 trees predicts made-up HDB resale prices from four features (the true rule uses floor area most, then lease, then storey and
-          distance to the MRT). Add a <b>copy of floor area</b> in square feet and watch the credit split between the twins, or add a <b>random flat ID</b>{' '}
-          and see which method is fooled by it.
+          Switch on a <b>copy of floor area</b>, then a <b>random flat ID</b>. Notice which method splits the twins' credit, and which one is fooled by
+          the ID.
         </>
       }
     >

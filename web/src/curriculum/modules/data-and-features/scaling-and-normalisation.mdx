@@ -34,6 +34,8 @@ The label here, "needs reading glasses", depends mostly on age. Without scaling,
 
 ### Standardisation (z-scores)
 
+You met z-scores in [the normal curve lesson](#/learn/probability-and-statistics/distributions-and-clt) and standardised whole columns in [Broadcasting](#/learn/numpy/broadcasting). A quick recap:
+
 <Term def="Rescaling a feature as z = (x − mean) / standard deviation, so it has mean 0 and standard deviation 1. Also called z-score normalisation; scikit-learn's StandardScaler.">Standardisation</Term> replaces each value $x$ of a feature by its z-score:
 
 $$
@@ -130,7 +132,7 @@ Even with the best learning rate each run can use, the raw features need 97 step
 ### Two more ways NOAI describes the same effect
 
 - **A step size for each feature.** Dividing feature $j$ by its standard deviation $\sigma_j$ and running gradient descent with learning rate $\eta$ is exactly the same as updating the *original* weight with an **effective learning rate of $\eta / \sigma_j^2$**. So standardising shrinks the step for high-variance features (income) and enlarges it for low-variance ones (age): every weight gets a step size that suits it. Rescaling the problem like this is called <Term def="Rescaling a problem (or each parameter's step) so that gradient descent sees a rounder bowl and one learning rate suits every direction.">preconditioning</Term>.
-- **Centring matters too, not only the spread.** For one example, the gradient of each weight of a neuron is the same error signal multiplied by that weight's input. If every input is positive (raw pixel values 0 to 255, ages, prices), all of the neuron's weight gradients share one sign, so in each step its weights all go up together or all go down together. When the best move is "this weight up, that one down", gradient descent has to zig-zag to get there. Subtracting the mean fixes the signs; dividing by the standard deviation fixes the step sizes.
+- **Centring matters too, not only the spread.** A neuron, like a linear model, computes a weighted sum of its inputs, $w_1x_1 + w_2x_2 + \cdots$, and for one example the slope of the loss with respect to each weight $w_j$ turns out to be one shared error number times that weight's input $x_j$ (the calculus module shows why, in [Partial derivatives and the gradient](#/learn/calculus-and-gradient-descent/partial-derivatives-gradients)). If every input is positive (raw pixel values 0 to 255, ages, prices), all of these slopes share one sign, so in each step the weights all go up together or all go down together. When the best move is "this weight up, that one down", gradient descent has to zig-zag to get there. Subtracting the mean fixes the signs; dividing by the standard deviation fixes the step sizes.
 
 One more rule: compute $\mu$ and $\sigma$ over the **whole training set**, not separately for each example. Standardising each image by its own mean and standard deviation erases the differences in brightness and contrast between images, which may be exactly what the model needs to see. (Dividing every pixel by 255 and dataset-wide z-scores both keep those differences, since each applies one fixed rescaling to every image; what the z-scores add is the centring.)
 
@@ -256,7 +258,7 @@ How NOAI asks about this:
 - **z-score arithmetic**: $z = (x - \mu)/\sigma$. "Mean 10, standard deviation 2, value 14" gives $z = 4/2 = 2$. Do not forget to divide.
 - **Min-max arithmetic**: $(x - \min)/(\max - \min)$. Subtract the minimum first.
 - **Which models need scaling**: distance-based (k-NN, k-means, SVM), gradient-descent-trained (linear and logistic regression, neural networks), regularised models and PCA do; tree-based models do not.
-- **Why scaling helps training**: features with large values dominate the gradient and stretch the loss into a narrow valley. Standardising gives each weight an effective learning rate of $\eta/\sigma_j^2$ (smaller for high-variance features, larger for low-variance ones), so one learning rate works for every weight and gradient descent converges faster. Centring (mean 0) also helps, because all-positive inputs make a neuron's weight gradients share one sign and zig-zag.
+- **Why scaling helps training**: features with large values dominate the gradient and stretch the loss into a narrow valley. Standardising gives each weight an effective learning rate of $\eta/\sigma_j^2$ (smaller for high-variance features, larger for low-variance ones), so one learning rate works for every weight and gradient descent converges faster. Centring (mean 0) also helps: with all-positive inputs, a neuron's weight slopes all share one sign, so its weights can only move together and must zig-zag.
 - **Whose statistics?** The training set's, applied to every example; not each image's own mean and standard deviation, which wipes out brightness differences between images.
 - **Leakage**: fit the scaler on the training set only and transform the test set with it.
 

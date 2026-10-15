@@ -2,17 +2,12 @@ import TreeBuilder from './visuals/decision-trees/TreeBuilder'
 import ImpurityCurves from './visuals/decision-trees/ImpurityCurves'
 import WeightedSplit from './visuals/decision-trees/WeightedSplit'
 import TreeDepthOverfit from './visuals/decision-trees/TreeDepthOverfit'
-
-export const flowchart = `Is the lease ≤ 59.5 years?
-├ yes → predict: under $600k
-└ no  → Is the area ≤ 93 m²?
-        ├ yes → predict: under $600k
-        └ no  → predict: $600k or more`
+import FlowchartTree from './visuals/decision-trees/FlowchartTree'
 
 export const treeCode = `import numpy as np
 from sklearn.tree import DecisionTreeClassifier, export_text
 
-# 32 HDB flats: [floor area (m2), remaining lease (years)]
+# 32 made-up HDB resale flats: [floor area (m2), remaining lease (years)]
 X = np.array([
     [64, 52], [66, 74], [70, 58], [72, 83], [75, 47], [78, 66],
     [81, 76], [84, 55], [87, 63], [90, 79], [68, 64], [86, 49],
@@ -47,7 +42,7 @@ tree = DecisionTreeClassifier(max_depth=2).fit(X, y)
 print(export_text(tree, feature_names=["area", "lease"]))
 print("training accuracy:", tree.score(X, y))`
 
-Will this HDB flat sell for more than \$600k? A property agent would not plug the numbers into a formula. She would ask a few questions: *How many years are left on the lease? How big is it?* A <Term def="A model that predicts by asking a sequence of yes/no questions about the features, following the answers down a branching flowchart until it reaches a prediction.">decision tree</Term> is a model that learns to ask exactly those questions from data. Trees are easy to read, need almost no data preparation, and are the building block of random forests and gradient boosting, the models that win most competitions on tables of data. In this lesson you will learn how a tree chooses its questions, using **Gini impurity**, **entropy** and **information gain**, and why letting it grow too deep backfires.
+Will this HDB flat sell for more than \$600k? A property agent would not plug the numbers into a formula. She would ask a few questions: *How many years are left on the lease? How big is it?* A <Term def="A model that predicts by asking a sequence of yes/no questions about the features, following the answers down a branching flowchart until it reaches a prediction.">decision tree</Term> learns to ask exactly those questions from data. Trees are easy to read, need almost no data preparation, and are the building block of random forests and gradient boosting, the models that win most competitions on tables of data. You will learn how a tree chooses its questions, using **Gini impurity**, **entropy** and **information gain**, and why letting it grow too deep backfires.
 
 <Analogy title="Twenty Questions">
 
@@ -57,14 +52,14 @@ In the game *Twenty Questions*, a friend thinks of something and you may only as
 
 ## A tree is a flowchart of yes/no questions
 
-Here is a small tree, learned by scikit-learn from 32 resale flats, that predicts whether a flat sold for at least \$600k:
+Here is a small tree, learned by scikit-learn from 32 made-up resale flats, that predicts whether a flat sold for at least \$600k:
 
-<CodeBlock language="text" title="the learned tree, as a flowchart" showLineNumbers={false} code={flowchart} />
+<FlowchartTree />
 
 - Each question looks at **one feature** and compares it with a **threshold**, such as "lease ≤ 59.5". Each answer leads down its own branch; in tree diagrams "yes" is usually drawn on the left and "no" on the right.
 - A question box is a <Term def="A point in a tree where the data is split by a question. The top node is the root; nodes with no questions below them are leaves.">node</Term>. The first one is the **root**. The end points, which hold the predictions, are <Term def="A node at the bottom of a tree with no question. It stores the prediction: the majority class of its training examples (or their average, for regression).">leaves</Term>.
 - The **depth** of a node is how many questions you answer to reach it. The tree above has depth 2.
-- To predict, start at the root and follow the answers. A 100 m² flat with 70 years left: lease ≤ 59.5? **No**. Area ≤ 93? **No**. Prediction: \$600k or more.
+- To predict, start at the root and follow the answers, as the flowchart does for the flat you pick.
 - A leaf predicts the **majority class** of the training examples that ended up in it. The class proportions in the leaf can also be read as probabilities.
 
 The questions and thresholds are the tree's learned parameters: nobody typed in "59.5". The training algorithm tried many questions and kept the best one. Try it yourself below. Each side of a question gets an <Term def="A number that measures how mixed the classes in a group are: 0 if every example has the same class, larger the more mixed it is.">impurity</Term> score: **0 means only one colour**, and bigger means more mixed. The **information gain** is how much a question lowers the impurity. The next two sections show exactly how both are computed; for now, aim for a big gain.
@@ -103,17 +98,21 @@ $$
 
 - $\log_2 p_k$ is negative for $0 < p_k < 1$, so the minus sign in front makes $H$ positive;
 - each class contributes $p_k \times (-\log_2 p_k)$, and a class with $p_k = 0$ contributes 0;
-- entropy is measured in <Term def="The unit of information: the uncertainty of one fair yes/no question, like a coin toss. Entropy with log base 2 is measured in bits.">bits</Term>: the average number of fair yes/no questions needed to pin down the class.
+- entropy is measured in <Term def="The unit of information: the uncertainty of one fair yes/no question, like a coin toss. Entropy with log base 2 is measured in bits.">bits</Term>: roughly, the smallest possible average number of yes/no questions needed to pin down the class (exactly so when the fractions are $\tfrac12, \tfrac14, \tfrac18, \dots$).
 
-A pure node has $H = -(1 \times \log_2 1) = 0$. A 50-50 node has $H = -(0.5 \log_2 0.5 + 0.5 \log_2 0.5) = -(0.5 \times (-1) + 0.5 \times (-1)) = 1$ bit, the largest possible with two classes.
+A pure node has $H = -(1 \times \log_2 1) = 0$. A 50-50 node has the largest entropy possible with two classes:
+
+$$
+H = -(0.5 \log_2 0.5 + 0.5 \log_2 0.5) = -(0.5 \times (-1) + 0.5 \times (-1)) = 1 \text{ bit}
+$$
 
 <ImpurityCurves />
 
 | bag (orange : blue) | $p_\text{orange}$ | Gini | entropy (bits) |
 |---|---|---|---|
 | 10 : 0 | 1 | $0$ | $0$ |
-| 8 : 2 | 0.8 | $1 - 0.68 = 0.32$ | $\approx 0.722$ |
-| 6 : 4 | 0.6 | $1 - 0.52 = 0.48$ | $\approx 0.971$ |
+| 8 : 2 | 0.8 | ${1 - 0.68 = 0.32}$ | ${\approx 0.722}$ |
+| 6 : 4 | 0.6 | ${1 - 0.52 = 0.48}$ | ${\approx 0.971}$ |
 | 5 : 5 | 0.5 | $0.5$ | $1$ |
 
 <KeyIdea>
@@ -131,7 +130,7 @@ Gini $= 1 - \sum p_k^2$ and entropy $= -\sum p_k \log_2 p_k$ both measure how mi
 
 <ExamTip>
 
-With two classes, Gini simplifies to $2p(1-p)$: for an 8 : 2 node, $2 \times 0.8 \times 0.2 = 0.32$ in one step. Learn the entropy anchors too: pure = 0, 50-50 = 1 bit, and with more classes the maximum is $\log_2 K$ (2 bits for 4 equally likely classes). A distribution such as $(\tfrac12, \tfrac14, \tfrac14)$ gives $\tfrac12(1) + \tfrac14(2) + \tfrac14(2) = 1.5$ bits, because $-\log_2 \tfrac12 = 1$ and $-\log_2 \tfrac14 = 2$.
+With two classes, Gini simplifies to $2p(1-p)$: for an 8 : 2 node, $2 \times 0.8 \times 0.2 = 0.32$ in one step. With $K$ equally likely classes the maxima are $1 - \tfrac1K$ for Gini (0.667 for 3 classes, 0.75 for 4) and $\log_2 K$ for entropy (2 bits for 4 classes). A distribution such as $(\tfrac12, \tfrac14, \tfrac14)$ gives $\tfrac12(1) + \tfrac14(2) + \tfrac14(2) = 1.5$ bits, because $-\log_2 \tfrac12 = 1$ and $-\log_2 \tfrac14 = 2$.
 
 </ExamTip>
 
@@ -166,6 +165,9 @@ The tree tries every candidate question and keeps the one with the **largest gai
   <Step title="Weight split B and compare">
     $\tfrac{2}{10}(0) + \tfrac{8}{10}(0.469) = 0.375$, so the gain is $0.5 - 0.375 = 0.125$. Split A wins ($0.18 > 0.125$): B's pure group is tiny and leaves a big mixed group behind.
   </Step>
+  <Step title="The same comparison with entropy">
+    The parent has $H = 1$ bit. Split A: both sides have $H(0.2) \approx 0.722$, so the information gain is $1 - 0.722 = 0.278$ bits. Split B: $1 - \tfrac{8}{10} \times H(\tfrac58) \approx 1 - 0.8 \times 0.954 = 0.237$ bits. Entropy also prefers A.
+  </Step>
 </Steps>
 
 <Mistake>
@@ -176,7 +178,7 @@ Forgetting the weights. The plain average for split B is $(0 + 0.469)/2 \approx 
 
 <Note title="Why not just count mistakes?">
 
-You could score a split by how many examples its majority votes get wrong, but that score often cannot tell splits apart. Take 4 orange and 4 blue. Split X gives (3 orange, 1 blue) and (1 orange, 3 blue); split Y gives (2 orange, 4 blue) and (2 orange, 0 blue). Both make 2 mistakes. Gini prefers Y ($\tfrac68 \times 0.444 \approx 0.333$ against $0.375$ for X) because Y creates a pure group, which later splits can build on. Gini and entropy reward progress towards purity even before the majority vote changes.
+You could score a split by how many examples its majority votes get wrong, but that score often cannot tell splits apart. Take 4 orange and 4 blue (Gini 0.5). Split X gives (3 orange, 1 blue) and (1 orange, 3 blue); split Y gives (2 orange, 4 blue) and (2 orange, 0 blue). Both make 2 mistakes. Gini prefers Y: its gain is $0.5 - \tfrac68 \times 0.444 \approx 0.167$, against $0.5 - 0.375 = 0.125$ for X, because Y creates a pure group that later splits can build on.
 
 </Note>
 
@@ -197,6 +199,7 @@ A few consequences that exam questions love:
 
 - **No feature scaling needed.** A split only uses the *order* of one feature's values. Converting area to square feet moves the threshold but sends exactly the same flats left and right.
 - **Boundaries are axis-aligned.** A diagonal boundary, such as "price depends on area minus lease", needs a staircase of many small cuts.
+- **Missing values can be handled.** CART can send a row with a missing value down a *surrogate split*, a backup question on another feature. XGBoost, LightGBM and scikit-learn's newer trees instead learn a default direction for missing values at each split, so no filling in is needed.
 - **Trees also do regression.** A <Term def="A decision tree that predicts a number. Each leaf predicts the average target of its training examples, and splits are chosen to reduce the mean squared error.">regression tree</Term> predicts a number: each leaf predicts the **average** of its training targets (for example, the mean price of its flats), and splits are chosen to reduce the **mean squared error** instead of Gini. This is scikit-learn's `DecisionTreeRegressor`, and it is the building block of gradient boosting later in this module.
 
 Here is the split search from scratch in NumPy, checked against scikit-learn. Run it, then change `max_depth` to 3 or 4.
@@ -242,7 +245,7 @@ Deep trees have **low bias but high variance**: they memorise noise and change a
 
 <ExamTip>
 
-Typical NOAI angles on trees: compute Gini or entropy for given counts; pick the split with the larger *weighted* gain; "training accuracy 100%, validation much lower" means a deep, overfitted tree, and the fix is to limit `max_depth` or `min_samples_leaf` (or use a forest), not to train longer; trees need **no feature scaling**; and the boundaries are made of axis-parallel cuts. If an option claims a tree "splits on feature names" or "at random", it is a distractor: a tree chooses the feature value that best separates the classes.
+Traps in NOAI tree questions: an option that averages the two children **without weights**; "train longer" as the fix for 100% training and much lower validation accuracy (limit `max_depth` or `min_samples_leaf` instead); "standardise the features first" (trees never need it); and a tree that "splits at random" (it picks the best threshold).
 
 </ExamTip>
 

@@ -4,15 +4,16 @@ import { ErrorSquares, ResidualLines, fmtNum } from './shared'
 import s from './reg.module.css'
 
 /*
-  MAE, MSE and RMSE for five Grab-ride time predictions.
+  MAE, MSE and RMSE for four Grab-ride time predictions: the same four rides as the lesson's worked example
+  (true 11, 17, 23, 29 min; predicted 10, 18, 20, 34 min, so MAE 2.5 and RMSE 3).
   The learner drags any predicted time (orange) up or down. The residual (true - predicted) is the
   purple line; its square is drawn as a real square. MAE averages the line lengths, RMSE is the
   square root of the average square area. Aha: one big miss moves RMSE much more than MAE.
 */
 
-const ACTUAL = [14, 22, 9, 31, 18]
-const START = [12, 23, 11, 29, 21]
-const BIG_MISS = [12, 23, 11, 16, 21] // ride 4 predicted 15 minutes too short
+const ACTUAL = [11, 17, 23, 29]
+const START = [10, 18, 20, 34]
+const BIG_MISS = [10, 18, 20, 14] // ride 4 predicted 15 minutes too short
 
 const snap = (v: number) => Math.max(0, Math.min(40, Math.round(v * 2) / 2))
 
@@ -30,26 +31,26 @@ export default function ErrorMetricsLab() {
   const worst = res.reduce((m, r, i) => (Math.abs(r) > Math.abs(res[m]) ? i : m), 0)
 
   const pts = ACTUAL.map((y, i) => ({ x: i + 1, y, p: pred[i] }))
+  // the x range runs to 5.4 so that ride 4's square (15 minutes wide after the big miss) has room on its right
   const purple = 'var(--viz-5)'
 
-  const maeTex = `\\text{MAE} = \\tfrac{${res.map((r) => fmtNum(Math.abs(r))).join(' + ')}}{${n}} = ${mae.toFixed(2)}\\text{ min}`
-  const rmseTex = `\\text{RMSE} = \\sqrt{\\tfrac{${res.map((r) => fmtNum(r * r)).join(' + ')}}{${n}}} = \\sqrt{${fmtNum(mse)}} = ${rmse.toFixed(2)}\\text{ min}`
+  // full-size fractions: these sums are where the big miss shows up, so they must be readable on a phone
+  const maeTex = `\\text{MAE} = \\dfrac{${res.map((r) => fmtNum(Math.abs(r))).join(' + ')}}{${n}} = ${mae.toFixed(2)}\\text{ min}`
+  const rmseTex = `\\text{RMSE} = \\sqrt{\\dfrac{${res.map((r) => fmtNum(r * r)).join(' + ')}}{${n}}} = \\sqrt{${fmtNum(mse)}} = ${rmse.toFixed(2)}\\text{ min}`
 
   return (
     <Figure
       title="One big miss: MAE versus RMSE"
       caption={
         <>
-          Green dots are the true ride times; drag any orange prediction up or down. Each purple line is an error (a residual), and each square has
-          that error as its side, so its <b>area</b> is the squared error. MAE averages the line lengths; RMSE averages the square areas, then takes a
-          square root to get back to minutes. Press <b>Add one big miss</b>: the MAE roughly doubles, but RMSE more than triples, because a 15-minute
-          error has a square 225 times the area of a 1-minute one.
+          Drag any orange prediction; each square's area is that ride's squared error. Press <b>Add one big miss</b>: MAE doubles (2.5 to 5) but RMSE jumps
+          from 3 to 7.7, because a 15-minute error's square is 225 times a 1-minute one's.
         </>
       }
     >
       <div className={s.wrap}>
-        <Plot x={[0.4, 5.6]} y={[0, 40]} width={520} height={300} minHeight={250} margin={{ left: 40, right: 14, top: 14, bottom: 38 }} ariaLabel={`Five rides with true and predicted times. MAE ${mae.toFixed(2)} minutes, RMSE ${rmse.toFixed(2)} minutes.`}>
-          <Grid xTicks={5} yTicks={8} />
+        <Plot x={[0.4, 5.4]} y={[0, 40]} width={520} height={300} minHeight={250} margin={{ left: 40, right: 14, top: 14, bottom: 38 }} ariaLabel={`${n} rides with true and predicted times. MAE ${mae.toFixed(2)} minutes, RMSE ${rmse.toFixed(2)} minutes.`}>
+          <Grid xTicks={4} yTicks={8} />
           {showSquares && <ErrorSquares pts={pts} color={purple} />}
           <Axes yLabel="minutes" yTicks={8} hideXTicks />
           {ACTUAL.map((_, i) => (

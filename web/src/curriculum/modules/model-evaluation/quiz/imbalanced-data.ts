@@ -6,10 +6,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A screening model for a rare disease is tested on a large set of patients, 0.5% of whom have the disease. The team reports an accuracy of 99.4%. What is the most sensible conclusion?',
     options: [
-      'The accuracy tells you little: calling everyone healthy would score 99.5%, so check recall and precision on the disease class',
+      'Accuracy says little here: calling everyone healthy scores 99.5%, so check recall and precision on the disease class',
       'The model is excellent, because it gives the right answer for more than 99 out of every 100 patients it sees',
       'The model must have a high recall, because its mistakes add up to at most 0.6% of all the patients tested',
-      'The model is useless, because its accuracy is lower than the accuracy of always answering "healthy"',
+      'The model is useless, because its accuracy is lower than the 99.5% accuracy of always answering "healthy"',
     ],
     answer: 0,
     explanation:
@@ -21,14 +21,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A training set has 4,750 negative and 250 positive examples. Which statement comparing class weights with random oversampling is correct?',
     options: [
-      'Giving each positive weight 19 has the same effect on the loss as copying each positive 19 times, but the copies make training slower',
-      'Copying each positive 19 times adds new information about the positive class, so it generalises better than class weights',
+      'Weight 19 on each positive has the same effect on the loss as including each positive 19 times, but copies slow training down',
+      'Including each positive 19 times adds new information about the positive class, so it generalises better than class weights',
       'Each positive needs weight 20 to balance the classes, because there are 5,000 examples and 250 of them are positive',
       'Class weights must also be applied when scoring the test set, whereas an oversampled model can be tested as it is',
     ],
     answer: 0,
     explanation:
-      '$w_1 = n_0 / n_1 = 4{,}750 / 250 = 19$, so the positives weigh $250 \\times 19 = 4{,}750$ in total, the same as the negatives. Copying a row 19 times adds 19 identical terms to the loss, which is exactly weight 19, but the training set grows to 9,500 rows and contains no new information. 20 wrongly divides the total (5,000) instead of the negatives, and the test set is never reweighted or resampled.',
+      '$w_1 = n_0 / n_1 = 4{,}750 / 250 = 19$, so the positives weigh $250 \\times 19 = 4{,}750$ in total, the same as the negatives. Repeating each positive so that it appears 19 times adds 19 identical terms to the loss, which is exactly weight 19, but the training set grows to $4{,}750 + 4{,}750 = 9{,}500$ rows and contains no new information. 20 wrongly divides the total (5,000) instead of the negatives, and the test set is never reweighted or resampled.',
     difficulty: 'intermediate',
   },
   {

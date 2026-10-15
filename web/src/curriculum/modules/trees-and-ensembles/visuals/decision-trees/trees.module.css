@@ -53,11 +53,12 @@
   font-weight: 700;
 }
 .high {
-  color: var(--viz-2);
+  /* text-safe orange: the plain token is under 4.5:1 as small text in light mode */
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
   font-weight: 700;
 }
 .gain {
-  color: var(--viz-3);
+  color: color-mix(in srgb, var(--viz-3) 65%, var(--ink));
   font-weight: 700;
 }
 
@@ -105,8 +106,8 @@
   font-weight: 700;
 }
 .edgeText {
-  fill: var(--ink-3);
-  font-size: 10.5px;
+  fill: var(--ink-2);
+  font-size: 11.5px;
   font-weight: 600;
   paint-order: stroke;
   stroke: var(--surface);
@@ -165,4 +166,13 @@
   text-align: center;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* Inside a figure the grid gap sets the spacing: beat the lesson's `.prose p { margin: 1rem 0 }` (higher specificity). */
+
+p.status.status {
+  margin: 0;
+}
+p.panelTitle.panelTitle {
+  margin: 0 0 4px;
 }

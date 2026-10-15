@@ -17,8 +17,12 @@ export const RING: [number, number, number][] = [
   [9.4, 1.0, 1], [9.0, 2.1, 1], [9.1, 4.7, 1], [9.3, 6.2, 1], [9.1, 7.0, 1], [9.2, 8.6, -1],
 ]
 
-/** A blue point dropped deep inside orange territory: a mislabelled example (label noise). */
-export const NOISY_POINT: [number, number, number] = [7.6, 2.0, -1]
+/**
+ * A blue point dropped deep inside orange territory: a mislabelled example (label noise). It sits in
+ * a gap between its orange neighbours (x₁ 7.7 → 9.0, x₂ 2.1 → 2.9), so the box the vote carves
+ * around it is wide enough to see.
+ */
+export const NOISY_POINT: [number, number, number] = [8.4, 2.5, -1]
 
 export interface Stump {
   /** feature index: 0 = x₁ (across), 1 = x₂ (up) */

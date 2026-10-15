@@ -3,11 +3,11 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'trees-and-ensembles.decision-trees.1',
-    prompt: 'A node contains three classes in proportions $\\tfrac12$, $\\tfrac14$ and $\\tfrac14$. What is its entropy, using $\\log_2$?',
-    options: ['1.5 bits', '1 bit', '2 bits', '0.625 bits'],
+    prompt: 'A node contains four classes in proportions $\\tfrac12$, $\\tfrac14$, $\\tfrac18$ and $\\tfrac18$. What is its entropy, using $\\log_2$?',
+    options: ['1.75 bits', '1.5 bits', '2 bits', '0.656 bits'],
     answer: 0,
     explanation:
-      '$H = -\\sum p_k \\log_2 p_k = \\tfrac12(1) + \\tfrac14(2) + \\tfrac14(2) = 0.5 + 0.5 + 0.5 = 1.5$ bits, since $-\\log_2 \\tfrac12 = 1$ and $-\\log_2 \\tfrac14 = 2$. 2 bits is the maximum for **four** equally likely classes, and 0.625 is the Gini impurity of this node ($1 - \\tfrac14 - \\tfrac1{16} - \\tfrac1{16}$), not its entropy.',
+      'Use $-\\log_2 \\tfrac12 = 1$, $-\\log_2 \\tfrac14 = 2$ and $-\\log_2 \\tfrac18 = 3$: $H = \\tfrac12(1) + \\tfrac14(2) + \\tfrac18(3) + \\tfrac18(3) = 0.5 + 0.5 + 0.375 + 0.375 = 1.75$ bits. 2 bits is the maximum, reached only when all four classes are equally likely; 1.5 comes from taking $-\\log_2 \\tfrac18$ as 2; and 0.656 is the Gini impurity of this node, not its entropy.',
     difficulty: 'intermediate',
   },
   {
@@ -23,11 +23,11 @@ const questions: QuizQuestion[] = [
   {
     id: 'trees-and-ensembles.decision-trees.3',
     prompt:
-      'A node has 4 examples of class A and 4 of class B (Gini 0.5). A split sends 2 A to the left (a pure child) and the other 2 A and 4 B to the right, whose Gini is $\\tfrac49 \\approx 0.444$. What is the Gini gain of this split?',
-    options: ['about 0.167', 'about 0.278', 'about 0.056', 'about 0.333'],
+      'A node has 6 examples of class A and 2 of class B (Gini 0.375). A split sends 3 A to the left (a pure child) and the other 3 A and 2 B to the right, whose Gini is 0.48. What is the Gini gain of this split?',
+    options: ['0.075', '0.135', '0.195', '0.3'],
     answer: 0,
     explanation:
-      'Weight each child by its share of the 8 examples: $\\tfrac28(0) + \\tfrac68 \\cdot \\tfrac49 = \\tfrac13 \\approx 0.333$. The gain is $0.5 - 0.333 \\approx 0.167$. 0.278 comes from the unweighted average $(0 + 0.444)/2$, 0.056 ignores the pure child completely, and 0.333 is the impurity after the split, not the drop.',
+      'Weight each child by its share of the 8 examples: $\\tfrac38(0) + \\tfrac58 \\times 0.48 = 0.3$, so the gain is $0.375 - 0.3 = 0.075$. 0.135 uses the unweighted average $(0 + 0.48)/2 = 0.24$, 0.195 swaps the weights (giving $\\tfrac58$ to the pure child), and 0.3 is the impurity after the split, not the drop.',
     difficulty: 'intermediate',
   },
   {

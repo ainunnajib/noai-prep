@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, Path, HLine, usePlot, usePlayer, PlayerControls, useNarrow, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, Path, HLine, Label, usePlot, usePlayer, PlayerControls, useNarrow, M } from '../../../../../kit'
 import { RING, NOISY_POINT, adaboost, scoreAt, describe, type Round, type Stump } from './adaboost'
 import s from './boosting.module.css'
 
@@ -18,7 +18,7 @@ const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${pct}%, var(-
 /** dot radius from weight: area ∝ weight, r = 5 px at the starting weight 1/n */
 const radius = (w: number, n: number) => Math.max(2.2, Math.min(15, 5 * Math.sqrt(w * n)))
 
-function WeightedPoints({ data, w, ring, noisyIndex }: { data: [number, number, number][]; w: number[]; ring: boolean[]; noisyIndex: number }) {
+function WeightedPoints({ data, w, ring, noisyIndex, boxed }: { data: [number, number, number][]; w: number[]; ring: boolean[]; noisyIndex: number; boxed?: boolean }) {
   const { xs, ys } = usePlot()
   const n = data.length
   // draw big dots first so that small ones stay visible on top
@@ -42,8 +42,13 @@ function WeightedPoints({ data, w, ring, noisyIndex }: { data: [number, number, 
             {body}
             {ring[i] && <circle cx={cx} cy={cy} r={r + 4} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2 }} />}
             {i === noisyIndex && (
-              <text className="plot-label" x={cx} y={cy + r + 14} textAnchor="middle" style={{ fontSize: 11.5 }}>
+              <text className="plot-label" x={cx - r - 16} y={cy + 4} textAnchor="end" style={{ fontSize: 11.5 }}>
                 mislabelled
+                {boxed && (
+                  <tspan x={cx - r - 16} dy={14}>
+                    a box just for it
+                  </tspan>
+                )}
               </text>
             )}
           </g>
@@ -84,7 +89,7 @@ function StumpRegions({ st, faded }: { st: Stump; faded?: boolean }) {
 }
 
 /** the weighted vote of the first k stumps: exact rectangles between the thresholds used so far */
-function VoteRegions({ rounds, k }: { rounds: Round[]; k: number }) {
+function VoteRegions({ rounds, k, mark }: { rounds: Round[]; k: number; mark?: [number, number] }) {
   const { xs, ys } = usePlot()
   const cuts = (f: number) => [0, ...Array.from(new Set(rounds.slice(0, k).filter((r) => r.stump.f === f).map((r) => r.stump.t))).sort((a, b) => a - b), 10]
   const cx = cuts(0)
@@ -117,10 +122,28 @@ function VoteRegions({ rounds, k }: { rounds: Round[]; k: number }) {
       if (j + 2 < cy.length && Math.sign(score[i][j + 1]) !== Math.sign(v))
         edges.push(<line key={`h${i}-${j}`} x1={xs(cx[i])} x2={xs(cx[i + 1])} y1={ys(cy[j + 1])} y2={ys(cy[j + 1])} />)
     }
+  // the cell around a marked point (the mislabelled one), outlined when the vote has given it its own colour
+  let box: JSX.Element | null = null
+  if (mark) {
+    const i = cx.findIndex((c, q) => q + 1 < cx.length && mark[0] > c && mark[0] <= cx[q + 1])
+    const j = cy.findIndex((c, q) => q + 1 < cy.length && mark[1] > c && mark[1] <= cy[q + 1])
+    if (i >= 0 && j >= 0 && score[i][j] < 0)
+      box = (
+        <rect
+          x={xs(cx[i]) - 2}
+          y={ys(cy[j + 1]) - 2}
+          width={xs(cx[i + 1]) - xs(cx[i]) + 4}
+          height={ys(cy[j]) - ys(cy[j + 1]) + 4}
+          rx={3}
+          style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2.5, strokeDasharray: '5 3' }}
+        />
+      )
+  }
   return (
     <g aria-hidden="true">
       {cells}
       <g style={{ stroke: 'var(--viz-ink)', strokeWidth: 2.4, strokeLinecap: 'round' }}>{edges}</g>
+      {box}
     </g>
   )
 }
@@ -153,6 +176,8 @@ export default function AdaBoostStepper() {
   const nWrong = R.wrong.filter(Boolean).length
   const eA = Math.exp(R.alpha)
   const wShown = reweighted ? R.wNext : R.w
+  // has the vote carved out the mislabelled point (the team now calls it blue)?
+  const boxed = noisy && R.F[n - 1] < 0
 
   const status = reweighted ? (
     <>
@@ -171,7 +196,10 @@ export default function AdaBoostStepper() {
     <Plot x={[0.5, T + 0.5]} y={[0, 0.55]} width={640} height={190} minHeight={180} margin={{ left: 42, right: 12, top: 14, bottom: 38 }} ariaLabel={`Errors by round: stump ${t + 1} has weighted error ${R.eps.toFixed(2)}; the team's training error is ${(100 * R.ensErr).toFixed(0)}%`}>
       <Grid xTicks={10} yTicks={5} />
       <Axes xLabel="round" xTicks={10} yTicks={5} tickFormat={(v) => (v < 1 && v > 0 ? `${Math.round(v * 100)}%` : String(v))} />
-      <HLine y={0.5} color="var(--viz-muted)" dash="5 4" label="coin flip: ε = 0.5" />
+      <HLine y={0.5} color="var(--viz-muted)" dash="5 4" />
+      <Label x={T + 0.5} y={0.5} dx={-4} dy={-5} anchor="end" color="var(--ink-2)" size={12}>
+        coin flip: ε = 0.5
+      </Label>
       <Path points={rounds.map((r, i) => [i + 1, r.eps] as [number, number])} color="var(--viz-4)" width={1.4} opacity={0.25} />
       <Path points={rounds.map((r, i) => [i + 1, r.ensErr] as [number, number])} color="var(--viz-3)" width={2} opacity={0.25} />
       <Path points={rounds.slice(0, t + 1).map((r, i) => [i + 1, r.eps] as [number, number])} color="var(--viz-4)" width={1.6} />
@@ -180,35 +208,49 @@ export default function AdaBoostStepper() {
     </Plot>
   )
 
+  const stumpPanel = (
+    <Panel
+      title={reweighted ? `Round ${t + 1}: weights after re-weighting` : `Round ${t + 1}: the new stump and the weights it saw`}
+      ariaLabel={`Stump ${t + 1}: ${describe(R.stump)}. Dot sizes show sample weights; ${nWrong} points are ringed as mistakes.`}
+    >
+      <StumpRegions st={R.stump} faded={reweighted} />
+      <WeightedPoints data={data} w={wShown} ring={R.wrong} noisyIndex={noisyIndex} />
+    </Panel>
+  )
+  const teamPanel = (
+    <Panel title={`The team: weighted vote of ${t + 1} ${t ? 'stumps' : 'stump'}`} ariaLabel={`Decision regions of the weighted vote of ${t + 1} stumps; training error ${(100 * R.ensErr).toFixed(0)}%`}>
+      <VoteRegions rounds={rounds} k={t + 1} mark={noisy ? [NOISY_POINT[0], NOISY_POINT[1]] : undefined} />
+      <WeightedPoints data={data} w={data.map(() => 1 / n)} ring={teamWrong} noisyIndex={noisyIndex} boxed={boxed} />
+    </Panel>
+  )
+  const controls = (
+    <Controls>
+      <PlayerControls player={player} label={(st) => `Round ${Math.floor(st / 2) + 1} of ${T} · ${st % 2 ? 're-weight' : 'fit a stump'}`} />
+      <Toggle label="Add a mislabelled point" checked={noisy} onChange={setNoisy} />
+    </Controls>
+  )
+
   return (
     <Figure
       wide
       title="AdaBoost, one stump at a time"
       caption={
         <>
-          Press <b>Play</b> or <b>Next</b>. Each round fits one stump (a single straight cut), then re-weights: the points it got wrong grow and the
-          rest shrink, so the next stump is pulled towards them. Notice that every stump stays weak (its error ε stays between about 0.15 and 0.3), yet the
-          team's error falls to zero by round 9 and the vote's boundary bends into a staircase around the curve. Then switch on the{' '}
-          <b>mislabelled point</b>: AdaBoost keeps inflating it and spends stump after stump carving a thin blue strip just to fit it.
+          Press <b>Play</b> or <b>Next</b>, then switch on the <b>mislabelled point</b>. Notice every stump stays weak, yet the team's error falls to zero;
+          with the mislabelled point, later stumps carve a box just to fit it.
         </>
       }
     >
       <p className={s.status} aria-live="polite">
         {status}
       </p>
+      {/* the player sits right under the stump panel (phones) or right under both panels (desktop) */}
       <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1fr 1fr' }}>
-        <Panel
-          title={reweighted ? `Round ${t + 1}: weights after re-weighting` : `Round ${t + 1}: the new stump and the weights it saw`}
-          ariaLabel={`Stump ${t + 1}: ${describe(R.stump)}. Dot sizes show sample weights; ${nWrong} points are ringed as mistakes.`}
-        >
-          <StumpRegions st={R.stump} faded={reweighted} />
-          <WeightedPoints data={data} w={wShown} ring={R.wrong} noisyIndex={noisyIndex} />
-        </Panel>
-        <Panel title={`The team: weighted vote of ${t + 1} ${t ? 'stumps' : 'stump'}`} ariaLabel={`Decision regions of the weighted vote of ${t + 1} stumps; training error ${(100 * R.ensErr).toFixed(0)}%`}>
-          <VoteRegions rounds={rounds} k={t + 1} />
-          <WeightedPoints data={data} w={data.map(() => 1 / n)} ring={teamWrong} noisyIndex={noisyIndex} />
-        </Panel>
+        {stumpPanel}
+        {narrow && controls}
+        {teamPanel}
       </div>
+      {!narrow && controls}
       <div className={s.legend}>
         <span>
           <i className={s.swatchSquare} style={{ background: ORANGE }} /> orange (+1)
@@ -238,10 +280,6 @@ export default function AdaBoostStepper() {
           ["team's training error", `${(100 * R.ensErr).toFixed(1)}%`],
         ]}
       />
-      <Controls>
-        <PlayerControls player={player} label={(st) => `Round ${Math.floor(st / 2) + 1} of ${T} · ${st % 2 ? 're-weight' : 'fit a stump'}`} />
-        <Toggle label="Add a mislabelled point" checked={noisy} onChange={setNoisy} />
-      </Controls>
     </Figure>
   )
 }

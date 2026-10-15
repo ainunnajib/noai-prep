@@ -13,7 +13,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'model-evaluation.cross-validation-and-tuning.2',
     prompt:
-      '`X` has 5,000 columns of random numbers and `y` holds random labels, so there is nothing real to learn. Yet this code prints about 0.86. What is the best explanation?',
+      '`X` has 100 rows and 5,000 columns of random numbers, and `y` holds random labels, so there is nothing real to learn. Yet this code prints about 0.86. What is the best explanation?',
     code: 'X_sel = SelectKBest(f_classif, k=20).fit_transform(X, y)\nscores = cross_val_score(LogisticRegression(), X_sel, y, cv=5)\nprint(scores.mean())',
     options: [
       'The validation rows\' labels helped to choose the 20 columns',

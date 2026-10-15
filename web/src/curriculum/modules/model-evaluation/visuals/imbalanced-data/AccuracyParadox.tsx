@@ -15,7 +15,8 @@ import s from '../confusion-matrix-and-metrics/eval.module.css'
 */
 
 const N = 1000
-const RATES = [0.5, 0.3, 0.2, 0.1, 0.05, 0.02, 0.01, 0.005, 0.002, 0.001]
+// rarest on the left, so sliding right means more fraud (like every other slider in the module)
+const RATES = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5]
 const ORDER = shuffled(
   Array.from({ length: N }, (_, i) => i),
   mulberry32(2027),
@@ -26,7 +27,7 @@ const NEG_C = 'color-mix(in srgb, var(--viz-1) 22%, var(--surface))'
 type ModelKind = 'always' | 'real'
 
 export default function AccuracyParadox() {
-  const [ri, setRi] = useState(6) // 1%
+  const [ri, setRi] = useState(3) // 1%
   const [model, setModel] = useState<ModelKind>('always')
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>(640)
 
@@ -60,10 +61,8 @@ export default function AccuracyParadox() {
       title="The accuracy paradox: 1,000 card payments"
       caption={
         <>
-          Each square is one payment; orange squares are frauds, and a red outline marks a wrong prediction. The <b>always genuine</b> model never flags
-          anything. Slide the fraud rate down from 50% to 0.1%: its accuracy climbs to 99.9% while its recall stays at 0. Then switch to the <b>real detector</b>{' '}
-          (catches 80% of frauds, false alarm on 5% of genuine payments). At 1% fraud its accuracy (0.95) is <i>lower</i> than the useless model's 0.99, yet it
-          catches 8 of the 10 frauds.
+          Slide the fraud rate down to 0.1%: the <b>always genuine</b> model's accuracy climbs to 99.9% while its recall stays 0. Then switch to the{' '}
+          <b>real detector</b>: at 1% fraud its accuracy is <i>lower</i> (0.948 against 0.990), yet it catches 8 of the 10 frauds.
         </>
       }
     >
@@ -76,6 +75,17 @@ export default function AccuracyParadox() {
           { value: 'real', label: 'real detector' },
         ]}
       />
+      <Controls>
+        <Slider
+          label="fraud rate"
+          value={ri}
+          min={0}
+          max={RATES.length - 1}
+          step={1}
+          onChange={setRi}
+          format={() => `${(rate * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% (${nPos} of ${N.toLocaleString('en-GB')})`}
+        />
+      </Controls>
       <div ref={wrapRef} className={s.wrap} style={{ display: 'grid', justifyItems: 'center' }}>
         <svg
           width={gw}
@@ -131,17 +141,6 @@ export default function AccuracyParadox() {
           ]}
         />
       </div>
-      <Controls>
-        <Slider
-          label="fraud rate"
-          value={ri}
-          min={0}
-          max={RATES.length - 1}
-          step={1}
-          onChange={setRi}
-          format={() => `${(rate * 100).toLocaleString('en-GB', { maximumFractionDigits: 1 })}% (${nPos} of ${N.toLocaleString('en-GB')})`}
-        />
-      </Controls>
     </Figure>
   )
 }

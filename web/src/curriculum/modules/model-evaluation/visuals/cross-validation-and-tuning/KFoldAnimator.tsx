@@ -107,10 +107,8 @@ export default function KFoldAnimator() {
       title="k-fold cross-validation, round by round"
       caption={
         <>
-          Each row is one round. The orange fold is held out for validation; the model ("pass if hours ≥ <i>t</i>") is refitted on the blue folds,
-          then scored on the orange one. Press <b>Play</b> to watch the orange fold move along. Every student is validated exactly once. The dot plot
-          collects the {k} scores: any <b>single</b> split would have reported just one of those dots, while the mean ± SD is far more stable. Raise{' '}
-          <i>k</i> and the folds get smaller, so each score gets noisier. Switch stratification off and watch the pink "fails" counts (failing students in each fold) become uneven.
+          Press <b>Play</b> to watch the orange validation fold move along the rows. Raise <i>k</i>: the folds shrink and each score gets noisier. Switch
+          stratification off and watch the pink counts of failing students per fold become uneven.
         </>
       }
     >

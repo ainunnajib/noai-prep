@@ -163,13 +163,7 @@ Interpolation needs the reading *after* the gap. That is fine when you clean his
 
 An <Term def="A value far away from the rest of the data. It may be an error (a typo, a faulty sensor) or a real but rare case.">outlier</Term> is a value far from the rest of the data. Some are mistakes (a typo of 410 for 41, a sensor glitch), some are real but rare (a billionaire in an income survey, a fraudulent transaction). Either way one huge value drags a mean, a variance and a mean-squared-error loss a long way.
 
-To find them without being fooled by them, use quantities that ignore the extremes. Sort the data and cut it into four equal parts:
-
-- The <Term def="The value a quarter of the way through the sorted data: 25% of values are below it. Also called the 25th percentile.">first quartile</Term> $Q_1$ has 25% of the values below it.
-- The **median** $Q_2$ is the middle, with 50% below.
-- The **third quartile** $Q_3$ has 75% of the values below it.
-
-The <Term def="Q3 − Q1, the width of the middle half of the sorted data. Extreme values hardly affect it.">interquartile range</Term> $\text{IQR} = Q_3 - Q_1$ is the width of the middle half of the data. The IQR rule draws two **fences** one and a half IQRs beyond the quartiles:
+To find them without being fooled by them, use quantities that ignore the extremes. You met the quartiles $Q_1$ and $Q_3$ and the interquartile range $\text{IQR} = Q_3 - Q_1$ in [Describing data](#/learn/probability-and-statistics/describing-data), and the $1.5 \times \text{IQR}$ fences that mark a box plot's outlier dots in [Plotting data](#/learn/pandas-and-plotting/plotting-data). Quick recap: the IQR rule flags any value beyond the two **fences**:
 
 $$
 \begin{aligned}
@@ -178,33 +172,15 @@ $$
 \end{aligned}
 $$
 
-Any value below the lower fence or above the upper fence is flagged as an outlier. The 1.5 is a convention chosen by the statistician John Tukey: in bell-shaped (normal) data it flags only about 0.7% of values, so anything it does flag deserves a closer look.
+The 1.5 is a convention chosen by the statistician John Tukey: in bell-shaped (normal) data it flags only about 0.7% of values, so anything it does flag deserves a closer look.
 
-<Steps title="Nine commute times: 12, 15, 15, 17, 18, 20, 21, 21, 41 minutes">
-  <Step title="Sort and find the median">
-    The list is already sorted. With 9 values the median is the 5th: **18**.
-  </Step>
-  <Step title="Quartiles: median of each half">
-    With an odd count, leave the median out of both halves. Lower half: 12, 15, 15, 17, so $Q_1 = (15 + 15)/2 = 15$. Upper half: 20, 21, 21, 41, so $Q_3 = (21 + 21)/2 = 21$.
-  </Step>
-  <Step title="IQR">
-    $\text{IQR} = 21 - 15 = 6$, and $1.5 \times 6 = 9$.
-  </Step>
-  <Step title="Fences">
-    Lower fence $15 - 9 = 6$; upper fence $21 + 9 = 30$.
-  </Step>
-  <Step title="Flag">
-    Nothing is below 6, but $41 > 30$, so **41 is an outlier**.
-  </Step>
-</Steps>
-
-A **box plot** draws exactly these numbers: a box from $Q_1$ to $Q_3$ with a line at the median, "whiskers" out to the furthest values inside the fences, and separate dots for the outliers.
+Take nine commute times: 12, 15, 15, 17, 18, 20, 21, 21 and 41 minutes. Here $Q_1 = 15$ and $Q_3 = 21$, so $\text{IQR} = 6$ and $1.5 \times 6 = 9$. The fences are $15 - 9 = 6$ and $21 + 9 = 30$, so **41 is an outlier**.
 
 <BoxPlotIQR />
 
 <Note title="Quartile rules differ slightly">
 
-Software splits the halves slightly differently (NumPy and pandas interpolate between neighbouring values), so on some datasets the quartiles differ a little; for the commute times every common rule gives 15 and 21. In an exam, use the median-of-each-half method (as the box plot does) unless told otherwise.
+NumPy, pandas and matplotlib interpolate between neighbouring values; by hand, the usual rule is the median of each half (the visual uses it). For the commute times both give 15 and 21. In the exam, use the method the question gives.
 
 </Note>
 

@@ -55,11 +55,8 @@ export default function CostMatrixSlider() {
       title="From costs to the best threshold"
       caption={
         <>
-          Top: one payment that the model says is fraud with probability <M>p</M>. If you flag it, you pay <M>{'c_{FP}'}</M> whenever it was genuine, so the
-          expected cost is <M>{'(1-p)\\,c_{FP}'}</M> (purple). If you let it through, you lose <M>{'c_{FN}'}</M> whenever it was fraud: <M>{'p\\,c_{FN}'}</M>{' '}
-          (pink). Drag the point: flagging is cheaper to the right of the crossing, at <M>{'t^* = c_{FP}/(c_{FP}+c_{FN})'}</M>. Bottom: the confusion matrix for
-          10,000 payments (2% fraud). Make a missed fraud more expensive and watch <M>{'t^*'}</M> slide left, recall rise and precision fall. Compare with the
-          default threshold 0.5: higher accuracy, but a bigger bill.
+          Drag the point along the probability axis: right of the crossing <M>{'t^*'}</M>, flagging is cheaper. Raise the cost of a missed fraud and watch{' '}
+          <M>{'t^*'}</M> slide left, recall rise and precision fall. Then compare the bill with the default threshold 0.5.
         </>
       }
     >
@@ -95,8 +92,12 @@ export default function CostMatrixSlider() {
           at p = {p.toFixed(2)}: <b>{decision}</b>
         </span>
       </div>
+      <Controls>
+        <Slider label={<>cost of a false alarm <M>{'c_{FP}'}</M> (checking a genuine payment)</>} value={cFP} min={1} max={50} step={1} onChange={setCFP} format={(v) => `$${v}`} />
+        <Slider label={<>cost of a missed fraud <M>{'c_{FN}'}</M> (money lost)</>} value={cFN} min={10} max={500} step={10} onChange={setCFN} format={(v) => `$${v}`} />
+      </Controls>
       <Segmented<Which>
-        label="Threshold used below"
+        label="Threshold used for the 10,000 payments below (2% fraud)"
         value={which}
         onChange={setWhich}
         options={[
@@ -123,10 +124,6 @@ export default function CostMatrixSlider() {
           ]}
         />
       </div>
-      <Controls>
-        <Slider label={<>cost of a false alarm <M>{'c_{FP}'}</M> (checking a genuine payment)</>} value={cFP} min={1} max={50} step={1} onChange={setCFP} format={(v) => `$${v}`} />
-        <Slider label={<>cost of a missed fraud <M>{'c_{FN}'}</M> (money lost)</>} value={cFN} min={10} max={500} step={10} onChange={setCFN} format={(v) => `$${v}`} />
-      </Controls>
     </Figure>
   )
 }

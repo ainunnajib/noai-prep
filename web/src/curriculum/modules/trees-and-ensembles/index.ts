@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "gradient-boosting",
       title: "Gradient boosting",
       summary: "Fitting each new tree to the negative gradient of the loss (the residuals), with shrinkage, initialisation and early stopping as in the 2026 Final, and the boosting libraries that win on tabular data.",
-      minutes: 40,
+      minutes: 35,
       objectives: ["You can explain gradient boosting as fitting residuals", "You can derive the negative gradient for L2 (residual) and L1 (sign) losses", "You can choose the initial prediction (mean for L2, median for L1)", "You can explain the learning rate and early stopping"],
       load: () => import('./gradient-boosting.mdx'),
     },

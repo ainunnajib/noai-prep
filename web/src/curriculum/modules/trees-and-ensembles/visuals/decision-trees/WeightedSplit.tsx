@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Button, Plot, Axes, Rect, Path, Label, Arrow, M, useContainerWidth } from '../../../../../kit'
 import { impurityOf, type ClfCriterion } from './cart'
+import { TXT_GREEN } from '../tones'
 import s from './trees.module.css'
 
 /*
@@ -106,10 +107,8 @@ export default function WeightedSplit() {
       title="Weighted impurity as an area"
       caption={
         <>
-          Choose how many orange and blue flats the question sends to the <b>yes</b> side. Below, each side becomes a block: its <b>width</b> is its share of
-          the 10 flats and its <b>height</b> is its impurity, so the shaded area is the weighted impurity after the split. The dashed line is the impurity
-          before the split; the green arrow (the gain) is how far the split brings it down. Compare <b>Split A</b> and <b>Split B</b>: a tiny pure group is not
-          worth much if it leaves a big mixed group behind.
+          Slide the flats sent to <b>yes</b>, or press <b>Split A</b> and <b>Split B</b>. Each block is as wide as its share and as tall as its impurity:
+          notice that a tiny pure group barely lowers the total.
         </>
       }
     >
@@ -118,13 +117,14 @@ export default function WeightedSplit() {
         <Axes xLabel="share of the 10 flats" yLabel={name} xTicks={5} yTicks={4} />
         {nY > 0 && <Rect x0={0} x1={wY} y0={0} y1={iY} fill="color-mix(in srgb, var(--viz-3) 30%, var(--surface))" stroke="var(--viz-3)" />}
         {nN > 0 && <Rect x0={wY} x1={1} y0={0} y1={iN} fill="color-mix(in srgb, var(--viz-4) 26%, var(--surface))" stroke="var(--viz-4)" />}
+        {/* block labels sit at the foot of each block, clear of the 'after' line */}
         {wY >= 0.2 && iY > 0.12 * top && (
-          <Label x={wY / 2} y={iY / 2} dy={4} anchor="middle" size={12} color="var(--viz-ink)">
+          <Label x={wY / 2} y={0} dy={-8} anchor="middle" size={12} color="var(--viz-ink)">
             {`${nY}/10 × ${iY.toFixed(2)}`}
           </Label>
         )}
         {1 - wY >= 0.2 && iN > 0.12 * top && (
-          <Label x={(1 + wY) / 2} y={iN / 2} dy={4} anchor="middle" size={12} color="var(--viz-ink)">
+          <Label x={(1 + wY) / 2} y={0} dy={-8} anchor="middle" size={12} color="var(--viz-ink)">
             {`${nN}/10 × ${iN.toFixed(2)}`}
           </Label>
         )}
@@ -133,12 +133,12 @@ export default function WeightedSplit() {
         <Label x={1} y={iP} dx={-4} dy={-6} anchor="end" size={12}>
           before: {iP.toFixed(3)}
         </Label>
-        <Label x={0.02} y={after} dx={0} dy={after > iP - 0.08 * top ? 16 : -6} anchor="start" color="var(--viz-3)" size={12}>
+        <Label x={0.02} y={after} dx={0} dy={after > iP - 0.08 * top ? 16 : -6} anchor="start" color={TXT_GREEN} size={12} weight={700}>
           after (weighted): {after.toFixed(3)}
         </Label>
         {gain > 0.02 * top && <Arrow from={[0.62, iP]} to={[0.62, after]} color="var(--viz-3)" width={2.2} head={7} />}
         {gain > 0.02 * top && (
-          <Label x={0.62} y={(iP + after) / 2} dx={8} dy={4} color="var(--viz-3)" weight={700} size={12}>
+          <Label x={0.62} y={(iP + after) / 2} dx={8} dy={4} color={TXT_GREEN} weight={700} size={12}>
             gain {gain.toFixed(3)}
           </Label>
         )}

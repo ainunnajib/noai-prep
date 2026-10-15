@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Plot, Grid, Axes, Path, Dots, VLine, useNarrow } from '../../../../../kit'
 import { calibratedCounts, metricsOf, type Counts, type Metrics } from './evalMath'
 import { HaloLabel } from './HaloLabel'
+import { txt } from './colors'
 import s from './eval.module.css'
 
 /*
@@ -138,11 +139,8 @@ export default function ErrorCostScenarios() {
       title="Which mistake costs more? Find the cheapest threshold"
       caption={
         <>
-          Pick an application. Each one scores 1,000 cases with a model; the sliders set what one mistake of each kind costs (in made-up units). The teal curve is
-          the <b>total cost</b> at every threshold, and its lowest point is the best threshold for this job. The dashed olive line is the threshold that makes{' '}
-          <b>F1</b> largest. For screening the cheapest threshold is lower than the F1 one (catch more cancers, accept more extra tests); for the spam filter and
-          face unlock it is higher (avoid false alarms). Raise the cost of a false negative and watch the best threshold slide left. The scores here are calibrated
-          probabilities, so the cheapest threshold always lands at cost of a false positive ÷ (sum of the two costs): the rule in the next lesson.
+          Pick an application and compare the cheapest threshold (teal) with the one that maximises F1 (dashed olive). Then raise the cost of a false negative:
+          the cheapest threshold slides left.
         </>
       }
     >
@@ -169,7 +167,7 @@ export default function ErrorCostScenarios() {
           <VLine x={bestF1.t} color={F1_C} dash="6 4" width={2} />
           <Path points={rows.map((r) => [r.t, r.cost] as [number, number])} color={COST_C} width={3} />
           <Dots points={[{ x: best.t, y: best.cost, color: COST_C, r: 6 }]} />
-          <HaloLabel x={best.t} y={best.cost} dx={best.t > 0.6 ? -9 : 9} dy={18} anchor={best.t > 0.6 ? 'end' : 'start'} color={COST_C}>
+          <HaloLabel x={best.t} y={best.cost} dx={best.t > 0.6 ? -9 : 9} dy={18} anchor={best.t > 0.6 ? 'end' : 'start'} color={txt(COST_C)}>
             {`cheapest: t = ${best.t.toFixed(2)}`}
           </HaloLabel>
         </Plot>
@@ -201,12 +199,16 @@ export default function ErrorCostScenarios() {
           F1 (dashed line = best F1)
         </span>
       </div>
+      <Controls>
+        <Slider label={`cost of a false positive: ${sc.fpMeans}`} value={cFP} min={1} max={50} step={1} onChange={setCFP} />
+        <Slider label={`cost of a false negative: ${sc.fnMeans}`} value={cFN} min={1} max={50} step={1} onChange={setCFN} />
+      </Controls>
       <table className={s.table} style={{ maxWidth: 420 }}>
         <thead>
           <tr>
             <th>per 1,000 cases</th>
-            <th style={{ color: COST_C }}>lowest cost</th>
-            <th style={{ color: F1_C }}>best F1</th>
+            <th style={{ color: txt(COST_C) }}>lowest cost</th>
+            <th style={{ color: txt(F1_C) }}>best F1</th>
           </tr>
         </thead>
         <tbody>
@@ -228,10 +230,6 @@ export default function ErrorCostScenarios() {
           ))}
         </tbody>
       </table>
-      <Controls>
-        <Slider label={`cost of a false positive: ${sc.fpMeans}`} value={cFP} min={1} max={50} step={1} onChange={setCFP} />
-        <Slider label={`cost of a false negative: ${sc.fnMeans}`} value={cFN} min={1} max={50} step={1} onChange={setCFN} />
-      </Controls>
     </Figure>
   )
 }

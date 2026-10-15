@@ -3,6 +3,7 @@ import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes,
 import { fitTree, predictClass, leafRects, type Tree } from '../decision-trees/cart'
 import { circleData } from '../decision-trees/data'
 import { fitForest, accuracyCurve, oobAccuracy, type Forest } from './forest'
+import { TXT_GREEN } from '../tones'
 import s from '../decision-trees/trees.module.css'
 
 /*
@@ -147,18 +148,38 @@ export default function ForestAverager() {
   const name = mode === 'rf' ? 'random forest' : 'bagging'
   const otherName = mode === 'rf' ? 'bagging' : 'random forest'
 
+  const n = TRAIN.y.length
+  const slider = (
+    <Controls>
+      <Slider label="number of trees" value={B} min={1} max={NT} step={1} onChange={setB} />
+    </Controls>
+  )
+  const readout = (
+    <Readout
+      items={[
+        ['trees', String(B)],
+        ['validation accuracy', `${(100 * acc).toFixed(1)}%`],
+        [
+          'out-of-bag accuracy',
+          Number.isFinite(oob.acc) ? `${(100 * oob.acc).toFixed(1)}%${oob.covered < n ? ` (from ${oob.covered} of ${n} rows)` : ''}` : '…',
+        ],
+        ['one deep tree', `${(100 * SINGLE_ACC).toFixed(1)}%`],
+      ]}
+    />
+  )
+
   return (
     <Figure
       title="Averaging many deep trees"
       caption={
         <>
-          The same noisy circle data as the depth demo (15% of labels flipped; the dashed line is the true circle). Every tree is grown to full depth on its
-          own bootstrap sample, so each one overfits in its own way (see the three small maps). Slide the <b>number of trees</b> from 1 to 100: the blocky,
-          speckled regions of one tree blend into a smoother map that follows the circle more closely, and validation accuracy climbs, then levels off. Faint
-          colours mean the trees disagree. Switch the <b>features per split</b> to compare plain bagging with a random forest.
+          Slide the <b>number of trees</b>, then switch the <b>features tried at each split</b>. Notice one tree's blocky, speckled map blends into a smooth
+          one that follows the dashed circle, while validation accuracy climbs and then levels off.
         </>
       }
     >
+      <p className={s.status}>The noisy circle from the depth demo (15% of labels flipped). Every tree is grown to full depth on its own bootstrap sample; faint colours mean the trees disagree.</p>
+      {/* on phones the slider sits right under the map it changes */}
       <div ref={wrapRef} className={s.panels} style={{ gridTemplateColumns: narrow ? '1fr' : '1.1fr 1fr' }}>
         <div>
           <p className={s.panelTitle}>
@@ -184,6 +205,12 @@ export default function ForestAverager() {
             />
           </Plot>
         </div>
+        {narrow && (
+          <>
+            {slider}
+            {readout}
+          </>
+        )}
         <div>
           <p className={s.panelTitle}>Three of the trees on their own</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
@@ -202,23 +229,16 @@ export default function ForestAverager() {
             {other && <Path points={other.curve.map((v, i) => [i + 1, v] as [number, number])} color="var(--viz-muted)" width={1.6} />}
             <Path points={run.curve.map((v, i) => [i + 1, v] as [number, number])} color="var(--viz-3)" width={2.6} />
             <Dots points={[{ x: B, y: acc, r: 6, color: 'var(--viz-3)' }]} />
-            <Label x={NT} y={run.curve[NT - 1]} dx={-4} dy={-8} anchor="end" color="var(--viz-3)" size={11.5} weight={700}>
+            <Label x={NT} y={run.curve[NT - 1]} dx={-4} dy={-8} anchor="end" color={TXT_GREEN} size={11.5} weight={700}>
               {name}
             </Label>
           </Plot>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink-3)' }}>Grey line: {otherName}, for comparison.</p>
         </div>
       </div>
-      <Readout
-        items={[
-          ['trees', String(B)],
-          ['validation accuracy', `${(100 * acc).toFixed(1)}%`],
-          ['out-of-bag accuracy', Number.isFinite(oob.acc) ? `${(100 * oob.acc).toFixed(1)}%` : '…'],
-          ['one deep tree', `${(100 * SINGLE_ACC).toFixed(1)}%`],
-        ]}
-      />
+      {!narrow && readout}
+      {!narrow && slider}
       <Controls>
-        <Slider label="number of trees" value={B} min={1} max={NT} step={1} onChange={setB} />
         <Segmented
           label="Features tried at each split"
           value={mode}

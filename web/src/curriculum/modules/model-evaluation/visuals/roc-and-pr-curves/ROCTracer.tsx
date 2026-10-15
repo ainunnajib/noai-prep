@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, type ReactElement } from 'react'
 import { Figure, Controls, Slider, Readout, Button, Plot, Grid, Axes, Path, Dots, Label, usePlot, DraggablePoint, useContainerWidth, usePlayer } from '../../../../../kit'
 import { normalQuantiles, sigmoid } from '../confusion-matrix-and-metrics/evalMath'
 import { HaloLabel } from '../confusion-matrix-and-metrics/HaloLabel'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import { rocPoints, pairAUC, ratesAt, type Pt } from './roc'
 import s from '../confusion-matrix-and-metrics/eval.module.css'
 
@@ -60,10 +61,10 @@ function Strip({ neg, pos, k }: { neg: number[]; pos: number[]; k: number }) {
       <rect x={xt} y={top} width={xs(1) - xt} height={bottom - top} style={{ fill: 'color-mix(in srgb, var(--viz-2) 9%, transparent)' }} />
       <line x1={xs(0)} x2={xs(1)} y1={mid} y2={mid} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
       {out}
-      <text className="plot-label" x={xs(0) + 3} y={top + 12} style={{ fontSize: 11.5, fill: NEG_C }}>
+      <text className="plot-label" x={xs(0) + 3} y={top + 12} style={{ fontSize: 11.5, fill: txt(NEG_C) }}>
         negatives ▲
       </text>
-      <text className="plot-label" x={xs(0) + 3} y={bottom - 5} style={{ fontSize: 11.5, fill: POS_C }}>
+      <text className="plot-label" x={xs(0) + 3} y={bottom - 5} style={{ fontSize: 11.5, fill: txt(POS_C) }}>
         positives ▼
       </text>
       <line x1={xt} x2={xt} y1={top - 4} y2={bottom} style={{ stroke: CUR_C, strokeWidth: 2.2 }} />
@@ -101,10 +102,8 @@ export default function ROCTracer() {
       title="Sweep the threshold, trace the ROC curve"
       caption={
         <>
-          Left: model scores for 40 positives (orange, stacked down) and 40 negatives (blue, stacked up); everything right of the threshold is predicted
-          positive, and a red ring marks a mistake. Right: that threshold is one point on the ROC curve, at <b>(FPR, TPR)</b>. Press <b>Sweep</b> or drag the
-          threshold from 1 down to 0 and watch the point climb from (0, 0) to (1, 1). Then slide the separation: a better model bulges towards the top-left
-          corner (AUC near 1); at separation 0 the curve collapses onto the diagonal (AUC 0.5, a coin toss).
+          Press <b>Sweep</b>, or drag the threshold from 1 down to 0, and watch the point climb from (0, 0) to (1, 1). Then change the model quality: a better
+          model bulges towards the top-left corner; at 0 the curve lies on the diagonal (AUC 0.5).
         </>
       }
     >
@@ -139,7 +138,7 @@ export default function ROCTracer() {
             <Label x={0.62} y={0.3} anchor="middle" color="var(--viz-1)" size={13} weight={700}>
               {`AUC = ${auc.toFixed(3)}`}
             </Label>
-            <Label x={0.72} y={0.72} dx={8} dy={16} anchor="start" color="var(--viz-muted)" size={11}>
+            <Label x={0.72} y={0.72} dx={8} dy={16} anchor="start" color="var(--viz-axis)" size={11}>
               random
             </Label>
           </Plot>
@@ -150,7 +149,7 @@ export default function ROCTracer() {
           {player.playing ? 'Pause' : 'Sweep the threshold'}
         </Button>
         <Slider label="threshold" value={k} min={0} max={BINS} step={1} onChange={(v) => (player.pause(), setK(v))} format={(v) => (v / BINS).toFixed(2)} />
-        <Slider label="class separation" value={d} min={0} max={4} step={0.25} onChange={setD} format={(v) => v.toFixed(2)} />
+        <Slider label="model quality (class separation)" value={d} min={0} max={4} step={0.25} onChange={setD} format={(v) => v.toFixed(2)} />
         <Readout
           items={[
             ['TPR', `${cur.tp}/${N} = ${cur.tpr.toFixed(2)}`],

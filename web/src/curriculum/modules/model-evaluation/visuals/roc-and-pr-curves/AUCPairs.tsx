@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Button, Plot, usePlot, DraggablePoint, useNarrow } from '../../../../../kit'
 import { rocPoints, pairAUC } from './roc'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from '../confusion-matrix-and-metrics/eval.module.css'
 
 /*
@@ -64,12 +65,12 @@ function StripLayer({ pos, neg, sel }: { pos: number[]; neg: number[]; sel: [num
       <line x1={xs(0)} x2={xs(1)} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
       <line x1={xs(pos[pi])} y1={yP} x2={xs(neg[nj])} y2={yN} style={{ stroke: tie ? 'var(--viz-6)' : good ? OK_C : BAD_C, strokeWidth: 3, strokeDasharray: good ? undefined : '5 4' }} />
       {pos.map((v, i) => (
-        <text key={`pl${i}`} className="plot-label" x={xs(v)} y={yP - 13 - 12 * posRows[i]} textAnchor="middle" style={{ fill: POS_C, fontSize: 11.5 }}>
+        <text key={`pl${i}`} className="plot-label" x={xs(v)} y={yP - 13 - 12 * posRows[i]} textAnchor="middle" style={{ fill: txt(POS_C), fontSize: 11.5 }}>
           {P_NAMES[i]}
         </text>
       ))}
       {neg.map((v, i) => (
-        <text key={`nl${i}`} className="plot-label" x={xs(v)} y={yN + 22 + 12 * negRows[i]} textAnchor="middle" style={{ fill: NEG_C, fontSize: 11.5 }}>
+        <text key={`nl${i}`} className="plot-label" x={xs(v)} y={yN + 22 + 12 * negRows[i]} textAnchor="middle" style={{ fill: txt(NEG_C), fontSize: 11.5 }}>
           {N_NAMES[i]}
         </text>
       ))}
@@ -123,12 +124,12 @@ function GridLayer({ pos, neg, sel, onSelect }: { pos: number[]; neg: number[]; 
       <line x1={xs(0)} x2={xs(1)} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
       <line x1={xs(0)} x2={xs(0)} y1={ys(0)} y2={ys(1)} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
       {po.map((pi, r) => (
-        <text key={`rl${pi}`} x={xs(0) - 6} y={ys((r + 0.5) / n)} dy="0.35em" textAnchor="end" style={{ fontSize: 11.5, fontWeight: 700, fill: POS_C }}>
+        <text key={`rl${pi}`} x={xs(0) - 6} y={ys((r + 0.5) / n)} dy="0.35em" textAnchor="end" style={{ fontSize: 11.5, fontWeight: 700, fill: txt(POS_C) }}>
           {P_NAMES[pi]}
         </text>
       ))}
       {no.map((nj, c) => (
-        <text key={`cl${nj}`} x={xs((c + 0.5) / n)} y={ys(0) + 15} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 700, fill: NEG_C }}>
+        <text key={`cl${nj}`} x={xs((c + 0.5) / n)} y={ys(0) + 15} textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 700, fill: txt(NEG_C) }}>
           {N_NAMES[nj]}
         </text>
       ))}
@@ -156,10 +157,7 @@ export default function AUCPairs() {
       title="AUC is a count of correctly ranked pairs"
       caption={
         <>
-          Five positives (orange) and five negatives (blue). Every positive can be paired with every negative: 5 × 5 = 25 pairs. The ROC square is
-          exactly that table of pairs: columns are the negatives (highest score on the left), rows are the positives (highest score at the bottom). A cell lies
-          under the staircase exactly when its positive outscores its negative. So <b>AUC = correct pairs ÷ all pairs</b>. Drag any point past another and
-          watch one cell flip and the AUC change by 1/25 = 0.04. Click a cell to see its pair.
+          Drag any point past another: one cell flips and the AUC changes by 1/25 = 0.04. Click a cell to see which positive and negative it compares.
         </>
       }
     >
@@ -175,7 +173,7 @@ export default function AUCPairs() {
             ))}
           </Plot>
           <p className={s.note}>
-            Selected pair: <b style={{ color: POS_C }}>{P_NAMES[pi]}</b> ({pos[pi].toFixed(2)}) versus <b style={{ color: NEG_C }}>{N_NAMES[nj]}</b> ({neg[nj].toFixed(2)}):{' '}
+            Selected pair: <b style={{ color: txt(POS_C) }}>{P_NAMES[pi]}</b> ({pos[pi].toFixed(2)}) versus <b style={{ color: txt(NEG_C) }}>{N_NAMES[nj]}</b> ({neg[nj].toFixed(2)}):{' '}
             <b>{verdict}</b>
           </p>
         </div>

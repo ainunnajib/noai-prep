@@ -44,10 +44,8 @@ export default function PatienceTracker() {
       title="Early stopping: when to stop adding trees"
       caption={
         <>
-          The training error (blue) keeps falling, but the validation error (pink) bottoms out and then creeps up as the trees start fitting noise. Early
-          stopping watches the validation error and stops once it has <b>failed to improve for "patience" trees in a row</b> (the shaded window), then keeps
-          the model at the filled star. Slide <b>patience</b> down to 1 with stumps and η = 0.3: training stops at the first small bump, long before the
-          real minimum (hollow star). Then compare learning rates: a smaller η needs more trees but reaches a similar or lower validation error.
+          Slide <b>patience</b> down to 1 with stumps and η = 0.3, then try other learning rates. Notice that with little patience, training stops at the
+          first small bump, long before the real minimum (hollow star).
         </>
       }
     >

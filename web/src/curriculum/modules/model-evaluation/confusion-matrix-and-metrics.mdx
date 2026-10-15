@@ -128,7 +128,7 @@ Precision and recall both have **TP on top**. Precision divides by everything th
 
 ## Moving the threshold
 
-The threshold decides the whole confusion matrix. Drag it below and watch the four counts trade places.
+The threshold decides the whole confusion matrix. In the figure below, each dot is one of 100 people, placed at the model's score: healthy people are stacked upwards, sick people downwards. Everyone right of the threshold is predicted sick, so the four shaded corners are exactly the four cells of the matrix (green for correct, red for a mistake). Drag the threshold and watch the four counts trade places.
 
 <ConfusionThreshold />
 
@@ -229,6 +229,8 @@ $$
 where $c_{FP}$ is the cost of one false positive and $c_{FN}$ the cost of one false negative.
 
 <ErrorCostScenarios />
+
+In every scenario the cheapest threshold moves towards the costlier mistake. For screening, where a miss costs 20 times as much as a false alarm, it sits at about 0.05, far below the threshold that maximises F1 (about 0.33); for face unlock it sits at 0.98. The scores in this figure are honest probabilities, so the cheapest threshold always lands at $\frac{c_{FP}}{c_{FP} + c_{FN}}$, a rule you will derive in the next lesson.
 
 <KeyIdea>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Rect, Path, Label, DraggablePoint } from '../../../../../kit'
+import { txt } from '../confusion-matrix-and-metrics/colors'
 import s from './reg.module.css'
 
 /*
@@ -47,7 +48,7 @@ function BoxShape({ b, color, name, dash }: { b: Box; color: string; name: strin
         width={3}
         dash={dash}
       />
-      <Label x={b.x1} y={b.y2} dx={4} dy={-6} color={color} weight={700}>
+      <Label x={b.x1} y={b.y2} dx={4} dy={-6} color={txt(color)} weight={700}>
         {name}
       </Label>
     </>
@@ -119,10 +120,8 @@ export default function IoUBoxes() {
       title="Intersection over union for two boxes"
       caption={
         <>
-          Drag the round handle in the middle of a box to move it and the one at its top-right corner to resize it, or type the corners below. The
-          purple rectangle is the overlap (intersection); everything shaded, purple or blue, is the union. Try making the orange box huge so that it
-          swallows the green one: it covers the whole object, yet IoU falls, because IoU also punishes extra area. Then slide the threshold: a detector
-          counts a predicted box as a correct detection only if its IoU with the true box reaches the threshold (0.5 is common).
+          Drag a box's centre handle to move it and its corner handle to resize it, or type the corners. Make the orange box swallow the green one: it covers
+          the whole object, yet IoU falls. Then slide the threshold.
         </>
       }
     >
@@ -143,6 +142,15 @@ export default function IoUBoxes() {
           <DraggablePoint x={B.x2} y={B.y2} r={7} color={orange} onChange={resizeTo(setPb)} />
         </Plot>
 
+        <div className={s.legend}>
+          <span>
+            <span className={s.swatch} style={{ background: overlapFill }} /> overlap (intersection)
+          </span>
+          <span>
+            <span className={s.swatch} style={{ background: unionFill, borderColor: 'color-mix(in srgb, var(--viz-1) 35%, transparent)' }} /> union: everything
+            shaded
+          </span>
+        </div>
         <div className={s.tableWrap}>
           <table className={s.table}>
             <thead>
@@ -165,7 +173,7 @@ export default function IoUBoxes() {
             </thead>
             <tbody>
               <tr>
-                <td className={s.rowHead} style={{ color: green, fontWeight: 700 }}>
+                <td className={s.rowHead} style={{ color: txt(green), fontWeight: 700 }}>
                   true
                 </td>
                 <td>{numInput(tb, setTb, 'x1', 'true box x1')}</td>
@@ -175,7 +183,7 @@ export default function IoUBoxes() {
                 <td>{f(areaA)}</td>
               </tr>
               <tr>
-                <td className={s.rowHead} style={{ color: orange, fontWeight: 700 }}>
+                <td className={s.rowHead} style={{ color: txt(orange), fontWeight: 700 }}>
                   predicted
                 </td>
                 <td>{numInput(pb, setPb, 'x1', 'predicted box x1')}</td>
@@ -212,7 +220,7 @@ export default function IoUBoxes() {
 
         <Controls>
           <Slider label="IoU threshold for a correct detection" value={thr} min={0.1} max={0.9} step={0.05} onChange={setThr} format={(v) => v.toFixed(2)} />
-          <span className={s.verdict} style={{ color: hit ? 'var(--viz-pos)' : 'var(--viz-neg)' }} aria-live="polite">
+          <span className={s.verdict} style={{ color: txt(hit ? 'var(--viz-pos)' : 'var(--viz-neg)') }} aria-live="polite">
             {hit ? `hit: IoU ${iou.toFixed(2)} ≥ ${thr.toFixed(2)}` : `miss: IoU ${iou.toFixed(2)} < ${thr.toFixed(2)}`}
           </span>
           <Button
