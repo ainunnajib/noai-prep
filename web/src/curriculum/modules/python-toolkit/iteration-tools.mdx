@@ -41,7 +41,7 @@ Fruit rides along a belt. An inspector removes the bruised ones, the rest are ju
 
 </Analogy>
 
-A <Term def="A one-line way to build a list from another sequence: [expression for item in iterable if condition].">list comprehension</Term> builds a new list from an existing sequence:
+You met the basic form, `[x ** 2 for x in range(5)]`, in [Lists](#/learn/python-basics/lists). Comprehensions can do more: filter, transform with a choice, and nest. Here is the full pattern of a <Term def="A one-line way to build a list from another sequence: [expression for item in sequence if condition].">list comprehension</Term>:
 
 $$
 [\;\underbrace{\texttt{x ** 2}}_{\text{expression}}\;\;\underbrace{\texttt{for x in nums}}_{\text{loop}}\;\;\underbrace{\texttt{if x > 0}}_{\text{filter (optional)}}\;]
@@ -84,7 +84,7 @@ for x in nums:
 
 Two more forms you will meet:
 
-- **An if-else inside the expression** changes values instead of removing them. `[x if x > 0 else 0 for x in nums]` turns every negative number into 0 and keeps the list the same length. That is the <Term def="Rectified linear unit: the function that keeps positive numbers and turns negative numbers into 0. Neural networks use it everywhere.">ReLU</Term> function from neural networks, written in one line.
+- **An if-else inside the expression** changes values instead of removing them. `[x if x > 0 else 0 for x in nums]` turns every negative number into 0 and keeps the list the same length. That is the ReLU from [Making decisions with if](#/learn/python-basics/decisions), written with the same conditional expression `a if condition else b`, now inside a comprehension.
 - **Dict and set comprehensions** use curly braces: `{w: len(w) for w in words}` builds a dict, and `{x % 3 for x in nums}` builds a set.
 
 <PyRunner code={compCode} />
@@ -94,8 +94,6 @@ Two more forms you will meet:
 A filter `if` goes at the **end** and has no `else`: `[x for x in nums if x > 0]`. A choice between two values goes at the **front** as `a if condition else b`: `[x if x > 0 else 0 for x in nums]`. Writing `[x for x in nums if x > 0 else 0]` is a `SyntaxError`.
 
 </Mistake>
-
-<PastPaperQuestion paper="prelim2026" n={82} />
 
 <QuickCheck
   q="What is `[x * 10 for x in range(1, 4) if x != 2]`?"
@@ -223,7 +221,7 @@ A list stores all its values at once. A generator stores only its current positi
 
 A `for` loop calls `next()` for you and stops quietly at `StopIteration`, which is why you can loop over a generator just like a list. Functions that consume a sequence also accept one: `sum(x * x for x in range(10))` adds up $0 + 1 + 4 + \dots + 81 = 285$ without ever building a list. A PyTorch <Term def="A PyTorch object that hands a training loop one batch of data at a time, loading each batch only when it is needed.">DataLoader</Term> works on the same lazy principle: each epoch's `for` loop gets a fresh iterator that loads one batch at a time, so a dataset far bigger than memory can stream through. Unlike a used-up generator, a DataLoader can be looped over again every epoch.
 
-Measure the difference yourself. `sys.getsizeof` counts only the list object itself, which holds a million references; the million integer objects they point to take about 32 MB more, which the figure above includes. On a normal 64-bit computer the list object is about 8.4 MB and the generator 200 bytes. The Python in your browser is 32-bit, so it reports about half of each: roughly 4.2 MB and about 100 bytes. Either way, the third line shows the list is tens of thousands of times bigger.
+Measure the difference yourself. `import sys` loads Python's built-in `sys` tools, and `sys.getsizeof(x)` reports how many bytes the object `x` itself takes. It counts only the list object itself, which holds a million arrows pointing at the numbers (you will meet these "references" in the next lesson); the million integer objects they point to take about 32 MB more, which the figure above includes. On a normal 64-bit computer the list object is about 8.4 MB and the generator 200 bytes. The Python in your browser is 32-bit, so it reports about half of each: roughly 4.2 MB and about 100 bytes. Either way, the third line shows the list is tens of thousands of times bigger.
 
 <PyRunner code={memoryCode} />
 

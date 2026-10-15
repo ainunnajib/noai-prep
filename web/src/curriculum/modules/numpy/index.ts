@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "vectorised-ops-and-axes",
       title: "Element-wise operations, matrix products and axes",
       summary: "Tell element-wise * from the matrix product @ (or np.dot), and reduce arrays along an axis.",
-      minutes: 25,
+      minutes: 20,
       objectives: ["You can tell element-wise multiplication from the matrix product and predict a product's shape", "You can predict the shape after a reduction along an axis, with or without keepdims", "You can compute sums, means and argmax per row or per column"],
       load: () => import('./vectorised-ops-and-axes.mdx'),
     },

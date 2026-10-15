@@ -27,25 +27,47 @@ const HEADS: { id: HeadId; text: string; sub: string }[] = [
 const ANSWER: Record<TaskId, HeadId> = { reg: 'linear', bin: 'sigmoid', multi: 'softmax', tags: 'sigmoids' }
 
 const CODE: Record<TaskId, string> = {
-  reg: `head = nn.Linear(64, 1)        # 1 number, no activation
-loss_fn = nn.MSELoss()         # or nn.L1Loss() for MAE
-pred = head(h).squeeze(1)      # shape (N,)
-loss = loss_fn(pred, y)        # y: floats, shape (N,)`,
-  bin: `head = nn.Linear(64, 1)        # 1 logit, NO sigmoid here
-loss_fn = nn.BCEWithLogitsLoss()  # sigmoid is inside
-logit = head(h).squeeze(1)     # shape (N,)
-loss = loss_fn(logit, y)       # y: 0.0 or 1.0, shape (N,)
-p_spam = torch.sigmoid(logit)  # probability, if needed`,
-  multi: `head = nn.Linear(64, 10)       # 10 logits, NO softmax here
-loss_fn = nn.CrossEntropyLoss()  # log-softmax is inside
-logits = head(h)               # shape (N, 10)
-loss = loss_fn(logits, y)      # y: class indices, shape (N,)
-digit = logits.argmax(dim=1)   # the predicted class`,
-  tags: `head = nn.Linear(64, 5)        # 5 logits, one per dish
-loss_fn = nn.BCEWithLogitsLoss()  # sigmoid + BCE per logit
-logits = head(h)               # shape (N, 5)
-loss = loss_fn(logits, y)      # y: 0/1 floats, shape (N, 5)
-present = torch.sigmoid(logits) > 0.5`,
+  reg: `# h: last hidden layer, size 64
+# 1 number, no activation
+head = nn.Linear(64, 1)
+# or nn.L1Loss() for MAE
+loss_fn = nn.MSELoss()
+# squeeze: (N, 1) -> (N,)
+pred = head(h).squeeze(1)
+# y: floats, shape (N,)
+loss = loss_fn(pred, y)`,
+  bin: `# h: last hidden layer, size 64
+# 1 logit, NO sigmoid here
+head = nn.Linear(64, 1)
+# the sigmoid is inside the loss
+loss_fn = nn.BCEWithLogitsLoss()
+# squeeze: (N, 1) -> (N,)
+logit = head(h).squeeze(1)
+# y: 0.0 or 1.0, shape (N,)
+loss = loss_fn(logit, y)
+# probability, if you need it
+p_spam = torch.sigmoid(logit)`,
+  multi: `# h: last hidden layer, size 64
+# 10 logits, NO softmax here
+head = nn.Linear(64, 10)
+# log-softmax is inside the loss
+loss_fn = nn.CrossEntropyLoss()
+logits = head(h)  # (N, 10)
+# y: class indices, shape (N,)
+loss = loss_fn(logits, y)
+# the predicted class
+digit = logits.argmax(dim=1)`,
+  tags: `# h: last hidden layer, size 64
+# 5 logits, one per dish
+head = nn.Linear(64, 5)
+# a sigmoid + BCE for each logit
+loss_fn = nn.BCEWithLogitsLoss()
+logits = head(h)  # (N, 5)
+# y: 0/1 floats, shape (N, 5)
+loss = loss_fn(logits, y)
+# which dishes are in the photo
+probs = torch.sigmoid(logits)
+present = probs > 0.5`,
 }
 
 const WHY: Record<TaskId, string> = {

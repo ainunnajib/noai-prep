@@ -133,7 +133,7 @@ A court assumes the accused is innocent and convicts only if the evidence would 
     The <Term def="The 'nothing interesting is going on' assumption that a test tries to find evidence against, e.g. 'the coin is fair' or 'the new model is no better'. Written H₀.">null hypothesis</Term> $H_0$ is the boring, no-effect story: the coin is fair, $P(\text{heads}) = 0.5$. The <Term def="What you suspect instead of the null hypothesis, e.g. 'the coin is biased'. Written H₁ (or Hₐ).">alternative hypothesis</Term> $H_1$ is what you suspect: the coin is biased.
   </Step>
   <Step title="Choose the significance level α">
-    Before looking at the data, decide how rare a result must be to convince you. The usual choice is the <Term def="The threshold α (often 0.05) chosen before the test: reject H₀ if the p-value is at or below α. It is also the probability of rejecting H₀ when H₀ is true.">significance level</Term> $\alpha = 0.05$ (5%).
+    Before looking at the data, decide how rare a result must be to convince you. The usual choice is the <Term def="The threshold α (often 0.05) chosen before the test: reject H₀ if the p-value is at or below α. It is also the probability of rejecting H₀ when H₀ is true.">significance level</Term> $\alpha = 0.05$ (5%). (This $\alpha$ is not the learning rate $\alpha$ from the [Σ lesson](#/learn/maths-foundations/sigma-notation-and-subscripts); in a hypothesis test $\alpha$ always means the significance level.)
   </Step>
   <Step title="Work out what luck looks like">
     Suppose $H_0$ is true. Then the number of heads is $\text{Binomial}(100, 0.5)$, with mean $np = 50$ and standard deviation $\sqrt{np(1 - p)} = \sqrt{25} = 5$, and by the Central Limit Theorem it is approximately normal. This is the **null distribution**.
@@ -245,6 +245,8 @@ One warning follows from $\alpha$: test 20 useless features at $\alpha = 0.05$ a
 Think of the boy who cried wolf. First the villagers believe him when there is **no** wolf: a false positive, **Type I**. Later they ignore him when there **is** a wolf: a false negative, **Type II**. For a spam filter with $H_0$ "this email is fine", sending a real email to spam is Type I; letting spam into your inbox is Type II.
 
 </ExamTip>
+
+Next, the [pandas module](#/learn/pandas-and-plotting/dataframes-and-selection) puts these statistics to work on real tables: `describe()`, `groupby`, cleaning and plots.
 
 <Takeaways>
 

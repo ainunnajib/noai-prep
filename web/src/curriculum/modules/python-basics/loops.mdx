@@ -248,6 +248,8 @@ You pluck the string, listen to how far off the note is, turn the peg a little i
 
 </Analogy>
 
+You met this loop in [Let the computer learn](#/learn/ai-first-look/let-the-computer-learn): predict, measure, find the slope, nudge. Now you write it in Python. `lr` is the learning rate $\eta$ from that lesson.
+
 ```python
 w = 0.0     # first guess
 lr = 0.1    # learning rate: how big each nudge is
@@ -269,8 +271,10 @@ for step in range(5):
 Each pass of the loop does three things:
 
 - **Predict**: `prediction = 2 * w` is what the current guess says.
-- **Measure**: `error = prediction - 6`. A negative error means the prediction is too small; a positive error means too big; 0 means perfect.
+- **Measure**: `error = prediction - 6`. A negative error means the prediction is too small; a positive error means too big; 0 means perfect. (This error is prediction minus target, the opposite sign of the residual $y - \hat{y}$ from [Fit a line by hand](#/learn/ai-first-look/fit-a-line-by-hand). With this sign, we nudge by *subtracting* it.)
 - **Nudge**: `w = w - lr * error` moves `w` **against** the error. If the error is negative, subtracting it makes `w` bigger; if it is positive, `w` gets smaller. The <Term def="A small positive number that sets how big each correction is. Too small: learning is slow. Too big: the corrections overshoot and can blow up.">learning rate</Term> `lr` sets the size of the nudge.
+
+Where is "find the slope"? For this tiny problem the error happens to *be* the slope. Measure the loss as $\tfrac{1}{4}(2w - 6)^2$ (the squared error, scaled by $\tfrac{1}{4}$ to keep the numbers tidy): its slope at any $w$ is exactly $2w - 6$, the error. Check it by nudging, as in that lesson: at $w = 0$ the loss is $9$ and at $w = 0.01$ it is $8.9401$, so the slope is about $-0.0599 \div 0.01 \approx -6$, the error at $w = 0$. In general, gradient descent subtracts $\eta \times$ (slope of the loss), not the raw error.
 
 <Steps title="The first two passes by hand">
   <Step title="Pass 1 (step 0): predict and measure">
@@ -301,13 +305,13 @@ In words: every pass multiplies the gap by the same number, $1 - 2\,\text{lr}$. 
 
 <KeyIdea>
 
-Predict, measure the error, nudge against it, repeat. That loop is how machines learn. The learning rate sets the nudge size: too small is slow, too big overshoots, and far too big diverges.
+Predict, measure, find the slope (here, the error itself), nudge against it, repeat. That loop is how machines learn. The learning rate sets the nudge size: too small is slow, too big overshoots, and far too big diverges.
 
 </KeyIdea>
 
 <Note title="You have just written gradient descent">
 
-Real training is this same loop with millions of numbers instead of one $w$. The errors are summed up in one score called the **loss**, and calculus (the **gradient**) works out which way, and by how much, to nudge every number; you will see how in the calculus module. In PyTorch, training is literally a `for` loop around predict, measure and nudge (each pass over the whole dataset is called an **epoch**).
+Real training is this same loop with millions of numbers instead of one $w$. As in [Let the computer learn](#/learn/ai-first-look/let-the-computer-learn), the errors are combined into one score, the **loss**, and the **gradient** (the slopes of the loss) says which way, and by how much, to nudge every number; [the calculus module](#/learn/calculus-and-gradient-descent/derivatives-as-slopes) shows how to compute it exactly. In PyTorch, training is literally a `for` loop around predict, measure, find the slope and nudge (each pass over the whole dataset is called an **epoch**).
 
 </Note>
 
@@ -334,6 +338,6 @@ Loop questions in the Prelim are about counting and tracing, fast:
 - `range(start, stop, step)` starts at `start`, moves by `step` and stops **before** `stop`. `range(n)` gives the $n$ values $0$ to $n - 1$.
 - `while condition:` repeats as long as the condition is `True`. Something in the body must make it `False`, or the loop runs forever.
 - A trace table (one column per variable, one row per pass) is the surest way to predict what a loop does.
-- Predict, measure, nudge, repeat: a loop with a learning rate is the core of how every model is trained.
+- Predict, measure, find the slope, nudge, repeat: a loop with a learning rate is the core of how neural networks are trained.
 
 </Takeaways>

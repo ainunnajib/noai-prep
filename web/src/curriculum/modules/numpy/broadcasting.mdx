@@ -103,15 +103,15 @@ print(f.shape)
 (3,)
 ```
 
-For a table `X` of shape `(n, d)`, `X.mean(axis=1, keepdims=True)` gives the per-row means directly as an `(n, 1)` column.
+For a table `X` of shape `(n, d)`, `X.mean(axis=1, keepdims=True)` gives the per-row means directly as an `(n, 1)` column. Here $n$ counts the rows (examples, or points) and $d$ the features, as in many books; the 2025 Final formula in the [Σ lesson](#/learn/maths-foundations/sigma-notation-and-subscripts) used $m$ for examples and $n$ for features. Always check which letter means what.
 
 Here `None` (you may also see its alias `np.newaxis`) inside the square brackets means "insert a new axis of length 1 here", and `-1` in `reshape` means "work this size out for me". `np.expand_dims` adds a length-1 axis at the position you name, and `np.squeeze` removes one.
 
-For arrays with 3 or more axes, `np.transpose(x, order)` puts the axes in any order you list. A batch of colour images stored as (images, height, width, channels) becomes PyTorch's (images, channels, height, width) with `np.transpose(imgs, (0, 3, 1, 2))`: shape `(32, 28, 28, 3)` turns into `(32, 3, 28, 28)`. PyTorch calls these three moves `unsqueeze`, `squeeze` and `permute`.
+For arrays with 3 or more axes, `np.transpose(x, order)` puts the axes in any order you list. A colour image stores three values for each pixel, its red, green and blue **channels**. A batch of colour images stored as (images, height, width, channels) becomes PyTorch's (images, channels, height, width) with `np.transpose(imgs, (0, 3, 1, 2))`: shape `(32, 28, 28, 3)` turns into `(32, 3, 28, 28)`. PyTorch calls these three moves `unsqueeze`, `squeeze` and `permute`.
 
 ## Centring and standardising features
 
-Features often live on very different scales: height in centimetres (around 165), mass in kilograms (around 55), CCA hours per week (around 4). Distance-based models like k-nearest neighbours and K-means, and gradient descent, behave much better when every feature is put on the same scale first. The standard recipe is to <Term def="To rescale a feature so that it has mean 0 and standard deviation 1, by subtracting its mean and dividing by its standard deviation. The results are called z-scores.">standardise</Term> each feature (each column):
+Features often live on very different scales: height in centimetres (around 165), mass in kilograms (around 55), CCA hours per week (around 4). Distance-based models like k-nearest neighbours and K-means (which sorts points into $k$ groups by distance; the last lesson of this module builds it), and gradient descent, behave much better when every feature is put on the same scale first. The standard recipe is to <Term def="To rescale a feature so that it has mean 0 and standard deviation 1, by subtracting its mean and dividing by its standard deviation. The results are called z-scores.">standardise</Term> each feature (each column):
 
 $$
 z_{ij} = \frac{x_{ij} - \mu_j}{\sigma_j}
@@ -186,7 +186,7 @@ Z = (X - mu) / sd
 
 Broadcasting never asks "did you mean that?". The most famous trap: your model's predictions come out as a **column**, shape $(n, 1)$, for example from `X @ w` with `w` of shape $(d, 1)$, or from a PyTorch layer with one output unit. Your targets `y` are **flat**, shape $(n,)$. Line them up from the right: $(n, 1)$ against $(1, n)$. Both positions contain a 1, so both stretch, and `pred - y` becomes an $(n, n)$ grid of *every* prediction minus *every* target.
 
-First, what the code is trying to compute. A model's <Term def="Mean squared error: the average of the squared gaps between predictions and true targets, np.mean((pred - y) ** 2). Smaller is better.">mean squared error</Term> (MSE) is the average of the squared gaps between its predictions and the true targets, `np.mean((pred - y) ** 2)`. Smaller is better, and training a model means making it small. With `pred = [4, 5, 1, 6]` and `y = [3, 5, 2, 6]` the gaps are $1, 0, -1, 0$, so the MSE is $(1 + 0 + 1 + 0) / 4 = 0.5$. A number like this, which measures how wrong a model is, is called its **loss**.
+First, what the code is trying to compute: the **mean squared error** (MSE) from [fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), `np.mean((pred - y) ** 2)`, the loss that training makes small. With `pred = [4, 5, 1, 6]` and `y = [3, 5, 2, 6]` the gaps are $1, 0, -1, 0$, so the MSE is $(1 + 0 + 1 + 0) / 4 = 0.5$.
 
 <SilentBroadcastGrid />
 

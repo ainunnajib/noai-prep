@@ -122,11 +122,15 @@ def dfs_path(graph, start, goal):
         u, p = stack.pop()
         # an old copy: already visited
         if u in parent:
+            # continue: skip the rest of this pass
+            # and go straight to the next one
             continue
         # mark it when popped
         parent[u] = p
         if u == goal:
             break
+        # reversed(...) walks the neighbour
+        # list backwards
         for v in reversed(graph[u]):
             if v not in parent:
                 stack.append((v, u))
@@ -140,7 +144,7 @@ def dfs_path(graph, start, goal):
 print(bfs_path(graph, "Home", "Stadium"))
 print(dfs_path(graph, "Home", "Stadium"))`
 
-Some problems are easiest to solve by first solving a smaller copy of the same problem. This lesson covers three ideas built on that thought: **recursion** (a function that calls itself), **dynamic programming** (remember the answers to smaller problems so you never solve one twice) and **graph search** (explore a network of connected things, breadth-first or depth-first). They sit underneath spell-checkers, route planners, speech recognisers and even backpropagation, and NOAI asks you to trace them by hand.
+Some problems are easiest to solve by first solving a smaller copy of the same problem. You have already met one such algorithm: merge sort, in [the last lesson](#/learn/algorithms-and-complexity/searching-sorting-hashing), sorts each half by calling merge sort again. That is recursion. This lesson covers three ideas built on that thought: **recursion** (a function that calls itself), **dynamic programming** (remember the answers to smaller problems so you never solve one twice) and **graph search** (explore a network of connected things, breadth-first or depth-first). They sit underneath spell-checkers, route planners, speech recognisers and even backpropagation, and NOAI asks you to trace them by hand.
 
 ## Recursion: a function that calls itself
 
@@ -391,3 +395,5 @@ Match the words fast: **base case** stops recursion; **overlapping subproblems**
 - BFS (queue) explores level by level and finds fewest-edge paths; DFS (stack or recursion) dives deep and backtracks; both are $O(V + E)$.
 
 </Takeaways>
+
+That completes Code from zero. Next, [Functions and their graphs](#/learn/maths-foundations/functions-and-graphs) starts the maths toolkit, which goes on to powers, logarithms (the log in $O(\log n)$) and sums.

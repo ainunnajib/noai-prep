@@ -23,7 +23,7 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.multilayer-perceptrons.3',
     prompt: 'What does this code print?',
     code: 'import numpy as np\nx = np.array([1, 2])\nW = np.array([[ 1,  1],\n              [ 2, -1],\n              [-1,  0]])\nb = np.array([0, 1, 0])\nh = np.maximum(0, W @ x + b)\nprint(h)',
-    options: ['`[3 1 0]`', '`[3 1 -1]`', '`[3 0 0]`', 'A shape error, because `W` has 3 rows but `x` has only 2 entries'],
+    options: ['`[3 1 0]`', '`[3 1 -1]`', '`[3 0 0]`', 'A shape error, because `W` has 3 rows but `x` has 2 entries'],
     answer: 0,
     explanation:
       'Each row of `W` times `x`: $1+2 = 3$, $2-2 = 0$, $-1+0 = -1$. Adding `b` gives $[3, 1, -1]$, and `np.maximum(0, …)` is ReLU, so the $-1$ becomes 0: `[3 1 0]`. `[3 1 -1]` forgets the ReLU and `[3 0 0]` forgets the bias. There is no error: `W @ x` only needs the number of **columns** of `W` (2) to match the length of `x`.',
@@ -34,9 +34,9 @@ const questions: QuizQuestion[] = [
     prompt: 'Which statement about the universal approximation theorem is correct?',
     options: [
       'With a non-polynomial activation such as ReLU and enough neurons, one hidden layer can approximate any continuous function on a closed, bounded region.',
-      'With enough training epochs, gradient descent is guaranteed to find weights that let one wide hidden layer fit any continuous function exactly.',
-      'Without any activation function, one hidden layer with enough neurons can approximate any continuous function on a closed, bounded region of inputs.',
-      'A network can approximate any continuous function only if it has at least as many hidden layers as there are input features, whatever its width.',
+      'With enough training epochs, gradient descent is guaranteed to find the weights that let one wide hidden layer fit any continuous function exactly.',
+      'Without any activation function, one hidden layer with enough neurons can approximate any continuous function on a closed, bounded region of its inputs.',
+      'To approximate an arbitrary continuous function, a network needs at least as many hidden layers as it has input features, however wide each layer is.',
     ],
     answer: 0,
     explanation:
@@ -48,14 +48,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A network with **one hidden layer of 2 ReLU neurons** is trained on a two-spiral dataset. After 2,000 epochs the loss has stopped falling, and both training and test accuracy are stuck at about 60%. What is the most sensible next step?',
     options: [
-      'Add more neurons and hidden layers, because two straight folds cannot carve out a spiral',
-      'Train for another 20,000 epochs, because the loss always reaches zero eventually',
-      'Remove the ReLU activations so that the gradients can flow more easily',
-      'Collect more training data, because the network is overfitting the spirals',
+      'Add more neurons and hidden layers, because two straight folds can never trace out a spiral',
+      'Train for another 20,000 epochs, because a loss that has levelled off always starts falling again',
+      'Remove the ReLU activations, so that the gradients can flow back through the network more easily',
+      'Collect more training data, because the network has memorised the spirals and is overfitting',
     ],
     answer: 0,
     explanation:
-      'Training and test accuracy are both low, so the model is **underfitting**: two ReLU neurons give only two straight folds, which cannot follow a spiral, so the network needs more capacity (more neurons and layers). More epochs will not help once the loss has plateaued. Removing ReLU makes the whole network linear, so the boundary becomes one straight line. Overfitting would show high training accuracy with low test accuracy.',
+      'Training and test accuracy are both low, so the model is **underfitting**: two ReLU neurons give only two straight folds, which cannot follow a spiral, so the network needs more capacity (more neurons and layers). More epochs will not help once the loss has levelled off. Removing ReLU makes the whole network linear, so the boundary becomes one straight line. Overfitting would show high training accuracy with low test accuracy.',
     difficulty: 'intermediate',
   },
 ]

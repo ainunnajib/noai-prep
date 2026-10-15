@@ -31,7 +31,7 @@ const mod: ModuleDef = {
       slug: "logarithms",
       title: "Logarithms",
       summary: "Logs as \"which power?\", the rules that turn products into sums, ln versus log₂, why ML adds log-probabilities, and the anchor values behind the cost −ln p.",
-      minutes: 30,
+      minutes: 35,
       objectives: ["You can evaluate logs such as log₂ 8, log₁₀ 1000 and ln 1 without a calculator", "You can use the product, quotient and power rules, such as log(aⁿ) = n log a", "You can explain why ML adds log-probabilities instead of multiplying probabilities", "You can use ln 2 ≈ 0.693 and ln 10 ≈ 2.303 to work out cross-entropy costs −ln p, such as ln K for a uniform guess"],
       load: () => import('./logarithms.mdx'),
     },

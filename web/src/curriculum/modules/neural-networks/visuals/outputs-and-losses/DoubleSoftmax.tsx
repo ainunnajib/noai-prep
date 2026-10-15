@@ -52,7 +52,8 @@ export default function DoubleSoftmax() {
           The true class&rsquo;s logit is <M>m</M> bigger than every other. With the bug on, the model ends with its own softmax, so the scores are squashed{' '}
           <b>twice</b> and pulled towards <M>{'1/K'}</M>. Slide <M>m</M>: the correct loss heads to 0, but the buggy loss never falls below{' '}
           <M>{'\\ln\\!\\left(1 + \\frac{K-1}{e}\\right)'}</M>, and no error message warns you. Watch the push readouts too: at <M>m = 0</M> the
-          bug pushes the true logit about 10 times more weakly than the correct pipeline (−0.09 against −0.9 with K = 10).
+          bug pushes the true logit about 10 times more weakly than the correct pipeline (−0.09 against −0.9 with K = 10), and at large <M>m</M> its
+          push dies away while its loss is still stuck at the floor.
         </>
       }
     >
@@ -125,7 +126,7 @@ export default function DoubleSoftmax() {
               items={[
                 ['loss, correct', f3(good.loss)],
                 ...(bug ? ([['loss, bug', f3(bad.loss)]] as [string, string][]) : []),
-                ['push on true logit, correct', f3(good.grad)],
+                ['push, correct', f3(good.grad)],
                 ...(bug ? ([['push, bug', f3(bad.grad)], ['bug push is', `${(good.grad / bad.grad).toFixed(1)}× weaker`]] as [string, string][]) : []),
               ]}
             />

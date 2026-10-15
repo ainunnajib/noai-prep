@@ -63,7 +63,7 @@ export default function BaselineLossCheck() {
             <div className={s.panelTitle}>
               <b>Predicted probabilities</b> for one input (dashed line: <M>{'1/K'}</M>)
             </div>
-            <Plot x={[0.4, K + 0.6]} y={[0, yTop]} width={340} height={230} minHeight={200} margin={{ left: 40, bottom: 32, top: 26, right: 12 }} ariaLabel={`Bar chart of ${K} predicted class probabilities`}>
+            <Plot x={[0.4, K + 0.6]} y={[0, yTop]} width={340} height={230} minHeight={200} margin={{ left: 40, bottom: 40, top: 26, right: 12 }} ariaLabel={`Bar chart of ${K} predicted class probabilities`}>
               <Grid xTicks={0} yTicks={4} />
               <Axes xLabel="class" yLabel="probability" xTicks={Math.min(K, 10)} yTicks={4} tickFormat={(v) => (Number.isInteger(v) ? String(v) : v.toFixed(1))} />
               {p.map((v, i) => (
@@ -76,11 +76,11 @@ export default function BaselineLossCheck() {
             <div className={s.panelTitle}>
               <b>Expected first loss</b> compared with <M>{'\\ln K'}</M>
             </div>
-            <Plot x={[2, KMAX]} y={[0, lossTop]} width={340} height={230} minHeight={200} margin={{ left: 40, bottom: 32, top: 26, right: 12 }} ariaLabel="The curve ln K against K, with the current first loss marked">
+            <Plot x={[2, KMAX + 0.8]} y={[0, lossTop]} width={340} height={230} minHeight={200} margin={{ left: 40, bottom: 40, top: 26, right: 12 }} ariaLabel="The curve ln K against K, with the current first loss marked">
               <Grid xTicks={6} yTicks={4} />
               <Axes xLabel="K" yLabel="loss" xTicks={6} yTicks={4} />
               <FnPath f={(k) => Math.log(k)} color="var(--viz-3)" width={2.4} />
-              <Label x={KMAX} y={Math.log(KMAX)} dx={-4} dy={16} anchor="end" color="var(--viz-3)">
+              <Label x={16.5} y={Math.log(16.5)} dy={22} anchor="middle" color="var(--viz-3)">
                 ln K
               </Label>
               {Math.abs(loss - lnK) > 1e-6 && (
@@ -101,11 +101,25 @@ export default function BaselineLossCheck() {
                 ]}
               />
             </Plot>
+            <div className={s.legend}>
+              <span>
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>
+                  <circle cx="7" cy="7" r="5" style={{ fill: 'var(--viz-3)' }} />
+                </svg>
+                <M>{'\\ln K'}</M>: a healthy start
+              </span>
+              <span>
+                <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: '0.35rem' }}>
+                  <circle cx="7" cy="7" r="5" style={{ fill: 'var(--surface)', stroke: healthy ? 'var(--viz-3)' : 'var(--viz-neg)', strokeWidth: 2 }} />
+                </svg>
+                this model&rsquo;s expected first loss
+              </span>
+            </div>
           </div>
         </div>
         <Controls>
           <Slider label={<>number of classes <M>K</M></>} value={K} min={2} max={KMAX} step={1} onChange={setK} />
-          <Slider label="spread of the initial logits" value={spread} min={0} max={4} step={0.1} onChange={setSpread} format={(v) => v.toFixed(1)} />
+          <Slider label="spread of the starting logits (their std)" value={spread} min={0} max={4} step={0.1} onChange={setSpread} format={(v) => v.toFixed(1)} />
           <Readout
             items={[
               ['each class 1/K', (1 / K).toFixed(3)],

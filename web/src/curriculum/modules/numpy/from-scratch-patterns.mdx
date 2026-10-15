@@ -13,7 +13,7 @@ Nobody works out the distance between two MRT stations from scratch each time: a
 
 <Note title="The two algorithms in this lesson">
 
-Later modules cover both; for now, just know what they do.
+You met kNN in [classifying with boundaries and neighbours](#/learn/ai-first-look/classify-with-boundaries); K-means is new. Later modules cover both in depth; for now, just know what they do.
 
 - **K-means** sorts unlabelled points into $k$ groups (clusters): put down $k$ centre points, give every point to its nearest centre, move each centre to the average of its points, and repeat until nothing changes.
 - **k-nearest neighbours (kNN)** labels a new point by a vote among the $k$ labelled points closest to it.
@@ -95,7 +95,7 @@ labels = D.argmin(axis=1)
 
 ## Moves 4 to 6: neighbours, groups and votes
 
-**k-nearest neighbours.** Build the distance matrix from every test point to every training point, shape $(m, n)$. `np.argsort` returns the positions that would sort each row, so its first $k$ columns are the nearest neighbours; indexing the training labels with them gives the labels that vote.
+**k-nearest neighbours.** Build the distance matrix from every test point to every training point, shape $(m, n)$ ($m$ test points, $n$ training points). `np.argsort` returns the positions that would sort each row, so its first $k$ columns are the nearest neighbours; indexing the training labels with them gives the labels that vote.
 
 ```python
 # (m, n): nearest first
@@ -225,7 +225,7 @@ print(C)
 
 - `rng.choice(n, k, replace=False)` picks $k$ *different* positions out of $n$: the standard way to choose starting centroids.
 - `rng.permutation(n)` shuffles 0 to $n - 1$. Index both `X[idx]` and `y[idx]` with it, so every example keeps its label.
-- If a Final stub sets a seed (older code writes `np.random.seed(0)`), make exactly the random calls it shows, in order: one extra call shifts every number after it.
+- Each Final task gives you a **stub**: the starter function, with its name, its inputs and a **docstring** (the description in triple quotes of what it must return). If a stub sets a seed (older code writes `np.random.seed(0)`), make exactly the random calls it shows, in order: one extra call shifts every number after it.
 
 ## Move 10: return exactly what the grader expects
 
@@ -244,7 +244,7 @@ A grader compares your function's result with a stored answer, either **exactly*
     Round only the final output, with `np.round(x, 4)` (or `round(float(x), 4)` for one number); rounding mid-calculation adds errors. NumPy rounds exact halves to the nearest **even** digit: `np.round(2.5)` is `2.0`.
   </Step>
   <Step title="Edge cases">
-    Empty clusters, division by zero (precision when nothing is predicted positive, IoU when a class appears nowhere), and `-0.0` from rounding a tiny negative. `-0.0 == 0.0` is `True`, so it matters only when output is compared as text; adding `0.0` removes it.
+    Empty clusters, division by zero (<Term def="The fraction of predicted positives that are right: correct positive predictions divided by all positive predictions. The model evaluation module covers it.">precision</Term> when nothing is predicted positive, IoU when a class appears nowhere), and `-0.0` from rounding a tiny negative. `-0.0 == 0.0` is `True`, so it matters only when output is compared as text; adding `0.0` removes it.
   </Step>
   <Step title="Return, don't print">
     The test sees only what your function **returns**: printing the perfect answer and returning `None` scores zero.
@@ -264,6 +264,8 @@ Prelim questions here are short: what kNN bases its prediction on, how K-means a
 ## Cheat sheet: the ten moves
 
 <CodeBlock code={CHEAT_SHEET_CODE} title="the ten moves" showLineNumbers={false} />
+
+Next, [Probability and statistics](#/learn/probability-and-statistics/describing-data) gives these arrays meaning: means, spreads, probabilities and tests, many of them one line of NumPy.
 
 <Takeaways>
 

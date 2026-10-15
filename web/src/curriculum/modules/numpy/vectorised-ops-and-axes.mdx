@@ -34,21 +34,7 @@ Functions such as `np.exp`, `np.sqrt` and `np.abs` act element-wise on a single 
 
 ## Matrix product: rows meet columns
 
-The `@` operator (or `np.dot(a, b)`, or `np.matmul(a, b)`) is the **matrix product** you met in the Vectors and matrices module. For $A$ with shape $(m, n)$ and $B$ with shape $(n, p)$:
-
-$$
-\begin{aligned}
-(AB)_{ij} &= \sum_{k=1}^{n} A_{ik}\, B_{kj} \\
-&= A_{i1}B_{1j} + \dots + A_{in}B_{nj}
-\end{aligned}
-$$
-
-- $i$ chooses a **row** of $A$ and $j$ chooses a **column** of $B$.
-- $k$ walks along that row and down that column at the same time, multiplying partners. So the row and the column must have the same length $n$: **the number of columns of $A$ must equal the number of rows of $B$**.
-- $\sum$ (sigma) adds up the $n$ products. That is exactly the dot product of row $i$ with column $j$.
-- The result has shape $(m, p)$: the two outer numbers. The matching inner $n$ disappears.
-
-(Maths counts from 1; NumPy counts rows and columns from 0, so the top-left entry is `out[0, 0]`.)
+The `@` operator (or `np.dot(a, b)`, or `np.matmul(a, b)`) is the **matrix product**. Recap from [Matrices, shapes and matrix multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication): entry $(i, j)$ of `A @ B` is row $i$ of `A` dotted with column $j$ of `B`. So the number of columns of `A` must equal the number of rows of `B`, and $(m, n)$ @ $(n, p) \to (m, p)$. NumPy counts rows and columns from 0, so the top-left entry is `out[0, 0]`.
 
 <ElementwiseVsMatmul />
 
@@ -58,40 +44,23 @@ $$
 
 </KeyIdea>
 
-### Worked example: two friends, two hawker stalls
-
-Wei Ling orders 2 chicken rice and 1 kopi; Hafiz orders 1 chicken rice and 3 kaya toast. Stall X and stall Y charge different prices (in dollars). One `@` gives every friend's bill at every stall.
+A small example, checked by hand:
 
 ```python
-# rows: Wei Ling, Hafiz
-# columns: rice, kopi, toast
-Q = np.array([[2, 1, 0],
+A = np.array([[2, 1, 0],
               [1, 0, 3]])
-# rows: rice, kopi, toast
-# columns: stall X, stall Y
-P = np.array([[4, 5],
+B = np.array([[4, 5],
               [1, 2],
               [3, 2]])
-bills = Q @ P
+print(A @ B)
 ```
 
-<Steps title="Working out Q @ P by hand">
-  <Step title="Check the shapes">
-    `Q` is $(2, 3)$ (friends × dishes) and `P` is $(3, 2)$ (dishes × stalls). Inner sizes: $3 = 3$, so it works, and the answer is $(2, 2)$: friends × stalls.
-  </Step>
-  <Step title="Wei Ling at stall X: row 0 of Q · column 0 of P">
-    $2 \times 4 + 1 \times 1 + 0 \times 3 = 8 + 1 + 0 = 9$.
-  </Step>
-  <Step title="Wei Ling at stall Y: row 0 · column 1">
-    $2 \times 5 + 1 \times 2 + 0 \times 2 = 10 + 2 + 0 = 12$.
-  </Step>
-  <Step title="Hafiz: row 1 · each column">
-    Stall X: $1 \times 4 + 0 \times 1 + 3 \times 3 = 13$. Stall Y: $1 \times 5 + 0 \times 2 + 3 \times 2 = 11$.
-  </Step>
-  <Step title="Read the answer">
-    `bills` is $\begin{bmatrix} 9 & 12 \\ 13 & 11 \end{bmatrix}$. Each entry mixed a whole row of orders with a whole column of prices. By contrast `Q * P` crashes: shapes $(2, 3)$ and $(3, 2)$ are different, even though both hold 6 numbers.
-  </Step>
-</Steps>
+```text
+[[ 9 12]
+ [13 11]]
+```
+
+The shapes are $(2, 3)$ @ $(3, 2) \to (2, 2)$, and the top-left 9 is row 0 of `A` dotted with column 0 of `B`: $2 \times 4 + 1 \times 1 + 0 \times 3 = 9$. By contrast `A * B` crashes: shapes $(2, 3)$ and $(3, 2)$ are different, even though both hold 6 numbers.
 
 For two 1-D vectors, `a @ b` is the ordinary dot product, a single number, and it equals `(a * b).sum()`: multiply partners element-wise, then add.
 
@@ -101,10 +70,6 @@ For two 1-D vectors, `a @ b` is the ordinary dot product, a single number, and i
   answer={0}
   explain="For 1-D arrays `@` is the dot product: $1 \times 4 + 2 \times 5 + 3 \times 6 = 4 + 10 + 18 = 32$. The array `[ 4 10 18]` is `a * b` (element-wise, no sum), and `[5 7 9]` is `a + b`."
 />
-
-<PastPaperQuestion paper="prelim2026" n={102} />
-
-<PastPaperQuestion paper="prelim2026" n={1} />
 
 <Note title="np.dot, @ and np.matmul">
 

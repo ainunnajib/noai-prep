@@ -28,7 +28,7 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.activation-functions.3',
     prompt:
       "The sigmoid's slope is $\\sigma'(z) = \\sigma(z)(1 - \\sigma(z))$, which is largest at $z = 0$. A gradient passes backwards through 5 sigmoid neurons in a row, each at $z = 0$. Ignoring the weights, by what factor is it multiplied?",
-    options: ['$\\frac{1}{1024}$, about 0.001', '$\\frac{5}{4}$, that is 1.25', '$\\frac{1}{32}$, about 0.03', '$\\frac{1}{4}$, that is 0.25'],
+    options: ['$\\frac{1}{1024}$, about 0.001', '$\\frac{5}{4}$, that is 1.25', '$\\frac{1}{32}$, that is 0.03125', '$\\frac{1}{4}$, that is 0.25'],
     answer: 0,
     explanation:
       "At $z = 0$, $\\sigma = 0.5$, so $\\sigma'(0) = 0.5 \\times 0.5 = 0.25$. Each layer multiplies the gradient by 0.25, so five layers give $0.25^5 = \\frac{1}{4^5} = \\frac{1}{1024}$. Adding $5 \\times 0.25$ is the wrong operation, and $\\frac{1}{32} = 0.5^5$ uses $\\sigma(0)$ instead of its slope. This shrinking is the vanishing-gradient problem, and it is the best case: away from $z = 0$ the slope is even smaller.",
@@ -39,10 +39,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'After training with a very large learning rate, 40% of the ReLU neurons in a hidden layer output 0 for every training example, and their weights no longer change at all. What is the best fix?',
     options: [
-      'Retrain with a lower learning rate and use Leaky ReLU, so negative inputs still pass a small gradient',
-      'Keep training for more epochs, so the stuck neurons have enough time to recover by themselves',
-      'Raise the learning rate further, so the updates become big enough to push the stuck neurons back',
-      'Remove the bias terms from that layer, so the neurons can no longer shift their inputs below zero',
+      'Retrain with a smaller learning rate and Leaky ReLU, so negative inputs still pass a small gradient',
+      'Keep training for more epochs at the same rate, so the stuck neurons have time to recover by themselves',
+      'Raise the learning rate further and keep ReLU, so the updates become big enough to push the stuck neurons back',
+      'Remove the bias terms from that layer and retrain, so the neurons can no longer shift their inputs below zero',
     ],
     answer: 0,
     explanation:

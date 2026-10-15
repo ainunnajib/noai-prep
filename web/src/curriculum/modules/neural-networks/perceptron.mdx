@@ -245,10 +245,10 @@ The perceptron learning rule changes the weights only after a mistake: $\mathbf{
 The guarantee promises *a* separating line, not the best one: training stops at the first line with zero mistakes, even one that only just scrapes past a point (support vector machines pick the widest gap instead).
 
 <QuickCheck
-  q="A perceptron has $w = (2, 1)$, $b = 0$ and $\eta = 1$. It sees $x = (1, 1)$ with true label $y = 0$. What are the weights and bias after the update?"
-  options={['$w = (1, 0)$, $b = -1$', '$w = (3, 2)$, $b = 1$', '$w = (2, 1)$, $b = 0$', '$w = (1, 0)$, $b = 0$']}
+  q="A perceptron has $w = (2, 1)$, $b = 1$ and $\eta = 1$. It sees $x = (1, 1)$ with true label $y = 0$. What are the weights and bias after the update?"
+  options={['$w = (1, 0)$, $b = 0$', '$w = (3, 2)$, $b = 2$', '$w = (2, 1)$, $b = 1$', '$w = (1, 0)$, $b = 1$']}
   answer={0}
-  explain="$z = 2 + 1 + 0 = 3 > 0$, so $\hat y = 1$: a false alarm, with $y - \hat y = -1$. Subtract: $w = (2, 1) - (1, 1) = (1, 0)$ and $b = 0 - 1 = -1$. Adding would push the score the wrong way, and forgetting the bias update is a classic slip."
+  explain="$z = 2 + 1 + 1 = 4 > 0$, so $\hat y = 1$: a false alarm, with $y - \hat y = -1$. Subtract: $w = (2, 1) - (1, 1) = (1, 0)$ and $b = 1 - 1 = 0$. Adding would push the score the wrong way, leaving everything unchanged treats the mistake as a correct answer, and forgetting the bias update is a classic slip."
 />
 
 <Mistake>

@@ -9,6 +9,7 @@ import numpy as np
 # keep n at 100_000 or more:
 # the browser's clock is coarse
 n = 1_000_000
+# 0.0, 1.0, 2.0, ..., 999999.0
 arr = np.arange(n, dtype=float)
 # the same numbers, as a list
 data = arr.tolist()
@@ -36,7 +37,7 @@ print(f"Loop:  {loop_ms:.1f} ms")
 print(f"NumPy: {numpy_ms:.2f} ms")
 print(f"Speed-up: {ratio:.0f}x")`
 
-Every AI model is, underneath, millions of multiplications and additions. Plain Python is far too slow for that, so almost all AI code in Python stands on one library: **NumPy** (*Numerical Python*). The NOAI Final asks you to build algorithms such as K-means *from scratch* with NumPy, and the Prelim asks *why* it is fast. This lesson opens the bonnet: how numbers sit in memory, what "vectorised" means, and two pieces of Python machinery (garbage collection and the GIL) that exam questions love.
+Every AI model is, underneath, millions of multiplications and additions. Plain Python is far too slow for that, so almost all AI code in Python stands on one library: **NumPy** (*Numerical Python*). The NOAI Final asks you to build algorithms such as K-means (an algorithm that groups similar points, built in the last lesson of this module) *from scratch* with NumPy, and the Prelim asks *why* it is fast. This lesson opens the bonnet: how numbers sit in memory, what "vectorised" means, and two pieces of Python machinery (garbage collection and the GIL) that exam questions love.
 
 <Analogy title="A bus versus a hawker centre">
 
@@ -107,7 +108,7 @@ A NumPy array is one contiguous block of same-type numbers. The **stride** is th
   </Step>
 </Steps>
 
-You can ask NumPy for all of this directly:
+You can ask NumPy for all of this directly. The code uses three things the next two lessons teach properly: `np.array([...])` turns a list into an array, `a[::2]` takes every second element (a slice, as with Python lists), and `a.astype(np.int8)` makes a copy with another dtype.
 
 ```python
 import numpy as np
@@ -136,7 +137,7 @@ int8 1
 (1,) 6
 ```
 
-`nbytes` is the size of the whole block ($6 \times 8 = 48$), and `astype` makes a new array with a different dtype. Notice that `reshape(2, 3)` gave strides `(24, 8)` without moving a single byte: only the way NumPy *reads* the block changed.
+`nbytes` is the size of the whole block ($6 \times 8 = 48$); the `int8` copy needs only $6 \times 1 = 6$ bytes. Notice that `reshape(2, 3)` gave strides `(24, 8)` without moving a single byte: only the way NumPy *reads* the block changed.
 
 <QuickCheck
   q="An int32 array (4 bytes per number) has shape (3, 5). What is its `strides`?"
@@ -185,16 +186,11 @@ Writing `for x in arr:` over a NumPy array gives you none of the speed. Python w
 
 ## Under the hood: how Python cleans up memory
 
-Python creates objects constantly and frees their memory once they are no longer used. CPython, the standard Python, uses two mechanisms:
-
-1. **Reference counting.** Every object keeps a count of how many references (names, list slots, and so on) point at it. When the count drops to 0, the memory is freed immediately.
-2. **A cyclic garbage collector.** Two objects that refer to each other never reach a count of 0, even after your program has lost them. A separate collector (the `gc` module) runs from time to time, finds such unreachable groups and frees them.
+You met this in [Names, references and surprises](#/learn/python-toolkit/references-mutability): CPython frees an object as soon as its **reference count** reaches 0, and a **cyclic garbage collector** (the `gc` module) runs now and then to free groups of objects that only point at each other.
 
 Together these are Python's <Term def="Automatic memory clean-up: finding objects the program can no longer use and freeing their memory.">garbage collection</Term>.
 
 <RefCounter />
-
-<PastPaperQuestion paper="prelim2026" n={90} />
 
 ## The GIL: one thread at a time
 
@@ -215,6 +211,8 @@ So the GIL matters only for <Term def="Work limited by how fast the processor ca
 Python 3.13 onwards also offers an optional "free-threaded" build with no GIL, but the standard Python you and Google Colab normally use still has one, and exam questions mean standard Python.
 
 </Note>
+
+<PastPaperQuestion paper="prelim2026" n={89} />
 
 <ExamTip title="Match the keyword to the answer">
 

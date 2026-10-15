@@ -6,7 +6,9 @@ Everyone's code crashes, experts included. What separates them from beginners is
 
 ## Reading an error message
 
-When something goes wrong while a program runs, Python creates an <Term def="An object Python creates ('raises') when something goes wrong while the program runs, such as dividing by zero. If nothing handles it, the program stops.">exception</Term>, a report of the problem, and **raises** it. If nothing handles the exception, the program stops and prints a <Term def="The error report Python prints when an exception is not handled: the chain of lines that were running (most recent call last) and, at the bottom, the exception type and message.">traceback</Term>:
+You learnt to read a one-line traceback in [Your first program](#/learn/python-basics/first-program): last line first, then the line number. Now that your code has functions, a traceback lists every call that led to the error.
+
+When something goes wrong while a program runs, Python creates an <Term def="An object Python creates ('raises') when something goes wrong while the program runs, such as dividing by zero. If nothing handles it, the program stops.">exception</Term>, a report of the problem, and **raises** it. If nothing handles the exception, the program stops and prints a traceback:
 
 ```python
 def average(nums):
@@ -193,7 +195,7 @@ Here is a realistic use: cleaning messy input without stopping at the first bad 
   "        print(\"cannot divide by 0\")",
 ].join("\n")} />
 
-You can also **raise** exceptions yourself, to stop early with a clear message when an input makes no sense. The 2026 Final's scaffold did exactly this: `raise ValueError(f"Unknown criterion: {self.criterion}")`.
+You can also **raise** exceptions yourself, to stop early with a clear message when an input makes no sense. The 2026 Final's gradient-boosting scaffold did exactly this: its `predict` method starts with `if self.init_prediction is None: raise ValueError("Model not fitted yet")`, so calling `predict` before `fit` stops with a clear message (see [the gradient-boosting task](#/learn/final-lab-numpy/task-gradient-boosting)).
 
 ```python
 def set_learning_rate(lr):
@@ -288,3 +290,5 @@ NOAI asks this topic in three ways. First, **name the cause**: match the excepti
 - Debug with a routine: reproduce, read, print or assert intermediate values, halve the suspect code, fix one thing and re-test.
 
 </Takeaways>
+
+Halving the suspects is a taste of the next module. In [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o) you will measure how fast code is, and why halving, as in binary search, is so powerful.

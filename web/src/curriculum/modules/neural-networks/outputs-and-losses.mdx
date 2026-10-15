@@ -100,9 +100,9 @@ Match the head to the answer: a **number** gets no activation and MSE (or MAE); 
 
 <QuickCheck
   q="A music app tags each song with any of 20 moods (calm, happy, sad, …), and a song can have several. Which head and loss fit?"
-  options={['20 logits, a sigmoid on each, binary cross-entropy', '20 logits, a softmax, cross-entropy', '1 logit, a sigmoid, binary cross-entropy', '20 outputs, no activation, mean squared error']}
+  options={['20 logits, a sigmoid on each, binary cross-entropy', '20 logits, one softmax over all 20, cross-entropy', '1 logit for the song, a sigmoid, binary cross-entropy', '20 outputs, no activation, mean squared error on each']}
   answer={0}
-  explain="Several moods can be true at once, so this is multi-label: 20 independent yes/no questions, each with its own sigmoid and binary cross-entropy (`nn.BCEWithLogitsLoss` with a 0/1 target of length 20). A softmax would force the 20 probabilities to add up to 1, as if exactly one mood were allowed."
+  explain="Several moods can be true at once, so this is multi-label: 20 independent yes/no questions, each with its own sigmoid and binary cross-entropy (`nn.BCEWithLogitsLoss` with a 0/1 target of length 20). A softmax would force the 20 probabilities to add up to 1, as if exactly one mood were allowed, and a single logit can answer only one yes/no question."
 />
 
 ## Why PyTorch wants raw logits

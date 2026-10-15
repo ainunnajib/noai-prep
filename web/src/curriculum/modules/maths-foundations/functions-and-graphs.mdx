@@ -105,7 +105,7 @@ A positive $m$ climbs from left to right, a negative $m$ falls, and $m = 0$ is f
 
 <LineParabolaPlot lock />
 
-In machine learning the same line is usually written $y = wx + b$: $w$ is called the **weight** and $b$ the **bias**. A linear regression model with one input is exactly this line, and training means finding good values for $w$ and $b$.
+In machine learning the same line is usually written $y = wx + b$ (as in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand)): $w$ is called the **weight** and $b$ the **bias**. A linear regression model with one input is exactly this line, and training means finding good values for $w$ and $b$.
 
 In calculus, the slope of a graph is called its <Term def="The slope of a graph at a point, i.e. how fast the output changes as the input changes. You will learn to compute it in the calculus module.">derivative</Term>. A straight line has the same slope everywhere, so the derivative of $5x + 3$ is simply 5. The $+3$ only lifts the line up; it does not make it any steeper.
 
@@ -131,7 +131,7 @@ Drag the point along the parabola below and watch its <Term def="The straight li
 
 <LineParabolaPlot start="parabola" lock />
 
-The slope is negative on the way down, **0 at the vertex**, and positive on the way up. This one fact powers the main training algorithm in AI, **gradient descent**: to find the bottom, check the slope and step downhill until the slope is 0.
+The slope is negative on the way down, **0 at the vertex**, and positive on the way up. This one fact powers the main training algorithm in AI, **gradient descent** (which you met in [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn)): to find the bottom, check the slope and step downhill until the slope is 0.
 
 **Why loss curves are parabolas.** Suppose a model predicts $w \times x$ and one training example has $x = 2$ and true answer 6. The squared error is
 
@@ -235,6 +235,9 @@ print(relu(-2), relu(0), relu(3))
 xs = np.array([-2, -1, 0, 1, 2])
 print("|x|  ", np.abs(xs))
 print("ReLU ", np.maximum(0, xs))
+# xs >= 0 is True/False per element;
+# .astype(int) turns them into 1/0
+# (the NumPy module explains both)
 print("step ", (xs >= 0).astype(int))`} />
 
 Expected output:

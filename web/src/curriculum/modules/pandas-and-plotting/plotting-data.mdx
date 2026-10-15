@@ -80,7 +80,7 @@ is the <Term def="Q3 − Q1: the width of the middle half of the data. It ignore
     The times are 2, 4, 5, 5, 6, 7, 8, 9, 20. With 9 values the median is the 5th: **6**.
   </Step>
   <Step title="The quartiles">
-    $Q_1 = 5$ (the 3rd value) and $Q_3 = 8$ (the 7th value), so the box runs from 5 to 8 with a line at 6. The IQR is $8 - 5 = 3$.
+    Use the same rule as `describe()` in [DataFrames](#/learn/pandas-and-plotting/dataframes-and-selection): the $p$ quantile sits at position $p \times (n - 1)$ of the sorted list, counting from 0. $Q_1$ is at position $0.25 \times 8 = 2$, the 3rd value, **5**, and $Q_3$ is at position $0.75 \times 8 = 6$, the 7th value, **8**. So the box runs from 5 to 8 with a line at 6, and the IQR is $8 - 5 = 3$. (The "median of each half" rule from [Describing data](#/learn/probability-and-statistics/describing-data) gives $Q_1 = 4.5$ and $Q_3 = 8.5$ here, with fences $-1.5$ and $14.5$. The 20 is still the only outlier.)
   </Step>
   <Step title="The fences">
     Lower fence: $5 - 1.5 \times 3 = 0.5$. Upper fence: $8 + 1.5 \times 3 = 12.5$.
@@ -209,6 +209,8 @@ When validation loss rises while training loss keeps falling, the model is <Term
 Prelim questions on plotting are quick recall, so know the KeyIdea mapping cold, plus one extra: **correlations between many columns → heatmap**. Know the recipe names too: `plt.subplots` returns `(fig, ax)`, an **Axes** is one plot (not an axis line), and `plt.subplots(2, 3)` gives an axes array of shape `(2, 3)`, while `plt.subplots(1, 3)` gives shape `(3,)`. For box plots, the outlier fences are $Q_1 - 1.5\,\text{IQR}$ and $Q_3 + 1.5\,\text{IQR}$: easy mental maths once you know them. For training curves: wild oscillation means the learning rate is too high, and a rising validation loss means overfitting.
 
 </ExamTip>
+
+That completes the toolkit. Next, [Your first scikit-learn model](#/learn/ml-fundamentals/first-sklearn-model) starts the classical machine learning part: it takes a table of HDB flats like the ones in this module and trains a model to predict their prices.
 
 <Takeaways>
 

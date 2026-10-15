@@ -206,7 +206,7 @@ You can now read any formula symbol by symbol. To turn one into code, use this r
 3. **Turn each $\Sigma$ into a loop**, or into `np.sum`, `np.mean` or the matrix product `@`.
 4. **Test on a tiny example** you can check by hand before trusting it.
 
-Here is the rule from the 2025 NOAI paper (Section 2, Question 1). You do not need to know *why* it works yet (that is gradient descent, coming in the calculus module); today the job is only to translate it.
+Here is the rule from the 2025 NOAI paper (Section 2, Question 1). It is gradient descent, the rule $w_{\text{new}} = w - \eta \times \text{slope}$ from [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn), written for many parameters at once: here the learning rate is called $\alpha$ instead of $\eta$, and the $\frac{1}{m}\sum$ part is the slope of the loss for $\theta_j$. Why that sum is the slope comes in the [calculus module](#/learn/calculus-and-gradient-descent/gradient-descent); today the job is only to translate it.
 
 $$
 \theta_j := \theta_j - \alpha \cdot \frac{1}{m} \sum_{i=1}^{m} \left(h_\theta(x^{(i)}) - y^{(i)}\right) x_j^{(i)}
@@ -300,6 +300,8 @@ The $:=$ applies to every $j$ **at the same time**: all the new values are compu
 In the Prelim, formula questions test **recognition**: $\frac{1}{n}\sum (y_i - \hat{y}_i)^2$ is MSE, $\frac{1}{n}\sum |y_i - \hat{y}_i|$ is MAE, $-\sum y \log \hat{y}$ is cross-entropy, and a $\Pi$ of probabilities is a likelihood. In the Final, the formula is given and you must code it: name the symbols, write the shapes, translate each $\Sigma$, and test on the provided data before you trust your answer.
 
 </ExamTip>
+
+Next, [Vectors and matrices](#/learn/vectors-and-matrices/vectors) turns each row $x^{(i)}$ into a vector and explains the `@` you just used.
 
 <Takeaways>
 

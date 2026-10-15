@@ -105,9 +105,14 @@ city[0] = "J"
 TypeError: 'str' object does not support item assignment
 ```
 
-Strings are <Term def="Cannot be changed after it is created. Operations on an immutable value make a new value instead.">immutable</Term>: once a string exists, it can never be changed. To get a different string you build a **new** one, for example `"J" + city[1:]` gives `'Jingapore'`. Python makes strings immutable on purpose: a string can then be shared safely, because nothing can change it behind your back. The lists you will meet at the end of this module are the opposite: they are mutable, so you *can* change their items in place.
+Strings are <Term def="Cannot be changed after it is created. Operations on an immutable value make a new value instead.">immutable</Term>: once a string exists, it can never be changed. To get a different string you build a **new** one, for example `"J" + city[1:]` gives `'Jingapore'`. Python makes strings immutable on purpose: a string can then be shared safely, because nothing can change it behind your back. The [lists](#/learn/python-basics/lists) you will meet at the end of this module are the opposite: they are mutable, so you *can* change their items in place.
 
-<PastPaperQuestion paper="prelim2026" n={77} />
+<QuickCheck
+  q="With `s = 'cat'`, which line gives you the string `'bat'`?"
+  options={["`s = 'b' + s[1:]`", "`s[0] = 'b'`", "`s = s[1:] + 'b'`", "`s = 'b' + s[0:]`"]}
+  answer={0}
+  explain="`s[1:]` is `'at'`, so `'b' + s[1:]` builds the new string `'bat'`, and `s =` makes `s` refer to it. `s[0] = 'b'` tries to change the string in place, which raises `TypeError` because strings are immutable. `s[1:] + 'b'` gives `'atb'`, and `s[0:]` is the whole of `'cat'`, so `'b' + s[0:]` gives `'bcat'`."
+/>
 
 ## String methods: tools that return new strings
 
@@ -121,6 +126,8 @@ A <Term def="A function that belongs to a value and is called with a dot after i
 | `.split()`: a **list** of the words | `'can or not'.split()` → `['can', 'or', 'not']` |
 | `sep.join(words)`: the words glued together with `sep` | `'-'.join(['a', 'b'])` → `'a-b'` |
 | `.count(sub)`: how many times `sub` appears | `'banana'.count('a')` → `3` |
+
+(`.split()` returns a **list**: several values in square brackets, kept in order. [Lists](#/learn/python-basics/lists) get their own lesson at the end of this module. In `' hi\n'`, the `\n` is how Python writes the invisible "new line" character inside a string.)
 
 <Analogy title="A photo filter app">
 

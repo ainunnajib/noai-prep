@@ -39,7 +39,7 @@ const mod: ModuleDef = {
       slug: "references-mutability",
       title: "Names, references and surprises",
       summary: "Why changing one list can change 'another', is vs ==, and mutable default arguments.",
-      minutes: 25,
+      minutes: 30,
       objectives: ["You can trace assignments with names-and-arrows diagrams, telling rebinding from mutation", "You can explain the difference between is and ==", "You can predict what happens when a function modifies a list argument", "You can explain why a mutable default argument such as items=[] keeps growing across calls"],
       load: () => import('./references-mutability.mdx'),
     },

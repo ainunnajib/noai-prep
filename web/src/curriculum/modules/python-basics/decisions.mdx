@@ -54,13 +54,13 @@ A comparison asks a yes-or-no question and always produces a Boolean, `True` or 
 
 - **Text** compares too. `"cat" == "cat"` is `True`, and `"apple" < "banana"` is `True`: Python compares letter by letter, like a dictionary (but every capital letter counts as smaller than every small letter, so `"Zebra" < "apple"` is also `True`).
 - **Text is never equal to a number.** `"3" == 3` is `False`, because the text `"3"` is not the number `3`. Numbers of different types do compare by value, though: `3 == 3.0` is `True`.
-- **Floats are stored approximately** (you saw `0.1 + 0.2` in the lesson on variables, types and arithmetic), so `0.1 + 0.2 == 0.3` is `False`. To compare floats, check that they are close instead: `abs((0.1 + 0.2) - 0.3) < 1e-9` is `True`.
+- **Floats are stored approximately** (you saw `0.1 + 0.2` in the lesson on [variables, types and arithmetic](#/learn/python-basics/variables-types-arithmetic)), so `0.1 + 0.2 == 0.3` is `False`. To compare floats, check that they are close instead: `abs((0.1 + 0.2) - 0.3) < 1e-9` is `True` (`abs()` gives a number's size without its sign, so `abs(-3)` is 3).
 
 </Note>
 
 <Note title="Exam aside: in, and is versus ==">
 
-Python has two more comparison words. `in` asks "is this inside that?": `"ap" in "apple"` is `True` and `"z" in "apple"` is `False` (it works on lists too). `is` is the one exam questions like to contrast with `==`. `==` asks "do these have the same **value**?" `is` asks "are these the very same **object** in the computer's memory?" Two lists made separately with the same contents (you will meet lists properly in two lessons) are equal, but they are not the same object:
+Python has two more comparison words. `in` asks "is this inside that?": `"ap" in "apple"` is `True` and `"z" in "apple"` is `False` (it works on lists too). `is` is the one exam questions like to contrast with `==`. `==` asks "do these have the same **value**?" `is` asks "are these the very same **object** in the computer's memory?" Two lists made separately with the same contents (you will meet [lists](#/learn/python-basics/lists) properly in two lessons) are equal, but they are not the same object:
 
 ```python
 x = [1, 2]
@@ -72,11 +72,9 @@ print(x == y, x is y)
 True False
 ```
 
-So to compare values, always use `==`. Programmers use `is` almost only to check for `None`, Python's value for "nothing here" (you will meet it again with functions), as in `if result is None:`.
+So to compare values, always use `==` ([Names, references and surprises](#/learn/python-toolkit/references-mutability) explains `is` in full). Programmers use `is` almost only to check for `None`, Python's value for "nothing here" (you will meet it again with [functions](#/learn/python-toolkit/functions)), as in `if result is None:`.
 
 </Note>
-
-<PastPaperQuestion paper="prelim2026" n={84} />
 
 ## Combining questions: and, or, not
 
@@ -324,7 +322,7 @@ spam
 0
 ```
 
-The first is a **threshold**: the model gives a probability, and an `if` turns it into a decision. The second is <Term def="Rectified Linear Unit: keep a positive number as it is, and replace a negative number (or zero) with 0. Used inside almost every modern neural network.">ReLU</Term>: positive numbers pass through, everything else becomes 0. A whole family of models, **decision trees**, is nothing more than `if` / `else` questions placed inside each other.
+The first is a **threshold**: the model gives a probability, and an `if` turns it into a decision. An <Term def="The small rule each neuron applies to its number before passing it on. Without it, a neural network could only draw straight lines.">activation function</Term> is the rule a neuron applies to its number before passing it on. The second is <Term def="Rectified Linear Unit: keep a positive number as it is, and replace a negative number (or zero) with 0. Used inside almost every modern neural network.">ReLU</Term>: positive numbers pass through, everything else becomes 0. A whole family of models, **decision trees**, is nothing more than `if` / `else` questions placed inside each other.
 
 Python can also write a short if/else on one line, called a <Term def="A one-line if/else that produces a value: value_if_true if condition else value_if_false.">conditional expression</Term>: `y = x if x > 0 else 0` does exactly what the four-line ReLU above does. Try both decisions with your own numbers:
 

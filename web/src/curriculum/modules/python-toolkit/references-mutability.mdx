@@ -7,7 +7,7 @@ You change list `b`, and list `a` changes too. It feels like a bug, but Python i
 
 ## Names are labels, not boxes
 
-You may have pictured a variable as a box with a value inside. For Python, that picture breaks down. A better picture is a **name tag tied to a thing**: the value lives somewhere in memory, and the name is just attached to it.
+In [Variables, types and arithmetic](#/learn/python-basics/variables-types-arithmetic) you pictured a name as a tissue packet choping a seat: the name marks a value, it is not a box holding it. In [Lists](#/learn/python-basics/lists) you saw the surprise this causes: `b = a` gives the same list a second name. This lesson makes that picture precise: the value lives somewhere in memory, and the name is just attached to it.
 
 <Analogy title="A shared Google Doc">
 
@@ -71,7 +71,7 @@ When you really want a separate list, ask for a copy: `b = a.copy()` (or `list(a
 
 <Mistake title="Saving the 'best' weights with =">
 
-A training loop keeps the best weights so far, then carries on updating. If you save them with `=`, you save an arrow to the live array, and the in-place update `-=` changes your "best" too:
+A training loop keeps the best weights so far, then carries on updating. Here the weights are a NumPy array (you will meet these in [NumPy](#/learn/numpy/why-numpy): a fast, mutable list of numbers, so it behaves like a list here). If you save them with `=`, you save an arrow to the live array, and the in-place update `-=` changes your "best" too:
 
 ```python
 import numpy as np
@@ -85,7 +85,7 @@ print(best_w)
 [0. 1.]
 ```
 
-Write `best_w = w.copy()` instead. PyTorch has the same trap: `model.state_dict()` refers to the live weight tensors, so a saved snapshot needs `copy.deepcopy(model.state_dict())`.
+Write `best_w = w.copy()` instead. PyTorch has the same trap: `model.state_dict()` refers to the live weight tensors, so a saved snapshot needs a deep copy, `copy.deepcopy(model.state_dict())` (explained just below).
 
 </Mistake>
 
@@ -120,7 +120,7 @@ print(grid)
 [[1, 0, 0], [1, 0, 0]]
 ```
 
-Changing "row 0" changed row 1 too, because there is only one row object. Build each row separately with a comprehension instead:
+Changing "row 0" changed row 1 too, because there is only one row object. Build each row separately with a comprehension instead (`_` is the name programmers give a loop variable they never use):
 
 ```python
 grid = [[0] * 3 for _ in range(2)]
@@ -155,7 +155,7 @@ Python has two different questions for "are these the same?":
 - `a == b` asks whether they have **equal values**. Lists are compared item by item, in order.
 - `a is b` asks whether they are the **very same object**, that is, whether both arrows end at one object.
 
-Every object carries an <Term def="A number that identifies an object while it exists; no two live objects share one. id(x) returns it (in CPython it is the memory address).">identity</Term>, which the built-in `id(x)` returns. `a is b` is True exactly when `id(a) == id(b)`.
+Every object carries an <Term def="A number that identifies an object while it exists; no two live objects share one. id(x) returns it (in CPython, the standard Python, it is the memory address).">identity</Term>, which the built-in `id(x)` returns. `a is b` is True exactly when `id(a) == id(b)`.
 
 <Analogy title="Identical twins">
 
@@ -175,7 +175,7 @@ Use `is` mainly for `None`: write `if x is None:`. There is only ever one `None`
 
 <Mistake title="Using is to compare numbers or strings">
 
-`if score is 100:` may seem to work, because CPython reuses some small int and string objects, and then fail for other values. Python 3.8 and later even warn you: `SyntaxWarning: "is" with a literal. Did you mean "=="?` (newer versions name the type, as in `"is" with 'int' literal`). Compare values with `==`.
+`if score is 100:` may seem to work, because CPython (the standard Python program that runs your code) reuses some small int and string objects, and then fail for other values. Python 3.8 and later even warn you: `SyntaxWarning: "is" with a literal. Did you mean "=="?` (newer versions name the type, as in `"is" with 'int' literal`). Compare values with `==`.
 
 </Mistake>
 
@@ -289,7 +289,7 @@ Counting has one blind spot. Two objects that point at each other (a cycle) keep
 
 ## Try it yourself
 
-Run this, then change `a.copy()` to `a` and predict the new output before running again.
+Run this, then change `a.copy()` to `a` and predict the new output before running again. The last line, `add_item.__defaults__`, shows the stored default list itself (inside a tuple).
 
 <PyRunner code={[
     "a = [1, 2]",

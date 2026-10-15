@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.perceptron.3',
     prompt: 'Why can a single perceptron with inputs $x_1, x_2 \\in \\{0, 1\\}$ never learn the XOR function?',
     options: [
-      'The inputs that should give 1 sit on opposite corners, so no straight line can separate them from the other two',
+      'The inputs that should give 1 sit on opposite corners, so no single straight line can separate them from the other two',
       'The perceptron learning rule is slow on XOR, and it would find the right weights if it were trained for enough extra epochs',
       'The step function has no useful derivative, so the perceptron learning rule cannot compute the gradient it needs for XOR',
       'The learning rate is always too large for XOR, and with a small enough learning rate the weights would settle on a solution',

@@ -71,6 +71,8 @@ $$
 \operatorname{Var}(X) = E\big[(X - \mu)^2\big], \qquad \sigma = \sqrt{\operatorname{Var}(X)}
 $$
 
+This is the variance from [Describing data](#/learn/probability-and-statistics/describing-data), with each squared distance weighted by its probability instead of by $\frac{1}{n}$: $\operatorname{Var}(X) = \sum_x (x - \mu)^2 \, P(X = x)$.
+
 For the fair die $\mu = 3.5$, and the squared distances from the mean, $6.25$, $2.25$ and $0.25$ (total $8.75$), each occur for two of the six faces, so
 
 $$
@@ -131,7 +133,7 @@ $$
 
 Here $x - \mu$ is the distance from the mean in the original units (cm, marks, dollars), and dividing by $\sigma$ turns it into a *number of standard deviations*: $z > 0$ is above the mean, $z < 0$ below it.
 
-Replacing every value by its z-score is called <Term def="Subtracting the mean and dividing by the standard deviation, so the result has mean 0 and standard deviation 1.">standardisation</Term>. By the scaling rules above, standardised values have mean 0 and standard deviation 1, and standardised normal data follows the **standard normal** $N(0, 1)$. This is exactly what scikit-learn's `StandardScaler` does to each feature.
+Replacing every value by its z-score is called <Term def="Subtracting the mean and dividing by the standard deviation, so the result has mean 0 and standard deviation 1.">standardisation</Term>. By the scaling rules above, standardised values have mean 0 and standard deviation 1, and standardised normal data follows the **standard normal** $N(0, 1)$. This is exactly what scikit-learn's `StandardScaler` does to each feature (and what `(X - X.mean(axis=0)) / X.std(axis=0)` did in [Broadcasting](#/learn/numpy/broadcasting)).
 
 <Steps title="Which result is more impressive?">
   <Step title="The data">
@@ -211,6 +213,8 @@ $$
 - The sample means are centred on the population mean $\mu$.
 - Their standard deviation is $\dfrac{\sigma}{\sqrt{n}}$, called the <Term def="The standard deviation of a sample mean, σ/√n. It shrinks as the sample size n grows.">standard error</Term>.
 - Their shape is approximately normal **whatever the shape of the population**.
+
+Careful with the word: in statistics a **sample** is the whole group of $n$ values you collected. ML books often call a single row of a dataset "a sample" too, as in [Matrices](#/learn/vectors-and-matrices/matrices-and-multiplication) ("rows are samples"). In this module it always means the whole group.
 
 <CLTSampler />
 
