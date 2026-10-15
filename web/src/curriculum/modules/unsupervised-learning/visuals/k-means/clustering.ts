@@ -2,7 +2,7 @@
   Small, dependency-free clustering toolkit shared by the clustering visuals of this module.
   Everything is deterministic: datasets come from mulberry32(seed), never Math.random().
 
-  K-means here is exactly the algorithm taught in the lesson:
+  k-means here is exactly the algorithm taught in the lesson:
     assign:  label_i = argmin_j ||x_i - mu_j||^2   (ties -> lowest j, like np.argmin)
     update:  mu_j = mean of the points with label j (an empty cluster keeps its old centroid)
     inertia: sum_i ||x_i - mu_{label_i}||^2
@@ -143,7 +143,7 @@ export interface KStep {
 }
 
 /**
- * The full history of one K-means run, as half-steps:
+ * The full history of one k-means run, as half-steps:
  * start, assign, update, assign, update, ..., ending with an assign step that changes nothing.
  */
 export function kmeansHistory(points: Pt[], init: Pt[], maxIter = 30): KStep[] {
@@ -163,7 +163,7 @@ export function kmeansHistory(points: Pt[], init: Pt[], maxIter = 30): KStep[] {
   return hist
 }
 
-/** run K-means to convergence from a given start */
+/** run k-means to convergence from a given start */
 export function kmeansFrom(points: Pt[], init: Pt[], maxIter = 100): { labels: number[]; centroids: Pt[]; inertia: number; iters: number } {
   let C = init.map((c) => [c[0], c[1]] as Pt)
   let labels = assign(points, C)

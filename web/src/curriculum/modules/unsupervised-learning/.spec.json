@@ -5,7 +5,7 @@
   "domain": "ai_ml_dl",
   "title": "Unsupervised learning: clustering and dimensionality reduction",
   "tagline": "Finding structure without labels",
-  "summary": "K-means (the 2025 Final task) and choosing k, hierarchical, DBSCAN and spectral clustering, PCA, and t-SNE/UMAP for visualisation, plus anomaly detection.",
+  "summary": "k-means (the 2025 Final task) and choosing k, hierarchical, DBSCAN and spectral clustering, PCA, and t-SNE/UMAP for visualisation, plus anomaly detection.",
   "prerequisites": [
     "linear-algebra-deeper",
     "model-evaluation"
@@ -15,7 +15,7 @@
     "IOAI 1C2 Principal Component Analysis",
     "IOAI 1C3 t-SNE, UMAP",
     "IOAI 1C4 DBSCAN, Hierarchical and Spectral Clustering",
-    "NOAI 2025 Final Q2: K-means from scratch",
+    "NOAI 2025 Final Q2: k-means from scratch",
     "Anomaly detection (one-class SVM)"
   ],
   "paper_subtopics": [
@@ -26,19 +26,19 @@
   "lessons": [
     {
       "slug": "k-means",
-      "title": "K-means clustering",
+      "title": "k-means clustering",
       "summary": "Alternating between assigning points to the nearest centroid and moving centroids to the mean, choosing k with the elbow method, and its limits.",
       "minutes": 20,
       "objectives": [
-        "You can run K-means by hand for one iteration",
+        "You can run k-means by hand for one iteration",
         "You can explain inertia and the elbow method",
         "You can explain why initialisation matters (k-means++)",
-        "You can recognise data where K-means fails"
+        "You can recognise data where k-means fails"
       ],
       "concepts": [
         {
           "name": "Assign, then update",
-          "explain": "K-means places k centroids, assigns each point to its nearest centroid, then moves each centroid to the mean of its assigned points, repeating until nothing changes. Each step can only lower the total squared distance (inertia), so it always converges, though possibly to a poor local solution.",
+          "explain": "k-means places k centroids, assigns each point to its nearest centroid, then moves each centroid to the mean of its assigned points, repeating until nothing changes. Each step can only lower the total squared distance (inertia), so it always converges, though possibly to a poor local solution.",
           "analogy": "Placing k bubble-tea shops: residents go to the nearest one, then each shop relocates to the middle of its customers, and repeat.",
           "visual": {
             "component": "KMeansStepper",
@@ -61,13 +61,13 @@
           }
         },
         {
-          "name": "When K-means fails",
-          "explain": "K-means assumes roughly round clusters of similar size, because it only uses distance to centroids. It splits long, curved or nested clusters incorrectly and is sensitive to scaling and outliers.",
+          "name": "When k-means fails",
+          "explain": "k-means assumes roughly round clusters of similar size, because it only uses distance to centroids. It splits long, curved or nested clusters incorrectly and is sensitive to scaling and outliers.",
           "analogy": "Drawing circles around groups of people standing in a long queue does not capture the queue.",
           "visual": {
             "component": "KMeansFailureGallery",
             "kind": "interactive",
-            "shows": "Four datasets (blobs, moons, rings, uneven sizes) clustered by K-means, with the true groups as outlines.",
+            "shows": "Four datasets (blobs, moons, rings, uneven sizes) clustered by k-means, with the true groups as outlines.",
             "interaction": "Switch datasets; change k; compare with DBSCAN's result via a toggle.",
             "aha": "Pick a clustering method whose assumptions match the shape of your data."
           }
@@ -84,7 +84,7 @@
     {
       "slug": "hierarchical-dbscan-spectral",
       "title": "Hierarchical, DBSCAN and spectral clustering",
-      "summary": "Clustering by merging, by density, and by graph connectivity, for data K-means cannot handle.",
+      "summary": "Clustering by merging, by density, and by graph connectivity, for data k-means cannot handle.",
       "minutes": 22,
       "objectives": [
         "You can read a dendrogram and cut it into clusters",
@@ -118,7 +118,7 @@
         },
         {
           "name": "Spectral clustering uses a similarity graph",
-          "explain": "Spectral clustering connects similar points into a graph, then uses eigenvectors of the graph Laplacian to embed points so that well-connected groups become easy to separate, and finally runs K-means in that space. It follows connectivity rather than distance to a centre.",
+          "explain": "Spectral clustering connects similar points into a graph, then uses eigenvectors of the graph Laplacian to embed points so that well-connected groups become easy to separate, and finally runs k-means in that space. It follows connectivity rather than distance to a centre.",
           "analogy": "Grouping students by who chats with whom on WhatsApp rather than by where they sit.",
           "visual": {
             "component": "SpectralGraph",

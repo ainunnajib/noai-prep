@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Which description matches the NOAI **Final** rung of the skills ladder, as opposed to the rungs just below and above it?',
     options: [
-      'Writing a known algorithm, such as K-means or attention, as correct code in a notebook with tests',
+      'Writing a known algorithm, such as k-means or attention, as correct code in a notebook with tests',
       'Recognising a concept and choosing the right option in about half a minute, without a calculator',
       'Filling the gaps in a runnable baseline notebook, then improving its score with a pretrained model',
       'Designing an approach to an unseen task whose rules forbid the obvious model, ranked on a leaderboard',

@@ -1,5 +1,5 @@
 /*
-  Python for the K-means lesson's <PyRunner>s. Kept here (not inline in the .mdx) so the indentation
+  Python for the k-means lesson's <PyRunner>s. Kept here (not inline in the .mdx) so the indentation
   is safe, with short lines and comments on their own lines so the code stays readable on a phone.
   Outputs were checked locally with numpy 2.5 / scikit-learn 1.9 and are printed in the lesson.
 */

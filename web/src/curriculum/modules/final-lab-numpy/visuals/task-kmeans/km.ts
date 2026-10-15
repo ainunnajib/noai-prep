@@ -1,5 +1,5 @@
 /*
-  K-means helpers for the 2025 Task 2 visuals. Each function mirrors the Python shown in the
+  k-means helpers for the 2025 Task 2 visuals. Each function mirrors the Python shown in the
   lesson (loop version, vectorised version, and the traced reference solution), so every number
   on screen is computed. Checked against the Python versions on the exam data, a 1-D, a 3-D and an
   empty-cluster case.

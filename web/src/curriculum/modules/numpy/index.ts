@@ -54,7 +54,7 @@ const mod: ModuleDef = {
     {
       slug: "from-scratch-patterns",
       title: "NumPy patterns for from-scratch ML",
-      summary: "The ten NumPy moves that build K-means, kNN, metrics and boosting in the Final.",
+      summary: "The ten NumPy moves that build k-means, kNN, metrics and boosting in the Final.",
       minutes: 25,
       objectives: ["You can compute every pairwise distance with broadcasting and assign clusters with argmin", "You can use np.where, np.sign and np.median in from-scratch code", "You can round and return results in exactly the type and format a test expects"],
       load: () => import('./from-scratch-patterns.mdx'),

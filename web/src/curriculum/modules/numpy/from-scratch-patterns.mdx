@@ -3,7 +3,7 @@ import ArgOpsPlayground from './visuals/from-scratch-patterns/ArgOpsPlayground'
 import OutputFormatChecker from './visuals/from-scratch-patterns/OutputFormatChecker'
 import { KMEANS_CODE, CHEAT_SHEET_CODE } from './visuals/from-scratch-patterns/snippets'
 
-In the Final you implement classic algorithms (K-means, k-nearest neighbours, a metric, a boosting step) in a Jupyter notebook, and hidden tests check what your functions return. The maths is rarely what costs marks. Turning "for every point, for every centroid…" into array code is, and so is returning *exactly* the format the test expects. This lesson gives you ten NumPy moves for that, with a cheat sheet at the end.
+In the Final you implement classic algorithms (k-means, k-nearest neighbours, a metric, a boosting step) in a Jupyter notebook, and hidden tests check what your functions return. The maths is rarely what costs marks. Turning "for every point, for every centroid…" into array code is, and so is returning *exactly* the format the test expects. This lesson gives you ten NumPy moves for that, with a cheat sheet at the end.
 
 <Analogy title="The distance table on the MRT map">
 
@@ -13,9 +13,9 @@ Nobody works out the distance between two MRT stations from scratch each time: a
 
 <Note title="The two algorithms in this lesson">
 
-You met kNN in [classifying with boundaries and neighbours](#/learn/ai-first-look/classify-with-boundaries); K-means is new. Later modules cover both in depth; for now, just know what they do.
+You met kNN in [classifying with boundaries and neighbours](#/learn/ai-first-look/classify-with-boundaries); k-means is new. Later modules cover both in depth; for now, just know what they do.
 
-- **K-means** sorts unlabelled points into $k$ groups (clusters): put down $k$ centre points, give every point to its nearest centre, move each centre to the average of its points, and repeat until nothing changes.
+- **k-means** sorts unlabelled points into $k$ groups (clusters): put down $k$ centre points, give every point to its nearest centre, move each centre to the average of its points, and repeat until nothing changes.
 - **k-nearest neighbours (kNN)** labels a new point by a vote among the $k$ labelled points closest to it.
 
 Both start by measuring a lot of distances.
@@ -24,7 +24,7 @@ Both start by measuring a lot of distances.
 
 ## Moves 1 to 3: every distance at once
 
-Say `X` holds $n$ points with $d$ features each, shape $(n, d)$, and `C` holds $k$ <Term def="The centre of a cluster: the average position of the points assigned to it.">centroids</Term> (cluster centres), shape $(k, d)$. K-means needs the <Term def="A table with one row per point and one column per centroid (or per training point): entry [i, j] is the distance from point i to centroid j.">distance matrix</Term> $D$ of shape $(n, k)$:
+Say `X` holds $n$ points with $d$ features each, shape $(n, d)$, and `C` holds $k$ <Term def="The centre of a cluster: the average position of the points assigned to it.">centroids</Term> (cluster centres), shape $(k, d)$. k-means needs the <Term def="A table with one row per point and one column per centroid (or per training point): entry [i, j] is the distance from point i to centroid j.">distance matrix</Term> $D$ of shape $(n, k)$:
 
 $$
 D_{ij} = \sqrt{\sum_{f=1}^{d} \left(X_{if} - C_{jf}\right)^2}
@@ -120,7 +120,7 @@ The broadcast builds the whole $(m, n, d)$ difference array before summing: abou
 
 <PastPaperQuestion paper="prelim2026" n={140} />
 
-**K-means update.** After assigning labels, each centroid moves to the mean of its points. A <Term def="An array of True/False values with the same length as the data, used to pick out the rows where the condition is True.">boolean mask</Term> picks one cluster's rows:
+**k-means update.** After assigning labels, each centroid moves to the mean of its points. A <Term def="An array of True/False values with the same length as the data, used to pick out the rows where the condition is True.">boolean mask</Term> picks one cluster's rows:
 
 ```python
 for j in range(k):
@@ -157,9 +157,9 @@ What the playground shows:
 
 <PastPaperQuestion paper="prelim2026" n={47} />
 
-## Putting the moves together: K-means
+## Putting the moves together: k-means
 
-Moves 1, 2, 3 and 5 make K-means. Run it and watch the labels and centroids settle; then try other starting centroids `C`.
+Moves 1, 2, 3 and 5 make k-means. Run it and watch the labels and centroids settle; then try other starting centroids `C`.
 
 <PyRunner packages={['numpy']} code={KMEANS_CODE} />
 
@@ -176,7 +176,7 @@ Moves 1, 2, 3 and 5 make K-means. Run it and watch the labels and centroids sett
 
 </Reveal>
 
-Step 2 repeats step 1's labels, so the centroids stop moving: K-means has converged, and a real loop would stop here.
+Step 2 repeats step 1's labels, so the centroids stop moving: k-means has converged, and a real loop would stop here.
 
 ### Random starts you can repeat
 
@@ -257,7 +257,7 @@ Edge cases are where a metric's *definition* matters. Mean <Term def="Intersecti
 
 <ExamTip>
 
-Prelim questions here are short: what kNN bases its prediction on, how K-means assigns points, the median of a small list. The Final tests the *doing*: the 2025 programming tasks included K-means, and 2026 had gradient boosting and mean IoU, all built from these moves. Before writing a loop, write the shape you want at the end as a comment, and check it with `print(x.shape)`.
+Prelim questions here are short: what kNN bases its prediction on, how k-means assigns points, the median of a small list. The Final tests the *doing*: the 2025 programming tasks included k-means, and 2026 had gradient boosting and mean IoU, all built from these moves. Before writing a loop, write the shape you want at the end as a comment, and check it with `print(x.shape)`.
 
 </ExamTip>
 

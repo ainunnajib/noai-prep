@@ -13,7 +13,7 @@ const questions: QuizQuestion[] = [
   },
   {
     id: 'numpy.from-scratch-patterns.2',
-    prompt: 'In K-means, `D` has shape `(n, k)`: the distance from each of `n` points to each of `k` centroids. Which line gives every point its cluster label?',
+    prompt: 'In k-means, `D` has shape `(n, k)`: the distance from each of `n` points to each of `k` centroids. Which line gives every point its cluster label?',
     options: ['`labels = D.argmin(axis=1)`', '`labels = D.min(axis=1)`', '`labels = D.argmin(axis=0)`', '`labels = D.argmin()`'],
     answer: 0,
     explanation:

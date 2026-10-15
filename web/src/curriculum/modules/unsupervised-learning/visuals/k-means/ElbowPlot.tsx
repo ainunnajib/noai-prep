@@ -112,7 +112,7 @@ export default function ElbowPlot() {
   const mark = isInertia ? A.elbow : A.silBest
 
   const scatter = (
-    <Plot x={X} y={Y} width={360} height={288} maxWidth={440} margin={{ left: 30, bottom: 26 }} ariaLabel={`${m} true blobs clustered by K-means with k = ${k}; inertia ${fmt(run.inertia)}`}>
+    <Plot x={X} y={Y} width={360} height={288} maxWidth={440} margin={{ left: 30, bottom: 26 }} ariaLabel={`${m} true blobs clustered by k-means with k = ${k}; inertia ${fmt(run.inertia)}`}>
       {cells.map((poly, j) => (
         <Poly key={j} points={poly} fill={tint(j, 13)} stroke="var(--surface)" width={2.5} />
       ))}

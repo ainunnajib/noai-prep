@@ -4,7 +4,7 @@ import { blobs, kmeansHistory, kmeansBest, kmeansPPInit, randomInit, voronoiCell
 import { Poly, PointCloud, CentroidHandle, Note } from './parts'
 
 /*
-  K-means, one half-step at a time. 48 points in three blobs; three draggable starting centroids.
+  k-means, one half-step at a time. 48 points in three blobs; three draggable starting centroids.
   Every frame shows: the Voronoi regions of the current centroids (where each centroid "wins"),
   the points coloured by their current assignment, and the inertia so far.
   After an update step, points that now sit in another centroid's region are ringed: they will
@@ -121,7 +121,7 @@ export default function KMeansStepper() {
     status = done ? (
       <>
         <b>Converged.</b> This assign step changed nothing, so the centroids will not move again. Final inertia {fmt(final)}
-        {stuck ? <>, far above the best possible ≈ {fmt(BEST)}: K-means is stuck in a poor solution.</> : <>: the best possible clustering.</>}
+        {stuck ? <>, far above the best possible ≈ {fmt(BEST)}: k-means is stuck in a poor solution.</> : <>: the best possible clustering.</>}
       </>
     ) : (
       <>Each point joins its nearest centroid (it takes the colour of the region it sits in). {s.changed} point{s.changed === 1 ? '' : 's'} changed colour.</>
@@ -136,11 +136,11 @@ export default function KMeansStepper() {
 
   return (
     <Figure
-      title="K-means: assign, then update"
+      title="k-means: assign, then update"
       caption={
         <>
           Press <b>Next</b> (or Play) to alternate the two steps and watch the inertia chart: it can only go down or stay flat. Drag any centroid to choose a
-          new start. Then press <b>Bad start</b>: two centroids share the left blob, and K-means converges to a clustering with about four times the best
+          new start. Then press <b>Bad start</b>: two centroids share the left blob, and k-means converges to a clustering with about four times the best
           inertia, because neither step can ever move a centroid out of its trap. <b>k-means++ start</b> spreads the first centroids out and almost always
           avoids this.
         </>

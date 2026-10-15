@@ -7,9 +7,9 @@ const mod: ModuleDef = {
   domain: "exam",
   title: "Final lab I: from scratch in NumPy",
   tagline: "Rebuild every NumPy task from the 2025 and 2026 Finals",
-  summary: "How the Final's Jupyter notebooks work and how to plan three hours, then full rebuilds of the four NumPy tasks: 2025 linear regression by gradient descent, 2025 K-means, 2025 TF-IDF retrieval-augmented generation, and 2026 gradient boosting with early stopping.",
+  summary: "How the Final's Jupyter notebooks work and how to plan three hours, then full rebuilds of the four NumPy tasks: 2025 linear regression by gradient descent, 2025 k-means, 2025 TF-IDF retrieval-augmented generation, and 2026 gradient boosting with early stopping.",
   prerequisites: ["linear-regression", "unsupervised-learning", "trees-and-ensembles", "text-as-data", "prompting-and-rag"],
-  syllabus: ["NOAI Final Section 2: 3 Python programming tasks in Jupyter (80 marks in 2025 and 2026)", "2025 Q1 (15 marks): linear regression by gradient descent; Q2 (25): K-means; Q3 (40): RAG with TF-IDF and cosine similarity (standard library + NumPy)", "2026 Task 1 (25 marks incl. 5 bonus): gradient boosting from scratch with L1/L2 losses and early stopping (NumPy + sklearn trees)"],
+  syllabus: ["NOAI Final Section 2: 3 Python programming tasks in Jupyter (80 marks in 2025 and 2026)", "2025 Q1 (15 marks): linear regression by gradient descent; Q2 (25): k-means; Q3 (40): RAG with TF-IDF and cosine similarity (standard library + NumPy)", "2026 Task 1 (25 marks incl. 5 bonus): gradient boosting from scratch with L1/L2 losses and early stopping (NumPy + sklearn trees)"],
   lessons: [
     {
       slug: "exam-notebook-skills",
@@ -29,8 +29,8 @@ const mod: ModuleDef = {
     },
     {
       slug: "task-kmeans",
-      title: "2025 Task 2: K-means from scratch",
-      summary: "Rebuild the 25-mark K-means task: distance helper, assignment, update, empty clusters and convergence, then the same algorithm vectorised.",
+      title: "2025 Task 2: k-means from scratch",
+      summary: "Rebuild the 25-mark k-means task: distance helper, assignment, update, empty clusters and convergence, then the same algorithm vectorised.",
       minutes: 25,
       objectives: ["You can write euclidean_distance and k_means_clustering to match the notebook's recipe and output format", "You can trace an assign-and-update round by hand and vectorise it with broadcasting and argmin", "You can guard against empty clusters and stop at convergence without rounding too early"],
       load: () => import('./task-kmeans.mdx'),

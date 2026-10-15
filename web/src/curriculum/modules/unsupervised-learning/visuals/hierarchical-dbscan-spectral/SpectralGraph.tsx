@@ -8,7 +8,7 @@ import { laplacian, components, spectrum, twoMeansThreshold } from './graphs'
   Spectral clustering on two rings (or two moons).
   1. Similarity graph: connect two points when they are closer than r (weight 1, otherwise 0).
   2. Laplacian L = D - W; its eigenvalues (smallest six shown) and the Fiedler vector (2nd eigenvector).
-  3. Every point gets one number, its entry in the Fiedler vector (the middle panel); a 1-D K-means
+  3. Every point gets one number, its entry in the Fiedler vector (the middle panel); a 1-D k-means
      split of those numbers gives the two clusters.
   Eigen-decompositions were checked against numpy.linalg.eigh.
 */
@@ -93,7 +93,7 @@ export default function SpectralGraph() {
   const pad = Math.max(0.02, (hi - lo) * 0.08)
 
   const main = (
-    <Plot x={B} y={B} width={340} height={340} maxWidth={440} margin={{ left: 10, right: 10, top: 10, bottom: 10 }} ariaLabel={`${DATA[which].label}: similarity graph with r = ${r.toFixed(2)}, ${res.edges.length} edges, ${res.pieces} connected pieces; coloured by ${colourBy === 'spectral' ? 'spectral clustering' : 'K-means'}`}>
+    <Plot x={B} y={B} width={340} height={340} maxWidth={440} margin={{ left: 10, right: 10, top: 10, bottom: 10 }} ariaLabel={`${DATA[which].label}: similarity graph with r = ${r.toFixed(2)}, ${res.edges.length} edges, ${res.pieces} connected pieces; coloured by ${colourBy === 'spectral' ? 'spectral clustering' : 'k-means'}`}>
       <Axes hideXTicks hideYTicks />
       <Edges P={d.points} edges={res.edges} />
       <DataCircle c={d.points[0]} r={r} stroke="var(--viz-ink)" dash="4 3" width={1.4} />
@@ -144,7 +144,7 @@ export default function SpectralGraph() {
           Two points are joined by an edge when they are closer than <M>r</M> (the dashed circle shows the reach of one point). Spectral clustering
           gives every point one number, its entry in the second eigenvector of the graph Laplacian (middle panel), and splits those numbers in two.
           Slide <M>r</M>: too small and the graph shatters into pieces (count the zero eigenvalues); in a wide middle range the two rings are two
-          clean groups; too large and edges jump between the rings. Then colour by K-means to compare.
+          clean groups; too large and edges jump between the rings. Then colour by k-means to compare.
         </>
       }
     >
@@ -159,7 +159,7 @@ export default function SpectralGraph() {
           {bars}
         </div>
       </div>
-      <Note>{colourBy === 'kmeans' ? `K-means on the raw coordinates: it ignores the graph and cuts the picture in two (${Math.round(kmAcc * 100)}% grouped correctly).` : story}</Note>
+      <Note>{colourBy === 'kmeans' ? `k-means on the raw coordinates: it ignores the graph and cuts the picture in two (${Math.round(kmAcc * 100)}% grouped correctly).` : story}</Note>
       <Readout
         items={[
           ['edges', String(res.edges.length)],
@@ -188,7 +188,7 @@ export default function SpectralGraph() {
           onChange={setColourBy}
           options={[
             { value: 'spectral', label: 'Spectral clustering' },
-            { value: 'kmeans', label: 'K-means' },
+            { value: 'kmeans', label: 'k-means' },
           ]}
         />
       </Controls>

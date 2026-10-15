@@ -292,7 +292,7 @@ const TASKS: Task[] = [
     skills: ['semi-supervised learning', 'cluster structure', 'pseudo-labelling'],
     practise: 'Hide most labels of a small 2-D dataset and try to recover accuracy using the unlabelled points.',
     lessons: [
-      ['K-means', 'unsupervised-learning/k-means'],
+      ['k-means', 'unsupervised-learning/k-means'],
       ['Techniques that keep winning tasks', 'road-to-ioai/ioai-task-techniques'],
     ],
   },

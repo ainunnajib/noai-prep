@@ -28,7 +28,7 @@ vals = np.clip(vals, 0, None)
 print("smallest eigenvalues:",
       np.round(vals[:4], 3))
 
-# 4. K-means on the rows of the
+# 4. k-means on the rows of the
 #    first 2 eigenvectors
 U = vecs[:, :2]
 km = KMeans(n_clusters=2, n_init=10,
@@ -39,11 +39,11 @@ acc = max((labels == y).mean(),
 print(f"spectral: {acc:.2f} of points",
       "in the right ring")
 
-# for comparison: K-means on the raw points
+# for comparison: k-means on the raw points
 raw = km.fit_predict(X)
 acc = max((raw == y).mean(),
           (raw != y).mean())
-print(f"K-means on raw points: {acc:.2f}")`
+print(f"k-means on raw points: {acc:.2f}")`
 
 export const compareCode = `from sklearn.datasets import make_moons
 from sklearn.cluster import (
@@ -55,7 +55,7 @@ X, y = make_moons(n_samples=200, noise=0.06,
                   random_state=0)
 
 models = {
-    "K-means": KMeans(
+    "k-means": KMeans(
         n_clusters=2, n_init=10,
         random_state=0),
     "Agglomerative (single)":

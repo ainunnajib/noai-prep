@@ -3,7 +3,7 @@
   Runnable lines stay at 33 characters or fewer so that they fit a 360 px phone without wrapping (the cheat sheet, shown without line numbers, allows 37).
 */
 
-/** Runnable K-means for the lesson's PyRunner (moves 1, 2, 3 and 5). */
+/** Runnable k-means for the lesson's PyRunner (moves 1, 2, 3 and 5). */
 export const KMEANS_CODE = `import numpy as np
 
 X = np.array([

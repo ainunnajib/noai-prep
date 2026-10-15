@@ -5,7 +5,7 @@ import { TESTS, runCentroid, fmtVal, fmtExpected, passes, callText, codeFor, typ
 
 /*
   Concept: testing and formatting.
-  A K-means "update one centroid" function with three classic gaps. Add exam-style edge-case
+  A k-means "update one centroid" function with three classic gaps. Add exam-style edge-case
   tests, run them, and switch on fixes until every test passes. Every "got" value is computed by
   simulating the Python code shown.
 */
@@ -51,7 +51,7 @@ export default function TinyTestBuilder() {
       title="Build a tiny test table, then fix what fails"
       caption={
         <>
-          This is the update step of K-means (2025 Task 2) as a small function. Add the edge cases one at a time, press <strong>Run tests</strong>, and switch on a fix for
+          This is the update step of k-means (2025 Task 2) as a small function. Add the edge cases one at a time, press <strong>Run tests</strong>, and switch on a fix for
           each failure. Notice that the two "obvious" tests pass even though the function has three bugs: only the exam-style thirds test and the edge cases catch them.
         </>
       }

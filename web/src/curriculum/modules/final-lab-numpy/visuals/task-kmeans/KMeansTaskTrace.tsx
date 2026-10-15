@@ -6,7 +6,7 @@ import { EXAM_POINTS, EXAM_INIT, PRACTICE_INIT, traceKMeans, round4 } from './km
 import { Star, Seg, CLUSTER_COLORS, fmt2 } from './parts'
 
 /*
-  Concept: the K-means task, traced.
+  Concept: the k-means task, traced.
   Step through the reference solution on the 2025 data: each assignment (with the distance
   table), each update (centroids slide to their cluster means), each stopping test, and the
   rounded return value. Switch to the practice start to see a point change cluster.
@@ -179,7 +179,7 @@ export default function KMeansTaskTrace() {
 
   return (
     <Figure
-      title="Trace the 2025 K-means task line by line"
+      title="Trace the 2025 k-means task line by line"
       caption={
         <>
           Press <strong>Next</strong> to run one block at a time: assign (dashed lines to the nearest star), update (stars slide to their cluster means), check (did anything

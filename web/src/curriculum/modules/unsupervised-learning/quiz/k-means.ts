@@ -3,7 +3,7 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'unsupervised-learning.k-means.1',
-    prompt: 'In K-means, what does the **update** step do?',
+    prompt: 'In k-means, what does the **update** step do?',
     options: [
       'Moves each centroid to the mean of the points currently assigned to it',
       'Moves each point into the cluster whose centroid is currently nearest to it',
@@ -12,22 +12,22 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The update step recomputes every centroid as the **mean** (average) of its assigned points, which is the spot with the smallest total squared distance to them. Giving each point to its nearest centroid is the other half of the loop, the **assign** step. Snapping a centre onto an actual data point is what k-medoids (a variant whose centres must be real data points) does, not K-means.',
+      'The update step recomputes every centroid as the **mean** (average) of its assigned points, which is the spot with the smallest total squared distance to them. Giving each point to its nearest centroid is the other half of the loop, the **assign** step. Snapping a centre onto an actual data point is what k-medoids (a variant whose centres must be real data points) does, not k-means.',
     difficulty: 'beginner',
   },
   {
     id: 'unsupervised-learning.k-means.2',
     prompt:
-      'One-dimensional data: $1, 2, 3, 8, 10$. K-means with $k = 2$ starts with centroids at $2$ and $3$. Where are the centroids after **one** assign step and **one** update step?',
+      'One-dimensional data: $1, 2, 3, 8, 10$. k-means with $k = 2$ starts with centroids at $2$ and $3$. Where are the centroids after **one** assign step and **one** update step?',
     options: ['$1.5$ and $7$', '$2$ and $9$', '$1.5$ and $9$', '$2$ and $7$'],
     answer: 0,
     explanation:
-      'Assign: $1$ and $2$ are nearest to $2$; $3$, $8$ and $10$ are nearest to $3$. Update: $(1 + 2) / 2 = 1.5$ and $(3 + 8 + 10) / 3 = 21 / 3 = 7$. The pair $2$ and $9$ is where K-means ends up after a **second** round ($3$ is then closer to $1.5$ than to $7$), not after the first.',
+      'Assign: $1$ and $2$ are nearest to $2$; $3$, $8$ and $10$ are nearest to $3$. Update: $(1 + 2) / 2 = 1.5$ and $(3 + 8 + 10) / 3 = 21 / 3 = 7$. The pair $2$ and $9$ is where k-means ends up after a **second** round ($3$ is then closer to $1.5$ than to $7$), not after the first.',
     difficulty: 'intermediate',
   },
   {
     id: 'unsupervised-learning.k-means.3',
-    prompt: 'Why can you **not** choose k for K-means by simply picking the k with the smallest inertia?',
+    prompt: 'Why can you **not** choose k for k-means by simply picking the k with the smallest inertia?',
     options: [
       'Inertia never rises as k grows and is 0 when every point has its own centroid, so its minimum always picks the largest k',
       'Inertia changes randomly from run to run, so its smallest value over several k is just noise and cannot be compared fairly',
@@ -52,12 +52,12 @@ const questions: QuizQuestion[] = [
   {
     id: 'unsupervised-learning.k-means.5',
     prompt:
-      'A dataset has two true groups: points spread evenly around a ring of radius 5, and a tight blob at the centre of that ring. K-means with $k = 2$ splits the data into a left half and a right half. What is the main reason?',
+      'A dataset has two true groups: points spread evenly around a ring of radius 5, and a tight blob at the centre of that ring. k-means with $k = 2$ splits the data into a left half and a right half. What is the main reason?',
     options: [
-      'K-means cuts the plane with straight lines between centroids, so it cannot separate a ring from the blob it surrounds',
-      'The two starting centroids were placed badly; with k-means++ seeding K-means would separate the ring from the blob every time',
-      'The value of k is too small; with k = 3 K-means would put the ring into one cluster and the central blob into another',
-      'The ring has far more points than the blob, so K-means ignores the blob, which is too small to have a centroid of its own',
+      'k-means cuts the plane with straight lines between centroids, so it cannot separate a ring from the blob it surrounds',
+      'The two starting centroids were placed badly; with k-means++ seeding k-means would separate the ring from the blob every time',
+      'The value of k is too small; with k = 3 k-means would put the ring into one cluster and the central blob into another',
+      'The ring has far more points than the blob, so k-means ignores the blob, which is too small to have a centroid of its own',
     ],
     answer: 0,
     explanation:
@@ -67,7 +67,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'unsupervised-learning.k-means.6',
     prompt:
-      'You run K-means with $k = 3$ twice on the same data, each time from different random starting centroids. Both runs converge (nothing changes any more), one with inertia 41 and the other with inertia 128. What is the best explanation?',
+      'You run k-means with $k = 3$ twice on the same data, each time from different random starting centroids. Both runs converge (nothing changes any more), one with inertia 41 and the other with inertia 128. What is the best explanation?',
     options: [
       'The two runs started from different centroids, and the second got stuck in a poorer local minimum',
       'The second run needs more iterations, after which its inertia would keep falling until it reached 41',
@@ -76,7 +76,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Given its starting centroids, K-means is completely deterministic, and a converged run never changes again, so the gap comes from the starts: the second run began badly (for example with two centroids in one blob) and stopped in a local minimum. That is why libraries use k-means++ seeding and several restarts (`n_init`) and keep the run with the lowest inertia. Lower inertia means tighter clusters, so 41 is the better result.',
+      'Given its starting centroids, k-means is completely deterministic, and a converged run never changes again, so the gap comes from the starts: the second run began badly (for example with two centroids in one blob) and stopped in a local minimum. That is why libraries use k-means++ seeding and several restarts (`n_init`) and keep the run with the lowest inertia. Lower inertia means tighter clusters, so 41 is the better result.',
     difficulty: 'intermediate',
   },
 ]

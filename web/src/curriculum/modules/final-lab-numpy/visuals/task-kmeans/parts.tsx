@@ -1,6 +1,6 @@
 import { usePlot } from '../../../../../kit'
 
-/* Small SVG pieces shared by the K-means task visuals. */
+/* Small SVG pieces shared by the k-means task visuals. */
 
 export const CLUSTER_COLORS = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-4)']
 

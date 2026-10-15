@@ -164,7 +164,7 @@ export default function KMeansPlusPlus() {
       ) : (
         <Note>
           {claimed.size === K
-            ? 'All four centroids are chosen and every blob got exactly one, so K-means starts from a good place.'
+            ? 'All four centroids are chosen and every blob got exactly one, so k-means starts from a good place.'
             : `All four centroids are chosen, but only ${claimed.size} of the 4 blobs got one this time.`}{' '}
           Over 1000 tries on this data, k-means++ gives every blob a centroid {pct(RATES.pp)} of the time; picking 4 points uniformly at random
           manages it only {pct(RATES.uni)} of the time. Because it can still fail, run several starts and keep the best: in scikit-learn pass <code>n_init=10</code> (since version 1.4

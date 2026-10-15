@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     options: [
       'It compared rounded old centroids with unrounded new ones, so they never matched',
       'The centroids kept moving slightly until the tenth iteration on the exam data',
-      'Ten iterations is the minimum K-means needs, so an earlier stop is never allowed',
+      'Ten iterations is the minimum k-means needs, so an earlier stop is never allowed',
       'The `==` operator always returns False when it compares two float arrays',
     ],
     answer: 0,

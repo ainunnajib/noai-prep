@@ -12,7 +12,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Every past Final task implemented a known algorithm: linear regression, K-means and retrieval in NumPy in 2025, gradient boosting in 2026 (NumPy, with scikit-learn\'s `DecisionTreeRegressor` as the weak learner), and in 2026 a U-Net fix, mean IoU and attention in PyTorch, with debugging parts. No past Final asked for leaderboard-style training or grid searches, and the only written parts were two- to four-sentence explanations inside coding tasks.',
+      'Every past Final task implemented a known algorithm: linear regression, k-means and retrieval in NumPy in 2025, gradient boosting in 2026 (NumPy, with scikit-learn\'s `DecisionTreeRegressor` as the weak learner), and in 2026 a U-Net fix, mean IoU and attention in PyTorch, with debugging parts. No past Final asked for leaderboard-style training or grid searches, and the only written parts were two- to four-sentence explanations inside coding tasks.',
     difficulty: 'beginner',
   },
   {

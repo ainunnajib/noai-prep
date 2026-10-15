@@ -4,8 +4,8 @@ import { blobs, moons, rings, gauss, kmeansBest, dbscan, matchedAccuracy, cluste
 import { DataCircle, CentroidHandle, Note } from './parts'
 
 /*
-  Where K-means works and where it breaks. Five datasets; the grey bands show the TRUE groups
-  (K-means never sees them). Colours show what the algorithm found. The score is the share of
+  Where k-means works and where it breaks. Five datasets; the grey bands show the TRUE groups
+  (k-means never sees them). Colours show what the algorithm found. The score is the share of
   points grouped as in the truth, after matching each found cluster to one true group.
   A toggle runs DBSCAN (density-based, next lesson) on the same data for comparison.
 */
@@ -67,7 +67,7 @@ const SPECS: Record<Key, Spec> = {
     k: 3,
     eps: 0.9,
     minSamples: 5,
-    verdict: 'Round, similar-sized, well-separated groups: exactly what K-means assumes, so it finds them perfectly.',
+    verdict: 'Round, similar-sized, well-separated groups: exactly what k-means assumes, so it finds them perfectly.',
   },
   moons: {
     label: 'Moons',
@@ -83,7 +83,7 @@ const SPECS: Record<Key, Spec> = {
     k: 2,
     eps: 0.75,
     minSamples: 4,
-    verdict: 'Both rings have the same centre, so no pair of centroids can separate them: K-means can only slice the picture into halves.',
+    verdict: 'Both rings have the same centre, so no pair of centroids can separate them: k-means can only slice the picture into halves.',
   },
   stretched: {
     label: 'Stretched',
@@ -91,7 +91,7 @@ const SPECS: Record<Key, Spec> = {
     k: 2,
     eps: 0.7,
     minSamples: 5,
-    verdict: 'Long thin groups: cutting them across the middle (left half, right half) gives a lower inertia than the true split, so K-means prefers it.',
+    verdict: 'Long thin groups: cutting them across the middle (left half, right half) gives a lower inertia than the true split, so k-means prefers it.',
   },
   uneven: {
     label: 'Uneven sizes',
@@ -141,7 +141,7 @@ function TruthBands({ which }: { which: Key }) {
 
 /**
   Colour index for each found cluster: the true group it overlaps most (greedy, one cluster per group), so that
-  the K-means and DBSCAN panels paint the same true group in the same colour. Extra clusters get the next free colours.
+  the k-means and DBSCAN panels paint the same true group in the same colour. Extra clusters get the next free colours.
 */
 function alignToTruth(truth: number[], pred: number[]): (l: number) => number {
   const T = Array.from(new Set(truth)).sort((a, b) => a - b)
@@ -210,10 +210,10 @@ export default function KMeansFailureGallery() {
   return (
     <Figure
       wide
-      title="When K-means fails"
+      title="When k-means fails"
       caption={
         <>
-          Grey bands are the <b>true</b> groups; colours are what the algorithm found. Switch datasets and see which shapes K-means gets wrong, then try
+          Grey bands are the <b>true</b> groups; colours are what the algorithm found. Switch datasets and see which shapes k-means gets wrong, then try
           other values of k: no k fixes moons or rings, because the problem is the shape, not the number. Turn on <b>Compare with DBSCAN</b> (next
           lesson), which grows clusters through dense regions instead of measuring distance to a centre; crosses are points it calls noise.
         </>
@@ -221,14 +221,14 @@ export default function KMeansFailureGallery() {
     >
       <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: showDb && !narrow ? '1fr 1fr' : '1fr', gap: '0.75rem' }}>
         {panel(
-          `K-means, k = ${k}: ${pct(accK)} grouped correctly`,
+          `k-means, k = ${k}: ${pct(accK)} grouped correctly`,
           <>
             <Marks points={points} labels={km.labels.map(kmColour)} />
             {km.centroids.map((c, j) => (
               <CentroidHandle key={j} x={c[0]} y={c[1]} colour={clusterColour(kmColour(j))} label={`centroid ${j + 1}`} r={6} />
             ))}
           </>,
-          `${spec.label} data clustered by K-means with k = ${k}; ${pct(accK)} of points grouped as in the truth`,
+          `${spec.label} data clustered by k-means with k = ${k}; ${pct(accK)} of points grouped as in the truth`,
         )}
         {showDb &&
           panel(
@@ -237,10 +237,10 @@ export default function KMeansFailureGallery() {
             `${spec.label} data clustered by DBSCAN: ${db.nClusters} clusters, ${db.labels.filter((l) => l < 0).length} noise points, ${pct(accD)} grouped as in the truth`,
           )}
       </div>
-      <Note>{k === spec.k ? spec.verdict : `The data has ${spec.k} true groups; with k = ${k} K-means must still cut the points into exactly ${k} pieces.`}</Note>
+      <Note>{k === spec.k ? spec.verdict : `The data has ${spec.k} true groups; with k = ${k} k-means must still cut the points into exactly ${k} pieces.`}</Note>
       <Readout
         items={[
-          ['K-means grouped correctly', pct(accK)],
+          ['k-means grouped correctly', pct(accK)],
           ['inertia', km.inertia.toFixed(1)],
           ...(showDb ? ([['DBSCAN grouped correctly', pct(accD)] as [string, string], ['DBSCAN clusters found', String(db.nClusters)] as [string, string]]) : []),
         ]}
@@ -255,7 +255,7 @@ export default function KMeansFailureGallery() {
           }}
           options={ORDER.map((key) => ({ value: key, label: SPECS[key].label }))}
         />
-        <Slider label="k for K-means" value={k} min={2} max={6} step={1} onChange={setK} />
+        <Slider label="k for k-means" value={k} min={2} max={6} step={1} onChange={setK} />
         <Toggle label="Compare with DBSCAN" checked={showDb} onChange={setShowDb} />
       </Controls>
     </Figure>

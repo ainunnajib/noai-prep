@@ -302,7 +302,7 @@ export default function ExamGuide() {
             <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'grid', gap: '0.4rem' }}>
               <li>The 20 MCQs go deeper than the prelim: classical ML, neural networks, computer vision, NLP and problem solving.</li>
               <li>
-                The programming tasks ask you to <strong>implement algorithms from scratch</strong> in NumPy or PyTorch inside Jupyter: gradient descent, K-means, gradient
+                The programming tasks ask you to <strong>implement algorithms from scratch</strong> in NumPy or PyTorch inside Jupyter: gradient descent, k-means, gradient
                 boosting, mean IoU, attention, and a small retrieval pipeline in past years.
               </li>
               <li>There is no internet and no AI autocomplete. Practise writing these by hand until you can do them without looking anything up.</li>

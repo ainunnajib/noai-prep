@@ -47,7 +47,7 @@ const RUNGS: Rung[] = [
     when: 'Fri 5 Mar 2027',
     colour: 'var(--viz-3)',
     skills: [
-      { text: 'Write gradient descent, K-means or gradient boosting in NumPy without help', lessons: [L('final-lab-numpy', 'task-kmeans', 'K-means from scratch'), L('final-lab-numpy', 'task-gradient-boosting', 'Gradient boosting from scratch')] },
+      { text: 'Write gradient descent, k-means or gradient boosting in NumPy without help', lessons: [L('final-lab-numpy', 'task-kmeans', 'k-means from scratch'), L('final-lab-numpy', 'task-gradient-boosting', 'Gradient boosting from scratch')] },
       { text: 'Write scaled dot-product and multi-head attention in PyTorch', lessons: [L('final-lab-pytorch', 'task-attention', 'Attention from scratch')] },
       { text: 'Fix shape bugs and compute metrics such as mean IoU yourself', lessons: [L('final-lab-pytorch', 'task-unet-center-crop', 'U-Net centre crop'), L('final-lab-pytorch', 'task-mean-iou', 'Mean IoU from scratch')] },
       { text: 'Work in a Jupyter notebook against its tests, under time pressure, without AI help', lessons: [L('final-lab-numpy', 'exam-notebook-skills', 'Exam notebook skills')] },

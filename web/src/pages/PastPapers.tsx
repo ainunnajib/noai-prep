@@ -59,7 +59,7 @@ export default function PastPapers() {
             <a href={LINKS.noai2025Repo} target="_blank" rel="noreferrer">
               NOAI 2025 tasks
             </a>
-            : linear regression with gradient descent, K-means clustering, a retrieval-augmented generation pipeline.
+            : linear regression with gradient descent, k-means clustering, a retrieval-augmented generation pipeline.
           </li>
           <li>
             <a href={LINKS.ioaiGithub} target="_blank" rel="noreferrer">
