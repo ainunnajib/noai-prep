@@ -6,7 +6,7 @@ import { Figure, Segmented, Button, Readout, Plot, Axes, Path, Dots, Rect, Label
   Every weight is drawn from N(0, σ²) with σ set by the chosen initialisation, and we look at the
   activations BEFORE any training: their size (root-mean-square) at every layer, and their
   histograms at layers 1, 5, 10 and 20.
-    zeros: σ = 0      tiny: σ = 0.01      Xavier: σ = √(1/64)      He: σ = √(2/64)      huge: σ = 0.5
+    zeros: σ = 0      tiny: σ = 0.01      Xavier: σ = √(2/(64+64)) = √(1/64)      He: σ = √(2/64)      huge: σ = 0.5
 */
 
 const WIDTH = 64
@@ -16,7 +16,7 @@ const SHOW = [1, 5, 10, 20]
 type Init = 'zeros' | 'tiny' | 'xavier' | 'he' | 'huge'
 type Act = 'tanh' | 'relu'
 const SIGMA: Record<Init, number> = { zeros: 0, tiny: 0.01, xavier: Math.sqrt(1 / WIDTH), he: Math.sqrt(2 / WIDTH), huge: 0.5 }
-const SIGMA_TEX: Record<Init, string> = { zeros: '0', tiny: '0.01', xavier: '√(1/64) = 0.125', he: '√(2/64) ≈ 0.177', huge: '0.5' }
+const SIGMA_TEX: Record<Init, string> = { zeros: '0', tiny: '0.01', xavier: '√(2/(64+64)) = 0.125', he: '√(2/64) ≈ 0.177', huge: '0.5' }
 const SUP: Record<string, string> = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
 const pow10 = (v: number) => (v === 0 ? '1' : `10${String(v).split('').map((c) => SUP[c] ?? c).join('')}`)
 const LOG_LO = -6

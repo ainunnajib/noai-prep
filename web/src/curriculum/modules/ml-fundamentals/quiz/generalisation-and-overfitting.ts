@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team splits its data into a training set and a second set S. They train with 30 different learning rates, keep the one with the lowest error on S, and publish that error on S as their final result. What is the main problem?',
     options: [
-      'S was used to choose the learning rate, so its error is too optimistic; an untouched test set is needed',
+      'Choosing the rate on S makes its error optimistic; an untouched test set is needed',
       'Nothing is wrong, because `fit()` never saw the examples in S during training',
       'They should have chosen the learning rate using the error on the training set instead',
       'Thirty learning rates are too few, so the chosen value is probably far from the best',
@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.generalisation-and-overfitting.2',
     prompt: 'As you raise the degree of a polynomial model, why does the **training** error keep going down even after the model starts to overfit?',
     options: [
-      'A more flexible model can always fit its own training points at least as well, noise included',
+      'A more flexible model can always fit its own training points at least as well',
       'Higher-degree models generalise better, so every kind of error goes down together',
       'The noise in the training labels gets smaller when the model has more weights',
       'The validation set is used during training and pulls the training error down',
@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'ml-fundamentals.generalisation-and-overfitting.3',
     prompt:
-      'At one input the true value is 5 and the label noise has variance $\\sigma^2 = 0.5$. Retrained on four different training sets, a model predicts $6, 8, 6, 8$. Using expected error $=$ bias² $+$ variance $+$ $\\sigma^2$, what is the expected squared error at this input?',
+      'At one input the true value is 5 and the label noise has variance $\\sigma^2 = 0.5$. Retrained on four different training sets, a model predicts $6, 8, 6, 8$. Using expected error $=$ bias² $+$ variance $+$ $\\sigma^2$ at this input, what is the expected squared error?',
     options: ['5.5', '5', '4.5', '3.5'],
     answer: 0,
     explanation:
@@ -60,9 +60,9 @@ const questions: QuizQuestion[] = [
     prompt: 'As model complexity increases from very simple to very complex, how do the training error and the validation error typically change?',
     options: [
       'Training error keeps falling; validation error falls at first, then rises',
-      'Training error and validation error both keep falling steadily',
-      'Training error rises steadily; validation error keeps falling',
-      'Both errors fall at first, then both rise together',
+      'Training error keeps falling; validation error keeps falling too',
+      'Training error rises steadily; validation error keeps falling throughout',
+      'Training error falls at first, then rises; validation error does the same',
     ],
     answer: 0,
     explanation:

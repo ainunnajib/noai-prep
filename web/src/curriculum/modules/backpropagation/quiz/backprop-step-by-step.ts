@@ -28,7 +28,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'backpropagation.backprop-step-by-step.3',
     prompt:
-      'In an MLP, weight $w$ connects a hidden neuron with activation $h = 0.5$ to an output neuron whose error is $\\delta = \\partial L / \\partial z = -4$. What is $\\partial L / \\partial w$?',
+      'In an MLP, weight $w$ connects a hidden neuron with activation $h = 0.5$ to an output neuron whose delta is $\\delta = \\partial L / \\partial z = -4$. What is $\\partial L / \\partial w$?',
     options: ['$-2$', '$-8$', '$-4$', '$-4.5$'],
     answer: 0,
     explanation:

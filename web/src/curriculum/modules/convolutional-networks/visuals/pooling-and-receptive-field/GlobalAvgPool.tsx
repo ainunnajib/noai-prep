@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented, Slider, Readout, Bars, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Segmented, Slider, Readout, Bars, useContainerWidth, mulberry32 } from '../../../../../kit'
 import { heat } from './common'
 
 /** Heat fill with a visible floor, so a map with almost no activation still reads as a map (dark mode too). */
@@ -32,6 +32,14 @@ const BLOBS: Record<Photo, [number, number, number, number][][]> = {
 const BUILT_SIZE = 224 // the classifier after Flatten was created for 224×224 images
 const HEAD_W = [4, 4, -4, -4] // cat-versus-car weights on the four averaged features
 const HEAD_B = 0
+// The Flatten head is a different layer, with its own weight for every (map, position): here the
+// GAP weight spread over the 7 × 7 positions with a fixed random wobble, so its answers are close
+// to the GAP head's but not identical.
+const N_BUILT = BUILT_SIZE / 32
+const FLAT_W: number[][] = (() => {
+  const rnd = mulberry32(2026)
+  return HEAD_W.map((w) => Array.from({ length: N_BUILT * N_BUILT }, () => (w / (N_BUILT * N_BUILT)) * (0.4 + 1.2 * rnd())))
+})()
 
 function featureMap(photo: Photo, ch: number, n: number): number[][] {
   return Array.from({ length: n }, (_, i) =>
@@ -73,7 +81,10 @@ export default function GlobalAvgPool() {
   const nIn = head === 'gap' ? 4 : 4 * n * n
   const builtIn = head === 'gap' ? 4 : 4 * (BUILT_SIZE / 32) ** 2
   const mismatch = nIn !== builtIn
-  const z = avgs.reduce((a, v, i) => a + v * HEAD_W[i], HEAD_B)
+  const z =
+    head === 'gap' || mismatch
+      ? avgs.reduce((a, v, i) => a + v * HEAD_W[i], HEAD_B)
+      : maps.reduce((a, m, c) => a + m.flat().reduce((b, v, q) => b + v * FLAT_W[c][q], 0), HEAD_B)
   const pCat = 1 / (1 + Math.exp(-z))
   const mapSize = Math.max(56, Math.min(110, Math.floor((width - 3 * 12) / 4)))
 

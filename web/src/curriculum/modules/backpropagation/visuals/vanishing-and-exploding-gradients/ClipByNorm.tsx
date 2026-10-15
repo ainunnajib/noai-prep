@@ -94,16 +94,16 @@ export default function ClipByNorm() {
         <Arrow from={[0, 0]} to={g} color="var(--viz-2)" width={changed ? 2 : 3} dash={changed ? '5 4' : undefined} />
         {changed && <Arrow from={[0, 0]} to={clipped} color={SIZE_COLOUR.healthy} width={4} />}
         {changed && <ClippedLabel v={clipped} />}
-        <DraggablePoint x={g[0]} y={g[1]} onChange={(x, y) => setG(snap(x, y))} color="var(--viz-2)" label={changed ? 'g (drag)' : 'g, unchanged (drag)'} />
+        <DraggablePoint x={g[0]} y={g[1]} onChange={(x, y) => setG(snap(x, y))} color="var(--viz-2)" label="g (drag)" />
       </Plot>
       </div>
       <Controls>
-        <Slider label={<>threshold <M>c</M> (max_norm)</>} value={c} min={1} max={9} step={0.5} onChange={setC} format={(v) => v.toFixed(1)} />
+        <Slider label={<>threshold <M>c</M> ({mode === 'norm' ? 'max_norm' : 'clip_value'})</>} value={c} min={1} max={9} step={0.5} onChange={setC} format={(v) => v.toFixed(1)} />
         <Readout
           items={[
             [<M key="g">g</M>, `(${fmt(g[0])}, ${fmt(g[1])})`],
             [<M key="n">{'\\lVert g \\rVert'}</M>, norm.toFixed(2)],
-            ['after clipping', `(${fmt(clipped[0])}, ${fmt(clipped[1])})`],
+            ['after clipping', changed ? `(${fmt(clipped[0])}, ${fmt(clipped[1])})` : 'unchanged'],
             ['new length', Math.hypot(clipped[0], clipped[1]).toFixed(2)],
             ['direction turned by', `${turn.toFixed(1)}°`],
           ]}

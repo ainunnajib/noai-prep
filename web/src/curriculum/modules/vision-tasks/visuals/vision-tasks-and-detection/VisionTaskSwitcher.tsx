@@ -36,13 +36,14 @@ const PAN_STUFF: Record<string, string> = {
   building: 'var(--pan-building)',
   road: 'var(--pan-road)',
 }
-/** one clearly different hue per object; the first car and first person keep their class colour */
+/** one clearly different hue per object; the first car and first person keep their class colour. None of them reuses a
+    "stuff" hue (blue sky, grey building, olive road), so in the panoptic view every person stands out from what is behind it. */
 const INST_COLOUR: Record<string, string> = {
   car1: CLASS_COLOUR.car,
   car2: 'var(--viz-3)',
   person1: CLASS_COLOUR.person,
-  person2: 'var(--viz-1)',
-  person3: 'var(--viz-6)',
+  person2: 'var(--viz-5)',
+  person3: 'var(--viz-ink)',
 }
 /** label positions (centre x, top y) for the three people, whose boxes are too close for on-box labels */
 const CALLOUT: Record<string, [number, number]> = { person1: [98, 31], person2: [122, 23], person3: [144, 31] }
@@ -232,16 +233,17 @@ export default function VisionTaskSwitcher() {
       <div className={css.ladder} aria-hidden="true">
         {narrow ? (
           <span className={`${css.rung} ${css.rungOn}`}>
-            {TASKS.findIndex((t) => t.value === task) + 1} / {TASKS.length} · {TASKS.find((t) => t.value === task)!.where}
+            {TASKS.findIndex((t) => t.value === task) + 1} / {TASKS.length}: {TASKS.find((t) => t.value === task)!.where}
           </span>
         ) : (
-          TASKS.map((t) => (
-            <span key={t.value} className={`${css.rung}${t.value === task ? ` ${css.rungOn}` : ''}`}>
-              {t.where}
+          TASKS.map((t, i) => (
+            <span key={t.value} style={{ display: 'inline-flex', gap: 4 }}>
+              {i > 0 && <span className={css.ladderSep}>→</span>}
+              <span className={`${css.rung}${t.value === task ? ` ${css.rungOn}` : ''}`}>{t.where}</span>
             </span>
           ))
         )}
-        <span className={css.ladderArrow}>more “where” →</span>
+        <span className={css.ladderArrow}>(each step adds more “where”)</span>
       </div>
       <div ref={wrapRef} className={css.vts} style={{ width: '100%', display: 'grid', justifyItems: 'center' }}>
         <svg

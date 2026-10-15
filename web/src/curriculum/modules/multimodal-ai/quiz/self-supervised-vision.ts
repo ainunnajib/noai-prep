@@ -12,7 +12,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'In self-supervised learning the "answer" comes free with the data: the hidden patch, the next word or the rotation angle chosen by the program. Labelling a few examples and pseudo-labelling the rest is semi-supervised learning; rewards from an environment are reinforcement learning.',
+      'In self-supervised learning the "answer" comes free with the data: the hidden patch, the next word or the rotation angle chosen by the program. Labelling a few examples and pseudo-labelling the rest is semi-supervised learning; rewards from an environment are reinforcement learning. Clustering is unsupervised learning, which still optimises an objective (k-means minimises distances to the cluster centres) but has no pretext task with made-up labels.',
     difficulty: 'beginner',
   },
   {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, Path, Arrow, usePlot } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Button, Plot, Grid, Axes, Path, Arrow, Label, usePlot } from '../../../../../kit'
 import { NeuronDiagram } from './NeuronDiagram'
-import { POS_C, NEG_C, W_C, clipLine, halfPlane, foot, num, step, type Pt } from './shared'
+import { POS_C, NEG_C, W_C, clipLine, halfPlane, placeWArrow, num, step, type Pt } from './shared'
 
 /*
   One perceptron on the four corners of the unit square. The learner slides w₁, w₂ and b and tries to
@@ -25,7 +25,7 @@ const XR: Pt = [-0.6, 1.6]
 const YR: Pt = [-0.6, 1.6]
 const GRID = Array.from({ length: 13 }, (_, i) => -3 + i * 0.5)
 
-function Corners({ targets, preds, sel, onSel }: { targets: number[]; preds: number[]; sel: number; onSel: (i: number) => void }) {
+function Corners({ targets, preds, ties, sel, onSel }: { targets: number[]; preds: number[]; ties: boolean[]; sel: number; onSel: (i: number) => void }) {
   const { xs, ys } = usePlot()
   const r = 11
   return (
@@ -42,7 +42,7 @@ function Corners({ targets, preds, sel, onSel }: { targets: number[]; preds: num
             key={i}
             role="button"
             tabIndex={0}
-            aria-label={`Corner (${c[0]}, ${c[1]}): target ${t}, neuron says ${preds[i]}`}
+            aria-label={`Corner (${c[0]}, ${c[1]}): target ${t}, neuron says ${preds[i]}${ties[i] ? ' (z = 0, on the line)' : ''}`}
             onClick={() => onSel(i)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -55,6 +55,7 @@ function Corners({ targets, preds, sel, onSel }: { targets: number[]; preds: num
             <circle cx={cx} cy={cy} r={r + 14} style={{ fill: 'transparent' }} />
             {i === sel && <circle cx={cx} cy={cy} r={r + 10} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 1.5, strokeDasharray: '3 3' }} />}
             {wrong && <circle cx={cx} cy={cy} r={r + 5} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2.5 }} />}
+            {!wrong && ties[i] && <circle cx={cx} cy={cy} r={r + 5} style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 2, strokeDasharray: '3 3' }} />}
             {t ? (
               <circle cx={cx} cy={cy} r={r} style={{ fill: col, stroke: 'var(--surface)', strokeWidth: 2 }} />
             ) : (
@@ -86,17 +87,16 @@ export default function PerceptronLine() {
   const preds = zs.map(step)
   const right = preds.filter((p, i) => p === targets[i]).length
   const solved = right === 4
+  // corners sitting exactly on the line (z = 0) only count as 0 because of the tie rule
+  const ties = zs.map((z) => Math.abs(z) < 1e-9)
+  const onTie = solved && ties.some(Boolean)
 
   const line = clipLine(w1, w2, b, XR, YR)
   const posPoly = halfPlane(w1, w2, b, XR, YR, 1)
   const negPoly = halfPlane(w1, w2, b, XR, YR, -1)
   // the region where z > 0 is open: z = 0 exactly counts as 0, which the polygons can't show, but no corner sits there unless the readout says z = 0
-  const wl = Math.hypot(w1, w2)
-  let arrow: [Pt, Pt] | null = null
-  if (wl > 1e-9) {
-    const f = foot([w1, w2], b, [0.5, 0.5])
-    if (f[0] > XR[0] && f[0] < XR[1] && f[1] > YR[0] && f[1] < YR[1]) arrow = [f, [f[0] + (0.32 * w1) / wl, f[1] + (0.32 * w2) / wl]]
-  }
+  // the w arrow starts on the line and is slid along it until it and its label are clear of the corners
+  const arrow = placeWArrow([w1, w2], b, XR, YR, { len: 0.32, centre: [0.5, 0.5], avoid: CORNERS, clear: 0.24, labelGap: 0.1 })
 
   const change = (fn: (v: number) => void) => (v: number) => {
     fn(v)
@@ -152,8 +152,8 @@ export default function PerceptronLine() {
       caption={
         <>
           Each dot shows the answer the gate wants (orange circle = 1, blue square = 0); the shading is the neuron&rsquo;s answer (orange where <i>z</i> &gt; 0), and a
-          red ring marks a mistake. Solve <b>AND</b> (slide <i>b</i> down until the line cuts off (1, 1)), then <b>OR</b>, then try <b>XOR</b> and press the button.
-          Click a corner to feed it through the neuron diagram.
+          red ring marks a mistake (dashed: a corner sitting exactly on the line). Solve <b>AND</b> (slide <i>b</i> down to −1.5, so the line cuts off (1, 1)), then{' '}
+          <b>OR</b>, then try <b>XOR</b> and press the button. Click a corner to feed it through the neuron diagram.
         </>
       }
     >
@@ -173,8 +173,13 @@ export default function PerceptronLine() {
           <Grid xTicks={4} yTicks={4} />
           <Axes xLabel="x₁" yLabel="x₂" xTicks={4} yTicks={4} />
           {line && <Path points={line} color="var(--viz-ink)" width={2.5} />}
-          {arrow && <Arrow from={arrow[0]} to={arrow[1]} color={W_C} width={2.5} label="w" />}
-          <Corners targets={targets} preds={preds} sel={sel} onSel={setSel} />
+          {arrow && <Arrow from={arrow.from} to={arrow.to} color={W_C} width={2.5} />}
+          {arrow && (
+            <Label x={arrow.label[0]} y={arrow.label[1]} dy={4} anchor="middle" color={W_C} weight={700}>
+              w
+            </Label>
+          )}
+          <Corners targets={targets} preds={preds} ties={ties} sel={sel} onSel={setSel} />
         </Plot>
         <div style={{ display: 'grid', gap: '0.75rem', justifyItems: 'center', minWidth: 0 }}>
           <table style={{ borderCollapse: 'collapse', fontSize: '0.875rem', fontVariantNumeric: 'tabular-nums' }}>
@@ -201,7 +206,7 @@ export default function PerceptronLine() {
                     <td style={{ padding: '3px 8px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{num(zs[i])}</td>
                     <td style={{ padding: '3px 8px', textAlign: 'center', fontWeight: 700 }}>{preds[i]}</td>
                     <td style={{ padding: '3px 8px', textAlign: 'center' }}>{targets[i]}</td>
-                    <td style={{ padding: '3px 8px', textAlign: 'center', fontWeight: 800, color: ok ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>{ok ? '✓' : '✗'}</td>
+                    <td style={{ padding: '3px 8px', textAlign: 'center', fontWeight: 800, color: ok && !ties[i] ? 'var(--viz-pos)' : 'var(--viz-neg)' }}>{ok ? (ties[i] ? '✓ tie' : '✓') : '✗'}</td>
                   </tr>
                 )
               })}
@@ -229,8 +234,14 @@ export default function PerceptronLine() {
       </Controls>
       <Controls>
         <Readout items={[[`${gate} corners right`, `${right} / 4`]]} />
-        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: solved ? 'var(--viz-pos)' : 'var(--ink-2)' }}>
-          {solved ? 'Solved: one straight line does it.' : gate === 'XOR' && right === 3 ? 'So close. Can any line get all four?' : 'Keep sliding.'}
+        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: solved && !onTie ? 'var(--viz-pos)' : 'var(--ink-2)' }}>
+          {onTie
+            ? 'Solved, but only by the tie rule (a corner sits on the line, z = 0): slide a little further.'
+            : solved
+              ? 'Solved: one straight line does it.'
+              : gate === 'XOR' && right === 3
+                ? 'So close. Can any line get all four?'
+                : 'Keep sliding.'}
         </span>
         <Button primary onClick={search}>
           Try every slider setting

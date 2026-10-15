@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Toggle } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './bow.module.css'
+
+/** a top-k result below this cosine is shown as "not a real match" rather than as an answer */
+const MIN_MATCH = 0.05
 
 /*
   A complete little search engine: tokenise (lower-case letters/digits, optional stop-word
@@ -85,6 +89,8 @@ export default function CosineSearch() {
   const switchCorpus = (c: CorpusKey) => {
     setCorpus(c)
     setQuery(CORPORA[c].query)
+    // the NOAI corpus opens with stop words removed, to match the lesson's NumPy code (0.453 and 0.310)
+    setStop(c === 'noai')
   }
 
   const highlight = (text: string) =>
@@ -104,12 +110,20 @@ export default function CosineSearch() {
       wide
       title="A search engine in four steps: tokenise, vectorise, weight, rank"
       caption={
-        <>
-          Type a question. The query is turned into a vector exactly like the documents, and each bar is the cosine similarity between the query and
-          a document; the top <i>k</i> are retrieved. Start with <b>where is the laksa</b> and switch between raw counts and TF-IDF: with raw counts the
-          MRT document wins because it contains “the” four times. TF-IDF gives “the” (in all 6 documents) an IDF of exactly 0, shrinks “is” (in 5 of
-          them) and gives the rare word “laksa” (in only one) the largest weight, so the laksa document comes first. Then try removing stop words. Switch to the NOAI 2025 Final documents to see the retrieval half of that 40-mark task.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              switch <b>where is the laksa</b> between raw counts and TF-IDF, then pick the NOAI 2025 Final documents.
+            </>
+          }
+          notice={
+            <>
+              with raw counts the MRT document wins because it says “the” four times. TF-IDF gives “the” weight 0 and the rare “laksa” the most, so
+              the laksa document comes first.
+            </>
+          }
+          note={<>The NOAI documents open with stop words removed, which reproduces the 0.453 and 0.310 printed by the NumPy code below.</>}
+        />
       }
     >
       <Controls>
@@ -172,11 +186,16 @@ export default function CosineSearch() {
       <div className={s.results} role="list" aria-label="Documents ranked by cosine similarity">
         {docs.map((d, i) => {
           const r = rankOf.get(i)!
-          const isTop = r < k && scores[i] > 0
+          const inTopK = r < k && scores[i] > 0
+          const isTop = inTopK && scores[i] >= MIN_MATCH
+          const weak = inTopK && !isTop
           return (
             <div key={i} role="listitem" className={`${s.result} ${isTop ? s.resultTop : ''}`}>
               <span className={s.rank}>{isTop ? `#${r + 1}` : `d${i + 1}`}</span>
-              <span className={s.docText}>{highlight(d)}</span>
+              <span className={s.docText}>
+                {highlight(d)}
+                {weak && <span className={s.weak}>in the top {k}, but its score is too small to be a real match</span>}
+              </span>
               <span className={s.score}>{scores[i].toFixed(3)}</span>
               <span className={s.barTrack}>
                 <span className={s.barFill} style={{ width: `${Math.max(0, scores[i]) * 100}%`, background: isTop ? 'var(--viz-2)' : 'var(--viz-1)' }} />

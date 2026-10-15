@@ -47,11 +47,11 @@ for avg in ["macro", "weighted"]:
     f1 = f1_score(y_true, y_lazy, average=avg, zero_division=0)
     print(avg, "F1:", round(f1, 3))`
 
-Is this email spam? Is this food review happy or angry? Should this customer message go to the refunds team or the kitchen? Each question takes a piece of text and gives back one label from a fixed list. This is <Term def="Giving each piece of text one label from a fixed set of classes (spam/not spam, positive/negative, topic A/B/C), learned from labelled examples.">text classification</Term>, one of the most common jobs in AI. Every text classifier, from a 1990s spam filter to a fine-tuned BERT, follows the same three-stage recipe, and you already know all the parts.
+Is this email spam? Is this food review happy or angry? Each question takes a piece of text and returns one label from a fixed list: that is <Term def="Giving each piece of text one label from a fixed set of classes (spam/not spam, positive/negative, topic A/B/C), learned from labelled examples.">text classification</Term>, and every text classifier, from a 1990s spam filter to a fine-tuned BERT, follows the same three-stage recipe built from parts you already know.
 
 <Analogy title="Sorting letters at a post office">
 
-A sorting centre does not read your letter. It reads the address (**tokenise**), turns it into a postcode (**vectorise**) and drops the letter into the bin for that postcode (**classify**). If the postcode is good, sorting is easy. A text classifier works the same way: the classifier at the end only sees a vector of numbers, so everything depends on how well that vector captures what the text means.
+A sorting centre does not read your letter. It reads the address (**tokenise**), turns it into a postcode (**vectorise**) and drops the letter into the bin for that postcode (**classify**). A text classifier works the same way: the classifier at the end only sees a vector of numbers, so everything depends on how well that vector captures what the text means.
 
 </Analogy>
 
@@ -59,15 +59,15 @@ A sorting centre does not read your letter. It reads the address (**tokenise**),
 
 Our running example is <Term def="Deciding whether a piece of text expresses a positive or a negative opinion. It is a classic text-classification task.">sentiment analysis</Term> of hawker-centre reviews, with two classes: positive and negative.
 
-1. **Tokenise.** Split the text into tokens, usually after lower-casing. Simple pipelines also drop <Term def="Very common words such as 'the', 'was' and 'and' that carry little meaning on their own. Some pipelines remove them before vectorising.">stop words</Term>, and some **normalise** words: <Term def="Chopping word endings off by fixed rules, e.g. running → run, studies → studi. Fast, but the result is not always a real word.">stemming</Term> chops endings by rule (running → run, studies → studi), while <Term def="Mapping a word to its dictionary form using a vocabulary and grammar, e.g. ran → run, better → good.">lemmatisation</Term> maps a word to its dictionary form (ran → run, better → good). Subword tokenisers and pretrained models make both less necessary. Tokens that are not in the vocabulary are ignored (or mapped to `[UNK]`).
-2. **Vectorise.** Turn the tokens into **one vector of fixed length**. This is needed because a classifier such as logistic regression expects the same number of inputs every time, but reviews have different numbers of words.
-3. **Classify.** Feed the vector to a classifier. Here it is logistic regression: a score $z = \mathbf{w}^\top \mathbf{x} + b$, squashed by the sigmoid into a probability $p = \sigma(z)$. Predict "positive" when $p \ge 0.5$.
+1. **Tokenise.** Split the text into tokens, usually after lower-casing. Simple pipelines also drop <Term def="Very common words such as 'the', 'was' and 'and' that carry little meaning on their own. Some pipelines remove them before vectorising.">stop words</Term>, and some **normalise** words: <Term def="Chopping word endings off by fixed rules, e.g. running → run, studies → studi. Fast, but the result is not always a real word.">stemming</Term> chops endings by rule (running → run, studies → studi), while <Term def="Mapping a word to its dictionary form using a vocabulary and grammar, e.g. ran → run, better → good.">lemmatisation</Term> maps a word to its dictionary form (ran → run, better → good). Tokens not in the vocabulary are ignored (or mapped to `[UNK]`).
+2. **Vectorise.** Turn the tokens into **one vector of fixed length**, because a classifier such as logistic regression expects the same number of inputs every time, but reviews have different numbers of words.
+3. **Classify.** Feed the vector to a classifier. Here it is logistic regression: a score $z = \mathbf{w} \cdot \mathbf{x} + b$, squashed by the sigmoid into a probability $p = \sigma(z)$. Predict "positive" when $p \ge 0.5$.
 
-The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from the bag-of-words lesson, and **averaged word embeddings**, from the embeddings lesson. Each figure in this lesson runs its own tiny model (the visuals learn from 48 reviews and the code from 12, and they turn words into numbers in different ways), so the exact probabilities differ from figure to figure; the pattern is what matters.
+The visual runs a real (tiny) model. Switch between two ways of doing stage 2: **TF-IDF**, from the bag-of-words lesson, and **averaged word embeddings**, from the embeddings lesson.
 
 <TextClassifierPipeline />
 
-Look at the two vectors. The TF-IDF vector has one slot per vocabulary word, and almost all of them are zero: it is a <Term def="A vector in which most entries are zero. Bag-of-words and TF-IDF vectors are sparse because a review uses only a few of the thousands of words in the vocabulary.">sparse</Term> vector. The averaged embedding is <Term def="A vector in which (almost) every entry is a meaningful non-zero number, such as a 300-number word embedding.">dense</Term>: just 2 numbers here (300 or so in real models), all of them used. The average of the word vectors is
+Each figure in this lesson trains its own toy model, so exact probabilities differ between figures and code; the pattern is what matters. Look at the two vectors. The TF-IDF vector has one slot per vocabulary word, and almost all of them are zero: it is a <Term def="A vector in which most entries are zero. Bag-of-words and TF-IDF vectors are sparse because a review uses only a few of the thousands of words in the vocabulary.">sparse</Term> vector. The averaged embedding is <Term def="A vector in which (almost) every entry is a meaningful non-zero number, such as a 300-number word embedding.">dense</Term>: just 2 numbers here (300 or so in real models), all of them used. The average of the word vectors is
 
 $$
 \bar{\mathbf{x}} = \frac{1}{n} \sum_{t=1}^{n} \mathbf{e}_t
@@ -83,7 +83,7 @@ Every text classifier is a **vectoriser plus a classifier**: tokenise, turn the 
 
 <Mistake title="Throwing away the word 'not'">
 
-Ready-made stop-word lists often contain "not", "no" and "never". scikit-learn's built-in English list does. For sentiment that deletes the most important word in "not good"! Check the list before you use it, or skip stop-word removal altogether: TF-IDF already gives very common words a low weight. (The toy models in this lesson use a short hand-made stop-word list that keeps "not".)
+Ready-made stop-word lists often contain "not", "no" and "never" (scikit-learn's English list does). For sentiment that deletes the most important word in "not good"! Check the list first, or skip stop-word removal: TF-IDF already gives very common words a low weight. (This lesson's toy models use a short hand-made list that keeps "not".)
 
 </Mistake>
 
@@ -121,9 +121,9 @@ Because every $x_j$ for a missing word is 0, the sum is simply **the bias plus t
 
 <QuickCheck
   q="Using the toy model's weights fast $+1.3$, waited $-0.7$ and bias $+0.1$, what does it predict for *wah so fast, only waited one hour*? (Here 'so' is a stop word and 'wah', 'only', 'one' and 'hour' are not in the vocabulary.)"
-  options={['$z = 0.7$, so positive, even though the review is a sarcastic complaint', '$z = -0.7$, so negative: it spots the sarcasm', '$z = 2.1$, so strongly positive', '$z = 0.6$, so positive, because the bias is ignored']}
+  options={['$z = 0.7$, so positive', '$z = -0.7$, so negative', '$z = 2.1$, so positive', '$z = 0.6$, so positive']}
   answer={0}
-  explain="Only the known words vote: $z = 0.1 + 1.3 - 0.7 = 0.7 > 0$, so it predicts positive ($\sigma(0.7) \approx 0.67$). A human reads sarcasm; the model reads 'fast'. The bias is always included, which rules out 0.6, and 2.1 comes from adding $+0.7$ instead of $-0.7$."
+  explain="Only the known words vote: $z = 0.1 + 1.3 - 0.7 = 0.7 > 0$, so it predicts positive ($\sigma(0.7) \approx 0.67$), even though a human reads a sarcastic complaint: the model just sees 'fast'. 0.6 forgets the bias, 2.1 adds $+0.7$ instead of $-0.7$, and $-0.7$ would need the model to spot sarcasm, which a sum of word weights cannot do."
 />
 
 ### Where a bag of words breaks
@@ -144,43 +144,32 @@ Expect options that test whether you know **bag of words (and TF-IDF) ignores wo
 
 ## Three ways to build the vector
 
-<Columns min={210}>
-<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+| | TF-IDF + logistic regression | Averaged embeddings + classifier | Fine-tuned encoder (BERT) |
+|---|---|---|---|
+| vector | one slot per word (thousands), mostly zeros | mean of the word vectors (e.g. 300 numbers) | encoder output at `[CLS]` (768 numbers in BERT-base) |
+| word order | ignored | ignored | used: every word read in context |
+| "tasty" ≈ "delicious"? | no: unrelated slots | yes | yes |
+| training | seconds on a CPU | seconds to minutes | minutes to hours; a GPU helps |
+| easy to inspect? | yes: one weight per word | partly | hard |
 
-**1. TF-IDF + logistic regression**
+A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. To <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term> it for sentiment:
 
-- **Vector**: one slot per vocabulary word (thousands), mostly zeros.
-- **Word order**: ignored.
-- **"tasty" ≈ "delicious"?** No: they are unrelated slots.
-- **Training**: seconds on a CPU.
-- **Easy to inspect?** Yes, one weight per word.
+<Steps title="Fine-tuning BERT for sentiment">
+  <Step title="Read the review">
+    BERT reads `[CLS] the laksa was cold [SEP]`, each word in the context of all the others.
+  </Step>
+  <Step title="Take the [CLS] vector">
+    Its final vector at `[CLS]` (768 numbers) summarises the whole review, word order included.
+  </Step>
+  <Step title="Add a classification head">
+    One linear layer and a softmax turn that vector into P(positive) and P(negative).
+  </Step>
+  <Step title="Train gently">
+    Train the head *and* all of BERT on your labelled reviews for 2–3 passes (epochs) with a tiny learning rate (about $2 \times 10^{-5}$), so the pretrained knowledge is nudged, not wiped out.
+  </Step>
+</Steps>
 
-</div>
-<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
-
-**2. Averaged word embeddings + classifier**
-
-- **Vector**: the mean of the word vectors (e.g. 300 numbers).
-- **Word order**: ignored.
-- **"tasty" ≈ "delicious"?** Yes: similar words have similar vectors.
-- **Training**: seconds to minutes.
-- **Easy to inspect?** Partly.
-
-</div>
-<div style={{ border: '2px solid var(--accent-line)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--accent-soft)' }}>
-
-**3. Fine-tuned pretrained encoder (e.g. BERT)**
-
-- **Vector**: the encoder's output for the `[CLS]` token (768 numbers in BERT-base).
-- **Word order**: used: every word is read in context.
-- **"tasty" ≈ "delicious"?** Yes.
-- **Training**: minutes to hours; a GPU helps.
-- **Easy to inspect?** Hard.
-
-</div>
-</Columns>
-
-The third approach needs a little more explanation. A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. It puts a special `[CLS]` token at the start of every input, and its final vector for `[CLS]` summarises the whole sentence, word order included. To classify, you add a small **classification head** (one linear layer and a softmax) on top of that vector. Then you <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term>: train the head *and* all of BERT's weights on your labelled examples for a few epochs, with a small learning rate (around $2 \times 10^{-5}$) so the pretrained knowledge is nudged rather than wiped out. Reusing knowledge from one task for another like this is called <Term def="Reusing a model trained on one big task (such as predicting missing words in billions of sentences) as the starting point for a different, smaller task.">transfer learning</Term>.
+Reusing what a model learned on one big task as the starting point for another is called <Term def="Reusing a model trained on one big task (such as predicting missing words in billions of sentences) as the starting point for a different, smaller task.">transfer learning</Term>.
 
 The averaged-embedding model is short enough to write out in PyTorch; open it to see the one line where word order disappears.
 
@@ -224,7 +213,7 @@ The two sentences give identical outputs, even before training: `mean(dim=1)` ad
 
 </Reveal>
 
-The TF-IDF + logistic regression baseline takes only a few lines in scikit-learn. `make_pipeline` chains the vectoriser and the classifier, so `fit` and `predict_proba` run all three stages. Run it, then add your own test sentences:
+The TF-IDF + logistic regression baseline takes a few lines in scikit-learn. `make_pipeline` chains the vectoriser and the classifier, so `fit` and `predict_proba` run all three stages. It trains on its own 12 reviews, so its numbers differ from the figures'. Run it, then add your own test sentences:
 
 <PyRunner packages={['scikit-learn']} code={sklearnCode} />
 
@@ -233,9 +222,9 @@ The TF-IDF + logistic regression baseline takes only a few lines in scikit-learn
 The deciding factor is usually **how many labelled examples you have**:
 
 - **Always** start with a TF-IDF + logistic regression **baseline**. It trains in seconds and tells you what any fancier model must beat.
-- **Small labelled set (tens to a few hundred):** reuse a pretrained model, which is [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation) again. Either freeze it and train logistic regression on its embeddings, or fine-tune it gently with a small learning rate. Pretrained knowledge is exactly what makes small datasets workable, and it usually beats TF-IDF even here.
+- **Small labelled set (tens to a few hundred):** reuse a pretrained model ([transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation) again): freeze it and train logistic regression on its embeddings, or fine-tune it gently. Pretrained knowledge is what makes small datasets workable, and it usually beats TF-IDF even here.
 - **Thousands or more:** fully fine-tune a pretrained encoder (BERT) for the best accuracy.
-- **Never** train a big network from scratch on a small labelled set. It has far more parameters than examples, so it memorises the training set (overfits) instead of learning sentiment.
+- **Never** train a big network from scratch on a small labelled set: with far more parameters than examples, it memorises the training set (overfits).
 
 <PastPaperQuestion paper="noai2025" n={17} />
 
@@ -289,7 +278,7 @@ Every class gets an equal vote, however small it is. (**Weighted-F1** averages b
 
 <ExamTip>
 
-For "which metric is misleading on imbalanced data?" the answer is **accuracy**: always predicting the majority class scores high while catching nothing rare. F1 is the **harmonic** mean of precision and recall (not the arithmetic mean). For many classes of different sizes, report **macro-F1**. With no calculator, use $F1 = \frac{2TP}{2TP + FP + FN}$ straight from the confusion matrix.
+For "which metric is misleading on imbalanced data?" the answer is **accuracy**: predicting the majority class scores high while catching nothing rare. F1 is the **harmonic** mean of precision and recall. For classes of different sizes, report **macro-F1**. Without a calculator, use $F1 = \frac{2TP}{2TP + FP + FN}$ straight from the confusion matrix.
 
 </ExamTip>
 
@@ -297,8 +286,8 @@ For "which metric is misleading on imbalanced data?" the answer is **accuracy**:
 
 - Text classification = **tokenise → vectorise → classify**. The vector must have a fixed length, whatever the length of the text.
 - In a linear bag-of-words model, $z = b + \sum_j w_j x_j$: each word adds its own fixed weight. That makes it easy to inspect, but blind to word order, negation and sarcasm.
-- Bag of words, TF-IDF and averaged embeddings all ignore word order. Fine-tuning a pretrained encoder (BERT's `[CLS]` vector plus a linear head, small learning rate) reads words in context and is usually the most accurate when you have enough labelled data.
-- Always start with a TF-IDF + logistic regression baseline. With little labelled data, reuse a pretrained model (frozen features or gentle fine-tuning); never train a huge model from scratch on a small dataset.
+- Bag of words, TF-IDF and averaged embeddings all ignore word order. A fine-tuned encoder (BERT's `[CLS]` vector plus a linear head) reads words in context and is usually the most accurate.
+- Start with a TF-IDF + logistic regression baseline. With little labelled data, reuse a pretrained model; never train a huge model from scratch on a small dataset.
 - On imbalanced classes, accuracy can look great while the rare class is ignored. Use per-class precision, recall and F1, and **macro-F1** to give every class an equal vote.
 
 </Takeaways>

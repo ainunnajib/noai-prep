@@ -52,7 +52,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Flipping a 6 top-to-bottom puts its loop at the top, so it reads as a 9 while still carrying the label 6: the augmentation breaks the label. `RandomRotation(10)` picks a random angle between −10° and 10°, the order shown is the usual one, and random augmentation belongs on the training set only.',
+      'Flipping a 6 top-to-bottom puts its loop at the top, so it looks like a (back-to-front) 9 while still carrying the label 6 (a 180° rotation would give an exact 9): the augmentation breaks the label. `RandomRotation(10)` picks a random angle between −10° and 10°, the order shown is the usual one, and random augmentation belongs on the training set only.',
     difficulty: 'intermediate',
   },
   {

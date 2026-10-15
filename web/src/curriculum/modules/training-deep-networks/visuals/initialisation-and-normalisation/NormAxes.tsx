@@ -9,7 +9,7 @@ import { Figure, Controls, Slider, Segmented, MatrixGrid, Readout, M } from '../
 */
 
 const STUDENTS = ['Ali', 'Bea', 'Chen', 'Dev', 'Ema', 'Fai']
-const SUBJECTS = ['Math', 'Sci', 'Eng', 'Chi']
+const SUBJECTS = ['Maths', 'Sci', 'Eng', 'Chi']
 const MARKS = [
   [72, 65, 80, 58],
   [90, 85, 60, 70],
@@ -118,8 +118,8 @@ export default function NormAxes() {
       </Controls>
       <Readout
         items={[
-          [kind === 'bn' ? `${SUBJECTS[fj]} column: mean` : `${STUDENTS[fi]}'s row: mean`, s.mu.toFixed(1)],
-          ['spread (standard deviation)', s.sd.toFixed(1)],
+          [kind === 'bn' ? `${SUBJECTS[fj]} column: mean` : `${STUDENTS[fi]}'s row: mean`, String(+s.mu.toFixed(2))],
+          ['spread (standard deviation)', s.sd.toFixed(2)],
           ['values used', kind === 'bn' ? `${rows.length} (one per student)` : `${SUBJECTS.length} (one per subject)`],
         ]}
       />

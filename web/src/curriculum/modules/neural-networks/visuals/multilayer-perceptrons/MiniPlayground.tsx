@@ -35,9 +35,13 @@ interface Run {
   rng: () => number
   epoch: number
   hist: HistPoint[]
+  /** epochs trained before the first paint (only the very first run is pre-trained) */
+  pre: number
 }
 
-const keyOf = (ds: DatasetName, hidden: number[], act: Act, seed: number) => `${ds}|${hidden.join('-')}|${act}|${seed}`
+// the learning rate is part of the key, so changing it restarts training from fresh weights (a fair comparison)
+const keyOf = (ds: DatasetName, hidden: number[], act: Act, seed: number, lr: number) => `${ds}|${hidden.join('-')}|${act}|${seed}|${lr}`
+const INITIAL_KEY = keyOf('circle', [4], 'relu', 0, 0.01)
 
 function record(run: Run, train: Pt[], test: Pt[]) {
   const buf = makeBuffers(run.net.sizes)
@@ -48,7 +52,7 @@ function record(run: Run, train: Pt[], test: Pt[]) {
 
 function newRun(ds: DatasetName, hidden: number[], act: Act, seed: number, lr: number, train: Pt[], test: Pt[], pretrain: number): Run {
   const sizes = [2, ...hidden, 1]
-  const run: Run = { key: keyOf(ds, hidden, act, seed), net: createNet(sizes, act, seed + 1), act, rng: mulberry32((seed + 1) * 99), epoch: 0, hist: [] }
+  const run: Run = { key: keyOf(ds, hidden, act, seed, lr), net: createNet(sizes, act, seed + 1), act, rng: mulberry32((seed + 1) * 99), epoch: 0, hist: [], pre: pretrain }
   record(run, train, test)
   for (let e = 0; e < pretrain; e++) {
     trainEpoch(run.net, act, train, lr, run.rng)
@@ -85,7 +89,7 @@ function diagramLayout(sizes: number[], width: number) {
   const colSpace = (width - 40) / Math.max(1, cols - 1)
   const node = Math.max(18, Math.min(44, Math.floor(colSpace * 0.4), Math.floor(290 / (maxN * 1.28))))
   const vgap = Math.round(node * 0.28)
-  const top = 34
+  const top = 40
   const stackH = maxN * node + (maxN - 1) * vgap
   const labelY = top + stackH + 8
   const height = labelY + 20
@@ -263,7 +267,7 @@ function LossChart({ hist }: { hist: HistPoint[] }) {
   const stride = Math.max(1, Math.floor(hist.length / 400))
   const pick = hist.filter((_, i) => i % stride === 0 || i === hist.length - 1)
   return (
-    <Plot x={[0, xMax]} y={[0, yMax]} width={520} height={160} minHeight={170} margin={{ left: 42, bottom: 30, top: 24, right: 12 }} ariaLabel="Training and test loss against epoch">
+    <Plot x={[0, xMax]} y={[0, yMax]} width={520} height={170} minHeight={180} margin={{ left: 42, bottom: 44, top: 24, right: 16 }} ariaLabel="Training and test loss against epoch">
       <Grid xTicks={5} yTicks={4} />
       <Axes xLabel="epoch" yLabel="loss" xTicks={5} yTicks={4} />
       <HLine y={Math.LN2} label="coin-flip guess (0.693; why? next lesson)" />
@@ -288,7 +292,7 @@ export default function MiniPlayground() {
 
   const train = useMemo(() => makeData(ds, N_POINTS, 11), [ds])
   const test = useMemo(() => makeData(ds, N_POINTS, 12), [ds])
-  const key = keyOf(ds, hidden, act, seed)
+  const key = keyOf(ds, hidden, act, seed, lr)
   const runRef = useRef<Run | null>(null)
   if (runRef.current === null) runRef.current = newRun(ds, hidden, act, seed, lr, train, test, PRETRAIN)
   else if (runRef.current.key !== key) runRef.current = newRun(ds, hidden, act, seed, lr, train, test, 0)
@@ -364,8 +368,15 @@ export default function MiniPlayground() {
       caption={
         <>
           Each small square is one neuron, drawn as a map of its output over the input square (orange = positive, blue = negative, blank = zero); edges are orange
-          for positive weights, blue for negative, thicker for bigger. <b>Tap any neuron</b> to see its map full size. The network has already trained for {PRETRAIN}{' '}
-          epochs on the circle: each first-layer ReLU neuron draws one straight fold, and the output combines them into a closed region.
+          for positive weights, blue for negative, thicker for bigger. <b>Tap any neuron</b> to see its map full size. Changing the data, the layers, the activation or
+          the learning rate starts training again from fresh weights.
+          {key === INITIAL_KEY && run.pre > 0 && (
+            <>
+              {' '}
+              The network has already trained for {PRETRAIN} epochs on the circle: each first-layer ReLU neuron draws one straight fold, and the output combines them
+              into a closed region.
+            </>
+          )}
         </>
       }
     >

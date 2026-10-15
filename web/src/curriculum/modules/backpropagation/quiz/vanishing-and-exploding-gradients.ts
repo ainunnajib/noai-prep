@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
     options: ['$5$', '$4$', '$10$', '$3$'],
     answer: 0,
     explanation:
-      'Each neuron multiplies the gradient by $w \\cdot \\sigma\'(0) = 1 \\times 0.25 = 1/4$, so after $n$ neurons it is $1/4^n$. After four it is $1/256 \\approx 0.004$, still above $1/1000$; after five it is $1/1024$, just below. So $4$ stops one neuron early. $10$ assumes each neuron halves the gradient (using $\\sigma(0) = 0.5$ instead of $\\sigma\'(0) = 0.25$), and $3$ assumes each one divides it by 10.',
+      'Each neuron multiplies the gradient by $w \\cdot \\sigma\'(0) = 1 \\times 0.25 = 1/4$, so after $n$ neurons it is $1/4^n$. After four it is $1/256 \\approx 0.004$, still above $1/1000$; after five it is $1/1024$, just below. So $4$ stops one neuron early. $10$ assumes each neuron halves the gradient (using $\\sigma(0) = 0.5$ instead of $\\sigma\'(0) = 0.25$), and $3$ comes from dividing by 10 at each neuron and stopping at exactly $1/1000 = 0.1^3$, which is not even below the threshold.',
     difficulty: 'beginner',
   },
   {

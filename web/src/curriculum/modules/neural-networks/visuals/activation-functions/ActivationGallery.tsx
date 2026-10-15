@@ -12,14 +12,21 @@ import { ACTS, GALLERY_ALPHA, flatZones, type ActName } from './acts'
 const ZR: [number, number] = [-5, 5]
 const MARGIN = { left: 44, right: 16, top: 14, bottom: 32 }
 
-/** 3.2 × 10^{-7} style formatting for KaTeX. */
+const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', '-': '⁻' }
+
+/** Plain-text "1.6 × 10⁻¹⁰" style formatting, in the same font as the other readouts. */
 function sci(v: number) {
   if (v === 0) return '0'
   const a = Math.abs(v)
   if (a >= 0.001 && a < 1000) return (Math.round(v * 1000) / 1000).toString()
-  const e = Math.floor(Math.log10(a))
-  const m = v / 10 ** e
-  return `${m.toFixed(1)} \\times 10^{${e}}`
+  let e = Math.floor(Math.log10(a))
+  let m = v / 10 ** e
+  // 9.96 × 10⁻⁵ must not print as "10.0 × 10⁻⁵"
+  if (Math.abs(Number(m.toFixed(1))) >= 10) {
+    e += 1
+    m = v / 10 ** e
+  }
+  return `${m.toFixed(1)} × 10${String(e).split('').map((c) => SUP[c]).join('')}`
 }
 /**
  * The drag point's label, placed in whichever of four spots around the point is clear of the curve,
@@ -149,12 +156,13 @@ export default function ActivationGallery() {
           />
           <PointLabel x={z} y={fz} f={A.f} asymptotes={A.asymptotes} text={`${touched ? '' : 'drag me · '}z = ${z.toFixed(2).replace('-', '−')}`} />
         </Plot>
-        <Plot x={ZR} y={[-0.25, 1.25]} width={520} height={150} minHeight={130} margin={MARGIN} ariaLabel={`Slope of ${A.label}: ${atKink ? 'undefined at the kink' : dz.toFixed(3)} at z = ${z.toFixed(2)}`}>
+        <Plot x={ZR} y={[-0.25, 1.25]} width={520} height={150} minHeight={170} margin={MARGIN} ariaLabel={`Slope of ${A.label}: ${atKink ? 'undefined at the kink' : dz.toFixed(3)} at z = ${z.toFixed(2)}`}>
           {zones.map(([a, b], i) => (
             <Rect key={i} x0={a} x1={b} y0={-0.25} y1={1.25} fill="color-mix(in srgb, var(--viz-neg) 11%, var(--surface))" />
           ))}
           <Grid xTicks={10} yTicks={4} />
           <Axes xLabel="z" yLabel="f′(z)" xTicks={10} yTicks={4} origin />
+          <HLine y={0.25} color="var(--viz-muted)" dash="3 4" width={1.25} label="sigmoid max 0.25" />
           {A.kink ? (
             <>
               <Path points={[[ZR[0], lowLeft], [0, lowLeft]]} color="var(--viz-3)" width={3} />
@@ -174,8 +182,8 @@ export default function ActivationGallery() {
       <Readout
         items={[
           ['f(z)', f3(fz)],
-          ['slope f′(z)', atKink ? `undefined at the kink (PyTorch uses the left slope, ${lowLeft === 0 ? '0' : 'α'})` : f3(dz)],
-          ['10 layers like this: f′(z)¹⁰', atKink ? '—' : <M key="p">{sci(pow10)}</M>],
+          ['slope f′(z)', atKink ? `undefined at the kink (PyTorch uses ${lowLeft === 0 ? '0' : 'α'} there)` : f3(dz)],
+          ['10 layers like this: f′(z)¹⁰', atKink ? '—' : sci(pow10).replace('-', '−')],
         ]}
       />
       <p style={{ margin: 0, width: '100%', fontSize: '0.9rem', color: 'var(--ink-2)' }}>{A.note}</p>

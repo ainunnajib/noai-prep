@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, Path, Dots, Label, DraggablePoint, useNarrow, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Toggle, Plot, Grid, Axes, Path, Dots, Label, DraggablePoint, usePlot, useNarrow, M } from '../../../../../kit'
 import s from './playground.module.css'
 
 /*
@@ -44,6 +44,24 @@ const box = (x0: number, x1: number, y0: number, y1: number): P[] => [
 
 const XR: P = [-0.6, 1.6]
 
+/** The probe and its image: a hollow ring (input space) or hollow square (hidden space) with a thick ink outline, so it never looks like a data point. */
+function Probe({ at, shape, label }: { at: P; shape: 'ring' | 'square'; label?: string }) {
+  const { xs, ys } = usePlot()
+  const cx = xs(at[0])
+  const cy = ys(at[1])
+  const st = { fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 3, pointerEvents: 'none' as const }
+  return (
+    <g>
+      {shape === 'ring' ? <circle cx={cx} cy={cy} r={8} style={st} /> : <rect x={cx - 7} y={cy - 7} width={14} height={14} style={st} />}
+      {label && (
+        <text className="plot-label" x={cx + 12} y={cy - 9} style={{ fill: 'var(--viz-ink)', fontSize: 12, pointerEvents: 'none' }}>
+          {label}
+        </text>
+      )}
+    </g>
+  )
+}
+
 export default function XorFold() {
   const [probe, setProbe] = useState<P>([0.8, 0.45])
   const [useRelu, setUseRelu] = useState(true)
@@ -86,9 +104,9 @@ export default function XorFold() {
       title="A hidden layer moves the points until one line is enough"
       caption={
         <>
-          The hidden layer moves every point from the left panel to the right one, where the output <M>{'y = h_1 - 2h_2'}</M> needs only one straight line
-          (<M>{'y = 0.5'}</M>). Drag the purple point and watch its purple square: the plane is folded onto the bent grey line. Left, dashed: where each hidden ReLU
-          switches on (its crease), not the decision boundary; the orange band&rsquo;s edges are where <M>{'y = 0.5'}</M>. Then switch the ReLU off.
+          <b>Try:</b> drag the ringed point on the left and watch its square on the right; then switch the ReLU off. <b>Notice:</b> the hidden layer folds the whole
+          plane onto the bent grey line, where the output <M>{'y = h_1 - 2h_2'}</M> needs only one straight line (<M>{'y = 0.5'}</M>). The dashed lines on the left
+          are creases (where each hidden ReLU switches on), not the decision boundary; the edges of the orange band are where <M>{'y = 0.5'}</M>.
         </>
       }
     >
@@ -109,7 +127,7 @@ export default function XorFold() {
                     [-0.6, 0.6],
                     [0.6, -0.6],
                   ]}
-                  color="var(--viz-4)"
+                  color="var(--viz-muted)"
                   width={2}
                   dash="6 4"
                 />
@@ -118,14 +136,14 @@ export default function XorFold() {
                     [-0.4, 1.4],
                     [1.4, -0.4],
                   ]}
-                  color="var(--viz-3)"
+                  color="var(--viz-muted)"
                   width={2}
                   dash="6 4"
                 />
-                <Label x={-0.58} y={0.6} dx={2} dy={-6} color="var(--viz-4)" size={12}>
+                <Label x={-0.58} y={0.6} dx={2} dy={-6} color="var(--ink-2)" size={12}>
                   h₁ crease
                 </Label>
-                <Label x={-0.4} y={1.4} dx={6} dy={-4} color="var(--viz-3)" size={12}>
+                <Label x={-0.4} y={1.4} dx={6} dy={-4} color="var(--ink-2)" size={12}>
                   h₂ crease
                 </Label>
               </>
@@ -139,11 +157,11 @@ export default function XorFold() {
             <DraggablePoint
               x={probe[0]}
               y={probe[1]}
-              color="var(--viz-5)"
+              color="var(--surface)"
               r={7}
-              label="drag"
               onChange={(x, y) => setProbe([Math.max(-0.5, Math.min(1.5, Math.round(x * 20) / 20)), Math.max(-0.5, Math.min(1.5, Math.round(y * 20) / 20))])}
             />
+            <Probe at={probe} shape="ring" label="drag" />
           </Plot>
         </div>
         <div className={s.panel}>
@@ -193,7 +211,7 @@ export default function XorFold() {
                 </Label>
               </>
             )}
-            <Dots points={[{ x: ph[0], y: ph[1], color: 'var(--viz-5)', r: 6, shape: 'square' }]} />
+            <Probe at={ph} shape="square" />
           </Plot>
         </div>
       </div>

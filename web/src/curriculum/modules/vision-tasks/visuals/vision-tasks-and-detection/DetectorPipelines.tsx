@@ -46,9 +46,10 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         output: <>about 300 to 2,000 candidate boxes (“proposals”) likely to contain some object</>,
         what: (
           <>
-            At every feature-map cell sit k = 9 <b>anchor boxes</b> (3 sizes × 3 shapes, dashed). For each anchor a small network predicts an
-            “objectness” score and 4 numbers that nudge the anchor into a better box. The highest-scoring boxes become proposals. The original R-CNN got its
-            proposals from a slow, hand-made algorithm (selective search) instead.
+            At every feature-map cell (the faint grid) sit k = 9 <b>anchor boxes</b>: 3 sizes × 3 shapes. Only one cell&rsquo;s anchors are drawn
+            (dashed); every dot is another cell with its own 9. For each anchor a small network predicts an “objectness” score and 4 numbers that nudge
+            the anchor into a better box. The highest-scoring boxes become proposals (thin black): notice how the wide anchor, nudged a little, becomes the
+            car&rsquo;s proposal. The original R-CNN got its proposals from a slow, hand-made algorithm (selective search) instead.
           </>
         ),
       },
@@ -61,7 +62,7 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         what: (
           <>
             <b>RoI (region of interest) pooling</b> cuts each proposal&rsquo;s features out of the shared map and resizes them to a fixed 7 × 7 grid; the head
-            then classifies them. Grey boxes were judged “background”.{' '}
+            then classifies them. Grey dashed boxes were judged “background”; the two leftover duplicates are removed in the next stage.{' '}
             <b>Mask R-CNN</b> adds a third output here, a small mask for each box, which gives instance segmentation.
           </>
         ),
@@ -99,8 +100,8 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
           <>
             The cell that contains an object&rsquo;s <b>centre</b> is responsible for it. Each cell predicts B boxes, each as (x, y, w, h, confidence), plus C class
             probabilities, so (in the original YOLO) S × S × (5B + C) numbers. Later YOLO versions give every anchor box its own class scores:
-            S × S × B × (5 + C). <b>SSD</b> works like the later versions but predicts from several feature maps of different sizes, using preset default
-            (anchor) boxes, to catch both small and large objects.
+            S × S × B × (5 + C). <b>SSD</b> also uses preset default (anchor) boxes, but each gets 4 offsets and C + 1 class scores (“background” replaces
+            the confidence), and it predicts from several feature maps of different sizes to catch both small and large objects.
           </>
         ),
       },
@@ -135,8 +136,8 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         output: <>the same number of vectors, each now informed by the whole image</>,
         what: (
           <>
-            Self-attention (taught in the attention-and-transformers module) lets every cell look at every other cell (lines), so the model can reason
-            about the whole scene at once.
+            Self-attention (taught in the attention-and-transformers module) lets every cell look at every other cell (the lines show this for one
+            highlighted cell), so the model can reason about the whole scene at once.
           </>
         ),
       },
@@ -161,8 +162,8 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
         output: <>the non-∅ slots: one box per object</>,
         what: (
           <>
-            Because one-to-one matching during training penalises duplicate predictions, DETR learns to output one box per object and needs{' '}
-            <b>no anchors and no NMS</b>.
+            One-to-one matching during training penalises duplicate predictions, so DETR learns to output one box per object and needs <b>no NMS</b>.
+            Each query predicts its box directly, not as an adjustment of a preset box, so it needs <b>no anchors</b> either.
           </>
         ),
       },
@@ -178,21 +179,29 @@ const C_CLASSES = 20
 const COL = { person: 'var(--viz-4)', car: 'var(--viz-2)' }
 const centre = (b: number[]) => [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] as const
 
-// proposals for the Faster R-CNN view: the earlier NMS candidates plus some background boxes
+// the RPN's top proposals: one per object, two duplicates (removed later by NMS) and two background boxes
 const PROPOSALS: { b: [number, number, number, number]; cls: 'person' | 'car' | 'bg' }[] = [
   { b: [22, 14, 40, 60], cls: 'person' },
-  { b: [20, 12, 39, 58], cls: 'person' },
   { b: [29, 15, 47, 61], cls: 'person' },
-  { b: [27, 19, 46, 63], cls: 'person' },
+  { b: [20, 12, 39, 58], cls: 'person' },
   { b: [58, 34, 94, 60], cls: 'car' },
   { b: [55, 32, 90, 58], cls: 'car' },
-  { b: [61, 36, 96, 62], cls: 'car' },
   { b: [3, 33, 16, 58], cls: 'bg' },
   { b: [46, 4, 70, 22], cls: 'bg' },
-  { b: [70, 8, 98, 30], cls: 'bg' },
-  { b: [40, 40, 62, 66], cls: 'bg' },
-  { b: [5, 2, 28, 16], cls: 'bg' },
 ]
+/** the backbone's feature map in the two-stage and DETR views: 10 × 7 cells of 10 × 10 image units */
+const FCOLS = 10
+const FROWS = 7
+/** the one feature-map cell whose 9 anchors are drawn (on the car, column 7, row 4) */
+const ANCHOR_CELL = [7, 4] as const
+
+function Swatch({ stroke, dash, fill = 'none', w = 1.6 }: { stroke: string; dash?: string; fill?: string; w?: number }) {
+  return (
+    <svg width={20} height={12} aria-hidden="true" style={{ flex: 'none' }}>
+      <rect x={1.5} y={1.5} width={17} height={9} rx={1} style={{ fill, stroke, strokeWidth: w, strokeDasharray: dash }} />
+    </svg>
+  )
+}
 
 function Overlay({ mode, S, family }: { mode: Mode; S: number; family: Family }) {
   const box = (b: number[], stroke: string, key: string | number, dash?: string, w = 0.9, fill = 'none') => (
@@ -211,8 +220,8 @@ function Overlay({ mode, S, family }: { mode: Mode; S: number; family: Family })
     )
   }
   if (mode === 'features' || mode === 'attention') {
-    const cols = family === 'yolo' ? 7 : 10
-    const rows = family === 'yolo' ? 7 : 7
+    const cols = family === 'yolo' ? 7 : FCOLS
+    const rows = FROWS
     const cw = DW / cols
     const ch = DH / rows
     const lines: ReactNode[] = []
@@ -239,20 +248,34 @@ function Overlay({ mode, S, family }: { mode: Mode; S: number; family: Family })
     )
   }
   if (mode === 'anchors') {
-    const [cx, cy] = [31, 37]
+    const cw = DW / FCOLS
+    const ch = DH / FROWS
+    const [ac, ar] = ANCHOR_CELL
+    const [cx, cy] = [(ac + 0.5) * cw, (ar + 0.5) * ch]
+    const grid: ReactNode[] = []
+    for (let i = 1; i < FCOLS; i++) grid.push(<line key={`v${i}`} x1={i * cw} x2={i * cw} y1={0} y2={DH} style={{ stroke: 'var(--viz-ink)', strokeWidth: 0.25, opacity: 0.3 }} />)
+    for (let j = 1; j < FROWS; j++) grid.push(<line key={`h${j}`} y1={j * ch} y2={j * ch} x1={0} x2={DW} style={{ stroke: 'var(--viz-ink)', strokeWidth: 0.25, opacity: 0.3 }} />)
+    const dots: ReactNode[] = []
+    for (let c = 0; c < FCOLS; c++)
+      for (let r = 0; r < FROWS; r++)
+        if (c !== ac || r !== ar) dots.push(<circle key={`d${c}-${r}`} cx={(c + 0.5) * cw} cy={(r + 0.5) * ch} r={0.7} style={{ fill: 'var(--accent)', opacity: 0.7 }} />)
     const anchors: ReactNode[] = []
-    ;[14, 26, 40].forEach((s, i) =>
-      [0.5, 1, 2].forEach((r, j) => {
-        const w = s * Math.sqrt(r)
-        const h = s / Math.sqrt(r)
-        anchors.push(box([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], 'var(--accent)', `an${i}${j}`, '1.6 1.2', 0.55))
+    ;[12, 22, 34].forEach((sz, i) =>
+      [0.5, 1, 2].forEach((ratio, j) => {
+        const w = sz * Math.sqrt(ratio)
+        const h = sz / Math.sqrt(ratio)
+        anchors.push(box([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], 'var(--accent)', `an${i}${j}`, '1.6 1.2', 0.6))
       }),
     )
     return (
       <g>
-        {PROPOSALS.map((p, i) => box(p.b, 'var(--viz-ink)', `p${i}`, undefined, 0.45))}
+        <rect x={0} y={0} width={DW} height={DH} style={{ fill: 'var(--surface)', opacity: 0.25 }} />
+        {grid}
+        <rect x={ac * cw} y={ar * ch} width={cw} height={ch} style={{ fill: 'color-mix(in srgb, var(--accent) 35%, transparent)', stroke: 'var(--accent)', strokeWidth: 0.6 }} />
+        {dots}
+        {PROPOSALS.map((p, i) => box(p.b, 'var(--viz-ink)', `p${i}`, undefined, 0.5))}
         {anchors}
-        <circle cx={cx} cy={cy} r={1.2} style={{ fill: 'var(--accent)' }} />
+        <circle cx={cx} cy={cy} r={2} style={{ fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 0.7 }} />
       </g>
     )
   }
@@ -378,6 +401,35 @@ export default function DetectorPipelines() {
         <DetScene />
         <Overlay mode={stage.mode} S={S} family={family} />
       </svg>
+      {stage.mode === 'anchors' && (
+        <div className={css.legend}>
+          <span>
+            <Swatch stroke="var(--accent)" dash="3 2" /> the 9 anchors at ONE cell (filled)
+          </span>
+          <span>
+            <svg width={12} height={12} aria-hidden="true">
+              <circle cx={6} cy={6} r={2.5} style={{ fill: 'var(--accent)' }} />
+            </svg>
+            every other cell, each with its own 9
+          </span>
+          <span>
+            <Swatch stroke="var(--viz-ink)" w={1.1} /> top proposals
+          </span>
+        </div>
+      )}
+      {stage.mode === 'classified' && (
+        <div className={css.legend}>
+          <span>
+            <Swatch stroke={COL.person} /> person
+          </span>
+          <span>
+            <Swatch stroke={COL.car} /> car
+          </span>
+          <span>
+            <Swatch stroke="var(--viz-muted)" dash="3 2" /> background (dropped)
+          </span>
+        </div>
+      )}
       {stage.mode === 'grid' && (
         <Segmented label="Grid size S" value={S} onChange={setS} options={GRIDS.map((g) => ({ value: g, label: `${g} × ${g}` }))} />
       )}

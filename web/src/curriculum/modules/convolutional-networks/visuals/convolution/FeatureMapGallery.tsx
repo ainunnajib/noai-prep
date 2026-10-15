@@ -12,7 +12,8 @@ import s from './conv.module.css'
 */
 
 const N = 28
-// within ±2 pixels no ink reaches the border, so every map (and its peak) shifts exactly
+// The ink spans rows and columns 4 to 23 of the 28, so within ±2 pixels every response stays
+// inside the 26 × 26 valid map: every map (and its peak) shifts exactly (checked for all six filters).
 const MAX_SHIFT = 2
 
 interface Filt {
@@ -41,15 +42,23 @@ function scene(dx: number, dy: number): Grid {
       const v = y - dy
       let val = 0
       if (u >= 4 && u <= 13 && v >= 13 && v <= 23) val = 1 // house body
-      if (v >= 6 && v <= 12 && Math.abs(u - 8.5) <= (v - 5.5) * 0.85) val = 1 // roof
+      if (v >= 6 && v <= 12 && Math.abs(u - 8.5) <= Math.min(4.5, (v - 5.5) * 0.85)) val = 1 // roof (no overhang)
       if (u >= 7 && u <= 9 && v >= 18 && v <= 23) val = 0 // door
       if (u >= 11 && u <= 12 && v >= 15 && v <= 16) val = 0 // window
-      if ((u - 20.5) ** 2 + (v - 7.5) ** 2 <= 12.5) val = 1 // sun
+      if ((u - 19.5) ** 2 + (v - 7.5) ** 2 <= 12.5) val = 1 // sun
       row.push(val)
     }
     img.push(row)
   }
   return img
+}
+
+/** "not moved", "1 right", "2 left, 1 up", … */
+function shiftText([dx, dy]: [number, number]): string {
+  const parts: string[] = []
+  if (dx !== 0) parts.push(`${Math.abs(dx)} ${dx > 0 ? 'right' : 'left'}`)
+  if (dy !== 0) parts.push(`${Math.abs(dy)} ${dy > 0 ? 'down' : 'up'}`)
+  return parts.length ? parts.join(', ') : 'not moved'
 }
 
 function argmaxAbs(g: Grid): [number, number] {
@@ -75,11 +84,12 @@ export default function FeatureMapGallery() {
   const big = Math.max(110, Math.min(230, Math.floor((W - 24) / 2)))
 
   const img = useMemo(() => scene(shift[0], shift[1]), [shift])
-  const maps = useMemo(() => kernels.map((k, f) => conv2d(img, k, kernels[f] === FILTERS[f].w ? FILTERS[f].div : 1)), [img, kernels])
+  // an edited kernel keeps its preset's divisor (so an edited blur still divides by 9, as the label says)
+  const maps = useMemo(() => kernels.map((k, f) => conv2d(img, k, FILTERS[f].div)), [img, kernels])
   // colour scale per filter fixed from the unshifted picture, so shifting never rescales colours
   const scales = useMemo(() => {
     const base = scene(0, 0)
-    return kernels.map((k, f) => Math.max(1e-9, ...conv2d(base, k, kernels[f] === FILTERS[f].w ? FILTERS[f].div : 1).flat().map(Math.abs)))
+    return kernels.map((k, f) => Math.max(1e-9, ...conv2d(base, k, FILTERS[f].div).flat().map(Math.abs)))
   }, [kernels])
 
   const inputPix = useMemo(() => rgbaFrom(N, N, (x, y) => (img[y][x] ? [248, 248, 248] : [16, 18, 26])), [img])
@@ -100,7 +110,7 @@ export default function FeatureMapGallery() {
   const M = N - 2
   const peaks = maps.map(argmaxAbs)
   const edited = kernels[sel] !== FILTERS[sel].w
-  const div = edited ? 1 : FILTERS[sel].div
+  const div = FILTERS[sel].div
   const nudge = (dx: number, dy: number) => setShift(([a, b]) => [Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, a + dx)), Math.max(-MAX_SHIFT, Math.min(MAX_SHIFT, b + dy))])
   const edit = (a: number, b: number) =>
     setKernels((ks) =>
@@ -125,7 +135,7 @@ export default function FeatureMapGallery() {
       caption={
         <>
           <b>Try:</b> tap a map to see and edit its kernel, then nudge the picture with the arrows. <b>Notice:</b> every feature map moves by exactly the
-          same amount, and so does each map's strongest response (the yellow square).
+          same amount as the picture, and so does each map's strongest response (the yellow square).
         </>
       }
     >
@@ -133,7 +143,7 @@ export default function FeatureMapGallery() {
         <div className={s.row} style={{ gap: '0.8rem 1.2rem', alignItems: 'flex-start' }}>
           <div className={s.col} style={{ width: big }}>
             <span className={s.cap}>Input (28 × 28)</span>
-            <PixelCanvas w={N} h={N} pixels={inputPix} ariaLabel={`A picture of a house and a sun, shifted by ${shift[0]} right and ${shift[1]} down`} />
+            <PixelCanvas w={N} h={N} pixels={inputPix} ariaLabel={`A picture of a house and a sun, ${shift[0] === 0 && shift[1] === 0 ? 'not moved' : `moved ${shiftText(shift)}`}`} />
           </div>
           <div className={s.col} style={{ width: big }}>
             <span className={s.cap}>
@@ -181,7 +191,7 @@ export default function FeatureMapGallery() {
             </div>
           </div>
           <div className={s.col}>
-            <span className={s.capSmall}>kernel{div !== 1 ? ` (÷ ${div})` : ''}: tap to edit</span>
+            <span className={s.capSmall}>kernel{div !== 1 ? ` (÷ ${div})` : ''}: tap a weight to change it</span>
             <div className={s.mini} style={{ gridTemplateColumns: 'repeat(3, 30px)' }} role="group" aria-label="Kernel weights of the selected filter">
               {kernels[sel].flatMap((row, a) =>
                 row.map((v, b) => (
@@ -189,7 +199,7 @@ export default function FeatureMapGallery() {
                     key={`${a}${b}`}
                     type="button"
                     className={s.miniCell}
-                    style={{ width: 30, height: 30, background: v === 0 ? 'var(--surface-2)' : `color-mix(in srgb, ${v < 0 ? 'var(--viz-1)' : 'var(--viz-2)'} ${Math.min(70, 14 + 9 * Math.abs(v))}%, var(--surface))` }}
+                    style={{ width: 30, height: 30, background: v === 0 ? 'var(--surface-2)' : `color-mix(in srgb, ${v < 0 ? 'var(--viz-1)' : 'var(--viz-2)'} ${Math.min(50, 14 + 9 * Math.abs(v))}%, var(--surface))` }}
                     onClick={() => edit(a, b)}
                     aria-label={`weight ${fmtNum(v)}; tap to change`}
                   >
@@ -217,7 +227,7 @@ export default function FeatureMapGallery() {
       </div>
       <Readout
         items={[
-          ['picture moved by', `${shift[0]} right, ${shift[1]} down`],
+          ['picture moved', shiftText(shift)],
           [`strongest ${FILTERS[sel].name.toLowerCase()} response at`, `row ${peaks[sel][0]}, column ${peaks[sel][1]}`],
           ['weights in this filter', '9 (+ 1 bias), reused at all 676 positions'],
         ]}

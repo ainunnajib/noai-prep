@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Figure, Segmented, Plot, Grid, Axes, Path, Label, usePlot } from '../../../../../kit'
+import { Figure, Segmented, Plot, Grid, Axes, Path, Label, usePlot, useContainerWidth } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './tc.module.css'
 import { DivergingBars, ProbBar, SentenceInput } from './parts'
 import { VOCAB, EMB, EMB_W, EMB_B, TFIDF_B, TRAIN_POS, TRAIN_NEG } from './toyData'
@@ -146,20 +147,39 @@ export default function TextClassifierPipeline() {
   const res = mode === 'tfidf' ? tf : em
   const nonZero = tf.vec.filter((v) => v > 0).length
   const nKnown = toks.filter((t) => t.status === 'known').length
+  // wide figures put stage 2 (vectorise) and stage 3 (classify) side by side, so the input, vector and verdict fit on one screen
+  const [wrapRef, wrapW] = useContainerWidth<HTMLDivElement>(700)
+  const side = wrapW >= 640
+  const pos = res.p >= 0.5
 
   return (
     <Figure
       title="From a review to a prediction"
       caption={
-        <>
-          Pick an example or type your own hawker review, then switch the vectoriser. Both versions (a TF-IDF model and an averaged-embedding model) use the same three stages and a logistic regression trained on just{' '}
-          {TRAIN_POS.length + TRAIN_NEG.length} toy reviews. Notice how <b>TF-IDF</b> makes a long vector that is almost all zeros, while <b>averaged embeddings</b> squeeze any review into
-          one point on the map. Try <i>Not bad at all</i>: both get it wrong, because neither knows what "not" does to the next word.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              type a review or pick <i>Not bad at all</i>, then switch the vectoriser to <b>Averaged embeddings</b>.
+            </>
+          }
+          notice={
+            <>
+              TF-IDF makes a long vector of mostly zeros; averaged embeddings squeeze any review into one point. Both get <i>Not bad at all</i> wrong:
+              neither knows what “not” does to the next word.
+            </>
+          }
+          note={<>Both are logistic regressions trained on just {TRAIN_POS.length + TRAIN_NEG.length} toy reviews.</>}
+        />
       }
     >
-      <div className={s.wrap}>
+      <div className={s.wrap} ref={wrapRef}>
         <SentenceInput label="Review" value={text} onChange={setText} presets={PRESETS} />
+        <p className={s.resultRow} aria-live="polite">
+          <span className={`${s.resultChip} ${pos ? s.resultPos : s.resultNeg}`}>
+            Prediction: <b>{pos ? 'positive' : 'negative'}</b> · P(positive) {Math.round(res.p * 100)}%
+          </span>
+          <span className={s.resultMode}>with {mode === 'tfidf' ? 'TF-IDF' : 'averaged embeddings'}</span>
+        </p>
 
         <section className={s.stage} aria-label="Stage 1: tokenise">
           <div className={s.stageHead}>
@@ -182,6 +202,7 @@ export default function TextClassifierPipeline() {
           ↓
         </div>
 
+        <div className={side ? s.sideBySide : s.stack}>
         <section className={s.stage} aria-label="Stage 2: vectorise">
           <div className={s.stageHead}>
             <span className={s.stageNum}>2</span> Vectorise
@@ -235,9 +256,11 @@ export default function TextClassifierPipeline() {
             </>
           )}
         </section>
-        <div className={s.arrowDown} aria-hidden="true">
-          ↓
-        </div>
+        {!side && (
+          <div className={s.arrowDown} aria-hidden="true">
+            ↓
+          </div>
+        )}
 
         <section className={s.stage} aria-label="Stage 3: classify">
           <div className={s.stageHead}>
@@ -266,6 +289,7 @@ export default function TextClassifierPipeline() {
             {mode === 'emb' ? <> (score {signed(em.z)}: the diamond is on the {em.p >= 0.5 ? 'green' : 'red'} side of the dashed line)</> : null}.
           </p>
         </section>
+        </div>
       </div>
     </Figure>
   )

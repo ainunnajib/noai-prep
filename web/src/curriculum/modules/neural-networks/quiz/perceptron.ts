@@ -51,13 +51,13 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The perceptron convergence theorem says that if a separating line exists, the rule makes only a finite number of mistakes and then stops changing, whatever the learning rate or starting weights. Mistakes in every epoch forever therefore mean no separating line exists. A small $\\eta$ only changes the size of each nudge; it does not stop convergence on separable data.',
+      'The perceptron convergence theorem says that if a separating line exists, the rule makes only a finite number of mistakes and then stops changing, whatever the learning rate or starting weights. Mistakes that keep coming after 1,000 epochs therefore most likely mean no separating line exists (separable data with a tiny margin can take a long time, but would still stop eventually). A small $\\eta$ only changes the size of each nudge; it does not stop convergence on separable data.',
     difficulty: 'intermediate',
   },
   {
     id: 'neural-networks.perceptron.5',
     prompt: 'What does this code print, and which logic gate does this perceptron compute?',
-    code: 'import numpy as np\n\nX = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])\nw = np.array([1, 1])\nb = -0.5\nprint((X @ w + b > 0).astype(int))',
+    code: 'import numpy as np\n\nX = np.array([[0, 0], [0, 1],\n              [1, 0], [1, 1]])\nw = np.array([1, 1])\nb = -0.5\nprint((X @ w + b > 0).astype(int))',
     options: ['`[0 1 1 1]`, so it is an OR gate', '`[0 0 0 1]`, so it is an AND gate', '`[0 1 1 0]`, so it is an XOR gate', '`[1 1 1 0]`, so it is a NAND gate'],
     answer: 0,
     explanation:

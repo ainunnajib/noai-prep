@@ -138,8 +138,16 @@ export default function ResidualBlockFlow() {
                 <g>
                   <path d={`M${xs + 12},${ys.add - 4} L${xs + 12},${ys.x + 20}`} style={{ stroke: 'var(--viz-2)', strokeWidth: 3 }} />
                   <path d={`M${xs + 12},${ys.x + 14} l-5,9 l10,0 z`} style={{ fill: 'var(--viz-2)' }} />
-                  <text x={xs + 4} y={proj ? projY + 62 : (ys.x + ys.add) / 2} textAnchor="end" className="plot-label" style={{ fontSize: 13, fill: 'var(--viz-2)', fontWeight: 800 }}>
-                    {proj ? '× W (1×1)' : '× 1'}
+                  {/* with a projection the label sits on the arrow ABOVE the 1×1 box, so it is not read as part of the box */}
+                  <text
+                    x={xs + 4}
+                    y={proj ? (ys.x + 20 + projY) / 2 : (ys.x + ys.add) / 2}
+                    dy="0.35em"
+                    textAnchor="end"
+                    className="plot-label"
+                    style={{ fontSize: 13, fill: 'var(--viz-2)', fontWeight: 800, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}
+                  >
+                    {proj ? '↑ × W' : '↑ × 1'}
                   </text>
                 </g>
               )}
@@ -160,7 +168,8 @@ export default function ResidualBlockFlow() {
           {skip ? (
             proj ? (
               <>
-                Gradient into <M>x</M>: <M>{'\\frac{\\partial F}{\\partial x} + W_{1\\times1}'}</M>, still a short, cheap path that skips both 3×3 convs.
+                Gradient into <M>x</M>: <M>{'\\frac{\\partial F}{\\partial x} + W_{1\\times1}'}</M> (the orange arrow multiplies by the 1×1 conv&apos;s weights{' '}
+                <M>{'W_{1\\times1}'}</M>), still a short, cheap path that skips both 3×3 convs.
               </>
             ) : (
               <>
@@ -186,7 +195,7 @@ export default function ResidualBlockFlow() {
       <Readout
         items={[
           ['3×3 conv weights', `${nf(p1)} + ${nf(p2)}`],
-          ['BatchNorm', nf(pbn)],
+          ['BatchNorm (2 layers × a scale and a shift per channel)', nf(pbn)],
           ['projection', nf(pp)],
           ['block total', nf(total)],
         ]}

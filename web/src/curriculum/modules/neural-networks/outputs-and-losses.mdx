@@ -13,7 +13,7 @@ At a hawker centre, soup goes in a bowl with a lid, satay in a paper bag and a d
 
 ## Logits: what the last layer really outputs
 
-The output layer is an ordinary fully connected layer: it computes $\mathbf{z} = W\mathbf{h} + \mathbf{b}$ from the last hidden layer $\mathbf{h}$. Its raw outputs are called <Term def="The raw, unsquashed scores produced by a network's last layer, before any sigmoid or softmax. They can be any real number.">logits</Term>: any real numbers, positive or negative, with no particular range. The output layer together with whatever we do to its logits is often called the network's <Term def="The final part of a network that turns features into the answer for a particular task: the output layer, its activation, and the matching loss.">head</Term>.
+The output layer is an ordinary fully connected layer: it computes $\mathbf{z} = W\mathbf{h} + \mathbf{b}$ from the last hidden layer $\mathbf{h}$. Its raw outputs are called <Term def="The raw, unsquashed scores produced by a network's last layer, before any sigmoid or softmax. They can be any real number.">logits</Term>: any real numbers, positive or negative, with no particular range. The output layer together with whatever we do to its logits is often called the network's <Term def="The final part of a network that turns features into the answer for a particular task: the output layer and its activation (trained with a matching loss).">head</Term>.
 
 To turn logits into an answer we may squash them with one of two functions you met in the classification module:
 
@@ -109,7 +109,7 @@ Match the head to the answer: a **number** gets no activation and MSE (or MAE); 
 
 The two PyTorch classification losses, `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss`, take the **logits** and apply the softmax or sigmoid **inside** the loss, so the model should end with a plain `nn.Linear` layer. There are two good reasons.
 
-**1. Numerical stability.** In PyTorch's default 32-bit floats, $\sigma(20)$ rounds to exactly $1.0$, so a hand-made loss that needs $\ln(1 - p)$ ends up taking $\ln 0$. Computing the loss straight from the logit avoids that subtraction, using the identity $-\ln \sigma(z) = \ln(1 + e^{-z})$:
+**1. Numerical stability.** In PyTorch's default 32-bit floats, $\sigma(20)$ rounds to exactly $1.0$, so a hand-made loss that needs $\ln(1 - p)$ ends up taking $\ln 0$. Computing the loss straight from the logit avoids that subtraction, using the identities $-\ln \sigma(z) = \ln(1 + e^{-z})$ and, since $1 - \sigma(z) = \sigma(-z)$, $-\ln(1 - \sigma(z)) = \ln(1 + e^{z})$:
 
 ```python
 import torch
@@ -150,9 +150,11 @@ $$
 
 When you **do** want probabilities, for example to show "93% spam", apply `torch.sigmoid` or `torch.softmax` to the logits after the model. To pick the predicted class you do not even need that: softmax never changes which logit is largest, so `logits.argmax(dim=1)` gives the same answer.
 
+A classic way to get this wrong is to add your own softmax at the end of the model and then use `nn.CrossEntropyLoss`, which applies another one. Below, "push" means $\partial L / \partial z_\text{true}$, the slope that gradient descent follows: the more negative, the harder the true class's logit is pushed up.
+
 <DoubleSoftmax />
 
-Here "push" means $\partial L / \partial z_\text{true}$, the slope that gradient descent follows: the more negative, the harder the true class's logit is pushed up. Here is the same bug in code:
+Here is the same bug in code:
 
 ```python
 import torch
@@ -175,21 +177,28 @@ The model is already 94% sure of the right class, so the true loss is tiny (0.06
 
 <Mistake title="Softmax (or sigmoid) twice">
 
-Ending the model with `nn.Softmax` and then using `nn.CrossEntropyLoss`, or ending with `nn.Sigmoid` and then using `nn.BCEWithLogitsLoss`, squashes the scores twice. Nothing crashes, but training is slow and the loss stalls above zero. Keep the model's last layer as a plain `nn.Linear` and let the loss do the squashing.
+Ending the model with `nn.Softmax` and then using `nn.CrossEntropyLoss`, or ending with `nn.Sigmoid` and then using `nn.BCEWithLogitsLoss`, squashes the scores twice. Nothing crashes, but training is slow and the loss stalls above zero. With a sigmoid twice, the loss sees probabilities between 0.5 and 0.73, so a "no" example can never score below $\ln 2 \approx 0.69$, the coin-flip value. Keep the model's last layer as a plain `nn.Linear` and let the loss do the squashing.
 
 </Mistake>
 
 <Mistake title="Targets in the wrong shape or type">
 
-- `nn.CrossEntropyLoss` usually wants **class indices**: shape `(N,)`, dtype long, values 0 to $K - 1$. (It also accepts float probability rows of shape `(N, K)`, so float one-hot rows work, but the integer one-hot tensor from `F.one_hot` does not; indices are simplest.)
+- `nn.CrossEntropyLoss` wants **class indices**: one whole number from 0 to $K - 1$ per example.
 - `nn.BCEWithLogitsLoss` wants **float** 0/1 targets with exactly the same shape as the logits.
-- For regression, match the shapes too: predictions of shape `(N, 1)` against targets of shape `(N,)` give a quietly wrong loss with only a warning ([the PyTorch module shows why](#/learn/pytorch/devices-and-common-errors)).
+- For regression, the predictions and targets must have the same shape too.
+
+<Reveal label="PyTorch details">
+
+- The class indices have shape `(N,)` and dtype long. `CrossEntropyLoss` also accepts float probability rows of shape `(N, K)`, so float one-hot rows work, but the integer one-hot tensor from `F.one_hot` does not; indices are simplest.
+- Regression predictions of shape `(N, 1)` against targets of shape `(N,)` give a quietly wrong loss with only a warning ([the PyTorch module shows why](#/learn/pytorch/devices-and-common-errors)).
+
+</Reveal>
 
 </Mistake>
 
 <ExamTip>
 
-Remember the two equations `nn.CrossEntropyLoss` = log-softmax + negative log-likelihood, and `nn.BCEWithLogitsLoss` = sigmoid + binary cross-entropy (in one stable step). Questions often ask which layer to remove ("the softmax at the end of the model") or which loss to pick for multi-label data ("BCE with logits, not cross-entropy"). In the Final, a hand-written loss that takes `log` of a softmax or sigmoid is a classic source of `nan` or `inf`.
+Remember the two equations `nn.CrossEntropyLoss` = log-softmax + negative log-likelihood, and `nn.BCEWithLogitsLoss` = sigmoid + binary cross-entropy (in one stable step). Here log-softmax is $\ln$ of the softmax, and negative log-likelihood is $-\ln p_\text{true class}$, which is just our cross-entropy. Questions often ask which layer to remove ("the softmax at the end of the model") or which loss to pick for multi-label data ("BCE with logits, not cross-entropy"). In the Final, a hand-written loss that takes `log` of a softmax or sigmoid is a classic source of `nan` or `inf`.
 
 </ExamTip>
 
@@ -207,11 +216,11 @@ $$
 \frac{\partial L}{\partial z} = 2(p - y)\,\underbrace{p(1 - p)}_{\sigma'(z)}
 $$
 
-The squared-error push is multiplied by the sigmoid's slope $\sigma'(z) = p(1 - p)$, which is almost zero whenever the sigmoid is <Term def="A sigmoid or tanh is saturated when its input is far from 0: the output is pinned near its limit and its slope is nearly 0, so gradients through it are tiny.">saturated</Term>, that is, whenever the model is very sure. Take a model that is confidently **wrong**: $y = 1$ but $z = -6$, so $p \approx 0.0025$. Binary cross-entropy pushes with $p - 1 \approx -1.00$; squared error pushes with only $2(-0.9975)(0.0025)(0.9975) \approx -0.005$, about 200 times weaker. The more wrong the model, the less it learns: exactly backwards.
+The squared-error push is multiplied by the sigmoid's slope $\sigma'(z) = p(1 - p)$, which is almost zero whenever the sigmoid is <Term def="A sigmoid or tanh is saturated when its input is far from 0: the output is pinned near its limit and its slope is nearly 0, so gradients through it are tiny.">saturated</Term>, that is, whenever the model is very sure. Take a model that is confidently **wrong**: $y = 1$ but $z = -6$, so $p \approx 0.0025$. Binary cross-entropy pushes with $p - 1 \approx -1.00$; squared error pushes with only $2(-0.9975)(0.0025)(0.9975) \approx -0.005$, about 200 times weaker. The more wrong the model, the less it learns: exactly backwards. Mean absolute error on a sigmoid has the same problem: its push is $\pm p(1 - p)$, which also vanishes when the model is confidently wrong, and it ignores how wrong the prediction is.
 
 <SaturationRace />
 
-You may also meet **hinge loss**, $\max(0, 1 - yz)$ with labels $y \in \{-1, +1\}$: the loss of support vector machines. It works on the raw score $z$ and gives no probabilities, so for a sigmoid (probability) head binary cross-entropy is the standard choice.
+You may also meet **hinge loss**, $\max(0, 1 - yz)$ with labels $\pm 1$: the margin loss of support vector machines. It gives no probabilities, so for a sigmoid head binary cross-entropy is the standard choice.
 
 <PastPaperQuestion paper="prelim2026" n={262} />
 

@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react'
 import { Figure, Controls, Segmented, Readout, useNarrow } from '../../../../../kit'
 import { byWord, cosine } from './embData'
+import { TryNotice } from '../Caption'
 import s from './emb.module.css'
 
 /*
@@ -42,12 +43,19 @@ export default function OneHotVsDense() {
     <Figure
       title="Every one-hot word is equally different"
       caption={
-        <>
-          Each cell is the cosine similarity of two words. With <b>one-hot</b> vectors the table is the identity: a word matches itself (1) and
-          nothing else (0), so “king” is exactly as unlike “queen” as it is unlike “bus”, and every pair is the same distance <code>√2</code> apart.
-          Switch to <b>embeddings</b> and bright blocks appear (outlined): the four people words are similar to each other, and so are the two food
-          words and the two transport words, while words from different topics stay close to 0. Click any cell to see the two vectors.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              switch to <b>embeddings</b>, then click any cell to see the two vectors.
+            </>
+          }
+          notice={
+            <>
+              one-hot words match only themselves (1 on the diagonal, 0 elsewhere), so “king” is as unlike “queen” as “bus”. Embeddings light up blocks
+              of related words.
+            </>
+          }
+        />
       }
     >
       <Controls>

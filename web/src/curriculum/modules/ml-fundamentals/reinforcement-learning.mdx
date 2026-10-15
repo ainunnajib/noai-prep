@@ -139,7 +139,7 @@ The agent maximises exactly the reward you give it, nothing else. Set the pit's 
 
 ## Exploration versus exploitation
 
-Try this in the maze: switch exploration off and press Reset. The agent still learns a route, but it keeps repeating whatever first worked, so a third or more of the maze never gets a plan (watch "tiles with a plan" get stuck at around 9 of 15, however long you let it run). With exploration on, it keeps filling in the map, usually reaching 12 or more of the 15 tiles after a few hundred episodes, at the price of the occasional fall into the pit. Every learning agent faces this central dilemma of RL:
+Try this in the maze: switch exploration off and press Reset. The agent still learns a route, but it keeps repeating whatever first worked, so parts of the maze never get a plan (watch "tiles with a plan" get stuck, usually somewhere between 7 and 11 of 15, however long you let it run). With exploration on, it keeps filling in the map, usually reaching 12 or more of the 15 tiles after a few hundred episodes, at the price of the occasional fall into the pit. Every learning agent faces this central dilemma of RL:
 
 - <Term def="Choosing the action that currently looks best, to collect reward now.">Exploitation</Term>: do what currently looks best, to collect reward now.
 - <Term def="Trying an action that may not look best, to learn more about it; it may reveal something better.">Exploration</Term>: try something else, to learn whether it is better.
@@ -191,7 +191,7 @@ You need some exploration to discover the best option, but every exploring step 
 <QuickCheck
   id="ml-fundamentals.reinforcement-learning.qc2"
   q="A diner's estimate for every stall starts at 0. On day 1 they try chicken rice and score 6. With ε = 0, what happens next?"
-  options={['They try each of the other stalls once, then settle on the best one', 'They eat chicken rice every day, because 6 beats every other estimate of 0', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
+  options={['They try each of the other stalls once, then settle on the best one', 'They eat chicken rice every day: 6 beats every other estimate of 0', 'They pick a random stall each day, because one meal is too little data', 'They switch to another stall whenever a meal there scores below 6']}
   answer={1}
   explain="With ε = 0 the diner always exploits: chicken rice's estimate of 6 is higher than the untried stalls' 0, so they never try anything else, even though nasi lemak (average 8) is better. Trying each stall once is a different strategy; it needs exploration built in."
 />

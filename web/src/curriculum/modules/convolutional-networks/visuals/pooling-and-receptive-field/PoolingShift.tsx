@@ -16,6 +16,14 @@ const SPIKES = [
   { r: 5, c: 4, v: 6 },
 ]
 
+/** "not shifted", "1 right", "2 left, 1 up", … */
+function shiftText(dx: number, dy: number): string {
+  const parts: string[] = []
+  if (dx !== 0) parts.push(`${Math.abs(dx)} ${dx > 0 ? 'right' : 'left'}`)
+  if (dy !== 0) parts.push(`${Math.abs(dy)} ${dy > 0 ? 'down' : 'up'}`)
+  return parts.length ? `shifted ${parts.join(', ')}` : 'not shifted'
+}
+
 function mapFor(dx: number, dy: number): number[][] {
   const m = Array.from({ length: N }, () => Array(N).fill(0) as number[])
   for (const p of SPIKES) m[p.r + dy][p.c + dx] = p.v
@@ -61,14 +69,14 @@ export default function PoolingShift() {
       caption={
         <>
           <b>Try:</b> move the input one step right, then another. <b>Notice:</b> the feature map moves with every step, but the max-pooled map changes only
-          when a detection crosses a thick block border (red outlines); two steps move it exactly one cell.
+          when a detection crosses one of the thick grey block borders; pooled cells that changed get a red outline. Two steps move it exactly one cell.
         </>
       }
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
-        <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW} height={svgH} style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }} role="img" aria-label={`Feature map shifted by ${dx} right and ${dy} down, and its 2 by 2 pooled version; ${changedPooled} pooled cells changed`}>
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW} height={svgH} style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }} role="img" aria-label={`Feature map ${shiftText(dx, dy)}, and its 2 by 2 pooled version; ${changedPooled} pooled cells changed`}>
           <text x={inX + inW / 2} y={15} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontWeight: 700, fontSize: 13 }}>
-            Feature map (shifted {dx >= 0 ? '+' : '−'}{Math.abs(dx)} across, {dy >= 0 ? '+' : '−'}{Math.abs(dy)} down)
+            Feature map ({shiftText(dx, dy)})
           </text>
           <text x={outX + outW / 2} y={outY - 7} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontWeight: 700, fontSize: 13 }}>
             After 2×2 {kind === 'max' ? 'max' : 'average'} pooling

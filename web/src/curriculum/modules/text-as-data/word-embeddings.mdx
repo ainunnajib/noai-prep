@@ -2,6 +2,7 @@ import OneHotVsDense from './visuals/word-embeddings/OneHotVsDense'
 import EmbeddingSpace2D from './visuals/word-embeddings/EmbeddingSpace2D'
 import SkipGramWindow from './visuals/word-embeddings/SkipGramWindow'
 import EmbeddingLookup from './visuals/word-embeddings/EmbeddingLookup'
+import Word2VecNet from './visuals/word-embeddings/Word2VecNet'
 
 To TF-IDF, "chilli" and "spicy" are two unrelated columns: a search for one will never find the other. **Word embeddings** fix this by giving every word a short list of numbers chosen so that words with similar meanings get similar lists. This one idea sits inside every modern language model, from search engines to ChatGPT, and the same trick works for images and sounds too.
 
@@ -26,7 +27,7 @@ An <Term def="A short, dense list of real numbers that represents a word (or a t
 
 <EmbeddingSpace2D />
 
-To measure how similar two embeddings are, use <Hl>cosine similarity</Hl>, the same score you used to rank documents: close to 1 means the vectors point the same way (similar meaning), close to 0 means unrelated.
+To measure how similar two embeddings are, use <Hl>cosine similarity</Hl>, the same score you used to rank documents: close to 1 means the vectors point the same way (similar meaning), close to 0 means unrelated. Unlike TF-IDF weights, embedding entries can be negative, so here the cosine can be anything from −1 (opposite directions) to 1.
 
 <KeyIdea>
 
@@ -64,6 +65,31 @@ where $\mathbf{v}_{\text{king}}$ is the embedding of "king" and so on. In words:
   explain="france is to paris as japan is to ?, so compute paris − france + japan $= [2 - 1 + 4,\; 5 - 4 + 1] = [5, 2]$. $[3, 0]$ subtracts the wrong way (france − paris + japan), $[7, 10]$ adds all three, and $[-1, -1]$ is just france − paris."
 />
 
+Here is the analogy arithmetic in NumPy. Run it, then add your own words and vectors.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+# tiny 3-number "embeddings" (real ones have hundreds of numbers)
+vecs = {
+    "king":  np.array([0.9, 0.8, 0.1]),
+    "queen": np.array([0.9, 0.1, 0.8]),
+    "man":   np.array([0.1, 0.9, 0.2]),
+    "woman": np.array([0.1, 0.2, 0.9]),
+    "laksa": np.array([0.0, 0.3, 0.3]),
+}
+
+def cosine(a, b):
+    return a @ b / (np.linalg.norm(a) * np.linalg.norm(b))
+
+print("cos(king, queen) =", round(cosine(vecs["king"], vecs["queen"]), 3))
+
+# man is to king as woman is to ?
+target = vecs["king"] - vecs["man"] + vecs["woman"]
+print("king - man + woman =", target)
+for word, v in vecs.items():
+    if word not in ("king", "man", "woman"):   # never answer with an input
+        print(f"  {word:6} {cosine(target, v):.3f}")`} />
+
 <Mistake title="Reading meaning into single numbers">
 
 The toy vectors above have readable entries, but real embedding dimensions do not mean "royalty" or "gender": the meaning is spread across many numbers, and only **directions and distances** carry it. Analogies also work only approximately, and they copy the biases in the training text (for example, linking jobs with one gender).
@@ -87,11 +113,7 @@ The labels come from the text itself, so no human annotation is needed: this is 
 
 The model is a tiny network with **no activation function** in the middle. The centre word goes in as a one-hot vector, a weight matrix turns it into a $d$-number vector (its embedding), and a second matrix gives a score for every word in the vocabulary:
 
-<Figure title="The Word2Vec network" caption={<>The input is the one-hot vector of the centre word (here the third word of a 6-word vocabulary, shaded). The weights from the inputs to the middle layer form a matrix <i>W</i> of shape <i>V</i> × <i>d</i>. Only one input is 1, so the middle layer is simply <b>that word's row of <i>W</i></b>, which is its embedding. The weights from the middle layer to the outputs form a second matrix <i>W′</i> of shape <i>d</i> × <i>V</i>, which turns the embedding into one score per vocabulary word.</>}>
-
-<NeuralNet layers={[6, 3, 6]} layerLabels={['one-hot in (V)', 'embedding (d)', 'scores (V)']} nodeLabels={[['0', '0', '1', '0', '0', '0']]} activations={[[0, 0, 1, 0, 0, 0]]} ariaLabel="Word2Vec skip-gram network: a one-hot input of size V with the third word switched on, a hidden layer of size d, and V output scores" />
-
-</Figure>
+<Word2VecNet />
 
 For a centre word $c$ with vector $\mathbf{v}_c$, the probability that word $o$ appears in its context is a softmax over dot products:
 
@@ -99,7 +121,7 @@ $$
 P(o \mid c) = \frac{\exp(\mathbf{u}_o \cdot \mathbf{v}_c)}{\sum_{w=1}^{V} \exp(\mathbf{u}_w \cdot \mathbf{v}_c)}
 $$
 
-Here $\mathbf{u}_o$ is the "output" vector of word $o$, the dot product $\mathbf{u}_o \cdot \mathbf{v}_c$ is a score that is large when the two vectors point the same way, and dividing by the sum over all $V$ words turns the scores into probabilities. Training nudges $\mathbf{v}_c$ towards the vectors of words that really appear near $c$, so words with similar neighbours drift to similar places. (Summing over 50,000+ words for every pair is slow, so real Word2Vec uses a shortcut called **negative sampling**: it compares the true context word with a handful of random words instead.) After training, the rows of the first weight matrix are the embeddings.
+Here $\mathbf{v}_c$ is row $c$ of $W$ and $\mathbf{u}_o$, the "output" vector of word $o$, is column $o$ of $W'$. The dot product $\mathbf{u}_o \cdot \mathbf{v}_c$ is a score that is large when the two vectors point the same way, and dividing by the sum over all $V$ words turns the scores into probabilities. Training nudges $\mathbf{v}_c$ towards the *output* vectors $\mathbf{u}_o$ of words that really appear near $c$ (and away from those of other words), so words with similar neighbours drift to similar places. (Summing over 50,000+ words for every pair is slow, so real Word2Vec uses a shortcut called **negative sampling**: it compares the true context word with a handful of random words instead.) After training, the rows of the first weight matrix are the embeddings.
 
 <QuickCheck
   q="A 5-word sentence is turned into skip-gram pairs with a window of 2 (up to 2 words on each side). How many (centre, context) pairs does it give?"
@@ -132,7 +154,7 @@ This is exactly the same as multiplying one-hot vectors by $E$. If $\mathbf{x}$ 
 
 <EmbeddingLookup />
 
-The rows start as random numbers and are **learned by backpropagation** like any other weights: only the rows of tokens that appear in a batch get a non-zero gradient. You can also start from pretrained vectors (Word2Vec, GloVe) and fine-tune them. The table is often big: BERT-base's token-embedding table is $30{,}522 \times 768 \approx 23.4$ million numbers. Setting `padding_idx` keeps the `[PAD]` row at zero, as in the tokenisation lesson.
+The rows start as random numbers and are **learned by backpropagation** like any other weights: only the rows of tokens that appear in a batch get a non-zero gradient. You can also start from pretrained vectors (Word2Vec, GloVe) and fine-tune them. The table is often big: BERT-base's token-embedding table is $30{,}522 \times 768 \approx 23.4$ million numbers. Setting `padding_idx=0` starts the `[PAD]` row (id 0 in the tokenisation lesson) at zero and leaves it out of the gradient updates, so it stays zero.
 
 ```python
 import torch
@@ -165,31 +187,6 @@ True
 True
 30
 ```
-
-Here is the analogy arithmetic in NumPy. Run it, then add your own words and vectors.
-
-<PyRunner packages={['numpy']} code={`import numpy as np
-
-# tiny 3-number "embeddings" (real ones have hundreds of numbers)
-vecs = {
-    "king":  np.array([0.9, 0.8, 0.1]),
-    "queen": np.array([0.9, 0.1, 0.8]),
-    "man":   np.array([0.1, 0.9, 0.2]),
-    "woman": np.array([0.1, 0.2, 0.9]),
-    "laksa": np.array([0.0, 0.3, 0.3]),
-}
-
-def cosine(a, b):
-    return a @ b / (np.linalg.norm(a) * np.linalg.norm(b))
-
-print("cos(king, queen) =", round(cosine(vecs["king"], vecs["queen"]), 3))
-
-# man is to king as woman is to ?
-target = vecs["king"] - vecs["man"] + vecs["woman"]
-print("king - man + woman =", target)
-for word, v in vecs.items():
-    if word not in ("king", "man", "woman"):   # never answer with an input
-        print(f"  {word:6} {cosine(target, v):.3f}")`} />
 
 ## Beyond single words
 

@@ -18,7 +18,7 @@ In ordinary <Term def="Learning from examples that each come with a correct answ
 
 Nobody cares how well the network predicts rotations. The point is what it has to learn on the way: to tell which way is up, it must recognise skies, paws and wheels. After this **pretraining**, we keep the network's body (the <Term def="The part of a network that turns an input into a vector of features (an embedding). After self-supervised pretraining it is reused for other tasks.">encoder</Term>) and reuse it for the task we actually care about, the <Term def="The real task you want to solve after pretraining, usually with a small labelled dataset (e.g. classifying 10 kinds of hawker food).">downstream task</Term>. There are two common ways to reuse it:
 
-- a <Term def="An evaluation in which the pretrained encoder is frozen and only a single linear layer is trained on its features with labels. High accuracy means the features already separate the classes.">linear probe</Term>: freeze the encoder and train only one linear layer on top, using a few labels;
+- a <Term def="An evaluation in which the pretrained encoder is frozen and only a single linear layer is trained on its features with labels. High accuracy means the features already separate the classes.">linear probe</Term>: freeze the encoder and train only one linear layer on top, using the labelled training data;
 - **fine-tuning**: train the whole network a little further on the labelled data, starting from the pretrained weights.
 
 You have already met self-supervision in language: GPT predicts the next word, BERT fills in hidden words, and word2vec predicts a word's neighbours. All three learn from raw text with no human labels. For images, early pretext tasks like rotation and jigsaw worked, but the features they learned were tied to those particular tricks. Two families now dominate: **contrastive learning** and **masked image modelling**.
@@ -73,7 +73,8 @@ $$
 
 - $\operatorname{sim}(\mathbf{u}, \mathbf{v}) = \dfrac{\mathbf{u} \cdot \mathbf{v}}{\lVert \mathbf{u} \rVert \, \lVert \mathbf{v} \rVert}$ is the <Term def="The dot product of two vectors divided by their lengths: the cosine of the angle between them. 1 means same direction, 0 means at right angles, −1 means opposite.">cosine similarity</Term>, between $-1$ and $1$;
 - $\tau$ (tau) is the <Term def="A positive number that divides the similarities before the softmax. Small values make the softmax sharper (one candidate takes almost all the probability); large values make it flatter.">temperature</Term>;
-- the sum on the bottom runs over all $2N - 1$ other views: the 1 positive plus $2N - 2$ negatives.
+- the sum on the bottom runs over all $2N - 1$ other views: the 1 positive plus $2N - 2$ negatives;
+- $\exp(x)$ means $e^x$, and $\log$ here is the natural log, $\ln$ (as in the worked example below).
 
 In words: turn the similarities into a softmax over "who is my partner?", and take minus the log of the probability given to the true partner. It is ordinary cross-entropy in which the "correct class" is the partner. The loss is near 0 when the partner is by far the most similar view, and large when some negative is closer. The total loss averages $\ell_i$ over all $2N$ views.
 
@@ -97,7 +98,7 @@ Contrastive learning pulls the two augmented views of the same image together an
     $\dfrac{4.95}{4.95 + 1 + 0.30} = \dfrac{4.95}{6.25} \approx 0.79$.
   </Step>
   <Step title="Loss for view a">
-    $\ell_{\mathbf{a}} = -\ln 0.79 \approx 0.23$. To lower it, training moves $\mathbf{a}'$ closer to $\mathbf{a}$ and pushes $\mathbf{b}'$ further away.
+    $\ell_{\mathbf{a}} = -\ln 0.79 \approx 0.23$. To lower it, training moves $\mathbf{a}'$ closer to $\mathbf{a}$ and pushes the negatives $\mathbf{b}$ and $\mathbf{b}'$ away, $\mathbf{b}$ more strongly (about 3 times) because it is the more similar, harder negative: its probability is $1/6.25 \approx 0.16$ against $0.30/6.25 \approx 0.05$ for $\mathbf{b}'$.
   </Step>
 </Steps>
 
@@ -114,13 +115,11 @@ Contrastive learning needs **many negatives** to work well, because "be differen
 
 <Mistake title="A positive pair is NOT 'two pictures of the same class'">
 
-The model never knows classes. A positive pair is two augmented views of **one and the same photo**. Two *different* cat photos in the same batch count as a negative pair, even though both are cats. This sounds wrong, but with thousands of classes and random batches it rarely matters, and the encoder still learns that cats resemble cats. (Using labels to choose positives is a different, supervised method.)
+The model never knows classes. A positive pair is two augmented views of **one and the same photo**. Two *different* cat photos in the same batch count as a negative pair, even though both are cats. This sounds wrong, but it rarely matters: on ImageNet (1,000 classes) with SimCLR's batch of 4,096 images, only about 8 of a view's 8,190 negatives (0.1%) come from the same class, and the encoder still learns that cats resemble cats. (Using labels to choose positives is a different, supervised method.)
 
 </Mistake>
 
-The same idea powers CLIP, the next lesson, where a positive pair is a photo and its caption. NOAI asks about it in exactly these words:
-
-<PastPaperQuestion paper="prelim2026" n={248} />
+The same idea powers CLIP, the next lesson, where a positive pair is a photo and its caption.
 
 ## Masked image modelling: fill in the blanks
 
@@ -176,16 +175,19 @@ import torch
 import torch.nn.functional as F
 
 def nt_xent(z, tau=0.5):
-    """z has shape (2N, d); rows 2k and 2k+1 are the two views of image k."""
-    z = F.normalize(z, dim=1)                          # length 1, so dot product = cosine
-    sim = z @ z.T / tau                                # (2N, 2N) similarities / tau
+    """z: (2N, d); rows 2k and 2k+1 are the views of image k."""
+    # length 1, so a dot product is a cosine similarity
+    z = F.normalize(z, dim=1)
+    sim = z @ z.T / tau                     # (2N, 2N)
+    # a view is never its own partner: set the diagonal to -inf
     self_mask = torch.eye(len(z), dtype=torch.bool)
-    sim = sim.masked_fill(self_mask, float('-inf'))    # a view is never its own partner
-    partner = torch.arange(len(z)) ^ 1                 # 0<->1, 2<->3, ...
-    return F.cross_entropy(sim, partner, reduction='none')  # one loss per view
+    sim = sim.masked_fill(self_mask, float('-inf'))
+    partner = torch.arange(len(z)) ^ 1      # 0<->1, 2<->3, ...
+    # one loss per view
+    return F.cross_entropy(sim, partner, reduction='none')
 
-z = torch.tensor([[1.0, 0.0], [0.8, 0.6],     # cat: view 1, view 2
-                  [0.0, 1.0], [-0.6, 0.8]])   # car: view 1, view 2
+z = torch.tensor([[1.0, 0.0], [0.8, 0.6],     # cat: views 1, 2
+                  [0.0, 1.0], [-0.6, 0.8]])   # car: views 1, 2
 losses = nt_xent(z)
 print(losses)
 print(losses.mean())
@@ -200,11 +202,13 @@ The first number is the $0.23$ we found by hand. Setting the diagonal to $-\inft
 
 ```python
 torch.manual_seed(0)
-x = torch.randn(1, 196, 768)                   # the 196 patch tokens of one image
-n_keep = int(196 * (1 - 0.75))                 # keep 25% of them
-noise = torch.rand(1, 196)                     # a random number per patch
-keep = noise.argsort(dim=1)[:, :n_keep]        # the patches with the 49 smallest numbers
-visible = torch.gather(x, 1, keep.unsqueeze(-1).expand(-1, -1, 768))
+x = torch.randn(1, 196, 768)     # 196 patch tokens of one image
+n_keep = int(196 * (1 - 0.75))   # keep 25% of them
+noise = torch.rand(1, 196)       # a random number per patch
+# keep the patches with the 49 smallest numbers
+keep = noise.argsort(dim=1)[:, :n_keep]
+idx = keep.unsqueeze(-1).expand(-1, -1, 768)
+visible = torch.gather(x, 1, idx)
 print(n_keep, visible.shape)
 ```
 

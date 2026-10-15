@@ -29,10 +29,14 @@ export default function StackVsBig() {
   // layout: stack row and big-kernel row, each left to right
   const arrowW = 26
   const cellsAcross = sizes.reduce((a, b) => a + b, 0)
-  const cs = Math.max(13, Math.min(30, Math.floor((Math.min(width, 640) - arrowW * L - 4) / cellsAcross)))
+  const margin = 16
+  const cs = Math.max(13, Math.min(30, Math.floor((Math.min(width, 640) - arrowW * L - 4 - margin) / cellsAcross)))
   const gridH = view * cs
   const stackW = cellsAcross * cs + arrowW * L
-  const svgW = Math.max(stackW, view * cs + arrowW + cs) + 40 // side margin for labels
+  const svgW = Math.max(stackW, view * cs + arrowW + cs) + margin
+  // if the drawing still has to shrink to fit (very narrow phones), enlarge the text to match,
+  // so labels never render below their nominal size
+  const fz = (px: number) => px / Math.min(1, width / svgW)
   const titleH = 20
   const rowA = titleH // stacked row top
   const rowB = rowA + gridH + titleH + 22 // big-kernel row top
@@ -65,14 +69,14 @@ export default function StackVsBig() {
         )
       }
     grids.push(
-      <text key={`t${l}`} x={x + (n * cs) / 2} y={rowA + gridH + 15} textAnchor="middle" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink-2)' }}>
+      <text key={`t${l}`} x={x + (n * cs) / 2} y={rowA + gridH + 15} textAnchor="middle" style={{ fontSize: fz(12), fontWeight: 700, fill: 'var(--ink-2)' }}>
         {l === 0 ? `input ${n}×${n}` : l === L ? 'out' : `${n}×${n}`}
       </text>,
     )
     x += n * cs
     if (l < L) {
       grids.push(
-        <text key={`a${l}`} x={x + arrowW / 2} y={rowA + gridH / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--viz-1)' }}>
+        <text key={`a${l}`} x={x + arrowW / 2} y={rowA + gridH / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: fz(12), fontWeight: 700, fill: 'var(--viz-1)' }}>
           3×3
         </text>,
       )
@@ -88,7 +92,7 @@ export default function StackVsBig() {
   const ox = bx + view * cs + arrowW
   grids.push(<rect key="bo" x={ox + 1} y={rowB + (gridH - cs) / 2 + 1} width={cs - 2} height={cs - 2} rx={3} style={{ fill: 'var(--viz-3)' }} />)
   grids.push(
-    <text key="bl" x={bx + view * cs + arrowW / 2} y={rowB + gridH / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--viz-3)' }}>
+    <text key="bl" x={bx + view * cs + arrowW / 2} y={rowB + gridH / 2} dy="0.35em" textAnchor="middle" style={{ fontSize: fz(12), fontWeight: 700, fill: 'var(--viz-3)' }}>
       {view}×{view}
     </text>,
   )
@@ -109,10 +113,10 @@ export default function StackVsBig() {
     >
       <div ref={wrapRef} style={{ width: '100%' }}>
         <svg viewBox={`0 0 ${svgW} ${svgH}`} width={svgW} height={svgH} style={{ display: 'block', margin: '0 auto', maxWidth: '100%', height: 'auto' }} role="img" aria-label={`${L} stacked 3 by 3 convolutions and one ${view} by ${view} convolution, both seeing a ${view} by ${view} input patch`}>
-          <text x={svgW / 2} y={13} textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: 'var(--viz-1)' }}>
+          <text x={svgW / 2} y={13} textAnchor="middle" style={{ fontSize: fz(13), fontWeight: 700, fill: 'var(--viz-1)' }}>
             {L} × (3×3 conv + ReLU)
           </text>
-          <text x={svgW / 2} y={rowB - 8} textAnchor="middle" style={{ fontSize: 13, fontWeight: 700, fill: 'var(--viz-3)' }}>
+          <text x={svgW / 2} y={rowB - 8} textAnchor="middle" style={{ fontSize: fz(13), fontWeight: 700, fill: 'var(--viz-3)' }}>
             1 × ({view}×{view} conv + ReLU)
           </text>
           {grids}

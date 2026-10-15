@@ -13,7 +13,16 @@ type Gate = 'add' | 'mul' | 'sq' | 'sig' | 'max'
 
 const GATES: Record<
   Gate,
-  { f: (a: number, b: number) => number; d: (a: number, b: number) => number; y: [number, number]; tex: string; dtex: (a: number, b: number) => string; two: boolean }
+  {
+    f: (a: number, b: number) => number
+    d: (a: number, b: number) => number
+    y: [number, number]
+    tex: string
+    dtex: (a: number, b: number) => string
+    /** a plain-words reading of the slope, shown under the maths */
+    note?: (a: number, b: number) => string
+    two: boolean
+  }
 > = {
   add: { f: (a, b) => a + b, d: () => 1, y: [-6.5, 6.5], tex: 'a + b', dtex: () => '1', two: true },
   mul: { f: (a, b) => a * b, d: (_a, b) => b, y: [-9.5, 9.5], tex: 'a \\times b', dtex: (_a, b) => `b = ${fmt(b)}`, two: true },
@@ -23,7 +32,11 @@ const GATES: Record<
     d: (a) => sig(a) * (1 - sig(a)),
     y: [-0.15, 1.15],
     tex: '\\sigma(a)',
-    dtex: (a) => `\\sigma(a)\\,(1-\\sigma(a)) = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} = ${fmt(sig(a) * (1 - sig(a)))}`,
+    dtex: (a) => {
+      // say "≈" when the two rounded factors do not multiply to exactly the rounded slope
+      const eq = fmt(Number(fmt(sig(a))) * Number(fmt(1 - sig(a)))) === fmt(sig(a) * (1 - sig(a))) ? '=' : '\\approx'
+      return `\\sigma(a)\\,(1-\\sigma(a)) = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} ${eq} ${fmt(sig(a) * (1 - sig(a)))}`
+    },
     two: false,
   },
   max: {
@@ -31,12 +44,13 @@ const GATES: Record<
     d: (a, b) => (a >= b ? 1 : 0),
     y: [-3.5, 3.5],
     tex: '\\max(a, b)',
-    dtex: (a, b) =>
+    dtex: (a, b) => (a >= b ? '1' : '0'),
+    note: (a, b) =>
       a === b
-        ? '1 \\text{ (a tie: the slope is 1 to the right and 0 to the left; frameworks pick one input, here a)}'
+        ? 'A tie: the slope is 1 just to the right of b and 0 just to the left. Conventions differ: PyTorch\'s max splits the gradient half-and-half, max-pooling picks one input. Here we pick a.'
         : a > b
-          ? '1 \\text{ (a is the larger, so it passes straight through)}'
-          : '0 \\text{ (b is larger, so a has no effect)}',
+          ? 'a is the larger input, so it passes straight through.'
+          : 'b is larger, so a has no effect on the output.',
     two: true,
   },
 }
@@ -129,6 +143,7 @@ export default function LocalSlopeNudge() {
         <div>
           Local derivative: <M>{`\\dfrac{\\partial\\,\\text{out}}{\\partial a} = ${G.dtex(a, b)}`}</M>
         </div>
+        {G.note && <div style={{ color: 'var(--ink-2)', fontSize: '0.9rem', lineHeight: 1.5 }}>{G.note(a, b)}</div>}
         <div style={{ color: 'var(--ink-2)' }}>
           Nudge check: moving <M>a</M> from <M>{fmt(a)}</M> to <M>{fmt(a + eps, 2)}</M> changes out by <M>{fmt(change, 5)}</M>, and{' '}
           <M>{`${fmt(change, 5)} \\div 0.01 \\approx ${sig3(change / eps)}`}</M>

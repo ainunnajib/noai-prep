@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Figure, Controls, Slider, Segmented, Button, Bars, Plot, Grid, Axes, Path, Arrow, usePlayer, PlayerControls, useAnimationFrame, usePlot, M } from '../../../../../kit'
-import { POS_C, NEG_C, W_C, clipLine, halfPlane, foot, num, tnum, tparen, step, type Pt } from './shared'
+import { Figure, Controls, Slider, Segmented, Button, Bars, Plot, Grid, Axes, Path, Arrow, Label, usePlayer, PlayerControls, useAnimationFrame, usePlot, M } from '../../../../../kit'
+import { POS_C, NEG_C, W_C, clipLine, halfPlane, placeWArrow, num, tnum, tparen, step, type Pt } from './shared'
 
 /*
   The perceptron learning rule, one example at a time. Every step checks one point:
@@ -147,12 +147,8 @@ export default function PerceptronLearn() {
   const ghost = f.updated ? clipLine(f.wBefore[0], f.wBefore[1], f.bBefore, XR, YR) : null
   const posPoly = halfPlane(sw1, sw2, sb, XR, YR, 1)
   const negPoly = halfPlane(sw1, sw2, sb, XR, YR, -1)
-  const wl = Math.hypot(sw1, sw2)
-  let arrow: [Pt, Pt] | null = null
-  if (wl > 1e-6) {
-    const ft = foot(wShown, sb, [0, 0.25])
-    if (ft[0] > XR[0] && ft[0] < XR[1] && ft[1] > YR[0] && ft[1] < YR[1]) arrow = [ft, [ft[0] + (1.1 * sw1) / wl, ft[1] + (1.1 * sw2) / wl]]
-  }
+  // the w arrow starts on the line and slides along it until it and its label are clear of the points and axes
+  const arrow = placeWArrow(wShown, sb, XR, YR, { len: 1.1, centre: [0, 0.25], avoid: data.map((d) => d.x), clear: 0.42, labelGap: 0.3, axes: true })
 
   // mistakes per pass, up to the current frame
   const perPass: number[] = []
@@ -219,7 +215,12 @@ export default function PerceptronLearn() {
         <Axes xLabel="x₁" yLabel="x₂" xTicks={8} yTicks={8} origin />
         {ghost && <Path points={ghost} color="var(--viz-muted)" width={2} dash="6 5" />}
         {line && <Path points={line} color="var(--viz-ink)" width={2.75} />}
-        {arrow && <Arrow from={arrow[0]} to={arrow[1]} color={W_C} width={2.75} label="w" />}
+        {arrow && <Arrow from={arrow.from} to={arrow.to} color={W_C} width={2.75} />}
+        {arrow && (
+          <Label x={arrow.label[0]} y={arrow.label[1]} dy={4} anchor="middle" color={W_C} weight={700}>
+            w
+          </Label>
+        )}
         <Points data={data} current={f.idx} w={f.w} b={f.b} />
       </Plot>
       <div style={{ width: '100%', minHeight: '5.2em', fontSize: '0.92rem', lineHeight: 1.55, color: 'var(--ink)' }}>{explain}</div>

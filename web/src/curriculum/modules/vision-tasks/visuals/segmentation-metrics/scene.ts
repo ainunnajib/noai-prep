@@ -9,7 +9,8 @@ export const N = 12
 
 // class colours are shared across the module (see ../classColours.ts)
 export const CLASSES = [
-  { id: 0, name: 'background', color: `color-mix(in srgb, ${CLASS_COLOUR.background} 30%, var(--surface))`, ink: CLASS_COLOUR.background },
+  // 45% (not paler) so that painted background still stands out from the page in dark mode
+  { id: 0, name: 'background', color: `color-mix(in srgb, ${CLASS_COLOUR.background} 45%, var(--surface))`, ink: CLASS_COLOUR.background },
   { id: 1, name: 'road', color: CLASS_COLOUR.road, ink: CLASS_COLOUR.road },
   { id: 2, name: 'car', color: CLASS_COLOUR.car, ink: CLASS_COLOUR.car },
   { id: 3, name: 'bicycle', color: CLASS_COLOUR.bicycle, ink: CLASS_COLOUR.bicycle },

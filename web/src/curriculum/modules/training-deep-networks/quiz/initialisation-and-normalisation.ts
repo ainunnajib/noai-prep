@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     options: ['0.0625', '0.0039', '0.044', '0.125'],
     answer: 0,
     explanation:
-      'Fan-in is 512, so $\\operatorname{Var}(w) = 2/512 = 1/256$ and the standard deviation is $\\sqrt{1/256} = 1/16 = 0.0625$. 0.0039 is the variance itself, 0.044 is Xavier\'s $\\sqrt{1/512}$, and 0.125 would use the fan-out, $\\sqrt{2/128}$.',
+      'Fan-in is 512, so $\\operatorname{Var}(w) = 2/512 = 1/256$ and the standard deviation is $\\sqrt{1/256} = 1/16 = 0.0625$. 0.0039 is the variance itself, 0.044 is $\\sqrt{1/512}$ (the LeCun, 1/fan-in value), and 0.125 would use the fan-out, $\\sqrt{2/128}$.',
     difficulty: 'intermediate',
   },
   {

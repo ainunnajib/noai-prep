@@ -2,7 +2,7 @@ import BagOfWords from './visuals/bag-of-words-and-tfidf/BagOfWords'
 import TFIDFTable from './visuals/bag-of-words-and-tfidf/TFIDFTable'
 import CosineSearch from './visuals/bag-of-words-and-tfidf/CosineSearch'
 
-How does a search box find the one page that answers your question, out of millions? The classic answer needs no neural network at all: turn every document into a vector of word counts, give rare words more weight than common ones, and return the documents whose vectors point the same way as your question's. This is exactly the retrieval step of a RAG chatbot, and building it from scratch in NumPy was **Question 3 of the NOAI 2025 Final, worth 40 of the 80 programming marks**.
+How does a search box find the one page that answers your question, out of millions? The classic answer needs no neural network at all: turn every document into a vector of word counts, give rare words more weight than common ones, and return the documents whose vectors point the same way as your question's. This is exactly the retrieval step of a RAG chatbot (a chatbot that looks documents up before answering), and building it from scratch in NumPy was **Question 3 of the NOAI 2025 Final, worth 40 of the 80 programming marks**.
 
 <Analogy title="Forty essays on National Day">
 
@@ -116,6 +116,13 @@ The top line, the dot product, grows with every word the two vectors share (weig
 </Steps>
 
 <CosineSearch />
+
+<QuickCheck
+  q="Over the vocabulary [mrt, laksa, spicy], a query is $\mathbf{q} = [0, 2, 1]$, and two documents are $\mathbf{d}_1 = [0, 4, 2]$ and $\mathbf{d}_2 = [3, 0, 0]$. What is $\cos(\mathbf{q}, \mathbf{d}_1)$?"
+  options={['$1$', '$0.5$', '$10$', '$2$']}
+  answer={0}
+  explain="$\mathbf{q} \cdot \mathbf{d}_1 = 0 + 8 + 2 = 10$, $\lVert \mathbf{q} \rVert = \sqrt{5}$ and $\lVert \mathbf{d}_1 \rVert = \sqrt{20} = 2\sqrt{5}$, so $\cos = 10/(\sqrt{5} \times 2\sqrt{5}) = 10/10 = 1$. $\mathbf{d}_1$ is twice as long but points the same way, and length does not matter, so 0.5 is wrong. 10 is the dot product before dividing, and 2 divides by $\lVert \mathbf{q} \rVert$ twice. $\mathbf{d}_2$ shares no words (cosine 0), so $\mathbf{d}_1$ ranks first."
+/>
 
 <Note title="This is the R in RAG">
 

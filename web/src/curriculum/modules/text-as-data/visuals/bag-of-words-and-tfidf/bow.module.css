@@ -103,7 +103,7 @@
   font-family: var(--font-body);
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--viz-2);
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
   text-align: center;
   padding-top: 3px;
   line-height: 1.2;
@@ -156,13 +156,14 @@
   font-size: var(--step--1);
   color: var(--ink);
 }
+/* identical vectors are the limitation being taught (warning); different vectors are neutral */
 .same {
-  background: var(--ok-soft);
-  border-left: 4px solid var(--viz-pos);
-}
-.diff {
   background: var(--warn-soft);
   border-left: 4px solid var(--viz-2);
+}
+.diff {
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
 }
 
 /* ---------- search results ---------- */
@@ -193,7 +194,13 @@
   text-align: center;
 }
 .resultTop .rank {
-  color: var(--viz-2);
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
+}
+.weak {
+  display: block;
+  font-size: 0.74rem;
+  font-style: italic;
+  color: var(--ink-2);
 }
 .docText {
   font-size: 0.86rem;

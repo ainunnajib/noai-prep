@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Toggle, useContainerWidth } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './tok.module.css'
 
 /*
@@ -78,6 +79,24 @@ export default function PaddingMaskGrid() {
   const showWords = cw >= 34
   const overflows = labelW + noteW + L * cw + (L + 2) * 3 > width + 1
 
+  // narrow cells: name special tokens with 3 letters ([CLS] → CLS) and show words by their id
+  const cellContent = (c: Cell) =>
+    showWords ? (
+      <>
+        <span className={s.cellWord} style={{ maxWidth: cw - 4 }}>
+          {c.tok}
+        </span>
+        <span className={s.cellId}>{c.id}</span>
+      </>
+    ) : c.kind === 'word' || c.kind === 'over' ? (
+      <span>{c.id}</span>
+    ) : (
+      <>
+        <span className={s.cellAbbr}>{c.tok.replace(/[^A-Z]/g, '')}</span>
+        <span className={s.cellId}>{c.id}</span>
+      </>
+    )
+
   const cellClass = (c: Cell) =>
     [s.cell, c.kind === 'pad' ? s.cellPad : '', c.kind === 'special' ? s.cellSpecial : '', c.kind === 'over' ? s.cellMissing : ''].join(' ')
 
@@ -86,12 +105,19 @@ export default function PaddingMaskGrid() {
       wide
       title="From a ragged batch to a rectangle: padding and the attention mask"
       caption={
-        <>
-          A model reads a batch as one rectangular table, so every row must have the same length. Shorter sentences are filled with <code>[PAD]</code>{' '}
-          (id 0) and longer ones are cut. The <b>attention mask</b> underneath marks each real token with 1 and each pad with 0, so the model can ignore
-          the padding. Slide <code>max_length</code>, switch truncation off to see why it is needed, compare padding to the longest sentence (less waste)
-          and padding on the left. Notice that <code>[CLS]</code> and <code>[SEP]</code> use up 2 of the <code>max_length</code> slots.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              slide <code>max_length</code>, switch truncation off, then pad to the longest sentence or on the left.
+            </>
+          }
+          notice={
+            <>
+              every row is filled with <code>[PAD]</code> (id 0) to one length, and the mask marks real tokens 1, padding 0. <code>[CLS]</code> and{' '}
+              <code>[SEP]</code> use up 2 of the slots.
+            </>
+          }
+        />
       }
     >
       <div className={s.field}>
@@ -137,7 +163,7 @@ export default function PaddingMaskGrid() {
               ))}
               <span />
               <span className={s.rowLabel} style={{ gridColumn: `1 / span ${L + 2}`, justifyContent: 'flex-start', paddingTop: 2 }}>
-                {showWords ? 'input_ids (token above, id below)' : 'input_ids'}
+                {showWords ? 'input_ids (token above, id below)' : 'input_ids (words shown by id)'}
               </span>
               {grid.map((row, i) => (
                 <Fragment key={`r${i}`}>
@@ -147,8 +173,7 @@ export default function PaddingMaskGrid() {
                       <span key={j} />
                     ) : (
                       <span key={j} className={cellClass(c)} title={`${c.tok} → ${c.id}`}>
-                        {showWords && <span className={s.cellWord} style={{ maxWidth: cw - 4 }}>{c.tok}</span>}
-                        <span className={showWords ? s.cellId : undefined}>{c.id}</span>
+                        {cellContent(c)}
                       </span>
                     ),
                   )}

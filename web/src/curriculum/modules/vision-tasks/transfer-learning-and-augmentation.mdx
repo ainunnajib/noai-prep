@@ -15,7 +15,7 @@ A hawker stall wants to add Peranakan dishes to its menu. It could train a teena
 
 The standard training ground for vision models is <Term def="A dataset of about 1.28 million labelled training photos in 1,000 everyday categories (dog breeds, cars, mushrooms, guitars and many more). Networks trained on it are the usual starting point for vision tasks.">ImageNet</Term>. A <Term def="Already trained on some, usually much larger, dataset. You download the trained weights and reuse them instead of starting from random numbers.">pretrained</Term> network such as ResNet-18 has learned to sort those photos into 1,000 classes. To do that, it had to learn useful ways of describing images. In the CNN module you saw what those descriptions are: early layers detect edges and colour blobs, middle layers detect textures and parts (eyes, wheels, leaves), and late layers combine them into whole objects. Edges and textures look the same in almost every photo, so these features are useful far beyond ImageNet.
 
-ResNets are not the only pretrained encoders. <Term def="A network that cuts an image into small patches, turns each patch into a vector and processes them with attention, the same mechanism used in language models. Taught in the attention-and-transformers module.">Vision Transformers</Term> (ViT) are the other common choice, and you reuse them in exactly the same way: drop the head, take the image's embedding, and preprocess the images as the network was pretrained.
+ResNets are not the only pretrained encoders. <Term def="A network that cuts an image into small patches, turns each patch into a vector and processes them with attention, the same mechanism used in language models. Taught in the attention-and-transformers module.">Vision Transformers</Term> (ViT) are the other common choice, and you reuse them in exactly the same way: drop the head, take the image's embedding, and preprocess the images as the network was pretrained. So are the self-supervised and image-text encoders DINOv2 and CLIP, which IOAI tasks often use as frozen feature extractors (see [Self-supervised vision](#/learn/multimodal-ai/self-supervised-vision) and [CLIP and zero-shot](#/learn/multimodal-ai/clip-and-zero-shot)).
 
 Think of the network as two parts:
 
@@ -42,7 +42,7 @@ ImageNet works so well as a teacher because it is both **large** and **diverse**
 
 There are two ways to reuse a pretrained network for your own classes. Both start the same way: replace the 1,000-class head with a new, randomly initialised layer that has one output per class of yours.
 
-1. **Feature extraction.** <Term def="Stop a weight from changing during training. In PyTorch you set requires_grad = False on its parameters, so no gradient is computed for it and the optimiser leaves it alone.">Freeze</Term> the whole backbone and train only the new head. The backbone is used as a fixed encoder (with one PyTorch catch about BatchNorm, explained below).
+1. **Feature extraction.** <Term def="Stop a weight from changing during training. In PyTorch you set requires_grad = False on its parameters, so no gradient is computed for it and the optimiser leaves it alone.">Freeze</Term> the whole backbone and train only the new head. The backbone is used as a fixed encoder (with one PyTorch catch about BatchNorm, explained below). When the head is a single linear layer on frozen embeddings, this is often called a **linear probe**.
 2. **Fine-tuning.** Start from the pretrained weights and keep training some or all of the backbone on your data, using a **small learning rate**.
 
 Why a small learning rate? The pretrained weights are already good. Big updates, especially early on when the new head is still random and its gradients are large and noisy, would overwrite them. The network then loses what it knew, which is called <Term def="When training on a new task changes the weights so much that the network loses what it had learned before.">catastrophic forgetting</Term>. A common recipe is to train the new head first with the backbone frozen, then unfreeze the top blocks and give them a learning rate about 10 times smaller than the head's.
@@ -66,14 +66,14 @@ Little data: train little. Different data: change more. When both apply, little 
 
 ### How many weights does feature extraction train?
 
-<Steps title="ResNet-18 as a feature extractor for 5 hawker dishes">
-  <Step title="Count what the backbone hands over">
-    The frozen backbone turns each photo into $512$ numbers.
+<Steps title="ResNet-18 for 5 hawker dishes">
+  <Step title="Backbone output">
+    We use ResNet-18 as a feature extractor for 5 hawker dishes. The frozen backbone turns each photo into $512$ numbers.
   </Step>
-  <Step title="Count the new head's weights">
+  <Step title="The new head">
     The new head is `Linear(512, 5)`: one weight for every (feature, class) pair, so $512 \times 5 = 2560$ weights, plus one bias per class, $5$. Total $2560 + 5 = 2565$ trainable parameters.
   </Step>
-  <Step title="Compare with the frozen part">
+  <Step title="The frozen part">
     The backbone holds $11\,176\,512$ parameters. So we train $2565$ out of $11\,179\,077$, about $0.02\%$ of the model.
   </Step>
   <Step title="Why it matters">
@@ -92,7 +92,7 @@ In general, a linear layer from $n$ features to $k$ classes has $n \times k + k$
 
 ### In PyTorch
 
-This is the standard pattern. It needs `torchvision`, whose `weights=...` downloads the ImageNet weights on first use (in an exam with no internet they would have to be on the machine already; the lines you write are the freeze, the new head and the optimiser).
+This is the standard pattern. It needs `torchvision`, whose `weights=...` downloads the ImageNet weights on first use (with no internet, as in the Final, they must already be on the machine).
 
 ```python
 import torch, torch.nn as nn
@@ -116,11 +116,11 @@ optimiser = torch.optim.Adam(model.fc.parameters(), lr=1e-3)   # 3. optimise the
 2565
 ```
 
-<Note title="Frozen weights, but BatchNorm still moves">
+<Reveal label="A PyTorch catch: frozen weights, but BatchNorm still moves">
 
 `requires_grad = False` stops the *weights* changing, but ResNet's BatchNorm layers also keep a running mean and variance of what they see. Those are not parameters, so freezing does not touch them: in `model.train()` mode they keep updating, and a "frozen" backbone slowly drifts. For true feature extraction, after `model.train()` call `m.eval()` on every `nn.BatchNorm2d` in `model.modules()`, or compute the features once under `model.eval()` and `torch.no_grad()` and train the head on those.
 
-</Note>
+</Reveal>
 
 <Reveal label="Show the fine-tuning code (unfreezing layer4)">
 
@@ -151,6 +151,12 @@ Older code, including the 2026 Final paper, writes `pretrained=True` instead of 
 An optimiser keeps references to the exact parameter tensors it was given when it was created. If you create it first and *then* replace `model.fc`, the optimiser is still holding the old head's weights. The new head gets gradients but is never updated, so it stays at its random starting values and accuracy stays poor. Always change the model first (freeze, replace the head, unfreeze), then build the optimiser.
 
 </Mistake>
+
+<Note title="Before you try the next question">
+
+As printed, the question's optimiser line comes *after* `model.fc` is replaced, which would train normally. The question means the version from the Mistake above, where the optimiser was built first. Passing `model.parameters()` is not the bug: frozen weights get no gradient, so Adam simply skips them.
+
+</Note>
 
 <PastPaperQuestion paper="final2026" n={14} />
 
@@ -256,20 +262,15 @@ If you pass the random training pipeline to your validation or test data, every 
 
 </ExamTip>
 
+The next question's code writes `transforms.Normalise`. The real torchvision class is spelt `Normalize`, as in the pipeline above.
+
 <PastPaperQuestion paper="final2026" n={11} />
-
-## The recipe for a small vision dataset
-
-1. Start from a pretrained backbone and normalise inputs with its statistics.
-2. Replace the head and train it with the backbone frozen.
-3. If you have more data, unfreeze the top blocks and fine-tune with a learning rate about 10 times smaller than the head's. If your images look unlike everyday photos but you have little data, try only the top block (or a head on an earlier block's features) and let validation accuracy decide.
-4. Throughout, use label-safe augmentation on the training set only, and judge every change by validation accuracy. With very little data, stop as soon as validation accuracy stops improving.
 
 <Takeaways>
 
-- A pretrained backbone is an **encoder**: it turns any image into a feature vector in which similar images sit close together.
+- A pretrained backbone is an **encoder**: it turns any image into a feature vector in which similar images sit close together. Feed it images normalised with its pretraining statistics.
 - **Feature extraction** freezes the backbone (`requires_grad = False`, with BatchNorm kept in eval mode) and trains only a new head: best for small datasets of everyday-looking images.
-- **Fine-tuning** also updates some or all pretrained layers, with a small learning rate to avoid catastrophic forgetting: use it with more data, and cautiously (top block only) for a different domain with little data.
+- **Fine-tuning** also updates some or all pretrained layers, with a learning rate about 10 times smaller than the head's to avoid catastrophic forgetting: use it with more data, and cautiously (top block only) for a different domain with little data. Let validation accuracy decide.
 - **Augmentation** applies random, label-preserving changes to training images each epoch. It is regularisation: it reduces overfitting.
 - Only use augmentations that keep the label true and could occur in real test images: no flips for digits or text, no horizontal flip for arrows.
 

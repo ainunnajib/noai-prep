@@ -30,6 +30,12 @@ Recall from [generalisation and overfitting](#/learn/ml-fundamentals/generalisat
 - **early stopping** limits how long the network trains,
 - **augmentation** gives it more varied data.
 
+<KeyIdea>
+
+Regularisation trades a little training accuracy for a smaller gap between training and validation: make the network unreliable (dropout), keep the weights small (weight decay), stop in time (early stopping), or show it more varied data (augmentation).
+
+</KeyIdea>
+
 ## Dropout: train with random players missing
 
 <Analogy title="The football team with random substitutes">
@@ -38,7 +44,7 @@ A coach makes random players sit out every drill. Nobody can rely on passing to 
 
 </Analogy>
 
-<Term def="A regularisation layer that, during training only, sets each activation to zero with probability p and multiplies the survivors by 1/(1 − p).">Dropout</Term> does this to neurons. At every training step, each neuron in a dropout layer is switched off (its output set to 0) with probability $p$, independently of the others. A different random set is switched off at the next step. Step through it:
+<Term def="A regularisation layer that, during training only, sets each activation to zero with probability p and multiplies the survivors by 1/(1 − p).">Dropout</Term> does this to neurons. At every training step, each neuron in a dropout layer is switched off (its output set to 0) with probability $p$, independently of the others and separately for every example in the batch. A different random set is switched off at the next step. Step through it:
 
 <DropoutMask />
 
@@ -57,7 +63,7 @@ m = \begin{cases} 0 & \text{with probability } p \\ 1 & \text{with probability }
 $$
 
 - $h$ is the neuron's normal output and $\tilde{h}$ (say "h tilde") is what the next layer receives during training.
-- $m$ is the **mask**: a fresh random 0 or 1 for every neuron at every step.
+- $m$ is the **mask**: a fresh random 0 or 1 for every neuron, for every example, at every step.
 - $p$ is the **drop probability**, a hyperparameter you choose (commonly 0.1 to 0.5).
 
 Why divide by $1 - p$? Work out the **average** (expected) value of $\tilde{h}$. With probability $1-p$ the neuron is kept and sends $\frac{h}{1-p}$; with probability $p$ it sends 0:
@@ -93,7 +99,7 @@ On average, nothing changes. That is exactly what the running average in the vis
 ### Why it works
 
 - **No co-dependence.** A neuron cannot rely on one particular partner being present, so each one has to learn features that are useful on their own. Researchers call the habit it prevents <Term def="When neurons only work in a fixed combination with each other, so the group fits quirks of the training data instead of general features.">co-adaptation</Term>.
-- **A free ensemble.** With 12 hidden neurons there are $2^{12} = 4096$ possible thinned networks, and every step trains a different one. They all share the same weights. An <Term def="A group of models whose predictions are combined (for example averaged). Averaging cancels out the individual models' mistakes.">ensemble</Term> of many models usually beats any single one, and dropout gets something similar almost for free.
+- **A free ensemble.** With 12 hidden neurons there are $2^{12} = 4096$ possible thinned networks, and every example in every step trains a different one. They all share the same weights. An <Term def="A group of models whose predictions are combined (for example averaged). Averaging cancels out the individual models' mistakes.">ensemble</Term> of many models usually beats any single one, and dropout gets something similar almost for free.
 
 ### At test time, dropout is off
 
@@ -131,6 +137,8 @@ Each training call drops a different random half and doubles the rest ($\frac{1}
 
 </Mistake>
 
+<PastPaperQuestion paper="prelim2026" n={169} />
+
 <PastPaperQuestion paper="prelim2026" n={113} />
 
 ## Weight decay: keep the weights small
@@ -156,7 +164,7 @@ $$
 - $\eta$ (eta) is the learning rate.
 - $\lambda$ (lambda) is the **weight decay** strength, for example 0.0005 or 0.01.
 
-Read it from the right: take the normal gradient step, but first multiply the weight by $1 - \eta\lambda$, a number slightly **less than 1**. With $\eta = 0.1$ and $\lambda = 0.01$ that factor is $0.999$: every weight loses 0.1% of its size at every step unless the data keeps pushing it back.
+Read the second line: first shrink the weight by the factor $1 - \eta\lambda$, a number slightly **less than 1**, then take the usual gradient step. With $\eta = 0.1$ and $\lambda = 0.01$ that factor is $0.999$: every weight loses 0.1% of its size at every step unless the data keeps pushing it back.
 
 For plain gradient descent this is exactly the same as **L2 regularisation**: adding $\frac{\lambda}{2}\sum w^2$ to the loss adds $\lambda w$ to each gradient, which is the $\lambda w$ above. You met the same penalty as ridge regression in [the regularisation lesson](#/learn/linear-regression/regularisation).
 
@@ -181,11 +189,11 @@ PyTorch agrees. Every optimiser takes a `weight_decay` argument:
 import torch
 
 w = torch.tensor([5.0], requires_grad=True)
-opt = torch.optim.SGD([w], lr=0.1, weight_decay=0.2)
+optimiser = torch.optim.SGD([w], lr=0.1, weight_decay=0.2)
 
 loss = 3 * w.sum()      # a toy loss whose gradient is 3
 loss.backward()
-opt.step()
+optimiser.step()
 print(w.data)
 ```
 
@@ -299,12 +307,44 @@ A transform is only safe if the label survives it. Flipping a photo of a dog lef
 
 ## All four on one page
 
-| Tool | What it does | When it is active | In PyTorch |
-|---|---|---|---|
-| Dropout | zeroes each activation with probability $p$, scales survivors by $\frac{1}{1-p}$ | training only; off after `model.eval()` | `nn.Dropout(p=0.5)` |
-| Weight decay | multiplies weights by $1 - \eta\lambda$ every update | every optimiser step | `weight_decay=λ`; use `AdamW` with Adam |
-| Early stopping | stops when validation loss has not improved for `patience` epochs; restores best checkpoint | checked after each epoch | your own loop, saving `state_dict()` |
-| Augmentation | random label-preserving changes to inputs | training data only | e.g. `torchvision.transforms` |
+<Columns min={220}>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Dropout**
+
+- **Does**: zeroes each activation with probability $p$, scales survivors by $\frac{1}{1-p}$.
+- **Active**: training only; off after `model.eval()`.
+- **Code**: `nn.Dropout(p=0.5)`
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Weight decay**
+
+- **Does**: multiplies weights by $1 - \eta\lambda$ every update.
+- **Active**: every optimiser step.
+- **Code**: `weight_decay=λ`; with Adam use `AdamW`.
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Early stopping**
+
+- **Does**: stops after `patience` epochs without a new best validation loss; restores the best checkpoint.
+- **Active**: checked after each epoch.
+- **Code**: your own loop, saving `state_dict()`.
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Augmentation**
+
+- **Does**: random label-preserving changes to the inputs.
+- **Active**: training data only.
+- **Code**: e.g. `torchvision.transforms`
+
+</div>
+</Columns>
 
 They combine well. A typical image classifier uses augmentation, weight decay and early stopping together; a Transformer typically uses AdamW with weight decay and dropout of about 0.1.
 

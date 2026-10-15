@@ -72,7 +72,7 @@ function statusText(t: Trace, n: number, pad: PadMode, depth: number): { ok: boo
     const lvl = t.error.level + 1
     const why =
       pad === 'valid'
-        ? 'valid convolutions shrank the encoder map more than the decoder can make up.'
+        ? 'the valid convolutions below this level (deeper encoder, bottleneck and decoder convolutions) shrank the map that comes back up, so the upsampled map is smaller than this skip map.'
         : `pooling rounded an odd size down somewhere above this level, and doubling cannot get the lost pixel back.`
     return {
       ok: false,
@@ -113,12 +113,35 @@ export default function UNetShapeTracer() {
   // layout
   const m = 2
   const ind = Math.min(16, W * 0.028)
-  const minGap = 40
+  const minGap = W < 420 ? 32 : 40
   const bw = Math.min(190, (W - 2 * m - minGap - 2 * (depth - 1) * ind) / 2)
   const bh = 56
   const compact = bw < 165
-  const fs = compact ? 10.2 : 11
   const ar = compact ? ' ' : ' → '
+  const errLevel = t.error?.kind === 'mismatch' ? t.error.level : -1
+  const decByLevel = new Map(t.dec.map((d) => [d.level, d]))
+  const reachedOut = !!t.out
+
+  // every block's text lines, worked out first so the font can be as large as the widest line allows
+  const encLines = Array.from({ length: depth }, (_, i) => {
+    const e = t.enc[i]
+    return [`enc ${i + 1}: 2 convs`, e ? shp(e.c, e.h) : '—', e ? `pool${ar}${e.pooled}×${e.pooled}` : '']
+  })
+  const bottLines = ['bottleneck', t.bott ? shp(t.bott.c, t.bott.h) : '—', compact ? 'smallest' : 'smallest map']
+  const decLines = Array.from({ length: depth }, (_, i) => {
+    const d = decByLevel.get(i)
+    const bad = errLevel === i
+    return d
+      ? [
+          `up${ar}${shp(d.upC, d.upH)}`,
+          skips ? (bad ? `cat ✗ ${d.skipH} vs ${d.upH}` : `cat${ar}${shp(d.catC, d.catH)}`) : 'no skip: no cat',
+          bad ? 'crash' : `conv${ar}${shp(d.outC, d.outH)}`,
+        ]
+      : [`dec ${i + 1}`, '—', '']
+  })
+  const longest = Math.max(...[...encLines, bottLines, ...decLines].flat().map((l) => l.length))
+  // monospace glyphs are about 0.6 em wide; keep at least 11 px and at most 12 px
+  const fs = Math.max(11, Math.min(12, (bw - 10) / (longest * 0.6)))
   const rowH = bh + 24
   const top = 34
   const encX = (i: number) => m + i * ind
@@ -128,9 +151,7 @@ export default function UNetShapeTracer() {
   const bx = W / 2 - bw / 2
   const by = rowY(depth)
 
-  const errLevel = t.error?.kind === 'mismatch' ? t.error.level : -1
-  const decByLevel = new Map(t.dec.map((d) => [d.level, d]))
-  const reachedOut = !!t.out
+  const isFinal = n === 256 && depth === 2 && pad === 'valid' && skips
 
   const preset = (pn: number, pd: number, pp: PadMode, pc: boolean) => {
     setN(pn)
@@ -182,7 +203,7 @@ export default function UNetShapeTracer() {
                   state={e ? 'ok' : 'off'}
                   bar={e ? e.h / n : 0}
                   fs={fs}
-                  lines={[`enc ${i + 1}: 2 convs`, e ? shp(e.c, e.h) : '—', e ? `pool${ar}${e.pooled}×${e.pooled}` : '']}
+                  lines={encLines[i]}
                 />
                 {nextX !== null && <Arrow pts={[[x + 18, y + bh], [x + 18, rowY(i + 1) - 2]]} color={t.enc[i + 1] ? 'var(--viz-axis)' : 'var(--viz-muted)'} />}
               </g>
@@ -199,7 +220,7 @@ export default function UNetShapeTracer() {
             fs={fs}
             state={t.bott ? 'ok' : 'off'}
             bar={t.bott ? t.bott.h / n : 0}
-            lines={['bottleneck', t.bott ? shp(t.bott.c, t.bott.h) : '—', 'smallest map']}
+            lines={bottLines}
           />
           {/* up out of the bottleneck */}
           <Arrow
@@ -217,13 +238,7 @@ export default function UNetShapeTracer() {
             const e = t.enc[i]
             const joinWord = !skips ? '' : bad ? '✗' : d?.join === 'crop' ? 'crop' : d?.join === 'copy' ? 'copy' : ''
             const skipColor = bad ? 'var(--viz-neg)' : d?.join === 'crop' ? 'var(--viz-2)' : off ? 'var(--viz-muted)' : 'var(--viz-3)'
-            const lines: ReactNode[] = d
-              ? [
-                  `up${ar}${shp(d.upC, d.upH)}`,
-                  skips ? (bad ? `cat ✗ ${d.skipH} vs ${d.upH}` : `cat${ar}${shp(d.catC, d.catH)}`) : 'no skip: no cat',
-                  bad ? 'crash' : `conv${ar}${shp(d.outC, d.outH)}`,
-                ]
-              : [`dec ${i + 1}`, '—', '']
+            const lines: ReactNode[] = decLines[i]
             const gx0 = encX(i) + bw
             const gx1 = x
             return (
@@ -257,6 +272,11 @@ export default function UNetShapeTracer() {
         }}
       >
         {status.text}
+        {isFinal && (
+          <div style={{ marginTop: 4, color: 'var(--ink-2)', fontSize: '0.85rem' }}>
+            The 2026 Final&rsquo;s network stops after one decoder level (it has no skip from the top level), so with the crop its output is 2×110×110.
+          </div>
+        )}
       </div>
       <Controls>
         <Slider label="input size H = W" value={n} min={16} max={600} step={1} onChange={setN} />
@@ -285,7 +305,7 @@ export default function UNetShapeTracer() {
       <Controls>
         <Button onClick={() => preset(128, 3, 'same', false)}>128, same</Button>
         <Button onClick={() => preset(100, 3, 'same', false)}>100, same (odd sizes)</Button>
-        <Button onClick={() => preset(256, 2, 'valid', false)}>256, valid (2026 Final)</Button>
+        <Button onClick={() => preset(256, 2, 'valid', false)}>256, valid (the 2026 Final&rsquo;s crash)</Button>
         <Button onClick={() => preset(572, 4, 'valid', true)}>572, valid (2015 paper)</Button>
       </Controls>
     </Figure>

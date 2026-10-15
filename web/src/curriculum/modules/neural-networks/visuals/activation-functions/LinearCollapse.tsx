@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, NeuralNet, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Plot, Grid, Axes, FnPath, Label, NeuralNet, M } from '../../../../../kit'
 
 /*
   A 1-input network with one hidden layer of three neurons:
-    hᵢ = f(x + cᵢ) with c = (1, 0, −1), so the neurons "switch on" around x = −1, 0 and 1,
-    y  = v₁h₁ + v₂h₂ + v₃h₃.
-  The learner picks the activation f (none, ReLU, tanh) and the output weights v. With no activation
+    hᵢ = f(x + bᵢ) with biases b = (1, 0, −1), so the neurons "switch on" around x = −1, 0 and 1,
+    y  = w₁h₁ + w₂h₂ + w₃h₃.
+  The learner picks the activation f (none, ReLU, tanh) and the output weights w. With no activation
   every term is a straight line, so the sum is too; the readout shows the single equivalent layer.
-  The dashed target is the "tent" max(0, 1 − |x|), which ReLU with v = (1, −2, 1) hits exactly.
+  The dashed target is the "tent" max(0, 1 − |x|), which ReLU with w = (1, −2, 1) hits exactly. tanh
+  can bend but never makes the sharp corners (best slider setting: MSE ≈ 0.036).
 */
 
 type Act = 'none' | 'relu' | 'tanh'
@@ -53,8 +54,10 @@ export default function LinearCollapse() {
   const formula = `y = ${tfmt(v[0])}\\,${term(0)} ${tsigned(v[1])}\\,${term(1)} ${tsigned(v[2])}\\,${term(2)}`
 
   let status: string
-  if (act === 'none') status = slope === 0 && icpt === 0 ? 'Flat at 0 for these weights: the output line lies on the x-axis.' : 'Always a straight line, whatever the weights.'
+  const flat = act === 'none' && slope === 0 && icpt === 0
+  if (act === 'none') status = flat ? 'Flat at 0 for these weights: the output line lies on the x-axis.' : 'Always a straight line, whatever the weights.'
   else if (mse < 0.002) status = 'Exact match with the target tent.'
+  else if (act === 'tanh') status = 'Bent, but tanh curves can’t make the sharp tent corners.'
   else if (mse < 0.02) status = 'Close to the target.'
   else status = 'Bent, but not the target yet.'
 
@@ -63,7 +66,7 @@ export default function LinearCollapse() {
       title="Stack layers without an activation and they collapse"
       caption={
         <>
-          Hidden neuron <i>i</i> computes <M>{'h_i = f(x + c_i)'}</M> with <M>{'c = (1, 0, -1)'}</M>, and the output adds them up with weights <M>{'v_i'}</M>. With{' '}
+          Hidden neuron <i>i</i> computes <M>{'h_i = f(x + b_i)'}</M> with biases <M>{'b = (1, 0, -1)'}</M>, and the output adds them up with weights <M>{'w_i'}</M>. With{' '}
           <b>no activation</b>, move the sliders: the output only tilts and shifts. Then switch to <b>ReLU</b> without touching the weights and the same neurons build the
           target tent exactly.
         </>
@@ -86,7 +89,12 @@ export default function LinearCollapse() {
         {v.map((vi, i) => (
           <FnPath key={i} f={(x) => vi * f(x + C[i])} color={COLS[i]} width={1.75} dash="2 4" opacity={0.95} />
         ))}
-        <FnPath f={y} color="var(--viz-1)" width={3.25} />
+        <FnPath f={y} color="var(--viz-1)" width={3.75} />
+        {flat && (
+          <Label x={-2.9} y={0} dy={-9} color="var(--viz-1)" size={12.5} weight={700}>
+            output y = 0 everywhere
+          </Label>
+        )}
       </Plot>
       <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.2rem 1.1rem', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
         <span>
@@ -98,8 +106,12 @@ export default function LinearCollapse() {
           target tent
         </span>
         <span>
-          <span style={{ display: 'inline-block', width: 22, verticalAlign: 'middle', borderTop: '2px dotted var(--viz-3)', marginRight: 6 }} />
-          each neuron&rsquo;s share <M>{'v_ih_i'}</M>
+          {COLS.map((c) => (
+            <span key={c} style={{ display: 'inline-block', width: 9, verticalAlign: 'middle', borderTop: `2.5px dotted ${c}`, marginRight: 2 }} />
+          ))}
+          <span style={{ marginLeft: 4 }}>
+            each neuron&rsquo;s share <M>{'w_ih_i'}</M> (colours match the sliders)
+          </span>
         </span>
       </div>
       <div style={{ width: '100%', maxWidth: 360 }}>
@@ -123,7 +135,7 @@ export default function LinearCollapse() {
       </div>
       <Controls>
         {[0, 1, 2].map((i) => (
-          <Slider key={i} label={<span style={{ color: COLS[i] }}>{`v${'₁₂₃'[i]} (neuron ${i + 1})`}</span>} value={v[i]} min={-2} max={2} step={0.25} onChange={set(i)} format={fmt} />
+          <Slider key={i} label={<span style={{ color: COLS[i] }}>{`w${'₁₂₃'[i]} (neuron ${i + 1})`}</span>} value={v[i]} min={-2} max={2} step={0.25} onChange={set(i)} format={fmt} />
         ))}
       </Controls>
       <Controls>

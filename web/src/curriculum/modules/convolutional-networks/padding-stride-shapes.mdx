@@ -35,7 +35,7 @@ A row has 7 chairs, and a bench 3 seats wide can be put down over any 3 neighbou
 
 ## Counting positions
 
-Take one side of the image: $n$ pixels across. A kernel $k$ pixels wide can start at pixel 1, 2, …, up to the last start where it still fits, pixel $n - k + 1$. So with no padding and steps of 1:
+Take one side of the image: $n$ pixels across, numbered $0, 1, \dots, n - 1$ (counting from 0, as in Python and the convolution lesson). A kernel $k$ pixels wide can start at pixel 0, 1, 2, …, up to the last start where it still fits, pixel $n - k$. That is $n - k + 1$ starting positions, so with no padding and steps of 1:
 
 $$
 \text{output size} = n - k + 1
@@ -89,7 +89,7 @@ Check it on the bench: $n = 7$, $k = 3$, $p = 0$, $s = 1$ gives $\lfloor 4/1 \rf
     <Term def="A family of very deep CNNs (2015) built from residual blocks, covered in the architectures lesson. Its first layer is a 7 × 7 convolution with stride 2.">ResNet</Term> on a $224 \times 224$ photo, $n = 224$, $k = 7$, $p = 3$, $s = 2$: $\lfloor (224 + 6 - 7)/2 \rfloor + 1 = \lfloor 223/2 \rfloor + 1 = 111 + 1 = 112$.
   </Step>
   <Step title="Valid, stride 2">
-    $n = 7$, $k = 3$, $p = 0$, $s = 2$: $\lfloor 4/2 \rfloor + 1 = 3$. The kernel starts at columns 1, 3 and 5.
+    $n = 7$, $k = 3$, $p = 0$, $s = 2$: $\lfloor 4/2 \rfloor + 1 = 3$. The kernel starts at columns 0, 2 and 4 (counting from 0), and the last window covers columns 4 to 6.
   </Step>
 </Steps>
 
@@ -153,7 +153,7 @@ $$
 \text{multiply-adds} = k \times k \times C_\text{in} \times C_\text{out} \times H_\text{out} \times W_\text{out}
 $$
 
-For the deeper layer above with a $32 \times 32$ output: $9 \times 64 \times 128 \times 1{,}024 = 75{,}497{,}472$, about 75 million. With stride 2 the output is $16 \times 16$, a quarter as many positions, so about 19 million, while the parameter count stays 73,856.
+For the deeper layer above with a $32 \times 32$ output: $9 \times 64 \times 128 \times 1{,}024 = 75{,}497{,}472$, about 75 million. (Papers often quote <Term def="Floating-point operations: arithmetic steps on decimal numbers. A multiply-add counts as 2 FLOPs, one multiply plus one add.">FLOPs</Term> instead, counting the multiply and the add separately: about $2 \times$ the multiply-adds, so about 151 million FLOPs here.) With stride 2 the output is $16 \times 16$, a quarter as many positions, so about 19 million, while the parameter count stays 73,856.
 
 <Mistake title="Three classic counting traps">
 
@@ -202,7 +202,7 @@ torch.Size([8, 128, 16, 16])
 
 A $1 \times 1$ kernel ($k = 1$) looks at a **single pixel**, but through all its channels. Each output value is a weighted sum of the $C_\text{in}$ numbers stored at that pixel, plus a bias: exactly a small dense layer, applied to every pixel separately with the same weights. It does not look at neighbours at all; it **mixes channels**.
 
-Its main use is changing the number of channels cheaply. Shrinking 256 channels to 64 with a $1 \times 1$ convolution costs $(1 \times 1 \times 256 + 1) \times 64 = 16{,}448$ parameters, against $(3 \times 3 \times 256 + 1) \times 64 = 147{,}520$ for a $3 \times 3$ layer. Many architectures (GoogLeNet's Inception modules, ResNet's "bottleneck" blocks) use $1 \times 1$ layers this way, to squeeze channels before an expensive $3 \times 3$ layer.
+Its main use is changing the number of channels cheaply. Shrinking 256 channels to 64 with a $1 \times 1$ convolution costs $(1 \times 1 \times 256 + 1) \times 64 = 16{,}448$ parameters, against $(3 \times 3 \times 256 + 1) \times 64 = 147{,}520$ for a $3 \times 3$ layer. Many architectures (GoogLeNet's Inception modules and ResNet's "bottleneck" blocks, both met in the architectures lesson) use $1 \times 1$ layers this way, to squeeze channels before an expensive $3 \times 3$ layer.
 
 ## Depthwise separable convolutions
 
@@ -211,7 +211,7 @@ A standard convolution does two jobs at once: it filters **spatially** (looks at
 1. **Depthwise:** one $k \times k$ filter for each input channel, applied to that channel only. Spatial filtering, no mixing: $k^2 \cdot C_\text{in}$ weights.
 2. **Pointwise:** a $1 \times 1$ convolution from $C_\text{in}$ to $C_\text{out}$ channels. Mixing, no spatial filtering: $C_\text{in} \cdot C_\text{out}$ weights.
 
-Back to the chefs. In a standard layer each of 128 chefs tastes all 128 sauces through a $3 \times 3$ spoon: $9 \times 128 \times 128$ tastes. In a separable layer one helper per sauce does the spoon-tasting once ($9 \times 128$), and each chef just blends the 128 helpers' results ($128 \times 128$). Ignoring biases:
+Back to the chefs. In a standard layer each of 128 chefs tastes all 128 sauces, each over a small $3 \times 3$ patch of the pan: $9 \times 128 \times 128$ tastes. In a separable layer one helper per sauce tastes just that sauce over the $3 \times 3$ patch ($9 \times 128$ tastes in all), and each chef only blends the 128 helpers' reports ($128 \times 128$). Ignoring biases:
 
 $$
 \underbrace{k^2 \cdot C_\text{in} \cdot C_\text{out}}_{\text{standard}} \quad \text{versus} \quad \underbrace{k^2 \cdot C_\text{in} + C_\text{in} \cdot C_\text{out}}_{\text{depthwise separable}}

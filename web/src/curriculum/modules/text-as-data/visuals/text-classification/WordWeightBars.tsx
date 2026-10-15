@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Figure, Bars, Button, mulberry32 } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './tc.module.css'
 import { ProbBar, SentenceInput } from './parts'
 import { VOCAB, COUNT_W, COUNT_B, TRAIN_POS, TRAIN_NEG } from './toyData'
@@ -57,11 +58,20 @@ export default function WordWeightBars() {
     <Figure
       title="One weight per word"
       caption={
-        <>
-          The bars are the learned weights of a word-count (bag-of-words) logistic regression trained on {TRAIN_POS.length + TRAIN_NEG.length} toy reviews. Words in your sentence are tinted by their weight, and the score is the bias plus
-          their sum. Try the two "good, not bad" sentences, or press <b>Shuffle the words</b>: the score never changes, because the model only sees <i>which</i> words appear. Spot the accident
-          too: <code>mee</code> (noodles) is not a feeling, but 3 of the 4 training reviews with it happened to be positive.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              try the two “good, not bad” sentences, then press <b>Shuffle the words</b>.
+            </>
+          }
+          notice={
+            <>
+              the score is the bias plus one fixed weight per word, so shuffling never changes it. <code>mee</code> (noodles) is not a feeling: 3 of
+              its 4 training reviews just happened to be positive.
+            </>
+          }
+          note={<>A word-count logistic regression trained on {TRAIN_POS.length + TRAIN_NEG.length} toy reviews.</>}
+        />
       }
     >
       <div className={s.wrap}>

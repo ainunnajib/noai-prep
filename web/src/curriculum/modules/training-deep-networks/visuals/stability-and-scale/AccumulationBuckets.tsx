@@ -159,7 +159,7 @@ export default function AccumulationBuckets() {
       <path d={`M${barX0 + len},${y}L${barX0 + len - 10},${y - 6}L${barX0 + len - 10},${y + 6}Z`} style={{ fill: color }} />
     </g>
   )
-  const panelTitle = stepPhase ? (G > 1 ? 'average over GPUs, then step()' : 'optimizer.step()') : 'no update yet'
+  const panelTitle = stepPhase ? (G > 1 ? 'average over GPUs, then step()' : 'optimiser.step()') : 'no update yet'
 
   return (
     <Figure
@@ -222,8 +222,8 @@ export default function AccumulationBuckets() {
             highlight={stepPhase ? [5, 6] : [2, 3]}
             code={
               narrow
-                ? `for i, (x, y) in enumerate(loader):\n    loss = loss_fn(model(x), y)${forgot ? '' : ` / ${k}`}\n    loss.backward()\n    if (i + 1) % ${k} == 0:\n        optimizer.step()\n        optimizer.zero_grad()`
-                : `for i, (x, y) in enumerate(loader):      # batches of ${b}\n    loss = loss_fn(model(x), y)${forgot ? '' : ` / ${k}`}\n    loss.backward()                      # pour into .grad\n    if (i + 1) % ${k} == 0:\n        optimizer.step()                 # one update\n        optimizer.zero_grad()            # empty the bucket`
+                ? `for i, (x, y) in enumerate(loader):\n    loss = loss_fn(model(x), y)${forgot ? '' : ` / ${k}`}\n    loss.backward()\n    if (i + 1) % ${k} == 0:\n        optimiser.step()\n        optimiser.zero_grad()`
+                : `for i, (x, y) in enumerate(loader):      # batches of ${b}\n    loss = loss_fn(model(x), y)${forgot ? '' : ` / ${k}`}\n    loss.backward()                      # pour into .grad\n    if (i + 1) % ${k} == 0:\n        optimiser.step()                 # one update\n        optimiser.zero_grad()            # empty the bucket`
             }
           />
         </div>
@@ -237,7 +237,7 @@ export default function AccumulationBuckets() {
             ) : (
               <>
                 {G > 1 ? `The ${G} GPUs average their buckets, then ` : ''}
-                <code>optimizer.step()</code> uses <b className="tabular">{avg.toFixed(3)}</b>: the same as the gradient of one batch of {Nbig} (
+                <code>optimiser.step()</code> uses <b className="tabular">{avg.toFixed(3)}</b>: the same as the gradient of one batch of {Nbig} (
                 <span className="tabular">{bigGrad.toFixed(3)}</span>). Then <code>zero_grad()</code> empties the bucket for the next round.
               </>
             )

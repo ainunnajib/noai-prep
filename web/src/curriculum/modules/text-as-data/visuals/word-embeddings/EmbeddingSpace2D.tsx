@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Segmented, Button, Bars, Plot, Arrow, Label, usePlot, useNarrow } from '../../../../../kit'
 import { CLUSTERS, WORDS, byWord, nearest } from './embData'
+import { TryNotice } from '../Caption'
 import s from './emb.module.css'
 
 /*
@@ -138,13 +139,19 @@ export default function EmbeddingSpace2D() {
       wide
       title="Meaning becomes geometry"
       caption={
-        <>
-          24 words from a toy embedding, drawn in 2-D. In <b>neighbours</b> mode, tap a word to see the three words whose vectors have the highest
-          cosine similarity: they come from the same topic. In <b>analogy</b> mode, the solid arrow is <i>b − a</i> (for example man → king,
-          “add royalty”). Adding the same arrow to <i>c</i> (dashed) lands on the star, and the nearest word to the star is the answer. Try the presets, then
-          pick your own three words (tapping a word sets <i>c</i>). Real embeddings have hundreds of dimensions, and 2-D pictures like this one are
-          squashed views of them.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              tap a word in <b>neighbours</b> mode, then switch to <b>analogy</b> and try the presets.
+            </>
+          }
+          notice={
+            <>
+              a word&apos;s nearest neighbours share its topic, and adding the arrow <i>b − a</i> to <i>c</i> (dashed) lands near the answer (the star).
+            </>
+          }
+          note={<>Real embeddings have hundreds of dimensions; this 2-D map is a squashed view of a toy embedding.</>}
+        />
       }
     >
       <Controls>

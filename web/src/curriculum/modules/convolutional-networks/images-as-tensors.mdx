@@ -27,7 +27,14 @@ one = x[None]                  # add a batch axis in front
 print("one image as a batch:", one.shape)
 batch = np.stack([x, x, x, x])  # four images
 print("batch shape:", batch.shape)
-print("numbers in it:", batch.size)
+print("numbers in it:", batch.size)`
+
+export const normCode = `import numpy as np
+
+# four random 8x8 colour "photos", (N, C, H, W), bytes 0..255
+rng = np.random.default_rng(0)
+batch = rng.integers(0, 256, size=(4, 3, 8, 8)) / 255
+print("batch shape:", batch.shape)
 
 # one mean and std per channel:
 # average over N, H and W (axes 0, 2, 3)
@@ -36,11 +43,13 @@ std = batch.std(axis=(0, 2, 3))
 print("channel means:", mean.round(3))
 print("channel stds: ", std.round(3))
 
+# reshape to (1, 3, 1, 1) so they line up with the channel axis
 m = mean.reshape(1, 3, 1, 1)
 s = std.reshape(1, 3, 1, 1)
 normed = (batch - m) / s
 print("after:", normed.mean(axis=(0, 2, 3)).round(3) + 0.0,
-      normed.std(axis=(0, 2, 3)).round(3))`
+      normed.std(axis=(0, 2, 3)).round(3))
+print("smallest and largest:", normed.min().round(2), normed.max().round(2))`
 
 A phone photo looks like a picture to you. To a neural network it is a block of numbers, and before you can understand convolutional networks you need to see that block clearly: what shape it has, how many numbers it holds, why the "obvious" network wastes millions of weights on it, and how to scale the numbers so that training goes well.
 
@@ -103,7 +112,7 @@ The number of values in a tensor is the product of its shape. This is a favourit
     $32 \times 150{,}528 = 4{,}816{,}896$, almost 5 million numbers in one training step.
   </Step>
   <Step title="Memory">
-    Networks compute with 32-bit floats, 4 bytes each: one image takes $150{,}528 \times 4 = 602{,}112$ bytes, about 0.6 MB.
+    Networks compute with <Term def="A number with a decimal point, such as 0.25 or −1.5. A 32-bit float takes 4 bytes of memory.">32-bit floats</Term>, 4 bytes each: one image takes $150{,}528 \times 4 = 602{,}112$ bytes, about 0.6 MB.
   </Step>
 </Steps>
 
@@ -119,7 +128,7 @@ Smaller benchmark images are worth knowing too: an <Term def="A classic dataset 
 
 ### In code
 
-Run this: it builds a tiny $2 \times 3$ colour image, moves its channels first, makes a batch, and normalises each channel (the last part is explained at the end of the lesson). `x[None]` adds a new axis of length 1 at the front, turning one $(C, H, W)$ image into a batch of one, $(1, C, H, W)$.
+Run this: it builds a tiny $2 \times 3$ colour image, moves its channels first, scales it to $[0, 1]$ and makes a batch. `x[None]` adds a new axis of length 1 at the front, turning one $(C, H, W)$ image into a batch of one, $(1, C, H, W)$.
 
 <PyRunner packages={['numpy']} code={npCode} />
 
@@ -152,7 +161,7 @@ You already know one network that takes a list of numbers: the multilayer percep
 
 <ParameterExplosion />
 
-**2. It ignores which pixels are neighbours.** After flattening, pixel 0 and pixel 1 are just "input 0" and "input 1". A dense layer treats the inputs as an unordered set: if you shuffled every image's pixels in the same fixed way, it would learn exactly as well. But in a picture, neighbours matter: an edge is a bright pixel *next to* a dark one.
+**2. It ignores which pixels are neighbours.** After flattening, pixel 0 and pixel 1 are just "input 0" and "input 1". A dense layer has no built-in idea of which inputs are neighbours: input 0 and input 1 are no more related than input 0 and input 50,000. If you shuffled every image's pixels in the same fixed way, it would learn exactly as well. But in a picture, neighbours matter: an edge is a bright pixel *next to* a dark one.
 
 **3. A small shift looks like a brand-new input.** Move the object one pixel to the right and many of the 150,528 inputs change, hitting completely different weights. The network has to learn "a cat at the left" and "a cat in the middle" separately.
 
@@ -180,17 +189,23 @@ Raw pixels are whole numbers from 0 to 255. Networks train badly on big, all-pos
 
 **Step 1: divide by 255.** Every value now lies between 0 and 1. This is <Term def="Rescaling values to [0, 1] with x' = (x − min) / (max − min). For 8-bit images min = 0 and max = 255, so it is just x / 255.">min-max scaling</Term>, $x' = (x - \min)/(\max - \min)$, with $\min = 0$ and $\max = 255$.
 
-That fixes the size, but every input is still **positive**, and that slows learning. Take one neuron of the first layer. It computes $z = w_1 x_1 + w_2 x_2 + \dots + w_n x_n + b$. By the chain rule, the gradient of the loss $L$ for weight $w_i$ is
+That fixes the size, but every input is still **positive**, and that slows learning. You met the reason in [Scaling and normalisation](#/learn/data-and-features/scaling-and-normalisation): for one example, each of a neuron's weight gradients is the same error signal times that weight's input, so when every input is positive they all share one sign. Each step moves all the weights up together or all down together, and if the best weights need some to rise and others to fall, gradient descent has to zig-zag to get there.
+
+<Reveal label="Why does centring help? (recap with a demo)">
+
+Take one neuron of the first layer. It computes $z = w_1 x_1 + w_2 x_2 + \dots + w_n x_n + b$. By the chain rule, the gradient of the loss $L$ for weight $w_i$ is
 
 $$
 \frac{\partial L}{\partial w_i} = \delta \cdot x_i, \qquad \text{where } \delta = \frac{\partial L}{\partial z}.
 $$
 
-In words: each weight's gradient is the neuron's error signal $\delta$ (one number, shared by all its weights) times the input that weight multiplies. If every $x_i$ is positive, then for a single training example every gradient has **the same sign as $\delta$**, so one update can only move all the weights up or all of them down. (With mini-batches the signs can partly mix, but the loss surface stays stretched along the "all weights together" direction, so training still zig-zags.) If the best weights need some to rise and others to fall, the neuron must zig-zag there:
+The error signal $\delta$ is one number shared by all the neuron's weights. If every $x_i$ is positive, then for a single training example every gradient has **the same sign as $\delta$**. Compare the two settings below: they differ only in centring.
 
 <SignLockedSteps />
 
-The two settings differ only in centring. A real first-layer neuron has far more than two positive inputs (150,528 in a dense layer on a $224 \times 224$ photo), and the zig-zag gets much worse.
+A real first-layer neuron has far more than two positive inputs (150,528 in a dense layer on a $224 \times 224$ photo), and the zig-zag gets much worse.
+
+</Reveal>
 
 **Step 2: standardise (z-score).** Subtract a mean and divide by a standard deviation, separately for each channel:
 
@@ -220,13 +235,17 @@ After this, each channel has mean 0 and standard deviation 1 across the training
   </Step>
 </Steps>
 
-For models pretrained on <Term def="A huge collection of labelled photos. Its best-known subset, about 1.2 million images in 1,000 classes, is used to pretrain most standard vision models.">ImageNet</Term> you reuse the statistics they were trained with: means $(0.485, 0.456, 0.406)$ and standard deviations $(0.229, 0.224, 0.225)$ for red, green and blue. In PyTorch, `transforms.ToTensor()` turns an $(H, W, C)$ image of bytes into a $(C, H, W)$ tensor of values in $[0, 1]$, and `transforms.Normalize(mean, std)` then does the subtract-and-divide per channel.
+Here is the same recipe in NumPy, on a batch of four small random colour images. It computes one mean and one standard deviation per channel over every image and pixel, then standardises:
+
+<PyRunner packages={['numpy']} code={normCode} />
+
+Each channel now has mean 0 and standard deviation 1, with values on both sides of zero. For models pretrained on <Term def="A huge collection of labelled photos. Its best-known subset, about 1.2 million images in 1,000 classes, is used to pretrain most standard vision models.">ImageNet</Term> you reuse the statistics they were trained with: means $(0.485, 0.456, 0.406)$ and standard deviations $(0.229, 0.224, 0.225)$ for red, green and blue. In PyTorch, `transforms.ToTensor()` turns an $(H, W, C)$ image of bytes into a $(C, H, W)$ tensor of values in $[0, 1]$, and `transforms.Normalize(mean, std)` then does the subtract-and-divide per channel.
 
 ### Dataset-wide, not per image
 
 There is a tempting alternative: standardise **each image with its own** mean and standard deviation. Every image then has mean 0 and spread 1 by itself. That sounds tidy, but it throws information away. In a chest X-ray, overall brightness carries meaning: fluid or dense tissue shows up whiter. Per-image scaling makes a dense, hazy X-ray look just like a clear one.
 
-It is like an exam board marking every script with the same mark scheme (dataset-wide statistics) versus rescaling each script so its average is always 50 (per-image statistics): the second makes it impossible to tell who actually did better.
+It is like rescaling every student's marks so that each student's own average becomes 50: you could no longer tell strong students from weak ones. Dataset-wide statistics are one fixed mark scheme for everybody, so real differences survive.
 
 <ImageNormaliser />
 
@@ -254,13 +273,13 @@ The 2026 Prelim had a long scenario on 512 × 512 greyscale X-rays comparing min
   q="An X-ray dataset is prepared in two ways. Pipeline 1 divides by 255, then standardises with the training set's mean and standard deviation. Pipeline 2 divides by 255, then standardises each image with its own mean and standard deviation. Which statement is true?"
   options={[
     'After pipeline 2, a dense X-ray and a clear X-ray have the same mean pixel value',
-    'After pipeline 1, every image has mean exactly 0',
-    'Pipeline 2 keeps all inputs positive',
-    'Only pipeline 1 makes some inputs negative',
+    'After pipeline 1, every individual X-ray ends with a mean pixel value of exactly 0',
+    'Pipeline 2 keeps every input positive, just like dividing by 255 alone',
+    'Pipeline 1 erases the brightness difference between a dense and a clear X-ray',
   ]}
   answer={0}
   id="convolutional-networks.images-as-tensors.qc3"
-  explain="Per-image standardisation subtracts each image's own mean, so every image ends with mean exactly 0: the density difference is erased. Pipeline 1 makes the *training set* mean 0, but individual images keep different means (a dense X-ray stays above 0). Both pipelines subtract a mean, so both produce negative values."
+  explain="Per-image standardisation subtracts each image's own mean, so every image ends with mean exactly 0: the density difference is erased. Pipeline 1 makes the *training set* mean 0, but individual images keep different means (a dense X-ray stays above 0), so it is pipeline 1 that keeps the brightness difference. Both pipelines subtract a mean, so both produce negative values."
 />
 
 <Takeaways>

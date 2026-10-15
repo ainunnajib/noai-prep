@@ -83,8 +83,9 @@ export default function ParameterExplosion() {
       title="How many weights does the first layer need?"
       caption={
         <>
-          <b>Try:</b> slide the image size and the neuron count. <b>Notice:</b> the dense layer needs inputs × neurons weights, which explodes; the conv
-          layer's 64 small 3 × 3 filters cost the same at any size. (Log scale: each gridline is 1,000×.)
+          <b>Try:</b> slide the image size and the neuron count. <b>Notice:</b> the dense layer needs inputs × neurons weights, which explodes. (A
+          convolutional layer, next lesson, slides 64 small 3 × 3 filters over the image and reuses them at every position, so its cost does not depend
+          on image size. Log scale: each gridline is 1,000×.)
         </>
       }
     >

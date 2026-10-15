@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Plot, usePlot, Rect, M } from '../../../../../kit'
 import { ACT, DACT, ACT_LABEL, SIZE_COLOUR, pow10Label, sci, type Act } from './sim'
+import focusCss from '../computational-graphs/gates.module.css'
+
+/* the selected neuron's product is drawn in ink, so it never looks like the indigo "shrinking" colour */
+const PRODUCT = 'var(--viz-ink)'
 
 /*
   A "network" one neuron wide: x → a₁ → a₂ → … → a_D → loss, with a_k = φ(w · a_{k−1}).
@@ -80,8 +84,8 @@ function ChainDrawing({ data, D, sel, onSel }: { data: ChainData; D: number; sel
         const inProduct = k >= sel && k < D
         return (
           <g key={`e${k}`}>
-            <line x1={xa} x2={xb} y1={ny} y2={ny} style={{ stroke: inProduct ? 'var(--accent)' : 'var(--viz-muted)', strokeWidth: inProduct ? 2.6 : 1.5 }} />
-            <path d={`M${xb},${ny}l-6,-4v8z`} style={{ fill: inProduct ? 'var(--accent)' : 'var(--viz-muted)' }} />
+            <line x1={xa} x2={xb} y1={ny} y2={ny} style={{ stroke: inProduct ? PRODUCT : 'var(--viz-muted)', strokeWidth: inProduct ? 2.6 : 1.5 }} />
+            <path d={`M${xb},${ny}l-6,-4v8z`} style={{ fill: inProduct ? PRODUCT : 'var(--viz-muted)' }} />
             {showLabel(k) && Number.isFinite(back) && (
               <text x={(xa + xb) / 2} y={ny - 14} textAnchor="middle" style={{ fill: factorColour(back), fontSize: 11, fontWeight: 700 }}>
                 ×{back < 0.1 ? back.toFixed(3) : back.toFixed(2)}
@@ -115,7 +119,8 @@ function ChainDrawing({ data, D, sel, onSel }: { data: ChainData; D: number; sel
             tabIndex={0}
             aria-label={`Neuron a${k}: gradient ${sci(data.g[k])}`}
             aria-pressed={isSel}
-            style={{ cursor: 'pointer', outline: 'none' }}
+            className={focusCss.focusable}
+            style={{ cursor: 'pointer' }}
             onClick={() => onSel(k)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -132,8 +137,8 @@ function ChainDrawing({ data, D, sel, onSel }: { data: ChainData; D: number; sel
               r={r}
               style={{
                 fill: `color-mix(in srgb, ${colourFor(lg)} ${Math.round(12 + strength * 70)}%, var(--surface))`,
-                stroke: isSel ? 'var(--accent)' : 'var(--viz-ink)',
-                strokeWidth: isSel ? 3 : 1.5,
+                stroke: 'var(--viz-ink)',
+                strokeWidth: isSel ? 3.4 : 1.5,
               }}
             />
             {step >= 30 && (
@@ -220,7 +225,7 @@ export default function ChainOfFactors() {
           </span>
         ))}
         <span>
-          <span style={{ display: 'inline-block', width: 18, height: 3, background: 'var(--accent)', verticalAlign: 'middle', marginRight: 5 }} />
+          <span style={{ display: 'inline-block', width: 18, height: 3, background: PRODUCT, verticalAlign: 'middle', marginRight: 5 }} />
           arrows in the selected neuron's product
         </span>
       </div>

@@ -48,19 +48,19 @@ A single perceptron can only draw one straight line, which is why it fails on XO
 
 <Analogy title="A team of map-makers">
 
-The council wants to mark a round neighbourhood on a map, but each junior map-maker may draw only **one straight line** and shade one side of it, so one junior can never fence in a round area. Four juniors plus a manager ("a house is in the zone if it is on the shaded side of all four lines") can outline a four-sided shape around it, and a second rank of managers combining such shapes can outline almost any region. The juniors are the first **hidden layer**, the managers the **later layers**, and the final decision the **output layer**.
+The council wants to mark a round neighbourhood on a map, but each junior map-maker may draw only **one straight line** and shade one side of it. Four juniors plus a manager ("in the zone if on the shaded side of all four lines") can outline a four-sided shape around it, and managers combining such shapes can outline almost any region. The juniors are the first **hidden layer**, the managers the **later layers**, and the final decision the **output layer**.
 
 </Analogy>
 
 ## From one neuron to a network
 
-Recall a single neuron with two inputs. It computes a weighted sum plus a bias, then applies an <Term def="The function a neuron applies to its weighted sum, such as ReLU(z) = max(0, z) or the sigmoid. Without it, layers would only ever compute straight-line (linear) functions.">activation function</Term> $f$:
+Recall a single neuron with two inputs: a weighted sum plus a bias, then an <Term def="The function a neuron applies to its weighted sum, such as ReLU(z) = max(0, z) or the sigmoid. Without it, layers would only ever compute straight-line (linear) functions.">activation function</Term> $f$:
 
 $$
 z = w_1 x_1 + w_2 x_2 + b, \qquad a = f(z)
 $$
 
-Here $z$ is the weighted sum, also called the <Term def="The weighted sum z = w·x + b of a neuron before the activation function is applied.">pre-activation</Term>, and $a$ is the neuron's output. In this lesson $f$ is usually **ReLU**, $\text{ReLU}(z) = \max(0, z)$: positive numbers pass through, negative ones become 0.
+$z$ is the weighted sum (the <Term def="The weighted sum z = w·x + b of a neuron before the activation function is applied.">pre-activation</Term>) and $a$ the output. Here $f$ is usually **ReLU**, $\max(0, z)$: positive numbers pass through, negative ones become 0.
 
 Now build a network from these neurons:
 
@@ -68,7 +68,7 @@ Now build a network from these neurons:
 - The **input layer** is just the features. It does no computing.
 - The <Term def="Any layer between the input layer and the output layer. Its values are not given in the training data; the network invents them.">hidden layers</Term> sit in the middle; the training data never says what their values should be.
 - The **output layer** produces the prediction.
-- Every layer here is <Term def="A layer in which every neuron receives every output of the previous layer. It computes f(Wx + b). PyTorch calls it nn.Linear.">fully connected</Term> (also called **dense**): each neuron receives every output of the layer before.
+- Every layer here is <Term def="A layer in which every neuron receives every output of the previous layer. It computes Wx + b, usually followed by an activation f. PyTorch's nn.Linear is the Wx + b part only; the activation is a separate layer such as nn.ReLU.">fully connected</Term> (also called **dense**): each neuron receives every output of the layer before.
 
 <NeuralNet layers={[2, 3, 1]} layerLabels={['input layer', 'hidden layer', 'output layer']} height={240} ariaLabel="A 2-3-1 network: 2 inputs, 3 hidden neurons, 1 output" />
 
@@ -93,7 +93,7 @@ $$
 | (1, 0) | 1 | 1 | 0 | **1** | 1 |
 | (1, 1) | 2 | 2 | 1 | 0 | 0 |
 
-Every row matches. The trick is in the middle columns: the hidden layer gives each input a **new description** $(h_1, h_2)$. The two "1" corners both become $(1, 0)$, while the "0" corners become $(0, 0)$ and $(2, 1)$. In this new space a single straight line does separate them, and the output neuron only has to draw that line.
+Every row matches. The trick is in the middle columns: the hidden layer gives each input a **new description** $(h_1, h_2)$. Both "1" corners become $(1, 0)$, while the "0" corners become $(0, 0)$ and $(2, 1)$, so in this new space one straight line separates them.
 
 <XorFold />
 
@@ -103,7 +103,7 @@ A hidden layer **re-describes** every input as a new list of numbers, one per hi
 
 </KeyIdea>
 
-Switch the ReLU off in the visual and the trick fails: a purely linear hidden layer can stretch, squash, rotate and slide the plane, but it can never make XOR separable (here the four points end up on one line, with the orange ones in the middle).
+Switch the ReLU off and the trick fails: a linear hidden layer can stretch, rotate and slide the plane, but never make XOR separable (here the four points land on one line, orange in the middle).
 
 ## The forward pass in numbers
 
@@ -134,17 +134,17 @@ where $\hat{y}$ ("y-hat") is the prediction. Step through it:
 <ForwardPassStepper />
 
 <Steps title="Forward pass by hand: x = (2, 1)">
-  <Step title="Hidden neuron 1: row (1, −1), bias 0">
-    $z_1 = 1 \cdot 2 + (-1) \cdot 1 + 0 = 1$, so $h_1 = \text{ReLU}(1) = 1$.
+  <Step title="Hidden neuron 1">
+    Row $(1, -1)$, bias $0$: $z_1 = 1 \cdot 2 + (-1) \cdot 1 + 0 = 1$, so $h_1 = \text{ReLU}(1) = 1$.
   </Step>
-  <Step title="Hidden neuron 2: row (−2, 1), bias 1">
-    $z_2 = (-2) \cdot 2 + 1 \cdot 1 + 1 = -2$, so $h_2 = \text{ReLU}(-2) = 0$. This neuron is switched off for this input.
+  <Step title="Hidden neuron 2">
+    Row $(-2, 1)$, bias $1$: $z_2 = (-2) \cdot 2 + 1 \cdot 1 + 1 = -2$, so $h_2 = \text{ReLU}(-2) = 0$. This neuron is switched off for this input.
   </Step>
-  <Step title="Hidden neuron 3: row (1, 2), bias −1">
-    $z_3 = 1 \cdot 2 + 2 \cdot 1 - 1 = 3$, so $h_3 = 3$. The hidden layer has turned $(2, 1)$ into $\mathbf{h} = (1, 0, 3)$.
+  <Step title="Hidden neuron 3">
+    Row $(1, 2)$, bias $-1$: $z_3 = 1 \cdot 2 + 2 \cdot 1 - 1 = 3$, so $h_3 = 3$. The hidden layer has turned $(2, 1)$ into $\mathbf{h} = (1, 0, 3)$.
   </Step>
-  <Step title="Output neuron: weights (2, −1, 1), bias −1">
-    $\hat{y} = 2 \cdot 1 + (-1) \cdot 0 + 1 \cdot 3 - 1 = 4$. No activation here: the output layer's activation depends on the task (next lesson).
+  <Step title="Output neuron">
+    Weights $(2, -1, 1)$, bias $-1$: $\hat{y} = 2 \cdot 1 + (-1) \cdot 0 + 1 \cdot 3 - 1 = 4$. No activation here: the output layer's activation depends on the task (next lesson).
   </Step>
 </Steps>
 
@@ -158,7 +158,7 @@ A neural network is just **multiply, add, squash**, repeated layer after layer: 
 
 <PastPaperQuestion paper="prelim2026" n={9} />
 
-In real code we push a whole **batch** of examples through at once. Stack them as the rows of a matrix $X$ with shape (examples × features); then a layer computes $f(XW^\top + \mathbf{b})$, giving one row of outputs per example. This is exactly what PyTorch's `nn.Linear` does. Run it, then change `x` or a weight and run again:
+In real code a whole **batch** of examples goes through at once, stacked as the rows of a matrix $X$. Then a layer computes $f(XW^\top + \mathbf{b})$, one row of outputs per example; $W^\top$ ("W transpose") is $W$ with its rows and columns swapped, and `nn.Linear` computes $XW^\top + \mathbf{b}$ in exactly this way. Run it, then change `x` or a weight and run again:
 
 <PyRunner packages={['numpy']} code={forwardCode} />
 
@@ -247,25 +247,25 @@ Parameter counting is a fast, reliable mark: for each layer write "in × out + o
 
 ## Watch a network learn shapes
 
-Time to train one. In the playground the network sees two numbers per point (its coordinates) and must decide orange or blue. It learns with **Adam**, a souped-up version of gradient descent you will meet in the training module: after each batch of 10 points, every weight and bias takes a small step that lowers the loss. (How the network finds those directions, *backpropagation*, is the next module.)
+Time to train one. The network sees each point's two coordinates and must decide orange or blue. After each batch of 10 points, every weight and bias takes a small step that lowers the loss, using **Adam**, a souped-up gradient descent from the training module. (How it finds those directions, *backpropagation*, is the next module.)
 
 <MiniPlayground />
 
 <TryIt title="Five experiments (each takes under a minute)">
 
-1. **Too few neurons.** On the circle, press − until layer 1 has 2 neurons, then Play: two straight folds cannot fence in a round blob, so accuracy stalls below 100%. With 3 or more it usually can. Tap a hidden neuron to see its one straight fold.
-2. **No activation.** Choose **none** and add layers: however deep you go, the boundary stays one straight line.
-3. **The spiral.** Compare one layer of 2 neurons, one layer of 8 and two layers of 8. Tap a layer-2 neuron: its map bends in several places, because it combines the folds of layer 1.
-4. **Learning rate.** On the spiral with two layers of 8, compare 0.03 with 0.3. At 0.3 the steps are too big: the loss jumps about and the network gets stuck at about 0.693 (50% accuracy), the coin-flip line. (These values are Adam step sizes; plain gradient descent needs different ones.)
-5. **Test data.** Turn on the hollow test points, which the network never trains on. When test loss climbs while training loss keeps falling, the network is memorising noise.
+1. **Too few neurons.** On the circle, press − until layer 1 has 2 neurons, then Play: two straight folds cannot fence in a round blob, so accuracy stalls below 100%; 3 or more usually can. Tap a hidden neuron to see its fold.
+2. **No activation.** Choose **none** and add layers: the boundary stays one straight line.
+3. **The spiral.** Compare one layer of 2, one layer of 8 and two layers of 8. A layer-2 neuron's map bends in several places: it combines layer 1's folds.
+4. **Learning rate.** On the spiral with two layers of 8, pick 0.3 and press Play (changing the rate restarts training from fresh weights), then repeat with 0.03. At 0.3 the steps are too big: the network gets stuck at about 0.693 (50% accuracy), the coin-flip line, and never recovers. At 0.03 a few loss spikes are normal with Adam, but it climbs past 90%. (These are Adam step sizes; plain gradient descent needs different ones.)
+5. **Test data.** Show the hollow test points, never trained on. Test loss climbing while training loss falls means the network is memorising noise.
 
 </TryIt>
 
 ## Width, depth and what a network can represent
 
-**Width.** Each first-layer ReLU neuron adds one straight fold to the input space, so a wider layer gives the next layer more folds to combine. With one input and $n$ ReLU neurons in a single hidden layer, the output is a bent line made of at most $n + 1$ straight pieces.
+**Width.** Each first-layer ReLU neuron adds one straight fold, so a wider layer gives the next layer more folds to combine. With one input and $n$ ReLU neurons in one hidden layer, the output is a bent line of at most $n + 1$ straight pieces.
 
-**Depth.** A deeper layer folds the already-folded space again, so the number of pieces can multiply from layer to layer instead of just adding up. Two ReLU neurons are enough to make a "tent" shape that folds a line in half. Stack tent layers and watch:
+**Depth.** A deeper layer folds the already-folded space again, so the pieces can multiply from layer to layer instead of adding up. Two ReLU neurons make a "tent" that folds a line in half. Stack tent layers:
 
 <DepthFolds />
 
@@ -276,7 +276,7 @@ The <Term def="The theorem that a network with one hidden layer and a suitable n
 - It says suitable weights **exist**. It does not promise that training will find them.
 - "Enough neurons" can mean an enormous number; deeper networks usually need far fewer, one reason modern networks are deep.
 
-More parameters are not automatically better either: a network with far more parameters than training examples can fit the noise, so training loss keeps falling while test loss rises. That is **overfitting**, a favourite exam question.
+More parameters are not automatically better: a network with far more parameters than training examples can fit the noise, so training loss keeps falling while test loss rises. That is **overfitting**.
 
 <PastPaperQuestion paper="prelim2026" n={261} />
 

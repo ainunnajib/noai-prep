@@ -80,17 +80,17 @@ $$
 n_{\text{out}} = (n - 1)\,s - 2p + k
 $$
 
-Here $n$ is the input height (or width), $s$ the stride (the spacing between stamps), $p$ the padding (cells trimmed from each edge) and $k$ the kernel size. It is the ordinary convolution formula, $n_{\text{out}} = \lfloor (n + 2p - k)/s \rfloor + 1$, solved for the input size: a transposed convolution undoes a convolution's change in **shape** (not its values). A $k = 2, s = 2$ convolution turns $8 \times 8$ into $4 \times 4$; the transposed one turns $4 \times 4$ back into $8 \times 8$.
+Here $n$ is the input height (or width), $s$ the stride (the spacing between stamps), $p$ the padding (cells trimmed from each edge) and $k$ the kernel size. It is the ordinary convolution formula, $n_{\text{out}} = \lfloor (n + 2p - k)/s \rfloor + 1$, solved for the input size. (Ignore the floor and rearrange: $n_{\text{out}} - 1 = (n + 2p - k)/s$, so $n = (n_{\text{out}} - 1)s - 2p + k$. Swap the names of input and output and you get the formula above.) So a transposed convolution undoes a convolution's change in **shape** (not its values). A $k = 2, s = 2$ convolution turns $8 \times 8$ into $4 \times 4$; the transposed one turns $4 \times 4$ back into $8 \times 8$.
 
 <Steps title="Output sizes by hand">
-  <Step title="The U-Net standard: $k = 2, s = 2, p = 0$">
-    $(n - 1) \cdot 2 - 0 + 2 = 2n$. It exactly doubles: $57 \to 114$, $12 \to 24$. The stamps tile the output with no gaps and no overlaps.
+  <Step title="U-Net standard">
+    With $k = 2, s = 2, p = 0$: $(n - 1) \cdot 2 - 0 + 2 = 2n$. It exactly doubles: $57 \to 114$, $12 \to 24$. The stamps tile the output with no gaps and no overlaps.
   </Step>
-  <Step title="The stepper's default: $n = 2, k = 3, s = 2, p = 0$">
-    $(2 - 1) \cdot 2 - 0 + 3 = 5$. The stamps are 3 wide but only 2 apart, so the cells in the middle row and column get two stamps, and the centre cell gets four.
+  <Step title="Stepper default">
+    With $n = 2, k = 3, s = 2, p = 0$: $(2 - 1) \cdot 2 - 0 + 3 = 5$. The stamps are 3 wide but only 2 apart, so the cells in the middle row and column get two stamps, and the centre cell gets four.
   </Step>
-  <Step title="With padding: $n = 7, k = 3, s = 2, p = 1$">
-    $(7 - 1) \cdot 2 - 2 + 3 = 13$. Not 14! This is why U-Nets use $k = 2, s = 2$: it doubles cleanly.
+  <Step title="With padding">
+    With $n = 7, k = 3, s = 2, p = 1$: $(7 - 1) \cdot 2 - 2 + 3 = 13$. Not 14! This is why U-Nets use $k = 2, s = 2$: it doubles cleanly.
   </Step>
 </Steps>
 
@@ -119,13 +119,13 @@ tensor([[[[1., 1., 2., 2.],
 torch.Size([1, 1, 4, 4])
 ```
 
-PyTorch also has an `output_padding` argument that adds extra cells on one side of the output: `nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)` turns 7 into 14. The full formula (with the default dilation of 1) is $(n - 1)s - 2p + k + \text{output\_padding}$.
+<Reveal label="Going further: output_padding and checkerboard artefacts">
 
-<Note title="Checkerboard artefacts">
+PyTorch also has an `output_padding` argument that adds extra cells on one side of the output: `nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1)` turns 7 into 14. The full formula (with the default dilation of 1) is $(n - 1)s - 2p + k + \text{output\_padding}$. Why is it needed? With $k = 3, s = 2, p = 1$ an ordinary convolution sends both 13 and 14 to 7 (that is the floor at work), so going back from 7 is ambiguous; `output_padding=1` picks 14.
 
-When the kernel size is not a multiple of the stride ($k = 3, s = 2$), some output pixels get more stamps than their neighbours, and networks tend to produce faint checkerboard patterns. Two common cures: use $k = 2, s = 2$ as U-Net does, or upsample with a fixed method (`nn.Upsample(scale_factor=2)`) followed by an ordinary convolution.
+**Checkerboard artefacts.** When the kernel size is not a multiple of the stride ($k = 3, s = 2$), some output pixels get more stamps than their neighbours, and networks tend to produce faint checkerboard patterns. Two common cures: use $k = 2, s = 2$ as U-Net does, or upsample with a fixed method (`nn.Upsample(scale_factor=2)`) followed by an ordinary convolution.
 
-</Note>
+</Reveal>
 
 <QuickCheck
   q="What height does nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1) produce from a 7×7 input?"
@@ -145,9 +145,9 @@ Every shape in a U-Net comes from four rules. Learn them and you can trace any n
 
 <UNetShapeTracer />
 
-<Steps title="The 2026 Final's network: a 256×256 input with valid padding">
+<Steps title="The 2026 Final's U-Net">
   <Step title="Encoder level 1">
-    Two valid $3 \times 3$ convs: $256 \to 254 \to 252$, with 64 channels. Pool: $126$.
+    The input is $256 \times 256$ and every convolution uses valid padding. Two valid $3 \times 3$ convs: $256 \to 254 \to 252$, with 64 channels. Pool: $126$.
   </Step>
   <Step title="Encoder level 2">
     $126 \to 124 \to 122$: the skip map `x2` is $128 \times 122 \times 122$. Pool: $61$.
@@ -159,7 +159,7 @@ Every shape in a U-Net comes from four rules. Learn them and you can trace any n
     The transposed convolution doubles: $57 \to 114$, halving the channels to 128.
   </Step>
   <Step title="Crash">
-    `torch.cat` is asked to join a $122 \times 122$ map with a $114 \times 114$ map: "Sizes of tensors must match". Valid convolutions shrank the encoder map by 8 more pixels than the decoder map.
+    `torch.cat` is asked to join a $122 \times 122$ map with a $114 \times 114$ map: "Sizes of tensors must match". The two valid convolutions in the bottleneck trimmed 61 to 57, losing 4 pixels at half resolution. After doubling, that is 8 pixels, so the decoder map is 8 pixels smaller than the skip map ($122 - 114 = 8$). The bigger encoder map is the one we must crop.
   </Step>
 </Steps>
 
@@ -288,7 +288,11 @@ torch.Size([1, 256, 24, 24])
 
 </Mistake>
 
-Cropping is not the only fix. With **same** padding you can use input sizes divisible by $2^{\text{depth}}$ (256 with four pools: $256 / 16 = 16$), so nothing is rounded down. Or you can resize the decoder map with `F.interpolate` or pad it with `F.pad`. Cropping throws away the skip map's border (and shrinks the output, so the label masks must be cropped too); padding and resizing invent or stretch values.
+<Reveal label="Other ways to fix a mismatch">
+
+Cropping is not the only fix. With **same** padding you can use input sizes divisible by $2^{\text{depth}}$ (256 with four pools: $256 / 16 = 16$), so nothing is rounded down. Or you can resize the decoder map with `F.interpolate` or pad it with `F.pad`. Cropping throws away the skip map's border, and with valid padding the output is smaller than the input ($572 \to 388$), so the label masks must be centre-cropped too; padding and resizing invent or stretch values.
+
+</Reveal>
 
 <ExamTip>
 

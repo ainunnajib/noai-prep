@@ -34,13 +34,15 @@ interface Preset {
   residual: boolean
   bn: boolean
   note: string
+  /** the note quotes numbers that hold for the default 20 layers */
+  quotes?: boolean
 }
 
 const PRESETS: Preset[] = [
-  { label: '1. sigmoid', act: 'sigmoid', k: 1, residual: false, bn: false, note: 'Every sigmoid layer multiplies by a small factor: layer 1 gets about 10⁻¹² of the signal. Vanishing.' },
+  { label: '1. sigmoid', act: 'sigmoid', k: 1, residual: false, bn: false, note: 'Every sigmoid layer multiplies by a small factor: layer 1 gets about 10⁻¹² of the signal. Vanishing.', quotes: true },
   { label: '2. ReLU', act: 'relu', k: 1, residual: false, bn: false, note: 'Better, but with k = 1 half the neurons are off, so every layer still shrinks the gradient.' },
   { label: '3. ReLU + He', act: 'relu', k: Math.SQRT2, residual: false, bn: false, note: 'He initialisation (k = √2) makes up for the half that is off: the dots stay in the healthy band.' },
-  { label: '4. weights too big', act: 'relu', k: 2, residual: false, bn: false, note: 'With k = 2 every layer multiplies the gradient by about 1.3 (see the typical factor below), and twenty of those explode.' },
+  { label: '4. weights too big', act: 'relu', k: 2, residual: false, bn: false, note: 'With k = 2 every layer multiplies the gradient by about 1.4 (k × 0.71; this particular random network shows its exact value under “typical factor per layer” below), and twenty of those explode.', quotes: true },
   { label: '5. sigmoid + residual', act: 'sigmoid', k: 1, residual: true, bn: false, note: 'Skip connections carry the gradient past every sigmoid: back in the healthy band.' },
   {
     label: '6. ReLU + He + residual',
@@ -56,7 +58,7 @@ const PRESETS: Preset[] = [
     k: Math.SQRT2,
     residual: true,
     bn: true,
-    note: 'BatchNorm keeps each block’s contribution in check: healthy at any depth. This combination is how ResNets are built.',
+    note: 'BatchNorm keeps each block’s contribution in check: the dots stay in the healthy band at every depth in this chart (up to 30 layers). This combination is how ResNets are built.',
   },
 ]
 
@@ -110,9 +112,6 @@ function LogBars({ grad }: { grad: number[] }) {
       )}
       <text x={(xs(1) + xs(L)) / 2} y={ys(Y_MIN) + 16} textAnchor="middle" style={{ fill: 'var(--viz-axis)', fontSize: 11 }}>
         ← input side · layer · loss side →
-      </text>
-      <text x={x1 - 2} y={ys(1) - 4} textAnchor="end" className="plot-label" style={{ fontSize: 11, fill: 'var(--ink-2)' }}>
-        healthy band: within ×10
       </text>
     </g>
   )
@@ -181,11 +180,38 @@ export default function GradientDepthBars() {
       >
         <LogBars grad={grad} />
       </Plot>
+      <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem', fontSize: '0.84rem', color: 'var(--ink-2)' }}>
+        <span>
+          <span
+            style={{
+              display: 'inline-block',
+              width: 18,
+              height: 12,
+              borderRadius: 2,
+              background: `color-mix(in srgb, ${SIZE_COLOUR.healthy} 13%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${SIZE_COLOUR.healthy} 40%, transparent)`,
+              verticalAlign: '-0.1em',
+              marginRight: 5,
+            }}
+          />
+          healthy band: within ×10 of 1
+        </span>
+        {[
+          [SIZE_COLOUR.vanishing, 'shrinking'],
+          [SIZE_COLOUR.healthy, 'about 1'],
+          [SIZE_COLOUR.exploding, 'growing'],
+        ].map(([c, t]) => (
+          <span key={t}>
+            <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: c, verticalAlign: '-0.05em', marginRight: 5 }} />
+            {t}
+          </span>
+        ))}
+      </div>
       <div style={{ width: '100%', minHeight: '2.8em', fontSize: '0.92rem', lineHeight: 1.5, color: 'var(--ink-2)' }} aria-live="polite">
         {current ? (
           <>
             <b style={{ color: 'var(--ink)' }}>{current.label}:</b> {current.note}
-            {depth !== 20 && <> (The numbers quoted are for 20 layers.)</>}
+            {depth !== 20 && current.quotes && <> (The numbers quoted are for 20 layers.)</>}
           </>
         ) : (
           <>Your own settings. Watch the dots at the input end (left): that is where vanishing or exploding shows first.</>

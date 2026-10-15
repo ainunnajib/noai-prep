@@ -59,13 +59,13 @@ The standard setting is a 2×2 window with stride 2, so the windows sit side by 
 
 <PoolingExplorer />
 
-How big is the output? Exactly the same counting as for a convolution without padding (you met it in the padding lesson):
+How big is the output? Exactly the same counting as for a convolution (you met it in the padding lesson):
 
 $$
-n_{\text{out}} = \left\lfloor \frac{n - k}{s} \right\rfloor + 1
+n_{\text{out}} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
 $$
 
-Here $n$ is the input height (or width), $k$ is the window size, $s$ is the stride (how many pixels the window jumps each time) and $\lfloor\,\cdot\,\rfloor$ means "round down". In words: the window can start at positions $0, s, 2s, \dots$ as long as it still fits, and we count those positions. For a $32 \times 32$ map with $k = 2$, $s = 2$: $\lfloor 30/2 \rfloor + 1 = 16$.
+Here $n$ is the input height (or width), $k$ is the window size, $s$ is the stride (how many pixels the window jumps each time), $p$ is the padding and $\lfloor\,\cdot\,\rfloor$ means "round down". In words: the window can start at positions $0, s, 2s, \dots$ as long as it still fits, and we count those positions. Pooling usually has no padding, $p = 0$: for a $32 \times 32$ map with $k = 2$, $s = 2$ that gives $\lfloor 30/2 \rfloor + 1 = 16$. One famous exception: ResNet's first pool is a $3 \times 3$ max-pool with stride 2 and $p = 1$, which takes $112 \times 112$ to $\lfloor (112 + 2 - 3)/2 \rfloor + 1 = 56$. Forget the padding and you would get 55.
 
 Here is a small feature map to pool by hand:
 
@@ -251,7 +251,7 @@ Memorise the patterns so you can answer in seconds: stacked 3×3 convs see $3, 5
 <Takeaways>
 
 - **Max pooling** keeps the largest value in each window, **average pooling** the mean; 2×2 with stride 2 halves height and width, keeps the channels and has **no parameters**.
-- Output size follows $\lfloor (n - k)/s \rfloor + 1$, the same counting as convolution.
+- Output size follows $\lfloor (n + 2p - k)/s \rfloor + 1$, the same counting as convolution; pooling usually has $p = 0$.
 - Convolution is shift-**equivariant**; pooling adds approximate shift-**invariance** for small shifts.
 - **Global average pooling** turns $(C, H, W)$ into $C$ numbers: far fewer weights than flattening, and any input size works.
 - The **receptive field** grows with depth ($3 \to 5 \to 7$ for stacked 3×3) and faster after pooling or strides; stacks of 3×3 beat one big kernel with fewer weights and more ReLUs.

@@ -2,7 +2,7 @@ import Patchifier from './visuals/vision-transformers/Patchifier'
 import PositionShuffle from './visuals/vision-transformers/PositionShuffle'
 import PatchAttentionMap from './visuals/vision-transformers/PatchAttentionMap'
 
-In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere: it is the image encoder inside CLIP and inside most models that chat about pictures (the next two lessons), and IOAI tasks name ViTs directly (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). The whole trick is to turn an image into a sentence.
+In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere: it is the image encoder inside CLIP and inside most models that chat about pictures (the CLIP and vision-language-model lessons later in this module), and IOAI tasks name ViTs directly (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). The whole trick is to turn an image into a sentence.
 
 <Analogy title="A jigsaw with numbered pieces">
 
@@ -46,6 +46,8 @@ Two consequences are worth remembering. First, $P$ appears twice in the formula,
 
 <PastPaperQuestion paper="prelim2026" n={249} />
 
+In Big-O notation (see [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o)), the cost of attention is $O(n^2)$ in the number of tokens $n$: double the tokens and you do four times the work.
+
 <PastPaperQuestion paper="prelim2026" n={219} />
 
 ## From patch to token: the patch embedding
@@ -74,7 +76,7 @@ The result is the <Term def="The vector a patch becomes after flattening and mul
     One learned 768-vector per position: $197 \times 768 = 151\,296$ more parameters.
   </Step>
   <Step title="Run the Transformer and classify">
-    Twelve Transformer blocks keep the shape at $197 \times 768$. The final vector at position 0 ([CLS]) goes into a linear layer that outputs one score per class. The whole model has about 86 million parameters.
+    Twelve Transformer blocks keep the shape at $197 \times 768$. The final vector at position 0 ([CLS]) goes through a last LayerNorm and then a linear layer that outputs one score per class. The whole model has about 86 million parameters.
   </Step>
 </Steps>
 
@@ -84,7 +86,7 @@ The name **ViT-B/16** means the *Base* model size (12 layers, $D = 768$, 12 head
   q="A ViT with patch size 16 reads a 384 × 384 image. How many tokens enter the Transformer, counting the [CLS] token?"
   options={['577', '576', '25', '9217']}
   answer={0}
-  explain="$384 / 16 = 24$ patches per side, so $24 \times 24 = 576$ patches, plus [CLS] gives 577. 576 forgets [CLS]; 25 is $24 + 1$ (one side only); 9217 divides the area by 16 instead of by $16^2$."
+  explain="$384 / 16 = 24$ patches per side, so $24 \times 24 = 576$ patches, plus [CLS] gives 577. 576 forgets [CLS]; 25 is $24 + 1$ (one side only); 9217 is $384 \times 384 / 16 = 9216$ (the area divided by 16 instead of by $16^2$) plus [CLS]."
 />
 
 ## The [CLS] token: a seat for the summary
@@ -113,36 +115,42 @@ ViT simply numbers the positions 0 to 196 in a line and learns one vector for ea
 
 ## In PyTorch
 
-Here is the front of a ViT-B/16, followed by PyTorch's built-in Transformer encoder. Watch the shapes.
+Here is the front of a ViT-B/16, followed by PyTorch's built-in Transformer encoder, set up as in ViT (GELU activations, LayerNorm before each sub-layer and once more at the end). Watch the shapes.
 
 ```python
 import torch
 import torch.nn as nn
 
 torch.manual_seed(0)
-x = torch.randn(1, 3, 224, 224)            # one RGB image: (N, C, H, W)
+x = torch.randn(1, 3, 224, 224)   # one RGB image (N, C, H, W)
 
-# 1. Patch embedding: a conv whose kernel and stride both equal the patch size
+# 1. Patch embedding: a conv whose kernel and stride
+#    both equal the patch size
 patch_embed = nn.Conv2d(3, 768, kernel_size=16, stride=16)
 p = patch_embed(x)
-print(p.shape)                              # one 768-vector per patch, on a 14x14 grid
+print(p.shape)            # a 768-vector per patch, 14 x 14
 
-tokens = p.flatten(2).transpose(1, 2)       # grid -> sequence
+tokens = p.flatten(2).transpose(1, 2)   # grid -> sequence
 print(tokens.shape)
 
-# 2. Prepend the learned [CLS] token, add learned position embeddings
+# 2. Prepend the learned [CLS] token, add position embeddings
 cls_token = nn.Parameter(torch.zeros(1, 1, 768))
 pos_embed = nn.Parameter(torch.zeros(1, 197, 768))
-z = torch.cat([cls_token.expand(1, -1, -1), tokens], dim=1) + pos_embed
+z = torch.cat([cls_token.expand(1, -1, -1), tokens], dim=1)
+z = z + pos_embed
 print(z.shape)
 
-# 3. Transformer encoder, then classify from the [CLS] output
-layer = nn.TransformerEncoderLayer(d_model=768, nhead=12, dim_feedforward=3072,
-                                   batch_first=True, norm_first=True)
-encoder = nn.TransformerEncoder(layer, num_layers=12, enable_nested_tensor=False)
-head = nn.Linear(768, 10)                   # 10 classes
+# 3. Transformer encoder (GELU, as in ViT) with a final
+#    LayerNorm, then classify from the [CLS] output
+layer = nn.TransformerEncoderLayer(
+    d_model=768, nhead=12, dim_feedforward=3072,
+    activation='gelu', batch_first=True, norm_first=True)
+encoder = nn.TransformerEncoder(
+    layer, num_layers=12, norm=nn.LayerNorm(768),
+    enable_nested_tensor=False)
+head = nn.Linear(768, 10)          # 10 classes
 out = encoder(z)
-logits = head(out[:, 0])                    # position 0 = [CLS]
+logits = head(out[:, 0])           # position 0 = [CLS]
 print(out.shape, logits.shape)
 ```
 
@@ -156,8 +164,10 @@ torch.Size([1, 197, 768]) torch.Size([1, 10])
 `flatten(2)` merges the $14 \times 14$ grid into 196 positions, and `transpose(1, 2)` swaps the axes so that each row is one token: `(batch, tokens, D)`. To convince yourself that the conv really is "flatten each patch, then a linear layer", cut the patches out by hand and copy the conv's weights into an `nn.Linear`:
 
 ```python
-patches = x.unfold(2, 16, 16).unfold(3, 16, 16)       # (1, 3, 14, 14, 16, 16)
-patches = patches.permute(0, 2, 3, 1, 4, 5).reshape(1, 196, 3 * 16 * 16)
+# cut out the 16 x 16 patches: shape (1, 3, 14, 14, 16, 16)
+patches = x.unfold(2, 16, 16).unfold(3, 16, 16)
+patches = patches.permute(0, 2, 3, 1, 4, 5)
+patches = patches.reshape(1, 196, 3 * 16 * 16)
 print(patches.shape)
 
 linear = nn.Linear(768, 768)
@@ -180,14 +190,14 @@ A CNN builds up its view slowly. A neuron in the first $3 \times 3$ conv layer s
 This freedom has a price. A CNN comes with built-in assumptions, called <Term def="The assumptions a model's design makes before it sees any data. They steer what it can learn easily, which helps when data is scarce and limits it when data is plentiful.">inductive biases</Term>:
 
 - **locality**: nearby pixels belong together, so look at small windows first;
-- **translation equivariance**: a cat is a cat wherever it appears, so share one kernel across all positions.
+- **translation equivariance**: one kernel is shared across all positions, so if the cat moves, its feature-map response moves with it. (Pooling and a final global average then make the class prediction roughly *invariant*: a cat is a cat wherever it appears.)
 
-For natural photos these assumptions are almost always right, so a CNN starts with a big head start. A ViT keeps very few of them (only the cut into patches and the shared projection). It has to *learn* from data that neighbouring patches usually matter. With little data it learns that slowly and overfits; with a lot of data its flexibility wins, because it is not boxed in by assumptions that are sometimes wrong.
+For natural photos these assumptions are almost always right, so a CNN starts with a big head start. A ViT keeps very few of them: only the cut into patches. Its weights are shared across all tokens too (every layer applies the same $W_Q$, $W_K$, $W_V$ and MLP to every patch), but self-attention is global from layer 1, so nothing tells it which patches are neighbours. It has to *learn* from data that neighbouring patches usually matter. With little data it learns that slowly and overfits; with a lot of data its flexibility wins, because it is not boxed in by assumptions that are sometimes wrong.
 
-| | CNN (e.g. ResNet) | ViT |
+| | CNN (e.g. VGG, ResNet) | ViT |
 |---|---|---|
-| what one unit sees in layer 1 | a small window ($3 \times 3$ pixels) | every patch in the image |
-| built-in assumptions | locality, translation equivariance | very few: patches plus shared projection |
+| what one unit sees in layer 1 | a small window ($3 \times 3$ pixels in VGG; $7 \times 7$ in ResNet) | every patch in the image |
+| built-in assumptions | locality, translation equivariance | very few: the patch grid only; no locality |
 | trained from scratch on a small dataset | usually better | usually worse (overfits) |
 | pretrained on a huge dataset | very good | as good or better, and scales further |
 | cost as image resolution grows | grows with the number of pixels | attention grows with $N^2$ |
@@ -198,7 +208,7 @@ The original ViT paper showed this directly. Trained only on ImageNet's 1.3 mill
   q="A student trains a ViT from scratch on 5,000 labelled leaf photos, and a ResNet of similar size reaches higher test accuracy. What is the most likely reason?"
   options={['It has weaker built-in assumptions about images, so it needs more data or pretraining', 'Self-attention cannot relate parts of an image that are far apart from each other', 'Flattening each patch throws away the colour information in the photo', 'Transformers are designed for text, so they read image patches in the wrong order']}
   answer={0}
-  explain="With only 5,000 images, the CNN's built-in locality and weight sharing are a big advantage, while the ViT must learn them from scarce data and overfits. Distant relations are the ViT's strength, not its weakness; flattening keeps all three colour channels."
+  explain="With only 5,000 images, the CNN's built-in locality (small kernels that only see neighbours) is a big advantage, while the ViT must learn from scarce data that nearby patches matter, and overfits. Distant relations are the ViT's strength, not its weakness; flattening keeps all three colour channels, and the patches are read in a fixed order with position embeddings."
 />
 
 <ExamTip>

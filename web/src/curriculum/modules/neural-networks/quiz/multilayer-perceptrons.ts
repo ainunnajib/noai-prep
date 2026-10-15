@@ -33,14 +33,14 @@ const questions: QuizQuestion[] = [
     id: 'neural-networks.multilayer-perceptrons.4',
     prompt: 'Which statement about the universal approximation theorem is correct?',
     options: [
-      'With a non-linear activation and enough neurons, one hidden layer can approximate any continuous function on a bounded region.',
-      'With enough training epochs, gradient descent always finds weights that let one hidden layer fit any continuous function.',
-      'Without any activation function, one hidden layer with enough neurons can approximate any continuous function on a bounded region.',
-      'A network can approximate any continuous function only if it has at least as many hidden layers as input features.',
+      'With a non-polynomial activation such as ReLU and enough neurons, one hidden layer can approximate any continuous function on a closed, bounded region.',
+      'With enough training epochs, gradient descent is guaranteed to find weights that let one wide hidden layer fit any continuous function exactly.',
+      'Without any activation function, one hidden layer with enough neurons can approximate any continuous function on a closed, bounded region of inputs.',
+      'A network can approximate any continuous function only if it has at least as many hidden layers as there are input features, whatever its width.',
     ],
     answer: 0,
     explanation:
-      'The theorem is an existence result: one hidden layer with a non-linear activation and enough neurons **has** weights that approximate any continuous function on a bounded region (strictly, the activation must be non-polynomial, like ReLU, sigmoid or tanh, and the region closed and bounded). It says nothing about training finding those weights, and the number of neurons needed may be huge. Without an activation the network is linear, so it can only make straight-line functions; and one hidden layer is enough in principle, whatever the number of features.',
+      'The theorem is an existence result: one hidden layer with a non-polynomial activation (such as ReLU, sigmoid or tanh) and enough neurons **has** weights that approximate any continuous function on a closed, bounded region. It says nothing about training finding those weights, and the number of neurons needed may be huge. Without an activation the network is linear, so it can only make straight-line functions; and one hidden layer is enough in principle, whatever the number of features.',
     difficulty: 'intermediate',
   },
   {

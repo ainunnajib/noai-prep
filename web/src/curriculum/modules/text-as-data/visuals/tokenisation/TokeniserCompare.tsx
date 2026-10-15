@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, Label, useNarrow } from '../../../../../kit'
 import { CORPUS } from './corpus'
 import { BASE_CHARS, encodeWord, inBase, isWord, pretokenise, trainBPE, wordFreq, type Merge } from './bpe'
+import { TryNotice, textTone } from '../Caption'
 import s from './tok.module.css'
 
 /*
@@ -144,13 +145,19 @@ export default function TokeniserCompare() {
       wide
       title="One sentence, three tokenisers"
       caption={
-        <>
-          All three tokenisers learned from the same short school-day text (about 370 words). Edit the sentence or tap a preset, then slide the number of BPE merges.
-          At 0 merges BPE is exactly character-level; as it learns more merges, frequent chunks such as <code>ing</code>, <code>un</code> and{' '}
-          <code>token</code> become single tokens and the sentence gets shorter, yet a word it never saw is still spelled out from pieces instead of
-          becoming <code>[UNK]</code>. Only symbols outside the base alphabet (like the emoji) are unknown; byte-level BPE, used by GPT models, avoids
-          even that by starting from the 256 possible bytes.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              tap <b>Typo</b>, then drag the BPE merges slider from 0 to the end.
+            </>
+          }
+          notice={
+            <>
+              BPE goes from character length to near word length, yet a misspelt word is spelled from pieces instead of becoming <code>[UNK]</code>.
+            </>
+          }
+          note={<>All three tokenisers learned from the same short school-day text of about 370 words.</>}
+        />
       }
     >
       <div className={s.field}>
@@ -183,8 +190,8 @@ export default function TokeniserCompare() {
         <Grid xTicks={narrow ? 4 : 8} yTicks={5} />
         <Axes xLabel="BPE merges (vocabulary grows →)" yLabel="tokens" xTicks={narrow ? 4 : 8} yTicks={5} />
         <HLine y={nWord} color="var(--viz-2)" />
-        {/* the word-level label sits at the left end, away from the BPE dot, which ends up near this line on the right */}
-        <Label x={0} y={nWord} dx={8} dy={-6} color="var(--viz-2)">
+        {/* the BPE curve never drops below the word-level count, so the space under the dashed line is always free */}
+        <Label x={0} y={nWord} dx={8} dy={15} color={textTone('var(--viz-2)')}>
           {`word-level: ${nWord}`}
         </Label>
         <Path points={path} color="var(--viz-1)" width={2.5} />

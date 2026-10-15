@@ -3,11 +3,11 @@ import GradientThroughTime from './visuals/rnns-and-lstms/GradientThroughTime'
 import LSTMGateSliders from './visuals/rnns-and-lstms/LSTMGateSliders'
 import Seq2SeqBottleneck from './visuals/rnns-and-lstms/Seq2SeqBottleneck'
 
-*Dog bites man* and *man bites dog* contain exactly the same words, so a bag of words cannot tell them apart, yet only one of them is news. In language, **order carries meaning**. Before Transformers arrived in 2017, the standard way to read a sequence in order was a <Term def="Recurrent neural network: a network that reads a sequence one element at a time and carries a hidden state (a memory vector) from each step to the next.">recurrent neural network (RNN)</Term>. NOAI papers ask what RNNs are for, what problem LSTMs solve and what attention does. This lesson builds all of it from one equation: why RNNs forget, how LSTM gates help, and why attention was invented.
+*Dog bites man* and *man bites dog* contain exactly the same words, so a bag of words cannot tell them apart, yet only one of them is news. Before Transformers arrived in 2017, the standard way to read text **in order** was a <Term def="Recurrent neural network: a network that reads a sequence one element at a time and carries a hidden state (a memory vector) from each step to the next.">recurrent neural network (RNN)</Term>. This lesson builds it from one equation, then shows why it forgets, how LSTM gates help and why attention was invented.
 
 <Analogy title="One sticky note">
 
-Someone tells you a long story, but you may keep only **one sticky note**, and after every sentence you must rewrite it: read the new sentence, glance at your old note, write a fresh note. At the end you answer questions using only the last note. Short stories go fine. In a long story the details from the beginning get squeezed out, rewritten again and again until they are gone. That sticky note is an RNN's hidden state.
+Someone tells you a long story, but you may keep only **one sticky note**, and after every sentence you must rewrite it: read the new sentence, glance at your old note, write a fresh note. At the end you answer questions from the last note alone. In a long story the early details get squeezed out, rewritten again and again until they are gone. That sticky note is an RNN's hidden state.
 
 </Analogy>
 
@@ -32,8 +32,6 @@ The key design choice is that $W_x$, $W_h$ and $b$ are **the same at every step*
 
 <RNNUnroller />
 
-The bars in the bottom row of the visual (influence) measure how much the first word can still change the current state. In the plain RNN they shrink step after step: everything must fit in one small vector, and every new word partly overwrites it.
-
 <Steps title="A one-number RNN by hand ($w_x = 1$, $w_h = 0.5$, $b = 0$)">
   <Step title="Step 1: read $x_1 = 2$">
     $h_1 = \tanh(1 \times 2 + 0.5 \times 0) = \tanh(2) \approx 0.96$.
@@ -49,7 +47,7 @@ The bars in the bottom row of the visual (influence) measure how much the first 
   </Step>
 </Steps>
 
-How do you use the states? To classify a whole sentence (sentiment, spam), feed the **final** state $h_T$ to a linear layer, just like the vector in the text-classification lesson, except that this vector was built in word order. To label every word (for example, tagging names of places), put a linear layer on **every** $h_t$. And to predict the next word, which is <Term def="Predicting the next token from the tokens before it. It is how text generators such as GPT are trained.">language modelling</Term>, the output at step $t$ predicts $x_{t+1}$.
+How do you use the states? To classify a sentence (sentiment, spam), feed the **final** state $h_T$ to a linear layer, like the vector in the text-classification lesson but built in word order. To label every word (say, tagging place names), put a linear layer on **every** $h_t$. And to predict the next word, which is <Term def="Predicting the next token from the tokens before it. It is how text generators such as GPT are trained.">language modelling</Term>, the output at step $t$ predicts $x_{t+1}$.
 
 <KeyIdea>
 
@@ -113,9 +111,11 @@ $$
 \frac{\partial h_T}{\partial h_1} = \frac{\partial h_T}{\partial h_{T-1}} \times \frac{\partial h_{T-1}}{\partial h_{T-2}} \times \dots \times \frac{\partial h_2}{\partial h_1}
 $$
 
+Read $\partial h_T / \partial h_1$ as: if $h_1$ changes a little, how much does $h_T$ change? Each factor answers the same question for one step.
+
 For a one-number RNN, each factor is $w_h \cdot \tanh'(\dots)$, the recurrent weight times the slope of $\tanh$ (which is at most 1). Call its size $r$. After $k$ steps back, the gradient has been multiplied by about $r^k$:
 
-- If $r < 1$, it **vanishes**: $0.5^{10} \approx 0.001$. The error made at word 30 sends almost no signal back to word 1, so the network cannot learn that word 30 depended on word 1. These links are called <Term def="A connection between tokens that are far apart in a sequence, such as a verb that must agree with a subject 20 words earlier.">long-term dependencies</Term>.
+- If $r < 1$, it **vanishes**: $0.5^{10} \approx 0.001$ after only 10 steps, and from word 30 back to word 1 (29 steps) $0.5^{29} \approx 2 \times 10^{-9}$. The error made at word 30 sends almost no signal back to word 1, so the network cannot learn that word 30 depended on word 1. These links are called <Term def="A connection between tokens that are far apart in a sequence, such as a verb that must agree with a subject 20 words earlier.">long-term dependencies</Term>.
 - If $r > 1$, it **explodes**: $1.5^{10} \approx 58$, and the weight updates become huge and unstable.
 
 <GradientThroughTime />
@@ -124,7 +124,7 @@ The two problems have different fixes. **Exploding** gradients are tamed with <T
 
 <Mistake title="Mixing up the two gradient problems">
 
-Vanishing gradients mean the gradient becomes **tiny** (not exactly zero), so early steps learn extremely slowly. Exploding gradients mean it becomes **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem. This is the same disease as in very deep feed-forward networks, because an unrolled RNN *is* a very deep network, one layer per word.
+Vanishing gradients become **tiny** (not exactly zero), so early steps learn extremely slowly; exploding gradients become **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem, the same disease as in very deep feed-forward networks: an unrolled RNN *is* a very deep network, one layer per word.
 
 </Mistake>
 
@@ -139,7 +139,7 @@ Vanishing gradients mean the gradient becomes **tiny** (not exactly zero), so ea
 
 ## LSTM: a memory with gates
 
-The <Term def="Long short-term memory: an RNN cell with a separate cell state and three gates (forget, input, output) that control what is erased, written and revealed at each step.">LSTM (long short-term memory)</Term> cell keeps the idea of reading word by word but adds a second state, the **cell state** $c_t$. Picture a conveyor belt running along the whole sequence. Information rides on it and changes only through small, controlled edits. The edits are controlled by <Term def="A vector of numbers between 0 and 1 (made by a sigmoid) that is multiplied element by element with another vector: 0 blocks a value, 1 lets it through unchanged.">gates</Term>: vectors of numbers between 0 and 1, made by a sigmoid $\sigma$, that multiply other vectors element by element ($\odot$). A gate value of 0 blocks, 1 lets everything through.
+The <Term def="Long short-term memory: an RNN cell with a separate cell state and three gates (forget, input, output) that control what is erased, written and revealed at each step.">LSTM (long short-term memory)</Term> cell keeps reading word by word but adds a second state, the **cell state** $c_t$: picture a conveyor belt running along the whole sequence, where information changes only through small, controlled edits. The edits are controlled by <Term def="A vector of numbers between 0 and 1 (made by a sigmoid) that is multiplied element by element with another vector: 0 blocks a value, 1 lets it through unchanged.">gates</Term>: vectors of numbers between 0 and 1, made by a sigmoid $\sigma$, that multiply other vectors element by element ($\odot$). A gate value of 0 blocks, 1 lets everything through.
 
 Each gate looks at the previous hidden state and the current word, written side by side as $[h_{t-1}, x_t]$:
 
@@ -160,9 +160,7 @@ $$
 - $o_t$, the **output gate**: how much of the memory to reveal as the output $h_t$.
 - $c_t$: keep part of the old note **plus** write part of the new one. $h_t$: a gated, squashed read-out of the memory, passed to the next step as before.
 
-Unlike the sticky note, nothing on the belt is rewritten from scratch: the three gates are valves that decide what to remove, what to add and what to show, and an old note stays unless the forget gate removes it.
-
-The gates use $\sigma$ because they must be between 0 and 1; the candidate uses $\tanh$ because a note can be positive or negative. There are **four** weight blocks ($W_f, W_i, W_c, W_o$) where a plain RNN has one, which is why an LSTM has exactly 4 times the parameters of a plain RNN of the same size (1,664 against 416 in the PyTorch version above).
+Unlike the sticky note, nothing is rewritten from scratch: an old note stays unless the forget gate removes it. The gates use $\sigma$ because they must be between 0 and 1; the candidate uses $\tanh$ because a note can be negative. With **four** weight blocks ($W_f, W_i, W_c, W_o$) where a plain RNN has one, an LSTM has exactly 4 times the parameters of a plain RNN of the same size (1,664 against 416 above).
 
 <LSTMGateSliders />
 
@@ -178,15 +176,28 @@ The gates use $\sigma$ because they must be between 0 and 1; the candidate uses 
   </Step>
 </Steps>
 
-Why does this cure vanishing gradients? Follow the belt: $c_t = f_t \odot c_{t-1} + \dots$, so along this direct path (the "gradient highway") going back one step multiplies the gradient by just the forget gate $f_t$, with no $W_h$ and no $\tanh$ slope in between. Other paths, through the gates, still exist, but this one keeps the signal alive. When the network learns to hold $f_t$ close to 1 (it can, and often does), the gradient travels many steps almost unchanged: $0.95^{20} \approx 0.36$, compared with $0.5^{20} \approx 0.000001$. The cell state is updated **mostly by adding**, and addition passes gradients straight through.
+<KeyIdea>
 
-A popular lighter variant is the <Term def="Gated recurrent unit: a simpler gated RNN with two gates (update and reset) and no separate cell state. It has 3 weight blocks instead of the LSTM's 4.">GRU (gated recurrent unit)</Term>. It merges the forget and input gates into one **update gate**, adds a **reset gate**, and drops the separate cell state, so it has 3 weight blocks instead of 4. GRUs and LSTMs usually perform about equally well.
+The cell state is updated mostly by **adding**: $c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$. The forget, input and output gates decide what to keep, what to write and what to show.
+
+</KeyIdea>
+
+<QuickCheck
+  q="An LSTM has old cell state $c_{t-1} = 0.6$. At this step the forget gate is $f_t = 0.5$, the input gate is $i_t = 1$ and the candidate is $\tilde c_t = 0.4$. What is $c_t$?"
+  options={['0.7', '0.5', '0.3', '0.12']}
+  answer={0}
+  explain="$c_t = f_t \times c_{t-1} + i_t \times \tilde c_t = 0.5 \times 0.6 + 1 \times 0.4 = 0.3 + 0.4 = 0.7$. 0.3 keeps half the old note but forgets to add the new one, 0.5 averages the two notes, and 0.12 multiplies all four numbers."
+/>
+
+Why does this cure vanishing gradients? Follow the belt: $c_t = f_t \odot c_{t-1} + \dots$, so along this direct path (the "gradient highway") going back one step multiplies the gradient by just the forget gate $f_t$, with no $W_h$ and no $\tanh$ slope in between. Other paths through the gates still exist, but this one keeps the signal alive. When the network holds $f_t$ close to 1 (it can, and often does), the gradient travels many steps almost unchanged: $0.95^{20} \approx 0.36$, against $0.5^{20} \approx 0.000001$.
+
+A lighter variant, the <Term def="Gated recurrent unit: a simpler gated RNN with two gates (update and reset) and no separate cell state. It has 3 weight blocks instead of the LSTM's 4.">GRU (gated recurrent unit)</Term>, has just two gates (update and reset), no separate cell state, and usually works about as well.
 
 <PastPaperQuestion paper="prelim2026" n={209} />
 
 <ExamTip>
 
-Know the gate jobs cold: **forget** = what to erase from the cell state, **input** = what to write, **output** = what to reveal as $h_t$. "LSTMs solve the vanishing-gradient / long-term-dependency problem of RNNs" is the classic one-liner. Distractors to reject: "LSTMs are faster" or "use less memory" (they are slower and have 4 times the parameters of a plain RNN of the same size) and "LSTMs fix exploding gradients" (that is gradient clipping). A GRU has **2** gates; an LSTM has **3** gates plus a cell state.
+Know the gate jobs cold: **forget** = erase from the cell state, **input** = write, **output** = reveal as $h_t$. "LSTMs solve the vanishing-gradient / long-term-dependency problem of RNNs" is the classic one-liner. Reject "LSTMs are faster" or "use less memory" (they are slower, with 4 times the parameters of a plain RNN of the same size) and "LSTMs fix exploding gradients" (that is gradient clipping). A GRU has **2** gates; an LSTM has **3** plus a cell state.
 
 </ExamTip>
 
@@ -197,16 +208,15 @@ Translation turns one sequence into another, often of a different length: *How a
 1. The **encoder** RNN reads the whole source sentence. Its final hidden state is the <Term def="In an encoder–decoder RNN, the single fixed-size vector (the encoder's final state) that is supposed to summarise the whole input sentence for the decoder.">context vector</Term>.
 2. The **decoder** RNN starts from the context vector and writes the translation one token at a time, feeding each word it outputs back in as its next input, until it outputs an end-of-sentence token.
 
-Everything the decoder knows about the source sentence must squeeze through that one fixed-size vector, whether the sentence has 5 words or 50. That is the **bottleneck**: like summarising a whole lecture into one tweet and then writing your full lecture notes from the tweet alone. In 2014 Bahdanau, Cho and Bengio removed it with <Term def="A mechanism that lets a model, at each output step, compute a relevance weight for every input position and take a weighted average of their states, instead of relying on one fixed summary vector.">attention</Term>: at every output step the decoder looks back at **all** the encoder's hidden states, gives each a relevance weight (a softmax over scores), and uses their weighted average as a fresh context made for that step.
-
-We trained small GRU encoder–decoders on a toy stand-in for translation (copy a random sequence of 4 to 40 "words" from a 20-word vocabulary) with and without attention, and measured how many output words were right on new sentences:
-
-<Seq2SeqBottleneck />
-
-The Transformer (2017) took the last step: if attention can reach every position directly, why keep the recurrence at all? A Transformer drops the RNN, so all positions are processed **in parallel** (much faster training on GPUs) and any two words are one attention step apart, however far apart they are in the sentence. That is the subject of the [Attention and Transformers](#/learn/attention-and-transformers/attention-intuition) module.
+Everything the decoder knows about the source must squeeze through that one fixed-size vector, whether the sentence has 5 words or 50. That is the **bottleneck**: like summarising a lecture in one tweet, then writing full notes from the tweet alone. In 2014 Bahdanau, Cho and Bengio removed it with <Term def="A mechanism that lets a model, at each output step, compute a relevance weight for every input position and take a weighted average of their states, instead of relying on one fixed summary vector.">attention</Term>: at every output step the decoder looks back at **all** the encoder's hidden states, gives each a relevance weight (a softmax over scores), and uses their weighted average as a fresh context made for that step.
 
 <PastPaperQuestion paper="noai2025" n={16} />
 
+We trained small GRU encoder–decoders, with and without attention, on a toy stand-in for translation (copy a random sequence of 4 to 40 "words" from a 20-word vocabulary) and measured how many output words were right on new sentences:
+
+<Seq2SeqBottleneck />
+
+The Transformer (2017) took the last step: it drops the recurrence and keeps only attention, so all positions are processed **in parallel** and any two words are one step apart. That is the [Attention and Transformers](#/learn/attention-and-transformers/attention-intuition) module.
 <PastPaperQuestion paper="prelim2026" n={267} />
 
 <ExamTip>
@@ -219,7 +229,7 @@ The Transformer (2017) took the last step: if attention can reach every position
 
 - An RNN updates a hidden state word by word, $h_t = \tanh(W_x x_t + W_h h_{t-1} + b)$, with the **same weights at every step**, so it handles any length with a fixed number of parameters.
 - Backpropagation through time multiplies one factor per step: factors below 1 make gradients **vanish** (no long-term memory), above 1 make them **explode** (fixed by gradient clipping).
-- An LSTM adds a cell state edited by gates: **forget** (erase), **input** (write) and **output** (reveal), with $c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$. The additive update lets gradients survive many steps. A GRU is a simpler 2-gate version.
+- An LSTM adds a cell state edited by gates: **forget** (erase), **input** (write) and **output** (reveal), with $c_t = f_t \odot c_{t-1} + i_t \odot \tilde c_t$. The additive update lets gradients survive many steps; a GRU is a simpler 2-gate version.
 - A seq2seq encoder–decoder squeezes the whole input into one fixed-size context vector, a bottleneck for long sentences. **Attention** lets the decoder look back at every encoder state, and Transformers replace recurrence with attention entirely.
 
 </Takeaways>

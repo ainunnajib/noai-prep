@@ -172,12 +172,18 @@ export default function TransposedConvStepper() {
           <Small data={X} label={<>input x (2×2)</>} size={small} color="var(--viz-1)" highlight={current >= 0 ? ORDER[current] : undefined} />
           <div style={{ fontSize: '1.2rem', color: 'var(--ink-3)', paddingBottom: small / 2 - 8 }}>×</div>
           <Small data={W} label={<>kernel W ({k}×{k})</>} size={small} />
-          {stampData && (
-            <>
-              <div style={{ fontSize: '1.2rem', color: 'var(--ink-3)', paddingBottom: small / 2 - 8 }}>=</div>
-              <Small data={stampData} label={<>stamp {X[ca][cb]}·W</>} size={small} color={STAMP_COLORS[current]} />
-            </>
-          )}
+          {/* after the last stamp the panel stays as an invisible placeholder, so the row does not change width */}
+          <div style={{ display: 'contents' }} aria-hidden={stampData ? undefined : true}>
+            <div style={{ fontSize: '1.2rem', color: 'var(--ink-3)', paddingBottom: small / 2 - 8, visibility: stampData ? 'visible' : 'hidden' }}>=</div>
+            <div style={{ visibility: stampData ? 'visible' : 'hidden' }}>
+              <Small
+                data={stampData ?? W.map((row) => row.map(() => 0))}
+                label={stampData ? <>stamp {X[ca][cb]}·W</> : <>stamp</>}
+                size={small}
+                color={stampData ? STAMP_COLORS[current] : undefined}
+              />
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gap: '0.3rem', justifyItems: 'center' }}>
@@ -223,27 +229,26 @@ export default function TransposedConvStepper() {
         <div style={{ fontSize: '0.92rem', color: 'var(--ink)', textAlign: 'center', maxWidth: '100%' }}>
           cell (row {si}, col {sj}) = {expl}
         </div>
-
-        {showCover && (
-          <div style={{ display: 'grid', gap: '0.35rem', justifyItems: 'center', maxWidth: '100%' }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center' }}>
-              How many stamps land on each output pixel (5×5 input, k = {k}, s = {s})
-            </div>
-            <MatrixGrid data={cover5} heat={[0, Math.max(...cover5.flat())]} cellSize={cell5} brackets={false} ariaLabel="coverage counts" />
-            <div style={{ fontSize: '0.86rem', color: 'var(--ink-2)', textAlign: 'center', maxWidth: 460 }}>
-              {pattern === 'gaps' && <>Kernel smaller than the stride: some pixels get <b>no</b> stamp at all, leaving a grid of gaps.</>}
-              {pattern === 'checker' && (
-                <>
-                  The kernel size ({k}) is not a multiple of the stride ({s}), so neighbouring pixels get different numbers of stamps: a{' '}
-                  <b>checkerboard</b> pattern that a network has to fight to hide.
-                </>
-              )}
-              {pattern === 'even' && <>The kernel size is a multiple of the stride, so every pixel away from the edges gets the same number of stamps: no checkerboard.</>}
-            </div>
-          </div>
-        )}
       </div>
       <PlayerControls player={player} label={stepLabel} />
+      {showCover && (
+        <div style={{ display: 'grid', gap: '0.35rem', justifyItems: 'center', maxWidth: '100%' }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center' }}>
+            How many stamps land on each output pixel (5×5 input, k = {k}, s = {s})
+          </div>
+          <MatrixGrid data={cover5} heat={[0, Math.max(...cover5.flat())]} cellSize={cell5} brackets={false} ariaLabel="coverage counts" />
+          <div style={{ fontSize: '0.86rem', color: 'var(--ink-2)', textAlign: 'center', maxWidth: 460 }}>
+            {pattern === 'gaps' && <>Kernel smaller than the stride: some pixels get <b>no</b> stamp at all, leaving a grid of gaps.</>}
+            {pattern === 'checker' && (
+              <>
+                The kernel size ({k}) is not a multiple of the stride ({s}), so neighbouring pixels get different numbers of stamps: a{' '}
+                <b>checkerboard</b> pattern that a network has to fight to hide.
+              </>
+            )}
+            {pattern === 'even' && <>The kernel size is a multiple of the stride, so every pixel away from the edges gets the same number of stamps: no checkerboard.</>}
+          </div>
+        </div>
+      )}
       <Readout
         items={[
           [

@@ -30,7 +30,7 @@ export default function DepthFolds() {
       title="Depth multiplies, width only adds"
       caption={
         <>
-          Each hidden layer has just <b>two</b> ReLU neurons, which together compute the tent <M>{'t \\mapsto 2\\,\\text{ReLU}(t) - 4\\,\\text{ReLU}(t - 0.5)'}</M>{' '}
+          Each hidden layer has just <b>two</b> ReLU neurons, which together compute the tent function <M>{'\\text{tent}(t) = 2\\,\\text{ReLU}(t) - 4\\,\\text{ReLU}(t - 0.5)'}</M>{' '}
           and fold the interval from 0 to 1 in half. Add layers: each one <b>doubles</b> the straight pieces (dashed: the previous layer), while one wide hidden layer
           would need a neuron for every extra piece.
         </>

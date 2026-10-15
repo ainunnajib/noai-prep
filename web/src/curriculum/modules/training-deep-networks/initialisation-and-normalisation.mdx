@@ -44,7 +44,13 @@ Here $\operatorname{Var}$ is the <Term def="The average squared distance from th
 - With standard deviation 0.01 the factor is $100 \times 0.0001 = 0.01$: after 5 layers the variance is $10^{-10}$. The signal **vanishes**, and so do the gradients flowing back.
 - To keep the factor at 1, choose $\operatorname{Var}(w) = 1/n$.
 
-That last line is <Term def="An initialisation that draws weights with variance 1/fan-in, or 2/(fan-in + fan-out), designed for tanh and sigmoid layers. Also called Glorot initialisation.">Xavier initialisation</Term> (also called Glorot), designed for tanh, which behaves like the straight line $y = x$ near 0, so it passes a small signal through almost unchanged (sigmoid is the same shape, shifted and squashed, and is treated the same way). Its common form averages the forward and backward directions: $\operatorname{Var}(w) = 2/(\text{fan-in} + \text{fan-out})$.
+That last line is often called **LeCun initialisation**. It suits tanh, which behaves like the straight line $y = x$ near 0, so it passes a small signal through almost unchanged (sigmoid is the same shape, shifted and squashed, and is treated the same way). But the gradients flowing **backwards** through the layer are multiplied by $\text{fan-out} \cdot \operatorname{Var}(w)$ in the same way, so <Term def="An initialisation for tanh and sigmoid layers that draws weights with variance 2/(fan-in + fan-out), a compromise between keeping the forward signal and the backward gradients steady. Also called Glorot initialisation.">Xavier initialisation</Term> (also called Glorot) compromises between the two directions:
+
+$$
+\operatorname{Var}(w) = \frac{2}{\text{fan-in} + \text{fan-out}}
+$$
+
+When fan-in and fan-out are equal this is exactly $1/n$; otherwise it lies between $1/\text{fan-in}$ and $1/\text{fan-out}$.
 
 ReLU is different: it sets every negative value to 0, throwing away half of the signal, so the average squared size of the signal halves at every layer. <Term def="An initialisation that draws weights with variance 2/fan-in, which makes up for ReLU zeroing half of its inputs. Also called Kaiming initialisation.">He initialisation</Term> (also called Kaiming) makes up for it by doubling the variance: $\operatorname{Var}(w) = 2/n$.
 
@@ -52,22 +58,24 @@ ReLU is different: it sets every negative value to 0, throwing away half of the 
 
 <KeyIdea>
 
-Good initialisation keeps the signal the same size at every layer before training begins. Use **Xavier**, $\operatorname{Var}(w) = 1/\text{fan-in}$, for tanh and sigmoid, and **He**, $\operatorname{Var}(w) = 2/\text{fan-in}$, for ReLU.
+Good initialisation keeps the signal the same size at every layer before training begins. Use **Xavier/Glorot**, $\operatorname{Var}(w) = 2/(\text{fan-in} + \text{fan-out})$ (about $1/\text{fan-in}$ when the two are similar), for tanh and sigmoid, and **He**, $\operatorname{Var}(w) = 2/\text{fan-in}$, for ReLU.
 
 </KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={177} />
 
 <Steps title="Standard deviations for nn.Linear(512, 256)">
   <Step title="He (for ReLU)">
     $\operatorname{Var}(w) = 2/512 = 1/256$, so the standard deviation is $\sqrt{1/256} = 1/16 = 0.0625$.
   </Step>
-  <Step title="Xavier, fan-in form">
-    $\operatorname{Var}(w) = 1/512$, so the standard deviation is $1/\sqrt{512} \approx 0.044$.
-  </Step>
-  <Step title="Xavier, averaged form">
+  <Step title="Xavier/Glorot (for tanh)">
     $\operatorname{Var}(w) = 2/(512 + 256) = 2/768 = 1/384$, so the standard deviation is $1/\sqrt{384} \approx 0.051$.
   </Step>
+  <Step title="LeCun (fan-in only)">
+    $\operatorname{Var}(w) = 1/512$, so the standard deviation is $1/\sqrt{512} \approx 0.044$.
+  </Step>
   <Step title="Compare">
-    He's weights are $\sqrt{2} \approx 1.41$ times the fan-in Xavier ones: exactly the boost needed to make up for ReLU halving the variance.
+    He's weights are $\sqrt{2} \approx 1.41$ times the LeCun ones: exactly the boost needed to make up for ReLU halving the variance.
   </Step>
 </Steps>
 
@@ -77,7 +85,7 @@ Good initialisation keeps the signal the same size at every layer before trainin
   q="A ReLU layer has fan-in 200. What standard deviation does He initialisation use for its weights?"
   options={['0.1', '0.01', '0.07', '0.0071']}
   answer={0}
-  explain="He uses $\operatorname{Var}(w) = 2/200 = 0.01$, so the standard deviation is $\sqrt{0.01} = 0.1$. 0.01 is the variance, not the standard deviation; 0.07 is Xavier's $\sqrt{1/200}$; 0.0071 is $\sqrt{2}/200$, which forgets to take the square root of the 200."
+  explain="He uses $\operatorname{Var}(w) = 2/200 = 0.01$, so the standard deviation is $\sqrt{0.01} = 0.1$. 0.01 is the variance, not the standard deviation; 0.07 is $\sqrt{1/200}$, the LeCun value without ReLU's factor 2; 0.0071 is $\sqrt{2}/200$, which forgets to take the square root of the 200."
 />
 
 Two more initialisation ideas come up in harder questions.
@@ -123,7 +131,7 @@ orthogonal: |v| = 2.2497, |W v| = 2.2497
 
 ## BatchNorm: re-standardise every mini-batch
 
-Good initialisation gives a healthy start, but training changes the weights, and the activations drift. A layer deep inside the network keeps receiving inputs whose scale and centre change from step to step. <Term def="Batch normalisation: a layer that standardises each feature using the mean and standard deviation of the current mini-batch, then rescales with learnable γ and shifts with learnable β.">Batch normalisation</Term> (BatchNorm) fixes the scale on the fly: for every mini-batch it standardises each feature to mean 0 and spread 1, then lets the network pick a new scale.
+Good initialisation gives a healthy start, but training changes the weights, and the activations drift. A layer deep inside the network keeps receiving inputs whose scale and centre change from step to step. The original paper called this drift <Term def="The change, during training, in the distribution of the inputs a layer receives, because the layers before it keep changing. BatchNorm's original motivation.">internal covariate shift</Term>; later work suggests BatchNorm helps mainly by smoothing the loss surface, but the name is still common in exam questions. <Term def="Batch normalisation: a layer that standardises each feature using the mean and standard deviation of the current mini-batch, then rescales with learnable γ and shifts with learnable β.">Batch normalisation</Term> (BatchNorm) fixes the scale on the fly: for every mini-batch it standardises each feature to mean 0 and spread 1, then lets the network pick a new scale.
 
 <Analogy title="Z-scores for each subject">
 
@@ -165,6 +173,8 @@ $$
   </Step>
 </Steps>
 
+<PastPaperQuestion paper="prelim2026" n={170} />
+
 ### Training mode and evaluation mode
 
 There is a problem at test time. If you predict one photo at a time, there is no batch to average over, and even with a batch you do not want one photo's prediction to depend on which other photos happen to be next to it. So BatchNorm behaves differently in the two modes:
@@ -172,7 +182,14 @@ There is a problem at test time. If you predict one photo at a time, there is no
 - **Training** (`model.train()`): normalise with the current batch's $\mu_B$ and $\sigma_B^2$, and also update two <Term def="Running averages of each feature's mean and variance, updated during training and used instead of batch statistics at evaluation time.">running statistics</Term>, exponential moving averages of the batch means and variances.
 - **Evaluation** (`model.eval()`): normalise with the stored running mean and running variance instead, so each example is treated on its own.
 
-PyTorch updates them with `running_mean = 0.9 × running_mean + 0.1 × batch mean` (and likewise for the variance, using the slightly larger unbiased batch variance, which divides by $m - 1$). Careful: PyTorch calls the 0.1 the `momentum`, the **opposite** convention from the optimisers' $\beta$. The running statistics are saved with the model but are not trained by the optimiser; PyTorch calls such tensors **buffers**, as opposed to parameters like $\gamma$ and $\beta$. In a home-made BatchNorm you register them with `self.register_buffer(...)` and update them in place inside `torch.no_grad()`.
+PyTorch updates them with `running_mean = 0.9 × running_mean + 0.1 × batch mean`, and likewise for the variance. Careful: PyTorch calls the 0.1 the `momentum`, the **opposite** convention from the optimisers' $\beta$.
+
+<Note title="Building BatchNorm yourself (Final tasks)">
+
+- The running variance uses the **unbiased** batch variance, which divides by $m - 1$ instead of $m$, so it comes out slightly larger.
+- The running statistics are saved with the model but are not trained by the optimiser. PyTorch calls such tensors **buffers**: stored numbers that are not parameters, unlike $\gamma$ and $\beta$. Register them with `self.register_buffer("running_mean", torch.zeros(d))`, and update them in place inside `with torch.no_grad():`.
+
+</Note>
 
 ```python
 import torch
@@ -241,7 +258,7 @@ where $x_1, \dots, x_d$ are the $d$ features of a single example. The only diffe
 | Averages over | the batch, for each feature (a column) | the features, for each example (a row) |
 | Depends on the other examples in the batch? | yes | no |
 | Train and eval behave differently? | yes (running statistics) | no |
-| Can train with a batch of 1? | no (a single value has no spread) | yes |
+| Can train with a batch of 1? | no for `BatchNorm1d` (a single value has no spread); `BatchNorm2d` still runs on its pixels, but the statistics are poor | yes |
 | Typical home | CNNs for images | Transformers, RNNs, variable-length sequences |
 
 Transformers use LayerNorm on every token's vector. Sequences have different lengths and are padded, batches are often small, and text generation runs one example at a time: all situations where batch statistics are unreliable or missing. LayerNorm does not care.
@@ -250,8 +267,8 @@ Transformers use LayerNorm on every token's vector. Sequences have different len
 import torch
 import torch.nn as nn
 
-marks = torch.tensor([[72., 65., 80., 58.],
-                      [90., 85., 60., 70.]])   # 2 students x 4 subjects
+marks = torch.tensor([[72., 65., 80., 58.],    # Ali
+                      [90., 85., 60., 70.]])   # Bea: 2 students x 4 subjects
 
 ln = nn.LayerNorm(4)        # normalise each row over its 4 features
 bn = nn.BatchNorm1d(4)      # normalise each column over the batch
@@ -268,7 +285,7 @@ tensor([[-1., -1.,  1., -1.],
 tensor([[ 0.4000, -0.4600,  1.3800, -1.3200]])
 ```
 
-LayerNorm gives Ali the same answer whether or not Bea is in the batch. With only two students, BatchNorm can say no more than who scored higher in each subject, so every value becomes $\pm 1$: small batches make batch statistics crude.
+LayerNorm gives Ali (the first row, as in the visual above) the same answer whether or not Bea is in the batch. With only two students, BatchNorm can say no more than who scored higher in each subject, so every value becomes $\pm 1$: small batches make batch statistics crude.
 
 <PastPaperQuestion paper="prelim2026" n={185} />
 
@@ -276,7 +293,7 @@ LayerNorm gives Ali the same answer whether or not Bea is in the batch. With onl
 
 How NOAI asks about this topic:
 
-- **Initialisation**: random weights break symmetry; all-equal or all-zero weights make the neurons identical. Xavier/Glorot suits tanh and sigmoid, He/Kaiming ($\operatorname{Var} = 2/\text{fan-in}$) suits ReLU. Weights that are too small cause vanishing activations and gradients; too large cause exploding ones (or saturated tanh).
+- **Initialisation**: random weights break symmetry; all-equal or all-zero weights make the neurons identical. Xavier/Glorot ($\operatorname{Var} = 2/(\text{fan-in} + \text{fan-out})$) suits tanh and sigmoid, He/Kaiming ($\operatorname{Var} = 2/\text{fan-in}$) suits ReLU. Weights that are too small cause vanishing activations and gradients; too large cause exploding ones (or saturated tanh).
 - **BatchNorm**: normalises each feature over the mini-batch, then applies learnable $\gamma$ and $\beta$; uses running averages at evaluation, which is why `model.train()` and `model.eval()` matter.
 - **LayerNorm**: normalises each example over its own features; independent of batch size, so it is preferred for small batches, RNNs and Transformers.
 - **Quick arithmetic**: standardise a column of 4 or 5 numbers by hand, or a He standard deviation $\sqrt{2/n}$.
@@ -286,7 +303,7 @@ How NOAI asks about this topic:
 <Takeaways>
 
 - Weights must start random (symmetry breaking): identical weights give identical neurons that stay identical; biases can start at 0.
-- Each layer multiplies the signal's variance by $n \cdot \operatorname{Var}(w)$; choose $\operatorname{Var}(w) = 1/n$ (Xavier, tanh) or $2/n$ (He, ReLU) to keep it steady. Orthogonal matrices preserve lengths exactly.
+- Each layer multiplies the signal's variance by $n \cdot \operatorname{Var}(w)$; keep it steady with Xavier/Glorot, $\operatorname{Var}(w) = 2/(\text{fan-in} + \text{fan-out})$ (about $1/n$), for tanh, or He, $2/n$, for ReLU. Orthogonal matrices preserve lengths exactly.
 - BatchNorm standardises each feature over the batch, then applies learnable $\gamma$ and $\beta$; it keeps running averages (buffers) for evaluation mode.
 - LayerNorm standardises each example over its features, so it works with any batch size and is the norm in Transformers.
 - Start the output bias at 0 (or the log class frequencies): the first loss should then be about $\ln K$.

@@ -156,7 +156,7 @@ export default function OneTwoOneNet() {
     'below',
   )
 
-  // on phones the gradient pills carry only the number (the legend line under the picture names them)
+  // on phones the gradient pills carry only the number (the legend line under the picture says what they are)
   const wLab = (name: string, val: number, g: number) =>
     back ? { t: narrow ? u(g) : `∂L/∂${name} = ${u(g)}`, grad: true } : { t: `${name} = ${u(val)}`, grad: false }
   const labels = [
@@ -181,7 +181,7 @@ export default function OneTwoOneNet() {
     ) : (
       <>
         Start at the output: <M>{`\\delta = 2(\\hat y - y) = ${fmt(c.d)}`}</M>. Each orange number on a line is that weight's gradient: its input
-        activation times the error at its far end. Each <M>\delta</M> is <M>{'\\partial L / \\partial z'}</M> at a neuron, which is also its bias's
+        activation times the delta at its far end. Each <M>\delta</M> is <M>{'\\partial L / \\partial z'}</M> at a neuron, which is also its bias's
         gradient. Through a ReLU that is off the slope is 0, so everything behind it gets 0.
       </>
     )
@@ -191,7 +191,8 @@ export default function OneTwoOneNet() {
       title="The 1-2-1 network, worked by hand"
       caption={
         <>
-          The lines are all one colour: here the numbers do the talking. Switch between <b>Weights</b>, <b>Forward</b> and <b>Backward</b> and
+          The lines are all one colour: here the numbers do the talking. Switch between <b>Weights</b>, <b>Forward values</b> and{' '}
+          <b>Backward gradients</b> and
           check each number against the steps below. Then slide <M>x</M> to <M>-2</M>: the other hidden neuron switches on, and the zero gradients
           move with it.
         </>
@@ -223,6 +224,12 @@ export default function OneTwoOneNet() {
           {yNote}
         </svg>
       </div>
+      {narrow && back && (
+        <div style={{ width: '100%', fontSize: '0.84rem', color: 'var(--ink-2)' }}>
+          <span style={{ color: GRAD_TEXT, fontWeight: 800 }}>Orange numbers on the lines</span> = <M>{'\\partial L / \\partial w'}</M> for that weight;{' '}
+          <M>\delta</M> beside a neuron = <M>{'\\partial L / \\partial z'}</M> there.
+        </div>
+      )}
       <div style={{ width: '100%', minHeight: '4.8em', fontSize: '0.95rem', lineHeight: 1.6, overflowX: 'auto', overflowY: 'hidden' }} aria-live="polite">
         {story}
       </div>

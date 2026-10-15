@@ -30,17 +30,38 @@ const par = (v: number, d = 3) => (v < 0 ? `(${n(v, d)})` : n(v, d))
 
 const STEP_LABELS = ['the inputs', 'hidden neuron 1', 'hidden neuron 2', 'hidden neuron 3', 'the whole layer at once', 'the output neuron', 'done']
 
-function Diagram({ x, W1, W2, z1, a1, y, step, act }: { x: number[]; W1: number[][]; W2: number[][]; z1: number[]; a1: number[]; y: number; step: number; act: Act }) {
+/**
+ * Where to put a weight label for the edge from a to b: a fraction t along it, pushed sideways (side −1 =
+ * upwards on screen, +1 = downwards) far enough that a text box of about tw × th px clears the line.
+ */
+function edgeLabelPos(a: [number, number], b: [number, number], t: number, side: 1 | -1, tw: number, th = 14): [number, number] {
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  const len = Math.hypot(dx, dy) || 1
+  let nx = -dy / len
+  let ny = dx / len
+  if (Math.sign(ny || 1) !== side) {
+    nx = -nx
+    ny = -ny
+  }
+  const d = (tw / 2) * Math.abs(nx) + (th / 2) * Math.abs(ny) + 3
+  return [a[0] + t * dx + nx * d, a[1] + t * dy + ny * d]
+}
+
+function Diagram({ x, W1, b1, W2, b2, z1, a1, y, step, act }: { x: number[]; W1: number[][]; b1: number[]; W2: number[][]; b2: number; z1: number[]; a1: number[]; y: number; step: number; act: Act }) {
   const [ref, width] = useContainerWidth<HTMLDivElement>(460)
   const W = Math.max(280, Math.min(520, width))
-  const H = 230
+  const H = 290
   const colX = [44, W / 2, W - 44]
-  const rowY = (k: number, cnt: number) => H / 2 - 12 + (k - (cnt - 1) / 2) * 72
+  const hidY = (j: number) => 50 + 88 * j
+  const inY = (i: number) => 94 + 88 * i
+  const outY = hidY(1)
   const nodeR = 25
   const shown = (layer: number, j: number) => (layer === 0 ? true : layer === 1 ? step >= j + 1 : step >= 5)
   const edgeActive = (layer: number, j: number) => (layer === 0 ? step === j + 1 || step === 4 : step === 5)
   const wMax = Math.max(1, ...W1.flat().map(Math.abs), ...W2.flat().map(Math.abs))
   const dec = act === 'relu' ? 2 : 3
+  const mn = (v: number, d = 3) => n(v, d).replace('-', '−')
 
   const edges: JSX.Element[] = []
   const labels: JSX.Element[] = []
@@ -50,17 +71,18 @@ function Diagram({ x, W1, W2, z1, a1, y, step, act }: { x: number[]; W1: number[
       const w = W1[j][i]
       const on = edgeActive(0, j)
       const x1 = colX[0] + nodeR
-      const y1 = rowY(i, 2)
+      const y1 = inY(i)
       const x2 = colX[1] - nodeR
-      const y2 = rowY(j, 3)
+      const y2 = hidY(j)
       edges.push(
         <line key={`a${i}${j}`} x1={x1} y1={y1} x2={x2} y2={y2} style={{ stroke: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', strokeWidth: 1 + (2.6 * Math.abs(w)) / wMax, opacity: on ? 0.95 : 0.18 }} />,
       )
       if (on && step !== 4) {
-        const t = 0.62
+        const text = `w = ${mn(w)}`
+        const [lx, ly] = edgeLabelPos([x1, y1], [x2, y2], 0.3, i === 0 ? -1 : 1, text.length * 7.6)
         labels.push(
-          <text key={`la${i}${j}`} x={x1 + t * (x2 - x1)} y={y1 + t * (y2 - y1) - 6} textAnchor="middle" className="plot-label" style={{ fill: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', fontSize: 13 }}>
-            {`w = ${n(w)}`.replace('-', '−')}
+          <text key={`la${i}${j}`} x={lx} y={ly} dy="0.35em" textAnchor="middle" className="plot-label" style={{ fill: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', fontSize: 13 }}>
+            {text}
           </text>,
         )
       }
@@ -70,15 +92,16 @@ function Diagram({ x, W1, W2, z1, a1, y, step, act }: { x: number[]; W1: number[
     const w = W2[0][j]
     const on = edgeActive(1, 0)
     const x1 = colX[1] + nodeR
-    const y1 = rowY(j, 3)
+    const y1 = hidY(j)
     const x2 = colX[2] - nodeR
-    const y2 = rowY(0, 1)
+    const y2 = outY
     edges.push(<line key={`b${j}`} x1={x1} y1={y1} x2={x2} y2={y2} style={{ stroke: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', strokeWidth: 1 + (2.6 * Math.abs(w)) / wMax, opacity: on ? 0.95 : 0.18 }} />)
     if (on) {
-      const t = 0.45
+      const text = mn(w)
+      const [lx, ly] = edgeLabelPos([x1, y1], [x2, y2], 0.4, j === 2 ? 1 : -1, text.length * 8)
       labels.push(
-        <text key={`lb${j}`} x={x1 + t * (x2 - x1)} y={y1 + t * (y2 - y1) - 6} textAnchor="middle" className="plot-label" style={{ fill: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', fontSize: 13 }}>
-          {`${n(w)}`.replace('-', '−')}
+        <text key={`lb${j}`} x={lx} y={ly} dy="0.35em" textAnchor="middle" className="plot-label" style={{ fill: w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)', fontSize: 13 }}>
+          {text}
         </text>,
       )
     }
@@ -92,34 +115,47 @@ function Diagram({ x, W1, W2, z1, a1, y, step, act }: { x: number[]; W1: number[
         r={nodeR}
         style={{
           fill: off ? 'var(--surface-2)' : top == null ? 'var(--surface)' : 'color-mix(in srgb, var(--viz-1) 14%, var(--surface))',
-          stroke: focus ? 'var(--viz-ink)' : 'var(--viz-muted)',
+          stroke: off ? 'var(--viz-muted)' : focus ? 'var(--viz-ink)' : 'var(--viz-muted)',
           strokeWidth: focus ? 3 : 1.5,
+          strokeDasharray: off ? '5 4' : undefined,
         }}
       />
       {top != null && (
-        <text x={cx} y={bottom != null ? cy - 3 : cy + 5} textAnchor="middle" style={{ fill: 'var(--viz-ink)', fontSize: bottom != null ? 11 : 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+        <text x={cx} y={bottom != null ? cy - 3 : cy + 5} textAnchor="middle" style={{ fill: off ? 'var(--viz-muted)' : 'var(--viz-ink)', fontSize: bottom != null ? 11 : 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           {top}
         </text>
       )}
       {bottom != null && (
-        <text x={cx} y={cy + 13} textAnchor="middle" style={{ fill: 'var(--viz-ink)', fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
+        <text x={cx} y={cy + 13} textAnchor="middle" style={{ fill: off ? 'var(--viz-muted)' : 'var(--viz-ink)', fontSize: 13, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>
           {bottom}
         </text>
       )}
+      {off && (
+        <text x={cx} y={cy + nodeR + 14} textAnchor="middle" className="plot-label" style={{ fill: 'var(--viz-neg)', fontSize: 12, fontWeight: 800 }}>
+          off
+        </text>
+      )}
     </g>
+  )
+  const biasLabel = (key: string, cx: number, cy: number, b: number) => (
+    <text key={key} x={cx} y={cy - nodeR - 7} textAnchor="middle" className="plot-label" style={{ fill: 'var(--ink-2)', fontSize: 12 }}>
+      {`b = ${mn(b)}`}
+    </text>
   )
 
   return (
     <div ref={ref} style={{ width: '100%' }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', maxWidth: 560, display: 'block', margin: '0 auto' }} role="img" aria-label={`A 2-3-1 network, currently showing ${STEP_LABELS[step]}`}>
         {edges}
-        {[0, 1].map((i) => node(`x${i}`, colX[0], rowY(i, 2), step === 0, `${n(x[i])}`.replace('-', '−'), null))}
+        {[0, 1].map((i) => node(`x${i}`, colX[0], inY(i), step === 0, mn(x[i]), null))}
         {[0, 1, 2].map((j) =>
           shown(1, j)
-            ? node(`h${j}`, colX[1], rowY(j, 3), step === j + 1 || step === 4, `z=${n(z1[j], 2)}`.replace('-', '−'), n(a1[j], dec).replace('-', '−'), act === 'relu' && a1[j] === 0)
-            : node(`h${j}`, colX[1], rowY(j, 3), false, null, null),
+            ? node(`h${j}`, colX[1], hidY(j), step === j + 1 || step === 4, `z=${mn(z1[j], 2)}`, mn(a1[j], dec), act === 'relu' && a1[j] === 0)
+            : node(`h${j}`, colX[1], hidY(j), false, null, null),
         )}
-        {shown(2, 0) ? node('y', colX[2], rowY(0, 1), step >= 5, `${n(y, dec)}`.replace('-', '−'), null) : node('y', colX[2], rowY(0, 1), false, null, null)}
+        {shown(2, 0) ? node('y', colX[2], outY, step >= 5, mn(y, dec), null) : node('y', colX[2], outY, false, null, null)}
+        {[0, 1, 2].map((j) => biasLabel(`bh${j}`, colX[1], hidY(j), b1[j]))}
+        {biasLabel('by', colX[2], outY, b2)}
         {labels}
         {['x', act === 'relu' ? 'h = ReLU(z)' : 'h = σ(z)', 'ŷ'].map((t, l) => (
           <text key={t} x={colX[l]} y={H - 6} textAnchor="middle" className="nnet-layer-label">
@@ -156,10 +192,12 @@ export default function ForwardPassStepper() {
   } else if (step <= 3) {
     const j = step - 1
     eq = `z_${j + 1} = ${par(W1[j][0])}\\cdot ${par(x[0])} + ${par(W1[j][1])}\\cdot ${par(x[1])} + ${par(b1[j])} = ${n(z1[j], 2)}, \\quad h_${j + 1} = ${actTex}(${n(z1[j], 2)}) ${eqs} ${n(a1[j], dec)}`
+    const sub = '₁₂₃'[j]
+    const bText = `plus its bias b${sub} = ${minus(b1[j])}`
     words =
       act === 'relu' && z1[j] <= 0
-        ? `Row ${j + 1} of W⁽¹⁾ times the inputs, plus bias ${j + 1}. The sum is not positive, so ReLU outputs 0: this neuron is switched off for this input.`
-        : `Row ${j + 1} of W⁽¹⁾ times the inputs, plus bias ${j + 1}: multiply, add, then squash with the activation.`
+        ? `Row ${j + 1} of W⁽¹⁾ times the inputs, ${bText}. The sum is not positive, so ReLU outputs 0: this neuron is switched off for this input.`
+        : `Row ${j + 1} of W⁽¹⁾ times the inputs, ${bText}: multiply, add, then squash with the activation.`
   } else if (step === 4) {
     const M3 = (m: number[][]) => `\\begin{bmatrix} ${m.map((r) => r.map((v) => n(v)).join(' & ')).join(' \\\\ ')} \\end{bmatrix}`
     const V = (v: number[], d = 3) => `\\begin{bmatrix} ${v.map((u) => n(u, d)).join(' \\\\ ')} \\end{bmatrix}`
@@ -188,12 +226,12 @@ export default function ForwardPassStepper() {
       caption={
         <>
           Press <b>Next</b> to compute one neuron at a time: each hidden neuron takes one row of <M>{'W^{(1)}'}</M>, multiplies it with the inputs, adds its bias and
-          applies the activation (top number in a node: <i>z</i>; bottom: <i>h</i>). Tap a matrix number to change it, and notice that a ReLU neuron with a negative
-          sum outputs exactly 0, so its outgoing weight has no effect on <M>{'\\hat y'}</M>.
+          applies the activation (top number in a node: <i>z</i>; bottom: <i>h</i>; above it: its bias). Tap a matrix number to change it, and notice that a ReLU
+          neuron with a negative sum is switched off (dashed, &ldquo;off&rdquo;) and outputs exactly 0, so its outgoing weight has no effect on <M>{'\\hat y'}</M>.
         </>
       }
     >
-      <Diagram x={x} W1={W1} W2={W2} z1={z1} a1={a1} y={y} step={step} act={act} />
+      <Diagram x={x} W1={W1} b1={b1} W2={W2} b2={b2[0]} z1={z1} a1={a1} y={y} step={step} act={act} />
       <PlayerControls player={player} label={(k) => `Step ${k + 1} of 7: ${STEP_LABELS[k]}`} />
       <div style={{ width: '100%', minHeight: '5.5em' }}>
         <MBlock>{eq}</MBlock>

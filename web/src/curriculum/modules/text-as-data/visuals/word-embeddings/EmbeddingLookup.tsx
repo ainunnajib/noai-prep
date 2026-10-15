@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Toggle, Readout, mulberry32, useNarrow } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './emb.module.css'
 
 /*
@@ -87,12 +88,24 @@ export default function EmbeddingLookup() {
       wide
       title="An embedding layer is a table you look rows up in"
       caption={
-        <>
-          The embedding table has one row per token id (here <i>V</i> = {V} rows) and <i>d</i> = {d} columns. Looking up the ids simply copies the
-          matching rows, in order, into the output; a repeated token (“the”) gets the same row twice. Switch on the one-hot view: multiplying each
-          one-hot row by the table picks out exactly the same row, which is why an embedding layer is the same as a linear layer on one-hot inputs,
-          only much faster. Row 0 (<code>[PAD]</code>) is all zeros, as <code>padding_idx=0</code> would make it. Change <i>V</i> and <i>d</i> to see the parameter count, and type an id ≥ <i>V</i> to see the error PyTorch raises.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              switch on <b>one-hot × table</b>, change <i>V</i> and <i>d</i>, then type an id ≥ <i>V</i>.
+            </>
+          }
+          notice={
+            <>
+              a lookup copies the matching rows of the table (a repeated token gets the same row twice), and one-hot × table picks out exactly the same
+              rows.
+            </>
+          }
+          note={
+            <>
+              Row 0 (<code>[PAD]</code>) is all zeros and is never updated, as <code>padding_idx=0</code> makes it.
+            </>
+          }
+        />
       }
     >
       <div style={{ width: '100%', display: 'grid', gap: '0.3rem' }}>
@@ -167,7 +180,7 @@ export default function EmbeddingLookup() {
       </div>
       <Readout
         items={[
-          ['learnable numbers', `V × d = ${V} × ${d} = ${V * d}`],
+          ['parameters (V × d)', `${V} × ${d} = ${V * d}`],
           ['BERT-base', '30,522 × 768 = 23,440,896'],
           ['selected', crashed ? '— (no output)' : T ? `output row ${t} = table row ${ids[t]} (${VOCAB[ids[t]]})` : '—'],
         ]}

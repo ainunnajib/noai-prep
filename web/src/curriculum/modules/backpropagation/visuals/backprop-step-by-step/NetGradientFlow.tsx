@@ -4,8 +4,8 @@ import { fmt } from '../computational-graphs/graphCore'
 
 /*
   A 2-3-2 network with squared loss. After the forward pass, a backward "wave" runs from the
-  outputs to the inputs: output errors δ, then layer-2 weight gradients (h_j × δ_k), then hidden
-  errors (Σ w·δ times the activation's slope), then layer-1 weight gradients (x_i × δ_j).
+  outputs to the inputs: output deltas δ, then layer-2 weight gradients (h_j × δ_k), then hidden
+  deltas (Σ w·δ times the activation's slope), then layer-1 weight gradients (x_i × δ_j).
   Edge colour = sign of ∂L/∂w (green +, red −; the module's signed-value colours, so orange can keep meaning
   "gradient flowing back" in the other figures), thickness = size. Tap an edge for its sum.
 */
@@ -94,6 +94,8 @@ export default function NetGradientFlow() {
   const d1 = dh.map((v, j) => v * fp[j])
   const dW1 = x.map((xi) => d1.map((dj) => xi * dj))
   const gmax = Math.max(1e-9, ...dW1.flat().map(Math.abs), ...dW2.flat().map(Math.abs))
+  // with ReLU, some weight settings switch every hidden neuron off for this input: then nothing gets through
+  const dead = act === 'relu' && fp.every((v) => v === 0)
   const mean = (m: number[][]) => m.flat().reduce((s, v) => s + Math.abs(v), 0) / m.flat().length
 
   // ---- layout ----
@@ -157,34 +159,46 @@ export default function NetGradientFlow() {
   const rel = ex2(selIn) && ex2(selD) ? '=' : '\\approx'
   const selTex =
     sl === 1
-      ? `\\frac{\\partial L}{\\partial w} = \\underbrace{x_${si + 1}}_{\\text{input in}} \\times \\underbrace{\\delta_{h_${sj + 1}}}_{\\text{error at end}} ${rel} ${pa(selIn)} \\times ${pa(selD)} ${rel} ${fmt(selG, ex2(selIn) && ex2(selD) ? 4 : 2)}`
-      : `\\frac{\\partial L}{\\partial w} = \\underbrace{h_${si + 1}}_{\\text{input in}} \\times \\underbrace{\\delta_{\\hat y_${sj + 1}}}_{\\text{error at end}} ${rel} ${pa(selIn)} \\times ${pa(selD)} ${rel} ${fmt(selG, ex2(selIn) && ex2(selD) ? 4 : 2)}`
+      ? `\\frac{\\partial L}{\\partial w} = \\underbrace{x_${si + 1}}_{\\text{input in}} \\times \\underbrace{\\delta_{h_${sj + 1}}}_{\\text{delta at end}} ${rel} ${pa(selIn)} \\times ${pa(selD)} ${rel} ${fmt(selG, ex2(selIn) && ex2(selD) ? 4 : 2)}`
+      : `\\frac{\\partial L}{\\partial w} = \\underbrace{h_${si + 1}}_{\\text{input in}} \\times \\underbrace{\\delta_{\\hat y_${sj + 1}}}_{\\text{delta at end}} ${rel} ${pa(selIn)} \\times ${pa(selD)} ${rel} ${fmt(selG, ex2(selIn) && ex2(selD) ? 4 : 2)}`
 
   const texts = [
     <>
       Forward pass done: <M>{`\\hat y = (${fmt(yh[0], 2)},\\ ${fmt(yh[1], 2)})`}</M> against targets <M>{`y = (${fmt(y[0], 2)},\\ ${fmt(y[1], 2)})`}</M>, so{' '}
-      <M>{`L = \\sum_k (\\hat y_k - y_k)^2 = ${fmt(L, 3)}`}</M>. Press Play to send the error backwards.
+      <M>{`L = \\sum_k (\\hat y_k - y_k)^2 = ${fmt(L, 3)}`}</M>. Press Play to send the gradient backwards.
     </>,
     <>
-      Output errors: <M>{`\\delta_{\\hat y_k} = \\frac{\\partial L}{\\partial \\hat y_k} = 2(\\hat y_k - y_k)`}</M>, giving{' '}
+      Output deltas: <M>{`\\delta_{\\hat y_k} = \\frac{\\partial L}{\\partial \\hat y_k} = 2(\\hat y_k - y_k)`}</M>, giving{' '}
       <M>{`(${fmt(d2[0], 2)},\\ ${fmt(d2[1], 2)})`}</M>. A positive <M>\delta</M> (green) means the output is too high, a negative one (red) too
       low.
     </>,
     <>
       Layer-2 weights: <M>{`\\frac{\\partial L}{\\partial w_{jk}} = h_j \\times \\delta_{\\hat y_k}`}</M>. A weight gets a big gradient only when the neuron
-      feeding it is strongly active <i>and</i> the output it feeds has a big error.
+      feeding it is strongly active <i>and</i> the output it feeds has a big delta.
     </>,
     <>
-      Hidden errors: each hidden neuron adds up what comes back from <i>both</i> outputs (it fed both, so the gradients add), then multiplies by its
+      Hidden deltas: each hidden neuron adds up what comes back from <i>both</i> outputs (it fed both, so the gradients add), then multiplies by its
       activation's slope: <M>{`\\delta_{h_j} = \\big(\\textstyle\\sum_k w_{jk}\\,\\delta_{\\hat y_k}\\big) \\times f'(z_j)`}</M>.
       {act === 'relu' && fp.some((v) => v === 0) && <> A ReLU neuron with <M>{'z \\le 0'}</M> has slope 0, so its <M>\delta</M> is 0.</>}
-      {act === 'sigmoid' && <> The sigmoid's slope is at most 0.25, so every hidden error shrinks.</>}
+      {act === 'sigmoid' && <> The sigmoid's slope is at most 0.25, so every hidden delta shrinks.</>}
     </>,
     <>
-      Layer-1 weights: <M>{`\\frac{\\partial L}{\\partial w_{ij}} = x_i \\times \\delta_{h_j}`}</M>. Same rule as layer 2: input coming in times error at the
+      Layer-1 weights: <M>{`\\frac{\\partial L}{\\partial w_{ij}} = x_i \\times \\delta_{h_j}`}</M>. Same rule as layer 2: input coming in times delta at the
       far end. An input of 0 would give all its weights zero gradient.
     </>,
   ]
+
+  const player_ = <PlayerControls player={player} label={(s) => `step ${s + 1} of 5`} />
+  const controls = (
+    <Controls>
+      <Slider label={<>input x₁</>} value={x[0]} min={-1} max={1} step={0.1} onChange={(v) => setX([v, x[1]])} format={(v) => uu(v, 1)} />
+      <Slider label={<>input x₂</>} value={x[1]} min={-1} max={1} step={0.1} onChange={(v) => setX([x[0], v])} format={(v) => uu(v, 1)} />
+      <Slider label={<>target y₁</>} value={y[0]} min={-1} max={1} step={0.1} onChange={(v) => setY([v, y[1]])} format={(v) => uu(v, 1)} />
+      <Slider label={<>target y₂</>} value={y[1]} min={-1} max={1} step={0.1} onChange={(v) => setY([y[0], v])} format={(v) => uu(v, 1)} />
+      <Button onClick={() => setSeed((s) => s + 1)}>New random weights</Button>
+      {seed !== 0 && <Button onClick={() => setSeed(0)}>Original weights</Button>}
+    </Controls>
+  )
 
   return (
     <Figure
@@ -213,7 +227,7 @@ export default function NetGradientFlow() {
           {edges
             .filter((e) => e.layer === sl && e.i === si && e.j === sj)
             .map((e) => (
-              <line key="halo" x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} style={{ stroke: 'var(--highlight)', strokeWidth: 12, opacity: 0.55 }} strokeLinecap="round" />
+              <line key="halo" x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} style={{ stroke: 'var(--ink)', strokeWidth: 13, opacity: 0.16 }} strokeLinecap="round" />
             ))}
           {edges.map((e) => {
             const isSel = e.layer === sl && e.i === si && e.j === sj
@@ -295,6 +309,9 @@ export default function NetGradientFlow() {
           ))}
         </svg>
       </div>
+      {/* on phones the controls sit right under the network, so it stays in view while you drag */}
+      {narrow && player_}
+      {narrow && controls}
       <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem', fontSize: '0.84rem', color: 'var(--ink-2)' }}>
         <span>Line colour = sign of the weight's gradient:</span>
         <span>
@@ -304,15 +321,24 @@ export default function NetGradientFlow() {
           <span style={{ display: 'inline-block', width: 18, height: 4, borderRadius: 2, background: NEG, verticalAlign: 'middle', marginRight: 5 }} />− negative
         </span>
         <span>
-          <span style={{ display: 'inline-block', width: 18, height: 0, borderTop: '2px dashed var(--viz-muted)', verticalAlign: 'middle', marginRight: 5 }} />grey: 0, or not reached yet
+          <span style={{ display: 'inline-block', width: 18, height: 0, borderTop: '2px dashed var(--viz-muted)', verticalAlign: 'middle', marginRight: 5 }} />dashed grey: exactly 0
+        </span>
+        <span>
+          <span style={{ display: 'inline-block', width: 18, height: 2, borderRadius: 1, background: 'var(--viz-muted)', opacity: 0.55, verticalAlign: 'middle', marginRight: 5 }} />faint grey: not reached yet
         </span>
         <span>thickness = size</span>
       </div>
       <div style={{ width: '100%', minHeight: '5.6em', fontSize: '0.95rem', lineHeight: 1.6 }} aria-live="polite">
         <div style={{ fontWeight: 700, color: 'var(--ink-2)', fontSize: '0.9rem' }}>
-          {['1. Forward pass', '2. Output errors', '3. Layer-2 weight gradients', '4. Hidden errors', '5. Layer-1 weight gradients'][st]}
+          {['1. Forward pass', '2. Output deltas δ', '3. Layer-2 weight gradients', '4. Hidden deltas δ', '5. Layer-1 weight gradients'][st]}
         </div>
         <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>{texts[st]}</div>
+        {dead && (
+          <div style={{ marginTop: '0.35rem', color: 'var(--ink)' }}>
+            <b>Every hidden neuron is off for this input</b> (all three have <M>{'z \\le 0'}</M>), so every weight gets zero gradient: for this input the network is dead.
+            Change an input or press <b>New random weights</b>.
+          </div>
+        )}
       </div>
       <div style={{ width: '100%', fontSize: '0.92rem', lineHeight: 1.6, padding: '0.5rem 0.7rem', borderRadius: 'var(--radius-m)', background: 'var(--surface-2)' }}>
         <div style={{ fontWeight: 700, color: 'var(--ink-2)' }}>Selected weight {selName}</div>
@@ -332,15 +358,8 @@ export default function NetGradientFlow() {
           ]}
         />
       </div>
-      <PlayerControls player={player} label={(s) => `step ${s + 1} of 5`} />
-      <Controls>
-        <Slider label={<>input x₁</>} value={x[0]} min={-1} max={1} step={0.1} onChange={(v) => setX([v, x[1]])} format={(v) => uu(v, 1)} />
-        <Slider label={<>input x₂</>} value={x[1]} min={-1} max={1} step={0.1} onChange={(v) => setX([x[0], v])} format={(v) => uu(v, 1)} />
-        <Slider label={<>target y₁</>} value={y[0]} min={-1} max={1} step={0.1} onChange={(v) => setY([v, y[1]])} format={(v) => uu(v, 1)} />
-        <Slider label={<>target y₂</>} value={y[1]} min={-1} max={1} step={0.1} onChange={(v) => setY([y[0], v])} format={(v) => uu(v, 1)} />
-        <Button onClick={() => setSeed((s) => s + 1)}>New random weights</Button>
-        {seed !== 0 && <Button onClick={() => setSeed(0)}>Original weights</Button>}
-      </Controls>
+      {!narrow && player_}
+      {!narrow && controls}
     </Figure>
   )
 }

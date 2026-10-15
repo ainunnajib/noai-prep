@@ -124,7 +124,7 @@ function Row({
       {front > 0.001 && front < depth + 1 && (
         <circle cx={left + unit * front} cy={y} r={pulseR} style={{ fill: pulse.stroke, stroke: 'var(--surface)', strokeWidth: 2 }} />
       )}
-      <text x={cx(0) - 10} y={y + bh / 2 + 32} style={{ fill: 'var(--viz-ink)', fontSize: 12 }}>
+      <text x={cx(0) - 10} y={y + bh / 2 + 32} style={{ fill: 'var(--viz-ink)', fontSize: 12.5 }}>
         <tspan style={{ fontWeight: 700 }}>reaches the input at ×{reached(0) ? sci(atInput) : '…'}</tspan>
         {reached(0) && <tspan style={{ fill: 'var(--ink-2)' }}>{`  = ${formula}`}</tspan>}
       </text>
@@ -168,15 +168,29 @@ export default function ResidualHighway() {
           Press <b>Send the gradient back</b> and follow the pulse from the loss to the input. Both stacks use exactly the same blocks, each with
           its own derivative <M>{"F' = s"}</M>. The plain stack multiplies by <M>s</M> at every block, so after <M>D</M> blocks the pulse is{' '}
           <M>{'s^D'}</M>: almost nothing. In the residual stack every block computes <M>{'y = x + F(x)'}</M>, so it multiplies by{' '}
-          <M>{'1 + s'}</M> and the pulse arrives at <M>{'(1 + s)^D'}</M>, never weaker than it started. With a large <M>s</M> or many blocks it
-          grows (try <M>s = 0.3</M> with 30 blocks), one reason real ResNets also use BatchNorm.
+          <M>{'1 + s'}</M> and the pulse arrives at <M>{'(1 + s)^D'}</M>, never weaker than it started (here every <M>s</M> is positive; in a real
+          network <M>{"F'"}</M> can be negative, so the skip path guarantees a direct route for the gradient, not that it can never shrink). With a
+          large <M>s</M> or many blocks it grows (try <M>s = 0.3</M> with 30 blocks), one reason real ResNets also use BatchNorm.
         </>
       }
     >
+      <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '0.25rem 1rem', fontSize: '0.84rem', color: 'var(--ink-2)' }}>
+        <span>Block colour = size of the gradient reaching it:</span>
+        {[
+          [SIZE_COLOUR.vanishing, 'shrinking (fades as it vanishes)'],
+          [SIZE_COLOUR.healthy, 'about 1 (within ×10)'],
+          [SIZE_COLOUR.exploding, 'growing'],
+        ].map(([c, t]) => (
+          <span key={t}>
+            <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: c, verticalAlign: '-0.1em', marginRight: 5 }} />
+            {t}
+          </span>
+        ))}
+      </div>
       <div ref={wrapRef} style={{ width: '100%' }}>
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={`Plain stack: gradient reaches the input at ${sci(plain.atInput)}. Residual stack: ${sci(res.atInput)}.`} style={{ display: 'block', maxWidth: W }}>
-          <Row W={W} y={64} depth={depth} at={plain.at} atInput={plain.atInput} residual={false} front={front} title="Plain: y = F(x)" formula={`${s.toFixed(2)}${sup(depth)}`} />
-          <Row W={W} y={64 + rowGap} depth={depth} at={res.at} atInput={res.atInput} residual front={front} title="Residual: y = x + F(x)" formula={`${(1 + s).toFixed(2)}${sup(depth)}`} />
+          <Row W={W} y={64} depth={depth} at={plain.at} atInput={plain.atInput} residual={false} front={front} title="Plain: y = F(x)" formula={`(${s.toFixed(2)})${sup(depth)}`} />
+          <Row W={W} y={64 + rowGap} depth={depth} at={res.at} atInput={res.atInput} residual front={front} title="Residual: y = x + F(x)" formula={`(${(1 + s).toFixed(2)})${sup(depth)}`} />
         </svg>
       </div>
       <Controls>

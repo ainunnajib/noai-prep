@@ -53,7 +53,7 @@ $$
 \text{IoU}_c = \frac{|P_c \cap T_c|}{|P_c \cup T_c|} = \frac{TP}{TP + FP + FN}
 $$
 
-The bars $|\cdot|$ mean "the number of pixels in". In the language of the confusion matrix, for this one class: $TP$ (true positives) are pixels correctly predicted as car, $FP$ (false positives) are pixels predicted as car that are not car, and $FN$ (false negatives) are car pixels the model missed. The intersection is the $TP$ pixels; the union adds every mistake involving car. So IoU is 1 for a perfect match and 0 when the two regions do not touch. It is the same IoU that detectors use to compare boxes (see the object-detection lesson), except that the shapes are now sets of pixels of any shape, and their sizes are pixel counts instead of rectangle areas. Notice what is **not** in the formula: $TN$, the huge number of pixels that are correctly "not car". That will matter later.
+The bars $|\cdot|$ mean "the number of pixels in". In the language of the confusion matrix, for this one class: $TP$ (true positives) are pixels correctly predicted as car, $FP$ (false positives) are pixels predicted as car that are not car, and $FN$ (false negatives) are car pixels the model missed. The intersection is the $TP$ pixels; the union adds every mistake involving car. So IoU is 1 for a perfect match and 0 when the two regions share no pixels (even if they touch). It is the same IoU that detectors use to compare boxes (see the object-detection lesson), except that the shapes are now sets of pixels of any shape, and their sizes are pixel counts instead of rectangle areas. Notice what is **not** in the formula: $TN$, the huge number of pixels that are correctly "not car". That will matter later.
 
 <MaskIoUPainter />
 
@@ -61,7 +61,13 @@ In code, each set is a <Term def="An array of True/False values with the same sh
 
 <KeyIdea>
 
-For each class: $\text{IoU} = \dfrac{\text{pixels both maps call } c}{\text{pixels either map calls } c}$. In code, `(p & t).sum() / (p | t).sum()` with `p = pred == c` and `t = true == c`.
+For each class $c$:
+
+$$
+\text{IoU}_c = \frac{\text{pixels both maps call } c}{\text{pixels either map calls } c}
+$$
+
+In code, `(p & t).sum() / (p | t).sum()` with `p = pred == c` and `t = true == c`.
 
 </KeyIdea>
 
@@ -118,6 +124,8 @@ What if a class is in **neither** map? A street-scene model might have a "motorc
 - **Skip it**: leave it out of the average. This is the standard choice, and the one the 2026 Final asked for.
 
 Skipping only applies when the union is 0. If the model predicts even **one** motorcycle pixel in an image without motorcycles, the union is 1, the intersection is 0, and that class scores IoU 0, which correctly punishes the false alarm. Try it in the painter above: paint one bicycle pixel and watch a new 0 enter the average.
+
+You may also meet **frequency-weighted IoU**, which multiplies each class's IoU by that class's share of the true pixels. Big classes then dominate and rare ones barely count: the opposite of what mean IoU's equal vote is for.
 
 <PastPaperQuestion paper="final2026" n={13} />
 
@@ -226,7 +234,7 @@ $$
   </Step>
 </Steps>
 
-For a single mask, a higher IoU always means a higher Dice, because the curve always rises, so the two rank single predictions the same way; Dice just looks more generous in the middle. Averages are different: the conversion is curved, so mean Dice and mean IoU over several classes or images can rank two models differently. (Per-class IoUs of 0.9 and 0.1 give mIoU 0.50 and mean Dice 0.57; IoUs of 0.49 and 0.49 give mIoU 0.49 but mean Dice 0.66.) A "soft" version of Dice (using predicted probabilities instead of hard 0/1 masks) is also popular as a training loss, $1 - \text{Dice}$, for tiny structures such as tumours, because, like IoU, it cannot be won by predicting background.
+For a single mask, a higher IoU always means a higher Dice, because the curve always rises, so the two rank single predictions the same way; Dice just looks more generous in the middle. Averages are different: the conversion is curved, so mean Dice and mean IoU over several classes or images can rank two models differently. (Per-class IoUs of 0.9 and 0.1 give mIoU 0.50 and mean Dice 0.56; IoUs of 0.49 and 0.49 give mIoU 0.49 but mean Dice 0.66.) A "soft" version of Dice (using predicted probabilities instead of hard 0/1 masks) is also popular as a training loss, $1 - \text{Dice}$, for tiny structures such as tumours, because, like IoU, it cannot be won by predicting background.
 
 <QuickCheck
   q="A model's tumour mask has IoU = 1/3 with the true mask. What is its Dice score?"

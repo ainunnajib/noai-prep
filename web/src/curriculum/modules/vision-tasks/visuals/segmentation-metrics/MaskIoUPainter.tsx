@@ -124,9 +124,11 @@ export default function MaskIoUPainter() {
   const [wrapRef, width] = useContainerWidth<HTMLDivElement>(640)
   const threeAcross = width >= 600
   const cell = Math.max(12, Math.min(19, Math.floor((width - 48) / 36)))
-  // on phones the prediction gets its own full-width row with finger-sized cells; truth and overlap sit smaller beneath it
+  // on phones the prediction gets its own full-width row with finger-sized cells. Beneath it, the overlap view (which carries
+  // the lesson) takes about 60% of the width so its hatching stays readable, and the fixed truth map shrinks into the rest
   const bigCell = Math.max(14, Math.min(26, Math.floor((width - 8) / N)))
-  const smallCell = Math.max(9, Math.min(14, Math.floor((width - 24) / 24)))
+  const overlapCell = Math.max(12, Math.min(20, Math.floor(((width - 16) * 0.6) / N)))
+  const smallCell = Math.max(8, Math.min(14, Math.floor((width - 16 - overlapCell * N - 14) / N)))
   const remember = () => setHist((h) => [...h.slice(-29), pred])
   const replace = (g: Grid) => {
     remember()
@@ -178,9 +180,9 @@ export default function MaskIoUPainter() {
         ) : (
           <>
             <GridView grid={pred} cell={bigCell} label={<>prediction (tap or drag to paint)</>} paint={paint} onStrokeStart={remember} ariaLabel="Predicted label map. Tap or drag to paint the selected class." />
-            <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', gap: '0.9rem', justifyContent: 'center', alignItems: 'end', width: '100%' }}>
+              <GridView grid={pred} cell={overlapCell} label={<>overlap for {CLASSES[brush].name}</>} overlay={{ c: brush, truth: TRUTH }} ariaLabel={`Overlap for class ${CLASSES[brush].name}`} />
               <GridView grid={TRUTH} cell={smallCell} label="truth (fixed)" ariaLabel="Ground-truth label map" />
-              <GridView grid={pred} cell={smallCell} label={<>overlap for {CLASSES[brush].name}</>} overlay={{ c: brush, truth: TRUTH }} ariaLabel={`Overlap for class ${CLASSES[brush].name}`} />
             </div>
           </>
         )}

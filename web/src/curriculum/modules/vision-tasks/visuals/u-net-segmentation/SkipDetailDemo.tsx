@@ -137,7 +137,9 @@ function MapView({ g, x, y, S, errors, outline }: { g: Grid; x: number; y: numbe
         if (!inside(i, j - 1)) d += `M${X.toFixed(1)},${Y.toFixed(1)}v${c.toFixed(2)}`
         if (!inside(i, j + 1)) d += `M${(X + c).toFixed(1)},${Y.toFixed(1)}v${c.toFixed(2)}`
       }
-    cells.push(<path key="outline" d={d} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 1.1, strokeLinecap: 'square' }} />)
+    // a surface-coloured halo under the ink line keeps the outline visible on the blue fill in both themes
+    cells.push(<path key="halo" d={d} style={{ fill: 'none', stroke: 'var(--surface)', strokeWidth: 3.4, strokeLinecap: 'square' }} />)
+    cells.push(<path key="outline" d={d} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 1.7, strokeLinecap: 'square' }} />)
   }
   return (
     <g>
@@ -186,7 +188,7 @@ function simulate(encs: Grid[], bott: Grid, target: Grid, skip: boolean[], conte
 }
 
 export default function SkipDetailDemo() {
-  const [shape, setShape] = useState<Shape>('road')
+  const [shape, setShape] = useState<Shape>('cell')
   const [skip, setSkip] = useState<[boolean, boolean, boolean]>([false, false, false])
   const [context, setContext] = useState(true)
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(560)
@@ -257,10 +259,21 @@ export default function SkipDetailDemo() {
       caption={
         <>
           A toy model, not a trained network. The encoder&apos;s maps (left) only say <i>where</i> something with sharp edges is: up close, the object and
-          the clutter ({CLUTTER_NAME[shape]}) look alike. Only the 4×4 bottleneck has seen enough of the picture to know <i>what</i> the object is. The
-          decoder keeps a skip&apos;s sharp detail only where the map coming up from below says &ldquo;object&rdquo;. Start with every skip off: blobs, and
-          the thin road vanishes. Switch on the 32×32 skip: sharp edges. Then cut the bottleneck&apos;s <b>context</b>: the clutter comes back. The
-          outlined shape is the true object; red pixels are wrong.
+          the clutter ({CLUTTER_NAME[shape]}) look alike. Only the 4×4 bottleneck knows <i>what</i> the object is. The decoder keeps a skip&apos;s sharp
+          detail only where the map coming up from below says &ldquo;object&rdquo;. The outlined shape is the true object; red pixels are wrong. Try the
+          three buttons in order:
+          <ol style={{ margin: '0.3rem 0 0', paddingLeft: '1.4rem' }}>
+            <li>
+              <b>No skips</b>: the decoder can only enlarge the 4×4 bottleneck, so the output is a blob.
+            </li>
+            <li>
+              <b>Top skip</b>: the 32×32 skip brings back sharp edges.
+            </li>
+            <li>
+              <b>Cut context</b>: without the bottleneck, the skip&apos;s clutter comes back.
+            </li>
+          </ol>
+          Then pick the <b>thin road</b> and repeat: with no skips it vanishes completely.
         </>
       }
     >
@@ -329,6 +342,11 @@ export default function SkipDetailDemo() {
           </g>
         </svg>
       </div>
+      <Controls>
+        <Button onClick={() => (setSkip([false, false, false]), setContext(true))}>1 · no skips</Button>
+        <Button onClick={() => (setSkip([true, false, false]), setContext(true))}>2 · top skip</Button>
+        <Button onClick={() => (setSkip([true, false, false]), setContext(false))}>3 · cut context</Button>
+      </Controls>
       <Readout
         items={[
           ['object / clutter pixels', `${area} / ${clutterArea}`],
@@ -354,7 +372,6 @@ export default function SkipDetailDemo() {
         ))}
         <Toggle label="context from the bottleneck" checked={context} onChange={setContext} />
         <Button onClick={() => setSkip([true, true, true])}>all skips on</Button>
-        <Button onClick={() => setSkip([false, false, false])}>all off</Button>
       </Controls>
     </Figure>
   )

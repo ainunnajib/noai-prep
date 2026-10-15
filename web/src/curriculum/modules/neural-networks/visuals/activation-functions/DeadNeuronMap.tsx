@@ -5,8 +5,9 @@ import { BOX, DATA, LEAK, NET0, N_HIDDEN, stats, train, type Net } from './deadS
 
 /*
   Sixteen hidden neurons of a small network (2 → 16 → 1) as tiles. Each tile is the square of training
-  inputs; the orange part is where that neuron is switched on (z > 0), so its area is roughly the share of
-  inputs that activate it. "moved" is how far the neuron's weights travelled during the last training press:
+  inputs, with the 120 inputs drawn as dots (dark where the neuron is on, grey where it is off); the
+  orange part is where that neuron is switched on (z > 0). A neuron whose orange part holds no dots at all
+  is dead. "moved" is how far the neuron's weights travelled during the last training press:
   a dead ReLU neuron (switched on for no input at all) gets exactly zero gradient, so it never moves again.
   The "latest run" table keeps the latest result of each activation, so the two runs can be compared.
 */
@@ -36,6 +37,15 @@ function Tile({ w, b, frac, moved, leaky, size }: { w: [number, number]; b: numb
   const toPx = ([x, y]: Pt): Pt => [pad + ((x + BOX) / (2 * BOX)) * (s - 2 * pad), pad + ((BOX - y) / (2 * BOX)) * (s - 2 * pad)]
   const on = clipPoly(boxPoly([-BOX, BOX], [-BOX, BOX]), w[0], w[1], b, 1)
   const d = on.length > 2 ? on.map((p, i) => `${i ? 'L' : 'M'}${toPx(p).map((v) => v.toFixed(1)).join(',')}`).join('') + 'Z' : ''
+  // the training inputs as dots: one path for the inputs that switch the neuron on, one for the rest
+  let dotsOn = ''
+  let dotsOff = ''
+  for (const x of DATA.x) {
+    const [px, py] = toPx([x[0], x[1]])
+    const seg = `M${px.toFixed(1)},${py.toFixed(1)}h0`
+    if (w[0] * x[0] + w[1] * x[1] + b > 0) dotsOn += seg
+    else dotsOff += seg
+  }
   return (
     <div
       style={{
@@ -56,9 +66,11 @@ function Tile({ w, b, frac, moved, leaky, size }: { w: [number, number]; b: numb
           width={s - 2 * pad}
           height={s - 2 * pad}
           rx={3}
-          style={{ fill: leaky ? 'color-mix(in srgb, var(--viz-1) 14%, var(--surface))' : dead ? 'var(--surface-3)' : 'var(--surface-2)', stroke: 'var(--viz-muted)', strokeWidth: 1 }}
+          style={{ fill: dead ? 'var(--surface-3)' : 'var(--surface-2)', stroke: 'var(--viz-muted)', strokeWidth: 1 }}
         />
         {d && <path d={d} style={{ fill: 'color-mix(in srgb, var(--viz-2) 70%, var(--surface))' }} />}
+        {dotsOff && <path d={dotsOff} style={{ fill: 'none', stroke: 'var(--viz-muted)', strokeWidth: 2, strokeLinecap: 'round' }} />}
+        {dotsOn && <path d={dotsOn} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 2.2, strokeLinecap: 'round' }} />}
         {dead && (
           <path d={`M${s * 0.3},${s * 0.3}L${s * 0.7},${s * 0.7}M${s * 0.7},${s * 0.3}L${s * 0.3},${s * 0.7}`} style={{ stroke: 'var(--viz-muted)', strokeWidth: 2.5 }} strokeLinecap="round" />
         )}
@@ -114,9 +126,10 @@ export default function DeadNeuronMap() {
       title="Watching ReLU neurons die"
       caption={
         <>
-          A 2-16-1 network learns a wavy surface from 120 points. Each tile is one hidden neuron: the square is where the training inputs live, the orange part is
-          where the neuron is switched on (<i>z</i> &gt; 0), and &ldquo;moved&rdquo; is how far its weights changed in the last press. A huge η shoves orange regions
-          right off the square, and those neurons are <b>dead</b>. (Leaky ReLU&rsquo;s α is 0.1 here, ten times the usual 0.01, so its effect shows quickly.)
+          A 2-16-1 network learns a wavy surface from 120 points. Each tile is one hidden neuron: the dots are the 120 training inputs, the orange part is where
+          the neuron is switched on (<i>z</i> &gt; 0), and &ldquo;moved&rdquo; is how far its weights changed in the last press. A huge η shoves orange regions away
+          from every dot: a neuron whose orange part holds no dots is <b>dead</b>. (Leaky ReLU&rsquo;s α is 0.1 here, ten times the usual 0.01, so its effect shows
+          quickly.)
         </>
       }
     >

@@ -100,6 +100,18 @@ crop = x[:, :, ${start}:${start} + ${dec}, ${start}:${start} + ${dec}]
           {showBug && bugRows > 0 && (
             <rect x={ox + d * c} y={oy + d * c} width={bugRows * c} height={bugRows * c} style={{ fill: 'none', stroke: bugOk ? 'var(--viz-3)' : 'var(--viz-neg)', strokeWidth: 2.5, strokeDasharray: '7 4' }} />
           )}
+          {/* d = 0: the shortcut keeps nothing, so cross out the whole map */}
+          {showBug && bugRows === 0 && (
+            <g>
+              <rect x={ox} y={oy} width={S} height={S} style={{ fill: 'color-mix(in srgb, var(--viz-neg) 22%, transparent)', stroke: 'var(--viz-neg)', strokeWidth: 2.5, strokeDasharray: '7 4' }} />
+              <line x1={ox} y1={oy} x2={ox + S} y2={oy + S} style={{ stroke: 'var(--viz-neg)', strokeWidth: 2.5 }} />
+              <line x1={ox + S} y1={oy} x2={ox} y2={oy + S} style={{ stroke: 'var(--viz-neg)', strokeWidth: 2.5 }} />
+              <rect x={ox + S / 2 - 70} y={oy + S / 2 - 13} width={140} height={26} rx={6} style={{ fill: 'var(--surface)', stroke: 'var(--viz-neg)', strokeWidth: 1.5 }} />
+              <text x={ox + S / 2} y={oy + S / 2} dy="0.35em" textAnchor="middle" style={{ fill: 'var(--viz-neg)', fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                d:-d keeps 0 rows
+              </text>
+            </g>
+          )}
           {topTicks}
           {leftTicks}
           <text x={ox + S / 2} y={oy + S + 20} textAnchor="middle" style={{ fill: 'var(--viz-ink)', fontSize: 12, fontWeight: 700 }}>

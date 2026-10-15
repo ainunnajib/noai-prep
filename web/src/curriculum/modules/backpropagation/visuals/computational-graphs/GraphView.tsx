@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { useContainerWidth } from '../../../../../kit'
 import { OP_LABEL, type Graph, type GNode } from './graphCore'
+import css from './gates.module.css'
 
 /*
   Draws a computational graph left to right: leaves (inputs) as rounded boxes, operations as
@@ -223,7 +224,8 @@ export function GraphView({
                     onNodeClick?.(n.id)
                   }
                 },
-                style: { cursor: 'pointer', outline: 'none' },
+                className: css.focusable,
+                style: { cursor: 'pointer' },
               }
             : {}
           const gw = gl ? textWidth(gl, 11.5) + 12 : 0
@@ -254,9 +256,10 @@ export function GraphView({
                   height={lh}
                   rx={8}
                   style={{
-                    fill: act || sel ? `color-mix(in srgb, ${stroke} 18%, var(--surface))` : 'var(--surface)',
+                    // parameters get a light indigo tint even at rest, so they read differently from data at a glance
+                    fill: act || sel ? `color-mix(in srgb, ${stroke} 20%, var(--surface))` : isParam ? 'color-mix(in srgb, var(--viz-1) 10%, var(--surface))' : 'var(--surface)',
                     stroke,
-                    strokeWidth: act || sel ? 2.6 : 1.5,
+                    strokeWidth: act || sel ? 2.6 : isParam ? 2 : 1.5,
                   }}
                 />
                 <text x={x} y={y + 4.5} textAnchor="middle" className="tabular" style={{ fill: 'var(--viz-ink)', fontSize: fs, fontWeight: 700 }}>
@@ -317,6 +320,22 @@ export function GraphView({
           )
         })}
       </svg>
+      {params.length > 0 && (
+        <div className={css.legend} style={{ marginTop: '0.35rem' }}>
+          <span>
+            <span className={css.swatch} style={{ background: 'color-mix(in srgb, var(--viz-1) 10%, var(--surface))', border: '2px solid var(--viz-1)' }} />
+            learnable parameter
+          </span>
+          <span>
+            <span className={css.swatch} style={{ background: 'var(--surface)', border: '1.5px solid var(--viz-axis)' }} />
+            data
+          </span>
+          <span>
+            <span className={css.swatch} style={{ borderRadius: '50%', background: 'color-mix(in srgb, var(--viz-5) 8%, var(--surface))', border: '1.7px solid var(--viz-5)' }} />
+            operation{onNodeClick ? ' (tap one)' : ''}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

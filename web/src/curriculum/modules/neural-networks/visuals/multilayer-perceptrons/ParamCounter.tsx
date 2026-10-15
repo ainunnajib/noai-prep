@@ -89,6 +89,16 @@ export default function ParamCounter() {
       <Controls>
         <Segmented label="preset" value={preset} onChange={(id) => setSizes(PRESETS.find((p) => p.id === id)!.sizes)} options={PRESETS.map((p) => ({ value: p.id, label: p.label }))} />
       </Controls>
+      <div className={s.legend} aria-hidden="true" style={{ width: '100%' }}>
+        <span>
+          <i style={{ background: 'var(--viz-1)', borderRadius: 2 }} />
+          weights
+        </span>
+        <span>
+          <i style={{ background: 'var(--viz-2)', borderRadius: 2 }} />
+          biases
+        </span>
+      </div>
       <div className={s.stack}>
         {sizes.map((n, l) => (
           <div key={l}>

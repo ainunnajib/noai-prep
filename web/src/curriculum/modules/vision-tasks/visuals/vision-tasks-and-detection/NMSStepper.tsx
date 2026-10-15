@@ -113,6 +113,15 @@ function verdict(kept: Box[], thr: number, conf: number) {
 
 const BOX_COLOUR = { person: 'var(--viz-4)', car: 'var(--viz-2)' }
 
+/** a small box outline for the legend, drawn the way the boxes are drawn in the picture */
+function Swatch({ stroke, dash }: { stroke: string; dash?: string }) {
+  return (
+    <svg width={20} height={12} aria-hidden="true" style={{ flex: 'none' }}>
+      <rect x={1.5} y={1.5} width={17} height={9} rx={1} style={{ fill: 'none', stroke, strokeWidth: 1.8, strokeDasharray: dash }} />
+    </svg>
+  )
+}
+
 export default function NMSStepper() {
   const [thr, setThr] = useState(0.5)
   const [conf, setConf] = useState(0.25)
@@ -122,6 +131,8 @@ export default function NMSStepper() {
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(620)
   const issues = verdict(kept, thr, conf)
   const sorted = [...BOXES].sort((a, b) => b.score - a.score)
+  // the box whose table row is hovered or focused: it is highlighted and labelled in the picture
+  const [hover, setHover] = useState<string | null>(null)
 
   return (
     <Figure
@@ -138,16 +149,17 @@ export default function NMSStepper() {
         <div style={{ display: 'grid', gap: 4, justifyItems: 'center', alignContent: 'start' }}>
           <svg viewBox="-1 -1 102 72" role="img" aria-label={`Scene with candidate boxes. ${f.msg}`} style={{ width: '100%', maxWidth: 520, height: 'auto', display: 'block', margin: '0 auto', borderRadius: 8 }}>
           <DetScene />
-          {sorted.map((bx) => {
+          {[...sorted].sort((a, b) => Number(a.id === hover) - Number(b.id === hover)).map((bx) => {
             const st = f.status[bx.id]
             const [x1, y1, x2, y2] = bx.b
             const col = BOX_COLOUR[bx.cls]
-            const faded = st === 'cut' || st === 'supp'
+            const isHover = hover === bx.id
+            const faded = (st === 'cut' || st === 'supp') && !isHover
             const isCur = st === 'current'
             const label = `${bx.id} ${bx.score.toFixed(2)}`
             // label the current pick and the best kept box of each object (keeps labels from piling up)
             const firstKept = st === 'kept' && !BOXES.some((o) => o.obj === bx.obj && o.score > bx.score && f.status[o.id] === 'kept')
-            const showLabel = st === 'current' || firstKept
+            const showLabel = st === 'current' || firstKept || isHover
             const below = bx.obj === 'B' // person B's labels go under its box so they do not cover person A's
             const ly = below ? y2 : y1 - 5
             return (
@@ -158,9 +170,9 @@ export default function NMSStepper() {
                   width={x2 - x1}
                   height={y2 - y1}
                   style={{
-                    fill: isCur ? `color-mix(in srgb, ${col} 14%, transparent)` : 'none',
+                    fill: isCur || isHover ? `color-mix(in srgb, ${col} 14%, transparent)` : 'none',
                     stroke: st === 'suppNow' ? 'var(--viz-neg)' : col,
-                    strokeWidth: isCur ? 1.4 : st === 'kept' ? 1.1 : 0.6,
+                    strokeWidth: isHover ? 1.6 : isCur ? 1.4 : st === 'kept' ? 1.1 : 0.6,
                     strokeDasharray: st === 'suppNow' || st === 'cut' ? '2 1.5' : undefined,
                   }}
                 />
@@ -178,15 +190,16 @@ export default function NMSStepper() {
         </svg>
           <div className={css.legend}>
             <span>
-              <i className={css.sw} style={{ background: 'var(--viz-4)' }} /> person box
+              <Swatch stroke="var(--viz-4)" /> person box
             </span>
             <span>
-              <i className={css.sw} style={{ background: 'var(--viz-2)' }} /> car box
+              <Swatch stroke="var(--viz-2)" /> car box
             </span>
             <span>
-              <i className={css.sw} style={{ background: 'var(--viz-neg)' }} /> suppressed this step (dashed)
+              <Swatch stroke="var(--viz-neg)" dash="3 2" /> suppressed this step
             </span>
           </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ink-3)', textAlign: 'center' }}>Point at (or tab to) a row of the table to find that box.</div>
         </div>
         <table className={css.nmsTable} aria-label="Candidate boxes sorted by score">
           <thead>
@@ -204,7 +217,16 @@ export default function NMSStepper() {
               const cls = st === 'current' ? css.cur : st === 'supp' ? css.gone : st === 'cut' ? css.cut : ''
               const v = f.ious[bx.id]
               return (
-                <tr key={bx.id} className={cls}>
+                <tr
+                  key={bx.id}
+                  className={cls}
+                  tabIndex={0}
+                  onMouseEnter={() => setHover(bx.id)}
+                  onMouseLeave={() => setHover(null)}
+                  onFocus={() => setHover(bx.id)}
+                  onBlur={() => setHover(null)}
+                  style={{ cursor: 'default', outline: hover === bx.id ? '2px solid var(--accent)' : undefined, outlineOffset: -2 }}
+                >
                   <td>{bx.id}</td>
                   <td>{bx.cls}</td>
                   <td>{bx.score.toFixed(2)}</td>

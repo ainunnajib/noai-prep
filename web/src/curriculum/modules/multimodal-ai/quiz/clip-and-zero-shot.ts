@@ -40,14 +40,14 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.clip-and-zero-shot.4',
     prompt: 'Why does CLIP L2-normalise the image and text embeddings before taking dot products?',
     options: [
-      'So each dot product equals the cosine similarity, which compares directions and ignores vector length',
+      'So that a dot product equals the cosine of the angle between the two vectors',
       'So the embeddings take up less memory and the matrix product runs faster',
       'So the image and text embeddings get the same number of dimensions',
       'So every dot product is positive and the softmax never sees a negative score',
     ],
     answer: 0,
     explanation:
-      'For unit vectors, $\\mathbf{a} \\cdot \\mathbf{b} = \\cos\\theta$, so similarity depends only on the angle, and a long vector cannot win just by being long. Equal dimensions come from the projection layers, not from normalising, and cosine similarities can still be negative.',
+      'For unit vectors, $\\mathbf{a} \\cdot \\mathbf{b} = \\cos\\theta$, so similarity depends only on the angle, and a long vector cannot win just by being long. Equal dimensions come from the projection layers, not from normalising; dividing by the length does not make the vectors smaller in memory or speed anything up; and cosine similarities can still be negative.',
     difficulty: 'intermediate',
   },
   {
@@ -55,14 +55,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A school wants to sort CCA photos into "badminton", "choir" and "robotics" using a pretrained CLIP model, but has no labelled photos. Which approach is zero-shot classification?',
     options: [
-      'Embed "a photo of students playing badminton" (and one sentence per other CCA), then give each photo the class whose sentence has the highest cosine similarity',
+      'Write one sentence per CCA, embed them, and give each photo the CCA of its most similar sentence',
       'Label 50 photos per CCA by hand, then fine-tune CLIP\'s image encoder on them with cross-entropy',
-      'Cluster the photo embeddings into 3 groups with k-means, then name each cluster by looking at a few photos',
-      'Train a new 3-class classifier on the image embeddings using labels produced by CLIP itself',
+      'Cluster the photo embeddings into 3 groups with k-means, then name each cluster by looking at it',
+      'Label one example photo per CCA, then give each photo the CCA of its most similar example photo',
     ],
     answer: 0,
     explanation:
-      'Zero-shot means no training examples for these classes: the classifier is built from text prompts alone, and each photo goes to the prompt it is most similar to. Fine-tuning on 50 labelled photos per class is few-shot supervised learning, and k-means needs a human to name the clusters afterwards.',
+      'Zero-shot means no labelled examples for these classes: the classifier is built from text prompts alone (such as "a photo of students playing badminton"), and each photo goes to the prompt it is most similar to. Comparing with one labelled example photo per class is one-shot classification, and fine-tuning on 50 labelled photos per class is ordinary supervised learning on a small dataset. With k-means, a person must still name the clusters afterwards.',
     difficulty: 'beginner',
   },
 ]

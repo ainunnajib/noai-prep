@@ -15,14 +15,14 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.learning-rate-warmup-schedules.2',
     prompt: 'A Transformer trained with Adam diverges in its first few hundred steps, but trains well once a linear warm-up is added. What is the main reason warm-up helps?',
     options: [
-      "Adam's average of squared gradients starts from a few noisy steps, so some weights get huge steps; a small learning rate keeps them safe until it settles",
+      "Adam's averages come from a few noisy early gradients, so every weight takes full-size steps in unreliable directions until they settle",
       'Warm-up lets the BatchNorm running mean and variance settle before any large updates are made, which Transformers rely on in every layer',
       'Warm-up grows the batch size step by step in the early phase, so that the first gradients are averaged over more examples and contain less noise',
       'Warm-up lets the network memorise the easy training examples first using small steps, and only later generalise to the hard ones using large steps',
     ],
     answer: 0,
     explanation:
-      'Adam divides each step by $\\sqrt{\\hat v}$. Early on $\\hat v$ is estimated from a handful of large, erratic gradients, so for some weights it is far too small and the steps are huge. Keeping the learning rate small for the first steps gives the statistics time to settle. Transformers use LayerNorm, not BatchNorm, and warm-up changes the learning rate, not the batch size.',
+      'Adam scales each step to about $\\eta$ using $\\hat m$ and $\\hat v$. Early on these rest on a handful of large, erratic gradients, so every weight, even one whose gradient is pure noise, takes a full-size step in an unreliable direction (later, such a weight\'s steps shrink to a fraction of $\\eta$). Keeping the learning rate small for the first steps gives the statistics time to settle. Transformers use LayerNorm, not BatchNorm, and warm-up changes the learning rate, not the batch size.',
     difficulty: 'intermediate',
   },
   {

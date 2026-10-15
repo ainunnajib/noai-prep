@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, useContainerWidth } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './tok.module.css'
 
 /*
@@ -64,8 +65,22 @@ export default function EndMarkerTruncation() {
       <span className={s.rowLabel}>ids</span>
       {row.map((c, j) => (
         <span key={j} className={cls(c)} title={`${c.tok} → ${c.id}`}>
-          {showWords && <span className={s.cellWord} style={{ maxWidth: cw - 4 }}>{c.tok}</span>}
-          <span className={showWords ? s.cellId : undefined}>{c.id}</span>
+          {showWords ? (
+            <>
+              <span className={s.cellWord} style={{ maxWidth: cw - 4 }}>
+                {c.tok}
+              </span>
+              <span className={s.cellId}>{c.id}</span>
+            </>
+          ) : c.kind === 'word' ? (
+            <span>{c.id}</span>
+          ) : (
+            // narrow cells: name the markers with 3 letters (<EOS> → EOS), words by their id
+            <>
+              <span className={s.cellAbbr}>{c.tok.replace(/[^A-Z]/g, '')}</span>
+              <span className={s.cellId}>{c.id}</span>
+            </>
+          )}
         </span>
       ))}
     </Fragment>
@@ -99,13 +114,24 @@ export default function EndMarkerTruncation() {
       wide
       title="Truncate first, then add the end marker"
       caption={
-        <>
-          Generative models wrap each sequence as <code>&lt;BOS&gt; … &lt;EOS&gt;</code>. Slide <code>max_len</code> above and below the sentence
-          length + 2. In the top version the markers are added first and the sequence is cut afterwards, so <code>&lt;EOS&gt;</code> silently falls off
-          the end and the model is trained on sentences that never finish. Cutting the words first and adding the markers afterwards always keeps{' '}
-          <code>&lt;EOS&gt;</code>. Now look at the short sentence <i>ok lah</i> in the same batch: in its labels every padding position becomes{' '}
-          <code>−100</code>, the value PyTorch&apos;s cross-entropy skips, while the input itself keeps the pad id 0.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              slide <code>max_len</code> above and below the sentence length + 2.
+            </>
+          }
+          notice={
+            <>
+              adding the markers first and cutting afterwards (top) loses <code>&lt;EOS&gt;</code>; cutting the words first keeps it. Padding labels
+              are <code>−100</code>, which the loss skips, while the input keeps pad id 0.
+            </>
+          }
+          note={
+            <>
+              Hugging Face convention: the labels are a copy of the ids, and the model compares position <i>t</i> with label <i>t</i> + 1.
+            </>
+          }
+        />
       }
     >
       <div className={s.field}>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Readout, usePlayer, PlayerControls } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './emb.module.css'
 
 /*
@@ -31,12 +32,19 @@ export default function SkipGramWindow() {
       wide
       title="Free training data from a sliding window"
       caption={
-        <>
-          Press <b>Play</b> or tap any word to make it the centre. Every word within <i>window</i> positions of it is a context word. In{' '}
-          <b>skip-gram</b> each (centre → context) pair is one training example: “given <i>laksa</i>, predict <i>spicy</i>”. <b>CBOW</b> turns it
-          round and predicts the centre from all its context words together. No human labels anything: the text itself supplies the answers, so any
-          amount of text becomes training data.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              press <b>Play</b> or tap a word to make it the centre, then change the window size.
+            </>
+          }
+          notice={
+            <>
+              each (centre → context) pair is one skip-gram training example, and the text itself supplies the answers: nobody labels anything. CBOW
+              predicts the centre from all its context words instead.
+            </>
+          }
+        />
       }
     >
       <div style={{ width: '100%', display: 'grid', gap: '0.3rem' }}>

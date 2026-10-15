@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react'
 import { Figure, Controls, Toggle, Segmented, Button, Readout, useNarrow } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './bow.module.css'
 
 /*
@@ -46,6 +47,7 @@ export default function TFIDFTable() {
   })
   // a "top word" is only shown when there is a clear winner (at most a 2-way tie)
   const clear = top.map((tw) => tw.length > 0 && tw.length <= 2)
+  const noWinner = top.every((tw, i) => !clear[i])
 
   const heat = (v: number) => (v > 0 ? `color-mix(in srgb, ${useIdf ? 'var(--viz-2)' : 'var(--viz-1)'} ${Math.round(12 + (v / maxW) * 58)}%, var(--surface))` : undefined)
   const cols = narrow ? `minmax(3.4rem, max-content) repeat(${N}, 2.35rem) 1.6rem 2.5rem` : `minmax(4.2rem, max-content) repeat(${N}, 2.9rem) 2.2rem 3rem`
@@ -55,14 +57,25 @@ export default function TFIDFTable() {
       wide
       title="From counts to TF-IDF weights"
       caption={
-        <>
-          Rows are vocabulary words (most common first), columns are documents. With <b>multiply by IDF</b> off you see plain counts; switch it on
-          and every count is multiplied by its word&apos;s IDF. Words found in every document (<code>the</code>, <code>is</code>) get IDF 0 and
-          vanish, while rare words light up: the bottom row names each document&apos;s most distinctive word (with plain counts the words of a document
-          usually tie, so there is no clear winner). Edit a document or add a fifth one. The
-          smoothed formula (scikit-learn&apos;s) never gives exactly 0, so common words keep the smallest weight instead of vanishing, but the pattern
-          is the same: common words lowest, rare words highest.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              switch <b>multiply by IDF</b> off and on, then add a fifth document.
+            </>
+          }
+          notice={
+            <>
+              words in every document (<code>the</code>, <code>is</code>) get IDF 0 and vanish; rare words light up and become each document&apos;s top
+              word. The smoothed formula never gives exactly 0, but it still ranks words the same way: the rarer the word, the higher its IDF.
+            </>
+          }
+          note={
+            <>
+              Here words are rows and documents are columns: the transpose of the matrix <code>X</code> in the NumPy code below, which is why df is{' '}
+              <code>(tf &gt; 0).sum(axis=0)</code> there.
+            </>
+          }
+        />
       }
     >
       <div className={s.field}>
@@ -138,7 +151,7 @@ export default function TFIDFTable() {
                     </span>
                   ))
                 : tw.length
-                  ? <span style={{ display: 'block', color: 'var(--ink-3)' }}>{tw.length}-way tie</span>
+                  ? <span style={{ display: 'block', color: 'var(--ink-2)', fontWeight: 600 }} title={`${tw.length}-way tie: ${tw.join(', ')}`} aria-label={`${tw.length}-way tie`}>tie</span>
                   : '–'}
             </span>
           ))}
@@ -146,6 +159,13 @@ export default function TFIDFTable() {
           <span />
         </div>
       </div>
+      {noWinner && (
+        <p className={s.small} style={{ margin: 0, textAlign: 'center' }} role="status">
+          {useIdf
+            ? 'Every document has several equally weighted words, so there is no single top word.'
+            : 'With plain counts the words in each document tie, so there is no top word. Switch IDF back on.'}
+        </p>
+      )}
       <Readout
         items={[
           ['documents N', String(N)],

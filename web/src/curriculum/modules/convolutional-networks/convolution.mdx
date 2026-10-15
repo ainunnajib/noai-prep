@@ -80,7 +80,7 @@ A convolution multiplies **matching positions** (element-wise) and adds everythi
   options={['−1', '1', '3', '10']}
   answer={0}
   id="convolutional-networks.convolution.qc1"
-  explain="The middle column has weight 0. The left column has weight +1: $1 + 0 + 2 = 3$. The right column has weight −1: $-(0 + 3 + 1) = -4$. Total $3 - 4 = -1$. Getting 10 means adding all the pixels and ignoring the weights."
+  explain="The middle column has weight 0. The left column has weight +1: $1 + 0 + 2 = 3$. The right column has weight −1: $-(0 + 3 + 1) = -4$. Total $3 - 4 = -1$. Getting 10 means adding all the pixels and ignoring the weights; 3 is the left column alone (the $-1$ column was forgotten), and 1 is right minus left, with the sign flipped."
 />
 
 ## Slide it everywhere: the feature map
@@ -106,18 +106,20 @@ In maths and signal processing, a "convolution" flips the kernel upside down and
 
 ## Edges, blur and sharpen
 
-Each preset in the explorer is a classic hand-made filter:
+Each preset in the explorer, and each filter in the gallery further down, is a classic hand-made filter:
 
 | Filter | Kernel idea | What it does |
 |---|---|---|
-| Vertical edges | left column $+1$, right column $-1$ | left minus right: large where brightness changes from left to right |
-| Horizontal edges | top row $+1$, bottom row $-1$ | top minus bottom: large where brightness changes from top to bottom |
-| Blur | all 1s, then divide by 9 | the average of the 9 pixels, which smooths out detail |
-| Sharpen | centre 5, four neighbours $-1$ | the pixel plus 4 times (pixel minus neighbours' average), so differences grow |
+| Vertical edges | left&nbsp;column&nbsp;$+1$, right&nbsp;column&nbsp;$-1$ | left minus right: large where brightness changes from left to right |
+| Horizontal edges | top&nbsp;row&nbsp;$+1$, bottom&nbsp;row&nbsp;$-1$ | top minus bottom: large where brightness changes from top to bottom |
+| Diagonal edges | bottom-left&nbsp;corner&nbsp;$-2$, top-right&nbsp;corner&nbsp;$+2$ | top-right minus bottom-left: strongest on edges that slope down from left to right, like the right side of a roof |
+| Blur | all&nbsp;1s, then divide&nbsp;by&nbsp;9 | the average of the 9 pixels, which smooths out detail |
+| Sharpen | centre&nbsp;$5$, four&nbsp;neighbours&nbsp;$-1$ | the pixel plus 4 times (pixel minus neighbours' average), so differences grow |
+| Outline | centre&nbsp;$8$, all&nbsp;eight&nbsp;neighbours&nbsp;$-1$ | 8 times (pixel minus neighbours' average): responds wherever a pixel differs from its surroundings, in any direction, so it traces outlines |
 
 A neat shortcut tells you how a filter treats a **flat** region, where every pixel has the same value $c$: the output is $c \times$ (sum of the weights).
 
-- The edge kernels' weights add up to $0$, so flat regions give 0. They only respond where something **changes**.
+- The edge and outline kernels' weights add up to $0$, so flat regions give 0. They only respond where something **changes**.
 - The blur kernel's weights add up to $9$, then it divides by 9: a flat region keeps its value $c$.
 - The sharpen kernel's weights add up to $5 - 4 = 1$: flat regions are unchanged, and only edges are boosted.
 

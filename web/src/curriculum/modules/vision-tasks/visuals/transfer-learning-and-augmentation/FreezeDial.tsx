@@ -120,8 +120,8 @@ export default function FreezeDial() {
       title="How much of the pretrained network should you train?"
       caption={
         <>
-          The stack is a real ResNet-18 pretrained on ImageNet with a new {K}-class head (parameter counts are exact). Slide to unfreeze blocks from the top down,
-          then click a scenario in the grid. Notice how the last stage alone holds three quarters of the weights, and how the advice moves from &ldquo;train only the
+          The stack is a real ResNet-18 pretrained on ImageNet with a new {K}-class head (parameter counts are exact). Click a block (or use the slider under
+          the stack) to unfreeze everything from the top down to it, then click a scenario in the grid. Notice how the last stage alone holds three quarters of the weights, and how the advice moves from &ldquo;train only the
           head&rdquo; (small data) to &ldquo;fine-tune everything, gently&rdquo; (large, different data).
         </>
       }
@@ -132,12 +132,19 @@ export default function FreezeDial() {
       >
         <div style={{ display: 'grid', gap: 6 }}>
           <div className={css.panelTitle}>ResNet-18 + new head (class scores come out at the top)</div>
-          <div className={css.stack} role="list" aria-label="Layer stack with frozen and trainable blocks">
+          <div className={css.stack} role="group" aria-label="Layer stack: click a block to train it and everything above it">
             {order.map((l) => {
               const isTrain = l.i >= LAYERS.length - u
               const isHead = l.i === LAYERS.length - 1
               return (
-                <div key={l.name} role="listitem" className={`${css.layer}${isTrain ? ` ${css.trainable}` : ''}${isHead ? ` ${css.head}` : ''}`}>
+                <button
+                  key={l.name}
+                  type="button"
+                  aria-pressed={isTrain}
+                  aria-label={`${l.name}: ${isTrain ? 'trainable' : 'frozen'}. Train from here to the top.`}
+                  onClick={() => setU(LAYERS.length - l.i)}
+                  className={`${css.layer}${isTrain ? ` ${css.trainable}` : ''}${isHead ? ` ${css.head}` : ''}`}
+                >
                   <LockIcon open={isTrain} />
                   <div style={{ minWidth: 0 }}>
                     <div className={css.layerName}>
@@ -149,24 +156,35 @@ export default function FreezeDial() {
                     </div>
                   </div>
                   <div className={css.layerCount}>{fmt(l.params)}</div>
-                </div>
+                </button>
               )
             })}
           </div>
           <div className={css.small} style={{ textAlign: 'center' }}>
             ↑ the input image enters at the bottom
           </div>
+          <Controls>
+            <Slider
+              label="Trainable blocks, counted from the top"
+              value={u}
+              min={1}
+              max={6}
+              step={1}
+              onChange={setU}
+              format={(v) => (v === 1 ? '1 · head' : v === 6 ? '6 · all' : String(v))}
+            />
+          </Controls>
         </div>
 
         <div style={{ display: 'grid', gap: 10 }}>
           <div className={css.panelTitle}>Pick a scenario</div>
           <div className={css.scen}>
-            <span />
+            <span className={css.scenHead} style={{ textAlign: 'left' }}>data</span>
             <span className={css.scenHead}>similar to ImageNet</span>
             <span className={css.scenHead}>different from ImageNet</span>
             {(['small', 'large'] as const).map((size) => (
               <div key={size} style={{ display: 'contents' }}>
-                <span className={css.scenRowHead}>{size} data</span>
+                <span className={css.scenRowHead}>{size}</span>
                 {(size === 'small' ? (['ss', 'sd'] as Scen[]) : (['ls', 'ld'] as Scen[])).map((k) => (
                   <button
                     key={k}
@@ -191,23 +209,12 @@ export default function FreezeDial() {
         </div>
       </div>
 
-      <Controls>
-        <Slider
-          label="Trainable blocks, counted from the top"
-          value={u}
-          min={1}
-          max={6}
-          step={1}
-          onChange={setU}
-          format={(v) => (v === 1 ? '1 (head only)' : v === 6 ? '6 (everything)' : String(v))}
-        />
-      </Controls>
       <Readout
         items={[
           ['trainable weights', `${fmt(trainable)} of ${fmt(TOTAL)}`],
           ['share trained', `${((100 * trainable) / TOTAL).toFixed(trainable / TOTAL < 0.01 ? 2 : 1)}%`],
           ['frozen', frozenNames.length ? frozenNames.join(', ') : 'nothing'],
-          ['learning rates', u === 1 ? 'head 1e-3, backbone frozen' : 'head 1e-3, unfrozen blocks 1e-4'],
+          ['learning rates', u === 1 ? 'head 0.001 (1e-3), backbone frozen' : 'head 0.001 (1e-3), unfrozen blocks 0.0001 (1e-4)'],
         ]}
       />
     </Figure>

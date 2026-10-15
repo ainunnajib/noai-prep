@@ -5,6 +5,7 @@ import { Figure, Controls, Slider, Segmented, Bars, Readout, useContainerWidth }
   A 20x20 image that is mostly background with one square object of side `side`.
   Three predictions: lazy (everything background), shifted (the right size but one pixel down and right), too big (one extra ring).
   Bars compare pixel accuracy, IoU of each class, mean IoU and the object's Dice score, all counted from the same two masks.
+  Colours match DiceIoUCurve: truth = dashed ink outline, prediction = blue, IoU = green, Dice = magenta.
 */
 
 const G = 20
@@ -49,7 +50,7 @@ export default function PixelAccuracyTrap() {
           y={i * cell}
           width={cell}
           height={cell}
-          style={{ fill: p ? 'color-mix(in srgb, var(--viz-1) 70%, var(--surface))' : 'color-mix(in srgb, var(--viz-muted) 22%, var(--surface))', stroke: 'var(--surface)', strokeWidth: 1 }}
+          style={{ fill: p ? 'color-mix(in srgb, var(--viz-1) 70%, var(--surface))' : 'color-mix(in srgb, var(--viz-muted) 42%, var(--surface))', stroke: 'var(--surface)', strokeWidth: 1 }}
         />,
       )
     }
@@ -67,7 +68,7 @@ export default function PixelAccuracyTrap() {
       title="The pixel accuracy trap"
       caption={
         <>
-          The outlined square is the true object; filled cells are what the model predicts as object. Start with the <b>lazy</b> model: it
+          The dashed square is the true object; blue cells are what the model predicts as object. Start with the <b>lazy</b> model: it
           predicts background everywhere, finds nothing, and still scores a pixel accuracy above 90%. Shrink the object and its accuracy only
           goes <i>up</i>. Mean IoU and Dice cannot be fooled: the object&apos;s IoU is 0. Then compare the shifted and too-big predictions:
           accuracy barely moves, but IoU shows the difference.
@@ -77,7 +78,8 @@ export default function PixelAccuracyTrap() {
       <div ref={wrapRef} style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: '1rem 1.5rem', justifyContent: 'center', alignItems: 'center' }}>
         <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} role="img" aria-label={`A ${G} by ${G} image with a ${side} by ${side} object. Prediction: ${mode}.`} style={{ display: 'block', borderRadius: 4 }}>
           {rects}
-          <rect x={a * cell} y={a * cell} width={side * cell} height={side * cell} style={{ fill: 'none', stroke: 'var(--viz-2)', strokeWidth: 3 }} />
+          <rect x={a * cell} y={a * cell} width={side * cell} height={side * cell} style={{ fill: 'none', stroke: 'var(--surface)', strokeWidth: 4.5 }} />
+          <rect x={a * cell} y={a * cell} width={side * cell} height={side * cell} style={{ fill: 'none', stroke: 'var(--viz-ink)', strokeWidth: 2.5, strokeDasharray: '6 3' }} />
         </svg>
         <div style={{ flex: '1 1 240px', minWidth: 220, maxWidth: 380 }}>
           <Bars
@@ -88,9 +90,9 @@ export default function PixelAccuracyTrap() {
               // neutral stripes for accuracy (not a class); the background bar uses the background cells' colour
               { label: 'pixel accuracy', value: acc, color: 'repeating-linear-gradient(135deg, var(--ink-3) 0 4px, color-mix(in srgb, var(--ink-3) 35%, transparent) 4px 7px)', strong: true },
               { label: 'IoU background', value: iouBg, color: 'var(--viz-muted)' },
-              { label: 'IoU object', value: iouObj, color: 'var(--viz-1)' },
-              { label: 'mean IoU', value: miou, color: 'var(--viz-5)', strong: true },
-              { label: 'Dice (object)', value: dice, color: 'var(--viz-2)' },
+              { label: 'IoU object', value: iouObj, color: 'color-mix(in srgb, var(--viz-3) 65%, var(--surface))' },
+              { label: 'mean IoU', value: miou, color: 'var(--viz-3)', strong: true },
+              { label: 'Dice (object)', value: dice, color: 'var(--viz-4)' },
             ]}
           />
         </div>

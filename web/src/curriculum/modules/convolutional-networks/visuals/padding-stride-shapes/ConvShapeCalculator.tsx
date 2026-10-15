@@ -4,10 +4,11 @@ import s from './pss.module.css'
 
 /*
   The output-size formula, made countable. Left: an n×n input (blue) with p rings of zero
-  padding (hatched), the k×k kernel window (orange) and, above the grid, the column positions the
-  window starts at, s apart. Right: the output grid, one cell per window position. Cells the
-  window never reaches (because the last jump would overshoot) are shaded red. Challenge mode
-  hides the answer until you pick one.
+  padding (hatched, always, on every side), the k×k kernel window (orange) and, above the grid, the
+  column positions the window starts at, s apart. Right: the output grid, one cell per window
+  position. Cells the window never reaches (because the last jump would overshoot) get a red
+  outline, tint and ×, drawn on top so a padding cell stays hatched. Challenge mode hides the
+  answer until you pick one.
 */
 
 interface Cfg {
@@ -46,7 +47,7 @@ function distractors(c: Cfg): number[] {
 }
 
 export default function ConvShapeCalculator() {
-  const [cfg, setCfg] = useState<Cfg>({ n: 6, k: 3, p: 1, s: 2 })
+  const [cfg, setCfg] = useState<Cfg>({ n: 8, k: 3, p: 0, s: 2 })
   const [quiz, setQuiz] = useState(false)
   const [seed, bump] = useBump()
   const [picked, setPicked] = useState<number | null>(null)
@@ -79,6 +80,8 @@ export default function ConvShapeCalculator() {
   const top = 30 // room for the stride ruler
   const gridW = P * cs
   const reach = valid ? (o - 1) * c.s + c.k : 0 // cells [0, reach) are covered in each direction
+  const skipped = valid ? P - reach : 0 // columns (and rows) at the far edge never covered
+  const skippedImage = valid ? Math.max(0, c.p + c.n - reach) : 0 // ... of which real image pixels
 
   const set = (key: keyof Cfg) => (v: number) => setCfg((old) => ({ ...old, [key]: v }))
   const frac = (P - c.k) / c.s
@@ -94,8 +97,8 @@ export default function ConvShapeCalculator() {
       title="Count the positions: the output-size formula"
       caption={
         <>
-          <b>Try:</b> set n, k, p and s, then press <b>Play</b>: each window position makes one output cell. <b>Notice:</b> red cells are never reached,
-          because one more jump would overshoot the edge: that is the floor ⌊ ⌋.
+          <b>Try:</b> press <b>Play</b>: each window position makes one output cell. Then set p = 1 and watch a ring of zeros appear on <i>both</i>{' '}
+          sides. <b>Notice:</b> cells marked × are never reached, because one more jump would overshoot the edge: that is the floor ⌊ ⌋.
         </>
       }
     >
@@ -110,7 +113,7 @@ export default function ConvShapeCalculator() {
               <defs>
                 <pattern id={hatchId} width={6} height={6} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                   <rect width={6} height={6} style={{ fill: 'var(--surface)' }} />
-                  <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.6, strokeOpacity: 0.45 }} />
+                  <line x1={0} y1={0} x2={0} y2={6} style={{ stroke: 'var(--viz-muted)', strokeWidth: 2, strokeOpacity: 0.8 }} />
                 </pattern>
               </defs>
               <g transform={`translate(0, ${top})`}>
@@ -119,20 +122,39 @@ export default function ConvShapeCalculator() {
                   const q = idx % P
                   const pad = r < c.p || q < c.p || r >= c.p + c.n || q >= c.p + c.n
                   const unreached = revealed && valid && (r >= reach || q >= reach)
+                  const x0 = q * cs + 1
+                  const y0 = r * cs + 1
+                  const m = cs * 0.22 // half-size of the ×
                   return (
                     <g key={idx}>
                       <rect
-                        x={q * cs + 1}
-                        y={r * cs + 1}
+                        x={x0}
+                        y={y0}
                         width={cs - 2}
                         height={cs - 2}
                         rx={3}
                         style={{
-                          fill: unreached ? 'color-mix(in srgb, var(--viz-neg) 22%, var(--surface))' : pad ? `url(#${hatchId})` : 'color-mix(in srgb, var(--viz-1) 16%, var(--surface))',
-                          stroke: pad ? 'color-mix(in srgb, var(--viz-muted) 60%, var(--surface))' : 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))',
+                          fill: pad ? `url(#${hatchId})` : 'color-mix(in srgb, var(--viz-1) 16%, var(--surface))',
+                          stroke: pad ? 'color-mix(in srgb, var(--viz-muted) 70%, var(--surface))' : 'color-mix(in srgb, var(--viz-1) 45%, var(--surface))',
                           strokeWidth: 1,
                         }}
                       />
+                      {unreached && (
+                        <>
+                          <rect
+                            x={x0 + 1}
+                            y={y0 + 1}
+                            width={cs - 4}
+                            height={cs - 4}
+                            rx={2}
+                            style={{ fill: 'color-mix(in srgb, var(--viz-neg) 25%, transparent)', stroke: 'var(--viz-neg)', strokeWidth: 2 }}
+                          />
+                          <path
+                            d={`M${x0 + cs / 2 - 1 - m},${y0 + cs / 2 - 1 - m}l${2 * m},${2 * m}m0,${-2 * m}l${-2 * m},${2 * m}`}
+                            style={{ fill: 'none', stroke: 'var(--viz-neg)', strokeWidth: 1.8, strokeLinecap: 'round' }}
+                          />
+                        </>
+                      )}
                     </g>
                   )
                 })}
@@ -169,7 +191,11 @@ export default function ConvShapeCalculator() {
             <span className={s.capSmall}>
               kernel {c.k} × {c.k} (orange), stride {c.s}
               {c.p > 0 ? `; hatched = zero padding (p = ${c.p})` : ''}
-              {valid && revealed && reach < P ? `; ${P - reach} column${P - reach > 1 ? 's' : ''} and row${P - reach > 1 ? 's' : ''} never reached` : ''}
+              {valid && revealed && skipped > 0
+                ? `; × = ${skipped} column${skipped > 1 ? 's' : ''} and row${skipped > 1 ? 's' : ''} never reached (${
+                    skippedImage === 0 ? 'only padding zeros here' : skippedImage === skipped ? 'real image pixels' : `${skippedImage} of them real image pixels`
+                  })`
+                : ''}
             </span>
           </div>
           <div className={s.col}>

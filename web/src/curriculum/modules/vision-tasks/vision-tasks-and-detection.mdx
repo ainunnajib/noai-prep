@@ -47,6 +47,8 @@ The vision tasks differ in how much "where" information they produce: none (clas
 
 <PastPaperQuestion paper="prelim2026" n={200} />
 
+<PastPaperQuestion paper="noai2025" n={15} />
+
 ## Boxes and IoU: a quick reminder
 
 A box is usually stored as $(x_1, y_1, x_2, y_2)$, its top-left and bottom-right corners. In images, $y$ points **down**, so $y_1 < y_2$. (YOLO stores boxes as centre, width and height instead; it is the same information.)
@@ -63,9 +65,9 @@ $$
 
 Here $|\cdot|$ means "area of". $A \cap B$ (A intersect B) is the region where the two boxes overlap, and $A \cup B$ (A union B) is everything that either box covers. To get the union we add the two areas and subtract the overlap once, because adding the two areas counts the overlap twice. IoU runs from 0 (no overlap) to 1 (identical boxes).
 
-<Steps title="IoU of P = (0, 0, 4, 4) and Q = (1, 0, 5, 4)">
+<Steps title="IoU of P and Q">
   <Step title="Overlap width and height">
-    Width: $\min(x_2) - \max(x_1) = \min(4, 5) - \max(0, 1) = 4 - 1 = 3$. Height: $\min(4, 4) - \max(0, 0) = 4$. If either came out negative, the overlap would be 0.
+    Take $P = (0, 0, 4, 4)$ and $Q = (1, 0, 5, 4)$. Width: $\min(x_2) - \max(x_1) = \min(4, 5) - \max(0, 1) = 4 - 1 = 3$. Height: $\min(4, 4) - \max(0, 0) = 4$. If either came out negative, the overlap would be 0.
   </Step>
   <Step title="Intersection">
     $3 \times 4 = 12$.
@@ -106,9 +108,9 @@ When several friends shout out the same answer at once, the teacher listens to t
 
 The threshold is a trade-off. **Too low** (say 0.3) and NMS becomes trigger-happy: two different people standing close together overlap enough that one deletes the other. **Too high** (say 0.8) and near-copies of the same object survive as duplicates. Values around 0.45 to 0.6 are common.
 
-<Steps title="NMS by hand: P (0.9), Q (0.8), R (0.7), S (0.6), threshold 0.5">
+<Steps title="NMS by hand">
   <Step title="The boxes">
-    $P = (0, 0, 4, 4)$, $Q = (1, 0, 5, 4)$, $R = (5, 0, 9, 4)$, $S = (6, 1, 9, 4)$, all the same class, already sorted by score.
+    $P = (0, 0, 4, 4)$, $Q = (1, 0, 5, 4)$, $R = (5, 0, 9, 4)$, $S = (6, 1, 9, 4)$, all the same class, with scores $0.9$, $0.8$, $0.7$ and $0.6$ (already sorted). The IoU threshold is $0.5$.
   </Step>
   <Step title="Pick P, compare">
     Keep $P$. $\text{IoU}(P, Q) = 0.6$ (worked out above), which is above $0.5$, so $Q$ is suppressed. $R$ and $S$ start at $x = 5$ and $x = 6$, past $P$'s right edge at $x = 4$, so their IoU with $P$ is $0$: they stay.
@@ -169,7 +171,7 @@ All four boxes survive: `[0, 1, 2, 3]`. $S$ survives because its IoU with $R$ is
 
 </Reveal>
 
-In PyTorch projects you would call the built-in `torchvision.ops.nms(boxes, scores, iou_threshold)`, which runs the same algorithm.
+In PyTorch, `torchvision.ops.nms(boxes, scores, iou_threshold)` runs this loop for one class: it ignores labels, so a person box *can* delete a car box. For per-class NMS use `torchvision.ops.batched_nms(boxes, scores, class_ids, iou_threshold)`.
 
 <ExamTip>
 
@@ -179,9 +181,34 @@ NMS questions usually give you scores and a table of IoUs. Work in score order, 
 
 ## Scoring a detector: AP and mAP
 
-How do you score a detector's final boxes? First decide which predictions are correct. Go through them from the highest score down. A prediction is a **true positive** if its IoU with a ground-truth box of the same class that has not been matched yet is at least a threshold, usually 0.5. Otherwise it is a **false positive** (a duplicate, the wrong class, or a box in the wrong place). Every ground-truth box left unmatched is a **false negative**: a missed object.
+How do you score a detector's final boxes? First decide which predictions are correct. Go through them from the highest score down. A prediction is a **true positive** (TP) if its IoU with a ground-truth box of the same class that has not been matched yet is at least a threshold, usually 0.5. Otherwise it is a **false positive** (FP): a duplicate, the wrong class, or a box in the wrong place. Every ground-truth box left unmatched is a **false negative**: a missed object. After each prediction, track **precision** (the share of predictions so far that were hits) and **recall** (the share of real objects found so far).
 
-Lowering the confidence cut-off lets more boxes in, so recall rises while precision usually falls. Sweep the cut-off and plot precision against recall: the <Term def="Average precision: the area under a detector's precision-recall curve for one class, from 0 (useless) to 1 (perfect).">average precision</Term> (AP) is the area under that curve. **mAP** (mean average precision) averages AP over the classes. "mAP@0.5" uses an IoU threshold of 0.5. The COCO benchmark's "mAP@[.5:.95]" also averages over the IoU thresholds 0.5, 0.55, …, 0.95, so it rewards tight boxes.
+<Steps title="AP for two cats">
+  <Step title="The setup">
+    The image has 2 cats. The detector outputs 3 boxes. The 0.9 box overlaps cat 1 with IoU 0.8, the 0.8 box also overlaps cat 1 (IoU 0.7), and the 0.6 box overlaps cat 2 with IoU 0.55.
+  </Step>
+  <Step title="Box 0.9">
+    IoU $0.8 \ge 0.5$ with the unmatched cat 1: a TP. Precision $1/1$, recall $1/2$.
+  </Step>
+  <Step title="Box 0.8">
+    Cat 1 is already matched, so this duplicate is an FP. Precision $1/2$, recall still $1/2$.
+  </Step>
+  <Step title="Box 0.6">
+    IoU $0.55 \ge 0.5$ with cat 2: a TP. Precision $2/3$, recall $2/2$.
+  </Step>
+  <Step title="Average precision">
+    Each TP adds the recall it gained times the precision at that moment: $\tfrac12 \times 1 + \tfrac12 \times \tfrac23 \approx 0.83$. A detector that ranks every hit above every miss and finds every object scores 1.
+  </Step>
+</Steps>
+
+That sum is the area under the precision-recall curve, and it is called the <Term def="Average precision: the area under a detector's precision-recall curve for one class, from 0 (useless) to 1 (perfect).">average precision</Term> (AP). **mAP** (mean average precision) averages AP over the classes. "mAP@0.5" uses an IoU threshold of 0.5; the COCO benchmark's "mAP@[.5:.95]" also averages over the IoU thresholds 0.5, 0.55, …, 0.95, so it rewards tight boxes.
+
+<QuickCheck
+  q="In the two-cat example, suppose NMS had removed the duplicate 0.8 box. What would the AP be?"
+  options={['1', '0.83', '0.67', '0.5']}
+  answer={0}
+  explain="Now the boxes in score order are hit, hit: precision $1/1$ then $2/2$, recall $1/2$ then $2/2$. AP $= \tfrac12 \times 1 + \tfrac12 \times 1 = 1$. The duplicate cost about 0.17 of AP, which is why detectors run NMS. 0.83 is the AP with the duplicate, 0.67 is the final precision with the duplicate, and 0.5 is the recall after one box."
+/>
 
 ## How detectors find boxes
 
@@ -196,30 +223,28 @@ At an airport you might queue for a security check, then queue again at passport
 **Two-stage detectors: the R-CNN family.** First propose regions that might contain an object, then classify each one.
 
 - **R-CNN** (2014) used a hand-made algorithm called <Term def="A classic, non-learned algorithm that groups similar neighbouring pixels into regions to suggest about 2,000 boxes that might contain objects.">selective search</Term> to propose about 2,000 regions, then ran a CNN on every region separately. Accurate, but it took seconds per image.
-- **Fast R-CNN** ran the CNN once on the whole image and cut each region's features out of the shared feature map.
+- **Fast R-CNN** ran the CNN once on the whole image and cut each region's features out of the shared map.
 - **Faster R-CNN** replaced selective search with a learned **region proposal network** (RPN). At every position of the feature map sit a few <Term def="Preset reference boxes of several sizes and shapes placed at every position of a feature map. The network predicts a score for each and small adjustments that turn it into a tighter box.">anchor boxes</Term>; the RPN scores each anchor for "is there an object?" and nudges its coordinates.
 - **Mask R-CNN** adds a third output to Faster R-CNN's second stage: a small pixel mask for each detected box. That makes it the classic model for **instance segmentation**.
 
 **One-stage detectors: YOLO and SSD.** Skip the proposal step and predict every box and class in **one forward pass** over a grid of cells, which makes them fast enough for real-time video. YOLO stands for "You Only Look Once"; SSD (Single Shot MultiBox Detector) predicts from several feature maps of different sizes to catch small and large objects.
 
-**Set prediction: DETR.** The DEtection TRansformer passes the CNN features through a <Term def="A kind of network layer that lets every part of the input look at every other part (attention). Taught in the attention-and-transformers module.">Transformer</Term> and fills a fixed number of slots, called *object queries* (e.g. 100), each with either a box and class or "no object". In training, each real object is matched to exactly one slot, so duplicate boxes are penalised. That is why DETR needs **no anchors and no NMS**. (Transformers come in a later module; for now remember: a fixed set of slots, one per object, no NMS.)
+**Set prediction: DETR.** The DEtection TRansformer passes the CNN features through a <Term def="A kind of network layer that lets every part of the input look at every other part (attention). Taught in the attention-and-transformers module.">Transformer</Term> and fills a fixed number of slots, called *object queries* (e.g. 100), each with either a box and class or "no object". In training, each real object is matched to exactly one slot and duplicate boxes are penalised, which is why DETR needs **no NMS**. And because each query predicts its box directly, not as an adjustment of a preset box, it needs **no anchors** either. (Transformers come in a later module; for now remember: a fixed set of slots, one per object, no NMS.)
 
 Click through each pipeline to see what every stage takes in and gives out.
 
 <DetectorPipelines />
 
+<PastPaperQuestion paper="noai2025" n={13} />
+
 | | Two-stage (Faster R-CNN) | One-stage (YOLO, SSD) | DETR |
 |---|---|---|---|
 | how boxes appear | propose regions, then classify each | predict from every grid cell in one pass | a set of query slots, matched one-to-one |
-| speed | slower | fast, real-time | slow to train, simple pipeline |
+| speed | slower | fast, real-time | similar to two-stage at test time; slow to train |
 | anchors? | yes (in the RPN) | SSD yes; YOLO depends on the version | no |
 | needs NMS? | yes | yes | no |
 
 <PastPaperQuestion paper="prelim2026" n={198} />
-
-<PastPaperQuestion paper="noai2025" n={13} />
-
-<PastPaperQuestion paper="noai2025" n={15} />
 
 ### How big is YOLO's output?
 
@@ -231,13 +256,19 @@ $$
 
 numbers. The original YOLO used $S = 7$, $B = 2$ and $C = 20$: $5 \times 2 + 20 = 30$ numbers per cell, and $7 \times 7 = 49$ cells, so $49 \times 30 = 1470$ numbers for the whole image.
 
-Later versions (YOLOv2 and v3) and SSD give every anchor box its own class scores instead, so the count becomes $S \times S \times B \times (5 + C)$. Read which layout a question uses.
+Later versions (YOLOv2 and v3) give every anchor box its own class scores instead, so the count becomes $S \times S \times B \times (5 + C)$. Read which layout a question uses.
+
+<Reveal label="What about SSD?">
+
+SSD also predicts $5 + C$ numbers per preset (default) box, but they mean something slightly different. There is no separate confidence: each box gets 4 offsets and $C + 1$ class scores, the extra one being "background". And SSD predicts from several feature maps of different sizes, so its total is a sum over those maps, not one $S \times S$ grid.
+
+</Reveal>
 
 <QuickCheck
   q="An original-YOLO (v1) head, where each cell shares one set of C class probabilities, uses a 5 × 5 grid, B = 2 boxes per cell and C = 3 classes. How many numbers does it output?"
   options={['325', '400', '275', '75']}
   answer={0}
-  explain="Per cell: $5 \times 2 + 3 = 13$. Cells: $5 \times 5 = 25$. Total $25 \times 13 = 325$. 400 is $S \times S \times B \times (5 + C)$, the YOLOv2/v3 and SSD layout where every box has its own class scores, so read which convention a question uses. 275 forgets the confidence (4 numbers per box), and 75 counts only the class probabilities."
+  explain="Per cell: $5 \times 2 + 3 = 13$. Cells: $5 \times 5 = 25$. Total $25 \times 13 = 325$. 400 is $S \times S \times B \times (5 + C)$, the YOLOv2/v3 layout where every box has its own class scores, so read which convention a question uses. 275 forgets the confidence (4 numbers per box), and 75 counts only the class probabilities."
 />
 
 <PastPaperQuestion paper="noai2025" n={12} />

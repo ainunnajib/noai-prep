@@ -16,6 +16,8 @@ You start slowly as you turn in from the road, cruise down the ramps when the wa
 
 Early in training the weights are far from any minimum, so big steps make fast progress. Late in training you are near a minimum, and mini-batch gradients are noisy: big steps now bounce from one side of the valley to the other and the loss stops improving. Shrinking the learning rate as training goes on (called **annealing** or **decay**) lets the model settle into the bottom of the valley.
 
+<PastPaperQuestion paper="prelim2026" n={41} />
+
 ## Finding a good learning rate: the range test
 
 <Analogy title="Heating oil in a wok">
@@ -80,6 +82,12 @@ Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta
 
 <ScheduleDesigner />
 
+<KeyIdea>
+
+Big steps early (after a short warm-up), small steps late. Warm-up ramps $\eta$ up in a straight line, then a decay such as cosine glides it down; halfway through a cosine decay the rate is exactly midway between $\eta_{\max}$ and $\eta_{\min}$.
+
+</KeyIdea>
+
 <Steps title="Warm-up + cosine by hand: $\eta_{\max} = 0.001$, $W = 1000$, $T = 10000$, $\eta_{\min} = 0$">
   <Step title="Step 250 (still warming up)">
     $250 < 1000$, so $\eta = 0.001 \times \frac{250}{1000} = 0.001 \times 0.25 = 0.00025$.
@@ -100,6 +108,13 @@ The Final paper asked exactly this, with a small twist: the decay ends at $\eta_
 <PastPaperQuestion paper="final2026" n={9} />
 
 <QuickCheck
+  q="Warm-up + cosine with $\eta_{\max} = 0.002$, $W = 200$ warm-up steps, $T = 2200$ steps in total and $\eta_{\min} = 0$. What is the learning rate at step 50, and at step 1200?"
+  options={['0.0005 and 0.001', '0.002 and 0.001', '0.0005 and about 0.00086', '0.0005 and 0']}
+  answer={0}
+  explain="Step 50 is in the warm-up: $0.002 \times \frac{50}{200} = 0.0005$. Step 1200 is $\frac{1200 - 200}{2200 - 200} = \frac{1000}{2000} = \frac12$ of the way through the cosine, so the rate is midway between 0.002 and 0: 0.001. Skipping the warm-up gives 0.002 at step 50; forgetting to subtract $W$ (using $\frac{1200}{2200}$) gives about 0.00086; dropping the 1 in $(1 + \cos)$ gives 0."
+/>
+
+<QuickCheck
   q="A model trains with $\eta_{\max} = 0.1$ and step decay that multiplies the rate by 0.5 every 10 epochs. What learning rate is used in epoch 25 (counting from epoch 0)?"
   options={['0.025', '0.05', '0.0125', '0.01']}
   answer={0}
@@ -108,7 +123,7 @@ The Final paper asked exactly this, with a small twist: the decay ends at $\eta_
 
 ## Why warm up?
 
-At the very start of training the weights are random, so the gradients are large and point in erratic directions. With **Adam** there is a second problem. Adam divides each step by $\sqrt{\hat v}$, its running average of squared gradients. After only a handful of steps, that average is based on a few noisy numbers, so for some weights it is far too small, and dividing by it gives them **huge steps**. A full-size learning rate at step 1 can throw a Transformer into a bad region from which it never recovers: the loss spikes or becomes `NaN`.
+At the very start of training the weights are random, so the gradients are large and point in erratic directions. With **Adam** there is a second problem. Adam scales each weight's step to about $\eta$ using $\hat v$, its estimate of that weight's typical gradient size. After only a handful of steps, that estimate rests on a few erratic numbers. On step 1, for instance, every weight moves by exactly $\eta$, even one whose gradient is pure noise; once the averages have settled, such a weight's noisy gradients cancel out in $\hat m$ and its steps shrink to about a fifth of $\eta$. (Bias correction, from [the previous lesson](#/learn/training-deep-networks/momentum-and-adam), fixes the pull towards 0, not this noise.) So at the start, thousands of weights lurch by a full $\eta$ in unreliable directions all at once, and a full-size learning rate can throw a Transformer into a bad region from which it never recovers: the loss spikes or becomes `NaN`.
 
 <Term def="Starting training with a small learning rate and increasing it (usually linearly) to the target value over the first few hundred or thousand steps.">Warm-up</Term> keeps the steps small while Adam's statistics settle and the network moves out of the steep, chaotic starting region. Once things are calm, the full learning rate is safe and makes fast progress.
 
@@ -134,11 +149,15 @@ Every schedule leaves a fingerprint on the loss curve. Learn to read them:
 
 <PastPaperQuestion paper="prelim2026" n={283} />
 
+<PastPaperQuestion paper="prelim2026" n={72} />
+
 <PastPaperQuestion paper="prelim2026" n={286} />
 
 ## Two more schedules: 1cycle and ReduceLROnPlateau
 
 **1cycle** rises from a low rate (typically $\eta_{\max}/25$) to the peak over the first 30% or so of training, then anneals to **far below** where it started. Choose 1cycle in the designer above to see it. The high-rate middle explores widely and helps the model escape sharp, narrow minima; the long low tail lets it settle. It is popular for training CNNs quickly with SGD.
+
+<PastPaperQuestion paper="prelim2026" n={282} />
 
 **ReduceLROnPlateau** is not a fixed plan at all. It watches the **validation loss** and, when it has stopped improving for a while, cuts the learning rate by a factor (for example $\times 0.1$). It uses the same "patience" idea as early stopping, but instead of stopping training it lowers the learning rate.
 
@@ -151,7 +170,7 @@ import math
 import torch
 
 model = torch.nn.Linear(4, 1)
-opt = torch.optim.AdamW(model.parameters(), lr=0.001)
+optimiser = torch.optim.AdamW(model.parameters(), lr=0.001)
 
 warmup, total = 1000, 10000
 
@@ -161,12 +180,12 @@ def lr_factor(step):                      # multiplies the base lr
     progress = (step - warmup) / (total - warmup)
     return 0.5 * (1 + math.cos(math.pi * progress))   # cosine down to 0
 
-sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_factor)
+sched = torch.optim.lr_scheduler.LambdaLR(optimiser, lr_factor)
 
 for step in range(total + 1):
     if step in (0, 250, 1000, 5500, 10000):
-        print(step, round(opt.param_groups[0]["lr"], 6))
-    opt.step()          # (forward and backward pass would go before this)
+        print(step, round(optimiser.param_groups[0]["lr"], 6))
+    optimiser.step()    # (forward and backward pass would go before this)
     sched.step()
 ```
 
@@ -183,13 +202,13 @@ These are exactly the numbers we worked out by hand. Step decay and ReduceLROnPl
 ```python
 import torch
 
-opt = torch.optim.SGD(torch.nn.Linear(4, 1).parameters(), lr=0.1)
-sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="min", factor=0.1, patience=2)
+optimiser = torch.optim.SGD(torch.nn.Linear(4, 1).parameters(), lr=0.1)
+sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser, mode="min", factor=0.1, patience=2)
 
 val_losses = [0.90, 0.70, 0.60, 0.61, 0.62, 0.63, 0.55, 0.56]
 for epoch, v in enumerate(val_losses, start=1):
     sched.step(v)                       # give it the validation loss
-    print(epoch, v, round(opt.param_groups[0]["lr"], 6))
+    print(epoch, v, round(optimiser.param_groups[0]["lr"], 6))
 ```
 
 ```text
@@ -203,11 +222,11 @@ for epoch, v in enumerate(val_losses, start=1):
 8 0.56 0.01
 ```
 
-The best loss was $0.60$ at epoch 3. With `patience=2` the scheduler tolerates two epochs without improvement (4 and 5) and cuts the rate by 10 after the third (epoch 6). For a fixed step decay, `torch.optim.lr_scheduler.StepLR(opt, step_size=30, gamma=0.1)` gives the 0.1 → 0.01 → 0.001 pattern from earlier when you call `sched.step()` once per epoch.
+The best loss was $0.60$ at epoch 3. With `patience=2` the scheduler tolerates two epochs without improvement (4 and 5) and cuts the rate by 10 after the third (epoch 6). Note the off-by-one: PyTorch's ReduceLROnPlateau acts on the (patience + 1)-th bad epoch, whereas the early-stopping loop in [the regularisation lesson](#/learn/training-deep-networks/regularising-deep-networks) stops on the patience-th. For a fixed step decay, `torch.optim.lr_scheduler.StepLR(optimiser, step_size=30, gamma=0.1)` gives the 0.1 → 0.01 → 0.001 pattern from earlier when you call `sched.step()` once per epoch.
 
 <Mistake title="Counting steps in the wrong unit">
 
-A scheduler counts calls to `sched.step()`, nothing else. `StepLR(step_size=30)` means "every 30 calls". Call it once per epoch and that is 30 epochs; call it once per mini-batch and it is 30 batches, so the rate collapses almost immediately. Also call `opt.step()` **before** `sched.step()` in each iteration; PyTorch warns if you swap them.
+A scheduler counts calls to `sched.step()`, nothing else. `StepLR(step_size=30)` means "every 30 calls". Call it once per epoch and that is 30 epochs; call it once per mini-batch and it is 30 batches, so the rate collapses almost immediately. Also call `optimiser.step()` **before** `sched.step()` in each iteration; PyTorch warns if you swap them.
 
 </Mistake>
 

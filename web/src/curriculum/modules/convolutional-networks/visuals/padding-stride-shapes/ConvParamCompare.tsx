@@ -72,8 +72,9 @@ export default function ConvParamCompare() {
       title="Standard vs depthwise separable convolution"
       caption={
         <>
-          <b>Try:</b> slide k, C<sub>in</sub> and C<sub>out</sub>. <b>Notice:</b> a depthwise k × k step plus a 1 × 1 mixing step saves
-          nearly k<sup>2</sup> (about 9× for 3 × 3) on wide layers, and nothing when k = 1. Biases are ignored.
+          <b>Try:</b> slide k, C<sub>in</sub> and C<sub>out</sub>, then the output size. <b>Notice:</b> a depthwise k × k step plus a 1 × 1 mixing
+          step saves nearly k<sup>2</sup> (about 9× for 3 × 3) on wide layers, and costs slightly more when k = 1, since a 1 × 1 convolution has no
+          spatial part to separate. Multiply-adds grow with the number of output positions; the weight counts do not. Biases are ignored.
         </>
       }
     >

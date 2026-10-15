@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Figure, Controls, Toggle, Button, mulberry32, shuffled } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './bow.module.css'
 
 /*
@@ -51,11 +52,19 @@ export default function BagOfWords() {
     <Figure
       title="Put the words in a bag and shake it"
       caption={
-        <>
-          Each sentence becomes a list of counts, one number per vocabulary word. Press <b>Shuffle</b>: the sentence changes but its vector does not,
-          because a bag of words forgets the order. “The dog chased the cat” and “the cat chased the dog” get identical vectors. Switch on{' '}
-          <b>bigrams</b> (pairs of neighbouring words) and the two sentences become different vectors again, at the price of many more columns.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              press <b>Shuffle</b> a few times, then switch on <b>bigrams</b>.
+            </>
+          }
+          notice={
+            <>
+              shuffling never changes the vector, because a bag of words forgets order. Bigrams (pairs of neighbouring words) tell A and B apart again,
+              at the price of more columns.
+            </>
+          }
+        />
       }
     >
       <div className={s.field}>

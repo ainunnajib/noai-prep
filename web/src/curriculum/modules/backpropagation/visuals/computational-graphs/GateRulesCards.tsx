@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { Figure, Controls, Slider, M, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Slider, Segmented, M, useContainerWidth, useNarrow } from '../../../../../kit'
 import { fmt, sig } from './graphCore'
 import css from './gates.module.css'
 
@@ -176,10 +176,74 @@ function GateCard({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: 
   )
 }
 
+/** "=" when the shown factors multiply exactly to the shown result, "≈" when rounding got in the way */
+const rel = (g: number, shownLocal: string, exact: number) => (fmt(g * Number(shownLocal)) === fmt(exact) ? '=' : '\\approx')
+
+function Equations({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: number }) {
+  const [la, lb] = gate.local(a, b)
+  const [ta, tb] = gate.localTex(a, b)
+  const tie = gate.id === 'max' && a === b
+  return (
+    <div className={css.eq}>
+      {gate.id === 'sig' ? (
+        <>
+          {/* sigmoid: the local slope first, then upstream × local, on two short lines */}
+          <div>
+            <M>{`\\text{local} = \\sigma(1 - \\sigma) = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} ${rel(Number(fmt(sig(a))), fmt(1 - sig(a)), la)} ${fmt(la)}`}</M>
+          </div>
+          <div>
+            <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times \\text{local} = ${pa(g)} \\times ${pa(la)} ${rel(g, fmt(la), g * la)} ${fmt(g * la)}`}</M>
+          </div>
+        </>
+      ) : (
+        <div>
+          <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times ${ta} = ${pa(g)} \\times ${pa(la)} ${rel(g, fmt(la), g * la)} ${fmt(g * la)}`}</M>
+        </div>
+      )}
+      {gate.two && (
+        <div>
+          <M>{`\\tfrac{\\partial L}{\\partial b} = g \\times ${tb} = ${pa(g)} \\times ${pa(lb)} ${rel(g, fmt(lb), g * lb)} ${fmt(g * lb)}`}</M>
+        </div>
+      )}
+      {tie && (
+        <div className={css.note}>
+          A tie: max has no single slope here. Conventions differ: PyTorch&apos;s <code>torch.max</code> and <code>torch.maximum</code> split g
+          equally (g/2 to each input), while max-pooling sends all of g to one input. This card gives it all to a.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Card({ gate, a, b, g }: { gate: GateInfo; a: number; b: number; g: number }) {
+  return (
+    <section className={css.card} aria-label={`${gate.name} gate`}>
+      <div className={css.head}>
+        <span className={css.name}>{gate.name}</span>
+        <span className={css.motto}>{gate.motto}</span>
+      </div>
+      <GateCard gate={gate} a={a} b={b} g={g} />
+      <Equations gate={gate} a={a} b={b} g={g} />
+    </section>
+  )
+}
+
 export default function GateRulesCards() {
   const [a, setA] = useState(2)
   const [b, setB] = useState(-1)
   const [g, setG] = useState(2)
+  // on phones the five cards would stack far above the sliders, so show one card at a time with the sliders right under it
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
+  const [pick, setPick] = useState<GateId>('max')
+  const picked = GATES.find((x) => x.id === pick) ?? GATES[0]
+
+  const controls = (
+    <Controls>
+      <Slider label="input a" value={a} min={-3} max={3} step={0.5} onChange={setA} format={u} />
+      <Slider label="input b" value={b} min={-3} max={3} step={0.5} onChange={setB} format={u} />
+      <Slider label="upstream gradient g" value={g} min={-3} max={3} step={0.5} onChange={setG} format={u} />
+    </Controls>
+  )
 
   return (
     <Figure
@@ -187,9 +251,9 @@ export default function GateRulesCards() {
       title="How each gate passes a gradient back"
       caption={
         <>
-          All five gates receive the same upstream gradient <M>g</M> (orange, from the right) and the same inputs. Move the sliders and compare.
-          Make <M>b</M> bigger than <M>a</M> and watch <b>max</b> switch which input gets the gradient. Push <M>a</M> to 3 and see how little
-          gets through the <b>sigmoid</b>.
+          All five gates receive the same upstream gradient <M>g</M> (orange, from the right) and the same inputs. Move the sliders and compare
+          (on a phone, pick a gate first). Make <M>b</M> bigger than <M>a</M> and watch <b>max</b> switch which input gets the gradient. Push{' '}
+          <M>a</M> to 3 and see how little gets through the <b>sigmoid</b>.
         </>
       }
     >
@@ -203,51 +267,41 @@ export default function GateRulesCards() {
           backward: gradients flow left
         </span>
       </div>
-      <div className={css.grid}>
-        {GATES.map((gate) => {
-          const [la, lb] = gate.local(a, b)
-          const [ta, tb] = gate.localTex(a, b)
-          return (
-            <section key={gate.id} className={css.card} aria-label={`${gate.name} gate`}>
-              <div className={css.head}>
-                <span className={css.name}>{gate.name}</span>
-                <span className={css.motto}>{gate.motto}</span>
-              </div>
-              <GateCard gate={gate} a={a} b={b} g={g} />
-              <div className={css.eq}>
-                {gate.id === 'sig' ? (
-                  <>
-                    {/* sigmoid: the local slope first, then upstream × local, on two short lines */}
-                    <div>
-                      <M>{`\\text{local} = \\sigma(1 - \\sigma) = ${fmt(sig(a))} \\times ${fmt(1 - sig(a))} = ${fmt(la)}`}</M>
-                    </div>
-                    <div>
-                      <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times \\text{local} = ${pa(g)} \\times ${pa(la)} = ${fmt(g * la)}`}</M>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <M>{`\\tfrac{\\partial L}{\\partial a} = g \\times ${ta} = ${pa(g)} \\times ${pa(la)} = ${fmt(g * la)}`}</M>
-                  </div>
-                )}
-                {gate.two && (
-                  <div>
-                    <M>{`\\tfrac{\\partial L}{\\partial b} = g \\times ${tb} = ${pa(g)} \\times ${pa(lb)} = ${fmt(g * lb)}`}</M>
-                  </div>
-                )}
-                {gate.id === 'max' && a === b && (
-                  <div className={css.note}>A tie: max has no single slope here. Frameworks send all of g to one input (here a).</div>
-                )}
-              </div>
-            </section>
-          )
-        })}
+      <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.75rem' }}>
+        {narrow ? (
+          <>
+            <Segmented label="Gate" value={pick} onChange={setPick} options={GATES.map((x) => ({ value: x.id, label: x.name }))} />
+            <Card gate={picked} a={a} b={b} g={g} />
+            {controls}
+          </>
+        ) : (
+          <>
+            <div className={css.grid}>
+              {GATES.map((gate) => (
+                <Card key={gate.id} gate={gate} a={a} b={b} g={g} />
+              ))}
+              <section className={`${css.card} ${css.summary}`} aria-label="Summary of the gate rules">
+                <div className={css.name}>The rules in one line each</div>
+                <ul>
+                  <li>
+                    <b>add</b> distributes: every input gets <M>g</M>
+                  </li>
+                  <li>
+                    <b>multiply</b> swaps: each input gets <M>g</M> × the other input
+                  </li>
+                  <li>
+                    <b>max</b> routes: the larger input gets <M>g</M>, the other 0
+                  </li>
+                  <li>
+                    <b>square</b> and <b>sigmoid</b> scale: <M>g</M> × <M>2a</M>, or <M>g</M> × <M>{'\\sigma(1-\\sigma)'}</M>
+                  </li>
+                </ul>
+              </section>
+            </div>
+            {controls}
+          </>
+        )}
       </div>
-      <Controls>
-        <Slider label="input a" value={a} min={-3} max={3} step={0.5} onChange={setA} format={u} />
-        <Slider label="input b" value={b} min={-3} max={3} step={0.5} onChange={setB} format={u} />
-        <Slider label="upstream gradient g" value={g} min={-3} max={3} step={0.5} onChange={setG} format={u} />
-      </Controls>
     </Figure>
   )
 }

@@ -31,13 +31,13 @@ def grad_sizes(act, k, depth=20, n=32):
 for act, k in [("sigmoid", 1.0), ("relu", 1.0), ("relu", 2 ** 0.5),
                ("relu", 2.0)]:
     s = grad_sizes(act, k)
-    print(f"{act:7s} k={k:.2f}  layer 20: {s[-1]:.1e}  "
-          f"layer 10: {s[9]:.1e}  layer 1: {s[0]:.1e}")`
+    print(f"{act:7s} k={k:.2f}  layer 1: {s[0]:.1e}  "
+          f"layer 10: {s[9]:.1e}  layer 20: {s[-1]:.1e}")`
 
-export const GRAD_SIZES_OUTPUT = `sigmoid k=1.00  layer 20: 1.0e+00  layer 10: 3.9e-07  layer 1: 7.1e-13
-relu    k=1.00  layer 20: 1.0e+00  layer 10: 3.4e-02  layer 1: 1.6e-03
-relu    k=1.41  layer 20: 1.0e+00  layer 10: 1.2e+00  layer 1: 1.1e+00
-relu    k=2.00  layer 20: 1.0e+00  layer 10: 1.2e+01  layer 1: 1.3e+02`
+export const GRAD_SIZES_OUTPUT = `sigmoid k=1.00  layer 1: 7.1e-13  layer 10: 3.9e-07  layer 20: 1.0e+00
+relu    k=1.00  layer 1: 1.6e-03  layer 10: 3.4e-02  layer 20: 1.0e+00
+relu    k=1.41  layer 1: 1.1e+00  layer 10: 1.2e+00  layer 20: 1.0e+00
+relu    k=2.00  layer 1: 1.3e+02  layer 10: 1.2e+01  layer 20: 1.0e+00`
 
 export const TORCH_NORMS_CODE = `import torch
 import torch.nn as nn

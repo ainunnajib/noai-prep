@@ -1,6 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Figure, Segmented, Button, Bars, Readout, useContainerWidth, M } from '../../../../../kit'
 import { carImage, layer1, layer2, maxPool, outSize, L1_NAMES, L2_NAMES, type Tensor } from './pipeline'
+
+// short visible names under each thumbnail (the full names stay in the aria-labels)
+const L1_SHORT = ['vertical', 'horizontal', 'red', 'dark']
+const L2_SHORT = ['corners', 'wheel-like', 'red body', 'outlines']
 import { HeatCanvas, RgbCanvas } from './canvas'
 
 /*
@@ -58,12 +62,17 @@ function Card({ title, shape, sub, active, error, onClick, children }: { title: 
   )
 }
 
-function Maps({ t, names, size }: { t: Tensor; names: string[]; size: number }) {
+function Maps({ t, names, short, size }: { t: Tensor; names: string[]; short: string[]; size: number }) {
   if (!t.length || !t[0].length) return <span style={{ fontSize: 12, color: 'var(--viz-neg)' }}>nothing left</span>
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: 3 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(2, ${size}px)`, gap: '4px 3px' }}>
       {t.map((m, i) => (
-        <HeatCanvas key={i} map={m} size={size} label={`${names[i]} feature map, ${m.length} by ${m[0].length}`} />
+        <div key={i} style={{ display: 'grid', justifyItems: 'center', gap: 1 }}>
+          <HeatCanvas map={m} size={size} label={`${names[i]} feature map, ${m.length} by ${m[0].length}`} />
+          <span aria-hidden="true" style={{ fontSize: 10.5, fontWeight: 600, lineHeight: 1.1, color: 'var(--ink-2)', maxWidth: size }}>
+            {short[i]}
+          </span>
+        </div>
       ))}
     </div>
   )
@@ -124,16 +133,16 @@ export default function CNNPipeline() {
             <RgbCanvas img={img} size={mapPx * 2 + 3} label="A 32 by 32 pixel photo of a red car on a road" />
           </Card>
           <Card title={`② conv ${c1.k}×${c1.k} + ReLU`} shape={shape(c1.c, h1)} sub={`${nf(params1)} params · showing 4 of ${c1.c}`} active={sel === 0} error={!h1} onClick={() => setSel(0)}>
-            <Maps t={a1} names={L1_NAMES} size={mapPx} />
+            <Maps t={a1} names={L1_NAMES} short={L1_SHORT} size={mapPx} />
           </Card>
           <Card title="③ max-pool 2×2" shape={shape(c1.c, h1p)} sub="0 params" error={!!h1 && !h1p}>
-            <Maps t={p1} names={L1_NAMES} size={mapPx} />
+            <Maps t={p1} names={L1_NAMES} short={L1_SHORT} size={mapPx} />
           </Card>
           <Card title={`④ conv ${c2.k}×${c2.k} + ReLU`} shape={shape(c2.c, h2)} sub={`${nf(params2)} params · showing 4 of ${c2.c}`} active={sel === 1} error={!!h1p && !h2} onClick={() => setSel(1)}>
-            <Maps t={a2} names={L2_NAMES} size={mapPx} />
+            <Maps t={a2} names={L2_NAMES} short={L2_SHORT} size={mapPx} />
           </Card>
           <Card title="⑤ max-pool 2×2" shape={shape(c2.c, h2p)} sub="0 params" error={!!h2 && !h2p}>
-            <Maps t={p2} names={L2_NAMES} size={mapPx} />
+            <Maps t={p2} names={L2_NAMES} short={L2_SHORT} size={mapPx} />
           </Card>
           <Card title={head === 'flatten' ? '⑥ flatten' : '⑥ global avg pool'} shape={broken ? '—' : `(${feats})`} sub={head === 'flatten' ? `${c2.c} × ${h2p} × ${h2p} numbers in a row` : `one mean per channel`}>
             <div aria-hidden="true" style={{ width: '90%', height: 10, borderRadius: 3, background: 'repeating-linear-gradient(90deg, color-mix(in srgb, var(--viz-1) 45%, var(--surface)) 0 3px, var(--surface-2) 3px 5px)', opacity: head === 'flatten' ? 1 : 0.35 }} />
@@ -163,8 +172,10 @@ export default function CNNPipeline() {
 
         <div style={{ display: 'grid', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'var(--surface-2)' }}>
           <div style={{ fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--ink-2)' }}>
-            Editing {sel === 0 ? '② the first' : '④ the second'} conv layer:{' '}
-            <M>{`\\lfloor (${nIn} + 2 \\cdot ${cur.p} - ${cur.k}) / ${cur.s} \\rfloor + 1 = ${nOut}`}</M>
+            Editing {sel === 0 ? '② the first' : '④ the second'} conv layer:
+            <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', paddingTop: 2 }}>
+              <M>{`\\lfloor (${nIn} + 2 \\cdot ${cur.p} - ${cur.k}) / ${cur.s} \\rfloor + 1 = ${nOut}`}</M>
+            </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
             <Segmented label="Kernel" value={cur.k} onChange={(k) => edit({ k })} options={[1, 3, 5].map((v) => ({ value: v, label: `${v}×${v}` }))} />
@@ -191,8 +202,8 @@ export default function CNNPipeline() {
       </div>
       <Readout
         items={[
-          ['total parameters', broken ? '—' : nf(params1 + params2 + paramsFc)],
-          ['share in the linear layer', broken ? '—' : `${Math.round((100 * paramsFc) / (params1 + params2 + paramsFc))}%`],
+          ['total parameters', broken || mismatch ? '—' : nf(params1 + params2 + paramsFc)],
+          ['share in the linear layer', broken || mismatch ? '—' : `${Math.round((100 * paramsFc) / (params1 + params2 + paramsFc))}%`],
         ]}
       />
     </Figure>

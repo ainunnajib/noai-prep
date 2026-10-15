@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Figure, Controls, Slider, Toggle } from '../../../../../kit'
+import { TryNotice } from '../Caption'
 import s from './tc.module.css'
 
 /*
@@ -59,12 +60,20 @@ export default function MacroF1Explorer() {
     <Figure
       title="Accuracy versus macro-F1"
       caption={
-        <>
-          200 messages, but only 10 are about food safety, the class that matters most. <b>False alarms</b> are praise messages wrongly flagged as food safety. Slide{' '}
-          <b>safety caught</b> from 10 down to 0: each missed message costs accuracy just 0.5 percentage points,
-          yet macro-F1 collapses, because the food-safety F1 falls to 0 and it is one of three equal votes. Weighted-F1 barely notices either. Then switch on the lazy model that always says
-          "praise": 75% accuracy from a model that has learned nothing.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              slide <b>safety caught</b> from 10 down to 0, then switch on the lazy model.
+            </>
+          }
+          notice={
+            <>
+              each missed safety message costs accuracy only 0.5 points, yet macro-F1 collapses: food safety is one of three equal votes. The lazy
+              model scores 75% accuracy having learned nothing.
+            </>
+          }
+          note={<>200 messages, only 10 about food safety. False alarms are praise messages wrongly flagged as food safety.</>}
+        />
       }
     >
       <div className={s.wrap}>

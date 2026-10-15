@@ -50,9 +50,12 @@ export function mergeOnce(symbols: string[], [a, b]: Pair): string[] {
   return out
 }
 
+/** One word's share of a pair count: the word, how often it occurs in the corpus, and how often the pair occurs inside it. */
+export type PairSource = { word: string; freq: number; times: number }
+
 /** Count adjacent pairs across the corpus. Returned in order of first appearance. */
-export function pairCounts(freq: [string, number][], splits: string[][]): { pair: Pair; count: number; words: [string, number][] }[] {
-  const map = new Map<string, { pair: Pair; count: number; words: [string, number][] }>()
+export function pairCounts(freq: [string, number][], splits: string[][]): { pair: Pair; count: number; words: PairSource[] }[] {
+  const map = new Map<string, { pair: Pair; count: number; words: PairSource[] }>()
   freq.forEach(([w, f], wi) => {
     const s = splits[wi]
     for (let i = 0; i < s.length - 1; i++) {
@@ -63,9 +66,10 @@ export function pairCounts(freq: [string, number][], splits: string[][]): { pair
         map.set(key, e)
       }
       e.count += f
+      // a pair that occurs twice in one word ("banana": a + n) counts that word twice
       const last = e.words[e.words.length - 1]
-      if (last && last[0] === w) last[1] += f
-      else e.words.push([w, f])
+      if (last && last.word === w) last.times += 1
+      else e.words.push({ word: w, freq: f, times: 1 })
     }
   })
   return [...map.values()]

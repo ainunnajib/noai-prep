@@ -45,7 +45,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Attention weights depend only on token contents, so shuffling the tokens shuffles the weights in the same way and the weighted sum for [CLS] is unchanged. The patch-embedding conv has stride equal to its kernel size, so patches never overlap or mix. This is why ViTs add a learned position embedding to every token.',
+      'Attention weights depend only on token contents, so shuffling the tokens shuffles the weights in the same way and the weighted sum for [CLS] is unchanged. The patch-embedding conv has stride equal to its kernel size, so patches never overlap or mix; each patch embedding is computed from its own pixels and needs no position, and symmetry of the image plays no part. This is why ViTs add a learned position embedding to every token.',
     difficulty: 'intermediate',
   },
   {
@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'ViTs have weak inductive biases (no built-in locality or weight sharing beyond the patch projection), so from scratch they need far more than 2,000 images and would overfit. Pretraining supplies that knowledge. Smaller patches add tokens and cost but not more labelled examples, and removing position embeddings throws away the layout of the image.',
+      'ViTs have weak image-specific inductive biases: apart from cutting the image into patches, nothing tells them that neighbouring patches belong together (self-attention is global from layer 1), so from scratch they need far more than 2,000 images and would overfit. Pretraining supplies that knowledge. Smaller patches add tokens and cost but not more labelled examples, removing position embeddings throws away the layout of the image, and a higher learning rate adds no data and usually makes overfitting or instability worse.',
     difficulty: 'intermediate',
   },
 ]

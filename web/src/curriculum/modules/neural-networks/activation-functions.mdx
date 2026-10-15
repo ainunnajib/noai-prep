@@ -4,12 +4,13 @@ import DeadNeuronMap from './visuals/activation-functions/DeadNeuronMap'
 
 export const actCode = `import numpy as np
 
-z = np.array([-3., -1., 0., 1., 3.])
+z = np.array([-3, -1, 0, 1, 3],
+             dtype=float)
 
 sig = 1 / (1 + np.exp(-z))
 tanh = np.tanh(z)
 relu = np.maximum(0, z)
-leaky = np.where(z > 0, z, 0.01 * z)
+leaky = np.where(z > 0, z, 0.01*z)
 
 # slopes (derivatives)
 dsig = sig * (1 - sig)
@@ -108,7 +109,7 @@ Without activation functions, any stack of layers collapses into a single linear
 
 The perceptron's step function is non-linear, so why not use it? Because of how networks learn. Training uses gradient descent: nudge every weight in the direction that lowers the loss. To find how a weight deep inside the network affects the loss, <Term def="The algorithm that computes the gradient of the loss with respect to every weight, by applying the chain rule backwards from the output, layer by layer.">backpropagation</Term> uses the chain rule, and each neuron on the way contributes a factor equal to the **slope** of its activation, $f'(z)$.
 
-- The step function's slope is 0 everywhere (and undefined at the jump), so every factor is 0 and no weight ever gets a useful signal.
+- The step function's slope is 0 everywhere except at the jump, where it is undefined, so every factor is 0 and no weight ever gets a useful signal.
 - Good activations are non-linear **and** have useful slopes over the inputs they actually see.
 
 When a neuron sits where its activation is almost flat, $f'(z) \approx 0$, it is <Term def="Sitting in a flat part of its activation function, where the slope is nearly 0, so changes to its weights barely change its output and it learns very slowly.">saturated</Term>: its weights barely change. If many layers each multiply the signal by a small slope, it shrinks towards nothing by the time it reaches the first layers. That is the <Term def="When gradients get multiplied by many small factors on their way back through a deep network, so the early layers receive almost no learning signal.">vanishing gradient</Term> problem, which you will study properly in the backpropagation module.
@@ -121,21 +122,21 @@ Five activations cover almost everything NOAI asks. Explore them, especially the
 
 | Name | $f(z)$ | Range | Slope $f'(z)$ |
 |---|---|---|---|
-| Sigmoid | $\frac{1}{1+e^{-z}}$ | $(0, 1)$ | $\sigma(1-\sigma)$, max $0.25$ |
-| Tanh | $\tanh z$ | $(-1, 1)$ | $1 - \tanh^2 z$, max $1$ |
-| ReLU | $\max(0, z)$ | $[0, \infty)$ | $1$ if $z>0$; $0$ if $z<0$ |
-| Leaky ReLU | $\max(\alpha z, z)$ | $(-\infty, \infty)$ | $1$ or $\alpha$ (often $0.01$) |
-| GELU | $z\,\Phi(z)$ | $\approx[-0.17, \infty)$ | smooth, like ReLU's |
+| Sigmoid | $1/(1+e^{-z})$ | $(0, 1)$ | $\sigma(1-\sigma) \le 0.25$ |
+| Tanh | $\tanh z$ | $(-1, 1)$ | $1-\tanh^2 \le 1$ |
+| ReLU | $\max(0, z)$ | $[0, \infty)$ | 0 or 1 |
+| Leaky ReLU | $\max(\alpha z, z)$ | $(-\infty, \infty)$ | $\alpha$ or 1 |
+| GELU | $z\,\Phi(z)$ | $\approx[-0.17, \infty)$ | $-0.13$ to $1.13$ |
 
 A few details worth knowing:
 
 - **Sigmoid** is the same squashing function as in logistic regression. At $z = 0$, $\sigma = 0.5$ and the slope is $0.5 \times 0.5 = 0.25$, its maximum. At $z = 5$ the slope is only about $0.0066$.
 - **Tanh** is a stretched, shifted sigmoid ($\tanh z = 2\sigma(2z) - 1$). Its outputs are <Term def="Spread around 0, with negative as well as positive values, rather than always positive like the sigmoid's.">zero-centred</Term>, which usually makes learning in the next layer smoother, and its slope at 0 is a full 1. It still saturates at both ends.
 - **ReLU** (rectified linear unit) has slope exactly 1 for every positive input, so it passes gradients through undiminished, and $\max(0, z)$ is far cheaper than an exponential. At $z = 0$ its slope is undefined (a corner); frameworks simply use 0. In 2012 the team behind AlexNet, the image classifier that kicked off the deep-learning boom, reported that a network with ReLU reached the same training error about six times faster than one with tanh. ReLU soon became the default for hidden layers.
-- **GELU** (Gaussian error linear unit) multiplies $z$ by $\Phi(z)$, the probability that a standard normal value is below $z$. It behaves like a smooth ReLU and is the usual choice inside Transformers.
+- **GELU** (Gaussian error linear unit) multiplies $z$ by $\Phi(z)$, the probability that a standard normal value is below $z$. It behaves like a smooth ReLU and is the usual choice inside Transformers. Unlike ReLU's, its slope dips slightly below 0 for negative $z$ and peaks just above 1 (at about 1.13).
 
 <Steps title="Why sigmoid struggles in deep networks (no calculator)">
-  <Step title="The best case for one layer">
+  <Step title="One layer, best case">
     The sigmoid's slope is never more than $\sigma'(0) = 0.25 = \frac{1}{4}$.
   </Step>
   <Step title="Ten layers in a row">
@@ -235,7 +236,7 @@ With ReLU the gradients are exactly zero. With Leaky ReLU they are small but rea
 
 **How to prevent dead neurons:**
 
-- Use **Leaky ReLU**, whose slope for negative inputs is never 0 (GELU and other variants soften the problem too).
+- Use **Leaky ReLU**, $\max(\alpha z, z)$ with a small $\alpha$ such as 0.01, whose slope for negative inputs is never 0 (GELU and other variants soften the problem too).
 - Use a **smaller learning rate**, so no single update can throw a neuron off the data.
 - Use a sensible **weight initialisation** (such as He initialisation, covered in the training module).
 
@@ -286,7 +287,7 @@ tensor([-0.0455, -0.1543,  0.0000,  0.3457,  1.9545])
 Activation questions are some of the quickest marks in the Prelim (the 2026 paper had a run of them). Know these cold:
 
 - **Ranges**: sigmoid $(0, 1)$, tanh $(-1, 1)$, ReLU $[0, \infty)$, Leaky ReLU $(-\infty, \infty)$.
-- **Formulas**: ReLU $= \max(0, z)$; sigmoid $= \frac{1}{1+e^{-z}}$; $\sigma' = \sigma(1-\sigma)$; $\tanh' = 1 - \tanh^2$.
+- **Formulas**: ReLU $= \max(0, z)$; sigmoid $= 1/(1+e^{-z})$; $\sigma' = \sigma(1-\sigma)$; $\tanh' = 1 - \tanh^2$.
 - **Anchor values**: $\sigma(0) = 0.5$, $\sigma'(0) = 0.25$; $\tanh(0) = 0$, $\tanh'(0) = 1$; ReLU slope 1 for $z > 0$, 0 for $z < 0$, undefined at 0.
 - **Why**: activations add non-linearity; ReLU beats sigmoid in hidden layers because it does not saturate for positive inputs (much less vanishing gradient) and is cheap; Leaky ReLU fixes dying ReLU with a small negative slope. Distractor alert: "uses an exponential" describes ELU (a smooth ReLU variant that uses $e^z$ for negative inputs), not Leaky ReLU.
 

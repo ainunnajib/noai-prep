@@ -4,7 +4,7 @@ import EpochCounter from './visuals/sgd-and-mini-batches/EpochCounter'
 import SharpFlatMinima from './visuals/sgd-and-mini-batches/SharpFlatMinima'
 import MinimaEscape from './visuals/sgd-and-mini-batches/MinimaEscape'
 
-In the gradient descent lesson, every step looked at **every** training example before the model moved. That is fine for four Grab rides. It is hopeless for ImageNet's 1.28 million photos, where a single step would need 1.28 million forward and backward passes. Deep learning uses a cheaper trick: estimate the gradient from a small random handful of examples, take a step, grab a fresh handful, and repeat. This lesson shows why such rough estimates still work, teaches the vocabulary that NOAI tests constantly (batch, iteration, epoch), and ends with a surprise: the noise in those estimates can actually help a model do well on new data.
+In [the gradient descent lesson](#/learn/calculus-and-gradient-descent/gradient-descent), every step looked at **every** training example before the model moved. That is fine for the four Grab rides we fitted there. It is hopeless for ImageNet's 1.28 million photos, where a single step would need 1.28 million forward and backward passes. Deep learning uses a cheaper trick: estimate the gradient from a small random handful of examples, take a step, grab a fresh handful, and repeat. This lesson shows why such rough estimates still work, teaches the vocabulary that NOAI tests constantly (batch, iteration, epoch), and ends with a surprise: the noise in those estimates can actually help a model do well on new data.
 
 ## The gradient is an average
 
@@ -98,6 +98,8 @@ In textbooks and in NOAI multiple-choice questions, stochastic gradient descent 
 
 </Mistake>
 
+<PastPaperQuestion paper="prelim2026" n={68} />
+
 ## Epochs, iterations and batch size
 
 Three words describe every training run:
@@ -156,28 +158,34 @@ Here is mini-batch gradient descent from scratch for the same kind of line fit: 
 
 rng = np.random.default_rng(0)
 N = 1000
-X = rng.uniform(-1, 2, size=N)                  # inputs
-y = 1.2 * X - 0.3 + rng.normal(0, 0.5, size=N)  # targets: a noisy line
+# inputs, and targets on a noisy line
+X = rng.uniform(-1, 2, size=N)
+y = 1.2 * X - 0.3 + rng.normal(0, 0.5, size=N)
 
-w, b = 0.0, 0.0          # parameters to learn
-lr = 0.1                 # learning rate
+# parameters to learn, learning rate
+w, b = 0.0, 0.0
+lr = 0.1
 batch_size = 32
 epochs = 3
 
 print("iterations per epoch:", int(np.ceil(N / batch_size)))
 step = 0
 for epoch in range(epochs):
-    order = rng.permutation(N)                       # reshuffle every epoch
+    # reshuffle every epoch
+    order = rng.permutation(N)
     for start in range(0, N, batch_size):
-        idx = order[start:start + batch_size]        # last batch may be smaller
+        # the last batch may be smaller
+        idx = order[start:start + batch_size]
         xb, yb = X[idx], y[idx]
         err = w * xb + b - yb
-        gw = 2 * np.mean(err * xb)                   # MSE gradient on this batch only
+        # MSE gradient on this batch only
+        gw = 2 * np.mean(err * xb)
         gb = 2 * np.mean(err)
         w -= lr * gw
         b -= lr * gb
         step += 1
-    loss = np.mean((w * X + b - y) ** 2)             # loss on the WHOLE dataset
+    # loss on the WHOLE dataset
+    loss = np.mean((w * X + b - y) ** 2)
     print(f"epoch {epoch + 1}: {step} updates, w = {w:.3f}, b = {b:.3f}, loss = {loss:.4f}")`} />
 
 The true line is $w = 1.2$, $b = -0.3$, and one epoch of 32 cheap updates already gets close. Notice that the loss does not fall neatly every epoch: each update saw only 32 examples, so near the minimum it wobbles, just like the SGD path in the race.
@@ -233,7 +241,7 @@ The test data come from the same source but are not identical, so their loss lan
 
 <SharpFlatMinima />
 
-The curvature lesson gives the numbers. Near a minimum $w^\ast$ the loss is close to a parabola,
+[The curvature lesson](#/learn/calculus-and-gradient-descent/curvature-convexity) gives the numbers. Near a minimum $w^\ast$ the loss is close to a parabola,
 
 $$
 L(w^\ast + \delta) \approx L(w^\ast) + \tfrac{1}{2}\, c\, \delta^2,
@@ -250,7 +258,7 @@ Parking at the tip of a narrow ramp in a multi-storey carpark: one small nudge a
 Why would training *find* the flat valley? Noisy, fast training cannot stay in a sharp pit, for two reasons you already know:
 
 - **The speed limit.** Gradient descent can only settle in a valley if $\eta < 2/c$. A sharp pit has a big curvature $c$, so a large learning rate overshoots it again and again until the parameters bounce out.
-- **The kicks.** Every mini-batch gradient carries noise, which gives the parameters a random kick each step. A kick that is harmless in a wide basin throws them right out of a narrow pit.
+- **The kicks.** A mini-batch sees the loss curve slightly shifted, so its gradient is a little wrong and gives the parameters a random kick each step. Where the curve is steep-sided the same shift means a much more wrong slope, so the kicks are strongest exactly in a sharp pit, and they throw the parameters out of it.
 
 <MinimaEscape />
 
@@ -260,13 +268,13 @@ Flat minima generalise better because a small shift between training and test da
 
 </KeyIdea>
 
-This is a useful rule of thumb rather than a law, and researchers still argue about the details. It explains a real observation, though: training with very large batches (thousands of examples) often generalises slightly worse unless the learning rate and schedule are adjusted, a topic for the stability-and-scale lesson.
+This is a useful rule of thumb rather than a law, and researchers still argue about the details. It explains a real observation, though: training with very large batches (thousands of examples) often generalises slightly worse unless the learning rate and schedule are adjusted, a topic for [the stability-and-scale lesson](#/learn/training-deep-networks/stability-and-scale).
 
 <QuickCheck
   q="Two models reach the same training loss, 0.30. Model P sits in a minimum with curvature 50; model Q in one with curvature 2. If the test data shift the best parameter by 0.2, what are their approximate test losses?"
   options={['P about 1.30, Q about 0.34', 'P about 0.34, Q about 1.30', 'Both about 0.30', 'P about 5.30, Q about 0.50']}
   answer={0}
-  explain="Use $L \approx 0.30 + \tfrac{1}{2} c \delta^2$ with $\delta^2 = 0.04$. For P: $0.30 + 25 \times 0.04 = 1.30$. For Q: $0.30 + 1 \times 0.04 = 0.34$. The flat minimum (Q) generalises far better; forgetting the $\tfrac{1}{2}$ or the square gives the other numbers."
+  explain="Use $L \approx 0.30 + \tfrac{1}{2} c \delta^2$ with $\delta^2 = 0.04$. For P: $0.30 + 25 \times 0.04 = 1.30$. For Q: $0.30 + 1 \times 0.04 = 0.34$. The flat minimum (Q) generalises far better. Forgetting the square gives 5.30 and 0.50; swapping the two curvatures gives the reversed pair; ignoring curvature altogether gives 0.30 for both."
 />
 
 <ExamTip>

@@ -26,7 +26,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The text being generated asks the questions, so its tokens supply the queries, and the picture supplies the information through keys and values. Taking all three from one sequence would be self-attention; swapping the roles would let the image look things up in the text instead.',
+      'The text being generated asks the questions, so its tokens supply the queries, and the picture supplies the information through keys and values. Taking all three from one sequence would be self-attention; swapping the roles would let the image look things up in the text instead. Keys and values must come from the same sequence, because each value is handed over according to the score of its own key.',
     difficulty: 'beginner',
   },
   {
@@ -42,14 +42,14 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.vision-language-models.4',
     prompt: 'Flamingo adds each cross-attention output as $\\mathbf{x} \\leftarrow \\mathbf{x} + \\tanh(\\alpha)\\,\\mathrm{CrossAttn}(\\mathbf{x}, \\text{image})$ with $\\alpha$ initialised to 0. Why start the gate at 0?',
     options: [
-      'At the start the model behaves exactly like the frozen LLM, so the new random layers cannot damage its language skills',
-      'It stops gradients from reaching the new cross-attention layers until the LLM has been fine-tuned',
-      'It makes the model ignore images permanently unless a user switches the gate on at inference',
-      'It halves the memory used by the cross-attention layers during the first epoch of training',
+      'At the start, the model gives exactly the same outputs as the original frozen LLM',
+      'It blocks gradients from reaching the new layers until the LLM has been fine-tuned',
+      'It makes the model ignore images unless a user switches the gate on at inference',
+      'It halves the memory that the new cross-attention layers use in the first epoch',
     ],
     answer: 0,
     explanation:
-      'Since $\\tanh(0) = 0$, the cross-attention adds nothing at first, so the output equals the original LLM\'s; as training increases $\\alpha$, image information is blended in gradually. Gradients still flow to $\\alpha$ and the new layers (the LLM itself stays frozen), and the gate is learned, not switched by users.',
+      'Since $\\tanh(0) = 0$, the cross-attention adds nothing at first, so the output equals the original LLM\'s and the new random layers cannot damage its language skills; as training increases $\\alpha$, image information is blended in gradually. Gradients still flow to $\\alpha$ and the new layers (the LLM itself stays frozen), the gate is learned rather than switched by users, and its value does not change memory use.',
     difficulty: 'intermediate',
   },
   {
@@ -57,14 +57,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team wants a model that answers questions about Singapore street signs, but has only 5,000 photos with good questions and answers. Which plan is most sensible?',
     options: [
-      'Start from a pretrained CLIP encoder and a pretrained LLM, and train mainly a small projector (then lightly fine-tune) on the 5,000 examples',
-      'Train a new vision encoder and a new LLM from scratch on the 5,000 examples, so nothing irrelevant is learned',
-      'Caption every photo by hand, then train a text-only LLM on the captions and drop the images',
-      'Use a CNN classifier with one output class per street sign, since question answering needs labelled classes',
+      'Reuse a pretrained CLIP encoder and a pretrained LLM, and train mainly a small projector',
+      'Train a new vision encoder and a new LLM from scratch on just the 5,000 examples',
+      'Caption every photo by hand, then train a text-only LLM on those captions alone',
+      'Train a CNN classifier with one output class for each kind of Singapore street sign',
     ],
     answer: 0,
     explanation:
-      'Paired image-text data is scarce, so VLMs reuse pretrained parts that already understand images and language, and train a small bridge that needs little data. 5,000 examples are far too few to train an encoder and LLM from scratch, and a fixed-class CNN cannot answer open questions.',
+      'Paired image-text data is scarce, so VLMs reuse pretrained parts that already understand images and language, and train a small bridge that needs little data (perhaps followed by light fine-tuning). 5,000 examples are far too few to train an encoder and LLM from scratch. Hand-written captions lose whatever they leave out (and the model could never see new photos), and a fixed-class CNN cannot answer open questions.',
     difficulty: 'intermediate',
   },
 ]

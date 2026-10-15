@@ -36,6 +36,7 @@ export default function BranchSum() {
     top ? '\\underbrace{3}_{\\text{top path}}' : closedTex('top'),
     bot ? '\\underbrace{2x}_{\\text{bottom path}}' : closedTex('bottom'),
   ].join(' + ')
+  const slopePlain = [top ? '3' : '0', bot ? '2x' : '0'].join(' + ')
   const slopeNums = [top ? '3' : '0', bot ? (2 * x < 0 ? `(${fmt(2 * x)})` : fmt(2 * x)) : '0'].join(' + ')
 
   const W = Math.max(300, Math.min(720, measured))
@@ -175,16 +176,15 @@ export default function BranchSum() {
           <line x1={L0} y1={nlY + 6} x2={L1} y2={nlY + 6} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
           {arrow(0, du, nlY - 42, cTop, `Δu ${sgn(du)}`, true)}
           {arrow(du, du + dv, nlY - 16, cBot, `Δv ${sgn(dv)}`, true)}
-          {Math.abs(df) > 1e-9 && (
-            <g>
-              <line x1={sx(0)} y1={nlY + 6} x2={sx(df)} y2={nlY + 6} style={{ stroke: 'var(--viz-ink)', strokeWidth: 3.5 }} />
-              <circle cx={sx(df)} cy={nlY + 6} r={4.5} style={{ fill: 'var(--viz-ink)' }} />
-              <text x={sx(df)} y={nlY + 26} textAnchor="middle" className="tabular plot-label" style={{ fontSize: 12.5, fontWeight: 800 }}>
-                Δf
-              </text>
-            </g>
-          )}
-          {Math.abs(sx(df) - sx(0)) > 26 && (
+          {/* the total: a bar from 0 to Δf, or just a dot at 0 when the paths cancel (or are both closed) */}
+          <g>
+            {Math.abs(df) > 1e-9 && <line x1={sx(0)} y1={nlY + 6} x2={sx(df)} y2={nlY + 6} style={{ stroke: 'var(--viz-ink)', strokeWidth: 3.5 }} />}
+            <circle cx={sx(df)} cy={nlY + 6} r={4.5} style={{ fill: 'var(--viz-ink)' }} />
+            <text x={Math.max(L0 + 24, Math.min(L1 - 24, sx(df)))} y={nlY + 26} textAnchor="middle" className="tabular plot-label" style={{ fontSize: 12.5, fontWeight: 800 }}>
+              {Math.abs(df) > 1e-9 ? 'Δf' : 'Δf = 0'}
+            </text>
+          </g>
+          {Math.abs(df) > 1e-9 && Math.abs(sx(df) - sx(0)) > 26 && (
             <text x={sx(0)} y={nlY + 26} textAnchor="middle" className="tabular" style={{ fill: 'var(--ink-3)', fontSize: 12 }}>
               0
             </text>
@@ -196,7 +196,8 @@ export default function BranchSum() {
           <M>{`\\Delta f = \\Delta u + \\Delta v = ${u(du).replace('−', '-')} + ${fmt(dv).startsWith('-') ? `(${fmt(dv)})` : fmt(dv)} = ${fmt(df)}`}</M>
         </div>
         <div style={{ color: 'var(--ink-2)' }}>
-          Slopes of the open paths: <M>{`\\frac{\\partial f}{\\partial x} = ${slopeTex} = ${slopeNums} = ${fmt(slopeSum)}`}</M>
+          Slopes of the open paths{narrow ? ' (top + bottom)' : ''}:{' '}
+          <M>{`\\frac{\\partial f}{\\partial x} = ${narrow ? slopePlain : slopeTex} = ${slopeNums} = ${fmt(slopeSum)}`}</M>
         </div>
       </div>
       <Controls>

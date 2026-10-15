@@ -53,7 +53,7 @@ $$
 where $p_y$ is the probability the model gives to the correct class $y$, and $\ln$ is the natural logarithm. In words: the loss is small when the correct class gets a high probability and large when it gets a low one.
 
 <Steps title="The expected first loss for 10 classes">
-  <Step title="Probability of the right class">
+  <Step title="Right-class probability">
     An unsure model gives each of the 10 classes probability $\frac{1}{10}$, so $p_y = 0.1$ whatever the label is.
   </Step>
   <Step title="Plug into the loss">
@@ -89,7 +89,7 @@ initial loss 2.315   ln 10 = 2.303
 What a wrong first loss tells you:
 
 - **Much higher than $\ln K$** (say 9.7 for 10 classes): the untrained model is confidently wrong, so its outputs are far too large. Look for inputs that were not normalised (pixels 0 to 255 instead of 0 to 1), huge initial weights, or the wrong loss function.
-- **Much lower than $\ln K$** (say 0.05 before any training): the model already "knows" the answers, which usually means the label has leaked into the inputs.
+- **Much lower than $\ln K$** (say 0.05 before any training): an untrained model cannot know anything yet, so suspect the measurement itself. Typical causes: the loss is computed on the wrong tensors (for example, the labels compared with themselves), the wrong reduction, pretrained or checkpoint weights loaded by mistake, or a loss logged after some training steps. (Label leakage shows up later: a training loss that collapses within a few steps, and a validation score that is too good to be true.)
 
 <QuickCheck
   q="A 4-class classifier logs a loss of 6.2 at step 0, before any training. What should you conclude?"
@@ -114,11 +114,13 @@ Each bug leaves its own fingerprint on the one-batch curve:
 
 | What the curve does | Likely cause |
 |---|---|
-| Perfectly flat, the same number every step | Nothing is updated: weights frozen, optimiser holding the wrong parameters, learning rate 0 |
-| Wanders around $\ln K$ | The labels do not belong to the inputs (shuffled separately, misaligned) |
+| Perfectly flat, the same number every step | Nothing is updated: the optimiser holds the wrong (old) parameters, the learning rate is 0, or `step()` only ever sees cleared gradients (the loop runs `zero_grad()`, then `step()`, then `backward()`) |
+| Wanders around $\ln K$ | The labels are re-paired with the inputs at every step (for example `y = y[torch.randperm(n)]` inside the loop, or `x` and `y` drawn from two separately shuffled loaders) |
 | Falls, then levels off well above 0 | The loss is wrong, for example softmax applied before `CrossEntropyLoss` |
 | Falls, then keeps lurching back up | Gradients piling up: a missing `optimizer.zero_grad()` |
 | Barely moves | Learning rate far too low |
+
+A misalignment that stays **fixed** (labels shuffled once, or every label shifted by one) is memorised like any other labels, so the loss still goes to 0: only check 1, looking at the data, catches it. And freezing every weight does not give a flat line at all: `loss.backward()` stops with `element 0 of tensors does not require grad`.
 
 <Note title="One test cannot catch everything">
 
@@ -126,7 +128,7 @@ With plain SGD instead of Adam, a missing `zero_grad()` can fit a single batch e
 
 </Note>
 
-In PyTorch the test is just the normal training loop with the data loader replaced by one fixed batch:
+In PyTorch the test is just the normal training loop with the data loader replaced by one fixed batch. This version uses 32 examples and 10 classes, so the loss should start near $\ln 10 \approx 2.30$ rather than $\ln 4$:
 
 ```python
 import torch, torch.nn as nn, torch.nn.functional as F
@@ -168,15 +170,7 @@ Once the bugs are gone, every experiment should change **one thing**. If you low
 
 ## Reading shape errors
 
-The most common crash in PyTorch is a shape mismatch, and its message tells you almost exactly what to fix once you can read it. It comes from the rule for multiplying matrices: an $m \times n$ matrix times an $n \times p$ matrix gives an $m \times p$ matrix, and the two **inner** numbers must be equal.
-
-An `nn.Linear(in_features, out_features)` layer computes $xW^\top + b$. Here $x$ is the input, one row per example, and $W$ is the weight matrix with shape `(out_features, in_features)`. So the layer multiplies
-
-$$
-\underbrace{x}_{N \times \text{features}} \;\times\; \underbrace{W^\top}_{\text{in\_features} \times \text{out\_features}}
-$$
-
-where $N$ is the number of examples in the batch, and the inner numbers, the number of features the data has and the number the layer expects, must match. When they do not, PyTorch reports both matrices:
+The most common crash in PyTorch is a shape mismatch, and its message tells you almost exactly what to fix once you can read it. An `nn.Linear(in_features, out_features)` layer multiplies the input $x$, with shape $N \times \text{features}$ ($N$ examples, one per row), by a weight matrix of shape $\text{in\_features} \times \text{out\_features}$. As in every matrix product ($m \times n$ times $n \times p$ gives $m \times p$), the two **inner** numbers must be equal: the features the data has and the features the layer expects. When they are not, PyTorch reports both matrices:
 
 ```python
 import torch, torch.nn as nn
@@ -225,7 +219,7 @@ Worse than a crash is a bug that raises no error at all. Two families cause most
 **Broadcasting.** When two tensors of different shapes meet in an element-wise operation (`+`, `-`, `*`), PyTorch and NumPy try to <Term def="Automatically stretching a tensor along dimensions of size 1 (or missing dimensions) so that two tensors of different shapes can be combined element by element.">broadcast</Term> them to a common shape. Compare the shapes from the right; each pair of sizes must be equal, or one of them must be 1 (a missing dimension counts as 1); a size-1 dimension is stretched to match.
 
 <Steps title="Why (4, 1) minus (4,) gives (4, 4)">
-  <Step title="Line the shapes up on the right">
+  <Step title="Align on the right">
     `(4, 1)` and `(4,)`. The shorter one gets a 1 in front: `(4, 1)` and `(1, 4)`.
   </Step>
   <Step title="Compare each position">

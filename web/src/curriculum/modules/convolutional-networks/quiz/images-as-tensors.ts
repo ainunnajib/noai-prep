@@ -41,7 +41,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      "Both apply one fixed affine transform to every image, so they keep the same information, and a difference in scale could be matched by tuning P's learning rate. What no learning rate gives P is zero-centring: a weight's gradient is $\\delta \\cdot x_i$, and with P every $x_i \\ge 0$, so for one example all of a neuron's weight gradients share the sign of $\\delta$ and the weights zig-zag. Larger inputs (the last option) are a scale effect that retuning the learning rate reproduces, so they are not why Q trains faster; and it is P, not Q, whose inputs all lie in $[0, 1]$.",
+      "Both apply one fixed affine transform to every image, so they keep the same information, and a difference in scale could be matched by tuning P's learning rate. What no learning rate gives P is zero-centring: a weight's gradient is $\\delta \\cdot x_i$, and with P every $x_i \\ge 0$, so for one example all of a neuron's weight gradients share the sign of $\\delta$ and the weights zig-zag. The idea that larger inputs give larger gradients is a scale effect that retuning the learning rate reproduces, so it is not why Q trains faster. It is P, not Q, whose inputs all lie in $[0, 1]$, and Q uses the same training-set statistics for every image, not per-image ones.",
     difficulty: 'intermediate',
   },
   {

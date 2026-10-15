@@ -99,3 +99,53 @@ export function foot(w: Pt, b: number, p: Pt): Pt {
   const z = w[0] * p[0] + w[1] * p[1] + b
   return [p[0] - (z * w[0]) / ww, p[1] - (z * w[1]) / ww]
 }
+
+function distToSegment(q: Pt, a: Pt, b: Pt) {
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  const L = dx * dx + dy * dy
+  const t = L > 0 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / L)) : 0
+  return Math.hypot(q[0] - a[0] - t * dx, q[1] - a[1] - t * dy)
+}
+
+/**
+ * Where to draw the weight-vector arrow: it starts on the boundary w·x + b = 0 and points along w.
+ * Starting from the foot nearest `centre`, slide the start along the line until the arrow and its
+ * label (placed just beyond the tip) keep at least `clear` (data units) from every point in `avoid`
+ * and the label keeps `clear / 2` from the axes x = 0 and y = 0 (when `axes` is set). Returns null if
+ * the line misses the box or w = 0.
+ */
+export function placeWArrow(
+  w: Pt,
+  b: number,
+  xr: Pt,
+  yr: Pt,
+  opts: { len: number; centre: Pt; avoid: Pt[]; clear: number; labelGap: number; axes?: boolean },
+): { from: Pt; to: Pt; label: Pt } | null {
+  const wl = Math.hypot(w[0], w[1])
+  if (wl < 1e-9) return null
+  const u: Pt = [w[0] / wl, w[1] / wl]
+  const along: Pt = [-u[1], u[0]]
+  const f0 = foot(w, b, opts.centre)
+  const span = xr[1] - xr[0]
+  const inset = 0.04 * span
+  const inside = (p: Pt) => p[0] > xr[0] + inset && p[0] < xr[1] - inset && p[1] > yr[0] + inset && p[1] < yr[1] - inset
+  let best: { from: Pt; to: Pt; label: Pt } | null = null
+  let bestScore = -Infinity
+  for (let k = 0; k <= 18; k++) {
+    const s = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.05 * span
+    const from: Pt = [f0[0] + s * along[0], f0[1] + s * along[1]]
+    const to: Pt = [from[0] + opts.len * u[0], from[1] + opts.len * u[1]]
+    const label: Pt = [to[0] + opts.labelGap * u[0], to[1] + opts.labelGap * u[1]]
+    if (!inside(from) || !inside(to) || !inside(label)) continue
+    let room = Infinity
+    for (const q of opts.avoid) room = Math.min(room, distToSegment(q, from, to), Math.hypot(q[0] - label[0], q[1] - label[1]))
+    if (opts.axes) room = Math.min(room, 2 * Math.abs(label[0]), 2 * Math.abs(label[1]))
+    if (room >= opts.clear) return { from, to, label }
+    if (room > bestScore) {
+      bestScore = room
+      best = { from, to, label }
+    }
+  }
+  return best
+}

@@ -8,17 +8,12 @@ np.seterr(over="ignore")
 h = np.float16   # FP16
 f = np.float32   # FP32
 
-# the largest FP16 number
-print(float(h(65504)))
-# too big: overflow
-print(float(h(70000)))
-# too small: underflow
-print(float(h(1e-8)))
-# scaled by 2**16 first
-print(float(h(1e-8 * 65536)))
-# 1 + 0.0001: FP16, then FP32
-print(float(h(1) + h(0.0001)))
-print(float(f(1) + f(0.0001)))`
+print("largest FP16:  ", float(h(65504)))
+print("70000 in FP16: ", float(h(70000)))   # overflow
+print("1e-8 in FP16:  ", float(h(1e-8)))    # underflow
+print("1e-8 x 2**16:  ", float(h(1e-8 * 65536)))
+print("1 + 0.0001 FP16:", float(h(1) + h(0.0001)))
+print("1 + 0.0001 FP32:", float(f(1) + f(0.0001)))`
 
 Big networks are trained for weeks, on huge batches, with 16-bit numbers. Three things go wrong: one freak batch produces a gigantic gradient that undoes days of progress; numbers become too small or too large for 16 bits; and the batch you want does not fit in GPU memory. The fixes are **gradient clipping**, **mixed precision** and **gradient accumulation** (plus a rule for the learning rate when batches grow), and every large model uses all of them at once.
 
@@ -98,7 +93,7 @@ after: tensor([0.4000, 0.2000]) tensor([0.4000, 0.8000])
 by value: tensor([1., 1.]) tensor([1., 1.])
 ```
 
-Clipping by value turned four quite different numbers into four 1s. In a training loop the clip goes **after** `loss.backward()` (the gradients must exist) and **before** `optimizer.step()` (the optimiser must use the clipped ones).
+Clipping by value turned four quite different numbers into four 1s. In a training loop the clip goes **after** `loss.backward()` (the gradients must exist) and **before** `optimiser.step()` (the optimiser must use the clipped ones).
 
 <QuickCheck
   q="A gradient is $g = (3, 4)$. Clipping by norm with `max_norm = 1` gives $(0.6, 0.8)$. What does clipping by value with `clip_value = 1` give?"
@@ -130,20 +125,20 @@ Clipping only ever makes gradients **shorter**, so it fixes exploding gradients,
 
 A computer stores a real number as a <Term def="A way of storing real numbers as sign × significant digits × 2 to some power, so that both tiny and huge numbers fit in a fixed number of bits.">floating-point number</Term>: a sign, some significant digits (the **mantissa**), and a power of 2 (the **exponent**), like scientific notation in binary. More exponent bits give a wider **range** (how tiny and how huge); more mantissa bits give more **precision** (how many significant digits).
 
-| Format | Bits | Largest | Smallest above 0 | Digits |
-|---|---|---|---|---|
-| FP32 | 1 + 8 + 23 | $3.4 \times 10^{38}$ | $\approx 10^{-45}$ | $\approx 7$ |
-| FP16 | 1 + 5 + 10 | $65\,504$ | $\approx 6 \times 10^{-8}$ | $\approx 3$ |
-| BF16 | 1 + 8 + 7 | $3.4 \times 10^{38}$ | $\approx 10^{-40}$ | 2 to 3 |
+| Format | Range (smallest above 0 to largest) | Digits |
+|---|---|---|
+| FP32 | $10^{-45}$ to $3.4 \times 10^{38}$ | about 7 |
+| FP16 | $6 \times 10^{-8}$ to $65\,504$ | about 3 |
+| BF16 | $10^{-40}$ to $3.4 \times 10^{38}$ | 2 to 3 |
 
-The bits are split as sign + exponent + mantissa. FP32 is called "single precision", FP16 "half precision", and BF16 ("brain float", designed at Google Brain) keeps FP32's 8 exponent bits but only 7 mantissa bits.
+FP32 ("single precision") splits its 32 bits as 1 sign + 8 exponent + 23 mantissa bits; FP16 ("half precision") as 1 + 5 + 10; BF16 ("brain float", designed at Google Brain) as 1 + 8 + 7, keeping FP32's exponent but far fewer mantissa bits.
 
 Why bother with 16 bits? Each number takes **half the memory**, so activations, and therefore batches, can be twice as big. And modern GPUs have special units called <Term def="Circuits on NVIDIA GPUs built to do matrix multiplications very fast in low precision such as FP16 or BF16.">Tensor Cores</Term> that multiply 16-bit matrices several times faster than 32-bit ones; whole training runs often speed up 1.5 to 3 times. Training that uses 16-bit numbers for most of the maths while keeping some things in 32 bits is called <Term def="Training with 16-bit numbers (FP16 or BF16) for most calculations, especially matrix multiplications, while keeping the weights and sensitive operations in FP32.">mixed precision</Term>.
 
 The catch is FP16's tiny range. Three things go wrong:
 
 - **Overflow**: anything above $65\,504$ becomes `inf`.
-- **Underflow**: anything below about $6 \times 10^{-8}$ becomes $0$. Many gradients are this small, and a weight whose gradient is 0 stops learning.
+- **Underflow**: anything below about $6 \times 10^{-8}$ becomes $0$. Many gradients are this small, and a weight whose gradient is 0 stops learning. Between about $6 \times 10^{-8}$ and $6 \times 10^{-5}$, FP16 can still store a number but with fewer and fewer significant digits (these are called <Term def="Numbers too small for a floating-point format's normal range: they can still be stored, but with fewer significant digits the smaller they get.">subnormal numbers</Term>), so small gradients there are blurred, not lost.
 - **Rounding**: with only about 3 significant digits, $1 + 0.0001$ is just $1$. A small update to a weight of size 1 vanishes completely.
 
 NumPy has FP16 too, so you can see all three yourself:
@@ -181,7 +176,11 @@ Here $L$ is the loss and $w$ any weight. On a logarithmic ruler, multiplying by 
   </Step>
 </Steps>
 
-You do not have to choose $S$ yourself. PyTorch's <Term def="PyTorch's automatic loss scaler for mixed precision: it multiplies the loss by a scale S, unscales the gradients before the update, skips any step whose gradients contain inf or NaN and adjusts S as training goes.">GradScaler</Term> uses **dynamic loss scaling**: it starts at $S = 2^{16} = 65\,536$; whenever any gradient comes out as `inf` or `NaN`, it **skips that step** (the weights are not touched) and **halves** $S$; after 2000 steps in a row without trouble, it **doubles** $S$ to try a bigger one. The scale settles just below the overflow point. Here it is working on a small network (on a CPU, so you can run it anywhere; the GPU version only swaps `"cpu"` for `"cuda"`). We start it far too high at $2^{20}$ and let it double after only 3 clean steps, so you can watch:
+You do not have to choose $S$ yourself. PyTorch's <Term def="PyTorch's automatic loss scaler for mixed precision: it multiplies the loss by a scale S, unscales the gradients before the update, skips any step whose gradients contain inf or NaN and adjusts S as training goes.">GradScaler</Term> uses **dynamic loss scaling**: it starts at $S = 2^{16} = 65\,536$; whenever any gradient comes out as `inf` or `NaN`, it **skips that step** (the weights are not touched) and **halves** $S$; after 2000 steps in a row without trouble, it **doubles** $S$ to try a bigger one. The scale settles just below the overflow point.
+
+<Reveal label="See GradScaler at work (code and output)">
+
+Here it is on a small network (on a CPU, so you can run it anywhere; the GPU version only swaps `"cpu"` for `"cuda"`). We start it far too high at $2^{20}$ and let it double after only 3 clean steps, so you can watch:
 
 ```python
 import torch
@@ -189,19 +188,19 @@ import torch.nn as nn
 
 torch.manual_seed(0)
 model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(), nn.Linear(32, 1))
-opt = torch.optim.SGD(model.parameters(), lr=0.01)
+optimiser = torch.optim.SGD(model.parameters(), lr=0.01)
 scaler = torch.amp.GradScaler("cpu", init_scale=2.0**20, growth_interval=3)
 X, y = torch.randn(64, 10), torch.randn(64, 1)
 
 for step in range(10):
-    opt.zero_grad()
+    optimiser.zero_grad()
     with torch.autocast("cpu", dtype=torch.float16):   # forward in FP16
         loss = nn.functional.mse_loss(model(X), y)
     scaler.scale(loss).backward()     # backward on loss x S
-    scaler.unscale_(opt)              # divide the gradients by S (FP32)
+    scaler.unscale_(optimiser)        # divide the gradients by S (FP32)
     norm = nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     S = scaler.get_scale()
-    scaler.step(opt)                  # skipped if any gradient is inf/NaN
+    scaler.step(optimiser)            # skipped if any gradient is inf/NaN
     scaler.update()                   # inf: halve S; 3 clean steps: double S
     print(step, int(S), f"{norm.item():.3f}", f"{loss.item():.4f}")
 ```
@@ -221,6 +220,10 @@ for step in range(10):
 
 Read the columns: step, scale $S$, gradient norm before clipping, loss. For steps 0 to 3 the scaled gradients overflow, so the norm is `inf` or `nan`, the step is skipped (the loss does not change) and $S$ halves. At $65\,536$ the gradients fit, and training moves. After 3 clean steps the scaler tries $131\,072$, overflows once more, skips step 7 and drops back.
 
+</Reveal>
+
+Older code (and the 2026 Final) writes `torch.cuda.amp.GradScaler()` and `torch.cuda.amp.autocast()`: the same tools under their former names. The device-neutral `torch.amp.GradScaler("cpu")` used in this lesson needs PyTorch 2.3 or newer.
+
 Two more pieces make mixed precision work:
 
 - **Master weights stay in FP32.** <Term def="PyTorch's context manager for mixed precision: inside it, operations such as matrix multiplications run in FP16 or BF16, while precision-sensitive ones such as softmax and losses stay in FP32.">`torch.autocast`</Term> runs the matrix multiplications in 16 bits, but the parameters themselves, and sensitive operations such as softmax and loss functions, stay in FP32. That avoids the rounding problem: $1 + 0.0001$ is fine in FP32.
@@ -234,7 +237,7 @@ FP16 halves memory and speeds up training, but its range is tiny: below about $6
 
 ### Unscale before you clip
 
-While the gradients are scaled, every `.grad` is $S$ times too large. Clipping them at `max_norm = 1.0` would compare a norm of, say, $65\,536 \times 1.3$ with 1 and cut every step to almost nothing. So call `scaler.unscale_(optimizer)` **first**: it divides the gradients by $S$, the clip then sees their true sizes, and `scaler.step()` knows not to divide a second time. This exact point was a Final question:
+While the gradients are scaled, every `.grad` is $S$ times too large. Clipping them at `max_norm = 1.0` would compare a norm of, say, $65\,536 \times 1.3$ with 1 and cut every step to almost nothing. So call `scaler.unscale_(optimiser)` **first**: it divides the gradients by $S$, the clip then sees their true sizes, and `scaler.step()` knows not to divide a second time. This exact point was a Final question:
 
 <PastPaperQuestion paper="final2026" n={15} />
 
@@ -252,7 +255,7 @@ You need to deliver 40 litres of water, but your pail holds only 10. Four trips 
 
 </Analogy>
 
-The [PyTorch training-loop lesson](#/learn/pytorch/training-loop) showed the trick: because `backward()` **adds** to `.grad`, you can run several small **micro-batches**, let their gradients pile up, and call `optimizer.step()` once. Dividing each micro-batch's loss by the number of accumulation steps $k$ turns the pile into an average, so the update equals one real batch $k$ times bigger. With several GPUs, each one does this on different examples and their gradients are averaged before the step. The batch you effectively train with, the <Term def="The number of examples that contribute to one optimiser step: micro-batch size × accumulation steps × number of GPUs.">effective batch size</Term>, is
+The [PyTorch training-loop lesson](#/learn/pytorch/training-loop) showed the trick: because `backward()` **adds** to `.grad`, you can run several small **micro-batches**, let their gradients pile up, and call `optimiser.step()` once. Dividing each micro-batch's loss by the number of accumulation steps $k$ turns the pile into an average, so the update equals one real batch $k$ times bigger. With several GPUs, each one does this on different examples and their gradients are averaged before the step. The batch you effectively train with, the <Term def="The number of examples that contribute to one optimiser step: micro-batch size × accumulation steps × number of GPUs.">effective batch size</Term>, is
 
 $$
 B_{\text{eff}} = b \times k \times G
@@ -288,7 +291,7 @@ Accumulation trades **time** for **memory**: each GPU only ever holds $b$ exampl
 <Mistake title="Two accumulation traps">
 
 - **Forgetting to divide by $k$.** The gradient comes out $k$ times too big, exactly like secretly multiplying the learning rate by $k$.
-- **BatchNorm only sees the micro-batch.** Accumulation adds up gradients, but BatchNorm computes its mean and variance inside each forward pass, so its statistics come from $b$ examples, not $B_{\text{eff}}$. With tiny micro-batches they are noisy; LayerNorm or GroupNorm do not have this problem.
+- **BatchNorm only sees the micro-batch.** Accumulation adds up gradients, but BatchNorm computes its mean and variance inside each forward pass, so its statistics come from $b$ examples, not $B_{\text{eff}}$. With tiny micro-batches they are noisy; LayerNorm, which does not depend on the batch, has no such problem.
 
 </Mistake>
 
@@ -296,13 +299,17 @@ Accumulation trades **time** for **memory**: each GPU only ever holds $b$ exampl
 
 A batch $k$ times bigger gives a gradient that is less noisy, but the run takes $k$ times **fewer** steps per epoch. To cover the same distance with fewer steps, each step must be bigger. The usual rule of thumb is the <Term def="When the batch size is multiplied by k, multiply the learning rate by k too, usually with a warm-up at the start of training.">linear scaling rule</Term>: multiply the batch size by $k$, multiply the learning rate by $k$, and add a warm-up (from [the schedules lesson](#/learn/training-deep-networks/learning-rate-warmup-schedules)), because a large rate at step 1 is dangerous. For example, if 0.1 works for batch 256, then batch 1024 ($4\times$) gets $0.1 \times 4 = 0.4$, ramped up over the first few epochs.
 
-The rule has limits. Beyond a few thousand examples per batch, accuracy usually drops even with linear scaling and warm-up: the learning rate becomes too big for some layers, and the low-noise gradients tend to settle in [sharp minima](#/learn/training-deep-networks/sgd-and-mini-batches) that generalise worse. For very large batches, **layer-wise adaptive** optimisers help. <Term def="Layer-wise Adaptive Rate Scaling: SGD with momentum where each layer's learning rate is multiplied by the ratio of that layer's weight norm to its gradient norm.">LARS</Term> (built on SGD) and <Term def="Layer-wise Adaptive Moments for Batch training: the same layer-wise ratio idea as LARS, applied to Adam's update.">LAMB</Term> (built on Adam) give each layer $l$ its own step size:
+The rule has limits. Beyond a few thousand examples per batch, accuracy usually drops even with linear scaling and warm-up: the learning rate becomes too big for some layers, and the low-noise gradients tend to settle in [sharp minima](#/learn/training-deep-networks/sgd-and-mini-batches) that generalise worse. For very large batches, **layer-wise adaptive** optimisers help: <Term def="Layer-wise Adaptive Rate Scaling: SGD with momentum where each layer's learning rate is multiplied by the ratio of that layer's weight norm to its gradient norm.">LARS</Term> (built on SGD) and <Term def="Layer-wise Adaptive Moments for Batch training: the same layer-wise ratio idea as LARS, applied to Adam's update.">LAMB</Term> (built on Adam) give each layer a step in proportion to the size of its own weights. With warm-up and <Term def="Training on softened targets, such as 0.9 for the correct class with the remaining 0.1 shared among the other classes, instead of a hard 1 and 0s, so the model does not become over-confident.">label smoothing</Term>, they have trained image models and BERT with batches of tens of thousands.
+
+<Reveal label="Going further: how LARS and LAMB scale each layer">
+
+Each layer $l$ gets its own step:
 
 $$
 \Delta w_l = -\,\eta \cdot \frac{\lVert w_l \rVert}{\lVert g_l \rVert} \cdot g_l
 $$
 
-$w_l$ and $g_l$ are layer $l$'s weights and gradient, and $\frac{\lVert w_l \rVert}{\lVert g_l \rVert}$ is the <Term def="The ratio of a layer's weight norm to its gradient norm, used by LARS and LAMB to scale that layer's step.">trust ratio</Term>. The step's length is then $\eta \lVert w_l \rVert$: **every layer moves by the same fraction of its own size**, however big or small its gradient. (The real optimisers add momentum, weight decay and a small trust coefficient.) With warm-up and <Term def="Training on softened targets, such as 0.9 for the correct class with the remaining 0.1 shared among the other classes, instead of a hard 1 and 0s, so the model does not become over-confident.">label smoothing</Term>, they have trained image models and BERT with batches of tens of thousands.
+$w_l$ and $g_l$ are layer $l$'s weights and gradient, and $\frac{\lVert w_l \rVert}{\lVert g_l \rVert}$ is the <Term def="The ratio of a layer's weight norm to its gradient norm, used by LARS and LAMB to scale that layer's step.">trust ratio</Term>. The step's length is then $\eta \lVert w_l \rVert$: **every layer moves by the same fraction of its own size**, however big or small its gradient. (The real optimisers also add momentum and weight decay.)
 
 <Steps title="Why the trust ratio helps">
   <Step title="Two very different layers">
@@ -316,6 +323,8 @@ $w_l$ and $g_l$ are layer $l$'s weights and gradient, and $\frac{\lVert w_l \rVe
   </Step>
 </Steps>
 
+</Reveal>
+
 <PastPaperQuestion paper="prelim2026" n={284} />
 
 ## The complete recipe
@@ -328,7 +337,7 @@ import torch.nn as nn
 
 torch.manual_seed(0)
 model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(), nn.Linear(32, 1))
-opt = torch.optim.AdamW(model.parameters(), lr=1e-3)
+optimiser = torch.optim.AdamW(model.parameters(), lr=1e-3)
 scaler = torch.amp.GradScaler("cpu")            # on a GPU: GradScaler("cuda")
 X, y = torch.randn(256, 10), torch.randn(256, 1)
 loader = [(X[i:i + 16], y[i:i + 16]) for i in range(0, 256, 16)]
@@ -340,11 +349,11 @@ for i, (xb, yb) in enumerate(loader):
         loss = nn.functional.mse_loss(model(xb), yb) / k  # 1. divide by k
     scaler.scale(loss).backward()                # 2. scale, accumulate
     if (i + 1) % k == 0:
-        scaler.unscale_(opt)                     # 3. back to true sizes
+        scaler.unscale_(optimiser)               # 3. back to true sizes
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # 4. clip
-        scaler.step(opt)                         # 5. update (or skip on inf)
+        scaler.step(optimiser)                   # 5. update (or skip on inf)
         scaler.update()                          # 6. adjust the scale
-        opt.zero_grad()                          # 7. empty the buckets
+        optimiser.zero_grad()                    # 7. empty the buckets
         steps += 1
 
 print("micro-batches:", len(loader), "| optimiser steps:", steps, "| scale:", scaler.get_scale())
@@ -366,7 +375,7 @@ Order questions are common: forward (inside autocast) → `scaler.scale(loss).ba
 
 - **Clip by global norm**: if $\lVert g \rVert > c$, multiply every gradient by $c / \lVert g \rVert$. Direction is kept; clipping by value can change it. Clip after `backward()`, before `step()`, with a threshold a little above the typical norm.
 - **FP16** halves memory and runs fast on Tensor Cores, but values above $65\,504$ overflow and below about $6 \times 10^{-8}$ underflow. **Loss scaling** (GradScaler) multiplies the loss by $S$, skips steps that overflow and adjusts $S$ automatically; **BF16** has FP32's range and needs no scaling.
-- With a GradScaler, call `scaler.unscale_(optimizer)` **before** clipping, so the threshold applies to the real gradient sizes.
+- With a GradScaler, call `scaler.unscale_(optimiser)` **before** clipping, so the threshold applies to the real gradient sizes.
 - **Gradient accumulation**: divide each loss by $k$ and step every $k$ micro-batches; effective batch $= b \times k \times G$. It saves memory, not time.
 - **Large batches**: scale the learning rate linearly with warm-up; beyond a few thousand examples, use layer-wise optimisers such as **LARS** and **LAMB**.
 

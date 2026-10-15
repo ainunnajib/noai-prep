@@ -4,7 +4,7 @@ import ZeroShotPrompts from './visuals/clip-and-zero-shot/ZeroShotPrompts'
 
 In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (next lesson). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
 
-<Analogy title="Speed dating at a CCA mixer">
+<Analogy title="A matching game at CCA orientation">
 
 Six students arrive wearing name tags, and six friends each wrote a one-line description of one of them. Your job: match every description to the right person. You don't need a list of categories like "sporty" or "artsy"; you only need to know which description belongs to whom. Get good enough at this game, played with millions of photos and captions, and you end up understanding both people *and* descriptions. CLIP plays exactly this game: each picture must pick out its own caption from everyone in the room, and each caption must pick out its own picture.
 
@@ -14,7 +14,7 @@ Six students arrive wearing name tags, and six friends each wrote a one-line des
 
 CLIP has two separate networks, called <Term def="A network that turns an input (a picture or a sentence) into a single vector of numbers that captures its meaning.">encoders</Term>:
 
-- an **image encoder** (a ViT from the last lesson, or a ResNet) that turns a picture into a vector;
+- an **image encoder** (a ViT from the Vision Transformers lesson, or a ResNet) that turns a picture into a vector;
 - a **text encoder** (a Transformer, like the ones inside language models) that turns a sentence into a vector.
 
 Each encoder ends with a small linear layer that makes both vectors the **same size**, for example 512 numbers each in CLIP ViT-B/32. These vectors are <Term def="A vector that represents something (a word, a sentence, a picture) so that things with similar meanings get similar vectors.">embeddings</Term>. Finally, every embedding is divided by its own length, so it becomes a <Term def="A vector of length 1. Dividing any non-zero vector by its length (its L2 norm) gives a unit vector pointing the same way.">unit vector</Term>. This step is called L2 normalisation.
@@ -111,9 +111,10 @@ txt = F.normalize(txt, dim=1)
 S = img @ txt.T                  # (N, N) cosine similarities
 tau = 0.1
 logits = S / tau
-labels = torch.arange(len(S))    # image i belongs with caption i
-loss_i2t = F.cross_entropy(logits, labels)     # each row picks a caption
-loss_t2i = F.cross_entropy(logits.T, labels)   # each column picks an image
+labels = torch.arange(len(S))    # image i goes with caption i
+# rows pick a caption; columns (logits.T) pick an image
+loss_i2t = F.cross_entropy(logits, labels)
+loss_t2i = F.cross_entropy(logits.T, labels)
 loss = (loss_i2t + loss_t2i) / 2
 
 print(S)
@@ -147,16 +148,16 @@ After training, the two encoders agree on a shared map of meaning. A photo of a 
 
 <JointEmbeddingSpace />
 
-Once pictures and words share a space, a lot of jobs become one line of maths:
+Once pictures and words share a space, many jobs become "embed, then rank by cosine similarity", and CLIP's pretrained encoders can be reused for them without training from scratch:
 
-- **Text-to-image search**: embed the search text, rank every photo by cosine similarity, return the top few. Photo apps that find "beach at sunset" in your camera roll work like this.
-- **Image-to-text matching**: embed a photo and rank candidate captions, tags or class names.
-- **Image-to-image retrieval**: compare picture embeddings with each other, as in IOAI 2025's restroom-icon task (CLIP ViT-B/32 plus cosine retrieval).
-- **Steering image generators**: Stable Diffusion v1 turns your prompt into vectors with CLIP's text encoder, and many open chatbots that can see (such as LLaVA, next lesson) use a CLIP image encoder as their eyes.
+- **Search** in either direction: text to photos ("beach at sunset" in your camera roll), photo to captions or tags, or photo to similar photos (IOAI 2025's restroom-icon task used CLIP ViT-B/32 this way).
+- **A part inside bigger models**: Stable Diffusion v1 reads your prompt with CLIP's text encoder, and many chatbots that can see (such as LLaVA, next lesson) use a CLIP image encoder as their eyes.
+
+<PastPaperQuestion paper="prelim2026" n={251} />
 
 <Note title="Real CLIP numbers look small">
 
-In this lesson's toy, a good match scores around 0.9. In real CLIP, even a good image-caption match often scores only about 0.3, and an unrelated pair not much less (around 0.2; you will see real numbers later in this lesson). What matters is the *ranking*, and the learned temperature ($\tau = 0.01$, a factor of 100) turns those small gaps into confident probabilities.
+In this lesson's toy, a good match scores around 0.9. In real CLIP, even a good image-caption match often scores only about 0.3, and an unrelated pair not much less (around 0.2; the "Going further" box at the end of the next section shows a real run). What matters is the *ranking*, and the learned temperature ($\tau = 0.01$, a factor of 100) turns those small gaps into confident probabilities.
 
 </Note>
 
@@ -175,13 +176,7 @@ This is <Term def="Doing a task without any training examples for that particula
 
 <ZeroShotPrompts />
 
-Wording matters for real CLIP too. Captions on the web are sentences, not lone words, so "a photo of a dog" lands in a more natural place than "dog". A single word can also be ambiguous: ImageNet has two classes both called "crane" (the bird and the construction machine), and in a pet dataset "boxer" means a dog breed, not an athlete. The CLIP paper found that
-
-- the template "A photo of a \{label\}." alone raised ImageNet accuracy by 1.3 percentage points over the bare class names;
-- an **ensemble** of 80 templates ("a photo of a big \{label\}", "a blurry photo of the \{label\}", "a drawing of a \{label\}", …), with each class's text embeddings averaged into one, added another 3.5 points;
-- adding context helped specific datasets, e.g. "a photo of a \{label\}, a type of pet."
-
-Together, prompt engineering and ensembling improved ImageNet accuracy by almost 5 points, with no extra training.
+Wording matters for real CLIP too. Captions on the web are sentences, not lone words, so "a photo of a dog" lands in a more natural place than "dog". A single word can also be ambiguous: ImageNet has two classes both called "crane" (the bird and the construction machine). In the CLIP paper, better templates plus a **prompt ensemble** (averaging each class's text embeddings over many templates) raised ImageNet accuracy by almost 5 points, with no extra training.
 
 <QuickCheck
   q="A CLIP-based app sorts hawker-centre photos into 'chicken rice', 'laksa' and 'satay'. The owner now wants a fourth class, 'roti prata'. What is the least work that does it?"
@@ -202,15 +197,16 @@ classes = ['cat', 'dog', 'bird']
 prompts = [f'a photo of a {c}' for c in classes]
 print(prompts)
 
-# Pretend encoder outputs (real CLIP ViT-B/32 gives 512 numbers each)
-text_emb = F.normalize(torch.tensor([[0.9, 0.2, 0.1],    # "a photo of a cat"
-                                     [0.6, 0.8, 0.1],    # "a photo of a dog"
-                                     [0.1, 0.3, 0.9]]),  # "a photo of a bird"
-                       dim=1)
-image_emb = F.normalize(torch.tensor([[0.8, 0.4, 0.2]]), dim=1)   # our test photo
+# Pretend encoder outputs (real CLIP ViT-B/32 gives 512 each)
+text_raw = torch.tensor([[0.9, 0.2, 0.1],    # cat prompt
+                         [0.6, 0.8, 0.1],    # dog prompt
+                         [0.1, 0.3, 0.9]])   # bird prompt
+image_raw = torch.tensor([[0.8, 0.4, 0.2]])  # our test photo
+text_emb = F.normalize(text_raw, dim=1)
+image_emb = F.normalize(image_raw, dim=1)
 
-sims = image_emb @ text_emb.T          # (1, 3): one cosine similarity per class
-probs = (sims / 0.01).softmax(dim=1)   # tau = 0.01, CLIP's learned value
+sims = image_emb @ text_emb.T          # (1, 3): one per class
+probs = (sims / 0.01).softmax(dim=1)   # tau = 0.01, as in CLIP
 print(sims)
 print(probs)
 print(classes[probs.argmax()])
@@ -225,9 +221,11 @@ cat
 
 Look at the effect of $\tau = 0.01$: cosine similarities of 0.96 and 0.89 differ by only 0.07, yet after dividing by 0.01 the scores differ by about 7.5, so the softmax gives "cat" 99.9%. The biggest similarity always wins; the temperature only decides how confident the probabilities look.
 
-### With the real CLIP
+<Reveal label="Going further: prompt ensembles and the real CLIP">
 
-In IOAI you load real CLIP weights, for example with the Hugging Face `transformers` library. (The weights are about 600 MB, so this cannot run in your browser.) Here is the real CLIP ViT-B/32 classifying this lesson's jaguar drawing:
+**Prompt ensembles in the CLIP paper.** The template "A photo of a \{label\}." alone raised ImageNet accuracy by 1.3 percentage points over the bare class names. An ensemble of 80 templates ("a photo of a big \{label\}", "a blurry photo of the \{label\}", "a drawing of a \{label\}", …), with each class's text embeddings averaged into one, added another 3.5 points. Adding context helped specific datasets, e.g. "a photo of a \{label\}, a type of pet."
+
+**The real CLIP.** In IOAI you load real CLIP weights, for example with the Hugging Face `transformers` library. (The weights are about 600 MB, so this cannot run in your browser.) Here is the real CLIP ViT-B/32 classifying this lesson's jaguar drawing:
 
 ```python
 import torch
@@ -237,14 +235,17 @@ from transformers import CLIPModel, CLIPProcessor
 model = CLIPModel.from_pretrained('openai/clip-vit-base-patch32')
 processor = CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')
 
-image = Image.open('jaguar.png').convert('RGB')      # this lesson's jaguar drawing
+# this lesson's jaguar drawing
+image = Image.open('jaguar.png').convert('RGB')
 classes = ['cat', 'dog', 'jaguar', 'leopard', 'mouse']
 prompts = [f'a photo of a {c}' for c in classes]
-inputs = processor(text=prompts, images=image, return_tensors='pt', padding=True)
+inputs = processor(text=prompts, images=image,
+                   return_tensors='pt', padding=True)
 
 with torch.no_grad():
     out = model(**inputs)
-    cos = out.logits_per_image / model.logit_scale.exp()  # logits = 100 x cosine similarity
+    # logits = 100 x cosine similarity
+    cos = out.logits_per_image / model.logit_scale.exp()
     probs = out.logits_per_image.softmax(dim=1)
 print(cos.round(decimals=3))
 print(probs.round(decimals=3))
@@ -258,6 +259,8 @@ leopard
 ```
 
 Two lessons from one real run. First, every cosine similarity lies between 0.20 and 0.27, yet the learned factor of 100 turns a lead of less than 0.03 into 86% confidence. Second, real CLIP makes the same mistake as our toy and calls the drawing a leopard (its ring-shaped spots do look like a leopard's rosettes). We also tried the template "a photo of a \{\}, a type of wild animal" on the real model: "jaguar" rose from 4.7% to 7.9%, but "leopard" still won. Real models are messier than toys, which is why CLIP is often fine-tuned on a few labelled examples when zero-shot is not good enough, as in the reference solution to IOAI 2025's restroom-icon task.
+
+</Reveal>
 
 <ExamTip>
 

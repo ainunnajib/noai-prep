@@ -119,7 +119,7 @@ export default function DegradationCurves() {
         <Toggle label="Show the copy + identity construction" checked={construct} onChange={setConstruct} />
       </Controls>
       <div style={{ fontSize: 'var(--step--1)', color: 'var(--ink)', textAlign: 'center' }}>
-        Final {split === 'train' ? 'training' : 'test'} error, best to worst: {order.map((o) => `${o.d}`).join(' < ')} layers →{' '}
+        From lowest to highest final {split === 'train' ? 'training' : 'test'} error: {order.map((o) => `${o.d}`).join(', ')} layers →{' '}
         <b style={{ color: deeperWorse ? 'var(--viz-neg)' : 'var(--viz-pos)' }}>{deeperWorse ? 'deeper is worse' : 'deeper is better'}</b>
         {construct && !(kind === 'plain' && split === 'train') && <span style={{ color: 'var(--ink-3)' }}> (the construction line appears with plain networks on training data)</span>}
       </div>

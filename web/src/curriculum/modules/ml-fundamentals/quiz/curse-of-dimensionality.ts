@@ -29,7 +29,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.curse-of-dimensionality.3',
     prompt: 'Why does k-nearest neighbours often work badly when every point has hundreds of features?',
     options: [
-      'Distances to the nearest and farthest points become almost equal, so the "nearest" ones are barely more similar',
+      'Distances to the nearest and farthest points become almost equal, so "nearest" means little',
       'Euclidean distance cannot be computed with more than three features, so k-NN has to switch metric',
       'k-NN must store one separate model per feature, so it runs out of memory with hundreds of features',
       'k-NN needs k to be larger than the number of features, so every prediction becomes a vote of the whole dataset',
@@ -44,7 +44,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A lab has 40 patients and measures 5,000 genes for each. A logistic regression model scores 100% accuracy on the training patients but 55% on validation patients. What is the most sensible next step?',
     options: [
-      'Cut the number of features (feature selection or PCA) and add strong regularisation such as L1',
+      'Cut the features (feature selection or PCA) and add strong regularisation such as L1',
       'Measure even more genes per patient so that the model has more information to learn from',
       'Train for more epochs so that the validation accuracy catches up with the training accuracy',
       'Report the 100% training accuracy, because the model has clearly learned the task perfectly',

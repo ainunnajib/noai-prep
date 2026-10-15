@@ -25,7 +25,8 @@ const K = 3
 const M = N - K + 1 // 6
 
 const tint = (c: string, pct: number) => `color-mix(in srgb, ${c} ${Math.round(pct)}%, var(--surface))`
-const divColour = (v: number, maxAbs: number) => (Math.abs(v) < 1e-9 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 12 + 58 * Math.min(1, Math.abs(v) / maxAbs)))
+// tint capped at 50% so the bold --ink numbers keep at least 4.5:1 contrast in dark mode too
+const divColour = (v: number, maxAbs: number) => (Math.abs(v) < 1e-9 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 12 + 38 * Math.min(1, Math.abs(v) / maxAbs)))
 
 export default function ConvolutionExplorer() {
   const [kernel, setKernel] = useState<Kernel>(PRESETS[0])
@@ -114,7 +115,7 @@ export default function ConvolutionExplorer() {
       caption={
         <>
           <b>Try:</b> drag the orange window, tap a feature-map cell or press <b>Play</b>. <b>Notice:</b> each output is the 9 pixels under the window times
-          the 9 weights, added up. Predict where each preset is large, then tap weights to make your own.
+          the 9 weights, added up. Predict where each preset is large, then tap kernel weights (they cycle −2 to 2) to make your own.
         </>
       }
     >
@@ -184,11 +185,11 @@ export default function ConvolutionExplorer() {
             </svg>
             <div className={s.legend}>
               <span>
-                <span className={s.swatch} style={{ background: tint('var(--viz-1)', 60) }} />
+                <span className={s.swatch} style={{ background: tint('var(--viz-1)', 50) }} />
                 negative
               </span>
               <span>
-                <span className={s.swatch} style={{ background: tint('var(--viz-2)', 60) }} />
+                <span className={s.swatch} style={{ background: tint('var(--viz-2)', 50) }} />
                 positive
               </span>
             </div>
@@ -204,7 +205,11 @@ export default function ConvolutionExplorer() {
         <div className={s.opGroup}>
           <span className={s.op}>×</span>
           <div className={s.col}>
-            <span className={s.capSmall}>kernel{kernel.div !== 1 ? ` (then ÷ ${kernel.div})` : ''}</span>
+            <span className={s.capSmall}>
+              kernel{kernel.div !== 1 ? ` (then ÷ ${kernel.div})` : ''}:
+              <br />
+              tap a weight to change it
+            </span>
             {mini(kernel.w, { label: 'kernel weights; tap one to change it', onClick: editWeight, colour: (v) => (v === 0 ? 'var(--surface-2)' : tint(v < 0 ? 'var(--viz-1)' : 'var(--viz-2)', 14 + 12 * Math.abs(v))) })}
           </div>
         </div>

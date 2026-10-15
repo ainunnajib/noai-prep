@@ -8,6 +8,9 @@ import css from './tl.module.css'
   copies, as a data loader would produce them in nine different epochs. Every augmentation can
   be switched on and tuned; the matching torchvision pipeline is written out underneath.
   Order follows a typical torchvision pipeline: crop → flip → rotate → colour jitter → noise → erase.
+  Conventions: as in torchvision, a positive angle turns the picture anticlockwise. The colour jitter is an approximation:
+  it scales contrast about mid-grey and always applies contrast before brightness, while torchvision's ColorJitter blends
+  with the image's mean grey and applies its jitters in a random order.
   Aha: augmentation multiplies your data for free, as long as the label stays true.
 */
 
@@ -72,7 +75,7 @@ function describe(d: Draw, s: Settings) {
   const parts: string[] = []
   if (s.flip) parts.push(d.flipped ? 'flipped' : 'not flipped')
   if (d.crop) parts.push(`crop keeps ${Math.round((d.crop.side * d.crop.side) / 100)}% of the area`)
-  if (s.rotOn) parts.push(`rotated ${d.angle >= 0 ? '+' : '−'}${Math.abs(d.angle).toFixed(0)}°`)
+  if (s.rotOn) parts.push(`rotated ${Math.abs(d.angle).toFixed(0)}° ${d.angle >= 0 ? 'anticlockwise' : 'clockwise'}`)
   if (s.jitterOn) parts.push(`brightness ×${d.b.toFixed(2)}, contrast ×${d.c.toFixed(2)}`)
   if (s.noiseOn && s.noise > 0) parts.push(`noise σ = ${s.noise.toFixed(2)}`)
   if (d.erase) parts.push('a patch erased')
@@ -83,7 +86,8 @@ function Augmented({ d, s, size, label }: { d: Draw; s: Settings; size: number |
   const id = useId().replace(/:/g, '')
   const k = d.crop ? 100 / d.crop.side : 1
   const tf = [
-    d.angle ? `rotate(${d.angle.toFixed(2)} 50 50)` : '',
+    // SVG's rotate() turns clockwise on screen (y points down); torchvision's positive angles turn anticlockwise
+    d.angle ? `rotate(${(-d.angle).toFixed(2)} 50 50)` : '',
     d.flipped ? 'translate(100 0) scale(-1 1)' : '',
     d.crop ? `scale(${k.toFixed(4)}) translate(${(-d.crop.x).toFixed(2)} ${(-d.crop.y).toFixed(2)})` : '',
   ]
@@ -174,6 +178,11 @@ export default function AugmentationPlayground() {
   const set = <K extends keyof Settings>(k: K) => (v: Settings[K]) => setS((o) => ({ ...o, [k]: v }))
   const draws = useMemo(() => Array.from({ length: 9 }, (_, i) => drawParams(seed * 1013 + i * 7919, s)), [seed, s])
   const noAug = !s.flip && !s.cropOn && !s.rotOn && !s.jitterOn && !(s.noiseOn && s.noise > 0) && !s.cutout
+  // settings strong enough to produce pictures that no real test photo would look like
+  const unreal: string[] = []
+  if (s.rotOn && s.maxRot > 30) unreal.push(s.maxRot > 90 ? 'upside-down cats never appear in real photos' : 'real photos are rarely tilted by more than about 30°')
+  if (s.cropOn && s.minScale < 0.3) unreal.push('a crop this small can cut most of the cat away')
+  if (s.jitterOn && (s.bright > 0.6 || s.contrast > 0.6)) unreal.push('lighting this extreme washes the cat out or turns it almost black')
 
   return (
     <Figure
@@ -182,7 +191,8 @@ export default function AugmentationPlayground() {
         <>
           Each copy is what the model might see of this one photo in a different epoch. Switch augmentations on and off and drag their strength; press{' '}
           <b>New random copies</b> to draw again. Notice that every copy is still obviously a cat, yet no two are the same pixels. Tap a copy to read exactly what
-          was done to it. The code underneath is the matching torchvision pipeline.
+          was done to it. The code underneath is the torchvision pipeline these copies imitate. Then push a slider to its extreme and ask: could a real test photo
+          look like that?
         </>
       }
     >
@@ -202,7 +212,12 @@ export default function AugmentationPlayground() {
           </div>
         </div>
         <div style={{ display: 'grid', gap: 4 }}>
-          <div className={css.panelTitle}>{noAug ? 'Nine epochs, no augmentation: the same image every time' : 'Nine epochs, nine different training images'}</div>
+          <div
+            className={css.panelTitle}
+            style={unreal.length ? { background: 'var(--highlight-soft)', color: 'var(--highlight-ink)', borderRadius: 4, padding: '0 6px' } : undefined}
+          >
+            {noAug ? 'Nine epochs, no augmentation: the same image every time' : unreal.length ? 'Nine epochs, but some copies look like no real photo' : 'Nine epochs, nine different training images'}
+          </div>
           <div className={css.augGrid}>
             {draws.map((d, i) => (
               <button key={i} type="button" className={`${css.augCell}${sel === i ? ` ${css.sel}` : ''}`} onClick={() => setSel(i)} aria-label={`Copy ${i + 1}: ${describe(d, s)}`}>
@@ -211,6 +226,11 @@ export default function AugmentationPlayground() {
               </button>
             ))}
           </div>
+          {unreal.length > 0 && (
+            <div className={css.small} role="status" style={{ background: 'var(--highlight-soft)', color: 'var(--highlight-ink)', borderRadius: 6, padding: '4px 8px' }}>
+              <b>Careful:</b> {unreal.join('; ')}. Copies like these are unrealistic, so the model wastes effort on them (see the next figure).
+            </div>
+          )}
         </div>
       </div>
 
@@ -237,7 +257,7 @@ export default function AugmentationPlayground() {
         </Button>
       </Controls>
       <div style={{ width: '100%' }}>
-        <CodeBlock code={code(s)} language="python" title="the same pipeline in torchvision (training set only)" showLineNumbers={false} />
+        <CodeBlock code={code(s)} language="python" title="the torchvision pipeline these copies imitate (training set only)" showLineNumbers={false} />
       </div>
     </Figure>
   )

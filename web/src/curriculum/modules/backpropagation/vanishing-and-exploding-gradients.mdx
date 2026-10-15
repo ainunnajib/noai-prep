@@ -74,21 +74,21 @@ Factors above 1 cause the opposite problem. A ReLU has slope 1 for positive inpu
 
 After a step like that the outputs become enormous and the numbers <Term def="Grow beyond the largest number the computer's number format can store, which turns them into infinity.">overflow</Term>. A `float32` can hold numbers up to about $3.4 \times 10^{38}$; anything bigger becomes `inf`, and `inf - inf` or `0 * inf` gives `nan` ("not a number"). Any sum or product that touches a `nan` is also `nan`, so once one appears the loss prints `nan` for ever after. A typical training log reads 2.31, 2.28, 2.26, 845.2, then `nan`, `nan`, `nan`.
 
-<Note title="Recurrent networks have it worst">
-
-A recurrent network (RNN) applies the *same* weights at every time step, so a 100-word sentence behaves like a 100-layer network, and the same factor gets multiplied a hundred times. RNNs suffer from both problems. LSTMs add a gated memory path that works much like the residual highway below, and gradient clipping is standard when training them.
-
-</Note>
-
 ## Activation, initialisation and depth, together
 
 Real layers have many neurons, so each factor becomes a matrix (the weights) combined with the slopes, but the story is the same: each layer stretches or shrinks the gradient by some typical factor, and depth turns that factor into a power. Two things set the factor: **the activation's slopes** and **the size of the weights**.
 
-Take a square layer, with $n$ inputs (its <Term def="The number of inputs feeding into each neuron of a layer.">fan-in</Term>) and $n$ outputs, as in the chart below. If its weights are random with standard deviation $k/\sqrt{n}$, it scales the gradient's size by roughly $k$ times the <Term def="Root-mean-square: square the values, take their mean, then the square root. For ReLU slopes (half 1s, half 0s) it is the square root of 1/2, about 0.71.">root-mean-square</Term> slope of its activation:
+Take a square layer, with $n$ inputs (its <Term def="The number of inputs feeding into each neuron of a layer.">fan-in</Term>) and $n$ outputs, as in the chart below. In the backward pass, each neuron's gradient is a sum of $n$ contributions, one from each neuron it feeds. A sum of $n$ random $\pm 1$ terms has a typical size of about $\sqrt{n}$, not $n$, because the pluses and minuses partly cancel: 4 terms give about 2, and 100 terms about 10. So weights of size about $1/\sqrt{n}$ cancel that growth. Write the weights' standard deviation as $k/\sqrt{n}$; then $k$ is whatever stretching is left over, and the layer scales the gradient's size by roughly $k$ times the typical (<Term def="Root-mean-square: square the values, take their mean, then the square root. For ReLU slopes (half 1s, half 0s) it is the square root of 1/2, about 0.71.">root-mean-square</Term>) slope of its activation:
 
 - **tanh** near 0 has slope about 1, so $k = 1$ keeps the factor near 1. This is <Term def="Random weights with variance 2/(n_in + n_out), which is 1/n when a layer has n inputs and n outputs. Designed for sigmoid and tanh.">Xavier (Glorot) initialisation</Term>.
-- **ReLU** has slope 1 on the half of its neurons that are active and 0 on the rest, so its root-mean-square slope is $\sqrt{1/2}$: it halves the gradient's squared size. Doubling the weights' variance makes up for it: $k = \sqrt{2}$, a variance of $2/n$. This is <Term def="Random weights with variance 2/n_in, where n_in is the fan-in. Designed for ReLU layers.">He (Kaiming) initialisation</Term>.
+- **ReLU** has slope 1 on the half of its neurons that are active and 0 on the rest, so its root-mean-square slope is $\sqrt{1/2} \approx 0.71$. Choosing $k = \sqrt{2} \approx 1.41$ makes up for it, since $1.41 \times 0.71 \approx 1$. This is <Term def="Random weights with variance 2/n_in, where n_in is the fan-in. Designed for ReLU layers.">He (Kaiming) initialisation</Term>.
 - **sigmoid** has slope at most 0.25 (about 0.2 on average), so with sensible weights its factor stays well below 1.
+
+<Reveal label="The exact variances (optional)">
+
+Xavier draws the weights with variance $2/(n_{in} + n_{out})$, which is $1/n$ when a layer has $n$ inputs and $n$ outputs: that is $k = 1$. He uses variance $2/n_{in}$, that is $k = \sqrt{2}$. ReLU passes only its active half, which halves the signal's squared size, and doubling the variance puts it back.
+
+</Reveal>
 
 <GradientDepthBars />
 
@@ -96,11 +96,19 @@ Each of the standard fixes attacks one cause:
 
 1. **ReLU in the hidden layers.** Its slope is exactly 1 for every positive input and it never saturates there, so active neurons pass the gradient back undiminished. The catch: its slope is 0 for negative inputs, and a neuron whose input is negative for every example never learns again (the "dying ReLU"). Leaky ReLU keeps a small slope such as 0.01 for negative inputs.
 2. **He or Xavier initialisation.** Choose the starting weight scale so each layer's factor begins near 1.
-3. **<Term def="Batch normalisation: for each neuron, subtract the mini-batch mean and divide by the mini-batch standard deviation of its pre-activations, then apply a learned scale and shift.">BatchNorm</Term>.** Rescales every neuron's pre-activations over the mini-batch to mean 0 and variance 1, so the weights' scale stops mattering. In the chart, switch BatchNorm on and drag $k$: the dots hardly move. BatchNorm alone does not force the factor to exactly 1, though. Try ReLU + BatchNorm (residual off) at depth 30: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets combine it with residual connections (setting 7 in the chart).
+3. **<Term def="Batch normalisation: for each neuron, subtract the mini-batch mean and divide by the mini-batch standard deviation of its pre-activations, then apply a learned scale and shift.">BatchNorm</Term>.** Rescales every neuron's pre-activations over the mini-batch to mean 0 and variance 1, so the weights' scale stops mattering. In the chart, switch BatchNorm on and drag $k$: the dots hardly move.
 4. **Residual connections**, next.
 5. **Gradient clipping**, for the explosions that still happen.
 
 Initialisation and normalisation get a full lesson in the module on training deep networks; here the point is *why* they work. Good initialisation starts the per-layer factor near 1, and normalisation stops it depending on the size of the weights.
+
+<Reveal label="Going further: BatchNorm's limits, and recurrent networks">
+
+BatchNorm alone does not force the factor to exactly 1. Try ReLU + BatchNorm (residual off) at depth 30 in the chart: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets combine it with residual connections (setting 7).
+
+A recurrent network (RNN) applies the *same* weights at every time step, so a 100-word sentence behaves like a 100-layer network, and the same factor gets multiplied a hundred times. RNNs suffer from both problems. LSTMs add a gated memory path that works much like the residual highway below, and gradient clipping is standard when training them.
+
+</Reveal>
 
 ## Residual connections: a gradient highway
 
@@ -128,7 +136,7 @@ $$
 \frac{\partial L}{\partial x} = \underbrace{\frac{\partial L}{\partial y}}_{\text{skip path}} + \underbrace{\frac{\partial L}{\partial y}\,F'(x)}_{\text{through } F}
 $$
 
-The first term is the gradient from above, **passed back unchanged**, however small $F'(x)$ is. Stack $D$ blocks and a plain network multiplies $F'_1 F'_2 \cdots F'_D$, which collapses when the factors are small. A residual network multiplies $(1 + F'_1)(1 + F'_2)\cdots(1 + F'_D)$; multiply it out and one of the terms is always $1 \times 1 \times \cdots \times 1 = 1$: the path straight down the skip connections.
+The first term is the gradient from above, **passed back unchanged**, however small $F'(x)$ is. Stack $D$ blocks and a plain network multiplies $F'_1 F'_2 \cdots F'_D$, which collapses when the factors are small. A residual network multiplies $(1 + F'_1)(1 + F'_2)\cdots(1 + F'_D)$; multiply it out and one of the terms is always $1 \times 1 \times \cdots \times 1 = 1$: the path straight down the skip connections. So the gradient cannot be wiped out just because every $F'$ is small. (In a real network $F'$ can also be negative, so the skip path guarantees a direct route for the gradient, not that it can never shrink.)
 
 <Steps title="Three blocks, each with $F' = 0.1$">
   <Step title="Plain stack">
@@ -188,23 +196,23 @@ Clipping only ever makes gradients *shorter*. A gradient of $10^{-9}$ is left ex
 
 ## Measure it yourself
 
-This NumPy code builds the same kind of 20-layer network as the gradient-size chart (32 neurons per layer), runs a forward pass, sends a gradient of size 1 back from the loss, and prints its size at layers 20, 10 and 1. Run it, then try `depth=40` or other values of `k`.
+This NumPy code builds the same kind of 20-layer network as the gradient-size chart (32 neurons per layer), runs a forward pass, sends a gradient of size 1 back from the loss, and prints its size at layers 1, 10 and 20. Run it, then try `depth=40` or other values of `k`.
 
 <NoWrapRunner code={GRAD_SIZES_CODE} />
 
-<CodeBlock language="text" code={GRAD_SIZES_OUTPUT} />
+<CodeBlock language="text" code={GRAD_SIZES_OUTPUT} showLineNumbers={false} />
 
-In PyTorch you would look at each layer's `weight.grad.norm()` after `loss.backward()`. The same measurement in PyTorch gives the same picture: a sigmoid network's first layer gets a gradient about seventeen powers of ten smaller than its last layer's, a He-initialised ReLU network is healthy, and oversized weights give gradients around $10^{12}$.
+Sigmoid's first layer receives about $10^{-12}$ of the gradient, ReLU with $k = 1$ about $0.002$, He initialisation ($k \approx 1.41$) keeps it near 1, and $k = 2$ blows it up to about 130.
 
-<Reveal label="Optional: the same measurement in PyTorch">
+<Reveal label="Optional: a similar measurement in PyTorch">
 
-Here are three 20-layer networks: sigmoid with PyTorch's default initialisation, ReLU with He initialisation, and ReLU with weights that are too large. `clip_grad_norm_` returns the total norm *before* clipping, which makes it a handy health monitor.
+In PyTorch you would look at each layer's `weight.grad.norm()` (the size of its weight gradient) after `loss.backward()`. Here are three 20-layer networks: sigmoid with PyTorch's default initialisation, ReLU with He initialisation, and ReLU with weights that are too large. `clip_grad_norm_` returns the total norm *before* clipping, which makes it a handy health monitor.
 
 <CodeBlock language="python" code={TORCH_NORMS_CODE} />
 
-<CodeBlock language="text" code={TORCH_NORMS_OUTPUT} />
+<CodeBlock language="text" code={TORCH_NORMS_OUTPUT} showLineNumbers={false} />
 
-The sigmoid network's first layer will never learn. The He-initialised ReLU network's total norm (0.52) is under the threshold, so clipping leaves it alone. The oversized network's gradients are around $10^{12}$, and clipping rescales them to a total length of exactly 1.
+The sigmoid network's first layer gets a gradient about sixteen powers of ten smaller than its last layer's, so it will never learn. (PyTorch's default initialisation uses smaller weights than $k = 1$, so its sigmoid network vanishes even faster than the NumPy one.) The He-initialised ReLU network's total norm (0.52) is under the threshold, so clipping leaves it alone. The oversized network's gradients are around $10^{12}$, and clipping rescales them to a total length of exactly 1.
 
 </Reveal>
 

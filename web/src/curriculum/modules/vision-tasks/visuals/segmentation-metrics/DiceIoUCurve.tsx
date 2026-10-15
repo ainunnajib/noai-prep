@@ -4,7 +4,13 @@ import { Figure, Controls, Slider, Readout, Plot, Grid, Axes, FnPath, Path, Dots
 /*
   Left: drag a predicted square over a fixed true square (area 16). Intersection, union, IoU and Dice are computed from the
   overlap rectangle. Right: every (IoU, Dice) pair lies on Dice = 2 IoU / (1 + IoU), which sits above the diagonal Dice = IoU.
+  Colours match the pixel accuracy trap: truth = dashed ink outline, prediction = blue, IoU = green, Dice = magenta.
 */
+
+const IOU_COL = 'var(--viz-3)'
+const DICE_COL = 'var(--viz-4)'
+/** keep the predicted square (half-side hh) inside the 10 x 10 plot */
+const clampC = (v: number, hh: number) => Math.min(10 - hh, Math.max(hh, v))
 
 const T0 = 3
 const T1 = 7 // true square [3, 7] x [3, 7], area 16
@@ -25,15 +31,19 @@ export default function DiceIoUCurve() {
   const union = TA + pa - inter
   const iou = inter / union
   const dice = (2 * inter) / (TA + pa)
-  const snap = (x: number, y: number): [number, number] => [Math.round(x * 4) / 4, Math.round(y * 4) / 4]
+  const snap = (x: number, y: number): [number, number] => [clampC(Math.round(x * 4) / 4, h), clampC(Math.round(y * 4) / 4, h)]
+  const changeSide = (v: number) => {
+    setSide(v)
+    setC((cc) => [clampC(cc[0], v / 2), clampC(cc[1], v / 2)])
+  }
 
   return (
     <Figure
-      title="Dice and IoU always move together"
+      title="For one mask, Dice and IoU always move together"
       caption={
         <>
-          Drag the blue predicted square over the orange true square, and change its size. The shaded overlap is the intersection. On the
-          right, the point always sits on the same curve, <M>{'\\text{Dice} = 2\\,\\text{IoU}/(1 + \\text{IoU})'}</M>: Dice is never below
+          Drag the blue predicted square over the true square (dashed outline), and change its size. The darker overlap is the intersection.
+          On the right, the point always sits on the same curve, <M>{'\\text{Dice} = 2\\,\\text{IoU}/(1 + \\text{IoU})'}</M>: Dice is never below
           IoU, the two agree at 0 and 1, and a better IoU always means a better Dice.
         </>
       }
@@ -43,7 +53,7 @@ export default function DiceIoUCurve() {
           <Plot x={[0, 10]} y={[0, 10]} width={320} height={320} margin={{ left: 26, bottom: 26, top: 10, right: 10 }} ariaLabel={`Predicted square overlapping the true square. IoU ${iou.toFixed(2)}, Dice ${dice.toFixed(2)}.`}>
             <Grid xTicks={10} yTicks={10} />
             <Axes xTicks={5} yTicks={5} />
-            <Rect x0={T0} x1={T1} y0={T0} y1={T1} fill="color-mix(in srgb, var(--viz-2) 22%, transparent)" stroke="var(--viz-2)" />
+            <Rect x0={T0} x1={T1} y0={T0} y1={T1} fill="color-mix(in srgb, var(--viz-ink) 7%, transparent)" />
             <Rect x0={px0} x1={px1} y0={py0} y1={py1} fill="color-mix(in srgb, var(--viz-1) 18%, transparent)" stroke="var(--viz-1)" />
             {inter > 0 && (
               <Rect
@@ -51,11 +61,12 @@ export default function DiceIoUCurve() {
                 x1={Math.min(px1, T1)}
                 y0={Math.max(py0, T0)}
                 y1={Math.min(py1, T1)}
-                fill="color-mix(in srgb, var(--viz-5) 55%, transparent)"
-                stroke="var(--viz-5)"
+                fill="color-mix(in srgb, var(--viz-1) 50%, transparent)"
+                stroke="var(--viz-1)"
               />
             )}
-            <Label x={T0} y={T1} dy={-5} color="var(--viz-2)" weight={700}>
+            <Path points={[[T0, T0], [T1, T0], [T1, T1], [T0, T1], [T0, T0]]} color="var(--viz-ink)" dash="5 3" width={2} />
+            <Label x={T0} y={T1} dy={-5} color="var(--viz-ink)" weight={700}>
               true
             </Label>
             <Label x={px1} y={py0 < 1.3 ? py1 : py0} dy={py0 < 1.3 ? -5 : 13} anchor="end" color="var(--viz-1)" weight={700}>
@@ -69,13 +80,14 @@ export default function DiceIoUCurve() {
             <Grid xTicks={5} yTicks={5} />
             <Axes xTicks={5} yTicks={5} xLabel="IoU" yLabel="Dice" />
             <Path points={[[0, 0], [1, 1]]} color="var(--viz-muted)" dash="5 4" width={1.5} />
-            <FnPath f={(x) => (2 * x) / (1 + x)} color="var(--viz-5)" width={2.5} />
-            <Path points={[[iou, 0], [iou, dice], [0, dice]]} color="var(--viz-axis)" dash="3 3" width={1.2} />
-            <Dots points={[{ x: iou, y: dice, color: 'var(--viz-5)', r: 6 }]} />
+            <FnPath f={(x) => (2 * x) / (1 + x)} color={DICE_COL} width={2.5} />
+            <Path points={[[iou, 0], [iou, dice]]} color={IOU_COL} dash="3 3" width={1.6} />
+            <Path points={[[iou, dice], [0, dice]]} color={DICE_COL} dash="3 3" width={1.6} />
+            <Dots points={[{ x: iou, y: dice, color: DICE_COL, r: 6 }]} />
             <Label x={0.8} y={0.8} dx={4} dy={16} color="var(--ink-2)" size={11}>
               Dice = IoU
             </Label>
-            <Label x={0.04} y={0.92} color="var(--viz-5)" size={11} weight={700}>
+            <Label x={0.04} y={0.92} color={DICE_COL} size={11} weight={700}>
               Dice = 2·IoU / (1 + IoU)
             </Label>
           </Plot>
@@ -85,12 +97,12 @@ export default function DiceIoUCurve() {
         items={[
           ['|P ∩ T|', inter.toFixed(2)],
           ['|P ∪ T|', union.toFixed(2)],
-          ['IoU', iou.toFixed(3)],
-          ['Dice', dice.toFixed(3)],
+          [<span key="i" style={{ color: IOU_COL, fontWeight: 700 }}>IoU</span>, iou.toFixed(3)],
+          [<span key="d" style={{ color: DICE_COL, fontWeight: 700 }}>Dice</span>, dice.toFixed(3)],
         ]}
       />
       <Controls>
-        <Slider label="predicted square side" value={side} min={1} max={7} step={0.5} onChange={setSide} format={(v) => v.toFixed(1)} />
+        <Slider label="predicted square side" value={side} min={1} max={7} step={0.5} onChange={changeSide} format={(v) => v.toFixed(1)} />
       </Controls>
     </Figure>
   )

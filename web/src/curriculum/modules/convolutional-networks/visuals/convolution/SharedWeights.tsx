@@ -26,7 +26,11 @@ export default function SharedWeights() {
   const xout = (j: number) => xin(j + 1)
   const yIn = 36
   const yOut = H - 40
-  const r = Math.min(15, (W - 2 * pad) / (NIN - 1) / 2.6)
+  const gapX = (W - 2 * pad) / (NIN - 1)
+  const r = Math.min(15, gapX / 2.6)
+  const tLab = 0.5 // weight labels sit halfway down their own line
+  // neighbouring labels are (1 − tLab)·gapX apart; below ~30 px the long "w₆,₁" labels collide, so use 1, 2, 3
+  const longLabels = (1 - tLab) * gapX >= 30
 
   const edges: { i: number; j: number; k: number }[] = []
   for (let j = 0; j < NOUT; j++)
@@ -41,7 +45,7 @@ export default function SharedWeights() {
     mode === 'conv'
       ? `a, b, c (the same 3 as every other output)`
       : mode === 'local'
-        ? `w${sub(sel + 1)},${sub(1)}  w${sub(sel + 1)},${sub(2)}  w${sub(sel + 1)},${sub(3)} (its own 3)`
+        ? `w${sub(sel + 1)},${sub(1)}  w${sub(sel + 1)},${sub(2)}  w${sub(sel + 1)},${sub(3)} (its own 3${longLabels ? '' : ', marked 1, 2, 3'})`
         : `w${sub(sel + 1)},${sub(1)} … w${sub(sel + 1)},${sub(8)} (its own 8)`
 
   return (
@@ -74,12 +78,20 @@ export default function SharedWeights() {
           {mode !== 'dense' &&
             [0, 1, 2].map((k) => {
               const i = sel + k
-              const t = 0.42
+              const t = tLab
               const x = xin(i) * (1 - t) + xout(sel) * t
               const y = yIn + r + (yOut - r - (yIn + r)) * t
-              const lab = mode === 'conv' ? 'abc'[k] : `w${sub(sel + 1)},${sub(k + 1)}`
+              const lab = mode === 'conv' ? 'abc'[k] : longLabels ? `w${sub(sel + 1)},${sub(k + 1)}` : String(k + 1)
               return (
-                <text key={k} x={x + (k - 1) * 6} y={y} dy="0.35em" textAnchor="middle" className="plot-label" style={{ fill: mode === 'conv' ? KC[k] : 'var(--viz-4)', fontSize: 12.5, fontWeight: 800 }}>
+                <text
+                  key={k}
+                  x={x}
+                  y={y}
+                  dy="0.35em"
+                  textAnchor="middle"
+                  className="plot-label"
+                  style={{ fill: mode === 'conv' ? KC[k] : 'var(--viz-4)', fontSize: 12.5, fontWeight: 800, paintOrder: 'stroke', stroke: 'var(--surface)', strokeWidth: 4, strokeLinejoin: 'round' }}
+                >
                   {lab}
                 </text>
               )
@@ -96,8 +108,9 @@ export default function SharedWeights() {
             )
           })}
           {Array.from({ length: NOUT }, (_, j) => (
-            <g key={`out${j}`} onClick={() => setSel(j)} style={{ cursor: 'pointer' }} role="button" tabIndex={0} aria-label={`output y${j + 1}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSel(j))}>
+            <g key={`out${j}`} className={s.node} onClick={() => setSel(j)} style={{ cursor: 'pointer' }} role="button" tabIndex={0} aria-label={`output y${j + 1}`} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSel(j))}>
               <circle cx={xout(j)} cy={yOut} r={r + 6} style={{ fill: 'transparent' }} />
+              <circle className={s.nodeRing} cx={xout(j)} cy={yOut} r={r + 4} />
               <circle cx={xout(j)} cy={yOut} r={r} style={{ fill: j === sel ? 'color-mix(in srgb, var(--viz-4) 30%, var(--surface))' : 'var(--surface)', stroke: j === sel ? 'var(--viz-4)' : 'var(--viz-ink)', strokeWidth: j === sel ? 3 : 1.5 }} />
               <text x={xout(j)} y={yOut} dy="0.35em" textAnchor="middle" style={{ fontSize: 11.5, fontWeight: 700, fill: 'var(--viz-ink)', pointerEvents: 'none' }}>
                 y{sub(j + 1)}

@@ -110,10 +110,10 @@ export default function ImageNormaliser() {
 
   return (
     <Figure
-      title="Three ways to normalise an X-ray"
+      title="Raw pixels and three ways to normalise an X-ray"
       caption={
         <>
-          <b>Try:</b> switch between the four methods. <b>Notice:</b> where the values sit compared with zero, whether A, B and C still look different,
+          <b>Try:</b> switch between raw pixels and the three normalisations. <b>Notice:</b> where the values sit compared with zero, whether A, B and C still look different,
           and the gradient signs. Only the dataset z-score gives both mixed signs and a visible difference.
         </>
       }

@@ -18,8 +18,13 @@ const SPEC: Record<LayerType, { k: number; s: number; name: string; short: strin
   p2: { k: 2, s: 2, name: '2×2 max-pool', short: 'pool 2×2 s2' },
 }
 const N = 21
-const MAX_LAYERS = 4
-const DEFAULT: LayerType[] = ['c3', 'c3', 'c3']
+const MAX_LAYERS = 5
+const PRESETS: { id: string; label: string; layers: LayerType[] }[] = [
+  { id: 'convs', label: 'conv, conv, conv', layers: ['c3', 'c3', 'c3'] },
+  { id: 'pool', label: 'conv, pool, conv, conv', layers: ['c3', 'p2', 'c3', 'c3'] },
+  { id: 'stride', label: 'conv, s2 conv, conv, conv', layers: ['c3', 'c3s2', 'c3', 'c3'] },
+]
+const DEFAULT: LayerType[] = PRESETS[0].layers
 
 interface Geo {
   len: number // neurons in this layer
@@ -52,6 +57,7 @@ export default function ReceptiveFieldTower() {
     setLayers(next)
     setSel([t, Math.floor((g[t].len - 1) / 2)])
   }
+  const preset = PRESETS.find((p) => p.layers.length === layers.length && p.layers.every((t, i) => t === layers[i]))?.id ?? ''
   const canAdd = (t: LayerType) => layers.length < MAX_LAYERS && outLen(geo[top].len, SPEC[t].k, SPEC[t].s) >= 1
 
   // cone: range of neurons in each layer that feed the selected neuron
@@ -102,9 +108,9 @@ export default function ReceptiveFieldTower() {
       title="Receptive field: how much of the image can one neuron see?"
       caption={
         <>
-          <b>Try:</b> tap any neuron (or pick one with the layer and position controls) to see its orange cone of inputs, then add a pool or a stride-2
-          conv. <b>Notice:</b> three 3×3 convs see 7 pixels; after
-          a pool or stride, every later layer's view grows twice as fast.
+          <b>Try:</b> switch between <i>conv, conv, conv</i> and <i>conv, pool, conv, conv</i>, and watch the <b>gain</b> column. Tap any neuron (or
+          use the layer and position controls) to see its orange cone of inputs. <b>Notice:</b> each 3×3 conv adds 2 pixels to the view at first, but
+          after the pool (or a stride-2 conv) each one adds 4, because neighbouring neurons are now 2 pixels apart.
         </>
       }
     >
@@ -164,6 +170,7 @@ export default function ReceptiveFieldTower() {
               <th style={{ padding: '2px 6px' }}>k</th>
               <th style={{ padding: '2px 6px' }}>s</th>
               <th style={{ padding: '2px 6px' }}>jump</th>
+              <th style={{ padding: '2px 6px' }}>gain</th>
               <th style={{ padding: '2px 0 2px 6px' }}>RF</th>
             </tr>
           </thead>
@@ -174,6 +181,7 @@ export default function ReceptiveFieldTower() {
                 <td style={{ padding: '2px 6px' }}>{l === 0 ? '' : g.k}</td>
                 <td style={{ padding: '2px 6px' }}>{l === 0 ? '' : g.s}</td>
                 <td style={{ padding: '2px 6px' }}>{g.j}</td>
+                <td style={{ padding: '2px 6px', color: l > 0 && g.r - geo[l - 1].r > 2 ? 'var(--viz-2)' : undefined }}>{l === 0 ? '' : `+${g.r - geo[l - 1].r}`}</td>
                 <td style={{ padding: '2px 0 2px 6px' }}>{g.r}</td>
               </tr>
             ))}
@@ -185,6 +193,9 @@ export default function ReceptiveFieldTower() {
           Layer {sl}: <M>{`r = ${geo[sl - 1].r} + (${geo[sl].k} - 1) \\times ${geo[sl - 1].j} = ${geo[sl].r}`}</M>
         </div>
       )}
+      <Controls>
+        <Segmented label="stack" options={PRESETS.map((p) => ({ value: p.id, label: p.label }))} value={preset} onChange={(id) => update(PRESETS.find((p) => p.id === id)!.layers)} />
+      </Controls>
       <Controls>
         <Segmented
           label="selected layer"

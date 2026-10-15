@@ -78,7 +78,8 @@ export function NeuronDiagram({
           const col = w >= 0 ? 'var(--viz-2)' : 'var(--viz-1)'
           const off = it.value === 0
           const name = isBias ? biasName : weightNames?.[i]
-          const text = name && wide ? `${name} = ${num(w)}` : `${w > 0 ? '+' : ''}${num(w)}`
+          // the bias always carries its name (a bare "0" next to the dashed line is ambiguous on a phone)
+          const text = name && (wide || isBias) ? `${name} = ${num(w)}` : `${w > 0 ? '+' : ''}${num(w)}`
           return (
             <g key={`e${i}`}>
               <line

@@ -3,17 +3,24 @@ import { Figure, Controls, Readout, Slider, Button, Plot, Grid, Axes, FnPath, La
 import { trainLoss, trainSlope, W_SHARP, W_FLAT, C_SHARP, C_FLAT, BARRIER } from './landscape'
 
 /*
-  30 balls run noisy gradient descent on the sharp/flat landscape:
-      w ← w − η·(L′(w) + noise),   noise ~ Normal(0, σ²/B)
-  Half start in the sharp pit, half in the flat basin. Large η makes the sharp pit unstable
-  (η > 2/c), and small batches (big noise) kick balls out of the narrow pit.
+  30 balls run noisy gradient descent on the sharp/flat landscape. A mini-batch sees the training
+  loss SHIFTED by a random amount u (the same idea as the test-data shift in SharpFlatMinima), plus a
+  little extra random noise:
+      w ← w − η·(L′(w − u) + n),   u ~ Normal(0, SHIFT1²/B),   n ~ Normal(0, ISO1²/B)
+  In the sharp pit a small shift u gives a big wrong slope (about 24·u); in the flat basin only
+  1.2·u. So smaller batches kick balls out of the narrow pit while the wide basin holds them, and
+  very small batches make the balls rattle around the basin. Large η makes the sharp pit unstable
+  (η > 2/c). Checked over the six "New random noise" seeds: at η = 0.05, B = 256 keeps all 15 sharp
+  balls (test ≈ 0.66–0.75), B = 8 keeps 0–1 (test ≈ 0.35–0.38), B = 1 keeps none but rattles
+  (test ≈ 0.45–0.54); for η ≥ 0.09 every B empties the pit.
 */
 
 const X: [number, number] = [-3, 3]
 const Y: [number, number] = [0, 3.6]
 const BALLS = 30
 const STEPS = 400
-const SIGMA1 = 6
+const SHIFT1 = 0.5
+const ISO1 = 3
 const B_CHOICES = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 const SHIFT = 0.25
 
@@ -32,11 +39,12 @@ function startPositions() {
 /** trajectories[t][k] = position of ball k after t steps */
 function simulate(eta: number, B: number, seed: number) {
   const r = mulberry32(seed)
-  const sigma = SIGMA1 / Math.sqrt(B)
+  const shift = SHIFT1 / Math.sqrt(B)
+  const iso = ISO1 / Math.sqrt(B)
   let w = startPositions()
   const traj: number[][] = [w]
   for (let t = 0; t < STEPS; t++) {
-    w = w.map((v) => Math.max(-4, Math.min(4, v - eta * (trainSlope(v) + sigma * gauss(r)))))
+    w = w.map((v) => Math.max(-4, Math.min(4, v - eta * (trainSlope(v - shift * gauss(r)) + iso * gauss(r)))))
     traj.push(w)
   }
   return traj
@@ -91,11 +99,12 @@ export default function MinimaEscape() {
       caption={
         <>
           Thirty balls start in the two valleys (15 in each) and each runs {STEPS} steps of noisy gradient descent; the dots show where they
-          are after training, and the readout gives their average test loss. With a small learning rate and big batches nothing moves out
-          (test loss about 0.7). Now <b>raise the learning rate</b> above 2 ÷ 24 ≈ 0.083, the sharp pit&apos;s speed limit from the gradient
-          descent lesson: every ball is thrown out of the narrow pit and settles in the wide basin (whose limit is 2 ÷ 1.2 ≈ 1.7), and the
-          test loss roughly halves. <b>Lowering the batch size</b> does something similar through bigger random kicks, but only in
-          moderation: at B = 1 the balls rattle all over the basin and the test loss climbs again. Press <b>Replay</b> to watch it happen.
+          are after training, and the readout gives their average test loss. At the start (η = 0.05, B = 256) nothing moves out: test
+          loss about 0.7. <b>Lower the batch size to 8</b>: the random kicks empty the sharp pit while the flat basin holds its balls, and
+          the test loss drops to about 0.36. <b>Go on down to B = 1</b>: the balls now rattle around the basin and the test loss climbs
+          again (about 0.5). Separately, set B back to 256 and <b>raise the learning rate</b> to 0.09 or more, above the sharp pit&apos;s
+          speed limit 2 ÷ 24 ≈ 0.083: every ball is thrown out of the narrow pit and settles in the wide basin (whose limit is
+          2 ÷ 1.2 ≈ 1.7). Press <b>Replay</b> to watch it happen.
         </>
       }
     >
@@ -104,6 +113,9 @@ export default function MinimaEscape() {
           <Grid xTicks={6} yTicks={4} />
           <Axes xLabel="parameter w" yLabel="loss" xTicks={6} yTicks={4} />
           <VLine x={BARRIER} color="var(--viz-muted)" dash="3 4" width={1} />
+          <Label x={BARRIER} y={Y[0]} dx={4} dy={-6} anchor="start" size={11} color="var(--viz-muted)">
+            hilltop
+          </Label>
           <FnPath f={trainLoss} color="var(--viz-1)" width={2.6} samples={400} />
           <Balls ws={ws} colourOf={colourOf} />
           <Label x={W_SHARP} y={Y[1]} dy={14} anchor="middle" weight={700} color="var(--viz-4)">
@@ -132,7 +144,9 @@ export default function MinimaEscape() {
         ]}
       />
       <Aside>
-        Noise in each step grows with η and shrinks with √B, so a smaller batch or a larger learning rate both mean a bumpier ride.
+        Why the batch size matters: each mini-batch sees the loss curve shifted a little, by a random amount that shrinks like 1/√B.
+        In the sharp pit a small shift means a large wrong slope (24 × the shift); in the flat basin only 1.2 × the shift. So the same
+        noise that barely nudges a ball in the basin throws it out of the pit.
       </Aside>
     </Figure>
   )

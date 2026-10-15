@@ -5,13 +5,13 @@ import EndMarkerTruncation from './visuals/tokenisation/EndMarkerTruncation'
 
 export const Tok = ({ children }) => <code style={{ whiteSpace: 'nowrap' }}>{children}</code>
 
-Every language model, from a spam filter to ChatGPT, starts the same way: it chops the text into pieces and replaces each piece with a number. That first step, **tokenisation**, decides which words the model can read at all, how long its inputs are, and even why a chatbot can struggle to count the letters in "strawberry". This lesson shows the three ways to cut text, the clever algorithm behind modern tokenisers, and the bookkeeping (special tokens, padding, masks) that every NOAI question on text quietly assumes.
+Every language model, from a spam filter to ChatGPT, starts the same way: it chops the text into pieces and replaces each piece with a number. That first step, **tokenisation**, decides which words the model can read at all, how long its inputs are, and even why a chatbot can struggle to count the letters in "strawberry".
 
 In [Encoding categories](#/learn/data-and-features/encoding-categories) you split sentences into words, gave every word an id and used `[UNK]` and `[PAD]`. Here we look at that pipeline properly.
 
 <Analogy title="Packing a sentence into boxes">
 
-You are shipping a sentence in boxes. You could use **one box per word**: few boxes, but you need a box shape for every possible word, and an odd item like "shiok" has no box at all. You could use **one box per letter**: 26 box shapes cover everything, but now you need a mountain of boxes. Or you could use a set of **standard sizes** chosen for the things you ship most often, and pack rare items in several smaller boxes. Modern tokenisers do exactly this.
+You are shipping a sentence in boxes. **One box per word** means few boxes, but you need a box shape for every possible word, and an odd item like "shiok" has no box at all. **One box per letter**: 26 shapes cover everything, but you need a mountain of boxes. Or use **standard sizes** chosen for what you ship most often, and pack rare items in several smaller boxes. Modern tokenisers do exactly this.
 
 </Analogy>
 
@@ -20,8 +20,10 @@ You are shipping a sentence in boxes. You could use **one box per word**: few bo
 A <Term def="One piece of text that the model reads as a single unit, such as a word, part of a word or a single character. Each token is mapped to an integer id.">token</Term> is one piece the model reads as a unit. The <Term def="The fixed list of all tokens a tokeniser knows, each with its own integer id. It is built once from training text.">vocabulary</Term> is the fixed list of every token the tokeniser knows, built once from training text. A word the vocabulary does not contain is <Term def="Out of vocabulary: a word that never appeared in the text the vocabulary was built from, so it has no id of its own.">out of vocabulary (OOV)</Term>.
 
 - **Word-level**: split on spaces and punctuation. Sequences are short and each token means something, but the vocabulary is huge (run, runs, running, ran are four entries) and every new word, typo, name or Singlish word becomes `[UNK]`. The model cannot tell "shiok" from "durian" if both are `[UNK]`.
-- **Character-level**: one token per character. The vocabulary is tiny (about 100 symbols) and nothing is ever unknown, but sequences become about five times longer and a single letter carries almost no meaning, so the model must learn spelling from scratch.
+- **Character-level**: one token per character. The vocabulary is tiny (about 100 symbols) and no *word* is ever unknown (only a symbol outside that alphabet, such as an emoji, can be), but sequences become about five times longer and a single letter carries almost no meaning.
 - **Subword**: keep common words whole and split rare words into frequent pieces, such as "unbelievably" → `un` + `believ` + `ably`. Algorithms such as **BPE** and **WordPiece** learn the pieces from data.
+
+To build a word-level vocabulary, reserve the first ids for special tokens (`<PAD>` = 0, `<UNK>` = 1, `<BOS>` = 2, `<EOS>` = 3; see below), then count the training words and keep the most frequent: `Counter(words).most_common(vocab_size - 4)`. Every other word maps to `<UNK>`.
 
 <TokeniserCompare />
 
@@ -29,12 +31,12 @@ A <Term def="One piece of text that the model reads as a single unit, such as a 
 |---|---|---|---|
 | vocabulary size | very large (100k+) | tiny (~100) | chosen, typically 30k–100k |
 | sequence length | shortest | longest | in between |
-| unknown words | many `[UNK]` | none | almost none |
+| unknown words | many `[UNK]` | none (only symbols outside the alphabet) | almost none |
 | meaning per token | high | very low | medium |
 
 <KeyIdea>
 
-Subword tokenisation gives an **open vocabulary** (any word can be spelled from known pieces) with **manageable sequence lengths**, and related words share pieces (`run`, `run` + `ning`). That trade-off is why BERT, GPT and almost every modern model use it.
+Subword tokenisation gives an **open vocabulary** (any word can be spelled from known pieces) with **manageable sequence lengths**, and related words share pieces (`run`, `run` + `ning`). That trade-off is why BERT (a model that reads text to understand it), GPT (a model that writes text) and almost every other modern model use it.
 
 </KeyIdea>
 
@@ -94,6 +96,7 @@ The whole algorithm fits in a few lines of plain Python. Run it, then change the
 <PyRunner code={`from collections import Counter
 
 corpus = {"hug": 10, "pug": 5, "pun": 12, "bun": 4, "hugs": 5}
+base = {c for w in corpus for c in w}   # the starting vocabulary
 # start: every word split into characters
 splits = {w: list(w) for w in corpus}
 merges = []
@@ -124,7 +127,8 @@ for step in range(3):
     print(f"merge {step + 1}: {best} x{pairs[best]} ->", splits)
 
 def tokenise(word):
-    symbols = list(word)
+    # a character never seen in training is unknown
+    symbols = [c if c in base else "[UNK]" for c in word]
     for pair in merges:   # replay rules in learned order
         symbols = merge(symbols, pair)
     return symbols
@@ -140,12 +144,12 @@ print(tokenise("bugs"), tokenise("hugs"), tokenise("mug"))`} />
 
 Two relatives you will meet in exam options:
 
-- **WordPiece** (BERT) builds its vocabulary in a similar bottom-up way but picks merges by a likelihood score instead of the raw count, and marks a piece that continues a word with `##`, e.g. "tokenisation" → `token` `##isation`.
-- **Byte-level BPE** (GPT-2 onwards) starts from the 256 possible bytes instead of characters. Every possible text, including emoji and Chinese characters, is made of bytes, so nothing is ever `[UNK]`. GPT-2's 50,257 tokens are 256 bytes, 50,000 merges and one special token.
+- **WordPiece** (BERT) also merges bottom-up, but picks the pair that is frequent *compared with how common its two parts are on their own* (a likelihood score), not the raw count. A piece that continues a word starts with `##`: "tokenisation" → `token` `##isation`.
+- **Byte-level BPE** (GPT-2 onwards) starts from the 256 possible bytes instead of characters (a byte is a number from 0 to 255; every character is stored as 1 to 4 bytes). Every text, emoji and Chinese included, is made of bytes, so nothing is ever `[UNK]`. GPT-2's 50,257 tokens are 256 bytes, 50,000 merges and one special token.
 
 <Mistake title="Thinking BPE understands meaning">
 
-BPE knows nothing about grammar or meaning. It is a **greedy frequency count**: pieces like `ing` or `un` appear because they are common, not because anyone told it about prefixes and suffixes. Even so, because prefixes and suffixes are frequent, the learned pieces often line up with them (un-, -ing, -isation), which is why exam answers say subword tokenisation "captures morphology" (the parts that words are built from). That is also why a model can struggle to count the r's in "strawberry": it sees a couple of subword tokens, not ten letters.
+BPE knows nothing about grammar or meaning. It is a **greedy frequency count**: `ing` and `un` appear because they are common, not because anyone taught it prefixes and suffixes. Because those *are* frequent, the pieces often line up with them, which is why exam answers say subword tokenisation "captures morphology" (the parts words are built from). And a model struggles to count the r's in "strawberry" because it sees a couple of subword tokens, not ten letters.
 
 </Mistake>
 
@@ -158,10 +162,10 @@ Tokenisers reserve a few ids for **special tokens** that are not words but signa
 | token | meaning | used by |
 |---|---|---|
 | <Tok>[PAD]</Tok> | filler to make sequences equal length | all |
-| <Tok>[UNK]</Tok> | any token not in the vocabulary | word-level, WordPiece |
+| <Tok>[UNK]</Tok> | any token not in the vocabulary | word-level, WordPiece, character-level BPE (not byte-level BPE) |
 | <Tok>[CLS]</Tok> | added at the **start**; its final vector summarises the whole sequence and feeds a classifier | BERT |
 | <Tok>[SEP]</Tok> | **separates** two segments and marks the end | BERT |
-| <Tok>[MASK]</Tok> | hides a word that BERT must predict during pre-training | BERT |
+| <Tok>[MASK]</Tok> | hides a word that BERT must predict during pre-training (its first, general training on huge amounts of text) | BERT |
 | <Tok>&lt;BOS&gt;</Tok> | **beginning** of sequence | generative models |
 | <Tok>&lt;EOS&gt;</Tok> | **end** of sequence; generation stops when the model outputs it | generative models |
 
@@ -179,7 +183,7 @@ Models train on **batches**: several sequences processed together as one rectang
 
 <Analogy title="Reserved desks in the exam hall">
 
-The exam hall is set out in full rows of desks, so the invigilator's seating plan is a neat rectangle. A row with fewer students than desks gets a "RESERVED" card on each empty desk, and the invigilator's list says to skip those desks when collecting scripts. The cards are the `[PAD]` tokens, and the invigilator's list is the attention mask.
+The exam hall is set out in full rows of desks, a neat rectangle. A row with fewer students gets a "RESERVED" card on each empty desk, and the invigilator's list says to skip those desks when collecting scripts. The cards are the `[PAD]` tokens; the list is the attention mask.
 
 </Analogy>
 
@@ -191,7 +195,7 @@ $$
 \text{pads} = B \times L - \sum_{i=1}^{B} n_i ,
 $$
 
-that is, the size of the rectangle minus the real tokens. The attention mask's row $i$ adds up to $n_i$. Padding is usually added on the **right**; text generators such as GPT are often padded on the **left** when generating, so that every sequence's last real token sits in the final column, right where the next word is produced.
+that is, the size of the rectangle minus the real tokens. The attention mask's row $i$ adds up to $n_i$. Padding usually goes on the **right**; text generators are often padded on the **left** when generating, so every row's last real token sits in the final column, where the next word is produced.
 
 <QuickCheck
   q="A batch has 4 sentences with 7, 3, 5 and 2 tokens. They are padded to the longest sentence. How many [PAD] tokens are added?"
@@ -202,13 +206,13 @@ that is, the size of the rectangle minus the real tokens. The attention mask's r
 
 ## End markers and labels: two classic bugs
 
-Generative models also wrap every training sequence as `<BOS> … <EOS>`. The end marker is how the model learns to **stop**. If a sentence is too long, the order of operations matters.
+Generative models also wrap every training sequence as `<BOS> … <EOS>`; the end marker is how the model learns to **stop**. For long sentences the order of operations matters. The length limit is called `max_len` here, as in the 2026 Final code (Hugging Face tokenisers call it `max_length`).
 
 <EndMarkerTruncation />
 
 <Mistake title="Truncating after adding the end marker">
 
-`([BOS_ID] + ids + [EOS_ID])[:max_len]` cuts off `<EOS>` whenever the sentence is too long, and the model is trained on sentences that never end. Cut the **content** to `max_len − 2` first, then add `<BOS>` and `<EOS>`, so the markers always survive. Remember too that special tokens count towards `max_length`: with `max_length = 10` and two markers, only 8 content tokens fit.
+`([BOS_ID] + ids + [EOS_ID])[:max_len]` cuts off `<EOS>` whenever the sentence is too long, and the model is trained on sentences that never end. Cut the **content** to `max_len − 2` first, then add `<BOS>` and `<EOS>`, so the markers always survive. Remember that special tokens count towards `max_len`: with `max_len = 10` and two markers, only 8 content tokens fit.
 
 </Mistake>
 
@@ -216,9 +220,25 @@ The 2026 Final tested exactly this bug. Count carefully: with `max_len = 10`, an
 
 <PastPaperQuestion paper="final2026" n={18} />
 
-When training, the **labels** (the tokens the model should predict) are simply a copy of the ids. Why a copy of its own input? Each position is trained to predict the **next** token, so the model shifts the labels one step left inside itself: for `<BOS> the bus came <EOS>` the pairs are `<BOS>` → the, the → bus, bus → came and came → `<EOS>`.
+### Labels, and why padding gets −100
 
-In the labels, every padding position is then replaced by **−100**. PyTorch's `cross_entropy` skips any position whose label is −100 (its default `ignore_index`), so padding never adds to the loss. The **input** keeps the pad id (here 0): −100 is not a valid row of the embedding table, so it would crash the lookup.
+Training compares the model's guesses with the right answers. The right answer at a position is its **label**, and the **loss** is one number measuring how wrong the guesses are; training makes it smaller. In a text generator each position predicts the **next** token: for `<BOS> the bus came <EOS>` the pairs are `<BOS>` → the, the → bus, bus → came and came → `<EOS>`.
+
+So the labels are the ids moved along one place. Hugging Face causal language models (GPT-style models in the `transformers` library) take labels = a copy of `input_ids` and do the shift inside. Computing the loss yourself in PyTorch, shift explicitly so position $t$ is scored against token $t + 1$: `F.cross_entropy(logits[:, :-1].reshape(-1, V), ids[:, 1:].reshape(-1))`. Without the shift the model just learns to copy its input.
+
+<Steps title="Labels for the short row “ok lah” (max_len = 8)">
+  <Step title="The ids">
+    `[2, 11, 12, 3, 0, 0, 0, 0]`: `<BOS>`, ok, lah, `<EOS>` and four pads.
+  </Step>
+  <Step title="The labels">
+    The same ids with every pad position set to −100: `[2, 11, 12, 3, −100, −100, −100, −100]`.
+  </Step>
+  <Step title="The loss">
+    PyTorch's `cross_entropy` skips every −100 label (its default `ignore_index`), so the loss is averaged over the real predictions only: `<BOS>` → ok, ok → lah, lah → `<EOS>`.
+  </Step>
+</Steps>
+
+Only the labels get −100. The **input** keeps pad id 0, because the model looks each input id up in its table of word vectors ([Word embeddings](#/learn/text-as-data/word-embeddings)) and there is no row −100.
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
@@ -238,7 +258,7 @@ batch = ["the bus came late so i ran", "ok lah", "the bus came"]
 pairs = [encode(t, max_len=8) for t in batch]
 input_ids = np.array([p[0] for p in pairs])
 attention_mask = np.array([p[1] for p in pairs])
-# labels: copy of the ids, -100 wherever there is padding
+# labels (Hugging Face style): copy of the ids, -100 on padding
 labels = np.where(attention_mask == 1, input_ids, -100)
 
 print(input_ids)
@@ -246,7 +266,9 @@ print(attention_mask)
 print(labels)
 print("shape:", input_ids.shape, "| real tokens:", attention_mask.sum())`} />
 
-The first sentence has 7 words, so with two markers it needs 9 slots: the content is cut to 6 words and `<EOS>` (id 3) still ends the row. In PyTorch you can check that −100 labels really are ignored:
+The first sentence has 7 words, so with two markers it needs 9 slots: the content is cut to 6 words and `<EOS>` (id 3) still ends the row.
+
+<Reveal label="Check it in PyTorch: −100 labels are ignored">
 
 ```python
 import torch
@@ -272,9 +294,13 @@ tensor(2.1849)
 tensor(1.8775)
 ```
 
+The first two losses are equal, so the −100 positions were skipped. Labelling padding 0 instead changes the loss: the model is graded on padding.
+
+</Reveal>
+
 <ExamTip>
 
-NOAI questions on text usually test one of five facts: subword tokenisation **handles unknown words with a moderate vocabulary**; BPE **merges the most frequent adjacent pair**; `[CLS]` is a **summary for classification** while `[SEP]` **separates/ends** segments; the attention mask is **1 for real tokens, 0 for padding**; and −100 is a **label** value for the loss, not an input id. In Final code questions, count the special tokens when you work out how much content fits in `max_length`, and check whether truncation happens before or after `<EOS>` is added.
+Five facts cover most NOAI text questions: subword tokenisation **handles unknown words with a moderate vocabulary**; BPE **merges the most frequent adjacent pair**; `[CLS]` is a **summary for classification**, `[SEP]` **separates/ends** segments; the attention mask is **1 for real tokens, 0 for padding**; −100 is a **label** value, not an input id. In Final code, count the special tokens in `max_len` and check whether truncation comes before or after `<EOS>`.
 
 </ExamTip>
 

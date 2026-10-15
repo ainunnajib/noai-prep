@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Figure, Bars, usePlayer, PlayerControls, useNarrow } from '../../../../../kit'
 import { mergeOnce, pairCounts, trainBPE, type Merge } from './bpe'
+import { TryNotice } from '../Caption'
 import s from './tok.module.css'
 
 /*
@@ -57,7 +58,8 @@ export default function BPEMergeStepper() {
   for (let r = 0; r < n; r++) testToks = mergeOnce(testToks, merges[r].pair)
   const baseSet = new Set(base)
 
-  const breakdown = (c: (typeof counts)[number]) => c.words.map(([w, f]) => `${w} ×${f}`).join(' + ')
+  const breakdown = (c: (typeof counts)[number]) =>
+    c.words.map(({ word, freq: f, times }) => (times === 1 ? `${word} ×${f}` : `${word} ×${f} (${times === 2 ? 'twice' : `${times} times`} in the word)`)).join(' + ')
   let message: string
   if (!freq.length) message = 'The corpus is empty: type one word and its count per line, for example “hug 10”.'
   else if (n === 0 && !best) message = 'Every word is a single character, so there are no pairs to merge. Add longer words to the corpus.'
@@ -74,11 +76,19 @@ export default function BPEMergeStepper() {
       wide
       title="Watch BPE learn its merges"
       caption={
-        <>
-          Press <b>Next</b> (or Play). Each step counts every adjacent pair of symbols in the corpus, weighted by the word counts, and merges the most
-          frequent pair into a new token. The merge rules are kept in order; to tokenise a new word, apply them in that same order. Try the new word{' '}
-          <code>mug</code>: “m” never appeared in training, so it is <code>[UNK]</code>, while “ug” is still found. Edit the corpus to change which pairs win.
-        </>
+        <TryNotice
+          tryIt={
+            <>
+              press <b>Next</b> three times, then type <code>mug</code> as the new word. Edit the corpus to change which pairs win.
+            </>
+          }
+          notice={
+            <>
+              each merge joins the most frequent adjacent pair. A new word replays the rules in order: “m” was never in training, so it is{' '}
+              <code>[UNK]</code>, but “ug” is still found.
+            </>
+          }
+        />
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', gap: '0.9rem' }}>

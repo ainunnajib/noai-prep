@@ -7,7 +7,7 @@ const questions: QuizQuestion[] = [
     options: [
       'The split thresholds a decision tree chooses',
       'The weights of a linear regression model',
-      'The maximum depth allowed for a decision tree',
+      'The maximum depth of a decision tree',
       'The intercept $b$ of a fitted straight line',
     ],
     answer: 2,
@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Stores the predictions for `X_train` so that `predict` can look them up later',
       'Tries several hyperparameter values and keeps the one with the best score on `X_train`',
-      'Finds the `coef_` and `intercept_` that minimise the mean squared error on the training data',
+      'Finds the `coef_` and `intercept_` that minimise the squared error on training data',
       'Measures the accuracy of the model on the training data and returns that number',
     ],
     answer: 2,
@@ -43,7 +43,7 @@ const questions: QuizQuestion[] = [
     id: 'ml-fundamentals.first-sklearn-model.4',
     prompt: 'You fit a `LinearRegression` and a `KNeighborsClassifier(n_neighbors=5)` on the same 1,000 training rows. What does each model keep after `fit`?',
     options: [
-      'Linear regression keeps a few learned numbers (weights and an intercept); k-NN keeps the training rows and labels themselves',
+      'Linear regression keeps a weight and an intercept; k-NN keeps the training rows and labels',
       'Both keep only a few learned numbers; k-NN stores 5 weights, one for each neighbour',
       'Both keep a full copy of the training rows, because every model needs them to predict',
       'Linear regression keeps the training rows; k-NN keeps a learned boundary line and its slope',
@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
       'A school wants to predict whether each Sec 4 student will pass their national Maths exam (the O-level, or the SEC that replaces it), using their prelim exam mark, hours of revision per week and attendance rate. They train `DecisionTreeClassifier(max_depth=4)`. Which statement is correct?',
     options: [
       'Pass/fail is a feature, attendance is the label, and `max_depth` is a hyperparameter',
-      'The prelim mark is the label, pass/fail is a feature, and `max_depth` is a parameter',
+      'The prelim mark is the label, pass/fail is a feature, and `max_depth` is a hyperparameter',
       'The prelim mark is a feature, pass/fail is the label, and `max_depth` is a hyperparameter',
       'The prelim mark is a feature, pass/fail is a parameter, and `max_depth` is a parameter',
     ],
