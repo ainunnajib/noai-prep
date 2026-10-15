@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, Dots, Path, Label, HLine, FnPath, usePlot, useNarrow } from '../../../../../kit'
-import { fitTree, predictClass, leafRects, flatPredict, type Tree } from '../decision-trees/cart'
+import { fitTree, predictClass, leafRects, type Tree } from '../decision-trees/cart'
 import { circleData } from '../decision-trees/data'
 import { fitForest, accuracyCurve, oobAccuracy, type Forest } from './forest'
 import s from '../decision-trees/trees.module.css'
@@ -28,18 +28,31 @@ interface Run {
   cum: Float32Array[]
 }
 
+/** centres of the grid cells along either axis */
+const CENTRES = Array.from({ length: G }, (_, c) => ((c + 0.5) * 10) / G)
+/** the cells lo..hi-1 whose centres satisfy a < centre <= b (the same rule as "x <= t goes left") */
+function cellRange(a: number, b: number): [number, number] {
+  let lo = 0
+  while (lo < G && CENTRES[lo] <= a) lo++
+  let hi = lo
+  while (hi < G && CENTRES[hi] <= b) hi++
+  return [lo, hi]
+}
+
 function build(mode: Mode): Run {
   const forest = fitForest(TRAIN.X, TRAIN.y, NT, 7, { maxFeatures: mode === 'rf' ? 1 : 2 })
   const curve = accuracyCurve(forest, VAL.X, VAL.y)
   const cum: Float32Array[] = []
   let prev = new Float32Array(G * G)
-  forest.flat.forEach((ft) => {
+  forest.trees.forEach((tree) => {
+    // paint each leaf's rectangle onto the grid cells whose centres it contains (x0 < centre <= x1)
     const next = new Float32Array(G * G)
-    for (let r = 0; r < G; r++)
-      for (let c = 0; c < G; c++) {
-        const x = [((c + 0.5) * 10) / G, ((r + 0.5) * 10) / G]
-        next[r * G + c] = prev[r * G + c] + flatPredict(ft, x)
-      }
+    for (const rc of leafRects(tree, [0, 10, 0, 10])) {
+      const p = rc.node.n ? rc.node.value[1] / rc.node.n : 0
+      const [c0, c1] = cellRange(rc.x0, rc.x1)
+      const [r0, r1] = cellRange(rc.y0, rc.y1)
+      for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++) next[r * G + c] = prev[r * G + c] + p
+    }
     cum.push(next)
     prev = next
   })
@@ -117,7 +130,18 @@ export default function ForestAverager() {
   const [circle, setCircle] = useState(true)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(620)
   const run = useMemo(() => getRun(mode), [mode])
-  const other = useMemo(() => getRun(mode === 'rf' ? 'bag' : 'rf'), [mode])
+  const otherMode: Mode = mode === 'rf' ? 'bag' : 'rf'
+  // the comparison forest is built just after the first paint, so the lesson appears without a pause
+  const [, setBuilt] = useState(0)
+  useEffect(() => {
+    if (cache[otherMode]) return
+    const id = window.setTimeout(() => {
+      getRun(otherMode)
+      setBuilt((v) => v + 1)
+    }, 50)
+    return () => window.clearTimeout(id)
+  }, [otherMode])
+  const other = cache[otherMode]
   const oob = useMemo(() => oobAccuracy(run.forest, TRAIN.X, TRAIN.y, B), [run, B])
   const acc = run.curve[B - 1]
   const name = mode === 'rf' ? 'random forest' : 'bagging'
@@ -175,7 +199,7 @@ export default function ForestAverager() {
             <Label x={NT} y={SINGLE_ACC} dx={-4} dy={14} anchor="end" color="var(--viz-4)" size={11.5}>
               one deep tree on all the data
             </Label>
-            <Path points={other.curve.map((v, i) => [i + 1, v] as [number, number])} color="var(--viz-muted)" width={1.6} />
+            {other && <Path points={other.curve.map((v, i) => [i + 1, v] as [number, number])} color="var(--viz-muted)" width={1.6} />}
             <Path points={run.curve.map((v, i) => [i + 1, v] as [number, number])} color="var(--viz-3)" width={2.6} />
             <Dots points={[{ x: B, y: acc, r: 6, color: 'var(--viz-3)' }]} />
             <Label x={NT} y={run.curve[NT - 1]} dx={-4} dy={-8} anchor="end" color="var(--viz-3)" size={11.5} weight={700}>

@@ -1,3 +1,444 @@
-{/* stub: lesson 'nn.Module, layers and saving models' is being written */}
+import ModuleTreeExplorer from './visuals/modules-and-layers/ModuleTreeExplorer'
+import LinearShapeMatcher from './visuals/modules-and-layers/LinearShapeMatcher'
+import StateDictViewer from './visuals/modules-and-layers/StateDictViewer'
+import ParamBufferInspector from './visuals/modules-and-layers/ParamBufferInspector'
 
-This lesson is being written.
+In the autograd lesson you trained two loose tensors, `w` and `b`, by hand. A real model has dozens of weight tensors arranged in layers, and you need a tidy way to build them, hand all of them to the optimiser, move them to a GPU and save them to a file. That is what `nn.Module` does. Every PyTorch model, from a two-layer network to GPT, is an `nn.Module`, and almost every NOAI Final task that says "implement this model in PyTorch" starts with the same ten-line pattern you will learn here.
+
+<Analogy title="Setting up a hawker stall">
+
+When a hawker opens a new stall, they buy the equipment once: the wok, the knives, the chopping board. That is `__init__`. Then, for every order, they follow the recipe: take the ingredients, use the equipment in a fixed order, hand over the plate. That is `forward`. You never buy a new wok for each plate of char kway teow, and the recipe owns no equipment: it only uses what the stall already has.
+
+</Analogy>
+
+## Anatomy of an nn.Module
+
+Here is a complete model: 4 input features, a hidden layer of 8 neurons with ReLU, and 3 outputs (one score per class).
+
+```python
+import torch
+from torch import nn
+
+class TinyNet(nn.Module):
+    def __init__(self):
+        super().__init__()                 # set up the module machinery first
+        self.fc1 = nn.Linear(4, 8)         # layers are created in __init__
+        self.act = nn.ReLU()
+        self.fc2 = nn.Linear(8, 3)
+
+    def forward(self, x):                  # x: (N, 4)
+        x = self.act(self.fc1(x))          # (N, 8)
+        return self.fc2(x)                 # (N, 3)
+
+model = TinyNet()
+print(model)
+for name, p in model.named_parameters():
+    print(name, tuple(p.shape))
+print(sum(p.numel() for p in model.parameters()))
+x = torch.randn(5, 4)                      # a batch of 5 examples, 4 features each
+print(model(x).shape)
+```
+
+```text
+TinyNet(
+  (fc1): Linear(in_features=4, out_features=8, bias=True)
+  (act): ReLU()
+  (fc2): Linear(in_features=8, out_features=3, bias=True)
+)
+fc1.weight (8, 4)
+fc1.bias (8,)
+fc2.weight (3, 8)
+fc2.bias (3,)
+67
+torch.Size([5, 3])
+```
+
+Read it line by line:
+
+- `class TinyNet(nn.Module)` makes TinyNet a <Term def="A class that inherits from another class: it gets all of the parent's methods for free and adds its own. Here TinyNet inherits everything nn.Module can do.">subclass</Term> of `nn.Module`. It inherits all the machinery: finding parameters, `.to(device)`, `.train()` and `.eval()`, saving.
+- `super().__init__()` runs `nn.Module`'s own set-up, which creates the empty registries (internal dictionaries) that will hold the layers and their weights. It must come **before** any layer is assigned.
+- `self.fc1 = nn.Linear(4, 8)` creates a layer and stores it as an attribute. `nn.Module` notices the assignment and <Term def="Records a layer or tensor in the module's internal lists, so that model.parameters(), model.to(), model.state_dict() and print(model) can find it.">registers</Term> it under the name `fc1`. Its weight and bias are <Term def="Tensors the optimiser is allowed to change during training (weights and biases). They have requires_grad=True and are returned by model.parameters().">parameters</Term>.
+- `forward(self, x)` describes the computation: what happens to a batch `x`. Nothing new is created here; it only uses the layers from `__init__`.
+- `model(x)` runs the forward pass. The shapes follow the comments: $(5, 4) \to (5, 8) \to (5, 3)$.
+
+`model.named_parameters()` lists every registered parameter with a dotted name (`fc1.weight` is the weight of the layer stored in `fc1`). `model.parameters()` yields the same tensors without names, and it is exactly what you hand to an optimiser: `torch.optim.SGD(model.parameters(), lr=0.1)`. The count is $4 \times 8 + 8 + 8 \times 3 + 3 = 32 + 8 + 24 + 3 = 67$. ReLU has no parameters: it is a fixed function.
+
+Explore what registration does, and what happens when it is missing:
+
+<ModuleTreeExplorer />
+
+<KeyIdea>
+
+Create layers in `__init__` (after `super().__init__()`), use them in `forward`, and run the model with `model(x)`. Assigning a layer to `self.something` registers it, and registration is how `model.parameters()` finds every weight for the optimiser.
+
+</KeyIdea>
+
+### Call model(x), not model.forward(x)
+
+You write a method called `forward`, but you never call it directly. `model(x)` goes through `nn.Module`'s own call method, which runs `forward` **and** any <Term def="Small extra functions attached to a module that run automatically before or after its forward pass, for example to record activations for a visualisation.">hooks</Term> that tools have attached to the model. `model.forward(x)` gives the same numbers in a simple script but silently skips the hooks, so code that relies on them (activation recorders, pruning and quantisation tools) quietly breaks. Always write `model(x)`.
+
+<Mistake title="A plain Python list hides your layers">
+
+`nn.Module` registers modules assigned directly as attributes. It cannot see inside an ordinary Python list:
+
+```python
+class ListNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = [nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 3)]   # a plain Python list
+
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+m = ListNet()
+print(m(torch.randn(5, 4)).shape)          # the forward pass works...
+print(len(list(m.parameters())))           # ...but PyTorch sees no parameters
+torch.optim.SGD(m.parameters(), lr=0.1)
+```
+
+```text
+torch.Size([5, 3])
+0
+ValueError: optimizer got an empty parameter list
+```
+
+Worse, if you build the optimiser from other parameters that *are* registered, there is no error at all: these layers simply never train. Use `nn.ModuleList([...])` (or `nn.ModuleDict` for a dictionary), which registers each layer as `layers.0`, `layers.1`, and so on.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={112} />
+
+<QuickCheck
+  q="Inside `__init__` (after `super().__init__()`), which line makes the layer's weights appear in `model.parameters()`?"
+  options={['`self.fc = nn.Linear(4, 2)`', '`fc = nn.Linear(4, 2)`', '`self.layers = [nn.Linear(4, 2)]`', '`self.fc = nn.Linear(4, 2).weight.tolist()`']}
+  answer={0}
+  explain="Assigning an `nn.Module` to an attribute of `self` registers it. A local variable `fc` vanishes when `__init__` ends, a plain list is invisible to `nn.Module` (use `nn.ModuleList`), and `.tolist()` turns the weights into ordinary Python numbers that cannot be trained."
+/>
+
+## nn.Linear: shapes you can predict
+
+`nn.Linear(in_features, out_features)` is a fully connected layer: every output neuron sees every input feature. For a batch it computes
+
+$$
+y = x\,W^{\top} + b
+$$
+
+- $x$ is the input batch, shape $(N, \text{in})$: $N$ examples, each a row of `in_features` numbers.
+- $W$ is `layer.weight`, stored with shape $(\text{out}, \text{in})$: **one row per output neuron**, and row $j$ holds the weights that neuron $j$ gives to each input.
+- $W^{\top}$ is its transpose, shape $(\text{in}, \text{out})$, so that the shapes chain: $(N, \text{in})$ @ $(\text{in}, \text{out})$ gives $(N, \text{out})$.
+- $b$ is `layer.bias`, shape $(\text{out},)$: one number per output neuron, added to every row by broadcasting.
+- $y$ is the output, shape $(N, \text{out})$.
+
+So the layer holds $\text{out} \times \text{in} + \text{out}$ parameters. Notice the order flip: you *construct* it as `(in, out)` but the weight is *stored* as `(out, in)`.
+
+<Steps title="nn.Linear(3, 2) by hand, with x = [1, 2, 3]">
+  <Step title="Shapes">
+    $W$ is $(2, 3)$ and $b$ is $(2,)$. Take $W = \begin{bmatrix} 1 & 0 & -1 \\ 2 & 1 & 0 \end{bmatrix}$ and $b = [0.5, -1]$. The input $x = [[1, 2, 3]]$ is a batch of one, shape $(1, 3)$, so $y$ will be $(1, 2)$.
+  </Step>
+  <Step title="Output neuron 1: row 1 of W">
+    $1 \times 1 + 0 \times 2 + (-1) \times 3 + 0.5 = 1 + 0 - 3 + 0.5 = -1.5$.
+  </Step>
+  <Step title="Output neuron 2: row 2 of W">
+    $2 \times 1 + 1 \times 2 + 0 \times 3 + (-1) = 2 + 2 + 0 - 1 = 3$.
+  </Step>
+  <Step title="Count the parameters">
+    $2 \times 3 = 6$ weights plus $2$ biases: $8$ parameters.
+  </Step>
+</Steps>
+
+```python
+import torch
+from torch import nn
+
+layer = nn.Linear(3, 2)
+print(layer.weight.shape, layer.bias.shape)
+with torch.no_grad():                      # set the weights by hand for this example
+    layer.weight.copy_(torch.tensor([[1., 0., -1.],
+                                     [2., 1.,  0.]]))
+    layer.bias.copy_(torch.tensor([0.5, -1.]))
+x = torch.tensor([[1., 2., 3.]])           # one example with 3 features
+print(layer(x))
+print(x @ layer.weight.T + layer.bias)     # the same sum, written out
+```
+
+```text
+torch.Size([2, 3]) torch.Size([2])
+tensor([[-1.5000,  3.0000]], grad_fn=<AddmmBackward0>)
+tensor([[-1.5000,  3.0000]], grad_fn=<AddBackward0>)
+```
+
+The most common error in any PyTorch model comes from the one pair of numbers that must agree. Make it happen:
+
+<LinearShapeMatcher />
+
+In `mat1 and mat2 shapes cannot be multiplied (5x6 and 4x8)`, `mat1` is your input ($N \times$ width) and `mat2` is $W^{\top}$ ($\text{in} \times \text{out}$). The **middle two** numbers must be equal. Here the data has 6 features but the layer was built for 4. A layer cares only about the **last** dim of its input, so a sequence batch of shape $(B, T, \text{in})$ works too:
+
+```python
+layer = nn.Linear(4, 8)
+print(layer(torch.randn(2, 5, 4)).shape)   # only the last dim has to be 4
+layer(torch.randn(5, 6))                   # 6 features, but the layer expects 4
+```
+
+```text
+torch.Size([2, 5, 8])
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (5x6 and 4x8)
+```
+
+<ExamTip>
+
+Two quick formulas for MCQs: `nn.Linear(in, out).weight.shape` is `(out, in)`, the reverse of the arguments, and the parameter count is $\text{in} \times \text{out} + \text{out}$ (just $\text{in} \times \text{out}$ with `bias=False`). For example `nn.Linear(128, 10)` has $1280 + 10 = 1290$ parameters. In an error message, compare the middle two numbers: the first is your data's width, the second is `in_features`.
+
+</ExamTip>
+
+<QuickCheck
+  q="For `nn.Linear(20, 5)`, what is the shape of `.weight`, and how many parameters does the layer have?"
+  options={['(5, 20) and 105', '(20, 5) and 105', '(5, 20) and 100', '(20, 5) and 125']}
+  answer={0}
+  explain="The weight is stored as (out, in) = (5, 20): one row of 20 weights for each of the 5 output neurons. Parameters: $5 \times 20 = 100$ weights plus 5 biases = 105. 100 forgets the biases, and (20, 5) is the order you pass to the constructor, not the stored shape."
+/>
+
+### nn.Sequential: the shortcut for a straight chain
+
+When the data simply flows through layers one after another, `nn.Sequential` builds the model without writing a class:
+
+```python
+import torch
+from torch import nn
+
+model = nn.Sequential(
+    nn.Linear(4, 8),
+    nn.ReLU(),
+    nn.Linear(8, 3),
+)
+print(model)
+print([name for name, _ in model.named_parameters()])
+print(model(torch.randn(5, 4)).shape)
+```
+
+```text
+Sequential(
+  (0): Linear(in_features=4, out_features=8, bias=True)
+  (1): ReLU()
+  (2): Linear(in_features=8, out_features=3, bias=True)
+)
+['0.weight', '0.bias', '2.weight', '2.bias']
+torch.Size([5, 3])
+```
+
+The layers are named by position, and position 1 (ReLU) has no parameters. It is the same network as TinyNet with different names. "Sequential" means *in order*, not *for sequence data*. As soon as the data branches or joins (a ResNet's `x + f(x)`, a U-Net's `torch.cat([x, skip], dim=1)`, two inputs), write your own `nn.Module`; you can still use small `nn.Sequential` blocks inside it.
+
+<PastPaperQuestion paper="prelim2026" n={120} />
+
+## Saving and loading: the state_dict
+
+Everything a model has learned is in its <Term def="An ordered dictionary that maps the name of each parameter and buffer (like 'fc1.weight') to its tensor. It holds everything a model has learned, but none of its code.">state_dict</Term>: a dictionary from names to tensors. Saving a model means saving that dictionary:
+
+```python
+import torch
+from torch import nn
+
+class TinyNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(4, 8)
+        self.act = nn.ReLU()
+        self.fc2 = nn.Linear(8, 3)
+
+    def forward(self, x):
+        return self.fc2(self.act(self.fc1(x)))
+
+torch.manual_seed(0)
+model = TinyNet()                                   # imagine this has been trained
+torch.save(model.state_dict(), 'tinynet.pt')        # save the named tensors
+
+sd = torch.load('tinynet.pt')
+print(type(sd).__name__, list(sd.keys()))
+print(sd['fc2.bias'])
+
+model2 = TinyNet()                                  # rebuild the same class first...
+print(model2.load_state_dict(torch.load('tinynet.pt')))   # ...then fill it
+print(torch.equal(model2.fc2.bias, model.fc2.bias))
+model2.eval()                                       # ready for predictions
+```
+
+```text
+OrderedDict ['fc1.weight', 'fc1.bias', 'fc2.weight', 'fc2.bias']
+tensor([ 0.1941, -0.0446,  0.0135])
+<All keys matched successfully>
+True
+```
+
+It is like saving your game progress rather than copying the whole game installer: the save file is small, but it only makes sense inside the game. The file holds numbers only, so loading always takes two steps: **rebuild** the model from its class (the code says how the numbers are used), then **fill** it with `load_state_dict`. Finish with `model.eval()` before making predictions (the training-loop lesson explains why).
+
+<StateDictViewer />
+
+<Mistake title="The class must match the file">
+
+`load_state_dict` matches tensors by **name** and checks every **shape**. Rename a layer and you get `Missing key(s)` (names the model wants but the file lacks) and `Unexpected key(s)` (names in the file the model has no place for). Change a size and you get `size mismatch for fc1.weight`. `strict=False` skips missing and unexpected keys, which is useful for loading a pretrained body under a new head, but a size mismatch is always an error.
+
+</Mistake>
+
+Why not save the whole object with `torch.save(model, path)`? That pickles the Python object together with a reference to your class's file and name, so the file breaks when you rename or move your code, and unpickling a file can run arbitrary code. Since PyTorch 2.6, `torch.load` refuses such files by default (it raises `UnpicklingError: Weights only load failed`) unless you pass `weights_only=False` for a file you trust. A `state_dict` holds only tensors, so it loads safely everywhere.
+
+<Tip>
+
+To resume training later, save more than the weights: `torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}, 'checkpoint.pt')`. Optimisers such as Adam keep their own running averages, and they have a `state_dict` too.
+
+</Tip>
+
+<PastPaperQuestion paper="prelim2026" n={123} />
+
+## Parameters, buffers and plain attributes
+
+Not every tensor a model keeps should be trained. A module can hold a tensor in three ways. Below, *trained* means it is in `model.parameters()`, so the optimiser updates it; *saved* means it is in `state_dict()`; *moved* means `model.to(device)` moves it.
+
+<Columns min={200}>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Parameter**
+
+`nn.Parameter(t)`
+
+- trained: **yes**
+- saved: **yes**
+- moved: **yes**
+- requires grad: **yes**
+- use: weights and biases
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Buffer**
+
+`register_buffer(name, t)`
+
+- trained: **no**
+- saved: **yes**
+- moved: **yes**
+- requires grad: **no**
+- use: running statistics, masks, positional encodings
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**Plain attribute**
+
+`self.t = t`
+
+- trained: **no**
+- saved: **no**
+- moved: **no**
+- requires grad: **no**
+- use: settings such as `momentum` (plain numbers)
+
+</div>
+</Columns>
+
+A <Term def="A tensor registered with self.register_buffer: it is part of the module's state, so it is saved in the state_dict and moved by model.to(device), but it is not a parameter and the optimiser never changes it.">buffer</Term> is state that is not learned. The classic example is batch normalisation, which you will meet properly in the next module. For now you only need its outline: it rescales each feature using a mean and a variance. During training it uses the current batch's statistics and also keeps a **running average** of them, so that at test time it can normalise a single example. Those running averages must be saved and moved with the model, but no gradient should ever change them:
+
+```python
+import torch
+from torch import nn
+
+class MyNorm(nn.Module):
+    def __init__(self, n=3, momentum=0.1, eps=1e-5):
+        super().__init__()
+        # parameters: learned scale and shift
+        self.gamma = nn.Parameter(torch.ones(n))
+        self.beta = nn.Parameter(torch.zeros(n))
+        # buffers: saved and moved with the model, but never trained
+        self.register_buffer('running_mean', torch.zeros(n))
+        self.register_buffer('running_var', torch.ones(n))
+        # plain attributes: neither saved nor moved
+        self.num_batches = torch.tensor(0)
+        self.momentum, self.eps = momentum, eps
+
+    def forward(self, x):
+        if self.training:
+            mean = x.mean(dim=0)
+            var = x.var(dim=0, unbiased=False)
+            with torch.no_grad():        # update the state in place, unrecorded
+                self.running_mean.mul_(1 - self.momentum).add_(self.momentum * mean)
+                self.running_var.mul_(1 - self.momentum).add_(self.momentum * var)
+                self.num_batches += 1
+        else:
+            mean, var = self.running_mean, self.running_var
+        return self.gamma * (x - mean) / torch.sqrt(var + self.eps) + self.beta
+
+norm = MyNorm(3)
+print([name for name, _ in norm.named_parameters()])
+print([name for name, _ in norm.named_buffers()])
+print(list(norm.state_dict().keys()))
+
+x = torch.tensor([[1., 2., 3.], [3., 6., 5.], [1., 4., 7.], [3., 4., 5.]])
+out = norm(x)                 # train mode: updates the buffers
+print(norm.running_mean, norm.running_var, norm.num_batches)
+print(norm.running_mean.requires_grad)
+```
+
+```text
+['gamma', 'beta']
+['running_mean', 'running_var']
+['gamma', 'beta', 'running_mean', 'running_var']
+tensor([0.2000, 0.4000, 0.5000]) tensor([1.0000, 1.1000, 1.1000]) tensor(1)
+False
+```
+
+<Steps title="Check the running statistics by hand">
+  <Step title="Batch mean of each column">
+    Column 1 is $1, 3, 1, 3$, mean $2$. Column 2 is $2, 6, 4, 4$, mean $4$. Column 3 is $3, 5, 7, 5$, mean $5$.
+  </Step>
+  <Step title="Batch variance of each column">
+    The mean of the squared distances from the mean: column 1 gives $\frac{1 + 1 + 1 + 1}{4} = 1$, column 2 gives $\frac{4 + 4 + 0 + 0}{4} = 2$, column 3 gives $\frac{4 + 0 + 4 + 0}{4} = 2$.
+  </Step>
+  <Step title="Update: new = (1 − momentum) × old + momentum × batch">
+    With momentum $0.1$: running mean $0.9 \times [0, 0, 0] + 0.1 \times [2, 4, 5] = [0.2, 0.4, 0.5]$, and running variance $0.9 \times [1, 1, 1] + 0.1 \times [1, 2, 2] = [1.0, 1.1, 1.1]$, exactly as printed.
+  </Step>
+</Steps>
+
+Two details in `forward` matter. The buffers are updated **in place** (`mul_`, `add_`) so they stay the same registered tensors, and inside `torch.no_grad()` so the update is not recorded. If you wrote `self.running_mean = 0.9 * self.running_mean + 0.1 * mean` instead, in a real network (where `x` comes from earlier layers) the new tensor would carry the autograd graph of every batch along with it, with `requires_grad=True`.
+
+Now change how each tensor is registered and see what follows:
+
+<ParamBufferInspector />
+
+<KeyIdea>
+
+Ask two questions about every tensor a module keeps. Should the optimiser change it? Then it is an `nn.Parameter`. If not, must it be saved and moved with the model? Then it is a buffer (`register_buffer`). Only throwaway values and Python settings belong in plain attributes.
+
+</KeyIdea>
+
+<Mistake title="A plain tensor attribute stays behind on the CPU">
+
+Attention code often builds a causal mask once: `self.mask = torch.tril(torch.ones(T, T))`. As a plain attribute it is not moved by `model.to('cuda')`, so the first forward pass on the GPU stops with `Expected all tensors to be on the same device`. Writing `self.register_buffer('mask', torch.tril(torch.ones(T, T)))` fixes it, and the mask is saved with the model as well.
+
+</Mistake>
+
+<QuickCheck
+  q="A module's `__init__` contains the four lines below. After `model.to('cuda')`, which tensor is still on the CPU?"
+  code={`self.fc = nn.Linear(4, 4)
+self.scale = nn.Parameter(torch.ones(4))
+self.register_buffer('mask', torch.ones(4, 4))
+self.table = torch.ones(4, 4)`}
+  options={['`self.table`', '`self.mask`', '`self.scale`', '`self.fc.weight`']}
+  answer={0}
+  explain="`model.to()` moves every registered parameter and buffer, including the weights inside `self.fc`. `self.table` is a plain tensor attribute, so `nn.Module` does not know it exists: it stays on the CPU and is not saved either. `self.mask` is a buffer, so it moves (but is not trained)."
+/>
+
+<ExamTip>
+
+The Prelim asks these as one-liners: `nn.Module` is the base class for all layers and models; the forward pass is the `forward()` method, run by calling `model(x)`; a fully connected layer is `nn.Linear(in, out)`; `model.parameters()` (or `named_parameters()`) gives the weights; `nn.Sequential` stacks layers in order; a model is saved with `torch.save(model.state_dict(), path)`. In the Final, the class skeleton is the first thing you write: put a shape comment after every line of `forward`.
+
+</ExamTip>
+
+<Takeaways>
+
+- A model is a subclass of `nn.Module`: call `super().__init__()` first, create the layers as `self.` attributes in `__init__`, describe the computation in `forward`, and run it with `model(x)`, never `model.forward(x)`.
+- Assigning a module or `nn.Parameter` to `self` registers it, and `model.parameters()` (what the optimiser receives) finds only registered tensors. A plain Python list of layers is invisible: use `nn.ModuleList`.
+- `nn.Linear(in, out)` stores a weight of shape `(out, in)` and a bias of shape `(out,)`, computes $y = xW^{\top} + b$, maps `(…, in)` to `(…, out)`, and has $\text{in} \times \text{out} + \text{out}$ parameters. In `mat1 and mat2 shapes cannot be multiplied (N×a and b×c)`, `a` must equal `b`.
+- Save with `torch.save(model.state_dict(), path)`. Load by rebuilding the same class, then `model.load_state_dict(torch.load(path))` and `model.eval()`.
+- `nn.Parameter`: trained, saved, moved. Buffer (`register_buffer`): saved and moved, never trained, as in BatchNorm's running statistics. Plain tensor attribute: none of the three.
+
+</Takeaways>

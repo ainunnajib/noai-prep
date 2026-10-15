@@ -1,3 +1,377 @@
-{/* stub: lesson '2026 Task 3 Parts 3-5: Positional encoding, classifier head and causal mask' is being written */}
+import PEBugFixHeatmap from './visuals/task-pe-classifier-mask/PEBugFixHeatmap'
+import ClassifierHeadFlow from './visuals/task-pe-classifier-mask/ClassifierHeadFlow'
+import CausalMaskBuilder from './visuals/task-pe-classifier-mask/CausalMaskBuilder'
 
-This lesson is being written.
+The second half of 2026 Task 3 turned the attention code from the [last lesson](#/learn/final-lab-pytorch/task-attention) into a working text classifier. It had three short parts, each worth 5 marks: **debug** a positional encoding (Q3.5), build a **classification head** and its `forward` (Q3.6 and Q3.7), and, as a bonus, write a **causal mask** (Q3.8). None of them needs more than about ten lines, but each hides a trap: a "bug" that was already fixed, a mask with the wrong shape, a triangle the wrong way up. This lesson walks through all three with real PyTorch output.
+
+## Part 3: why the model needs positions
+
+Attention compares every token with every other token at once, and nothing in the formula says which token came first. Shuffle the words and each word gets exactly the same attention output, just in a shuffled order. The notebook's own example: to a Transformer without positions, "The dog bit the man" looks the same as "The man bit the dog".
+
+The fix is a <Term def="A vector that depends only on a token's position in the sentence (0, 1, 2, …). It is added to the token's embedding so that the same word at different positions gets different inputs.">positional encoding</Term>: before the encoder layers, every token's vector gets a position code added to it.
+
+<Analogy title="Tuning forks of different pitches">
+
+Picture a rack of tuning forks, from a high-pitched one that vibrates very fast to a deep one that vibrates very slowly. Strike them all at time 0 and photograph the rack at moment 1, 2, 3, … Each photo shows a different pattern of positions, because the fast forks have moved a lot and the slow ones only a little. That pattern of positions is a timestamp. The sinusoidal positional encoding works the same way: each pair of columns is a fork with its own pitch, and the bug in this task detuned almost all of them to a pitch of zero, so they never moved.
+
+</Analogy>
+
+### The formula, symbol by symbol
+
+The notebook prints the formula in a comment:
+
+$$
+\begin{aligned}
+PE(pos, 2i) &= \sin\!\left(\frac{pos}{10000^{2i/d_\text{model}}}\right) \\
+PE(pos, 2i+1) &= \cos\!\left(\frac{pos}{10000^{2i/d_\text{model}}}\right)
+\end{aligned}
+$$
+
+- $pos$ is the token's position: 0, 1, 2, …
+- $d_\text{model}$ is how many numbers describe each token (512 in the test).
+- Columns come in pairs: column $2i$ (even) uses $\sin$ and column $2i+1$ (odd) uses $\cos$, with the same <Term def="How fast a wave goes up and down. Here it is the number multiplied by the position inside sin and cos; a large frequency means a fast wave.">frequency</Term> $\omega_i = 1 / 10000^{2i/d_\text{model}}$.
+- For $i = 0$, $\omega_0 = 1$: a fast wave. As $i$ grows, $\omega_i$ shrinks towards $1/10000$: slower and slower waves.
+
+Computers usually compute $\omega_i$ with logarithms, because $1/10000^x = e^{-x \ln 10000}$. With $x = 2i / d_\text{model}$:
+
+$$
+\omega_i = \exp\!\left(2i \times \left(-\frac{\ln 10000}{d_\text{model}}\right)\right)
+$$
+
+In code, `torch.arange(0, d_model, 2)` produces exactly the even numbers $0, 2, 4, \dots$, which **are** the $2i$ values, and `math.log` is the natural logarithm $\ln$. So the correct line is:
+
+```python
+div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
+```
+
+### A tiny case you can check by hand
+
+<Steps title="Positional encoding for d_model = 4">
+  <Step title="Two frequencies">
+    $2i \in \{0, 2\}$. $\omega_0 = e^0 = 1$ and $\omega_1 = 1 / 10000^{2/4} = 1/\sqrt{10000} = 1/100 = 0.01$.
+  </Step>
+  <Step title="Position 0">
+    $[\sin 0, \cos 0, \sin 0, \cos 0] = [0, 1, 0, 1]$. Every column starts here.
+  </Step>
+  <Step title="Position 1">
+    $[\sin 1, \cos 1, \sin 0.01, \cos 0.01] \approx [0.841, 0.540, 0.010, 1.000]$.
+  </Step>
+  <Step title="Position 2">
+    $[\sin 2, \cos 2, \sin 0.02, \cos 0.02] \approx [0.909, -0.416, 0.020, 1.000]$. The fast pair has moved a lot, the slow pair only a little.
+  </Step>
+</Steps>
+
+PyTorch agrees:
+
+```python
+pe = PositionalEncoding(d_model=4, dropout=0.0)
+print(pe.pe.shape)
+print(pe.pe[0, :3])            # positions 0, 1, 2
+```
+
+```text
+torch.Size([1, 5000, 4])
+tensor([[ 0.0000,  1.0000,  0.0000,  1.0000],
+        [ 0.8415,  0.5403,  0.0100,  0.9999],
+        [ 0.9093, -0.4161,  0.0200,  0.9998]])
+```
+
+<QuickCheck
+  q="For `d_model = 4`, what does the correct `div_term` contain?"
+  options={['[1, 0.01]', '[1, 0.1]', '[1, 100]', '[0, 0.5]']}
+  answer={0}
+  explain="The entries are $\exp(-2i \ln 10000 / 4)$ for $2i = 0, 2$: $e^0 = 1$ and $10000^{-1/2} = 1/100 = 0.01$. [1, 100] forgets the minus sign (the frequencies grow), and [0, 0.5] is the exponents $2i/d_\text{model}$ before taking the power."
+/>
+
+### The bug, and the trap
+
+The task said: "A junior engineer wrote the class below, but the sine/cosine wavelengths are messed up." The official solution shows the line the organisers meant to give you:
+
+```python
+div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-10000.0 / d_model))   # the intended bug
+```
+
+It uses $10000$ where $\ln 10000 \approx 9.21$ belongs. With $d_\text{model} = 512$ the exponents are $2i \times (-19.5)$, so the frequencies collapse to 0 almost at once:
+
+```python
+d_model = 512
+buggy = torch.exp(torch.arange(0, d_model, 2).float() * (-10000.0 / d_model))
+print(buggy[:4])
+print((buggy == 0).sum().item(), "of", len(buggy), "frequencies are exactly 0")
+```
+
+```text
+tensor([1.0000e+00, 1.0849e-17, 1.1769e-34, 0.0000e+00])
+253 of 256 frequencies are exactly 0
+```
+
+$e^{-117}$ is smaller than the smallest number a float32 can store, so it <Term def="When a result is too small for the number format, the computer stores exactly 0 instead.">underflows</Term> to exactly 0. A column with frequency 0 is $\sin(0) = 0$ or $\cos(0) = 1$ at **every** position: it carries no position information. Try it, including the other two "fixes" students commonly make:
+
+<PEBugFixHeatmap />
+
+Now the trap. In the student notebook that was actually released (dated 20 February 2026), the line under "THE BUG IS IN THE LINE BELOW" was **already the correct line**. There was nothing to fix, and a student who "fixed" it, for example by dropping the `arange` step or the minus sign, broke a working encoding. (The prompt also called the bug an "indexing error"; it is really a missing logarithm.)
+
+<KeyIdea>
+
+In a "find the bug" task, test the suspicious line against the formula on a case small enough to do by hand ($d_\text{model} = 4$ gives frequencies $[1, 0.01]$). If it already matches, leave it and say so in a comment, such as `# checked against the formula: already correct`.
+
+</KeyIdea>
+
+<Mistake title="Wrong fixes for the positional encoding">
+
+- **`arange(0, d_model)`** without the step of 2 makes 512 frequencies for 256 even columns, and the next line crashes: `RuntimeError: The expanded size of the tensor (256) must match the existing size (512) at non-singleton dimension 1.`
+- **Dropping the minus sign** makes the frequencies grow up to about 9,600 instead of shrinking, so most columns flicker like noise.
+- **Swapping `0::2` and `1::2`** puts cos in the even columns. It runs, but the values no longer match the formula, and hidden tests compare values.
+
+</Mistake>
+
+### Keep the table with `register_buffer`
+
+The last lines of the class store the table:
+
+```python
+pe = pe.unsqueeze(0)               # (1, max_len, d_model)
+self.register_buffer('pe', pe)
+```
+
+A <Term def="A tensor stored inside an nn.Module that is part of its state (saved in state_dict and moved by .to(device)) but is not a trainable parameter, so the optimiser never changes it.">buffer</Term> belongs to the module: it moves when the model moves to a GPU, and it is saved with the model, but the optimiser never trains it. A plain attribute (`self.pe = pe`) is invisible to the module. This machine has no GPU, so here the same effect is shown with a change of number type, which `.to()` applies to buffers too:
+
+```python
+import torch
+import torch.nn as nn
+
+class WithBuffer(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.register_buffer('pe', torch.zeros(3, 4))
+
+class WithAttribute(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.pe = torch.zeros(3, 4)
+
+a = WithBuffer().to(torch.float64)          # .to() converts parameters and buffers
+b = WithAttribute().to(torch.float64)
+print(a.pe.dtype, b.pe.dtype)
+print(list(a.state_dict()), list(b.state_dict()))
+print(len(list(a.parameters())))
+```
+
+```text
+torch.float64 torch.float32
+['pe'] []
+0
+```
+
+The attribute version was left behind. On a GPU, `.to('cuda')` leaves it behind in the same way, on the CPU, and adding it to the input then fails with a "tensors on different devices" error. The notebook's positional-encoding test includes a GPU-transfer check for exactly this reason. The `forward` adds only the first `T` rows, `self.pe[:, :x.size(1)]`, which broadcasts over the batch.
+
+<PastPaperQuestion paper="prelim2026" n={214} />
+
+## Part 4: the classification head
+
+Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for example, whether a sentence is positive or negative. The embedding, the positional encoding and the stack of encoder layers are already created in `__init__`. You add the head and write `forward`.
+
+**Q3.6: the head.** The comment lists the layers, in order: LayerNorm, Linear(d_model, d_model), ReLU, Dropout, Linear(d_model, num_classes). Wrap them in an `nn.Sequential`, which applies its layers one after another:
+
+- <Term def="nn.LayerNorm(d) rescales each vector of d numbers to mean 0 and standard deviation 1, then applies a learned scale and shift. It keeps the numbers at a stable size.">`nn.LayerNorm(d_model)`</Term> steadies the pooled vector;
+- `nn.Linear(d_model, d_model)` and `nn.ReLU()` form one hidden layer;
+- `nn.Dropout(dropout)` reduces overfitting during training;
+- `nn.Linear(d_model, num_classes)` produces the <Term def="Raw, unnormalised scores, one per class. Softmax would turn them into probabilities; the loss function usually does that itself.">logits</Term>.
+
+**Q3.7: the forward pass.** The comments give five steps. The two that need thought are the mask and the pooling.
+
+- **The mask.** `attention_mask` has shape `(B, T)`, with 1 for real tokens and 0 for <Term def="Filler tokens added to the end of shorter sentences so that every sentence in a batch has the same length T.">padding</Term>. The attention scores have shape `(B, h, T, T)`, so the mask needs two extra axes of size 1: `attention_mask.unsqueeze(1).unsqueeze(2)` gives `(B, 1, 1, T)`, which <Term def="An axis of size 1 is stretched to match the other tensor, without copying data.">broadcasts</Term> across every head and every query. `unsqueeze(k)` inserts a new axis of size 1 at position `k`. The test also calls `model(input_ids)` without a mask, so keep `mask = None` in that case.
+- **The pooling.** The encoder gives one vector per token, `(B, T, d_model)`, but a classifier needs one vector per **sentence**. The markdown asks for the mean over the sequence dimension, `x.mean(dim=1)`, which gives `(B, d_model)`.
+
+<ClassifierHeadFlow />
+
+Here is the finished code, with the notebook's own test inputs. The answer goes between the `QUESTION` markers:
+
+```python
+class TransformerClassifier(nn.Module):
+    def __init__(self, vocab_size, d_model=256, num_heads=8, num_layers=4,
+                 d_ff=1024, num_classes=2, max_len=512, dropout=0.1):
+        super().__init__()
+        self.d_model = d_model
+        self.token_embedding = nn.Embedding(vocab_size, d_model)
+        self.pos_encoding = PositionalEncoding(d_model, max_len, dropout)
+        self.encoder_layers = nn.ModuleList([
+            TransformerEncoderLayer(d_model, num_heads, d_ff, dropout)
+            for _ in range(num_layers)
+        ])
+        ### QUESTION 3.6 START
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_model, num_classes),
+        )
+        ### QUESTION 3.6 END
+
+    def forward(self, input_ids, attention_mask=None):
+        ### QUESTION 3.7 START
+        # 1. embed and scale: (B, T) -> (B, T, d_model)
+        x = self.token_embedding(input_ids) * math.sqrt(self.d_model)
+        # 2. add positions: (B, T, d_model)
+        x = self.pos_encoding(x)
+        # 3. mask (B, T) -> (B, 1, 1, T), or None
+        mask = None
+        if attention_mask is not None:
+            mask = attention_mask.unsqueeze(1).unsqueeze(2)
+        # 4. encoder layers: (B, T, d_model)
+        for layer in self.encoder_layers:
+            x = layer(x, mask)
+        # 5. mean over the sequence: (B, d_model)
+        pooled = x.mean(dim=1)
+        # 6. classify: (B, num_classes)
+        return self.classifier(pooled)
+        ### QUESTION 3.7 END
+
+torch.manual_seed(0)
+model = TransformerClassifier(vocab_size=30000, d_model=256, num_heads=8, num_layers=4, num_classes=2)
+input_ids = torch.randint(0, 30000, (2, 10))
+attention_mask = torch.ones(2, 10)
+attention_mask[:, -2:] = 0                    # last 2 tokens are padding
+logits = model(input_ids, attention_mask)
+print(input_ids.shape, "->", logits.shape)
+print(model(input_ids).shape)                 # attention_mask=None also works
+print(sum(p.numel() for p in model.classifier.parameters()))
+```
+
+```text
+torch.Size([2, 10]) -> torch.Size([2, 2])
+torch.Size([2, 2])
+66818
+```
+
+The head has $512$ LayerNorm parameters ($2 \times 256$), $256 \times 256 + 256 = 65{,}792$ in the first Linear and $256 \times 2 + 2 = 514$ in the second: $66{,}818$ in all.
+
+### Plain mean or masked mean?
+
+`x.mean(dim=1)` divides by all $T$ positions, **padding included**. The padding tokens' own output vectors are not zero (they come from their embeddings), so they leak into the sentence vector. <Term def="Averaging only over real tokens: multiply by the mask so padding vectors become 0, add up, and divide by the number of real tokens.">Masked mean pooling</Term> leaves them out:
+
+$$
+\text{pooled} = \frac{\sum_t m_t\, x_t}{\sum_t m_t}
+$$
+
+where $x_t$ is token $t$'s output vector and $m_t$ is 1 for a real token and 0 for padding.
+
+<Steps title="One sentence, T = 4, the last token is padding">
+  <Step title="Outputs and mask">
+    Vectors $[2, 0]$, $[0, 2]$, $[4, 4]$ and, for `[PAD]`, $[9, 9]$. Mask $[1, 1, 1, 0]$.
+  </Step>
+  <Step title="Plain mean">
+    $([2,0] + [0,2] + [4,4] + [9,9]) / 4 = [15, 15] / 4 = [3.75, 3.75]$. The padding pulled it up.
+  </Step>
+  <Step title="Masked mean">
+    $([2,0] + [0,2] + [4,4]) / 3 = [6, 6] / 3 = [2, 2]$, whatever the padding vector is.
+  </Step>
+</Steps>
+
+```python
+def masked_mean(x, attention_mask):                         # x (B, T, d), mask (B, T)
+    m = attention_mask.unsqueeze(-1).to(x.dtype)            # (B, T, 1)
+    return (x * m).sum(dim=1) / m.sum(dim=1).clamp(min=1)   # (B, d)
+
+x = torch.tensor([[[2., 0], [0, 2], [4, 4], [9, 9]]])      # (B=1, T=4, d=2)
+am = torch.tensor([[1, 1, 1, 0]])                           # last token is [PAD]
+print(x.mean(dim=1))
+print(masked_mean(x, am))
+```
+
+```text
+tensor([[3.7500, 3.7500]])
+tensor([[2., 2.]])
+```
+
+`.clamp(min=1)` avoids dividing by 0 for a sentence that is all padding. Does it matter in the full model? We put the classifier above in evaluation mode (`model.eval()`, which switches dropout off), changed **only** the ids of the two padding tokens, and measured the largest change in the logits: `tensor(0.0653)` with plain mean, and exactly `tensor(0.)` after swapping in masked mean. The official solution uses plain mean, which matches the markdown, so it is the safe exam answer; masked mean is what you would write in practice.
+
+<QuickCheck
+  q="A sentence has encoder outputs $[1, 3]$, $[3, 1]$ and $[8, 8]$, and its mask is $[1, 1, 0]$. What are its plain mean and its masked mean?"
+  options={['Plain [4, 4]; masked [2, 2]', 'Plain [2, 2]; masked [4, 4]', 'Plain [4, 4]; masked [4, 4]', 'Plain [4, 4]; masked [1.33, 1.33]']}
+  answer={0}
+  explain="Plain mean: $([1,3] + [3,1] + [8,8]) / 3 = [12, 12] / 3 = [4, 4]$. Masked mean drops the padding vector and divides by the 2 real tokens: $[4, 4] / 2 = [2, 2]$. $[1.33, 1.33]$ drops the padding but still divides by 3."
+/>
+
+<ExamTip title="Following the scaffold's comments">
+
+The Q3.6 comment offers two options, a `[CLS]` token or mean pooling, but the markdown above it says **mean** over dim 1, so use the mean. Write the head in the order the comment lists, and handle `attention_mask=None`: the test calls `model(input_ids)` straight after `model(input_ids, attention_mask)`, and `None.unsqueeze(1)` would crash.
+
+</ExamTip>
+
+BERT-style models take the other option: a special `[CLS]` token at the start whose final vector is used as the sentence summary. The Prelim and the 2025 paper both asked about it.
+
+<PastPaperQuestion paper="noai2025" n={19} />
+
+## Part 5 (bonus): the causal mask
+
+The classifier reads the whole sentence at once, so every token may look at every other. A model that **generates** text, such as GPT, is trained to predict each next token from the ones before it. If token 3 could attend to token 4 during training, it would simply copy the answer. A <Term def="An attention mask that lets position i attend only to positions 0, 1, …, i, never to later positions. Also called a look-ahead mask.">causal mask</Term> blocks the future.
+
+<Analogy title="A test booklet with later pages stapled shut">
+
+Imagine an exam booklet where you may read the current page and every earlier page, but all later pages are stapled shut. Question 3 can use the answers to questions 1 and 2, never the answer to question 4.
+
+</Analogy>
+
+With the notebook's convention (1 = may attend, 0 = hide), row $i$ of the mask must have ones in columns $0$ to $i$ and zeros after: a lower triangle, including the diagonal, which is what `torch.tril` (triangle, lower) keeps. For "The cat sat":
+
+$$
+\begin{array}{c|ccc} & \text{The} & \text{cat} & \text{sat} \\ \hline \text{The} & 1 & 0 & 0 \\ \text{cat} & 1 & 1 & 0 \\ \text{sat} & 1 & 1 & 1 \end{array}
+$$
+
+The function must return shape `(1, 1, T, T)` so that it broadcasts over the batch and the heads:
+
+```python
+def create_causal_mask(seq_len, device='cpu'):
+    ### BONUS QUESTION 3.8 START
+    mask = torch.tril(torch.ones(seq_len, seq_len, device=device))   # (T, T), 1 = may attend
+    return mask.unsqueeze(0).unsqueeze(0)                             # (1, 1, T, T)
+    ### QUESTION 3.8 END
+
+mask = create_causal_mask(5)
+print(f"  Mask shape: {mask.shape}")
+print(mask.squeeze().numpy())
+```
+
+```text
+  Mask shape: torch.Size([1, 1, 5, 5])
+[[1. 0. 0. 0. 0.]
+ [1. 1. 0. 0. 0.]
+ [1. 1. 1. 0. 0.]
+ [1. 1. 1. 1. 0.]
+ [1. 1. 1. 1. 1.]]
+```
+
+Passing `device=device` creates the mask where the model lives, so it never has to be moved. Now build masks the wrong ways and see exactly which cells go wrong:
+
+<CausalMaskBuilder />
+
+<Mistake title="Causal-mask slips">
+
+- **`triu` instead of `tril`** keeps the upper triangle: every token sees the future and is blind to its past.
+- **`triu(..., diagonal=1)`** marks the future with 1s. That is the right mask only for code that hides where `mask == 1`; with the notebook's `mask == 0`, invert it first (`1 - mask`, or `~mask` for a bool tensor).
+- **`tril(..., diagonal=-1)`** also hides the diagonal: a token cannot see itself, and the first row is entirely hidden, so `-1e9` makes it uniform and token 0 sees everything.
+- **A bool mask** works inside attention, but the test compares with a float `tril` using `torch.allclose`, which fails: `✗ Causal Mask failed: Bool did not match Float`. Keep it float.
+- **Forgetting the two `unsqueeze(0)`** returns `(T, T)`, and `assert mask.shape == (1, 1, 5, 5)` fails.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={220} />
+
+<ExamTip title="Finishing Task 3 cleanly">
+
+- The test cells for Parts 4 and 5 reuse `batch`, `heads`, `seq_len`, `Q`, `K` and `V` from the **Q3.1 test cell**. If you restart the kernel and run only the later cells, they fail with `NameError`. Before submitting, use **Restart and Run All**.
+- Q3.5 is 5 marks (the cell header says 10 points; the part total is 5). If the line already matches the formula, leave it and write a comment saying you checked it.
+- The bonus is short. Do it once Parts 1 to 4 pass: three lines for 5 marks.
+
+</ExamTip>
+
+<Takeaways>
+
+- The correct frequencies are `torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))`; for $d_\text{model} = 4$ they are $[1, 0.01]$. The intended bug (10000 instead of $\ln 10000$) makes 253 of 256 frequencies exactly 0, but the released notebook already had the correct line: check against the formula before you change anything.
+- Store fixed tables with `self.register_buffer('pe', pe)` so they move and save with the model without being trained.
+- The classifier: embed $\times \sqrt{d_\text{model}}$, add positions, turn the `(B, T)` mask into `(B, 1, 1, T)` (or keep `None`), run the encoder layers, mean over `dim=1`, then LayerNorm, Linear, ReLU, Dropout, Linear. Masked mean pooling ignores padding; plain mean does not.
+- `create_causal_mask(T)` is `torch.tril(torch.ones(T, T))` with two `unsqueeze(0)`: shape `(1, 1, T, T)`, float, 1 = may attend.
+
+</Takeaways>

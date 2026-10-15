@@ -1,0 +1,557 @@
+/* Styles for the how-llms-are-built visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.focusable:focus-visible,
+.stageBtn:focus-visible,
+.tok:focus-visible,
+.pick:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- stage rail ---------- */
+.rail {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+.railItem {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.railArrow {
+  color: var(--ink-3);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.stageBtn {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.28rem 0.6rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.stageDone {
+  color: var(--ink-2);
+  border-color: color-mix(in srgb, var(--viz-1) 45%, var(--rule));
+}
+.stageNow {
+  color: var(--ink);
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+}
+
+/* ---------- compute share ---------- */
+.share {
+  display: grid;
+  gap: 0.25rem;
+}
+.shareLabel {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.shareBar {
+  display: flex;
+  height: 1.25rem;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+.shareSeg {
+  display: flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--ink);
+  transition: background 0.25s ease;
+}
+.shareKey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 0.8rem;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+/* ---------- stage card ---------- */
+.card {
+  border: 1.5px solid var(--viz-1);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem 0.7rem;
+  background: color-mix(in srgb, var(--viz-1) 5%, var(--surface));
+  box-shadow: inset 4px 0 0 var(--viz-1);
+  min-width: 0;
+}
+.cardTitle {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.45rem;
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.3rem 0.7rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+.facts dt {
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.facts dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.sample {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 0.25rem 0.4rem;
+  display: inline-block;
+  white-space: pre-wrap;
+}
+@media (max-width: 460px) {
+  .facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.05rem;
+  }
+  .facts dd {
+    margin-bottom: 0.35rem;
+  }
+}
+
+/* ---------- chat ---------- */
+.chat {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: var(--surface-2);
+  min-width: 0;
+}
+.bubbleUser,
+.bubbleBot {
+  max-width: 92%;
+  padding: 0.45rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubbleUser {
+  justify-self: end;
+  background: color-mix(in srgb, var(--viz-1) 18%, var(--surface));
+  color: var(--ink);
+  border-bottom-right-radius: 3px;
+}
+.bubbleBot {
+  justify-self: start;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-bottom-left-radius: 3px;
+}
+.gibberish {
+  font-family: var(--font-mono);
+  color: var(--ink-3);
+}
+.who {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.15rem;
+}
+
+/* ---------- skills checklist ---------- */
+.skills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.3rem 0.8rem;
+  font-size: 0.8rem;
+}
+.skill {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--ink-3);
+}
+.skillOn {
+  color: var(--ink);
+  font-weight: 700;
+}
+.mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 900;
+  border: 1.5px solid var(--viz-muted);
+  color: var(--viz-muted);
+}
+.markOn {
+  border-color: var(--viz-pos);
+  background: var(--viz-pos);
+  color: var(--surface);
+}
+.markNew {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--highlight) 70%, transparent);
+}
+
+/* ---------- next-token pairs ---------- */
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.tok {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.tokCtx {
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 14%, var(--surface));
+  color: var(--ink);
+}
+.tokTarget {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 22%, var(--surface));
+  color: var(--ink);
+  font-weight: 800;
+}
+.tokHidden {
+  opacity: 0.45;
+  border-style: dashed;
+}
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, max-content);
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface-2);
+  min-width: 0;
+}
+.pairCol {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.pairHead {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.pairCtx {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.pairTarget {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--viz-2) 22%, var(--surface));
+  justify-self: start;
+}
+.pairArrow {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.lossLine {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+.lossLine b {
+  color: var(--ink);
+}
+.subhead {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  margin: 0 0 0.3rem;
+}
+
+/* ---------- preferences ---------- */
+.answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.45rem;
+}
+.answer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: start;
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.4rem 0.55rem;
+  background: var(--surface);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.answer small {
+  display: block;
+  color: var(--ink-3);
+  font-style: italic;
+  margin-top: 0.1rem;
+}
+.letter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  color: var(--surface);
+  font-weight: 900;
+  font-size: 0.78rem;
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+@media (max-width: 720px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.panel {
+  border: 1.5px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem 0.6rem;
+  background: var(--surface);
+  min-width: 0;
+}
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.45rem;
+}
+.num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--viz-1);
+  color: var(--surface);
+  font-size: 0.7rem;
+  font-weight: 900;
+  flex: none;
+}
+.pairs {
+  display: grid;
+  gap: 0.3rem;
+}
+.pairRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.3rem;
+}
+.vs {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.pick {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.3rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.pickOn {
+  border-color: var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 18%, var(--surface));
+  color: var(--ink);
+}
+.hint {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  margin: 0.35rem 0 0;
+}
+
+/* diverging reward bars */
+.rbars {
+  display: grid;
+  gap: 0.35rem;
+}
+.rrow {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+}
+.rtrack {
+  position: relative;
+  height: 0.95rem;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.rzero {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1.5px;
+  background: var(--viz-axis);
+}
+.rfill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  transition: all 0.25s ease;
+}
+.rval {
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--ink);
+}
+
+/* before / after bars */
+.pbars {
+  display: grid;
+  gap: 0.4rem;
+}
+.prow {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+}
+.pstack {
+  display: grid;
+  gap: 2px;
+}
+.pline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.6rem;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+}
+.ptrack {
+  height: 0.6rem;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.pfill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+.pval {
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--ink-2);
+}
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.28rem;
+  border-radius: 2px;
+}
+.swatchDash {
+  display: inline-block;
+  width: 0.9rem;
+  border-top: 3px dashed var(--viz-ink);
+}
+
+/* beat the lesson's .prose list and paragraph rules */
+.wrap ol.rail,
+.wrap ul.skills {
+  margin: 0;
+  padding: 0;
+}
+.wrap .rail li + li,
+.wrap .skills li + li {
+  margin-top: 0;
+}
+.wrap p.subhead {
+  margin: 0 0 0.3rem;
+}
+.wrap p.hint {
+  margin: 0.35rem 0 0;
+}

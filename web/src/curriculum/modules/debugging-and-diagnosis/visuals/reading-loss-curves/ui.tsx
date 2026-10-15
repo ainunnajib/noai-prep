@@ -85,11 +85,11 @@ export function Legend({ items }: { items: { color: string; label: ReactNode; da
 }
 
 /** One or more lines of Python, syntax-coloured via the site's .tok classes (works in both themes). */
-export function Py({ code, size = 13, style }: { code: string; size?: number; style?: CSSProperties }) {
+export function Py({ code, size = 13, style, wrap = true }: { code: string; size?: number; style?: CSSProperties; wrap?: boolean }) {
   return (
     <Highlight code={code} language="python" theme={themes.vsLight}>
       {({ tokens, getTokenProps }) => (
-        <span style={{ fontFamily: MONO, fontSize: size, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', ...style }}>
+        <span style={{ fontFamily: MONO, fontSize: size, whiteSpace: wrap ? 'pre-wrap' : 'pre', overflowWrap: wrap ? 'anywhere' : 'normal', ...style }}>
           {tokens.map((line, i) => (
             <span key={i}>
               {i > 0 && '\n'}
@@ -127,6 +127,8 @@ const toneBar = (t?: LineTone) => (t === 'ok' ? 'var(--ok)' : t === 'bad' ? 'var
 /**
  * A bordered code panel. Pass `onLineClick` to make every line a button (bug hunts);
  * `tones` colours single lines; `notes` adds a small muted comment under a line.
+ * Long lines do not wrap (wrapped code is hard to read): the panel scrolls sideways instead,
+ * so keep lines short (about 38 characters fits a phone).
  */
 export function CodePanel({
   lines,
@@ -155,16 +157,17 @@ export function CodePanel({
         <div style={{ padding: '0.3rem 0.75rem', borderBottom: '1px solid var(--rule)', background: 'var(--surface-3)', fontFamily: MONO, fontSize: 12, color: 'var(--ink-2)' }}>{title}</div>
       )}
       <div style={{ padding: '0.35rem 0', overflowX: 'auto' }}>
+        <div style={{ display: 'inline-block', minWidth: '100%', verticalAlign: 'top' }}>
         {lines.map((l, i) => {
           const t = tones?.[i]
           const content = (
             <>
               {lineNumbers && <span className={s.lineNo}>{i + 1}</span>}
-              <Py code={l || ' '} size={size} style={{ opacity: t === 'dim' ? 0.45 : 1 }} />
-              {notes?.[i] && <span style={{ display: 'block', paddingLeft: lineNumbers ? '2.15em' : 0, fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', lineHeight: 1.4 }}>{notes[i]}</span>}
+              <Py code={l || ' '} size={size} wrap={false} style={{ opacity: t === 'dim' ? 0.45 : 1 }} />
+              {notes?.[i] && <span style={{ display: 'block', paddingLeft: lineNumbers ? '2.15em' : 0, fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', lineHeight: 1.4, whiteSpace: 'normal' }}>{notes[i]}</span>}
             </>
           )
-          const style: CSSProperties = { background: toneBg(t), borderLeftColor: toneBar(t) }
+          const style: CSSProperties = { background: toneBg(t), borderLeftColor: toneBar(t), whiteSpace: 'nowrap' }
           return onLineClick ? (
             <button key={i} type="button" className={s.codeLine} style={style} onClick={() => onLineClick(i)} disabled={disabled} aria-label={`line ${i + 1}: ${l.trim() || 'blank'}`}>
               {content}
@@ -175,6 +178,7 @@ export function CodePanel({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )

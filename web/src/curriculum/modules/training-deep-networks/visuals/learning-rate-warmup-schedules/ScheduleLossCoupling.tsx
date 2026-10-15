@@ -19,7 +19,7 @@ const STEP_EVERY = 100
 const GAMMA = 0.1
 const NOISE = 0.3
 const LOG_LO = -4
-const LOG_HI = 1.5
+const LOG_HI = 2.5
 
 function lrOf(t: number, kind: Kind, base: number, W: number): number {
   if (t < W) return (base * t) / W
@@ -184,13 +184,14 @@ export default function ScheduleLossCoupling() {
           <Grid xTicks={6} yTicks={5} />
           {W > 0 && <Rect x0={0} x1={W} y0={LOG_LO} y1={LOG_HI} fill="color-mix(in srgb, var(--viz-3) 14%, transparent)" />}
           {sim.divergedAt !== null && <Rect x0={sim.divergedAt} x1={T} y0={LOG_LO} y1={LOG_HI} fill="color-mix(in srgb, var(--viz-neg) 12%, transparent)" />}
-          <Axes xLabel="step" xTicks={6} yTicks={5} tickFormat={tickPow} />
+          <Axes xLabel="step" xTicks={6} hideYTicks />
+          <Axes yTicks={5} hideXTicks tickFormat={tickPow} />
           <Path points={rawPts} color="var(--viz-muted)" width={1} opacity={0.7} />
           <Path points={smoothPts} color="var(--viz-2)" width={2.6} />
           {sim.divergedAt !== null && (
             <>
               <Path points={[[sim.divergedAt - 1, lg(sim.loss[sim.loss.length - 1])], [sim.divergedAt, LOG_HI + 0.3]]} color="var(--viz-neg)" width={2.6} />
-              <Label x={Math.min(sim.divergedAt + 6, T - 2)} y={LOG_HI - 0.6} anchor={sim.divergedAt > 200 ? 'end' : 'start'} size={12.5} color="var(--viz-neg)" weight={700}>
+              <Label x={Math.min(sim.divergedAt + 6, T - 2)} y={LOG_HI - 0.4} anchor={sim.divergedAt > 200 ? 'end' : 'start'} size={12.5} color="var(--viz-neg)" weight={700}>
                 {`diverged at step ${sim.divergedAt}`}
               </Label>
             </>

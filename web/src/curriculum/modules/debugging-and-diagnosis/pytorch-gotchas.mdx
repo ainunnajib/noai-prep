@@ -1,3 +1,353 @@
-{/* stub: lesson 'PyTorch gotchas and debugging tools' is being written */}
+import TrainingLoopBugHunt from './visuals/pytorch-gotchas/TrainingLoopBugHunt'
+import DeviceGraphBugs from './visuals/pytorch-gotchas/DeviceGraphBugs'
+import OptimizerParamsView from './visuals/pytorch-gotchas/OptimizerParamsView'
+import ShapeAssertions from './visuals/pytorch-gotchas/ShapeAssertions'
+import ProfileHotspots from './visuals/pytorch-gotchas/ProfileHotspots'
 
-This lesson is being written.
+PyTorch happily runs training code that is wrong. Forget one line and your gradients pile up; call the wrong method and your validation scores wobble; convert one number at the wrong moment and your model never learns, without a single error message. The good news: a small set of patterns causes most of these bugs, and examiners love them. The NOAI Final shows you a snippet and asks what is wrong with it. This lesson trains your eye for those patterns, then gives you the tools (asserts, anomaly detection, profilers) that find the rest.
+
+<Analogy title="Three classroom habits">
+
+Before a new sum, you **wipe the whiteboard**, or the old working gets mixed into the new answer. In an exam you **switch the sign on the door to "exam in progress"**, so everyone behaves differently. And you **hand in your original answer sheet**, not a photocopy of the final number: the marker needs your working to give feedback. PyTorch's three most common gotchas are exactly these: not clearing gradients, not switching to eval mode, and handing the optimiser a copied number instead of the tensor that remembers how it was computed.
+
+</Analogy>
+
+## Training-loop gotchas
+
+Every PyTorch training step has the same five parts, in this order:
+
+```python
+optimizer.zero_grad()            # 1. clear old gradients
+pred = model(x)                  # 2. forward pass
+loss = loss_fn(pred, y)          # 3. loss
+loss.backward()                  # 4. gradients into each parameter's .grad
+optimizer.step()                 # 5. update the weights
+```
+
+### Gradients add up until you clear them
+
+`loss.backward()` does not *replace* each parameter's `.grad`; it **adds** the new gradient to whatever is already there. That is deliberate: it lets you add up gradients over several small batches when a big batch does not fit in memory (gradient accumulation). But it means that if nobody calls `zero_grad()`, every step uses the sum of all the gradients so far.
+
+```python
+import torch
+w = torch.tensor(1.0, requires_grad=True)
+for step in range(3):
+    loss = 3 * w          # d(loss)/dw = 3
+    loss.backward()       # no zero_grad()
+    print(step, w.grad)
+```
+
+```text
+0 tensor(3.)
+1 tensor(6.)
+2 tensor(9.)
+```
+
+The true gradient is 3 every time, but after $k$ backward passes without clearing, `w.grad` holds $3k$. In a real network the stale gradients point in old directions, so the steps get bigger and wander off course: the loss lurches about instead of settling.
+
+### Train mode and eval mode
+
+Two kinds of layer behave differently while training and while testing. <Term def="A layer that, during training, sets each value to 0 with probability p and scales the survivors by 1/(1 − p). At test time it does nothing.">Dropout</Term> randomly switches off units during training; <Term def="A layer that normalises each feature using the mean and variance of the current batch during training, and keeps running averages of them to use at test time.">BatchNorm</Term> uses the statistics of the current batch during training and stored running averages at test time. `model.train()` and `model.eval()` flip every such layer in the model between the two behaviours.
+
+```python
+import torch, torch.nn as nn
+torch.manual_seed(0)
+drop = nn.Dropout(p=0.5)
+x = torch.ones(6)
+drop.train()
+print(drop(x))
+print(drop(x))
+drop.eval()
+print(drop(x))
+```
+
+```text
+tensor([0., 0., 2., 0., 0., 0.])
+tensor([2., 2., 0., 2., 2., 2.])
+tensor([1., 1., 1., 1., 1., 1.])
+```
+
+In train mode each call zeroes a random half of the values and doubles the rest (to keep the average the same, it multiplies by $\frac{1}{1-p} = \frac{1}{0.5} = 2$). Evaluate in train mode and your predictions are random: run the same validation set twice and you get two different scores.
+
+### No gradients needed? Say so
+
+During training, every forward pass records a <Term def="The record PyTorch keeps of every operation in the forward pass, together with the intermediate values needed to compute gradients later. Calling backward() walks it in reverse.">computation graph</Term> so that `backward()` can work later. At inference there is no backward pass, so that record is wasted memory. `torch.no_grad()` switches recording off:
+
+```python
+import torch, torch.nn as nn
+model = nn.Linear(3, 1)
+x = torch.randn(4, 3)
+print(model(x).requires_grad)
+with torch.no_grad():
+    print(model(x).requires_grad)
+```
+
+```text
+True
+False
+```
+
+Note that `model.eval()` and `torch.no_grad()` do different jobs: `eval()` changes how dropout and BatchNorm *behave*; `no_grad()` stops gradient *tracking*. For evaluation and inference you want both.
+
+<PastPaperQuestion paper="prelim2026" n={116} />
+
+### Keep the loss inside PyTorch
+
+`backward()` can only follow the graph if the loss is built from PyTorch operations all the way from the model's output. Converting to a plain number (`.item()`) or to NumPy (`.numpy()`) in the middle cuts the graph. Wrapping the result in a new `torch.tensor(...)` does not reconnect it:
+
+```python
+import torch, torch.nn as nn
+torch.manual_seed(0)
+model = nn.Linear(3, 1)
+x, y = torch.randn(8, 3), torch.randn(8, 1)
+
+def bad_mse(pred, y):
+    value = ((pred - y) ** 2).mean().item()        # a Python float
+    return torch.tensor(value, requires_grad=True)
+
+def good_mse(pred, y):
+    return ((pred - y) ** 2).mean()                # stays in PyTorch
+
+for loss_fn in [bad_mse, good_mse]:
+    model.zero_grad()
+    loss = loss_fn(model(x), y)
+    loss.backward()
+    print(loss_fn.__name__, model.weight.grad)
+```
+
+```text
+bad_mse None
+good_mse tensor([[ 0.2589,  0.7913, -0.2553]])
+```
+
+Both losses have the same value, but with `bad_mse` the weights receive no gradient at all, so `optimizer.step()` never changes them. No error, no warning: just a model that never learns.
+
+Now hunt for these patterns yourself:
+
+<TrainingLoopBugHunt />
+
+<KeyIdea>
+
+The order is always zero_grad, forward, loss, backward, step. Use `model.train()` at the start of each training epoch and `model.eval()` plus `torch.no_grad()` for evaluation. Build losses only from PyTorch operations; use `.item()` only for logging.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A model with dropout gets 81.2% on the validation set, and 80.4% when you run exactly the same evaluation code again. What is the most likely cause?"
+  options={['The evaluation runs in train mode, so dropout is still active', 'The evaluation is missing torch.no_grad()', 'The validation set is shuffled between runs', 'The learning rate is too high']}
+  answer={0}
+  explain="In train mode dropout switches off a random set of units on every call, so the same inputs give different outputs and the score changes. `model.eval()` fixes it. `no_grad()` only saves memory and does not change any layer's behaviour, and shuffling the order of a fixed set does not change its accuracy."
+/>
+
+## Device and graph bugs
+
+PyTorch tensors live on a <Term def="Where a tensor's numbers are stored and computed: the CPU ('cpu') or a GPU ('cuda:0', 'cuda:1', …). An operation needs all its tensors on the same device.">device</Term>, and an operation needs all its inputs on the same one. `model.to(device)` moves the model's parameters, and you move each batch with `x = x.to(device)`. Two bugs keep turning up:
+
+- **Hard-coding a device inside the model**, such as `x = x.cuda()` in `forward`. The model then crashes on any machine without that GPU. Choose the device once, outside the model: `device = 'cuda' if torch.cuda.is_available() else 'cpu'`.
+- **Creating new tensors inside `forward`** with `torch.zeros(...)` or `torch.randn(...)`. They are made on the CPU by default, so on a GPU model you get `Expected all tensors to be on the same device`. Create them where the input lives: `torch.zeros(n, device=x.device)` or `torch.randn_like(x)`.
+
+The graph has its own rule. To compute gradients, autograd **saves** some tensors from the forward pass (sigmoid, for example, saves its output). An <Term def="An operation that changes a tensor's values in place instead of making a new tensor, such as x += 1, x.add_(1) or x.relu_(). In PyTorch, methods ending in _ are in-place.">in-place operation</Term> that overwrites a saved tensor makes the gradient impossible to compute, so PyTorch stops with `one of the variables needed for gradient computation has been modified by an inplace operation`. Write `h = h + 1` instead of `h += 1`.
+
+<DeviceGraphBugs />
+
+<Mistake title="Following the error message's hint blindly">
+
+`Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead.` The hint makes the error go away, but `.detach()` cuts the tensor out of the graph, so your loss stops sending gradients to the model. The hint is right for logging and plotting, wrong inside a loss. The real fix is to rewrite the loss with PyTorch operations.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={134} />
+
+## Optimiser and freezing bugs
+
+When you create an optimiser, you hand it a list of parameter tensors: `SGD(model.parameters(), lr=0.01)`. It keeps **that list**. If you later replace a layer, for example swapping the classifier head for a new task, the new layer's weights are brand-new tensors that the optimiser has never heard of.
+
+<Term def="Setting requires_grad = False on parameters so they receive no gradients and are not updated. Used to keep pretrained layers fixed during transfer learning.">Freezing</Term> works the other way round: a parameter with `requires_grad = False` gets no gradient, so the optimiser skips it even if it holds it. A parameter therefore changes in a step only if **both** are true: the optimiser holds it, and it received a gradient.
+
+```python
+import torch, torch.nn as nn, torch.nn.functional as F
+torch.manual_seed(0)
+
+class Net(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.backbone = nn.Sequential(nn.Linear(4, 8), nn.ReLU())
+        self.fc = nn.Linear(8, 2)
+    def forward(self, x):
+        return self.fc(self.backbone(x))
+
+model = Net()
+for p in model.parameters():
+    p.requires_grad = False                     # freeze everything
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+model.fc = nn.Linear(8, 3)                      # new head, AFTER the optimiser
+
+before = model.fc.weight.clone()
+x, y = torch.randn(16, 4), torch.randint(0, 3, (16,))
+F.cross_entropy(model(x), y).backward()
+optimizer.step()
+print("fc has a gradient: ", model.fc.weight.grad is not None)
+print("fc weights changed:", not torch.equal(before, model.fc.weight))
+print("tensors in optimiser:", len(optimizer.param_groups[0]["params"]))
+```
+
+```text
+fc has a gradient:  True
+fc weights changed: False
+tensors in optimiser: 4
+```
+
+The new head *has* a gradient, yet its weights did not move: the optimiser's 4 tensors are the old backbone and the old head (a weight and a bias each). The 2026 Final asked about exactly this symptom: after fine-tuning, the new classifier's weights had never changed. The fix is to create the optimiser **after** the last change to the model, from the parameters that should train: `SGD([p for p in model.parameters() if p.requires_grad], lr=0.01)`.
+
+<OptimizerParamsView />
+
+<Note title="Freezing is not the same as a learning rate of 0">
+
+With a learning rate of 0 the weights do not change, but PyTorch still computes and stores every gradient, which costs memory and time, and a learning-rate schedule (such as warm-up) can raise the rate later and start changing them. Freezing with `requires_grad = False` skips the gradient work altogether. And neither of them stops a BatchNorm layer from updating its running averages in train mode: put frozen BatchNorm layers in eval mode too.
+
+</Note>
+
+```python
+import torch, torch.nn as nn
+torch.manual_seed(0)
+layer = nn.Linear(3, 2)
+before = layer.weight.clone()
+opt = torch.optim.AdamW(layer.parameters(), lr=0.0, weight_decay=0.1)
+for _ in range(3):
+    opt.zero_grad()
+    layer(torch.randn(5, 3)).sum().backward()
+    opt.step()
+print("weights changed:", not torch.equal(before, layer.weight))
+print("gradient stored:", layer.weight.grad is not None)
+```
+
+```text
+weights changed: False
+gradient stored: True
+```
+
+## Debugging tools: prints, asserts, anomaly detection, profilers
+
+When reading the code does not reveal the bug, make the program tell you.
+
+**`print()`** shows a value while the program runs: print `x.shape`, `x.dtype`, `x.device`, `loss.item()` and a few predictions. It is crude, and it is the first thing professionals reach for.
+
+**`assert`** is a print that checks itself. `assert x.shape == (B, T, C), x.shape` does nothing when the shape is right and stops the program **at that line** with the actual shape when it is wrong. Without it, a wrong shape often travels on and crashes several lines later with a confusing message, or never crashes at all.
+
+<ShapeAssertions />
+
+```python
+x = x.mean(dim=2)                  # bug: should average over dim=1 (the tokens)
+assert x.shape == (B, C), x.shape  # B = 4, T = 8, C = 16
+```
+
+```text
+AssertionError: torch.Size([4, 8])
+```
+
+<Tip title="Use a different size for every dimension">
+
+Test with sizes like $B = 4$, $T = 8$, $C = 16$, never $B = T = C = 8$. If two dimensions have the same size, a bug that mixes them up produces exactly the right shape, and neither PyTorch nor your asserts can notice.
+
+</Tip>
+
+**`torch.autograd.set_detect_anomaly(True)`** watches the backward pass and stops at the first operation whose gradient contains NaN, printing the line of *your* forward code that created it. A classic source: the distance between two identical points. The derivative of $\sqrt{u}$ is $\frac{1}{2\sqrt{u}}$, which is infinite at $u = 0$. The chain rule then multiplies that infinity by the derivative of the square, $2(a - b) = 0$, and infinity times zero is NaN. That multiplication happens in the backward step of `** 2`, which PyTorch calls `PowBackward0`.
+
+```python
+import torch
+torch.autograd.set_detect_anomaly(True)
+
+a = torch.tensor([1.0, 2.0], requires_grad=True)
+b = torch.tensor([1.0, 2.0])
+dist = torch.sqrt(((a - b) ** 2).sum())   # distance between equal points: 0
+dist.backward()
+```
+
+PyTorch prints a long traceback. These are the lines that matter (file paths shortened):
+
+```text
+UserWarning: Error detected in PowBackward0. Traceback of forward call that caused the error:
+  File "demo.py", line 6, in <module>
+    dist = torch.sqrt(((a - b) ** 2).sum())   # distance between equal points: 0
+...
+RuntimeError: Function 'PowBackward0' returned nan values in its 0th output.
+```
+
+It names the operation and the line. Anomaly detection makes training much slower, so switch it on only while hunting the bug. (The next lesson is all about where NaNs come from.)
+
+<QuickCheck
+  q="After 3,000 steps your loss suddenly becomes NaN. Which tool points you to the operation that first produced NaN gradients?"
+  options={['`set_detect_anomaly(True)` from `torch.autograd`', '`torch.profiler`, sorted by time', '`torch.cuda.memory_allocated()`', '`model.eval()`']}
+  answer={0}
+  explain="Anomaly detection checks every backward operation and stops at the first one that returns NaN, showing the forward line that created it. The profiler measures time, memory_allocated measures GPU memory, and eval() changes dropout and BatchNorm behaviour."
+/>
+
+**Profilers** answer "where does the time go?". `cProfile` (built into Python) times every function call; `torch.profiler` times every PyTorch operation. Programmers are famously bad at guessing where time goes, so measure before you optimise:
+
+<ProfileHotspots />
+
+```python
+import torch, torch.nn as nn, torch.nn.functional as F
+from torch.profiler import profile, ProfilerActivity
+torch.manual_seed(0)
+model = nn.Sequential(nn.Linear(200, 64), nn.ReLU(), nn.Linear(64, 10))
+x, y = torch.randn(64, 200), torch.randint(0, 10, (64,))
+
+with profile(activities=[ProfilerActivity.CPU]) as prof:
+    for _ in range(20):
+        loss = F.cross_entropy(model(x), y)
+        loss.backward()
+print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=5))
+```
+
+```text
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------
+                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------
+    autograd::engine::evaluate_function: AddmmBackward0         0.78%     357.224us        32.23%      14.694ms     367.345us            40
+                                         AddmmBackward0         0.56%     253.765us        30.21%      13.771ms     344.270us            40
+                                               aten::mm        28.78%      13.119ms        28.84%      13.149ms     219.154us            60
+                                           aten::linear         3.99%       1.819ms        22.79%      10.390ms     259.743us            40
+                               aten::cross_entropy_loss         9.32%       4.247ms        18.24%       8.314ms     415.724us            20
+-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------
+Self CPU time total: 45.588ms
+```
+
+Read the `Self CPU %` column, the time spent inside each operation itself: `aten::mm`, the matrix multiplications that compute the Linear layers' gradients, has by far the largest share in this table (28.78%). That is what a healthy loop looks like: the time goes on the model's arithmetic. The exact times change from run to run and machine to machine; look at the proportions. Measuring also explains a surprise: for a tiny model, a GPU can be *slower* than a CPU. Every batch has to be copied to the GPU and every operation launched there, and with small batches that fixed overhead outweighs the fast arithmetic.
+
+<PastPaperQuestion paper="prelim2026" n={131} />
+
+**Memory.** If memory use grows a little every step until the program crashes, something is keeping old tensors alive, such as `total += loss` holding on to each step's autograd history. Print `torch.cuda.memory_allocated()` (bytes of GPU memory currently held by tensors) every few hundred steps: in a healthy loop it levels off; with a leak it climbs steadily.
+
+```python
+for step, (x, y) in enumerate(train_loader):
+    ...
+    if step % 200 == 0:
+        print(step, torch.cuda.memory_allocated() / 1e6, "MB")
+```
+
+<ExamTip>
+
+In a Final code-reading question, scan for these lines before reading anything else:
+
+- `zero_grad()` missing, outside the loop, or after `backward()`; `step()` before `backward()`.
+- `model.train()` / `model.eval()` missing or in the wrong place; inference without `torch.no_grad()`.
+- `.item()`, `.numpy()`, `.detach()` or `torch.tensor(...)` inside a loss.
+- `.cuda()` inside `forward`, or `torch.zeros`/`torch.randn` without `device=`.
+- In-place updates such as `+=` or methods ending in `_` on activations.
+- An optimiser created **before** a layer was replaced, or one that includes frozen parameters.
+
+Tools in one line each: `assert` for shapes, `set_detect_anomaly` for NaN, `torch.profiler`/`cProfile` for speed, `torch.cuda.memory_allocated()` for leaks.
+
+</ExamTip>
+
+<Takeaways>
+
+- Every step: zero_grad, forward, loss, backward, step. Gradients add up until cleared.
+- `model.train()` for training; `model.eval()` and `torch.no_grad()` for evaluation and inference.
+- Keep losses inside PyTorch: `.item()`, `.numpy()` or a new `torch.tensor` cut the graph and the model stops learning, often silently.
+- Device-agnostic code: choose the device once, use `.to(device)`, and create new tensors with `device=x.device`.
+- The optimiser updates only the tensors it was given: create it after the last change to the model, from the parameters that require gradients.
+- Measure, don't guess: asserts for shapes, anomaly detection for NaN, profilers for time, `memory_allocated` for leaks.
+
+</Takeaways>

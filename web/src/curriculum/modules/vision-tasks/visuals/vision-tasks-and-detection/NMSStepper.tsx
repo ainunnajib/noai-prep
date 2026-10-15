@@ -15,12 +15,12 @@ type Box = { id: string; cls: 'person' | 'car'; obj: 'A' | 'B' | 'car' | 'bush';
 
 // (x1, y1, x2, y2) in a 100 × 70 image, y pointing down
 const BOXES: Box[] = [
-  { id: 'A1', cls: 'person', obj: 'A', b: [20, 14, 38, 60], score: 0.92 },
-  { id: 'A2', cls: 'person', obj: 'A', b: [18, 12, 37, 58], score: 0.81 },
-  { id: 'A3', cls: 'person', obj: 'A', b: [22, 18, 40, 62], score: 0.64 },
-  { id: 'B1', cls: 'person', obj: 'B', b: [27, 15, 45, 61], score: 0.88 },
-  { id: 'B2', cls: 'person', obj: 'B', b: [29, 13, 46, 58], score: 0.73 },
-  { id: 'B3', cls: 'person', obj: 'B', b: [25, 19, 44, 63], score: 0.55 },
+  { id: 'A1', cls: 'person', obj: 'A', b: [22, 14, 40, 60], score: 0.92 },
+  { id: 'A2', cls: 'person', obj: 'A', b: [20, 12, 39, 58], score: 0.81 },
+  { id: 'A3', cls: 'person', obj: 'A', b: [24, 18, 42, 62], score: 0.64 },
+  { id: 'B1', cls: 'person', obj: 'B', b: [29, 15, 47, 61], score: 0.88 },
+  { id: 'B2', cls: 'person', obj: 'B', b: [31, 13, 48, 58], score: 0.73 },
+  { id: 'B3', cls: 'person', obj: 'B', b: [27, 19, 46, 63], score: 0.55 },
   { id: 'C1', cls: 'car', obj: 'car', b: [58, 34, 94, 60], score: 0.95 },
   { id: 'C2', cls: 'car', obj: 'car', b: [55, 32, 90, 58], score: 0.83 },
   { id: 'C3', cls: 'car', obj: 'car', b: [61, 36, 96, 62], score: 0.58 },

@@ -3,16 +3,17 @@ import type { QuizQuestion } from '../../../types'
 const questions: QuizQuestion[] = [
   {
     id: 'debugging-and-diagnosis.reading-loss-curves.1',
-    prompt: 'Which description of the training and validation loss curves points to **underfitting**?',
+    prompt:
+      'Run P: the training loss keeps falling towards 0.05, while the validation loss bottoms out at epoch 15 and then climbs. Run Q: the training and validation losses both flatten early at about 1.2 and stay close together. What are the diagnoses?',
     options: [
-      'Both losses flatten early at a high value and stay close together',
-      'Training loss keeps falling while validation loss turns upward',
-      'Both losses jump up and down every few epochs without settling',
-      'Both losses drop quickly, then level off at a low value close together',
+      'P is overfitting; Q is underfitting',
+      'P is underfitting; Q is overfitting',
+      'P has too high a learning rate; Q has too low a learning rate',
+      'P is overfitting; Q has converged and is healthy',
     ],
     answer: 0,
     explanation:
-      'Underfitting means the model is too simple to fit even its training data, so the training loss stays high, and validation loss sits close to it (small gap). A widening gap with falling training loss is overfitting; jumping curves suggest a learning rate that is too high; quick drop to a low level is a healthy run.',
+      'A widening gap, with training loss still falling while validation loss rises, is overfitting: P is memorising its training set (stop near epoch 15, or regularise). Both curves stuck at a high level and close together is underfitting (or a bug): Q is too simple to fit even its training data. A flat curve is only healthy if it flattens at a low loss.',
     difficulty: 'beginner',
   },
   {

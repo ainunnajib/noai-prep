@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Plot, Grid, Axes, Path, Dots, VLine, Label, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Slider, Plot, Grid, Axes, Path, Dots, VLine, useNarrow } from '../../../../../kit'
 import { expectedCounts, metricsOf, type Counts, type Metrics } from './evalMath'
+import { HaloLabel } from './HaloLabel'
 import s from './eval.module.css'
 
 /*
@@ -166,9 +167,9 @@ export default function ErrorCostScenarios() {
           <VLine x={bestF1.t} color={F1_C} dash="6 4" width={2} />
           <Path points={rows.map((r) => [r.t, r.cost] as [number, number])} color={COST_C} width={3} />
           <Dots points={[{ x: best.t, y: best.cost, color: COST_C, r: 6 }]} />
-          <Label x={best.t} y={best.cost} dx={best.t > 0.6 ? -9 : 9} dy={18} anchor={best.t > 0.6 ? 'end' : 'start'} color={COST_C}>
+          <HaloLabel x={best.t} y={best.cost} dx={best.t > 0.6 ? -9 : 9} dy={18} anchor={best.t > 0.6 ? 'end' : 'start'} color={COST_C}>
             {`cheapest: t = ${best.t.toFixed(2)}`}
-          </Label>
+          </HaloLabel>
         </Plot>
         <Plot x={[0, 1]} y={[0, 1]} width={560} height={plotH} minHeight={170} margin={{ left: 52, bottom: 34, top: 14 }} ariaLabel={`Precision, recall and F1 against threshold for ${sc.title}`}>
           <Grid xTicks={10} yTicks={4} />

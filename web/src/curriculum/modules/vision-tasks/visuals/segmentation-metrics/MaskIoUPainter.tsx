@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Figure, Controls, Segmented, Button, useContainerWidth } from '../../../../../kit'
-import { N, CLASSES, TRUTH, PRED0, classStats, meanIoU, f2, f3, type Grid, type AbsentRule } from './scene'
+import { N, CLASSES, TRUTH, PRED0, classStats, meanIoU, f3, type Grid, type AbsentRule } from './scene'
 
 /*
   Paint the prediction, watch the counts. The selected class drives both the brush and the overlap view:
@@ -45,7 +45,8 @@ function GridView({
     }
     const p = v === overlay.c
     const t = overlay.truth[k] === overlay.c
-    const col = CLASSES[overlay.c].color
+    // the overlap view uses each class's strong ink colour, so even the pale background class stands out in dark mode
+    const col = CLASSES[overlay.c].ink
     if (p && t) rects.push(<rect key={k} x={x} y={y} width={cell} height={cell} style={{ fill: col, stroke: 'var(--surface)', strokeWidth: 1 }} />)
     else if (p)
       rects.push(
@@ -106,8 +107,8 @@ const pre: CSSProperties = {
   fontSize: '0.8rem',
   lineHeight: 1.5,
   color: 'var(--ink)',
-  whiteSpace: 'pre',
-  overflowX: 'auto',
+  whiteSpace: 'pre-wrap',
+  overflowWrap: 'anywhere',
   width: '100%',
   boxSizing: 'border-box',
 }
@@ -123,18 +124,20 @@ export default function MaskIoUPainter() {
   const stats = classStats(pred, TRUTH)
   const m = meanIoU(stats, rule)
   const sel = stats[brush]
+  // the terms are shown rounded to 3 places; say "≈" when their average does not round to the same value
+  const sameRounded = m.terms.length > 0 && f3(m.terms.reduce((a, t) => a + Number(f3(t)), 0) / m.terms.length) === f3(m.value)
   const acc = pred.reduce((a, v, k) => a + (v === TRUTH[k] ? 1 : 0), 0) / (N * N)
   const paint = (k: number) => setPred((g) => (g[k] === brush ? g : g.map((v, q) => (q === k ? brush : v))))
 
-  const iouTxt = (s: (typeof stats)[number]) => (s.iou === null ? (rule === 'skip' ? 'skipped' : rule === 'one' ? '0/0 → 1' : '0/0 → 0') : f2(s.iou))
+  const iouTxt = (s: (typeof stats)[number]) => (s.iou === null ? (rule === 'skip' ? 'skipped' : rule === 'one' ? '0/0 → 1' : '0/0 → 0') : f3(s.iou))
   const codeLines: [string, string][] = [
     [`p = (pred == ${brush})`, `${sel.nPred} pixels`],
     [`t = (true == ${brush})`, `${sel.nTrue} pixels`],
     ['inter = (p & t).sum()', String(sel.inter)],
     ['union = (p | t).sum()', String(sel.union)],
-    ['iou = inter / union', sel.union === 0 ? '0/0: undefined!' : f3(sel.inter / sel.union)],
+    ['iou = inter / union', sel.union === 0 ? '0/0 undefined' : f3(sel.inter / sel.union)],
   ]
-  const code = codeLines.map(([a, b]) => `${a.padEnd(23)}# ${b}`).join('\n')
+  const code = codeLines.map(([a, b]) => `${a.padEnd(22)}# ${b}`).join('\n')
 
   return (
     <Figure
@@ -155,13 +158,13 @@ export default function MaskIoUPainter() {
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 1rem', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--ink-2)' }}>
         <span>
-          <Swatch kind="both" color={CLASSES[brush].color} /> both say {CLASSES[brush].name} (∩ = {sel.inter})
+          <Swatch kind="both" color={CLASSES[brush].ink} /> both say {CLASSES[brush].name} (∩ = {sel.inter})
         </span>
         <span>
-          <Swatch kind="pred" color={CLASSES[brush].color} /> predicted only ({sel.nPred - sel.inter})
+          <Swatch kind="pred" color={CLASSES[brush].ink} /> predicted only ({sel.nPred - sel.inter})
         </span>
         <span>
-          <Swatch kind="true" color={CLASSES[brush].color} /> true only ({sel.nTrue - sel.inter})
+          <Swatch kind="true" color={CLASSES[brush].ink} /> true only ({sel.nTrue - sel.inter})
         </span>
         <span>
           ∪ = {sel.inter} + {sel.nPred - sel.inter} + {sel.nTrue - sel.inter} = <b>{sel.union}</b>
@@ -208,7 +211,7 @@ export default function MaskIoUPainter() {
         })}
         <div style={{ borderTop: '1px solid var(--rule)', paddingTop: '0.35rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '0.3rem 1rem', fontSize: '0.88rem' }}>
           <span>
-            mean IoU = ({m.terms.map(f2).join(' + ')}) / {m.terms.length} = <b className="tabular">{f3(m.value)}</b>
+            mean IoU = ({m.terms.map(f3).join(' + ')}) / {m.terms.length} {sameRounded ? '=' : '≈'} <b className="tabular">{f3(m.value)}</b>
           </span>
           <span style={{ color: 'var(--ink-2)' }}>
             pixel accuracy = <b className="tabular">{f3(acc)}</b>

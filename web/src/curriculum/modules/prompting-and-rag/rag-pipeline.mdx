@@ -1,3 +1,226 @@
-{/* stub: lesson 'The RAG pipeline' is being written */}
+import RAGPipeline from './visuals/rag-pipeline/RAGPipeline'
+import ChunkSizer from './visuals/rag-pipeline/ChunkSizer'
+import AdaptationChooser from './visuals/rag-pipeline/AdaptationChooser'
 
-This lesson is being written.
+Ask a chatbot about your CCA's rules or this morning's news and it will often answer confidently, and wrongly. It is not lying: it can only use what it memorised during training, and that never included your club's handbook or today's headlines. **Retrieval-augmented generation (RAG)** fixes this the way a sensible student would: look it up first, then answer from what you found.
+
+## Why a language model needs to look things up
+
+In [the previous lesson](#/learn/prompting-and-rag/prompt-engineering) you saw that a model can use exactly two sources: its **weights**, frozen when training ended, and the **prompt**. Relying on the weights alone causes three problems.
+
+- **Knowledge cut-off.** Training data stops at some date, the model's <Term def="The date after which a model's training data stops. The model knows nothing that happened later unless it is given in the prompt.">knowledge cut-off</Term>. Anything newer is simply missing.
+- **Private data.** The model never saw your school's handbook, a company's HR policy or your own notes.
+- **Hallucination.** When the answer is missing, the model still produces fluent, plausible text. A confident but false answer is a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term>.
+
+All three are fixed by putting the right facts **in the prompt**. But you cannot paste everything in. The <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> is limited, every extra token costs time and money, and models answer worse when the useful sentence is buried in pages of irrelevant text. So the real job is to find the **few passages that matter** and put only those in the prompt.
+
+<Analogy title="An open-book exam">
+
+In an open-book exam you don't reread the whole textbook. You use the index to find the two or three right pages, then you write the answer from them, quoting the page so the examiner can check. Finding the pages is **retrieval**. Writing from them is **generation**. RAG makes a language model take open-book exams.
+
+</Analogy>
+
+## The pipeline, stage by stage
+
+A RAG system works in two phases. The first happens once, before anyone asks anything; the second happens for every question.
+
+<Columns min={240}>
+
+<div>
+
+**Indexing (done once, in advance)**
+
+1. **Load** the documents: handbooks, web pages, PDFs.
+2. **Chunk**: split them into short passages called <Term def="A short passage cut from a longer document, typically a few sentences or a few hundred tokens long, that is embedded and retrieved as one unit.">chunks</Term>.
+3. **Embed**: turn each chunk into a vector with an <Term def="A model that turns a piece of text into a vector, so that texts with similar meanings get vectors pointing in similar directions.">embedding model</Term>.
+4. **Store** each vector with its text in a <Term def="A database that stores vectors (with the text they came from) and quickly finds the ones most similar to a query vector.">vector database</Term>.
+
+</div>
+
+<div>
+
+**Answering (every question)**
+
+5. **Embed the question** with the *same* embedding model.
+6. **Retrieve**: find the $k$ chunks whose vectors are most similar to the question's.
+7. **Augment**: build a prompt from instructions, those chunks and the question.
+8. **Generate**: the LLM writes the answer, citing the chunks it used.
+
+</div>
+
+</Columns>
+
+The name lists the last three steps: the **generation** is **augmented** by **retrieval**. Now follow one question through the answering phase. The document store is a made-up AI Club handbook: private facts that no public model could know.
+
+<RAGPipeline />
+
+Three things to notice:
+
+- **The model is the same in both modes.** Switching retrieval on changes only the prompt. No weights are touched, so updating the bot's knowledge means editing documents, not retraining.
+- **Search always returns $k$ chunks**, even when none of them is relevant (try the wifi question). It is the prompt's instructions that stop the model from forcing an answer out of irrelevant text.
+- **A missing chunk cannot be fixed later.** With $k = 1$ the camp's cost never reaches the model, so even a perfect LLM can only say it doesn't know.
+
+## How "most similar" is measured
+
+Each chunk vector $\mathbf{c}$ is compared with the question vector $\mathbf{q}$ using <Term def="The cosine of the angle between two vectors: their dot product divided by the product of their lengths. 1 means same direction, 0 means perpendicular.">cosine similarity</Term>, the same score you used for TF-IDF search in [Text as data](#/learn/text-as-data/bag-of-words-and-tfidf):
+
+$$
+\cos(\mathbf{q}, \mathbf{c}) = \frac{\mathbf{q} \cdot \mathbf{c}}{\lVert \mathbf{q} \rVert \, \lVert \mathbf{c} \rVert}
+$$
+
+- $\mathbf{q} \cdot \mathbf{c}$ is the **dot product**: multiply matching entries and add them up. It is large when both vectors are large in the same places.
+- $\lVert \mathbf{q} \rVert$ and $\lVert \mathbf{c} \rVert$ are the **lengths** (L2 norms): the square root of the sum of squares.
+- Dividing by the lengths removes the effect of size, so only the **direction** counts. The score runs from $-1$ to $1$, and $1$ means "pointing exactly the same way".
+
+The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**. Many systems scale every vector to length 1 when they store it; then both lengths are 1 and the score is just the dot product, which makes search fast.
+
+<Steps title="Worked example: which 2 chunks does the retriever pick?">
+  <Step title="The vectors">
+    A tiny embedding with 3 numbers per text. Question $\mathbf{q} = [1, 2, 2]$; chunks $\mathbf{c}_1 = [2, 1, 2]$, $\mathbf{c}_2 = [0, 3, 4]$, $\mathbf{c}_3 = [4, 0, 3]$. We want the top $k = 2$.
+  </Step>
+  <Step title="Lengths">
+    $\lVert \mathbf{q} \rVert = \sqrt{1 + 4 + 4} = 3$, $\lVert \mathbf{c}_1 \rVert = \sqrt{4 + 1 + 4} = 3$, $\lVert \mathbf{c}_2 \rVert = \sqrt{0 + 9 + 16} = 5$, $\lVert \mathbf{c}_3 \rVert = \sqrt{16 + 0 + 9} = 5$.
+  </Step>
+  <Step title="Dot products">
+    $\mathbf{q} \cdot \mathbf{c}_1 = 2 + 2 + 4 = 8$, $\mathbf{q} \cdot \mathbf{c}_2 = 0 + 6 + 8 = 14$, $\mathbf{q} \cdot \mathbf{c}_3 = 4 + 0 + 6 = 10$.
+  </Step>
+  <Step title="Cosines">
+    $\cos_1 = \frac{8}{3 \times 3} \approx 0.89$, $\cos_2 = \frac{14}{3 \times 5} \approx 0.93$, $\cos_3 = \frac{10}{3 \times 5} \approx 0.67$.
+  </Step>
+  <Step title="Rank and keep the top 2">
+    The order is $\mathbf{c}_2, \mathbf{c}_1, \mathbf{c}_3$, so the prompt gets $\mathbf{c}_2$ and $\mathbf{c}_1$. Notice that $\mathbf{c}_3$ has a **bigger** dot product than $\mathbf{c}_1$ (10 against 8) but loses once we divide by the lengths: a chunk should not win just because its vector is long.
+  </Step>
+</Steps>
+
+Real embedding models produce hundreds of numbers per text (384, 768 and 1,536 are common sizes), and they are trained so that "How much is the camp?" lands near "The camp costs \$40" even though the two share almost no words. That is the big advantage over keyword search. You will build the keyword version from scratch in [the next lesson](#/learn/prompting-and-rag/rag-from-scratch).
+
+<QuickCheck
+  q="Why must the question be embedded with the same embedding model that was used for the chunks?"
+  options={["Vectors from different models live in different spaces, so comparing them gives meaningless scores", "The same model makes the question vector longer, which raises every cosine score", "The LLM can only read vectors that were made by its own embedding model", "Using one model means the chunks never need to be embedded in advance"]}
+  answer={0}
+  explain="Each embedding model has its own coordinate system: entry 5 might mean 'about money' in one model and nothing like that in another. Cosine similarity only makes sense when both vectors use the same coordinates. The length of the question vector does not matter at all, because cosine divides it out."
+/>
+
+## Grounding: answer from the context, and say where
+
+The augmented prompt in the visual begins with three instructions. Each one does a job.
+
+| Instruction | Why it is there |
+|---|---|
+| "Answer using **only** the context below." | Stops the model from mixing in memorised facts that may be outdated or wrong. |
+| "**Cite** the chunk number for each fact." | Lets a reader check every claim against its source. |
+| "If the answer is not in the context, **say you don't know**." | Turns a would-be hallucination into an honest "not found". |
+
+An answer that is based on, and supported by, the supplied sources is called <Term def="Basing a model's answer on supplied sources, such as retrieved documents, so that each claim can be traced back to them.">grounded</Term>. This is why RAG **reduces** hallucination and lets a model handle new or private data without retraining. It does not **eliminate** hallucination: a model can still misread a chunk, or ignore it and answer from memory. Citations are what let people catch that.
+
+<KeyIdea>
+
+RAG = **retrieve** the chunks most similar to the question, **augment** the prompt with them, and **generate** an answer grounded in them. The weights never change: the model's knowledge is extended by what it reads, the way an open-book exam extends what you remember.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={237} />
+
+## Chunk size and top-k: the settings that make or break RAG
+
+<Analogy title="Photocopying for the open-book exam">
+
+You may bring photocopies into the exam hall. Copy single sentences and you'll have exactly the line you remembered but not the one before it that explains it. Copy whole chapters and the answer is in there somewhere, but you'll spend the exam flipping through pages, and your bag only holds so much.
+
+</Analogy>
+
+Three settings decide what the model gets to read.
+
+- **Chunk size.** Small chunks match precisely, but an answer that spans two sentences gets **cut in half**, and a lone sentence may lose its meaning ("They must be submitted by 5 pm." Who are *they*?). Large chunks keep context, but bring in irrelevant text, blur the similarity score (the useful sentence is a small part of the chunk) and use up the context window.
+- **Overlap.** Neighbouring chunks share a few words, so an answer that falls on a boundary still appears whole in at least one chunk. The price is that some text is stored and sent twice.
+- **Top-$k$.** Retrieving more chunks makes it more likely the answer is included, but adds noise and length.
+
+<ChunkSizer />
+
+The prompt length is easy to estimate: the retrieved context is about $k \times \text{chunk size}$. With chunks of 300 <Term def="A small piece of text, often a word or part of a word, that a language model reads and writes one at a time.">tokens</Term> and $k = 4$, that is $4 \times 300 = 1{,}200$ tokens, plus the instructions and the question. The number of chunks is about $\frac{N}{\text{size} - \text{overlap}}$ for a document of $N$ tokens, because each new chunk starts $\text{size} - \text{overlap}$ tokens after the previous one. A 10,000-token handbook cut into 500-token chunks with 100 tokens of overlap starts a new chunk every 400 tokens, so it gives about $10{,}000 / 400 = 25$ chunks.
+
+There is no single best setting: it depends on the documents and the questions. Common starting points are chunks of a few hundred tokens, 10 to 20% overlap and $k$ between about 3 and 10, then you test and adjust.
+
+<KeyIdea>
+
+RAG quality is often decided by the **retrieval settings**, not by the LLM. If the answer never reaches the prompt, no model can use it.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A RAG system retrieves k = 5 chunks of 200 tokens each. Its instructions are 50 tokens and the question is 30 tokens. About how long is the prompt?"
+  options={["1,080 tokens", "280 tokens", "1,000 tokens", "5,080 tokens"]}
+  answer={0}
+  explain="The context is $5 \times 200 = 1{,}000$ tokens; add $50 + 30 = 80$ for the instructions and question to get $1{,}080$. The 1,000 option forgets the instructions and question, and 280 counts only one chunk."
+/>
+
+## Retrieval failure or generation failure?
+
+When a RAG answer is wrong, first find out **which half** failed. Read the retrieved chunks and ask one question: **is the answer in them?**
+
+| | What you see | Typical causes | What to fix |
+|---|---|---|---|
+| **Retrieval failure** | The chunk with the answer is not among the top $k$. | The answer was cut across chunks; $k$ too small; the question's words or meaning don't match the document's; the document is missing or out of date. | Chunk size and overlap, $k$, a better embedding model, adding or refreshing documents. |
+| **Generation failure** | The answer **is** in the retrieved chunks, but the reply is still wrong. | The model misread or ignored the context, mixed in memorised facts, or cited the wrong chunk. | Clearer grounding instructions, fewer but better chunks, a stronger model. |
+
+The camp question at $k = 1$ in the pipeline visual is a retrieval failure: the cost chunk was ranked second and never reached the model. Swapping in a bigger LLM would change nothing.
+
+<QuickCheck
+  q="A student asks 'When is the mock exam?'. The retrieved chunk [2] says 'Saturday 23 January'. The bot replies 'The mock exam is on 30 January [2].' Where is the problem?"
+  options={["Generation: the right chunk was retrieved, but the model did not answer from it", "Retrieval: the right chunk was not among the top k, so k should be raised", "Retrieval: the chunks are too large, so they should be split into single sentences", "Indexing: the handbook must be embedded again with a newer embedding model"]}
+  answer={0}
+  explain="The correct date was in the retrieved context, so retrieval did its job. The model then wrote something its own source does not say: a generation failure, which calls for stricter grounding instructions or a stronger model. Changing k, chunking or the embedding model fixes retrieval, which was not broken."
+/>
+
+## Prompting, RAG or fine-tuning?
+
+<Analogy title="Three ways to get help from a tutor">
+
+You can **ask a tutor a clear question** (prompting). You can **hand them your school notes** to refer to while they answer (RAG). Or you can **send them on a course** so they come back permanently changed (fine-tuning). The course is the most expensive option, and it is the right one only when what they lack is a skill, not information.
+
+</Analogy>
+
+| | Prompting | RAG | Fine-tuning |
+|---|---|---|---|
+| **What changes** | the input only | the input (retrieved text added) | the **weights** |
+| **Adds new or private knowledge** | only what you paste in | yes: edit the documents | unreliably, and it goes out of date |
+| **Changes style, format or skill** | somewhat (instructions, examples) | not really | yes: its main use |
+| **Data and cost** | none; cheapest | documents and a vector store | many examples plus training compute |
+| **Shows its sources** | no | yes, with citations | no |
+
+<Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">Fine-tuning</Term> keeps training the model on examples of the task, so it is the tool for **behaviour**: a house style, a strict output format, or a narrow skill done millions of times. It needs good examples and compute, and training hard on one narrow task can make a model worse at things it used to do well, which is called <Term def="When further training on a new task makes a neural network lose abilities it had learned before.">catastrophic forgetting</Term>.
+
+<AdaptationChooser />
+
+<PastPaperQuestion paper="prelim2026" n={234} />
+
+<Mistake title="Two common mix-ups">
+
+**"RAG trains the model on your documents."** No. RAG never changes the weights; the documents are read at answer time, inside the prompt. That is why updating them is instant.
+
+**"To teach a model new facts, fine-tune it."** Usually the wrong tool. Facts learned in training cannot be cited, are hard to update, and the model may still hallucinate around them. For knowledge, retrieve it; for behaviour, fine-tune.
+
+</Mistake>
+
+<ExamTip>
+
+Prelim questions on RAG are short and keyword-driven:
+
+- "retrieves relevant documents to provide context", "up-to-date or private information", "reduces hallucination", "cites sources" → **RAG**
+- "updating model weights on task-specific data", "adapting style or a narrow task" → **fine-tuning**
+- "examples in the prompt, no weight update" → **few-shot prompting** (in-context learning)
+- the stages in order: chunk → embed → store, then embed the question → retrieve → augment → generate
+- where the vectors live → a **vector database**; how they are compared → **cosine similarity**, keep the **top $k$**
+
+The trap options say RAG makes the model bigger, trains it longer, or retrains it on the documents. It does none of these. In the Final, expect to build the retrieval half yourself: the 2025 Final's third programming task was a RAG retriever in NumPy, which is [the next lesson](#/learn/prompting-and-rag/rag-from-scratch).
+
+</ExamTip>
+
+<Takeaways>
+
+- An LLM alone knows only what was in its training data: nothing after its **knowledge cut-off**, nothing private, and it may **hallucinate** to fill gaps.
+- RAG: **chunk → embed → store** the documents once; for each question **embed → retrieve the top $k$** by cosine similarity → **augment** the prompt → **generate** a grounded answer with citations. The weights never change.
+- Chunk size, overlap and $k$ trade **completeness** against **noise and prompt length**. Many RAG failures are retrieval failures, so check whether the answer was retrieved before blaming the LLM.
+- Choose **prompting** first, **RAG** when the model lacks knowledge, and **fine-tuning** when it lacks a behaviour, style or narrow skill.
+
+</Takeaways>

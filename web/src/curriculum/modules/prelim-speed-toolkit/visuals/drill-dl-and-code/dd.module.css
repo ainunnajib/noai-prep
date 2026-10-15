@@ -1,0 +1,419 @@
+/* Styles for the drill-dl-and-code visuals. Theme tokens only, so light and dark both work. */
+
+.wrap {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  min-width: 0;
+}
+
+.spread {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.8rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.small {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* question card */
+.stage {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  padding: 0.8rem 0.8rem 0.75rem;
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+  min-width: 0;
+}
+.prompt {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* a line of code shown as the question */
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  padding: 0.45rem 0.65rem;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  text-align: left;
+}
+.codeWrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kw {
+  color: var(--viz-5);
+  font-weight: 700;
+}
+.num {
+  color: var(--viz-2);
+  font-weight: 700;
+}
+
+/* timer bar */
+.timer {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.timerFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: background-color 0.3s;
+}
+
+/* answer box */
+.answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.input {
+  font: inherit;
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  width: 9rem;
+  max-width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+}
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* feedback */
+.feedback {
+  width: 100%;
+  border-radius: var(--radius-m);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ok {
+  border-color: color-mix(in srgb, var(--viz-pos) 65%, var(--rule));
+  background: color-mix(in srgb, var(--viz-pos) 9%, var(--surface));
+}
+.miss {
+  border-color: color-mix(in srgb, var(--viz-neg) 65%, var(--rule));
+  background: color-mix(in srgb, var(--viz-neg) 8%, var(--surface));
+}
+.okText {
+  color: var(--viz-pos);
+  font-weight: 750;
+}
+.missText {
+  color: var(--viz-neg);
+  font-weight: 750;
+}
+.working {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.slip {
+  font-size: 0.86rem;
+  color: var(--ink);
+  border-left: 3px solid var(--viz-2);
+  padding-left: 0.55rem;
+}
+
+/* stats strip */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+.stat {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.stat strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+.history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.histDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* multiple-choice option buttons */
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  width: 100%;
+}
+.optionsOne {
+  grid-template-columns: minmax(0, 1fr);
+}
+.opt {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.opt:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.opt:disabled {
+  cursor: default;
+}
+.optMono {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  white-space: pre-wrap;
+}
+.optRight {
+  border-color: var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 16%, var(--surface));
+}
+.optWrong {
+  border-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 14%, var(--surface));
+}
+.optDim {
+  opacity: 0.55;
+}
+
+/* chips (filters, tags) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.chip {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.chipOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  color: var(--ink);
+}
+.tag {
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 750;
+  padding: 0.08rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+}
+
+/* review list after a run */
+.review {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.reviewItem {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink);
+  display: grid;
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+/* shape annotator */
+.annot {
+  width: 100%;
+  display: grid;
+  gap: 0;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  background: var(--surface);
+}
+.annotRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.55rem;
+  border-top: 1px solid var(--rule);
+  min-width: 0;
+}
+.annotRow:first-child {
+  border-top: none;
+}
+.annotNarrow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+}
+.annotCode {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.annotComment {
+  color: var(--ink-3);
+}
+.annotCell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.annotInput {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.annotInput:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.annotGiven {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  padding: 0.3rem 0.45rem;
+}
+.rowOk {
+  background: color-mix(in srgb, var(--viz-pos) 10%, var(--surface));
+}
+.rowBad {
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+}
+.rowFirstBad {
+  box-shadow: inset 4px 0 0 var(--viz-neg);
+}
+.mark {
+  font-weight: 800;
+  width: 1.1rem;
+  text-align: center;
+  flex: none;
+}
+.why {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+  grid-column: 1 / -1;
+}
+
+/* conv strip legend */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  justify-content: center;
+}
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  margin-right: 0.3rem;
+  vertical-align: -0.1rem;
+  border: 1px solid var(--viz-axis);
+}

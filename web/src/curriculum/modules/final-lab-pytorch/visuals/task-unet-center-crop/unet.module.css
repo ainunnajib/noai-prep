@@ -1,0 +1,216 @@
+/* Styles for the task-unet-center-crop visuals. */
+
+.table {
+  width: 100%;
+  display: grid;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+  font-size: 13px;
+}
+.tr {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 1.05fr) minmax(0, 1.1fr) minmax(7.5rem, 1fr) minmax(0, 1.6fr);
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.28rem 0.7rem;
+  border-bottom: 1px solid var(--rule);
+}
+.narrow .tr {
+  grid-template-columns: minmax(5.4rem, 1fr) minmax(5.2rem, 0.9fr) minmax(0, 1.1fr);
+  gap: 0.45rem;
+  padding: 0.28rem 0.5rem;
+}
+.tr:last-child {
+  border-bottom: none;
+}
+.th {
+  background: var(--surface-3);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.trKey {
+  background: var(--surface-2);
+}
+.trOk {
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+}
+.trBad {
+  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
+}
+.trOff {
+  opacity: 0.4;
+}
+.name {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.op {
+  color: var(--ink-2);
+  font-size: 12.5px;
+}
+.shape {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.barTrack {
+  position: relative;
+  display: grid;
+  align-content: center;
+  min-height: 12px;
+  height: 100%;
+}
+.bar {
+  display: block;
+  height: 9px;
+  border-radius: 5px;
+}
+.ghost {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 13px;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  border: 1.5px dashed var(--viz-2);
+  box-sizing: border-box;
+}
+
+/* ---------- CenterCropVisual ---------- */
+.ccGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 0.9rem;
+  width: 100%;
+  align-items: start;
+}
+.narrow .ccGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.impls {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+}
+.impl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.6rem;
+  align-items: center;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.implName {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.implRes {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.badge {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badgeOk {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+.badgeBad {
+  color: var(--bad);
+  background: var(--bad-soft);
+}
+
+/* ---------- SkipAlignOptions ---------- */
+.saGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
+  width: 100%;
+  align-items: start;
+  justify-items: center;
+}
+.saGrid > .facts {
+  justify-self: stretch;
+}
+.facts {
+  display: grid;
+  gap: 0.35rem;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+}
+.fact {
+  display: grid;
+  grid-template-columns: 1.3rem minmax(0, 1fr);
+  gap: 0.3rem;
+}
+.factIcon {
+  font-weight: 800;
+  text-align: center;
+}
+.good {
+  color: var(--ok);
+}
+.bad {
+  color: var(--bad);
+}
+.answer {
+  width: 100%;
+  min-height: 6.5rem;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.answer:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.points {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  font-size: var(--step--1);
+}
+.point {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr);
+  gap: 0.3rem;
+  align-items: start;
+  line-height: 1.45;
+}
+.model {
+  width: 100%;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, var(--rule));
+  background: color-mix(in srgb, var(--ok) 7%, var(--surface));
+  color: var(--ink);
+}

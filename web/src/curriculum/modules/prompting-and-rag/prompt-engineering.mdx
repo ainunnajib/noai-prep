@@ -2,6 +2,38 @@ import FewShotBuilder from './visuals/prompt-engineering/FewShotBuilder'
 import PromptAnatomy from './visuals/prompt-engineering/PromptAnatomy'
 import ChainOfThought from './visuals/prompt-engineering/ChainOfThought'
 
+export const promptCode = `import json
+
+def build_prompt(instruction, examples, new_input):
+    lines = [instruction, ""]
+    for text, label in examples:            # one block per shot
+        lines.append(f"Review: {text}")
+        lines.append(f"Sentiment: {label}")
+        lines.append("")
+    lines.append(f"Review: {new_input}")    # the new case, left unfinished
+    lines.append("Sentiment:")
+    return "\\n".join(lines)
+
+examples = [
+    ("The chicken rice was fragrant and the uncle was so friendly.", "positive"),
+    ("Wah, so efficient, waited one hour for my kopi.", "negative"),
+]
+prompt = build_prompt("Classify the sentiment of the review.", examples,
+                      "Wah, waited 45 minutes for cold noodles. Best lunch ever.")
+print(prompt)
+print("shots:", len(examples))
+
+# Structured output: suppose we asked for JSON and the model replied like this
+reply = '{"sentiment": "negative", "sarcastic": true}'
+data = json.loads(reply)                    # text -> Python dict
+print(data["sentiment"], data["sarcastic"])
+
+chatty = "Sure! The sentiment is negative."
+try:
+    json.loads(chatty)
+except json.JSONDecodeError:
+    print("Not valid JSON: retry with a stricter format instruction")`
+
 Ask a chatbot "help me study" and you get a generic list of tips. Give it your exam date, your weak topic, your timetable and the shape of answer you want, and you get a plan you can actually use. Same model, same weights: the only thing that changed is the text you typed. **Prompt engineering** is the skill of writing that text well, and it is the cheapest way there is to make a language model more useful.
 
 ## What a prompt really is
@@ -82,9 +114,10 @@ The model picked up the task from examples **inside its context**. This is calle
 In the formula, a few-shot prompt just puts the examples after the bar:
 
 $$
-P_\theta(y \mid \text{instruction},\ x_1, y_1,\ x_2, y_2,\ \dots,\ x_k, y_k,\ x)
+P_\theta(y \mid I,\ x_1, y_1,\ \dots,\ x_k, y_k,\ x)
 $$
 
+- $I$ is the instruction, for example "Classify the sentiment of the review."
 - $x_1, \dots, x_k$ are the example inputs and $y_1, \dots, y_k$ their answers, so $k$ is the number of shots.
 - $x$ is the new input and $y$ the answer we want.
 - $\theta$ is unchanged. There is no loss, no gradient and no update. The "learning" lasts only as long as the examples stay in the prompt.
@@ -167,37 +200,7 @@ Most prompt quality comes from being **specific about the task and the format**.
 
 When a program reads the model's answer (a marking script, a spreadsheet, a grader), you need **structured output**: text in a fixed, machine-readable format. The most common is <Term def='JavaScript Object Notation: a text format for data made of keys and values, like {"name": "Mei", "class": "3E"}. Python reads it with json.loads.'>JSON</Term>, which Python turns into a dictionary with `json.loads`. Prompts are just strings, so you can also build them with code. Run this, then add a third example or change the reply.
 
-<PyRunner code={`import json
-
-def build_prompt(instruction, examples, new_input):
-    lines = [instruction, ""]
-    for text, label in examples:            # one block per solved example ("shot")
-        lines.append(f"Review: {text}")
-        lines.append(f"Sentiment: {label}")
-        lines.append("")
-    lines.append(f"Review: {new_input}")    # the new case, left unfinished
-    lines.append("Sentiment:")
-    return "\\n".join(lines)
-
-examples = [
-    ("The chicken rice was fragrant and the uncle was so friendly.", "positive"),
-    ("Wah, so efficient, waited one hour for my kopi.", "negative"),
-]
-prompt = build_prompt("Classify the sentiment of the review.", examples,
-                      "Wah, waited 45 minutes for cold noodles. Best lunch ever.")
-print(prompt)
-print("shots:", len(examples))
-
-# Structured output: suppose we asked for JSON and the model replied like this
-reply = '{"sentiment": "negative", "sarcastic": true}'
-data = json.loads(reply)                    # text -> Python dict
-print(data["sentiment"], data["sarcastic"])
-
-chatty = "Sure! The sentiment is negative."
-try:
-    json.loads(chatty)
-except json.JSONDecodeError:
-    print("Not valid JSON: retry with a stricter format instruction")`} />
+<PyRunner code={promptCode} />
 
 The output ends with:
 

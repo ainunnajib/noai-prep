@@ -38,10 +38,10 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.sgd-and-mini-batches.4',
     prompt: 'Mini-batch gradients are noisy, yet mini-batch gradient descent still reaches a good minimum. What is the main reason?',
     options: [
-      'Each mini-batch gradient equals the full gradient on average, so the random errors cancel out over many steps',
-      'Shuffling the data makes every mini-batch gradient exactly equal to the full-batch gradient',
-      'The learning rate removes the noise from each mini-batch gradient before the update',
-      'The optimiser stores every previous gradient and takes their exact average at each step',
+      'Each mini-batch gradient equals the full gradient on average, so the errors cancel out over many steps',
+      'Shuffling the data before each epoch makes every mini-batch gradient exactly equal to the full-batch gradient',
+      'The learning rate is small enough to filter the noise out of each mini-batch gradient before the update',
+      'The optimiser stores every previous gradient and uses their exact average in place of the current one',
     ],
     answer: 0,
     explanation:
@@ -53,10 +53,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'Two networks reach the same training loss. Network A sits in a narrow, sharp minimum; network B sits in a wide, flat one. On new test data, which is more likely to do better, and why?',
     options: [
-      'B, because test data shift the loss surface slightly and a flat minimum stays low under a small shift',
-      'A, because a sharp minimum fits the training data more precisely and so predicts new data better',
-      'Neither, because equal training loss always means equal test loss',
-      'A, because sharp minima have larger gradients, which keep the model learning at test time',
+      'B, because a flat minimum stays low when the test data shift the loss surface slightly',
+      'A, because a sharp minimum fits the training data more precisely, so it also predicts new data better',
+      'Neither, because two models with equal training loss must also have equal test loss',
+      'A, because sharp minima have larger gradients, which keep the model improving at test time',
     ],
     answer: 0,
     explanation:

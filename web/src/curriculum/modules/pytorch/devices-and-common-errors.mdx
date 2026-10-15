@@ -3,7 +3,7 @@ import ErrorDecoder from './visuals/devices-and-common-errors/ErrorDecoder'
 import GPUMemoryBudget from './visuals/devices-and-common-errors/GPUMemoryBudget'
 import FreezePanel from './visuals/devices-and-common-errors/FreezePanel'
 
-Deep learning is trained on GPUs because they are much faster at the one thing neural networks do all day: multiplying big matrices. But PyTorch never moves anything to the GPU for you, GPU memory is small and fixed, and pretrained models must be partly locked before you fine-tune them. Get any of these wrong and you meet the errors this lesson is about. In the NOAI Final and at IOAI you work on a GPU (recent IOAI tasks quoted about 16 GB of GPU memory), and NOAI papers ask about exactly these errors and their fixes.
+Deep learning is trained on GPUs because they are much faster at the one thing neural networks do all day: multiplying big matrices. But PyTorch never moves anything to the GPU for you, GPU memory is small and fixed, and pretrained models must be partly locked before you fine-tune them. Get any of these wrong and you meet the errors this lesson is about. IOAI's programming tasks run on a GPU (recent tasks quoted about 16 GB of GPU memory), and NOAI papers ask about exactly these errors and their fixes.
 
 ## CPU, GPU and devices
 
@@ -163,6 +163,12 @@ When the GPU runs out of memory, PyTorch stops with `torch.OutOfMemoryError: CUD
 - **Optimiser state**: plain SGD stores nothing extra; SGD with momentum stores one running average per weight; **Adam stores two** (8 bytes per weight).
 - **Activations**: the outputs of every layer, which autograd keeps from the forward pass because `backward()` needs them. They grow with the **batch size**, and with the input size (longer texts, bigger images).
 
+<Analogy title="Packing a 16 GB suitcase">
+
+Your clothes (the weights, their gradients and the optimiser's notes) take the same space on every trip. Souvenirs (the activations) grow with the number of shops you visit (the batch size). When the suitcase will not close, the first fix is to visit fewer shops per trip, not to throw out clothes.
+
+</Analogy>
+
 With $P$ parameters (all trainable), Adam, FP32, batch size $B$ and $A$ bytes of saved activations per example:
 
 $$
@@ -215,6 +221,12 @@ A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before a
 ## Freezing layers for transfer learning
 
 <Term def="Reusing a model trained on a big dataset (for example ImageNet) as the starting point for a new task, instead of training from random weights.">Transfer learning</Term> starts from a pretrained network, replaces its last layer (the "head") with a new one for your classes, and trains mainly the head. To stop the pretrained layers changing, you **freeze** them: set `requires_grad = False` on their parameters. Autograd then computes no gradients for them, and the optimiser skips them.
+
+<Analogy title="Laminating the pages you trust">
+
+You borrow a senior's excellent notes. You laminate the pages you trust so nothing can change them, and write only in a fresh section at the back. Freezing laminates the pretrained layers; the new head is the section you write in. One catch: your pen (the optimiser) only writes on the pages you handed it at the start.
+
+</Analogy>
 
 The optimiser only ever updates the parameter tensors it was **given when it was created**. So two things must agree: which parameters require gradients, and which parameters the optimiser holds.
 

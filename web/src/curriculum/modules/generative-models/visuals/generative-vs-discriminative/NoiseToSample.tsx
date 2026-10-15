@@ -45,7 +45,8 @@ function Toast({ f, size, label }: { f: number[]; size: number; label: string })
   const bread = `M${L},88 Q${L},94 ${L + 6},94 H${R - 6} Q${R},94 ${R},88 V${top} C${R + o},${top - 0.55 * H} ${R - 0.22 * Wd},${top - H} 50,${top - H} C${L + 0.22 * Wd},${top - H} ${L - o},${top - 0.55 * H} ${L},${top} Z`
   // kaya: an inset blob whose margin shrinks as the spread grows
   const m = 17 - 12 * kaya
-  const kTop = top - H + m + 2
+  // keep the top of the kaya above the crust's shoulders, so it never dips into a notch
+  const kTop = Math.min(top - 3, top - H + m + 2)
   const kaya_d = `M${L + m},${88 - m * 0.6} V${top} C${L + m - 1},${kTop + 0.35 * (top - kTop)} ${50 - 0.22 * Wd},${kTop} 50,${kTop} C${50 + 0.22 * Wd},${kTop} ${R - m + 1},${kTop + 0.35 * (top - kTop)} ${R - m},${top} V${88 - m * 0.6} Q${R - m},${94 - m} ${R - m - 6},${94 - m} H${L + m + 6} Q${L + m},${94 - m} ${L + m},${88 - m * 0.6} Z`
   const bw = 10 + 26 * butter
   const bh = 6 + 9 * butter

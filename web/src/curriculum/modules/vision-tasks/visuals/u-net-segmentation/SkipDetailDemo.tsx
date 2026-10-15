@@ -69,7 +69,8 @@ function enlarge(g: Grid): Grid {
   return { n, v }
 }
 
-const shade = (f: number) => `color-mix(in srgb, var(--viz-1) ${Math.round(f * 88)}%, var(--surface))`
+// a mild gamma lifts faint (blurred) values so they stay visible on a dark background too
+const shade = (f: number) => `color-mix(in srgb, var(--viz-1) ${Math.round(Math.pow(f, 0.6) * 88)}%, var(--surface))`
 
 /** A map drawn as an S x S square. Binary maps use row runs to keep the SVG small. */
 function MapView({ g, x, y, S, errors }: { g: Grid; x: number; y: number; S: number; errors?: boolean[] }) {
@@ -179,7 +180,8 @@ export default function SkipDetailDemo() {
           A simplified picture: every map is shaded by how much of each square the object covers, and all maps are drawn the same size, so
           lost detail shows up as bigger squares. With the skips <b>off</b>, the decoder can only enlarge the 4×4 bottleneck, and the thin
           road disappears. Click a skip arrow (or use the switches) to hand the decoder the encoder&apos;s map at that resolution, and watch
-          the red (wrong) pixels vanish. Which skip fixes the most?
+          the red (wrong) pixels vanish. Which skip fixes the most? (A real decoder combines the skip map with its own upsampled map
+          rather than swapping one for the other; this toy only isolates where the location detail comes from.)
         </>
       }
     >

@@ -8,6 +8,8 @@ export interface MetricDatum {
   color?: string
   /** text shown when the value is undefined */
   undefinedText?: string
+  /** decimals shown (default 2); use 3 where 0.999 must not round to 1.00 */
+  digits?: number
 }
 
 /** Horizontal bars for metrics between 0 and 1 that can be undefined (e.g. precision with no positive predictions). */
@@ -26,7 +28,7 @@ export function MetricBars({ data, ariaLabel }: { data: MetricDatum[]; ariaLabel
                 <span className={s.mbarUndef}>{d.undefinedText ?? 'undefined (0/0)'}</span>
               )}
             </span>
-            <span className={s.mbarValue}>{ok ? d.value.toFixed(2) : '–'}</span>
+            <span className={s.mbarValue}>{ok ? d.value.toFixed(d.digits ?? 2) : '–'}</span>
           </div>
         )
       })}

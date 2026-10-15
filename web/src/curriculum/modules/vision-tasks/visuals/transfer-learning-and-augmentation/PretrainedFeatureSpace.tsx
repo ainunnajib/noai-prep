@@ -96,9 +96,9 @@ export default function PretrainedFeatureSpace() {
       title="Raw pixels or pretrained features?"
       caption={
         <>
-          Each dot is one of 60 small images, placed on a 2-D map so that images with similar numbers sit close together. Start with <b>raw pixels</b>: tap a dot
-          and its 5 nearest neighbours light up (green line: same class; red dashed: different class). Then switch to the <b>pretrained encoder</b>, a small CNN
-          that was trained only to tell basic shapes apart and then frozen. Without ever seeing a cat, house or car label, it already groups them.
+          Each dot is one of 60 small images, placed on a 2-D map so that images with similar numbers sit close together. Start with <b>raw pixels</b> (32&times;32 pixels &times; 3 colours = 3,072
+          numbers per image): tap a dot and its 5 nearest neighbours light up (green line: same class; red dashed: different class). Then switch to the{' '}
+          <b>pretrained encoder</b> (64 features per image), a small CNN that was trained only to tell basic shapes apart and then frozen. Without ever seeing a cat, house or car label, it already groups them.
         </>
       }
     >
@@ -107,8 +107,8 @@ export default function PretrainedFeatureSpace() {
         value={space}
         onChange={setSpace}
         options={[
-          { value: 'raw', label: 'raw pixels (3,072 numbers)' },
-          { value: 'feat', label: 'pretrained encoder (64 features)' },
+          { value: 'raw', label: narrow ? 'raw pixels' : 'raw pixels (3,072 numbers)' },
+          { value: 'feat', label: narrow ? 'pretrained encoder' : 'pretrained encoder (64 features)' },
         ]}
       />
       <div ref={wrapRef} className={css.fsWrap} style={{ gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0, 1.25fr) minmax(0, 1fr)' }}>

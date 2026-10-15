@@ -1,0 +1,396 @@
+/* Shared styles for the "Your study roadmap beyond NOAI" visuals (HTML so text stays crisp on phones). */
+
+/* figure bodies centre their children; these blocks should span the full card */
+.ladderWrap,
+.suggest,
+.palette,
+.planGrid,
+.planSummary,
+.filters,
+.depthKey,
+.secGrid,
+.topicPanel,
+.source {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---------- SkillsLadder ---------- */
+.ladderWrap {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .ladderWrap {
+    grid-template-columns: 1fr;
+  }
+}
+.ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0.6rem;
+  display: grid;
+  gap: 0.55rem;
+  border-left: 5px solid var(--viz-muted);
+  border-right: 5px solid var(--viz-muted);
+  border-radius: 4px;
+}
+.ladder li {
+  margin: 0;
+}
+.rung {
+  --rung: var(--viz-1);
+  display: grid;
+  grid-template-columns: 1.9rem 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1.5px solid var(--rule);
+  border-left: 6px solid var(--rung);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.rung:hover {
+  border-color: var(--rung);
+}
+.rungOpen {
+  background: color-mix(in srgb, var(--rung) 14%, var(--surface));
+  border-color: var(--rung);
+}
+.rungIdx {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--rung);
+  color: var(--surface);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+.rungText {
+  display: grid;
+  min-width: 0;
+}
+.rungStage {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.rungVerb {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  line-height: 1.3;
+}
+.nextTag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: 0.1em;
+  background: var(--highlight);
+  color: var(--highlight-ink);
+}
+.rungProg {
+  display: flex;
+  gap: 3px;
+}
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rung);
+}
+.pipOn {
+  background: var(--rung);
+}
+.rungPanel,
+.topicPanel {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.topicPanel p {
+  margin: 0.35rem 0;
+}
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 3px solid var(--viz-1);
+}
+.when {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+}
+.skillList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+.skillList li {
+  margin: 0;
+}
+.skill {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem;
+  align-items: start;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.skill input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+}
+.skillLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.7rem;
+  margin: 0.15rem 0 0 1.55rem;
+  font-size: 0.8rem;
+}
+.sample {
+  margin-top: 0.7rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--rule);
+  font-size: 0.86rem;
+  color: var(--ink-2);
+}
+.sampleLabel {
+  display: inline-block;
+  margin-right: 0.3rem;
+  padding: 0 0.4rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.suggest {
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* ---------- WeeklyPlanBuilder ---------- */
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.brush {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.brushOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.brushSwatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.planGrid {
+  display: grid;
+  gap: 3px;
+  user-select: none;
+}
+.planRow {
+  display: grid;
+  grid-template-columns: minmax(6.2rem, 9.5rem) repeat(var(--slots), minmax(0, 1fr));
+  gap: 3px;
+  align-items: stretch;
+}
+.planKey .weekLabel {
+  border-left: 3px solid var(--highlight);
+}
+.weekLabel {
+  display: grid;
+  align-content: center;
+  padding: 0.15rem 0.4rem;
+  border-left: 3px solid transparent;
+  line-height: 1.2;
+}
+.weekDates {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.weekNote {
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+.cell {
+  min-height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cellEmpty {
+  background: var(--surface);
+  border-style: dashed;
+}
+.cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.planSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.sumHead {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 0.4rem;
+}
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+}
+.checks li {
+  margin: 0;
+}
+.checkOk {
+  color: var(--ink);
+}
+.checkOk > span:first-child {
+  color: var(--viz-pos);
+  font-weight: 700;
+}
+.checkBad {
+  color: var(--viz-neg);
+}
+.checkBad > span:first-child {
+  font-weight: 700;
+}
+
+/* ---------- SyllabusCoverageGrid ---------- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  justify-content: center;
+}
+.depthKey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem 1rem;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+.keyCell {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.3rem;
+  vertical-align: -2px;
+  border-radius: 3px;
+  border: 1px solid var(--rule);
+}
+.secGrid {
+  display: grid;
+  gap: 0.8rem;
+}
+.secBlock {
+  display: grid;
+  gap: 0.35rem;
+}
+.secTitle {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.topicWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.topic {
+  position: relative;
+  padding: 0.3rem 0.5rem 0.3rem 1.55rem;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+.cellIntro {
+  border: 1.5px dashed var(--viz-muted);
+}
+.topicOpen {
+  outline: 2.5px solid var(--highlight);
+  outline-offset: 1px;
+}
+.topicCat {
+  position: absolute;
+  left: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  background: var(--surface);
+  color: var(--ink-2);
+}
+.source {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}

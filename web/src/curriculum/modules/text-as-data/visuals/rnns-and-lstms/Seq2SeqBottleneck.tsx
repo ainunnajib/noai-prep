@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, Path, Dots, VLine, HLine, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, Path, Dots, VLine, HLine, Label, useContainerWidth } from '../../../../../kit'
 import { LENGTHS, SIZES, ACC } from './s2sData'
 
 /*
@@ -131,7 +131,10 @@ export default function Seq2SeqBottleneck() {
       </p>
       <Plot x={[4, 40]} y={[0, 100]} width={520} height={260} minHeight={240} margin={{ left: 44, top: 26 }} ariaLabel="Percentage of output words correct against sentence length, with and without attention">
         <Grid xTicks={9} yTicks={5} />
-        <HLine y={5} color="var(--viz-muted)" label="guessing: 5%" />
+        <HLine y={5} color="var(--viz-muted)" />
+        <Label x={n >= 22 ? 4 : 40} y={5} dx={n >= 22 ? 6 : -4} dy={-5} anchor={n >= 22 ? 'start' : 'end'} color="var(--viz-muted)">
+          guessing: 5%
+        </Label>
         <VLine x={n} color="var(--viz-ink)" dash="4 4" width={1.2} />
         <Path points={pts(plain)} color="var(--viz-2)" width={2.6} />
         {attn && <Path points={pts(withA)} color="var(--viz-3)" width={2.6} />}

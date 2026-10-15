@@ -14,7 +14,7 @@ const D = 6
 const H = 2
 const DK = D / H
 const TOK = ['A', 'B', 'C', 'D']
-const TOK_COLOUR = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-5)']
+const TOK_COLOUR = ['var(--viz-1)', 'var(--viz-2)', 'var(--viz-3)', 'var(--viz-6)']
 
 type Mode = 'good' | 'bad'
 type Src = { t: number; j: number }

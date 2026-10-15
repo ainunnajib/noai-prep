@@ -1,3 +1,333 @@
-{/* stub: lesson 'Gradient boosting' is being written */}
+import GBResidualStepper from './visuals/gradient-boosting/GBResidualStepper'
+import PseudoResidualToggle from './visuals/gradient-boosting/PseudoResidualToggle'
+import PatienceTracker from './visuals/gradient-boosting/PatienceTracker'
+import TabularLeaderboard from './visuals/gradient-boosting/TabularLeaderboard'
 
-This lesson is being written.
+export const gbCode = `import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+def l2_negative_gradient(y, y_pred):
+    return y - y_pred                      # the residuals
+
+def l1_negative_gradient(y, y_pred):
+    return np.sign(y - y_pred)             # +1 or -1 (0 where exactly right)
+
+def fit_gb(X, y, n_trees=100, lr=0.1, max_depth=3, loss="l2"):
+    neg_grad = l2_negative_gradient if loss == "l2" else l1_negative_gradient
+    init = np.mean(y) if loss == "l2" else np.median(y)   # best constant
+    pred = np.full(len(y), init)
+    trees = []
+    for m in range(n_trees):
+        r = neg_grad(y, pred)                    # a. pseudo-residuals
+        tree = DecisionTreeRegressor(max_depth=max_depth, random_state=0)
+        tree.fit(X, r)                           # b. a small tree learns them
+        pred += lr * tree.predict(X)             # c. a small step for every row
+        trees.append(tree)
+    return init, trees
+
+def predict_gb(init, trees, X, lr=0.1):
+    pred = np.full(X.shape[0], init)
+    for tree in trees:
+        pred += lr * tree.predict(X)             # replay the same steps
+    return pred
+
+X, y = make_regression(n_samples=600, n_features=5, noise=15, random_state=0)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=0)
+
+baseline = np.full(len(y_te), y_tr.mean())
+print("always predict the mean:", round(mean_squared_error(y_te, baseline), 1))
+init, trees = fit_gb(X_tr, y_tr)
+print("our boosting, L2 loss:  ", round(mean_squared_error(y_te, predict_gb(init, trees, X_te)), 1))
+sk = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=0)
+sk.fit(X_tr, y_tr)
+print("scikit-learn's version: ", round(mean_squared_error(y_te, sk.predict(X_te)), 1))
+init1, trees1 = fit_gb(X_tr, y_tr, loss="l1")
+print("our boosting, L1 loss:  ", round(mean_squared_error(y_te, predict_gb(init1, trees1, X_te)), 1))`
+
+export const esCode = `import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.datasets import make_friedman1
+from sklearn.model_selection import train_test_split
+
+def fit_gb_early_stop(X_tr, y_tr, X_val, y_val, n_trees=500, lr=0.1,
+                      max_depth=3, patience=10, min_delta=1e-4):
+    init = np.mean(y_tr)
+    F_tr = np.full(len(y_tr), init)
+    F_val = np.full(len(y_val), init)
+    trees = []
+    best_loss, best_n, counter = np.inf, 0, 0
+    for m in range(n_trees):
+        tree = DecisionTreeRegressor(max_depth=max_depth, random_state=0)
+        tree.fit(X_tr, y_tr - F_tr)              # fit the residuals
+        F_tr += lr * tree.predict(X_tr)
+        F_val += lr * tree.predict(X_val)        # same tree, same step
+        trees.append(tree)
+        val_loss = np.mean((y_val - F_val) ** 2)
+        if val_loss < best_loss - min_delta:     # improved: remember it
+            best_loss, best_n, counter = val_loss, m + 1, 0
+        else:
+            counter += 1
+            if counter >= patience:              # no progress for a while
+                print(f"lr {lr}: stopped after {m + 1} trees,", end=" ")
+                break
+    return init, trees[:best_n], best_loss       # keep the best number
+
+X, y = make_friedman1(n_samples=400, noise=1.0, random_state=0)
+X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.3, random_state=0)
+
+for lr in (0.3, 0.1, 0.03):
+    init, trees, best = fit_gb_early_stop(X_tr, y_tr, X_val, y_val, lr=lr)
+    print(f"kept {len(trees)} trees, validation MSE {best:.3f}")`
+
+export const nanCode = `import numpy as np
+from sklearn.datasets import make_friedman1
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
+
+X, y = make_friedman1(n_samples=2000, noise=1.0, random_state=0)
+rng = np.random.default_rng(0)
+X[rng.random(X.shape) < 0.2] = np.nan      # knock out 20% of all values
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, random_state=0)
+
+model = HistGradientBoostingRegressor(learning_rate=0.1, max_iter=500,
+                                      early_stopping=True, n_iter_no_change=10,
+                                      random_state=0)
+model.fit(X_tr, y_tr)                        # no imputation needed
+print("boosting rounds run before early stopping:", model.n_iter_)
+print("test R^2 with 20% of values missing:", round(model.score(X_te, y_te), 3))
+
+try:
+    LinearRegression().fit(X_tr, y_tr)
+except ValueError as e:
+    print("LinearRegression refuses:", str(e).split(".")[0])`
+
+AdaBoost improved a team of stumps by **re-weighting** the examples it got wrong. Gradient boosting takes a more direct route: every new tree is trained to **predict the mistakes** of the model so far, and is then added to it. This one idea, published by Jerome Friedman in 2001, powers XGBoost, LightGBM and CatBoost, the libraries that win most competitions on tables of data. It was also Task 1 of the **NOAI 2026 Final**: implement gradient boosting from scratch in NumPy. By the end of this lesson you will be able to write every line of it.
+
+<Analogy title="Sculpting">
+
+A sculptor does not carve a statue in one cut. She first roughs out the overall shape, then looks at what is still wrong (the nose is too big, the shoulder too flat) and shaves off a little of exactly that. Each pass fixes part of the remaining error, and many careful passes add up to a fine statue. Gradient boosting builds a model the same way: a rough first guess, then a long series of small corrections, each one aimed at whatever is still wrong.
+
+</Analogy>
+
+## Fitting what is left over
+
+Take a <Term def="A task where the model predicts a number, such as a price or a temperature, rather than a class.">regression</Term> problem: from an input $x$, predict a number $y$. Gradient boosting builds its prediction $F(x)$ in rounds.
+
+1. **Start with a constant**: predict the same number $F_0$ for everyone, the mean of the training targets.
+2. **Measure what is left over.** For every training example, the <Term def="The gap between the true value and the prediction, y − F(x). Positive when the model predicts too low, negative when it predicts too high.">residual</Term> $r_i = y_i - F(x_i)$ is how far the prediction is from the truth.
+3. **Fit a small tree to the residuals.** A shallow regression tree $h(x)$ learns to predict the residual from $x$. Where the model is too low it predicts a positive correction, where it is too high a negative one.
+4. **Add a fraction of that tree** to the model, then go back to step 2 with the new residuals.
+
+The orange steps in the middle panel below are the trees; watch the residuals they chase shrink round by round.
+
+<GBResidualStepper />
+
+In symbols, round $m$ updates the model like this:
+
+$$
+F_m(x) = F_{m-1}(x) + \eta \, h_m(x)
+$$
+
+- $F_{m-1}(x)$ is the model after $m - 1$ trees, and $F_m(x)$ the model after $m$ trees;
+- $h_m(x)$ is tree number $m$, fitted to the residuals $y_i - F_{m-1}(x_i)$;
+- $\eta$ (eta) is the <Term def="A number between 0 and 1 that scales each tree's output before it is added to the model. Smaller values mean smaller, more careful steps and need more trees. Also called shrinkage.">learning rate</Term>, also called **shrinkage**, usually between 0.01 and 0.3.
+
+Unrolling all the rounds, the final model is the starting constant plus a scaled sum of all the trees: $F_M(x) = F_0 + \eta \sum_{m=1}^{M} h_m(x)$. To predict for a new $x$, start from $F_0$ and add $\eta$ times each tree's output.
+
+<Steps title="Two rounds by hand (the NOAI 2026 Final example)">
+  <Step title="Start with the mean">
+    Data: $x = [1, 2, 3, 4]$ and $y = [3, 1, 2, 10]$; stumps (depth-1 trees) and $\eta = 0.1$. The mean is $F_0 = \tfrac{3 + 1 + 2 + 10}{4} = 4$ for every example. MSE $= \tfrac{1 + 9 + 4 + 36}{4} = 12.5$.
+  </Step>
+  <Step title="Residuals">
+    $r = y - F_0 = [-1, -3, -2, 6]$. Three examples are over-predicted, one is badly under-predicted.
+  </Step>
+  <Step title="Tree 1 learns the residuals">
+    The best single split is $x \le 3.5$. A regression tree's leaf predicts the **mean** of its targets: left leaf $\tfrac{-1 - 3 - 2}{3} = -2$, right leaf $6$.
+  </Step>
+  <Step title="Take a small step">
+    $F_1 = F_0 + 0.1 \times h_1 = [4 - 0.2,\ 4 - 0.2,\ 4 - 0.2,\ 4 + 0.6] = [3.8, 3.8, 3.8, 4.6]$. The new residuals are $[-0.8, -2.8, -1.8, 5.4]$, so MSE $= \tfrac{0.64 + 7.84 + 3.24 + 29.16}{4} = 10.22$.
+  </Step>
+  <Step title="Repeat">
+    Tree 2 makes the same split, with leaves $-1.8$ and $5.4$, giving $F_2 = [3.62, 3.62, 3.62, 5.14]$ and MSE $\approx 8.37$. After 100 stumps the predictions are $[2.88, 1.24, 1.98, 9.90]$: close to $y$, built from 100 small corrections.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="The model currently predicts $F_{m-1}(x) = 20$ for a flat. The next tree predicts a residual of $+5$ for it, and the learning rate is $0.2$. What does the model predict after this round?"
+  options={['21', '25', '1', '20.2']}
+  answer={0}
+  explain="$F_m = F_{m-1} + \eta \, h_m = 20 + 0.2 \times 5 = 21$. Adding the whole tree output (25) forgets the learning rate; 1 is only the step, without the old prediction."
+/>
+
+<KeyIdea>
+
+Gradient boosting starts from a constant and adds trees **one at a time**, each fitted to the **residuals** of the model so far: $F_m = F_{m-1} + \eta \, h_m$. Each tree only has to model what is left over, so many simple trees add up to a powerful model.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={152} />
+
+## Why "gradient"? Pseudo-residuals
+
+Where is the gradient in gradient boosting? It is hiding in the residuals. Measure the error on one example with the <Term def="The squared-error loss for one example, ½(y − F)². The ½ is there so that its derivative comes out neatly as −(y − F).">L2 loss</Term> $L = \frac12 (y - F)^2$, where $F$ is the current prediction. Its derivative with respect to the prediction is (chain rule: bring down the 2, times the derivative of the inside, which is $-1$)
+
+$$
+\frac{\partial L}{\partial F} = \tfrac12 \times 2 (y - F) \times (-1) = -(y - F).
+$$
+
+Gradient descent says: to make the loss smaller, nudge $F$ in the direction of the **negative** gradient, $-\frac{\partial L}{\partial F} = y - F$. That is exactly the residual! So "add a little of the residual to each prediction" is one step of gradient descent on the predictions.
+
+There is a catch. Nudging the 40 training predictions directly would just memorise the training set and say nothing about a new $x$. So gradient boosting fits a **tree** to the negative gradients: the tree learns *which way to move* as a function of $x$, which also works for inputs it has never seen. That is why people call gradient boosting **gradient descent in function space**. The targets the tree is trained on are called <Term def="The negative gradient of the loss with respect to the current prediction, −∂L/∂F, for each training example. Each new tree in gradient boosting is fitted to them. For squared error they are the ordinary residuals.">pseudo-residuals</Term>, because for other losses they are no longer ordinary residuals.
+
+The recipe now works for **any** loss you can differentiate. (AdaBoost from the last lesson is a close cousin: the same one-learner-at-a-time recipe applied to the exponential loss.) The other loss NOAI asks about is the <Term def="The absolute-error loss for one example, |y − F|. It grows in a straight line with the size of the error, so a single huge error matters far less than under squared error.">L1 loss</Term> $L = |y - F|$. If the model predicts too low ($y > F$), then $L = y - F$ and the slope with respect to $F$ is $-1$; if it predicts too high, the slope is $+1$. So the negative gradient is $+1$ or $-1$:
+
+$$
+-\frac{\partial L}{\partial F} = \operatorname{sign}(y - F)
+$$
+
+Each example only says "go up" or "go down", however big its error is. (Exactly at $y = F$ the slope is undefined; `np.sign` returns 0 there, which is a fine choice.)
+
+Each loss also has its own best **starting constant**: the single number $c$ that makes the total loss over the training set smallest. For L2 it is the **mean** of $y$; for L1 it is the **median** (the middle value once the targets are sorted).
+
+| Loss | $L(y, F)$ | pseudo-residual $-\frac{\partial L}{\partial F}$ | best starting constant $F_0$ | NumPy |
+|---|---|---|---|---|
+| L2 (squared error) | $\frac12 (y - F)^2$ | $y - F$ | mean | `y - y_pred`, `np.mean(y)` |
+| L1 (absolute error) | $\lvert y - F \rvert$ | $\operatorname{sign}(y - F)$ | median | `np.sign(y - y_pred)`, `np.median(y)` |
+
+Check it on $y = [3, 1, 2, 10]$. The mean is 4: its MSE is 12.5, while starting at the median 2.5 would give an MSE of 14.75. The median is $\tfrac{2 + 3}{2} = 2.5$: its mean absolute error is $\tfrac{0.5 + 1.5 + 0.5 + 7.5}{4} = 2.5$, while the mean 4 would give $\tfrac{1 + 3 + 2 + 6}{4} = 3$. Each loss prefers its own constant. Now see what this means when one example is an outlier.
+
+<PseudoResidualToggle />
+
+<KeyIdea>
+
+Every tree in gradient boosting is fitted to the **negative gradient of the loss** with respect to the current predictions. For L2 that is the residual $y - F$ (start from the mean); for L1 it is $\operatorname{sign}(y - F)$ (start from the median), which makes L1 boosting **robust to outliers**.
+
+</KeyIdea>
+
+<Mistake>
+
+The classic slips when coding this:
+
+- **Sign flipped**: `y_pred - y` is the gradient, not the *negative* gradient. With it, every tree pushes the predictions the wrong way and the loss goes **up**.
+- **Learning rate forgotten in `predict`**: if `fit` adds `lr * tree.predict(X)` but `predict` adds the full `tree.predict(X)`, predictions on new data are wildly off. Training and prediction must replay exactly the same steps.
+- **Residuals from the start every round**: the pseudo-residuals must use the **current** predictions $F_{m-1}$, not $F_0$; otherwise every tree learns the same thing.
+- **Fitting the tree to `y`** instead of to the pseudo-residuals. Then each tree tries to predict the whole target again, rather than what is left over.
+
+</Mistake>
+
+<ExamTip>
+
+The NOAI 2026 Final's Task 1 asked for exactly these pieces, each one line: `np.sign(y - y_pred)` for the L1 negative gradient, `y - y_pred` for L2, `np.median(y)` and `np.mean(y)` for the starting constants, then the boosting loop (pseudo-residuals, fit a `DecisionTreeRegressor`, add `learning_rate * tree.predict(X)`) and a `predict` that replays it. In the Prelim, remember: boosting builds its trees **sequentially**, each one correcting the errors of the ones before.
+
+</ExamTip>
+
+## Gradient boosting from scratch
+
+Here are both losses, using scikit-learn's `DecisionTreeRegressor` as the tree, compared with scikit-learn's own `GradientBoostingRegressor` (100 trees of depth 3, $\eta = 0.1$). The data comes from `make_regression`, the same generator the 2026 Final's test cells used.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={gbCode} />
+
+Our L2 version and scikit-learn's agree almost exactly (a test MSE of about 1,365, against 16,828 for always predicting the mean); the tiny difference comes from how trees break ties between equally good splits. But look at the L1 line: about 15,519, barely better than the mean! It is not a bug. The trees are fitted to signs, so they output numbers between $-1$ and $+1$, and each round moves a prediction by at most $\eta \times 1 = 0.1$. After 100 rounds a prediction can have moved by 10 at most, while these targets are spread out by about $\pm 133$. Real implementations fix this with a **line search**: after fitting the tree to the signs, each leaf's output is replaced by the median of the actual residuals in that leaf, so the steps have the right size. (Scaling the targets down first also helps.) For NOAI, know the plain version: it is what the Final asked for.
+
+## Shrinkage, the number of trees, and early stopping
+
+The learning rate and the number of trees work as a pair. A smaller $\eta$ takes smaller steps, so you need **more trees** to reach the same training loss, and training takes longer. In return, the model usually **generalises better**: many small corrections average out noise that one big correction would have copied. Friedman found this empirically, and it is why small learning rates (0.01 to 0.1) with hundreds or thousands of trees are standard.
+
+Adding trees keeps lowering the **training** loss, all the way to zero, but after a point each new tree mostly fits noise and the **validation** loss creeps back up. So how many trees should you use? Let the validation data decide. <Term def="Stopping training once the validation loss has stopped improving, and keeping the model from the best point. In boosting it chooses the number of trees.">Early stopping</Term> works like this:
+
+1. After each new tree, compute the loss on a **validation set** (data the trees never train on), updating its predictions with the same tree and the same step.
+2. If the validation loss beats the best so far (by more than a tiny `min_delta`), remember it and the number of trees, and reset a counter to 0.
+3. Otherwise add 1 to the counter. When the counter reaches the <Term def="How many rounds in a row early stopping waits without any improvement in the validation loss before it gives up.">patience</Term>, stop.
+4. Keep only the trees up to the best round.
+
+<PatienceTracker />
+
+<KeyIdea>
+
+**Smaller $\eta$ means more trees but usually a better model.** **Early stopping** tracks the validation loss after every tree, stops once it has not improved for `patience` rounds, and keeps the best number of trees, so you do not have to guess how many trees to use.
+
+</KeyIdea>
+
+Here is the bonus question of the 2026 Final in a few lines. The same loop runs for three learning rates on a harder, curved dataset (`make_friedman1`):
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={esCode} />
+
+With these seeds you should see the trade-off clearly: $\eta = 0.3$ keeps about 30 trees with a validation MSE of about 4.2, $\eta = 0.1$ about 120 trees and 3.7, and $\eta = 0.03$ almost 500 trees and 3.3. Note `best_n = m + 1`: after the first tree ($m = 0$) the model holds **one** tree. Writing `m` instead is an off-by-one bug that throws away the best tree.
+
+<PastPaperQuestion paper="prelim2026" n={178} />
+
+<Note title="Other knobs you will meet">
+
+- **Tree depth** (`max_depth`, typically 3 to 8): a depth-$d$ tree can model interactions between up to $d$ features. Stumps ($d = 1$) can only add up separate effects of single features.
+- **Row subsampling** (`subsample`, for example 0.8): each tree is trained on a random 80% of the rows, drawn without replacement. This <Term def="Gradient boosting in which each tree is fitted to a random subset of the training rows. The randomness makes the trees less alike and acts as regularisation.">stochastic gradient boosting</Term> adds randomness that reduces overfitting, much like bagging. The predictions must still be updated for **all** rows, not only the sampled ones.
+- **Minimum leaf size** (`min_samples_leaf`): stops trees from carving out single noisy points.
+
+</Note>
+
+## XGBoost, LightGBM and CatBoost
+
+The algorithm above is the core of three famous libraries. They run the same loop, faster and with extra protection against overfitting:
+
+- <Term def="eXtreme Gradient Boosting (2014): a fast gradient boosting library with regularisation of the leaf values, second-order (Newton) steps and built-in handling of missing values.">XGBoost</Term> adds penalties on the size of the leaf values and on the number of leaves (**regularisation**), uses the second derivative of the loss as well as the first to choose leaf values, and learns a **default direction for missing values** at every split, so you do not need to fill them in.
+- <Term def="Light Gradient Boosting Machine (Microsoft, 2017): gradient boosting that bins feature values into histograms for very fast split search and grows trees leaf by leaf.">LightGBM</Term> sorts feature values into a few hundred **histogram bins**, which makes finding splits very fast on big data, and grows each tree leaf by leaf where the loss drops most. scikit-learn's `HistGradientBoostingRegressor` and `HistGradientBoostingClassifier` copy this design and also handle missing values natively.
+- <Term def="Categorical Boosting (Yandex, 2017): gradient boosting with careful built-in handling of categorical features such as town or flat type.">CatBoost</Term> is built to handle **categorical** features (such as town or flat type) directly, without you turning them into numbers first.
+
+All three also have built-in early stopping. You can try the same ideas in the browser with scikit-learn's LightGBM-style booster. Here a fifth of all the values are missing, and it trains anyway, while a linear model refuses:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={nanCode} />
+
+It runs about 50 boosting rounds before its own early stopping kicks in and reaches a test $R^2$ of about 0.69 without any imputation. ($R^2$ is the fraction of the variance in $y$ that the model explains: 1 is perfect, 0 is no better than predicting the mean.) The three big libraries look much the same in code. They cannot run in the browser, so here is the pattern without output. XGBoost and CatBoost are given a validation set for early stopping; LightGBM can do the same with a callback.
+
+```python
+from xgboost import XGBRegressor
+model = XGBRegressor(n_estimators=1000, learning_rate=0.05,
+                     max_depth=4, early_stopping_rounds=50)
+model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+
+from lightgbm import LGBMRegressor
+model = LGBMRegressor(n_estimators=500, learning_rate=0.05)
+model.fit(X_tr, y_tr)
+
+from catboost import CatBoostRegressor
+model = CatBoostRegressor(iterations=1000, learning_rate=0.05,
+                          early_stopping_rounds=50, verbose=0)
+model.fit(X_tr, y_tr, eval_set=(X_val, y_val))  # cat_features=[...]
+```
+
+For **tabular data** (rows and columns, like a spreadsheet of HDB resale flats) of small to medium size, a gradient-boosted tree model is usually the strongest first thing to try. A large 2022 benchmark study (Grinsztajn, Oyallon and Varoquaux) found that on medium-sized tables, around 10,000 rows, tree ensembles still beat deep neural networks. Deep learning wins on images, text and audio, where the raw inputs have structure that networks exploit. See for yourself, and notice how much the word "usually" matters:
+
+<TabularLeaderboard />
+
+<QuickCheck
+  q="A table of 30,000 loan applications has 25 columns, a mix of numbers and categories, and 8% of the values are missing. Which first model is usually the strongest, with the least preparation?"
+  options={['A gradient-boosted tree model such as LightGBM, XGBoost or CatBoost', 'A deep neural network with five hidden layers, after imputing the missing values', 'Linear regression on the 25 columns, after filling missing values with the mean', 'k-nearest neighbours on standardised features, after dropping rows with missing values']}
+  answer={0}
+  explain="This is medium-sized tabular data, where boosted trees are the default to beat. These libraries also learn what to do with missing values at each split and handle mixed feature types, so little preparation is needed. Deep networks shine on images, text and audio; on tables like this they usually trail tree ensembles and need more tuning. Dropping every row with a missing value would throw away a large share of the data."
+/>
+
+<ExamTip>
+
+Gradient boosting in one breath, for the Prelim:
+
+- **Sequential**: each tree corrects the errors of the trees before it; mainly reduces **bias** (bagging reduces variance).
+- $F_m = F_{m-1} + \eta \, h_m$, where $h_m$ is fitted to the **pseudo-residuals** (negative gradients): $y - F$ for L2, $\operatorname{sign}(y - F)$ for L1.
+- Start from the **mean** (L2) or the **median** (L1).
+- **Small $\eta$ → more trees, usually better generalisation**; choose the number of trees by **early stopping** on validation data.
+- **XGBoost, LightGBM, CatBoost**: regularised, fast gradient boosting with native missing-value handling; the default choice for tabular data.
+
+</ExamTip>
+
+<Takeaways>
+
+- Gradient boosting starts from a constant and adds small trees **in sequence**: $F_m = F_{m-1} + \eta \, h_m$, each tree fitted to what the model still gets wrong.
+- The tree targets are **pseudo-residuals**, the negative gradient of the loss: $y - F$ for L2 (start from the mean) and $\operatorname{sign}(y - F)$ for L1 (start from the median, robust to outliers).
+- The **learning rate** shrinks every step: smaller $\eta$ needs more trees but usually generalises better.
+- **Early stopping** watches the validation loss, stops after `patience` rounds without improvement and keeps the best number of trees.
+- **XGBoost, LightGBM and CatBoost** are optimised, regularised gradient boosting with native missing-value handling: the model to beat on tables of data.
+
+</Takeaways>

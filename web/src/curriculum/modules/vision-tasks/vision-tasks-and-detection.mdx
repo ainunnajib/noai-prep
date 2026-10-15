@@ -119,7 +119,7 @@ Once a box is suppressed it is gone: it never gets a turn and cannot delete anyt
 
 </Mistake>
 
-Here is the same loop in NumPy, the kind of from-scratch function a Final-round task can ask for. Run it, then change the threshold to 0.6 and see $S$ survive.
+Here is the same loop in NumPy, the kind of from-scratch function a Final-round task can ask for. Run it, then predict which boxes survive with a threshold of 0.6 before you change `thr=0.5` to `thr=0.6` and run it again.
 
 <PyRunner packages={['numpy']} code={`import numpy as np
 
@@ -153,7 +153,15 @@ scores = np.array([0.9, 0.8, 0.7, 0.6])
 print(iou(boxes[0], boxes[1:]))    # P against Q, R, S
 print(nms(boxes, scores, thr=0.5))`} />
 
-It prints `[0.6 0.  0. ]` and `[0, 2]`: indices 0 and 2 are $P$ and $R$. In PyTorch projects you would call the built-in `torchvision.ops.nms(boxes, scores, iou_threshold)`, which runs the same algorithm.
+It prints `[0.6 0.  0. ]` and `[0, 2]`: indices 0 and 2 are $P$ and $R$.
+
+<Reveal label="With a threshold of 0.6">
+
+All four boxes survive: `[0, 1, 2, 3]`. $S$ survives because its IoU with $R$ is $9/16 \approx 0.56$, below 0.6. $Q$ survives too, which surprises many people: its IoU with $P$ is exactly 0.6, and a box is only suppressed when its IoU is strictly **above** the threshold.
+
+</Reveal>
+
+In PyTorch projects you would call the built-in `torchvision.ops.nms(boxes, scores, iou_threshold)`, which runs the same algorithm.
 
 <ExamTip>
 

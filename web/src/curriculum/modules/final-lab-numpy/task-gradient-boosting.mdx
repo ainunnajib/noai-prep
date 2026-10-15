@@ -1,3 +1,452 @@
-{/* stub: lesson '2026 Task 1: Gradient boosting from scratch' is being written */}
+import { FINAL } from '../../../data/facts'
+import BestConstant from './visuals/task-gradient-boosting/BestConstant'
+import GBStepper from './visuals/task-gradient-boosting/GBStepper'
+import ScaffoldTrapFinder from './visuals/task-gradient-boosting/ScaffoldTrapFinder'
+import EarlyStopRunner from './visuals/task-gradient-boosting/EarlyStopRunner'
 
-This lesson is being written.
+Task 1 of the 2026 Final asked you to build a **gradient boosting regressor** from scratch: 25 marks, made of 8 for four one-line functions, 12 for a class and its training loop, and 5 bonus marks for early stopping. The only tools were NumPy and scikit-learn's ready-made decision tree; no XGBoost and no `GradientBoostingRegressor`. Almost every line you write is one idea from this lesson, and the easiest marks to lose go to a misread scaffold, a flipped sign or a missing `learning_rate`. If boosting itself is new, read [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting) first; here we rebuild the exam task line by line.
+
+<Analogy title="Golf, the notebook's own picture">
+
+Your first shot (the **initial prediction**) stops 20 m short of the hole. You do not aim the second shot at the hole from the tee. You aim at **where the ball is now**, at the 20 m that remain. The ball travels 15 m, and the third shot aims at the last 5 m. Gradient boosting works the same way. Each new tree aims at what is still wrong (the **residual**), and the answer is the sum of all the shots. One twist: you swing at only 10% strength (the **learning rate**), so many small, careful shots add up to the answer.
+
+</Analogy>
+
+## What the notebook asks for
+
+| Part | Marks | What you write |
+|---|---|---|
+| Q1.1, Q1.2 | 2 + 2 | `l1_negative_gradient`, `l2_negative_gradient`: one line each |
+| Q1.3, Q1.4 | 2 + 2 | `l1_initial_prediction` (median), `l2_initial_prediction` (mean): one line each |
+| Q1.5 | 4 | the `predict` method of `BaseGradientBoosting` (the heading wrongly says `__init__`) |
+| Q1.6a, Q1.6b | 8 | the training loop in `fit` (steps a to e) and `predict` |
+| Q1.7 (bonus) | 5 | `GBREarlyStop.fit`: stop when a validation score stops improving |
+
+The notebook was built with <Term def="An autograder for Jupyter notebooks. Hidden test cases call your functions by their exact names and compare the results with expected values.">otter-grader</Term>. Hidden tests call your functions by name, so never rename a function, change its arguments or edit a test cell.
+
+## Part 1: four one-line building blocks (8 marks)
+
+The model starts from one constant guess and improves it step by step. A <Term def="A number that measures how wrong a prediction is. Training tries to make the average loss small.">loss</Term> $L(y, \hat y)$ measures how wrong a prediction $\hat y$ is for a true value $y$. The task gives two:
+
+$$
+\begin{aligned}
+L_2(y, \hat y) &= \tfrac12 (y - \hat y)^2 \\
+L_1(y, \hat y) &= \lvert y - \hat y \rvert
+\end{aligned}
+$$
+
+The <Term def="Minus the derivative of the loss with respect to the prediction. It says which way, and how strongly, to move the prediction to make the loss smaller.">negative gradient</Term> $-\frac{\partial L}{\partial \hat y}$ says which way to nudge the prediction to make the loss smaller, and how hard.
+
+- **L2.** By the chain rule, $\frac{\partial}{\partial \hat y}\tfrac12(y - \hat y)^2 = (y - \hat y) \times (-1)$. So the negative gradient is $y - \hat y$, the plain <Term def="Truth minus prediction, y − ŷ: how far, and in which direction, the prediction missed.">residual</Term>. A far-away point pulls hard.
+- **L1.** The slope of $\lvert y - \hat y \rvert$ is $-1$ when the prediction is too small and $+1$ when it is too big. So the negative gradient is $\operatorname{sign}(y - \hat y)$: $+1$, $-1$, or $0$ when $y = \hat y$. At that one point the slope is undefined, and the notebook allows any value in $[-1, 1]$ (a <Term def="A stand-in for the derivative at a corner where the true derivative does not exist. For |x| at 0, any value between −1 and 1 is allowed.">sub-gradient</Term>). `np.sign` gives 0. Every point pulls with the same strength, however far away it is.
+
+Before any tree, the model needs one constant for every sample, $F_0$. The best constant is the one where all the pulls cancel. Try it:
+
+<BestConstant />
+
+<KeyIdea>
+
+The best constant for L2 is the **mean** (the residuals add up to 0 there). The best constant for L1 is the **median** (as many $+1$ pulls as $-1$ pulls). That is why Q1.3 returns the median and Q1.4 the mean.
+
+</KeyIdea>
+
+All four answers fit in a cell. Run it and check the numbers by hand: $3 - 1 = 2$, $1 - 1 = 0$, $2 - 5 = -3$, $10 - 0 = 10$.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def l1_negative_gradient(y, y_pred):
+    return np.sign(y - y_pred)          # Q1.1: +1, -1 or 0, element by element
+
+def l2_negative_gradient(y, y_pred):
+    return y - y_pred                   # Q1.2: the residual
+
+def l1_initial_prediction(y):
+    return np.float64(np.median(y))     # Q1.3: no axis -> ONE number
+
+def l2_initial_prediction(y):
+    return np.float64(np.mean(y))       # Q1.4
+
+y = np.array([3.0, 1.0, 2.0, 10.0])
+y_pred = np.array([1.0, 1.0, 5.0, 0.0])
+print(l1_negative_gradient(y, y_pred))
+print(l2_negative_gradient(y, y_pred))
+print(repr(l1_initial_prediction(y)), repr(l2_initial_prediction(y)))
+
+Y = np.array([[1.0, 9.0, 2.0], [4.0, 3.0, 8.0]])   # a 2-D input, like the hidden tests
+print(repr(l1_initial_prediction(Y)), repr(np.median(Y, axis=0)))`} />
+
+```text
+[ 1.  0. -1.  1.]
+[ 2.  0. -3. 10.]
+np.float64(2.5) np.float64(4.0)
+np.float64(3.5) array([2.5, 6. , 5. ])
+```
+
+The notebook's tests feed these functions arrays of shape (3, 5). `np.median(Y)` with no axis gives the one number the docstring asks for, while `np.median(Y, axis=0)` gives one median per column.
+
+<Mistake title="Two one-line traps">
+
+- `return y_pred - y` is the **gradient**, not the negative gradient. Every tree would push the predictions the wrong way: in the real test cell the error grows to about $1.9 \times 10^{12}$.
+- `np.median(y, axis=0)` returns an array for a 2-D `y`. Leave the axis out, and wrap the result in `np.float64(...)` as the signature asks.
+
+</Mistake>
+
+<QuickCheck
+  q="What is `l1_negative_gradient(np.array([4., 6.]), np.array([6., 6.]))`?"
+  options={['`[-1.  0.]`', '`[-2.  0.]`', '`[ 1.  0.]`', '`[-1.  1.]`']}
+  answer={0}
+  explain="$y - \hat y = [4 - 6, 6 - 6] = [-2, 0]$, and `np.sign` turns that into $[-1, 0]$. `[-2. 0.]` is the L2 answer (no sign), `[1. 0.]` is the gradient instead of the negative gradient, and `[-1. 1.]` wrongly treats a zero difference as positive."
+/>
+
+<PastPaperQuestion paper="final2026" n={2} />
+
+## Part 2: the class and the fit loop (12 marks)
+
+Here is the whole algorithm. Each line is one of the TODOs.
+
+$$
+\begin{aligned}
+F_0 &= \text{mean (L2) or median (L1) of } y \\
+r_i &= -\frac{\partial L(y_i, \hat y)}{\partial \hat y}\Big|_{\hat y = F_{m-1}(x_i)} \\
+h_m &= \text{a small tree fitted to the pairs } (x_i, r_i) \\
+F_m(x) &= F_{m-1}(x) + \eta \, h_m(x)
+\end{aligned}
+$$
+
+- $F_m(x)$ is the model's prediction after $m$ trees, and `current_pred` holds $F_m$ for every training row.
+- $r_i$ is the negative gradient from Part 1 for sample $i$, measured at the current prediction. These are the tree's targets, called `residuals` in the code even when they are signs (L1).
+- $h_m$ is tree number $m$, a `DecisionTreeRegressor` with at most `max_depth` levels, fitted only on this round's subsample of rows. Each leaf predicts the average target of its rows.
+- $\eta$ (eta) is the <Term def="The fraction of each tree's prediction that is added to the model, usually 0.01 to 0.3. Smaller steps need more trees but usually generalise better.">learning rate</Term>: only a fraction of each tree's answer is added.
+
+After $M$ trees, the prediction for a new $x$ is
+
+$$
+F_M(x) = F_0 + \eta \sum_{m=1}^{M} h_m(x),
+$$
+
+which is exactly what `predict` computes.
+
+<KeyIdea>
+
+The class just organises one loop. fit: start at $F_0$; repeat (a) compute the negative gradient, (b) pick rows, (c) fit a tree to it, (d) add $\eta \times$ tree to **every** row, (e) store the tree. predict: start at $F_0$ and add $\eta \times$ each stored tree.
+
+</KeyIdea>
+
+<GBStepper />
+
+<Steps title="Two rounds by hand: x = 1, 2, 3, 4 and y = 3, 1, 2, 10 (L2, one-split trees, η = 0.1)">
+  <Step title="Initial prediction">
+    $F_0 = (3 + 1 + 2 + 10) / 4 = 4$ for every sample. MSE $= (1 + 9 + 4 + 36)/4 = 12.5$.
+  </Step>
+  <Step title="a. Residuals">
+    $r = y - F_0 = [-1, -3, -2, 6]$.
+  </Step>
+  <Step title="c. Fit a one-split tree">
+    The best single split is $x \le 3.5$. The left leaf predicts the mean of $-1, -3, -2$, which is $-2$, and the right leaf predicts $6$. Putting the big residual alone in a leaf leaves the smallest squared error.
+  </Step>
+  <Step title="d. Update every row">
+    $F_1 = F_0 + 0.1 \times [-2, -2, -2, 6] = [3.8, 3.8, 3.8, 4.6]$. MSE $= (0.64 + 7.84 + 3.24 + 29.16)/4 = 10.22$.
+  </Step>
+  <Step title="Round 2">
+    New residuals $[-0.8, -2.8, -1.8, 5.4]$, same split, leaves $-1.8$ and $5.4$: $F_2 = [3.62, 3.62, 3.62, 5.14]$, MSE $= 8.37$.
+  </Step>
+  <Step title="After 100 trees">
+    $F_{100} = [2.88, 1.24, 1.98, 9.90]$ and MSE $= 0.02$. One hundred small, corrected steps have almost reached $y$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="$F_0 = 10$ and `learning_rate = 0.1`. Three stored trees predict $20$, $-10$ and $5$ for a sample. What does `predict` return for it?"
+  options={['11.5', '25', '1.5', '13.5']}
+  answer={0}
+  explain="$F_0 + \eta \times (20 - 10 + 5) = 10 + 0.1 \times 15 = 11.5$. Forgetting the learning rate gives $10 + 15 = 25$, forgetting $F_0$ gives $1.5$, and $13.5$ adds $+10$ instead of $-10$."
+/>
+
+<PastPaperQuestion paper="noai2025" n={5} />
+
+### Reading the scaffold
+
+The notebook hands you a half-built <Term def="A blueprint for objects: it bundles data (attributes, stored as self.name) with the functions (methods) that use them.">class</Term> hierarchy. `BaseGradientBoosting` is an <Term def="A class marked ABC that is never used directly. It holds shared code and declares methods (marked @abstractmethod) that every subclass must write.">abstract base class</Term>. It provides the helper methods `_compute_negative_gradient`, `_compute_initial_prediction` and `_subsample_indices`, and it declares an abstract `fit`. `GradientBoostingRegressor` <Term def="A subclass gets every method of its parent class for free and can replace (override) any of them with its own version.">inherits</Term> from it, gets `__init__` already written, and leaves you `fit` and `predict`. Every setting lives on `self`, so inside a method you write `self.learning_rate` and `self.trees`.
+
+<Analogy title="Flat-pack furniture">
+
+Before you build an IKEA wardrobe, you lay out the parts and check which ones arrive pre-assembled. You also notice where the instruction sheet has a mistake ("step 5: attach the door", when the door is already on). Then you avoid the screws that look right but do not fit. The 2026 scaffold has all three: given helper methods, a misleading heading (Q1.5) and look-alike lines that cost marks.
+
+</Analogy>
+
+<ScaffoldTrapFinder />
+
+The full Part 2 answer is short. Steps a to e are the five TODO comments in the notebook:
+
+```python
+# Q1.5: BaseGradientBoosting.predict (and the same body again for Q1.6b)
+predictions = np.full(X.shape[0], self.init_prediction)
+for tree in self.trees:
+    predictions += self.learning_rate * tree.predict(X)
+return predictions
+
+# Q1.6a: inside GradientBoostingRegressor.fit, after the given initialisation
+for m in range(self.n_estimators):
+    residuals = self._compute_negative_gradient(y, current_pred)    # a
+    indices = self._subsample_indices(n_samples, rng)               # b
+    tree = DecisionTreeRegressor(max_depth=self.max_depth,
+                                 random_state=rng.randint(0, 10000))
+    tree.fit(X[indices], residuals[indices])                        # c
+    current_pred += self.learning_rate * tree.predict(X)            # d: ALL rows
+    self.trees.append(tree)                                         # e
+return self
+```
+
+`indices` is how <Term def="Each tree is fitted on a random fraction (subsample) of the training rows, drawn without replacement. The randomness makes the trees less alike and often generalises better.">stochastic gradient boosting</Term> works. With `subsample=0.8`, each tree learns from a random 80% of the rows. Step d still updates every row, because `predict` will later add every tree to every row.
+
+<Note title="Why the L1 model scores so badly (it is not a bug)">
+
+The notebook's test cell prints a test MSE of about **15,986** for `criterion="l1"` and **1,268** for `"l2"`. If your L1 number is huge, your code is probably correct. Each L1 tree is fitted to signs, values between $-1$ and $+1$, so one round moves a prediction by at most $\eta \times 1 = 0.1$. A hundred rounds move it at most 10 units, but the targets spread over hundreds of units (standard deviation 132.5). Real L1 boosting libraries fix this with a "line search": they replace each leaf's value by the median raw residual in that leaf. With that change the test MSE drops to about 1,779. The exam did not ask for it.
+
+</Note>
+
+## Part 3: early stopping (5 bonus marks)
+
+More trees keep lowering the **training** error, but after a while the model starts to memorise noise. That is <Term def="When a model fits the training data so closely, noise included, that it does worse on new data.">overfitting</Term>. The cure is to watch a <Term def="Data held back from training and used only to check the model while you make choices, such as when to stop.">validation set</Term> after every tree and stop when it stops improving.
+
+<Analogy title="Seasoning soup">
+
+You add salt one pinch at a time and taste after each pinch. You remember the best taste so far. If a few pinches in a row have not made it better, you stop, and you throw away the over-salted spoonfuls added after the best moment. The pinches are trees, the tasting is the validation loss, and "a few in a row" is the patience.
+
+</Analogy>
+
+`GBREarlyStop.fit(X_train, y_train, X_val, y_val, patience=10, min_delta=1e-4)` keeps three trackers. The scaffold gives them, and you update them in the loop:
+
+- `best_val_loss`: the lowest validation loss so far (starts at infinity);
+- `best_n_estimators`: **how many trees** had been added when that best happened;
+- `patience_counter`: how many trees in a row have **not** improved on the best by more than `min_delta`.
+
+<EarlyStopRunner />
+
+```python
+for m in range(self.n_estimators):
+    residuals = self._compute_negative_gradient(y_train, F_train)
+    indices = self._subsample_indices(n_samples, rng)
+    tree = DecisionTreeRegressor(max_depth=self.max_depth,
+                                 random_state=rng.randint(0, 10000))
+    tree.fit(X_train[indices], residuals[indices])
+    F_train += self.learning_rate * tree.predict(X_train)   # one tree updates
+    F_val += self.learning_rate * tree.predict(X_val)       # BOTH sets
+    self.trees.append(tree)
+
+    if self.criterion == "l2":
+        val_loss = np.mean((y_val - F_val) ** 2)            # MSE
+    else:
+        val_loss = np.mean(np.abs(y_val - F_val))           # MAE
+
+    if val_loss < best_val_loss - min_delta:                # a real improvement
+        best_val_loss = val_loss
+        best_n_estimators = m + 1                           # a count, not m
+        patience_counter = 0
+    else:
+        patience_counter += 1
+
+    if patience_counter >= patience:
+        break
+# given: self.trees = self.trees[:best_n_estimators]
+```
+
+<Mistake title="Early-stopping slips">
+
+- `best_n_estimators = m` instead of `m + 1`. After the first tree, `m` is 0 but one tree exists, so you would keep one tree too few.
+- Never updating `best_n_estimators`. The given trim `self.trees[:0]` then keeps **no** trees. The visible check only asks for fewer than 500 trees, so it still passes while the model predicts $F_0$ for everyone.
+- Updating `F_val` with a different tree, or forgetting it, so the validation loss never changes.
+- `>` versus `>=`. The code comment says "exceeds" (`>`), but the text and the official solution stop when the counter **reaches** the patience (`>=`). With patience 1 on the test data, `>=` stops after 125 trees and keeps 124; `>` runs on to tree 249 and keeps 247. Use `>=`.
+- Changing the defaults. `criterion` defaults to `'l2'` in `GradientBoostingRegressor` but to `"l1"` in `GBREarlyStop`. Leave both as given; the test cell passes `criterion="l2"` explicitly.
+
+</Mistake>
+
+<PastPaperQuestion paper="noai2025" n={8} />
+
+## The whole task in one cell
+
+This is the complete answer with the given parts lightly shortened, plus the notebook's L2, L1 and early-stopping tests. It runs in your browser with scikit-learn (the first run takes a few seconds).
+
+<PyRunner packages={['numpy', 'scikit-learn']} rows={20} code={`import numpy as np
+from abc import ABC, abstractmethod
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+# ---------- Part 1 (Q1.1 to Q1.4) ----------
+def l1_negative_gradient(y, y_pred):
+    return np.sign(y - y_pred)
+
+def l2_negative_gradient(y, y_pred):
+    return y - y_pred
+
+def l1_initial_prediction(y):
+    return np.float64(np.median(y))
+
+def l2_initial_prediction(y):
+    return np.float64(np.mean(y))
+
+# ---------- Part 2 (Q1.5, Q1.6) ----------
+class BaseGradientBoosting(ABC):
+    def _compute_negative_gradient(self, y, y_pred):               # given
+        if self.criterion == "l1":
+            return l1_negative_gradient(y, y_pred)
+        return l2_negative_gradient(y, y_pred)
+
+    def _compute_initial_prediction(self, y):                      # given
+        if self.criterion == "l1":
+            return l1_initial_prediction(y)
+        return l2_initial_prediction(y)
+
+    def _subsample_indices(self, n_samples, rng):                  # given
+        if self.subsample < 1.0:
+            n_subsample = int(n_samples * self.subsample)
+            return rng.choice(n_samples, size=n_subsample, replace=False)
+        return np.arange(n_samples)
+
+    def predict(self, X):                                          # Q1.5
+        predictions = np.full(X.shape[0], self.init_prediction)
+        for tree in self.trees:
+            predictions += self.learning_rate * tree.predict(X)
+        return predictions
+
+    @abstractmethod
+    def fit(self, X, y):
+        return
+
+class GradientBoostingRegressor(BaseGradientBoosting):
+    def __init__(self, n_estimators=100, learning_rate=0.1, max_depth=3,
+                 criterion='l2', subsample=1.0, random_state=42):  # given
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.max_depth = max_depth
+        self.criterion = criterion
+        self.subsample = subsample
+        self.random_state = random_state
+        self.trees = []
+        self.init_prediction = None
+
+    def fit(self, X, y):
+        if self.criterion == 'l2':                                 # given
+            self.init_prediction = l2_initial_prediction(y)
+        else:
+            self.init_prediction = l1_initial_prediction(y)
+        current_pred = np.full(y.shape, self.init_prediction)
+        rng = np.random.RandomState(self.random_state)
+        n_samples = X.shape[0]
+
+        for m in range(self.n_estimators):                         # Q1.6a
+            residuals = self._compute_negative_gradient(y, current_pred)     # a
+            indices = self._subsample_indices(n_samples, rng)                # b
+            tree = DecisionTreeRegressor(max_depth=self.max_depth,
+                                         random_state=rng.randint(0, 10000))
+            tree.fit(X[indices], residuals[indices])                         # c
+            current_pred += self.learning_rate * tree.predict(X)             # d
+            self.trees.append(tree)                                          # e
+        return self
+
+    def predict(self, X):                                          # Q1.6b
+        if self.init_prediction is None:
+            raise ValueError("Model not fitted yet")
+        predictions = np.full(X.shape[0], self.init_prediction)
+        for tree in self.trees:
+            predictions += self.learning_rate * tree.predict(X)
+        return predictions
+
+# ---------- Part 3 (Q1.7 bonus) ----------
+class GBREarlyStop(GradientBoostingRegressor):
+    def __init__(self, n_estimators=100, learning_rate=0.1, max_depth=3,
+                 criterion="l1", subsample=1.0, random_state=42):  # given (note: l1)
+        super().__init__(n_estimators, learning_rate, max_depth,
+                         criterion, subsample, random_state)
+
+    def fit(self, X_train, y_train, X_val, y_val, patience=10, min_delta=1e-4):
+        rng = np.random.RandomState(self.random_state)             # given ...
+        n_samples = X_train.shape[0]
+        best_val_loss = float("inf")
+        best_n_estimators = 0
+        patience_counter = 0
+        self.init_prediction = self._compute_initial_prediction(y_train)
+        F_train = np.full(X_train.shape[0], self.init_prediction)
+        F_val = np.full(X_val.shape[0], self.init_prediction)
+
+        for m in range(self.n_estimators):                         # Q1.7
+            residuals = self._compute_negative_gradient(y_train, F_train)
+            indices = self._subsample_indices(n_samples, rng)
+            tree = DecisionTreeRegressor(max_depth=self.max_depth,
+                                         random_state=rng.randint(0, 10000))
+            tree.fit(X_train[indices], residuals[indices])
+            F_train += self.learning_rate * tree.predict(X_train)  # same step for
+            F_val += self.learning_rate * tree.predict(X_val)      # both sets
+            self.trees.append(tree)
+
+            if self.criterion == "l2":
+                val_loss = np.mean((y_val - F_val) ** 2)
+            else:
+                val_loss = np.mean(np.abs(y_val - F_val))
+
+            if val_loss < best_val_loss - min_delta:               # improved
+                best_val_loss = val_loss
+                best_n_estimators = m + 1                          # count, not index
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= patience:
+                break
+
+        self.trees = self.trees[:best_n_estimators]                # given
+        self.n_estimators = best_n_estimators
+        return self
+
+# ---------- the notebook's test cells (shortened) ----------
+X, y = make_regression(n_samples=1000, n_features=10, noise=10, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+gb_l2 = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, criterion="l2")
+gb_l2.fit(X_train, y_train)
+print(f"L2 test MSE: {mean_squared_error(y_test, gb_l2.predict(X_test)):.4f}")
+
+gb_l1 = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, criterion="l1")
+gb_l1.fit(X_train, y_train)
+print(f"L1 test MSE: {mean_squared_error(y_test, gb_l1.predict(X_test)):.4f}")
+
+X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+gb_es = GBREarlyStop(n_estimators=500, learning_rate=0.1, max_depth=3, criterion="l2")
+gb_es.fit(X_tr, y_tr, X_val, y_val, patience=1)
+print(f"Early stopping: kept {gb_es.n_estimators} trees, test MSE {mean_squared_error(y_test, gb_es.predict(X_test)):.4f}")`} />
+
+Run locally with scikit-learn 1.9, it prints:
+
+```text
+L2 test MSE: 1267.7653
+L1 test MSE: 15986.0285
+Early stopping: kept 124 trees, test MSE 1229.9257
+```
+
+The L2 score sits next to scikit-learn's own `GradientBoostingRegressor` (1268.7214 in the notebook's comparison cell). On the training rows the two models give identical predictions; small differences on the test rows come only from how the two libraries break ties between equally good splits.
+
+<ExamTip>
+
+In 2026 this task shared a 3-hour paper with two PyTorch tasks and 20 MCQs. A sensible budget is about 40 minutes.
+
+- **Bank Part 1 first.** The four one-liners are 8 marks for about five minutes of work.
+- **Q1.5 and Q1.6b are the same four lines.** Write them once and paste.
+- **Write the loop from the TODO comments** a to e, in order, and use the given helpers (`self._compute_negative_gradient`, `self._subsample_indices`) instead of re-deriving them.
+- **Sanity-check every printed MSE** against the baseline of always predicting the mean (about 17,000 here). A number far above it means a sign or learning-rate bug; a number near it means the trees are not being used.
+- **Keep every name, signature and default.** Then use **Restart & Run All** before time is up.
+
+The {FINAL.dateLabel} Final again has three Python tasks. If one of them is classical ML, a from-scratch ensemble (AdaBoost, a random forest, or boosting with another loss) would test exactly these skills.
+
+</ExamTip>
+
+<Takeaways>
+
+- Negative gradients: L2 gives the residual `y - y_pred`; L1 gives `np.sign(y - y_pred)`. Initial prediction: mean for L2, median for L1, returned as one `np.float64`.
+- fit: start every row at $F_0$, then repeat (a) negative gradient, (b) subsample, (c) fit a tree, (d) `current_pred += learning_rate * tree.predict(X)` for **all** rows, (e) store the tree.
+- predict: $F_0 + \eta \sum_m h_m(x)$. Q1.5's slot is `predict`, not `__init__`, and forgetting `learning_rate` there ruins the model.
+- Early stopping updates the validation predictions with the same tree, records the best loss and `best_n_estimators = m + 1`, stops after `patience` non-improving trees (`>=`), and keeps only the best trees.
+- A bad L1 score is expected: sign targets move predictions at most $\eta$ per tree.
+
+</Takeaways>

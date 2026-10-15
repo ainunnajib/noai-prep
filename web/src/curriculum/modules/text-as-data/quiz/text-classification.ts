@@ -21,7 +21,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A TF-IDF + logistic regression model gives exactly the same probability to *the plot was good but the acting was bad* and *the plot was bad but the acting was good*. Why?',
     options: [
-      'Both contain the same words the same number of times, and a TF-IDF vector does not record word order',
+      'They contain exactly the same words, and a TF-IDF vector does not record word order',
       'TF-IDF gives every common word, including "good" and "bad", a weight of exactly zero',
       'Logistic regression always outputs 0.5 for any review that mixes positive and negative words',
       'Both have the same number of tokens, and a TF-IDF vector stores only the length of the text',

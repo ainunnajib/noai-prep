@@ -139,7 +139,7 @@ export default function OptimizerRace() {
       }
     >
       <div ref={wrapRef} style={{ width: '100%', display: 'grid', justifyItems: 'center' }}>
-        <Plot x={XR} y={YR} width={narrow ? 360 : 560} height={narrow ? 200 : 260} maxWidth={680} minHeight={190} margin={{ left: 34, bottom: 30, right: 10, top: 10 }} ariaLabel={`Contour map of a curved valley with four optimiser paths after ${step} steps`}>
+        <Plot x={XR} y={YR} width={narrow ? 360 : 560} height={narrow ? 290 : 260} maxWidth={680} minHeight={narrow ? 270 : 190} margin={{ left: 34, bottom: 30, right: 10, top: 10 }} ariaLabel={`Contour map of a curved valley with four optimiser paths after ${step} steps`}>
           <Contours />
           <Axes xTicks={narrow ? 4 : 7} yTicks={3} />
           {paths

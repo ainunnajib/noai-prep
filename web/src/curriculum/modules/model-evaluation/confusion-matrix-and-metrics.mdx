@@ -97,7 +97,7 @@ $$
 \text{precision} = \frac{TP}{TP + FP}
 $$
 
-The bottom line counts **everything the model flagged** (the "predicted 1" column). For the emails: $\frac{3}{3 + 2} = 0.6$. Only 60% of the emails sent to the spam folder were spam.
+The denominator (the bottom of the fraction) counts **everything the model flagged** (the "predicted 1" column). For the emails: $\frac{3}{3 + 2} = 0.6$. Only 60% of the emails sent to the spam folder were spam.
 
 <Term def="Of all the examples that really are positive, the fraction the model caught: TP / (TP + FN). Also called sensitivity or the true positive rate (TPR).">Recall</Term>: of all the real positives, how many did the model catch?
 
@@ -105,7 +105,7 @@ $$
 \text{recall} = \frac{TP}{TP + FN}
 $$
 
-The bottom line counts **everything that really is positive** (the "actual 1" row). For the emails: $\frac{3}{3 + 1} = 0.75$. The filter caught 3 of the 4 spams. Recall has two other names you will meet in exams: **sensitivity** (in medicine) and the **true positive rate (TPR)**.
+The denominator counts **everything that really is positive** (the "actual 1" row). For the emails: $\frac{3}{3 + 1} = 0.75$. The filter caught 3 of the 4 spams. Recall has two other names you will meet in exams: **sensitivity** (in medicine) and the **true positive rate (TPR)**.
 
 There is a matching number for the negative class, <Term def="Of all the examples that really are negative, the fraction the model correctly called negative: TN / (TN + FP). The recall of the negative class.">specificity</Term> $= \frac{TN}{TN + FP}$: the fraction of real emails left alone, here $\frac{4}{6} \approx 0.67$.
 
@@ -136,11 +136,12 @@ As the threshold goes **up**, the model becomes pickier. It flags fewer examples
 
 Here is the spam example from the email figure at three thresholds:
 
-| threshold | TP, FP, FN, TN | precision | recall | accuracy |
-|---|---|---|---|---|
-| 0.25 | 4, 2, 0, 4 | 0.67 | 1.00 | 0.80 |
-| 0.50 | 3, 2, 1, 4 | 0.60 | 0.75 | 0.70 |
-| 0.75 | 2, 0, 2, 6 | 1.00 | 0.50 | 0.80 |
+| threshold | 0.25 | 0.50 | 0.75 |
+|---|---|---|---|
+| TP, FP, FN, TN | 4, 2, 0, 4 | 3, 2, 1, 4 | 2, 0, 2, 6 |
+| precision | 0.67 | 0.60 | 1.00 |
+| recall | 1.00 | 0.75 | 0.50 |
+| accuracy | 0.80 | 0.70 | 0.80 |
 
 Recall can only stay the same or fall as the threshold rises, because the set of flagged emails only shrinks. Precision usually rises, but it can wobble: from 0.25 to 0.5 the filter dropped email F, a real spam, while still flagging both false alarms, so precision dipped from 0.67 to 0.60.
 
@@ -179,7 +180,10 @@ Facts worth remembering about F1:
 **A shortcut for exams.** Substitute the definitions of $P$ and $R$ into $\frac{1}{F_1} = \frac{1}{2}\left(\frac{1}{P} + \frac{1}{R}\right)$:
 
 $$
-\frac{1}{F_1} = \frac{1}{2}\left(\frac{TP + FP}{TP} + \frac{TP + FN}{TP}\right) = \frac{2TP + FP + FN}{2TP}
+\begin{aligned}
+\frac{1}{F_1} &= \frac{1}{2}\left(\frac{TP + FP}{TP} + \frac{TP + FN}{TP}\right) \\
+&= \frac{2TP + FP + FN}{2TP}
+\end{aligned}
 $$
 
 and flip both sides over:
@@ -209,12 +213,12 @@ A lifeguard should jump in whenever a swimmer *might* be in trouble: a few unnec
 
 </Analogy>
 
-| application | positive means | the worse mistake | favour |
-|---|---|---|---|
-| cancer screening | has cancer | FN: a sick patient is sent home | recall |
-| spam filter | spam | FP: a real email is hidden | precision |
-| face unlock | it is the owner | FP: a stranger gets in | precision |
-| card fraud alerts | fraud | FN: money is stolen (but too many FPs annoy customers) | recall, while watching precision |
+| application (positive class) | the worse mistake | favour |
+|---|---|---|
+| cancer screening (has cancer) | FN: a sick patient is sent home | recall |
+| spam filter (spam) | FP: a real email is hidden | precision |
+| face unlock (it is the owner) | FP: a stranger gets in | precision |
+| card fraud alerts (fraud) | FN: money is stolen, though too many FPs annoy customers | recall, watching precision |
 
 If you can put a price on each mistake, you can do better than a rule of thumb: choose the threshold that makes the **total cost** smallest,
 

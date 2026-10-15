@@ -129,7 +129,7 @@ export default function AnomalyBoundary() {
       caption={
         <>
           The dots are 90 <b>normal</b> readings of a machine (two operating modes: idle and busy); no anomalies were ever shown to the detector. The
-          black line is the learned boundary: green inside means normal, red outside means anomaly. Drag A, B and C around. Then slide{' '}
+          solid outline is the learned boundary: green inside means normal, red outside means anomaly. Drag A, B and C around. Then slide{' '}
           <M>\nu</M> (nu): a bigger <M>\nu</M> pulls the boundary in tighter, so more normal points are flagged (false alarms, drawn as red rings) but
           fewer real anomalies slip through. Switch to the k-NN distance score: a different rule, a similar idea.
         </>

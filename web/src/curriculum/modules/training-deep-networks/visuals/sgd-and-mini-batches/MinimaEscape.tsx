@@ -91,10 +91,11 @@ export default function MinimaEscape() {
       caption={
         <>
           Thirty balls start in the two valleys (15 in each) and each runs {STEPS} steps of noisy gradient descent; the dots show where they
-          are after training. With a small learning rate and big batches nothing moves out. Now <b>lower the batch size</b> (more noise per
-          step) or <b>raise the learning rate</b> above 2 ÷ 24 ≈ 0.083, the sharp pit&apos;s speed limit from the gradient descent lesson:
-          the balls are thrown out of the narrow pit and collect in the wide basin, whose limit is 2 ÷ 1.2 ≈ 1.7. Press <b>Replay</b> to watch
-          it happen.
+          are after training, and the readout gives their average test loss. With a small learning rate and big batches nothing moves out
+          (test loss about 0.7). Now <b>raise the learning rate</b> above 2 ÷ 24 ≈ 0.083, the sharp pit&apos;s speed limit from the gradient
+          descent lesson: every ball is thrown out of the narrow pit and settles in the wide basin (whose limit is 2 ÷ 1.2 ≈ 1.7), and the
+          test loss roughly halves. <b>Lowering the batch size</b> does something similar through bigger random kicks, but only in
+          moderation: at B = 1 the balls rattle all over the basin and the test loss climbs again. Press <b>Replay</b> to watch it happen.
         </>
       }
     >

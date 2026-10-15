@@ -110,7 +110,7 @@ export default function KFoldAnimator() {
           Each row is one round. The orange fold is held out for validation; the model ("pass if hours ≥ <i>t</i>") is refitted on the blue folds,
           then scored on the orange one. Press <b>Play</b> to watch the orange fold move along. Every student is validated exactly once. The dot plot
           collects the {k} scores: any <b>single</b> split would have reported just one of those dots, while the mean ± SD is far more stable. Raise{' '}
-          <i>k</i> and the folds get smaller, so each score gets noisier. Switch stratification off and watch the red "fail" counts become uneven.
+          <i>k</i> and the folds get smaller, so each score gets noisier. Switch stratification off and watch the pink "fails" counts (failing students in each fold) become uneven.
         </>
       }
     >
@@ -188,11 +188,11 @@ export default function KFoldAnimator() {
           </div>
         </div>
 
-        <Plot x={[lo, 1.0]} y={[0, top]} width={520} height={130} minHeight={120} margin={{ left: 16, right: 18, top: 8, bottom: 32 }} ariaLabel={`The ${k} fold scores, mean ${m.toFixed(2)}, standard deviation ${sd.toFixed(2)}`}>
+        <Plot x={[lo, 1.0]} y={[0, top]} width={520} height={140} minHeight={130} margin={{ left: 16, right: 18, top: 8, bottom: 42 }} ariaLabel={`The ${k} fold scores, mean ${m.toFixed(2)}, standard deviation ${sd.toFixed(2)}`}>
           <Rect x0={Math.max(lo, m - sd)} x1={Math.min(1, m + sd)} y0={0} y1={top} fill="color-mix(in srgb, var(--viz-5) 16%, transparent)" />
           <Axes xLabel="validation score" xTicks={6} hideYTicks />
           <VLine x={m} color="var(--viz-5)" dash="0" width={2.5} />
-          <Label x={m} y={top} dy={14} dx={6} color="var(--viz-5)">
+          <Label x={m} y={top} dy={14} dx={m > (lo + 1) / 2 ? -6 : 6} anchor={m > (lo + 1) / 2 ? 'end' : 'start'} color="var(--viz-5)">
             {`mean ${m.toFixed(2)} ± ${sd.toFixed(2)}`}
           </Label>
           <Dots

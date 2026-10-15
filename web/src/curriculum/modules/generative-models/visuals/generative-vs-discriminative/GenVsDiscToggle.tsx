@@ -107,7 +107,7 @@ export default function GenVsDiscToggle() {
           ]}
         />
       </Controls>
-      <Plot x={XD} y={YD} width={520} height={364} ariaLabel={view === 'disc' ? 'Two classes of points separated by a straight logistic-regression boundary' : 'Two classes of points, each covered by an oval density hill'}>
+      <Plot x={XD} y={YD} width={520} height={364} minHeight={300} ariaLabel={view === 'disc' ? 'Two classes of points separated by a straight logistic-regression boundary' : 'Two classes of points, each covered by an oval density hill'}>
         <Grid xTicks={10} yTicks={7} />
         {view === 'disc' ? <DiscLayer w={lr.w} b={lr.b} /> : <GenLayer g={model.g} score={model.genScore} />}
         <Axes xTicks={5} yTicks={4} xLabel="feature x₁" yLabel="feature x₂" />

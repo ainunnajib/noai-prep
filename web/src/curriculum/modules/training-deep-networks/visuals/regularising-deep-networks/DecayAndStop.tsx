@@ -152,15 +152,15 @@ export default function DecayAndStop() {
           <Grid xTicks={narrow ? 3 : 10} yTicks={narrow ? 2 : 4} />
           {useES && stopE < EPOCHS && <Rect x0={stopE} x1={EPOCHS} y0={6} y1={16} fill="color-mix(in srgb, var(--viz-muted) 16%, transparent)" />}
           <Axes xLabel="epoch" xTicks={narrow ? 3 : 10} yTicks={narrow ? 2 : 4} />
-          {lam !== 0 && <Path points={pts(ref.norm)} color="var(--viz-5)" width={1.6} dash="4 4" opacity={0.55} />}
-          <Path points={pts(run.norm)} color="var(--viz-5)" width={2.4} />
+          {lam !== 0 && <Path points={pts(ref.norm)} color="var(--viz-3)" width={1.6} dash="4 4" opacity={0.55} />}
+          <Path points={pts(run.norm)} color="var(--viz-3)" width={2.4} />
           <Star x={keepE} y={run.norm[keepE]} color="var(--highlight)" />
         </Plot>
         <Legend
           items={[
             { color: 'var(--viz-1)', label: 'training loss' },
             { color: 'var(--viz-2)', label: 'validation loss' },
-            { color: 'var(--viz-5)', label: 'weight norm' },
+            { color: 'var(--viz-3)', label: 'weight norm' },
             ...(lam !== 0 ? [{ color: 'var(--viz-muted)', label: 'λ = 0 for comparison', dash: true }] : []),
             { color: 'var(--highlight)', label: 'checkpoint kept', dot: true },
           ]}

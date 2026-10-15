@@ -49,10 +49,10 @@ const questions: QuizQuestion[] = [
     id: 'trees-and-ensembles.decision-trees.5',
     prompt: 'Which statement about a standard decision tree classifier (such as scikit-learn\'s `DecisionTreeClassifier`) is true?',
     options: [
-      'Its decision boundary is made of axis-parallel cuts, and rescaling a feature does not change its predictions',
+      'Its boundary is made of axis-parallel cuts, and rescaling a feature leaves its predictions unchanged',
       'It needs standardised features, because each split compares the sizes of two different features',
-      'A node with a 50-50 mix of two classes has the maximum Gini impurity, which is 1',
-      'It chooses each split to maximise the plain (unweighted) average impurity of the two children',
+      'A node with a 50-50 mix of two classes has the largest possible Gini impurity, which is exactly 1',
+      'It chooses each split to maximise the plain (unweighted) average of the impurities of the two children',
     ],
     answer: 0,
     explanation:

@@ -1,3 +1,295 @@
-{/* stub: lesson 'Regression metrics, IoU and averaging' is being written */}
+import ErrorMetricsLab from './visuals/regression-and-overlap-metrics/ErrorMetricsLab'
+import RSquaredBars from './visuals/regression-and-overlap-metrics/RSquaredBars'
+import IoUBoxes from './visuals/regression-and-overlap-metrics/IoUBoxes'
+import MacroMicroAverage from './visuals/regression-and-overlap-metrics/MacroMicroAverage'
 
-This lesson is being written.
+export const regCode = `import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+y_true = np.array([11, 17, 23, 29])   # actual ride times (minutes)
+y_pred = np.array([10, 18, 20, 34])   # the model's predictions
+
+err = y_true - y_pred                 # residuals
+mae = np.mean(np.abs(err))
+mse = np.mean(err ** 2)
+rmse = np.sqrt(mse)
+r2 = 1 - np.sum(err ** 2) / np.sum((y_true - y_true.mean()) ** 2)
+print("errors:", err)
+print("MAE", mae, " MSE", mse, " RMSE", rmse, " R²", r2)
+
+# the same with scikit-learn (true values first)
+print(mean_absolute_error(y_true, y_pred), mean_squared_error(y_true, y_pred), r2_score(y_true, y_pred))
+
+# always predicting the mean gives R² = 0; a worse model goes negative
+print(r2_score(y_true, np.full(4, y_true.mean())))
+print(r2_score(y_true, [29, 23, 17, 11]))`
+
+export const iouCode = `def box_iou(a, b):
+    """a and b are boxes (x1, y1, x2, y2) with x1 < x2 and y1 < y2"""
+    w = max(0, min(a[2], b[2]) - max(a[0], b[0]))   # overlap width, 0 if they miss
+    h = max(0, min(a[3], b[3]) - max(a[1], b[1]))   # overlap height
+    overlap = w * h
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    return overlap / (area_a + area_b - overlap)
+
+print(box_iou((0, 0, 4, 4), (2, 0, 6, 4)))   # half of each box overlaps: 8 / 24
+print(box_iou((0, 0, 4, 4), (2, 2, 6, 6)))   # a quarter of each box: 4 / 28
+print(box_iou((2, 2, 6, 6), (0, 0, 8, 8)))   # inside a bigger box: 16 / 64
+print(box_iou((0, 0, 2, 2), (5, 5, 7, 7)))   # far apart: 0
+
+# the same idea for sets: the Jaccard index
+a = {"chess", "robotics", "choir"}
+b = {"robotics", "choir", "band", "drama"}
+print(len(a & b) / len(a | b))`
+
+export const avgCode = `from sklearn.metrics import f1_score, accuracy_score
+
+# the 20 vehicles from the worked example: 0 = car, 1 = bus, 2 = motorcycle
+y_true = [0] * 10 + [1] * 6 + [2] * 4
+y_pred = [0] * 9 + [1] + [1] * 6 + [0, 1, 1, 2]
+
+print("F1 per class:", f1_score(y_true, y_pred, average=None).round(3))
+print("macro F1:    ", round(f1_score(y_true, y_pred, average="macro"), 3))
+print("weighted F1: ", round(f1_score(y_true, y_pred, average="weighted"), 3))
+print("micro F1:    ", round(f1_score(y_true, y_pred, average="micro"), 3))
+print("accuracy:    ", accuracy_score(y_true, y_pred))`
+
+Precision, recall and F1 count right and wrong labels. But many models do not output a label. A ride-hailing app predicts a **number** (how many minutes until you arrive), a self-driving car draws a **box** around each pedestrian, and many classifiers choose among **many classes**, some of them rare. Each needs its own ruler. This lesson covers the standard ones: MAE, MSE, RMSE and R² for numbers, IoU for boxes, and macro versus micro averaging for many classes.
+
+## How far off? MAE, MSE and RMSE
+
+When a model predicts a number, each prediction has an error. The <Term def="The error of one prediction: true value minus predicted value, y − ŷ. Positive means the prediction was too low.">residual</Term> is
+
+$$
+e_i = y_i - \hat{y}_i
+$$
+
+where $y_i$ is the true value for example $i$ and $\hat{y}_i$ ("y hat") is the model's prediction. A ride that took 23 minutes but was predicted at 20 has residual $+3$. To summarise $n$ residuals in one number we cannot just average them, because $+3$ and $-3$ would cancel to a "perfect" 0. There are two standard fixes:
+
+$$
+\begin{aligned}
+\text{MAE} &= \frac{1}{n}\sum_{i=1}^{n} \lvert y_i - \hat{y}_i \rvert \\
+\text{MSE} &= \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2 \\
+\text{RMSE} &= \sqrt{\text{MSE}}
+\end{aligned}
+$$
+
+- <Term def="Mean absolute error: the average size of the errors, ignoring their signs. Same units as the target.">MAE</Term> (mean absolute error) drops the signs and averages: the typical size of an error, in minutes.
+- <Term def="Mean squared error: the average of the squared errors. Its units are the target's units squared.">MSE</Term> (mean squared error) squares each error first. Squares are never negative, and big errors become *very* big: an error of 10 counts as 100.
+- <Term def="Root mean squared error: the square root of the MSE, which brings it back to the target's units.">RMSE</Term> (root mean squared error) takes the square root of the MSE to get back to minutes.
+
+Drag the predictions below, then press **Add one big miss**.
+
+<ErrorMetricsLab />
+
+<Steps title="Four rides: true 11, 17, 23, 29 min; predicted 10, 18, 20, 34 min">
+  <Step title="Residuals">
+    $11 - 10 = 1$, $\ 17 - 18 = -1$, $\ 23 - 20 = 3$, $\ 29 - 34 = -5$.
+  </Step>
+  <Step title="MAE">
+    Drop the signs and average: $\frac{1 + 1 + 3 + 5}{4} = \frac{10}{4} = 2.5$ minutes.
+  </Step>
+  <Step title="MSE">
+    Square, then average: $\frac{1 + 1 + 9 + 25}{4} = \frac{36}{4} = 9$ square minutes.
+  </Step>
+  <Step title="RMSE">
+    $\sqrt{9} = 3$ minutes. It is bigger than the MAE because the 5-minute miss counts 25 times as much as a 1-minute one.
+  </Step>
+</Steps>
+
+What each one is good for:
+
+- **RMSE ≥ MAE, always.** They are equal only when every error has the same size; the further apart they are, the more the errors are dominated by a few big misses.
+- Use **RMSE** when big misses are disproportionately bad (a delivery 60 minutes late is far worse than six deliveries 10 minutes late). Use **MAE** when you want a plain "typical error" that a few outliers cannot dominate.
+- **MSE** is in squared units (minutes², dollars²), which nobody can picture, so it is rarely reported. It is the standard *training loss* for regression because it is smooth and easy to differentiate, as you saw in the linear regression module.
+
+<Mistake>
+Three classic traps in multiple-choice options: averaging the residuals with their signs (here $\frac{1 - 1 + 3 - 5}{4} = -0.5$, which hides the errors); forgetting the square root (reporting the MSE, 9, as if it were in minutes); and taking the square root of each error before averaging (that just gives the MAE again).
+</Mistake>
+
+<QuickCheck
+  q="A model's four errors are 0, 0, 0 and 8 (in dollars). What are its MAE and RMSE?"
+  options={['MAE 2, RMSE 4', 'MAE 2, RMSE 2', 'MAE 8, RMSE 8', 'MAE 2, RMSE 16']}
+  answer={0}
+  explain="MAE $= 8/4 = 2$. MSE $= 64/4 = 16$, so RMSE $= \sqrt{16} = 4$. One big error doubles RMSE relative to MAE. 16 is the MSE, which is in dollars squared."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={171} />
+
+## R²: better than guessing the average?
+
+Is an RMSE of 3 minutes good? It depends. If every ride takes between 19 and 21 minutes, a 3-minute error is poor; if rides range from 5 to 60 minutes, it is excellent. <Term def="The coefficient of determination: 1 minus (the model's sum of squared errors divided by the sum of squared errors of always predicting the mean). 1 is perfect, 0 is no better than the mean, negative is worse.">R²</Term> (said "R squared") answers by comparing your model with the simplest sensible baseline: always predicting the **mean** of the true values.
+
+<Analogy title="The friend who always says 'average'">
+Before each test, you predict every classmate's mark. Your friend doesn't bother: they predict the class average for everyone. R² measures how much better your predictions are than your friend's. If you can't beat "everyone gets the average", your predictions aren't worth much, however clever your method.
+</Analogy>
+
+$$
+R^2 = 1 - \frac{SS_{res}}{SS_{tot}}
+$$
+
+$$
+\begin{aligned}
+SS_{res} &= \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 \\
+SS_{tot} &= \sum_{i=1}^{n} (y_i - \bar{y})^2
+\end{aligned}
+$$
+
+$SS_{res}$ ("sum of squares of the residuals") is the total squared error of **your model**. $SS_{tot}$ ("total sum of squares") is the total squared error of the **mean baseline**, where $\bar{y}$ is the average of the true values. Their ratio is the fraction of the baseline's squared error that your model still makes; one minus that is the fraction it removes.
+
+<RSquaredBars />
+
+- $R^2 = 1$: no error left at all.
+- $R^2 = 0$: exactly as good as always predicting the mean.
+- $R^2 < 0$: **worse** than the mean. This happens with a bad model, and quite often on test data. Despite its name, R² is not literally a square (it equals a squared correlation only for a least-squares line scored on its own training data), so it can be negative.
+
+<KeyIdea>
+$R^2 = 1 - \frac{SS_{res}}{SS_{tot}}$ is the fraction of the "always predict the mean" squared error that your model removes. RMSE tells you the typical error **in the target's units**; R² tells you how much better than the dumbest sensible baseline you are, **without units**.
+</KeyIdea>
+
+<Steps title="R² for the four rides">
+  <Step title="Mean of the true values">
+    $\bar{y} = \frac{11 + 17 + 23 + 29}{4} = \frac{80}{4} = 20$.
+  </Step>
+  <Step title="Baseline error, SS_tot">
+    Distances from 20: $-9, -3, 3, 9$. Squares: $81 + 9 + 9 + 81 = 180$.
+  </Step>
+  <Step title="Model error, SS_res">
+    From the residuals above: $1 + 1 + 9 + 25 = 36$.
+  </Step>
+  <Step title="R²">
+    $1 - \frac{36}{180} = 1 - 0.2 = 0.8$. The model removes 80% of the squared error that "always say 20 minutes" would make.
+  </Step>
+</Steps>
+
+Because both sums cover the same $n$ rows, you can also divide each by $n$ first and compare the model's MSE with the MSE of always predicting the mean (here $180/4 = 45$). This is often quicker in an exam:
+
+$$
+R^2 = 1 - \frac{\text{MSE}_\text{model}}{\text{MSE}_\text{mean}} = 1 - \frac{9}{45} = 0.8
+$$
+
+<QuickCheck
+  q="A model's MSE on a test set is 12. Always predicting the mean of the test targets would give an MSE of 48. What is R²?"
+  options={['0.75', '0.25', '4', '-0.75']}
+  answer={0}
+  explain="$R^2 = 1 - \frac{12}{48} = 1 - 0.25 = 0.75$. 0.25 is the ratio itself (the fraction of error *left*), and 4 is the ratio upside down."
+/>
+
+<Note>
+In scikit-learn, `model.score(X, y)` for a **regressor** returns R², while for a classifier it returns accuracy. Code-reading questions can test exactly this.
+</Note>
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={regCode} />
+
+## IoU: how well do two boxes overlap?
+
+An object detector outputs <Term def="An axis-aligned rectangle given by its corners (x1, y1) and (x2, y2), drawn around an object in an image.">bounding boxes</Term>, each written as two corners $(x_1, y_1, x_2, y_2)$. To score a predicted box against the true one we need a single number that is 1 when they match exactly and 0 when they don't touch.
+
+<Analogy title="Two highlighters">
+You and a friend each highlight the sentence you think answers a comprehension question. Count the words you **both** highlighted, then divide by the words that **either** of you highlighted. If you highlighted the same words, that's 1. If your friend highlighted the whole page "to be safe", the score drops, even though the right words are inside it.
+</Analogy>
+
+<Term def="Intersection over union: the size of the overlap of two shapes or sets divided by the size of their union. Also called the Jaccard index.">Intersection over union</Term> (IoU) is exactly that:
+
+$$
+\text{IoU}(A, B) = \frac{\lvert A \cap B \rvert}{\lvert A \cup B \rvert} = \frac{\text{overlap}}{\text{union}}
+$$
+
+The bars $\lvert \cdot \rvert$ mean "size of" (an area for boxes, a count for sets). $A \cap B$, the **intersection**, is where both boxes are; $A \cup B$, the **union**, is everywhere at least one box is. For sets the same ratio is called the <Term def="The size of the intersection of two sets divided by the size of their union; the same idea as IoU.">Jaccard index</Term>: the CCA sets $\{$chess, robotics, choir$\}$ and $\{$robotics, choir, band, drama$\}$ share 2 items out of 5 different ones, so their Jaccard index is $2/5 = 0.4$.
+
+For two boxes, the overlap is itself a rectangle, so IoU takes four steps:
+
+1. **Overlap width** $= \min(x_2^A, x_2^B) - \max(x_1^A, x_1^B)$: the left edge of the overlap is the further-right of the two left edges, and its right edge is the further-left of the two right edges. If the result is negative, the boxes miss each other: use 0.
+2. **Overlap height** $= \min(y_2^A, y_2^B) - \max(y_1^A, y_1^B)$, again 0 if negative.
+3. **Overlap area** = width × height.
+4. **Union** = area A + area B − overlap. (Adding the two areas counts the overlap twice, so subtract it once.) Then **IoU = overlap ÷ union**.
+
+Move and resize the boxes, and check each step:
+
+<IoUBoxes />
+
+<Steps title="IoU of A = (0, 0, 4, 4) and B = (2, 0, 6, 4)">
+  <Step title="Overlap width">
+    $\min(4, 6) - \max(0, 2) = 4 - 2 = 2$.
+  </Step>
+  <Step title="Overlap height">
+    $\min(4, 4) - \max(0, 0) = 4 - 0 = 4$.
+  </Step>
+  <Step title="Overlap area">
+    $2 \times 4 = 8$.
+  </Step>
+  <Step title="Union">
+    Both boxes are $4 \times 4 = 16$, so the union is $16 + 16 - 8 = 24$.
+  </Step>
+  <Step title="IoU">
+    $\frac{8}{24} = \frac{1}{3} \approx 0.33$. Each box shares **half** of its area with the other, yet IoU is only a third.
+  </Step>
+</Steps>
+
+IoU punishes **both** kinds of mistake: missing part of the object *and* covering extra space. A predicted box $(0, 0, 8, 8)$ around a true box $(2, 2, 6, 6)$ contains the whole object, but its IoU is only $\frac{16}{64} = 0.25$.
+
+Detectors use box IoU in two places. To **score** a detection, a predicted box usually counts as correct only if its IoU with a true box of the same class is at least a threshold such as 0.5. To **clean up** duplicate boxes on the same object, non-maximum suppression deletes boxes that overlap a better one by more than a threshold (see the vision module). IoU between pixel masks, and the mean IoU used to score segmentation, also come up in the vision module.
+
+<Mistake>
+Watch for these wrong answers: dividing the overlap by **one** box's area ($8/16 = 0.5$ above); forgetting to subtract the overlap from the union ($8/32 = 0.25$); and, in code, forgetting the `max(0, …)`. For boxes $(0, 0, 2, 2)$ and $(5, 5, 7, 7)$ the "width" is $2 - 5 = -3$ and the "height" is $-3$, and their product is a positive 9: an overlap between boxes that are nowhere near each other.
+</Mistake>
+
+<PyRunner code={iouCode} />
+
+<ExamTip>
+For a box IoU question, sketch the two boxes on a grid, read off the overlap rectangle, and use union = A + B − overlap. With small whole-number corners the answer is a simple fraction such as $\frac{1}{3}$ or $\frac{1}{7}$, so no calculator is needed. Worth remembering: sliding a copy of a box sideways by half its width always gives $\frac{1}{3}$.
+</ExamTip>
+
+## Macro versus micro averaging
+
+With more than two classes, precision, recall and F1 are computed **per class**, each time treating one class as "positive" and all the others as "negative". You then have three F1 scores and need one number. How you average them decides whether rare classes matter.
+
+<Analogy title="CCA survey">
+To find out how happy students are with CCAs, you could average each CCA's satisfaction score, so the 8-member chess club counts as much as the 200-member band. Or you could pool every student's answer, so the band dominates. Neither is wrong; they answer different questions.
+</Analogy>
+
+- <Term def="Compute the metric for each class separately, then take the plain average, so every class counts equally however rare it is.">Macro averaging</Term>: compute F1 for each class, then take the plain average. With $C$ classes, $\text{macro-}F_1 = \frac{1}{C}\sum_{c} F_1^{(c)}$. Every class counts equally, however rare.
+- <Term def="Pool the TP, FP and FN counts of all classes first, then compute the metric once, so every individual prediction counts equally and common classes dominate.">Micro averaging</Term>: add up the true positives, false positives and false negatives of all classes first, then compute one F1 from the totals: $\text{micro-}F_1 = \frac{2\,TP}{2\,TP + FP + FN}$. Every *prediction* counts equally, so the common classes dominate.
+- **Weighted averaging** sits in between: the per-class F1 scores are averaged with weights equal to each class's share of the data.
+
+<MacroMicroAverage />
+
+<Steps title="20 vehicles: 10 cars, 6 buses, 4 motorcycles">
+  <Step title="What the model predicted">
+    Cars: 9 right, 1 called a bus. Buses: all 6 right. Motorcycles: only 1 right; 1 called a car and 2 called buses.
+  </Step>
+  <Step title="Count TP, FP, FN for each class">
+    Car: TP 9, FP 1 (the motorcycle called a car), FN 1. Bus: TP 6, FP 3 (one car and two motorcycles called buses), FN 0. Motorcycle: TP 1, FP 0, FN 3.
+  </Step>
+  <Step title="F1 for each class">
+    Using $F_1 = \frac{2TP}{2TP + FP + FN}$: car $\frac{18}{20} = 0.9$, bus $\frac{12}{15} = 0.8$, motorcycle $\frac{2}{5} = 0.4$.
+  </Step>
+  <Step title="Macro-F1">
+    $\frac{0.9 + 0.8 + 0.4}{3} = \frac{2.1}{3} = 0.7$.
+  </Step>
+  <Step title="Micro-F1">
+    Pool the counts: $TP = 9 + 6 + 1 = 16$, $FP = 1 + 3 + 0 = 4$, $FN = 1 + 0 + 3 = 4$. So $\frac{32}{32 + 4 + 4} = 0.8$, the same as the accuracy $\frac{16}{20}$.
+  </Step>
+</Steps>
+
+Micro-F1 matching accuracy is no coincidence. When each example has exactly one true class and one predicted class, every mistake is one false positive (for the class it was wrongly given) **and** one false negative (for the class it really was). So total FP = total FN = number of mistakes, and micro precision, micro recall and micro-F1 all equal **accuracy**. (Weighted F1 here is $\frac{10(0.9) + 6(0.8) + 4(0.4)}{20} = 0.77$.)
+
+Which one to report? If every class matters equally, especially a rare but important one (a rare disease, a fraud type, motorcycles for a road-safety camera), report **macro**: a weak rare class drags it down where micro would hide it. If what matters is the overall share of correct predictions, micro (which is just accuracy here) is fine. scikit-learn's `classification_report` prints all three.
+
+<PyRunner packages={['scikit-learn']} code={avgCode} />
+
+**Mean IoU is a macro average.** To score a segmentation model, which labels every pixel, you compute one IoU per class (that class's predicted pixels against its true pixels) and average the class IoUs equally. A rare class that the model handles badly therefore pulls mean IoU down. One subtlety: if a class appears in neither the prediction nor the truth of an image, its IoU is $\frac{0}{0}$, undefined, so that class is usually left out of the average rather than counted as 0 or 1.
+
+<PastPaperQuestion paper="final2026" n={13} />
+
+<ExamTip>
+Phrases like "rare classes", "every class equally important" or "imbalanced multi-class" point to **macro** averaging. "Micro-F1 equals accuracy" (for single-label multi-class problems) is a fact worth knowing cold. And "mean IoU" in segmentation is a macro average over classes.
+</ExamTip>
+
+<Takeaways>
+- Residual $= y - \hat{y}$. **MAE** averages the sizes of the errors; **MSE** averages their squares (squared units); **RMSE** $= \sqrt{\text{MSE}}$ is back in the target's units and punishes big misses more. RMSE ≥ MAE.
+- $R^2 = 1 - \frac{SS_{res}}{SS_{tot}}$ compares the model with always predicting the mean: 1 perfect, 0 no better than the mean, negative worse.
+- **IoU** = overlap ÷ union, with union = A + B − overlap; for boxes, overlap width $= \min(x_2) - \max(x_1)$, clipped at 0. IoU punishes both missed and extra area.
+- **Macro** averages per-class scores equally (rare classes count); **micro** pools the counts first (common classes dominate) and equals accuracy for single-label data. Mean IoU is a macro average.
+</Takeaways>

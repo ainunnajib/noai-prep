@@ -222,7 +222,13 @@ export function bestSplit(
   return { f: best.f, t: best.t, gain: best.gain, left: Array.from(best.order.subarray(0, best.k + 1)), right: Array.from(best.order.subarray(best.k + 1)) }
 }
 
-/** Grow a tree on the rows idx (repeats allowed). */
+/**
+ * Grow a tree on the rows idx (repeats allowed).
+ *
+ * Same rules and tie-breaking as calling bestSplit at every node, but faster: every feature is
+ * sorted once at the root, and each split partitions those sorted lists (keeping their order), so
+ * no node has to sort again. Forests of 100 trees then take milliseconds instead of a second.
+ */
 export function fitTree(X: number[][], y: number[], idx: number[], opts: FitOptions = {}): Tree {
   const task = opts.task ?? 'clf'
   const k = opts.nClasses ?? 2
@@ -233,27 +239,135 @@ export function fitTree(X: number[][], y: number[], idx: number[], opts: FitOpti
   const maxF = Math.max(1, Math.min(p, opts.maxFeatures ?? p))
   const rng = opts.rng
   const nodes: TreeNode[] = []
-  const cols = Array.from({ length: p }, (_, f) => Float64Array.from(X, (r) => r[f]))
+  const m = idx.length
+  // work with sample positions 0..m-1 (a row drawn twice gets two positions)
+  const yv = Float64Array.from(idx, (r) => y[r])
+  const cls = Int32Array.from(idx, (r) => y[r])
+  const xv = Array.from({ length: p }, (_, f) => Float64Array.from(idx, (r) => X[r][f]))
+  // sorted[f][lo..hi) = the positions of one node, in increasing order of feature f
+  const sorted = xv.map((col) => {
+    const a = new Int32Array(m)
+    for (let i = 0; i < m; i++) a[i] = i
+    if (m > 1) sortByKey(a, col, 0, m - 1)
+    return a
+  })
+  const goLeft = new Uint8Array(m)
+  const scratch = new Int32Array(m)
+  const L = new Array<number>(k).fill(0)
+  const R = new Array<number>(k).fill(0)
 
-  const grow = (rows: number[], depth: number): number => {
+  const grow = (lo: number, hi: number, depth: number): number => {
     const id = nodes.length
-    const value = task === 'clf' ? classCounts(y, rows, k) : [meanVar(y, rows).mean]
-    const imp = nodeImpurity(y, rows, task, crit, k)
-    nodes.push({ f: -1, t: 0, l: -1, r: -1, n: rows.length, value, imp, depth })
-    if (depth >= maxDepth || imp <= 1e-12 || rows.length < 2 * minLeaf) return id
+    const n = hi - lo
+    const any = sorted[0] ?? Int32Array.from({ length: m }, (_, i) => i)
+    let value: number[]
+    let imp: number
+    if (task === 'clf') {
+      value = new Array(k).fill(0)
+      for (let i = lo; i < hi; i++) value[cls[any[i]]] += 1
+      imp = impurityOf(value, crit)
+    } else {
+      let s = 0
+      let q = 0
+      for (let i = lo; i < hi; i++) {
+        const v = yv[any[i]]
+        s += v
+        q += v * v
+      }
+      const mean = n ? s / n : 0
+      value = [mean]
+      imp = n ? Math.max(0, q / n - mean * mean) : 0
+    }
+    nodes.push({ f: -1, t: 0, l: -1, r: -1, n, value, imp, depth })
+    if (depth >= maxDepth || imp <= 1e-12 || n < 2 * minLeaf) return id
     // try a random subset of features first; like scikit-learn, keep drawing if none of them can split
     const order = shuffleInPlace(Array.from({ length: p }, (_, j) => j), rng)
-    let split: Split | null = null
-    for (let start = 0; start < p && !split; start += maxF) {
-      split = bestSplit(X, y, rows, order.slice(start, start + maxF), { task, criterion: crit, nClasses: k, minSamplesLeaf: minLeaf }, cols)
+    let bf = -1
+    let bt = 0
+    let bk = -1
+    let bg = 0
+    for (let start = 0; start < p && bf < 0; start += maxF) {
+      for (const f of order.slice(start, start + maxF)) {
+        const ord = sorted[f]
+        const c = xv[f]
+        if (task === 'clf') {
+          L.fill(0)
+          R.fill(0)
+          for (let i = lo; i < hi; i++) R[cls[ord[i]]] += 1
+          for (let j = 0; j < n - 1; j++) {
+            const cl = cls[ord[lo + j]]
+            L[cl] += 1
+            R[cl] -= 1
+            const nl = j + 1
+            const nr = n - nl
+            const a = c[ord[lo + j]]
+            const b = c[ord[lo + j + 1]]
+            if (a === b || nl < minLeaf || nr < minLeaf) continue
+            const gain = imp - (nl * impurityOf(L, crit) + nr * impurityOf(R, crit)) / n
+            if (bf < 0 || gain > bg + 1e-12) {
+              bf = f
+              bt = (a + b) / 2
+              bk = j
+              bg = gain
+            }
+          }
+        } else {
+          let sL = 0
+          let qL = 0
+          let sR = 0
+          let qR = 0
+          for (let i = lo; i < hi; i++) {
+            const v = yv[ord[i]]
+            sR += v
+            qR += v * v
+          }
+          for (let j = 0; j < n - 1; j++) {
+            const v = yv[ord[lo + j]]
+            sL += v
+            qL += v * v
+            sR -= v
+            qR -= v * v
+            const nl = j + 1
+            const nr = n - nl
+            const a = c[ord[lo + j]]
+            const b = c[ord[lo + j + 1]]
+            if (a === b || nl < minLeaf || nr < minLeaf) continue
+            const vl = Math.max(0, qL / nl - (sL / nl) ** 2)
+            const vr = Math.max(0, qR / nr - (sR / nr) ** 2)
+            const gain = imp - (nl * vl + nr * vr) / n
+            if (bf < 0 || gain > bg + 1e-9) {
+              bf = f
+              bt = (a + b) / 2
+              bk = j
+              bg = gain
+            }
+          }
+        }
+      }
     }
-    if (!split) return id
-    const l = grow(split.left, depth + 1)
-    const r = grow(split.right, depth + 1)
-    nodes[id] = { ...nodes[id], f: split.f, t: split.t, l, r }
+    if (bf < 0) return id
+    // mark which positions go left, then split every feature's sorted list, keeping its order
+    const nl = bk + 1
+    const best = sorted[bf]
+    for (let i = lo; i < hi; i++) goLeft[best[i]] = i < lo + nl ? 1 : 0
+    for (let f = 0; f < p; f++) {
+      if (f === bf) continue
+      const a = sorted[f]
+      let li = lo
+      let ri = 0
+      for (let i = lo; i < hi; i++) {
+        const pos = a[i]
+        if (goLeft[pos]) a[li++] = pos
+        else scratch[ri++] = pos
+      }
+      for (let i = 0; i < ri; i++) a[li + i] = scratch[i]
+    }
+    const l = grow(lo, lo + nl, depth + 1)
+    const r = grow(lo + nl, hi, depth + 1)
+    nodes[id] = { ...nodes[id], f: bf, t: bt, l, r }
     return id
   }
-  grow(idx, 0)
+  grow(0, m, 0)
   return { nodes, task, nClasses: k, nFeatures: p }
 }
 

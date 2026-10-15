@@ -5,10 +5,10 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.initialisation-and-normalisation.1',
     prompt: 'Every weight in a hidden layer is initialised to the same value, 0.5. What happens during training?',
     options: [
-      'Every neuron in the layer computes the same output and receives the same update, so the neurons stay identical',
-      'The neurons start identical, but random mini-batches soon make them learn different features',
-      'Training fails immediately with an error, because PyTorch does not allow equal weights',
-      'The layer works normally, because only the size of the weights matters, not whether they are equal',
+      'All the neurons compute the same output and get the same update, so they stay identical copies',
+      'The neurons start identical, but random mini-batches soon push them to learn different features',
+      'Training stops at once with an error, because PyTorch refuses to train a layer whose weights are equal',
+      'Training works normally, because only the size of the initial weights matters, not whether they are equal',
     ],
     answer: 0,
     explanation:
@@ -38,24 +38,24 @@ const questions: QuizQuestion[] = [
     prompt:
       'A CNN with BatchNorm layers is tested on batches of 16 images, but you forgot to call `model.eval()`. The prediction for the same image changes depending on which other images share its batch. Why?',
     options: [
-      'In training mode BatchNorm normalises with the current batch\'s mean and variance; in eval mode it would use the running averages stored during training',
-      'In training mode BatchNorm resets γ and β to 1 and 0 before every batch, so the learned scaling is lost',
-      'In training mode the convolution weights are updated after every test batch, so the model keeps changing',
-      'In training mode BatchNorm normalises each image across its own pixels only, which depends on the image order',
+      "In training mode BatchNorm uses each test batch's own mean and variance instead of its stored running statistics",
+      'In training mode BatchNorm resets $\\gamma$ and $\\beta$ to 1 and 0 before every batch, so the learned scale and shift are lost',
+      'In training mode the optimiser keeps training the `running_mean` and `running_var` buffers on every test batch',
+      'In training mode BatchNorm normalises each image over its own pixels, so the result depends on the order of the images',
     ],
     answer: 0,
     explanation:
-      "BatchNorm's training mode uses batch statistics, so each image's output depends on its batch-mates (and it keeps updating the running averages). `model.eval()` switches it to the stored running mean and variance, so every image is treated on its own. Weights only change when `optimizer.step()` is called, not because of the mode.",
+      "Training mode normalises with the current batch's statistics, so each image's output depends on its batch-mates. `model.eval()` switches to the stored `running_mean` and `running_var`, so every image is treated on its own. Those are buffers: the forward pass updates them in place, but the optimiser never trains them, and $\\gamma$ and $\\beta$ are not reset.",
     difficulty: 'intermediate',
   },
   {
     id: 'training-deep-networks.initialisation-and-normalisation.5',
     prompt: 'Why do Transformers normally use LayerNorm rather than BatchNorm?',
     options: [
-      'LayerNorm normalises each example over its own features, so it does not depend on batch size, padding or the other sequences in the batch',
-      'LayerNorm normalises each feature over the whole batch, which gives more accurate statistics for long sequences',
-      'LayerNorm has no learnable parameters, so it adds nothing to the model size',
-      'LayerNorm keeps running averages for evaluation, which BatchNorm cannot do',
+      'It normalises each token over its own features, so it works the same for any batch size or padding',
+      'It normalises each feature over the whole batch, which gives more accurate statistics for long sequences',
+      'It has no learnable parameters at all, so it adds nothing to the size of a very large model',
+      'It keeps running averages of the mean and variance for evaluation, which BatchNorm cannot do',
     ],
     answer: 0,
     explanation:

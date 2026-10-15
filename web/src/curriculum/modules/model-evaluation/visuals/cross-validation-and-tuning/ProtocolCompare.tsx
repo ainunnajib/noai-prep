@@ -82,7 +82,7 @@ export default function ProtocolCompare() {
   }, [])
   const t = player.step + 1 // iterations so far
 
-  const sim = useMemo(() => simulate(rows, mulberry32(SEED0 + seed * 7717 + rows)), [rows, seed])
+  const sim = useMemo(() => simulate(rows, mulberry32(SEED0 + (seed + 2) * 7717 + rows)), [rows, seed])
   const bias = useMemo(() => averageBias(rows, 400), [rows])
 
   // running choices
@@ -138,7 +138,7 @@ export default function ProtocolCompare() {
           dots are the test scores Protocol A looks at after each tweak; they scatter because a test set is a finite sample. A <b>keeps the best of
           many lucky draws</b>, so its report (red) ratchets upwards with every peek. B's single test score (green) also wobbles, a little above or
           below the truth, but nothing pushes it up. Press <b>Play</b>, drag the iterations slider, try <b>New run</b>, or switch to 10,000 rows: a
-          bigger test set shrinks the luck, but A is still biased upwards.
+          bigger test set shrinks the luck, but A is still biased upwards. Notice B's <i>best validation score</i>: it is inflated for exactly the same reason as A's report, which is why B reports the untouched test score instead.
         </>
       }
     >
@@ -213,9 +213,6 @@ export default function ProtocolCompare() {
           <Grid xTicks={10} yTicks={7} />
           <Rect x0={0} x1={T_MAX + 1} y0={TRUE_LO} y1={TRUE_HI} fill="color-mix(in srgb, var(--viz-5) 18%, transparent)" />
           <Axes xLabel="tuning iterations" yLabel="accuracy" xTicks={5} yTicks={7} tickFormat={(v) => (v > 0.5 && v < 1.5 ? `${Math.round(v * 100)}%` : String(v))} />
-          <Label x={T_MAX} y={TRUE_LO} dy={14} anchor="end" color="var(--viz-5)">
-            true accuracy of every model
-          </Label>
           <Dots points={sim.testA.slice(0, t).map((v, k) => ({ x: k + 1, y: v, r: 2.6, color: 'var(--viz-muted)' }))} stroke="none" />
           <Path points={lineB} color={colB} width={3} />
           <Path points={lineA} color={colA} width={3} />
@@ -232,6 +229,21 @@ export default function ProtocolCompare() {
             {`B reports ${pct(repB)}`}
           </Label>
         </Plot>
+
+        <div className={s.legend}>
+          <span>
+            <span className={s.swatch} style={{ background: 'color-mix(in srgb, var(--viz-5) 30%, transparent)' }} /> true accuracy of every model
+          </span>
+          <span>
+            <span className={s.dot} style={{ width: 8, height: 8, background: 'var(--viz-muted)', borderColor: 'var(--viz-muted)' }} /> test score A sees after each tweak
+          </span>
+          <span>
+            <span className={s.swatchLine} style={{ borderColor: colA }} /> A's report
+          </span>
+          <span>
+            <span className={s.swatchLine} style={{ borderColor: colB }} /> B's report
+          </span>
+        </div>
 
         <p className={s.small} style={{ margin: 0 }}>
           Averaged over 400 simulated runs of {t} iteration{t === 1 ? '' : 's'}, reported minus true accuracy is{' '}

@@ -54,7 +54,8 @@ const n2 = (v: number) => (v < 0 && Math.abs(v) >= 0.005 ? '−' : '') + Math.ab
 function CellDiagram({ v, t }: { v: StepVals; t: number }) {
   const [ref, measured] = useContainerWidth<HTMLDivElement>(560)
   const W = Math.max(300, Math.min(640, measured))
-  const Hh = 250
+  const Hh = 262
+  const inY = 226 // the line that feeds [h_{t−1}, x_t] into every gate
   const beltY = 50
   const gateY = 186
   const xF = 0.3 * W
@@ -128,14 +129,14 @@ function CellDiagram({ v, t }: { v: StepVals; t: number }) {
         {op(xO, outY, '×')}
         <line x1={xO + 11} y1={outY} x2={W - 12} y2={outY} style={line} />
         <path d={`M${W - 12},${outY - 5}L${W - 4},${outY}L${W - 12},${outY + 5}Z`} style={{ fill: 'var(--viz-ink)' }} />
-        {lbl(W - 6, outY + 20, <>{sub('h', 't')} = {n2(v.h)}</>, 'end', 'var(--viz-3)')}
+        {lbl(W - 6, outY + 25, <>{sub('h', 't')} = {n2(v.h)}</>, 'end', 'var(--viz-3)')}
         {lbl(xO + 16, tanhY + 4, n2(Math.tanh(v.c)), 'start')}
         {/* inputs feeding the gates */}
-        <line x1={10} y1={Hh - 8} x2={xO} y2={Hh - 8} style={{ ...line, stroke: 'var(--viz-muted)' }} />
+        <line x1={10} y1={inY} x2={xO} y2={inY} style={{ ...line, stroke: 'var(--viz-muted)' }} />
         {[xF, xI, xG, xO].map((x) => (
-          <line key={x} x1={x} y1={Hh - 8} x2={x} y2={gateY + 22} style={{ ...line, stroke: 'var(--viz-muted)' }} />
+          <line key={x} x1={x} y1={inY} x2={x} y2={gateY + 22} style={{ ...line, stroke: 'var(--viz-muted)' }} />
         ))}
-        {lbl(8, Hh - 15, <>from {sub('h', 't−1')} and {sub('x', 't')}</>, 'start', 'var(--ink-2)')}
+        {lbl(10, inY + 17, <>from {sub('h', 't−1')} and {sub('x', 't')}</>, 'start', 'var(--ink-2)')}
         {gateBox(xF, 'f', v.f, 'gate', 'forget gate')}
         {gateBox(xI, 'i', v.i, 'gate', 'input gate')}
         {gateBox(xG, 'c̃', v.g, 'cand', 'candidate note')}
@@ -147,8 +148,9 @@ function CellDiagram({ v, t }: { v: StepVals; t: number }) {
 
 /** word labels under the timeline (rotated so long words fit on phones) */
 function WordTicks({ sel, onPick }: { sel: number; onPick: (t: number) => void }) {
-  const { xs, ys } = usePlot()
+  const { xs, ys, width } = usePlot()
   const y0 = ys.range()[0]
+  const angle = width < 480 ? -60 : -30
   return (
     <g>
       {WORDS.map((w, t) => (
@@ -156,7 +158,7 @@ function WordTicks({ sel, onPick }: { sel: number; onPick: (t: number) => void }
           key={t}
           x={xs(t + 1)}
           y={y0 + 14}
-          transform={`rotate(-30 ${xs(t + 1)} ${y0 + 14})`}
+          transform={`rotate(${angle} ${xs(t + 1)} ${y0 + 14})`}
           textAnchor="end"
           role="button"
           tabIndex={0}
@@ -197,7 +199,7 @@ export default function LSTMGateSliders() {
     >
       <CellDiagram v={v} t={sel} />
       <p style={{ margin: 0, fontSize: 'var(--step--1)', color: 'var(--ink-2)', textAlign: 'center' }}>
-        Word {sel + 1}, “{WORDS[sel]}”: <M>{`c_t = ${n2(v.f)} \\times ${n2(v.cPrev)} + ${n2(v.i)} \\times (${n2(v.g)}) = ${n2(v.c)}`}</M>, <M>{`h_t = ${n2(v.o)} \\times \\tanh(${n2(v.c)}) = ${n2(v.h)}`}</M>
+        Word {sel + 1}, “{WORDS[sel]}”: <M>{`c_t = ${n2(v.f)} \\times ${v.cPrev <= -0.005 ? `(${n2(v.cPrev)})` : n2(v.cPrev)} + ${n2(v.i)} \\times (${n2(v.g)}) = ${n2(v.c)}`}</M>, <M>{`h_t = ${n2(v.o)} \\times \\tanh(${n2(v.c)}) = ${n2(v.h)}`}</M>
       </p>
       <Plot
         x={[0.4, N + 0.6]}

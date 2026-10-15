@@ -68,29 +68,29 @@ function neighbourProbs(i: number, perp: number): { p: number[]; sigma: number; 
 
 /** the sigma and 2-sigma circles: faint fills drawn under the dots, dashed outlines drawn on top */
 function SigmaRings({ c, sigma, outline }: { c: XY; sigma: number; outline?: boolean }) {
-  const { xs, ys } = usePlot()
+  const { xs, ys, clipId } = usePlot()
   const r1 = Math.abs(xs(c[0] + sigma) - xs(c[0]))
   const cx = xs(c[0])
   const cy = ys(c[1])
   if (!outline)
     return (
-      <g aria-hidden="true">
+      <g aria-hidden="true" clipPath={`url(#${clipId})`}>
         <circle cx={cx} cy={cy} r={2 * r1} style={{ fill: 'color-mix(in srgb, var(--accent) 5%, transparent)' }} />
         <circle cx={cx} cy={cy} r={r1} style={{ fill: 'color-mix(in srgb, var(--accent) 10%, transparent)' }} />
       </g>
     )
   return (
-    <g aria-hidden="true">
+    <g aria-hidden="true" clipPath={`url(#${clipId})`}>
       <circle cx={cx} cy={cy} r={2 * r1} style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 1.2, strokeDasharray: '2 4' }} />
       <circle cx={cx} cy={cy} r={r1} style={{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 2, strokeDasharray: '7 4' }} />
     </g>
   )
 }
 
-const GROUP_LABELS: [string, XY][] = [
-  ['tight group', [2.3, 6.55]],
-  ['medium group', [5.3, 0.25]],
-  ['spread-out group', [8.0, 7.25]],
+const GROUP_LABELS: [string, XY, 'start' | 'middle'][] = [
+  ['tight group', [2.2, 6.3], 'middle'],
+  ['medium group', [6.75, 0.95], 'start'],
+  ['spread-out group', [9.2, 6.85], 'middle'],
 ]
 
 function Weighted({ p, sel }: { p: number[]; sel: number }) {
@@ -100,8 +100,8 @@ function Weighted({ p, sel }: { p: number[]; sel: number }) {
   const order = PTS.map((_, j) => j).sort((a, b) => p[a] - p[b])
   return (
     <g>
-      {GROUP_LABELS.map(([t, [x, y]]) => (
-        <text key={t} x={xs(x)} y={ys(y)} textAnchor="middle" style={{ fontSize: 12, fill: 'var(--viz-muted)', fontWeight: 600 }}>
+      {GROUP_LABELS.map(([t, [x, y], anchor]) => (
+        <text key={t} x={xs(x)} y={ys(y)} textAnchor={anchor} style={{ fontSize: 12, fill: 'var(--viz-muted)', fontWeight: 600 }}>
           {t}
         </text>
       ))}
@@ -124,7 +124,7 @@ function Weighted({ p, sel }: { p: number[]; sel: number }) {
 }
 
 export default function PerplexityNeighbours() {
-  const [sel, setSel] = useState(REP[0])
+  const [sel, setSel] = useState(REP[1])
   const [perp, setPerp] = useState(8)
   const [ref, narrow] = useNarrow<HTMLDivElement>(600)
   const { p, sigma, H } = useMemo(() => neighbourProbs(sel, perp), [sel, perp])
@@ -139,19 +139,20 @@ export default function PerplexityNeighbours() {
       title="Perplexity: how many neighbours does each point listen to?"
       caption={
         <>
-          Pretend these points live in a high-dimensional space. For the chosen point (blue), t-SNE puts a bell curve of width <M>\sigma</M> (dashed
-          circle; the dotted one is <M>2\sigma</M>) around it and gives every other point a neighbour probability: bigger, darker dots get more. Slide the perplexity and the circle
-          grows until about that many points share the probability. Now choose a point in the <b>spread-out</b> group: t-SNE uses a much wider circle
-          there, so every point gets roughly the same number of neighbours however crowded its region is.
+          Pretend these points live in a high-dimensional space. Around the chosen point (centre of the circles), t-SNE puts a bell curve of width{' '}
+          <M>\sigma</M> (dashed circle; the dotted one is <M>2\sigma</M>) and gives every other point a neighbour probability: bigger, darker dots get
+          more. Slide the perplexity and the circle grows until about that many points share the probability. Then switch between the <b>tight</b> and{' '}
+          <b>spread-out</b> groups at the same perplexity: t-SNE uses a small circle where points are crowded and a much wider one where they are
+          sparse, so every point gets roughly the same number of neighbours.
         </>
       }
     >
       <div ref={ref} style={{ width: '100%', display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1rem', alignItems: 'center' }}>
         <Plot
-          x={[0, 10.5]}
-          y={[0, 7.5]}
-          width={480}
-          height={343}
+          x={[0.2, 12.6]}
+          y={[0.1, 7.2]}
+          width={520}
+          height={302}
           maxWidth={520}
           margin={{ left: 10, right: 10, top: 8, bottom: 8 }}
           ariaLabel={`Neighbour probabilities around a point in the ${groupName} group at perplexity ${perp}`}

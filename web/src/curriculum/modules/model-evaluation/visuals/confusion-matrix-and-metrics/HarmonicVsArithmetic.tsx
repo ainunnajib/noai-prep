@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, FnPath, Path, Dots, Label, DraggablePoint, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, FnPath, Path, Dots, DraggablePoint, M } from '../../../../../kit'
+import { HaloLabel } from './HaloLabel'
 import s from './eval.module.css'
 
 /*
@@ -45,17 +46,17 @@ export default function HarmonicVsArithmetic() {
         <Path points={[[r, hm], [r, am]]} color="var(--viz-neg)" width={3} />
         <Dots points={[{ x: r, y: am, color: AM_C, r: 6 }]} />
         {r > 0.6 ? (
-          <Label x={r} y={am} dx={-10} dy={-8} anchor="end" color={AM_C}>
+          <HaloLabel x={r} y={am} dx={-10} dy={-10} anchor="end" color={AM_C}>
             {`average = ${am.toFixed(2)}`}
-          </Label>
+          </HaloLabel>
         ) : (
-          <Label x={r} y={am} dx={6} dy={-30} anchor="start" color={AM_C}>
+          <HaloLabel x={r} y={am} dx={8} dy={-12} anchor="start" color={AM_C}>
             {`average = ${am.toFixed(2)}`}
-          </Label>
+          </HaloLabel>
         )}
-        <Label x={r} y={hm} dx={r > 0.6 ? -12 : 12} dy={18} anchor={r > 0.6 ? 'end' : 'start'} color={F1_C}>
+        <HaloLabel x={r} y={hm} dx={r > 0.6 ? -14 : 14} dy={r > 0.6 ? 20 : 5} anchor={r > 0.6 ? 'end' : 'start'} color={F1_C}>
           {`F1 = ${hm.toFixed(2)}`}
-        </Label>
+        </HaloLabel>
         <DraggablePoint x={r} y={hm} color={F1_C} onChange={(x) => setR(Math.max(0, Math.min(1, round2(x))))} constrain={(x) => [x, f1(p, x)]} />
       </Plot>
       <div className={s.legend}>

@@ -1,3 +1,174 @@
-{/* stub: lesson '2026 Prelim: AI/ML/DL and Generative AI' is being written */}
+import ConceptClusterMap from './visuals/prelim-ml-genai/ConceptClusterMap'
+import MLGenAIWalkthrough from './visuals/prelim-ml-genai/MLGenAIWalkthrough'
+import DistractorAnatomy from './visuals/prelim-ml-genai/DistractorAnatomy'
 
-This lesson is being written.
+Questions 120 to 237 of the 2026 Prelim were the AI/ML/DL and Generative AI blocks: 118 questions, and not one of them needed a calculation. 87 were one-line definitions such as "Boosting reduces:". What they really test is whether you can tell apart ideas that sound alike: bagging and boosting, BERT and GPT, BatchNorm and LayerNorm. This lesson maps where those questions came from, solves one from each group in full, and then takes the wrong options apart so you can see exactly how they are built.
+
+<Analogy title="Vocabulary lists by theme">
+
+Memorising 500 Malay or Chinese words in alphabetical order is hopeless. Group them by theme (ordering at the hawker centre, asking for directions at the MRT) and they stick. Better still, learn the near-twins side by side ("kanan" and "kiri", right and left) so you never swap them under pressure. The AI questions reward the same habit.
+
+</Analogy>
+
+## Where the marks were
+
+One warning about the block titles first. In 2026 the block called Generative AI (Q179–237) was mostly CNNs, NLP and LLMs, while the diffusion and multimodal definitions opened the Problem-solving block (Q238–255). So it is more useful to sort the questions by idea than by block title. Below, all 136 short questions from Q120 to Q255 are sorted into ten <Term def="A group of exam questions that all test the same family of ideas, such as 'ensembles' or 'CNNs and vision', so one lesson prepares you for all of them.">concept clusters</Term>.
+
+<ConceptClusterMap />
+
+<KeyIdea>
+
+Four clusters (neural-network parts and training tricks, CNNs and vision, classical ML, NLP and Transformers) held 79 of the 136 questions. Revise them first, but notice that even the smallest cluster is worth five marks.
+
+</KeyIdea>
+
+## Seven model solutions across the clusters
+
+Inside every cluster the same thing happens: a question names one idea, and the most tempting wrong option is the right answer about its neighbour. Call such neighbours a <Term def="Two ideas that are often asked together and easy to swap, such as bagging (cuts variance) and boosting (cuts bias). Learn them side by side.">confusable pair</Term>. Each item below comes from a different cluster. Answer it, then reveal the steps and look for the pair.
+
+<MLGenAIWalkthrough />
+
+Five of these pairs come up so often that they are worth opening properly.
+
+### Bagging against boosting (Q155)
+
+Two words first. A model's <Term def="Error that comes from the model being too simple to capture the pattern. It stays the same however much data you collect. High bias = underfitting.">bias</Term> is the error it makes because it is too simple: a straight line through a curved pattern is wrong in the same way every time. Its <Term def="Error that comes from the model being too sensitive to its particular training sample: train it on a slightly different sample and its predictions change a lot. High variance = overfitting.">variance</Term> is how much its predictions jump about when you train it on a different sample of data.
+
+- **Bagging** trains many deep trees, each on a different random sample of the rows, and averages them. Each tree overreacts to its own sample, but in different directions, so the average is steadier: **variance falls**. Think of five friends each guessing how long the chicken-rice queue will take; the average of their guesses is usually better than any single guess.
+- **Boosting** trains small, simple trees one after another. Each new tree focuses on the examples the team still gets wrong, so the combined model gets less and less simple: **bias falls**.
+
+The same pair decides the question just before Q155 in the paper. Try it now.
+
+<PastPaperQuestion paper="prelim2026" n={154} />
+
+### Why stacked 3×3 kernels win (Q204)
+
+A convolution layer with a $k \times k$ kernel, $C$ input channels and $C$ output channels has $k^2 C^2$ weights (ignoring biases): every one of the $C$ output channels has its own $k \times k \times C$ block of weights.
+
+<Steps title="One 5×5 layer against two 3×3 layers">
+  <Step title="Weights of one 5×5 layer">
+    $5^2 \times C^2 = 25C^2$.
+  </Step>
+  <Step title="Weights of two 3×3 layers">
+    $2 \times 3^2 \times C^2 = 18C^2$. With $C = 64$ that is $73{,}728$ against $102{,}400$.
+  </Step>
+  <Step title="What each sees">
+    A unit in layer 2 looks at a 3×3 patch of layer 1, and each of those looks at its own 3×3 patch of the input. Together they cover a 5×5 patch: the same <Term def="The patch of the original input that can affect one output value.">receptive field</Term> as one 5×5 kernel.
+  </Step>
+  <Step title="The bonus">
+    Two layers means two ReLUs in between, so the stack can represent more complicated features. Three 3×3 layers cover 7×7 with $27C^2$ weights instead of $49C^2$.
+  </Step>
+</Steps>
+
+### Encoder against decoder (Q213)
+
+BERT and GPT are built from the same Transformer blocks. The difference is which tokens each position may look at. Below, row = the token that is looking, column = the token being looked at, and 1 means "allowed".
+
+<Columns min={200}>
+
+<MatrixGrid label="BERT (encoder): every token sees all" data={[[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]} heat={[0, 1]} cellSize={34} ariaLabel="BERT attention pattern: all ones" />
+
+<MatrixGrid label="GPT (decoder): causal mask" data={[[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 1]]} heat={[0, 1]} cellSize={34} ariaLabel="GPT causal mask: lower triangle of ones" />
+
+</Columns>
+
+Because BERT sees both sides, it is trained by hiding words and filling them in, and it suits understanding tasks. Because GPT sees only the past, it is trained to predict the next token, which is exactly what generating text needs. That lower-triangular <Term def="A pattern that blocks each token from attending to tokens after it, so a model cannot peek at the word it is supposed to predict.">causal mask</Term> is the subject of another 2026 question:
+
+<PastPaperQuestion paper="prelim2026" n={220} />
+
+### LoRA by the numbers (Q235)
+
+<Term def="Low-Rank Adaptation: fine-tune a big model by freezing its weights and training a small low-rank correction BA for each weight matrix.">LoRA</Term> leaves a big weight matrix $W$ (size $d \times k$) frozen and learns a correction
+
+$$
+W_{\text{new}} = W + BA
+$$
+
+- $B$ is a tall, thin $d \times r$ matrix and $A$ is a short, wide $r \times k$ matrix.
+- $r$ is the **rank**, a small number such as 8, so $BA$ is a full $d \times k$ matrix built from very few numbers.
+
+<Steps title="Count the trainable numbers for a 4096 × 4096 layer">
+  <Step title="Full fine-tuning">
+    $4096 \times 4096 = 16{,}777{,}216$ numbers, about 16.8 million.
+  </Step>
+  <Step title="LoRA with r = 8">
+    $B$: $4096 \times 8 = 32{,}768$. $A$: $8 \times 4096 = 32{,}768$. Total $65{,}536$.
+  </Step>
+  <Step title="Compare">
+    $65{,}536 / 16{,}777{,}216 \approx 0.39\%$. Fine-tuning becomes cheap in memory and storage. Running the model afterwards is not faster: merging $BA$ into $W$ at best keeps it the same speed.
+  </Step>
+</Steps>
+
+### Diffusion as a chain of small noisy steps (Q245)
+
+A <Term def="A sequence of random steps where each state depends only on the state just before it.">Markov chain</Term> is a sequence of steps where each state depends only on the previous one. DDPM's forward chain takes a clean image and adds a little Gaussian noise at each of many steps until only noise is left; nothing is learnt there. A network learns the reverse chain, removing a little noise per step. Generating an image therefore means running the network once per step, often dozens to a thousand times, while a GAN's generator runs once.
+
+<PastPaperQuestion paper="prelim2026" n={244} />
+
+## The pair list
+
+Here are the pairs the 2026 AI and GenAI questions leaned on. Cover the middle column and test yourself.
+
+| Pair | The one-line difference | 2026 items |
+|---|---|---|
+| bagging / boosting | parallel averaging cuts variance; sequential correcting cuts bias | Q151, Q152, Q154, Q155 |
+| L1 / L2 | L1 zeroes weights (sparse); L2 shrinks them all | Q148, Q149 |
+| Xavier / He | built for tanh and sigmoid; built for ReLU, with $\operatorname{Var}(W) = 2/n_{\text{in}}$ | Q176, Q177 |
+| BatchNorm / LayerNorm | average across the batch; across one sample's features | Q170, Q184, Q185 |
+| sigmoid / ReLU | range 0 to 1, slope at most ¼; slope 1 for positive inputs | Q163, Q164, Q172 |
+| semantic / instance segmentation | a class per pixel; which object each pixel belongs to | Q199, Q200 |
+| YOLO / R-CNN | one stage, real time; propose regions, then classify | Q197, Q198 |
+| BERT / GPT | encoder, both directions; decoder, causal mask | Q212, Q213, Q215, Q220 |
+| temperature / top-k | reshapes the whole distribution; keeps only the k likeliest | Q229, Q230 |
+| zero-shot / few-shot | no examples in the prompt; a few examples in the prompt | Q232, Q233 |
+| fine-tuning / prompting | weights change; weights stay fixed | Q217, Q234, Q235 |
+| forward / reverse diffusion | fixed, adds noise; learnt, removes noise | Q241, Q242, Q245 |
+| self- / cross-attention | Q, K, V from one sequence; Q from one, K and V from another | Q211, Q254 |
+
+<Mistake title="Learning definitions one at a time">
+
+If you learn "boosting reduces bias" on its own, the option "Variance" still looks reasonable in the exam, because you also half-remember a sentence about ensembles and variance. Learn the pair as one fact ("bagging ↔ variance, boosting ↔ bias") and the twin option becomes an obvious trap.
+
+</Mistake>
+
+## Distractor anatomy
+
+A <Term def="A wrong option in a multiple-choice question, written to attract students who hold a particular misconception.">distractor</Term> is a wrong option. Setters do not make them up at random; each one is built to catch a particular mistake. Seven kinds of trap cover every wrong option in the 13 questions below:
+
+- **Confusable twin:** the right answer about the neighbouring idea.
+- **Opposite effect:** the right topic with the direction flipped.
+- **Wrong reason:** a plausible cause or benefit that is not the real one.
+- **True, but not the point:** a correct fact that does not answer the question asked.
+- **Overclaim:** an absolute word such as *only*, *always* or *never*.
+- **Half-done working:** in number questions, the answer with one step skipped (no square root, no division).
+- **Filler:** an unrelated or empty option that you can cross out at once.
+
+<DistractorAnatomy />
+
+<QuickCheck
+  q="2026 Q149 asks: 'L2 regularisation (Ridge) penalises:'. Its options are 'Sum of absolute weights', 'Number of parameters', 'Sum of squared weights' and 'Training loss only'. Which option is the confusable twin?"
+  options={['Sum of absolute weights', 'Number of parameters', 'Sum of squared weights', 'Training loss only']}
+  answer={0}
+  explain="The sum of absolute weights is what L1 (Lasso), the twin of L2, penalises. 'Sum of squared weights' is the correct answer, not a trap. 'Training loss only' is an overclaim with 'only', and 'Number of parameters' is a wrong idea of what is being penalised."
+/>
+
+<ExamTip title="Eliminate by trap type, then decide">
+
+On a recall question you do not know cold: cross out fillers and overclaims first (5 seconds), then look for a twin pair or a pair of options that say the same thing. You are often left with two options, and the pair you learnt decides between them.
+
+</ExamTip>
+
+<ExamTip title="Last-resort tells, measured on the 2026 paper">
+
+Use these only to break a tie when real elimination has failed. In Q120–237, whenever one option was longer than each of the other three, it was the right answer in 102 of 113 questions. Across the whole paper, 68 options started with *always*, *never*, *only*, *cannot*, *all*, *no* or *none*, and just one of them was right. Setters can change this habit in 2027, so it is a tie-breaker, not a method. (The checkpoint questions on this site deliberately avoid it.)
+
+</ExamTip>
+
+<Takeaways>
+
+- The AI and GenAI questions of 2026 fall into ten concept clusters; four of them held 79 of 136 questions.
+- Almost every recall question is decided by one **confusable pair**: bagging/boosting, Xavier/He, BERT/GPT, LoRA/full fine-tuning, DDPM/DDIM, self-/cross-attention. Learn pairs, not isolated definitions.
+- Wrong options are built from a few traps: twin, opposite, wrong reason, true-but-irrelevant, overclaim, half-done working and filler. Name the trap and the option loses its pull.
+- Cross out fillers and overclaims first, then let the pair decide.
+
+</Takeaways>

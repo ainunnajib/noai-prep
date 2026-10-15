@@ -64,7 +64,7 @@ const INFO: Record<Tab, { what: string; pro: string; con: string }> = {
     con: `Throws away ${Math.round((100 * (N_NEG - N_POS)) / N_NEG)}% of the genuine data, so the model is less stable.`,
   },
   threshold: {
-    what: `Keep the plain model and lower its threshold from 0.5 to 1/(1 + ${RATIO}) = 0.05. Its boundary lands almost exactly where class weights put theirs.`,
+    what: `Keep the plain model and lower its threshold from 0.5 to 1/(1 + ${RATIO}) = 0.05. Its boundary lands close to where class weights put theirs, and catches almost the same frauds.`,
     pro: 'No retraining at all; you can pick the threshold from the costs.',
     con: 'You need a validation set to choose the threshold.',
   },
@@ -195,7 +195,7 @@ export default function ImbalanceRemedies() {
         ))}
       </div>
       <div ref={wrapRef} className={s.wrap}>
-        <Plot x={XR} y={YR} width={520} height={400} maxWidth={560} margin={{ left: 34, bottom: 30 }} ariaLabel={`Training data and learned boundary for remedy: ${tab}`}>
+        <Plot x={XR} y={YR} width={520} height={400} maxWidth={560} margin={{ left: 34, bottom: 30, top: 24 }} ariaLabel={`Training data and learned boundary for remedy: ${tab}`}>
           <Grid xTicks={8} yTicks={7} />
           <Axes xLabel="feature 1" yLabel="feature 2" xTicks={8} yTicks={7} />
           <Layer tab={tab} model={model} base={base} lam={lam} keep={keep} />

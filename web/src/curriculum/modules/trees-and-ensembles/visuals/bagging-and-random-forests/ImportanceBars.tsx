@@ -36,8 +36,9 @@ function permutationImportance(f: Forest, X: number[][], y: number[], base: numb
         const k = Math.floor(rng() * (i + 1))
         ;[col[i], col[k]] = [col[k], col[i]]
       }
+      const q = new Array<number>(p)
       const pred = X.map((r, i) => {
-        const q = r.slice()
+        for (let a = 0; a < p; a++) q[a] = r[a]
         q[j] = col[i]
         return forestValue(f, q)
       })

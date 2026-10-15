@@ -157,10 +157,10 @@ export default function TrainEvalToggle() {
         <HLine y={1.55} color="var(--viz-grid)" dash="0" width={1} />
         <HLine y={0.45} color="var(--viz-grid)" dash="0" width={1} />
         <Axes xTicks={6} hideYTicks xLabel="output y for example A" />
-        <Label x={0.05} y={1.55} dy={-14} color="var(--viz-2)" weight={700} size={12}>
+        <Label x={0.05} y={1.55} dy={-19} color="var(--viz-2)" weight={700} size={12}>
           train-mode runs
         </Label>
-        <Label x={0.05} y={0.45} dy={-14} color="var(--viz-1)" weight={700} size={12}>
+        <Label x={0.05} y={0.45} dy={-19} color="var(--viz-1)" weight={700} size={12}>
           eval-mode runs
         </Label>
         {groups

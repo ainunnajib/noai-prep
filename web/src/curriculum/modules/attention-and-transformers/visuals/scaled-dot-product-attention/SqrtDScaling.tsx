@@ -12,7 +12,6 @@ import s from './sdpa.module.css'
 const N_PAIRS = 1200
 const N_KEYS = 8
 const XLIM = 70
-const BIN = 2.5
 
 /** Standard normal samples from a seeded uniform generator (Box–Muller). */
 function normals(rnd: () => number, n: number): Float64Array {
@@ -74,6 +73,8 @@ export default function SqrtDScaling() {
   const top = Math.max(...w)
   const slope = top * (1 - top)
   const outside = scores.filter((v) => Math.abs(v) > XLIM).length
+  // The x-axis stays fixed so the spreads can be compared; narrow spreads get finer bins so their shape still shows.
+  const BIN = sd < 2.5 ? 0.5 : sd < 6 ? 1 : 2.5
 
   const bins = useMemo(() => {
     const nb = Math.round((2 * XLIM) / BIN)
@@ -83,7 +84,7 @@ export default function SqrtDScaling() {
       if (b >= 0 && b < nb) c[b]++
     }
     return c
-  }, [scores])
+  }, [scores, BIN])
   const maxC = Math.max(...bins)
 
   const health = slope > 0.12 ? 'healthy' : slope > 0.03 ? 'weak' : 'almost zero'
@@ -116,7 +117,7 @@ export default function SqrtDScaling() {
           <Plot x={[-XLIM, XLIM]} y={[0, maxC * 1.18]} width={440} height={220} margin={{ top: 12, right: 10, bottom: 30, left: 12 }} ariaLabel={`Histogram of ${N_PAIRS} attention scores with standard deviation ${sd.toFixed(1)}`}>
             <Axes xTicks={7} hideYTicks />
             {bins.map((c, b) =>
-              c > 0 ? <Rect key={b} x0={-XLIM + b * BIN} x1={-XLIM + (b + 1) * BIN - 0.35} y0={0} y1={c} fill={scaled ? 'var(--viz-3)' : 'var(--viz-2)'} /> : null,
+              c > 0 ? <Rect key={b} x0={-XLIM + b * BIN} x1={-XLIM + (b + 1) * BIN - BIN * 0.14} y0={0} y1={c} fill={scaled ? 'var(--viz-3)' : 'var(--viz-2)'} /> : null,
             )}
             <VLine x={-sd} color="var(--viz-ink)" dash="4 4" width={1.2} />
             <VLine x={sd} color="var(--viz-ink)" dash="4 4" width={1.2} />
@@ -125,7 +126,7 @@ export default function SqrtDScaling() {
             </Label>
           </Plot>
           <div className={s.panelNote}>
-            The dashed lines mark one standard deviation either side of 0.
+            The dashed lines mark one standard deviation either side of 0. The axis never changes, so you can compare spreads.
             {outside > 0 ? ` ${outside} scores fall off the chart.` : ''}
           </div>
         </div>

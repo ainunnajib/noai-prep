@@ -51,14 +51,14 @@ export default function DensityToBoundary() {
       caption={
         <>
           Top: what a generative model knows, a hill <M>{'p(x \\mid y)\\,P(y)'}</M> for each class (drag the peaks; slide the class share). Bottom: the classifier you get by
-          dividing, <M>{'P(B \\mid x) = \\frac{\\text{orange height}}{\\text{blue} + \\text{orange}}'}</M>. Now slide <M>x</M> to 11.5: the classifier is almost 100% sure it is B,
+          dividing, <M>{'P(B \\mid x)'}</M> = orange height ÷ (blue height + orange height). Now slide <M>x</M> to 11.5: the classifier is almost 100% sure it is B,
           yet both hills are flat there, so <M>{'p(x)'}</M> warns that no training data looked like this. Tick the box to keep only the bottom curve, which is all a
           discriminative model learns: that warning is gone.
         </>
       }
     >
       <div style={head}>{discOnly ? 'Hidden: a discriminative model never learns these hills' : 'What a generative model learns: p(x | y) P(y) for each class'}</div>
-      <Plot x={XD} y={[0, yTop]} width={520} height={210} minHeight={170} margin={{ left: 46, bottom: 30, top: 10 }} ariaLabel="Two class hills over one feature x, and their sum">
+      <Plot x={XD} y={[0, yTop]} width={520} height={210} minHeight={200} margin={{ left: 46, bottom: 30, top: 10 }} ariaLabel="Two class hills over one feature x, and their sum">
         <Grid xTicks={12} yTicks={4} />
         {!discOnly && (
           <>
@@ -80,6 +80,11 @@ export default function DensityToBoundary() {
               ]}
             />
           </>
+        )}
+        {discOnly && (
+          <Label x={6} y={yTop * 0.55} anchor="middle" color="var(--viz-muted)" size={13} weight={600}>
+            no hills stored: nothing to sample from
+          </Label>
         )}
         <VLine x={x} color="var(--viz-ink)" dash="3 3" />
         <Axes xTicks={6} yTicks={4} tickFormat={(v) => v.toFixed(1)} />

@@ -1,3 +1,250 @@
-{/* stub: lesson 'After NOAI: NTU selection and the IOAI format' is being written */}
+import { TIMELINE, LINKS, FACTS_CHECKED_ON } from '../../../data/facts'
+import IOAIPathwayTimeline from './visuals/after-noai/IOAIPathwayTimeline'
+import ScoreNormalisation from './visuals/after-noai/ScoreNormalisation'
+import FormatComparison from './visuals/after-noai/FormatComparison'
 
-This lesson is being written.
+export const when = (title, fallback) => TIMELINE.find((t) => t.title === title)?.date ?? fallback
+export const NTU_TEST = when('NTU Selection Test', 'Sat 8 May 2027')
+export const TRAINING = when('Weekend training at NTU', '22 May – 12 Jun 2027')
+export const CAMP = when('Residential camp', '14 – 18 Jun 2027')
+export const IOAI_DATES = when('IOAI 2027 in Singapore', '4 – 10 Jul 2027')
+export const RESULTS = when('Results', 'Early Apr 2027').replace(/^Early/, 'early')
+
+Finishing the NOAI Final feels like the end of the road. For about 60 students it is the start of a second, quite different competition: NTU's selection stage, and then the **International Olympiad in AI**, which Singapore hosts in July 2027. This lesson shows what happens between April and July, how IOAI turns a model's result into a score and a medal, and why the skills that win from here are not the ones that won the MCQs.
+
+## The road from April to July
+
+<Analogy title="Making a national squad">
+
+Getting into a national sports squad works in stages. Your school results get you noticed and invited to trials. At the trials the coaches watch what you can do *now*, on their drills. A smaller group goes to a training camp, and the final team is picked there. Nobody asks for your school medals at the camp.
+
+</Analogy>
+
+After the Final, two organisations take over from AI Singapore. **<Term def="Nanyang Technological University. It runs the selection test, training and camp that choose Singapore's IOAI team.">NTU</Term>** runs the selection and training, and **<Term def="International Olympiad in Artificial Intelligence: a yearly world contest in AI for school students, first held in 2024.">IOAI</Term>** runs the international contest. In order:
+
+1. **Results ({RESULTS}).** Finalists receive an <Term def="Gold, Silver, Bronze or Participation. Finalists see only their tier, not their marks.">award tier</Term> only. NTU then invites about the top 60 finalists to the next stage.
+2. **NTU Selection Test ({NTU_TEST}).** A practical test on real datasets, described in the last section of this lesson.
+3. **Saturday training ({TRAINING}).** Four Saturday sessions at NTU, taught by professors in their own specialities.
+4. **Residential camp ({CAMP}).** A week at NTU in the June holidays for a small group (10 students in 2026), with longer and harder tasks. The national team is chosen at this stage.
+5. **IOAI at-home tasks (June).** IOAI sends every team a few practice tasks about a month before the contest. They do not count towards medals, but the first contest day is linked to them.
+6. **IOAI 2027 ({IOAI_DATES}), in Singapore.** In 2025 and 2026 the contest had two days, each with three tasks; expect the same.
+
+Click through the milestones below, then switch on the 2026 cycle to compare.
+
+<IOAIPathwayTimeline />
+
+<KeyIdea>
+
+After the Final, NTU re-ranks everyone it invites, using practical tests the NOAI papers never set. Your NOAI tier gets you to the door; what you can build in May and June decides the team. So **preparation carries on the day after the Final**.
+
+</KeyIdea>
+
+<Note title="A tier is not a ranking">
+
+Results only say Gold, Silver, Bronze or Participation. A student who won **Bronze** at NOAI 2025 went on to place **2nd in the world** at IOAI 2025, and the 2026 national team also included a NOAI Bronze winner.
+
+</Note>
+
+How much time is there for that preparation? Count it, the way you would before an exam.
+
+<Steps title="Weeks between the milestones">
+  <Step title="Final to Selection Test">
+    The Final is on Fri 5 March. March has 31 days, so $31 - 5 = 26$ days remain in March. Add 30 days of April and 8 days of May: $26 + 30 + 8 = 64$ days.
+  </Step>
+  <Step title="Turn it into weeks">
+    $64 = 9 \times 7 + 1$, so about **9 weeks**. Results arrive in early April, about halfway through. If you wait for them before starting, you lose half the time.
+  </Step>
+  <Step title="Selection Test to IOAI">
+    From Sat 8 May: $31 - 8 = 23$ days left in May, plus 30 in June and 4 in July: $23 + 30 + 4 = 57$ days, about **8 weeks**, with training, camp and the at-home tasks squeezed in.
+  </Step>
+  <Step title="Compare with 2026">
+    In 2026 IOAI was in August (2 to 8 August, in Kazakhstan), 92 days after that year's selection test. In 2027 it is 57 days: $92 - 57 = 35$ days, or **5 weeks less**.
+  </Step>
+</Steps>
+
+### Who can represent Singapore
+
+Anyone eligible can sit NOAI and win an award, whatever their nationality. The **national team** has extra rules:
+
+- **Singapore Citizens and Permanent Residents only.** This is Singapore's own rule for its team.
+- **Age.** IOAI's rules say contestants must be **20 or younger on 1 July** of the contest year, so 20 or younger on 1 July 2027.
+- **Still in school.** Contestants must be in full-time school education on or after 1 December of the year before the contest (IOAI's rules say "primary or secondary education"; Singapore's past teams have included JC and polytechnic students).
+- **One country only.** A student may not attempt the final selection of more than one country in the same year.
+
+<Note title="Check close birthdays early">
+
+The IOAI rules also restate the age limit as "born on or after 1 July 2007" for 2027, which is stricter than "20 or younger on 1 July" for anyone born between 2 July 2006 and 30 June 2007. If your birthday is in that window, ask NTU early.
+
+</Note>
+
+How big is the team? Singapore sent 8 students to each IOAI so far. From 2027 IOAI allows **one national team per country**, and its rules cap a team at 4 contestants; whether the host may send more has not been announced. Plan for a team of 4 to 8.
+
+<QuickCheck
+  q="Which student cannot be picked for Singapore's IOAI 2027 team, however well they do at NTU?"
+  options={['A Permanent Resident in Sec 4 who won Bronze at the NOAI Final', 'A Singapore Citizen in polytechnic who turns 18 in March 2027', 'A Malaysian student at a Singapore JC who is not a Permanent Resident', 'A Singapore Citizen in JC2 who did not win a NOAI medal but was invited by NTU']}
+  answer={2}
+  explain="Only Singapore Citizens and Permanent Residents can represent Singapore, so the Malaysian student can compete in NOAI and win an award but cannot join the team. A Bronze winner or a student without a medal can still be selected, because NTU re-ranks everyone it invites, and an 18-year-old is well within the age limit of 20 or younger on 1 July 2027."
+/>
+
+## How an IOAI task is scored
+
+<Analogy title="A track with a starting line and a finish line">
+
+Imagine a running track where the **starting line** is drawn at "what the example solution already achieves" and the **finish line** at "what the best runner achieved". Your mark is how far along the track you got. Standing on the starting line earns 0 however hard you trained, and crossing the finish line earns full marks.
+
+</Analogy>
+
+Every IOAI task comes with three things:
+
+- a **dataset**, usually a training set with labels and test data without labels;
+- a <Term def="A simple, working solution given with the task. Its score is the minimum the organisers count as acceptable.">baseline</Term> notebook: a simple solution that already runs and produces a valid submission;
+- a <Term def="The number used to judge predictions, for example accuracy, F1-score or IoU. The task statement says which one, and whether higher is better.">metric</Term>, such as accuracy or F1-score, computed on a hidden test set.
+
+The task's <Term def="The international panel that writes and checks IOAI tasks. It also writes an (almost) optimal reference solution for each task.">Scientific Committee</Term> also writes an expert solution. Your raw result is then **normalised**, which means rescaled onto a common 0 to 100 scale so that very different tasks can be added up fairly:
+
+$$
+\text{task score} = \frac{S - \text{Min}}{\text{Max} - \text{Min}} \times 100
+$$
+
+$$
+\text{Max} = \max\big(0.9 \times \text{SC},\ \text{best}\big)
+$$
+
+Symbol by symbol:
+
+- $S$ is **your** raw result on the hidden test set, for example 85% accuracy.
+- $\text{Min}$ is the **baseline's** raw result. It is the starting line.
+- $\text{SC}$ is the raw result of the Scientific Committee's expert solution, and $0.9 \times \text{SC}$ is 90% of it.
+- $\text{best}$ is the highest raw result any contestant achieved.
+- $\text{Max}$ is the finish line: whichever is larger, 90% of the expert result or the best contestant's result.
+
+The fraction measures **the share of the gap from the baseline to the finish line that you closed**, and $\times 100$ turns it into a score out of 100. A task score is always between 0 and 100, so a result at or below the baseline scores 0.
+
+Why the $0.9 \times \text{SC}$? If nobody comes close to the experts, the finish line is set at 90% of the expert result, so even the best contestant may score below 100. If someone beats that, the best contestant becomes the finish line and scores exactly 100. Try both cases:
+
+<ScoreNormalisation />
+
+<Steps title="Two scores by hand">
+  <Step title="The example in the IOAI rules">
+    Baseline $60\%$, expert $95\%$, best contestant $90\%$, you $85\%$. First the finish line: $0.9 \times 95 = 85.5$, and $\max(85.5,\ 90) = 90$.
+  </Step>
+  <Step title="Your share of the gap">
+    $\dfrac{85 - 60}{90 - 60} = \dfrac{25}{30} = \dfrac{5}{6} \approx 0.833$, so your task score is about $83.3$.
+  </Step>
+  <Step title="A task nobody cracked">
+    Metric F1-score. Baseline $0.40$, expert $0.80$, best contestant $0.70$, you $0.58$. Now $0.9 \times 0.80 = 0.72$ beats the best contestant, so $\text{Max} = 0.72$.
+  </Step>
+  <Step title="Your share of that gap">
+    $\dfrac{0.58 - 0.40}{0.72 - 0.40} = \dfrac{0.18}{0.32} = \dfrac{9}{16} = 0.5625$, so your score is $56.25$. Even the best contestant gets only $\dfrac{0.30}{0.32} \times 100 \approx 93.8$.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+A task score is the **share of the gap between the baseline and the best result** that you closed, out of 100. Matching the baseline scores 0, so a clear, reliable improvement on every task is what counts.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A task's baseline scores 40% accuracy, the expert solution 80%, and the best contestant 80%. You reach 70%. What is your task score?"
+  options={['93.75', '75', '70', '87.5']}
+  answer={1}
+  explain="$0.9 \times 80 = 72$, and the best contestant's 80 is larger, so $\text{Max} = 80$. Your share of the gap is $\dfrac{70 - 40}{80 - 40} = \dfrac{30}{40} = 0.75$, a score of 75. Using 72 as the finish line gives $\dfrac{30}{32} \times 100 = 93.75$, but 72 is only used when nobody beats it. 70 is your raw accuracy, and 87.5 is $70 \div 80$, which forgets to start from the baseline."
+/>
+
+### From task scores to medals
+
+Your total is the sum of your six task scores, so it is out of 600. IOAI then sets three cut-offs from the totals of everyone who took part:
+
+- **Gold:** the highest cut-off that gives **at least 1/12** of contestants a gold medal.
+- **Gold or silver:** at least **1/4** of contestants get gold or silver.
+- **Any medal:** at least **1/2** of contestants get a medal.
+
+A contestant without a medal still receives an **Honourable Mention** if, on at least one of the two days, fewer than half of the contestants scored higher. Medals depend only on this individual contest.
+
+<Steps title="Medal counts at IOAI 2026 (440 contestants)">
+  <Step title="Gold">
+    $440 \div 12 = 36\tfrac{2}{3}$. "At least" means round **up**: at least 37 golds.
+  </Step>
+  <Step title="Gold or silver">
+    $440 \div 4 = 110$, so at least 110 gold or silver medals: $110 - 37 = 73$ silvers.
+  </Step>
+  <Step title="Any medal">
+    $440 \div 2 = 220$ medals in all: $220 - 110 = 110$ bronzes. IOAI 2026 awarded exactly 37 gold, 73 silver and 110 bronze medals.
+  </Step>
+</Steps>
+
+<Mistake title="Perfecting one task, abandoning the rest">
+
+Spending three hours squeezing the last 0.5% out of your best task while others sit at the baseline. Two perfect tasks and four baselines total $100 + 100 = 200$. A steady 40 on all six totals $6 \times 40 = 240$ and finishes ahead, even though it never scored above 40 anywhere. Get every task clearly above its baseline first, then polish.
+
+</Mistake>
+
+During the contest you can submit a task many times (up to 60 in 2026). Each submission is scored on a **validation set**, and you see your own result, the baseline's and the best result so far. The official scores, however, come from a **separate hidden test set** after the contest ends. The next lesson explains why chasing the numbers you see during the contest can backfire.
+
+<ExamTip>
+
+NOAI never asks how IOAI is scored, but it often asks you to compare a model with a baseline. The simplest baseline is guessing: with 10 balanced classes, a random guess scores 10%. Any result at that level means the model has learnt nothing useful about that data, whatever the training loss says. When training loss keeps falling but validation sits exactly at chance, suspect the pipeline (how the validation data or its labels were prepared) before the model.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={273} />
+
+## From MCQs to open-ended tasks
+
+<Analogy title="Theory test, then road test">
+
+To drive in Singapore you first pass the Basic Theory Test: multiple-choice questions on a computer. Then comes the practical test, where an examiner sits beside you while you actually drive. Knowing the rules is necessary, but in the car what counts is whether you can do it. The NOAI papers are the theory test; NTU and IOAI are the road test.
+
+</Analogy>
+
+The tasks NTU released from 2024 and 2025 show the style. Each test gave one <Term def="A Jupyter notebook: a document mixing runnable Python code cells, their outputs and text, used in the NOAI Final and at IOAI.">notebook</Term> per area, ran on a <Term def="Graphics processing unit: a chip that does many multiplications at once, which makes training neural networks tens of times faster than on a normal processor.">GPU</Term>, and used real datasets:
+
+- **2024 Selection Test.** Classify <Term def="A standard dataset of 60,000 tiny 32×32 colour photos in 10 classes (aeroplane, car, bird, cat and so on).">CIFAR-10</Term> photos with a <Term def="An 18-layer convolutional network with residual (skip) connections, a common starting model for image tasks.">ResNet-18</Term>: fill in two lines of data augmentation, the three layers at the start of the network and the loss function, then improve the model freely. In language: rebuild a sentence classifier from a research paper sent a week before, then improve it.
+- **2025 Selection Test.** Segment people, cars, dogs, bicycles and chairs in <Term def="A standard dataset of everyday photos in which every pixel is labelled with its object class.">Pascal VOC</Term> photos with a <Term def="A network that labels every pixel of an image: an encoder shrinks the image into features, a decoder grows it back, and skip connections pass detail across.">U-Net</Term> (100 marks, judged by <Term def="Mean intersection over union: for each class, the overlap between predicted and true pixels divided by their union, averaged over classes.">mean IoU</Term>); predict depression from a 98,490-row survey (judged on accuracy and on documenting what you tried); detect implicit toxic comments, with a pile of unlabelled comments available.
+- **Camps.** <Term def="A model trained to match images with their captions, so it can classify images into classes described only in words.">CLIP</Term> zero-shot classification and a deliberately imbalanced CIFAR-10 (2024); generating digits with a <Term def="Generative adversarial network: a generator learns to make fake data while a discriminator learns to tell fake from real.">GAN</Term>, editing smiles in <Term def="A GAN that generates very realistic faces; moving its internal code in one direction changes one feature, such as a smile.">StyleGAN</Term> faces, recovering HDB flats' storey ranges, and classifying Spanish tweets with a model trained on English ones (2025).
+
+Three things repeat. You get a **baseline that already runs**, with a few lines blanked out. Most marks go to **improving it** on a metric. And you **explain** your choices in short written answers. NOAI's skills are all still needed, but iteration speed and practical judgement now matter more.
+
+<FormatComparison />
+
+<Mistake title="Trusting the starter code">
+
+Starter notebooks can contain bugs, and finding them is part of the test. In the 2024 vision test, training images were scaled one way and test images another:
+
+```python
+# training cell: values in [0, 1]
+x_train = images_train / 255
+
+# evaluation cell: values in [-1, 1]
+x_test = images_test / 255 * 2 - 1
+```
+
+The model never saw inputs like the test images, so the baseline's accuracy was lower than it should have been. Before improving anything, read every cell of the baseline and check that training and evaluation prepare the data the same way.
+
+</Mistake>
+
+The NOAI Prelim asks about the same ideas in one line. Here is its question on <Term def="Starting from a model already trained on a large dataset (e.g. ImageNet) and adapting it to a new task, instead of training from random weights.">transfer learning</Term>. In the 2025 Selection Test, you had to *do* it: load ImageNet weights into the U-Net's encoder and train it with a smaller learning rate than the new decoder.
+
+<PastPaperQuestion paper="prelim2026" n={194} />
+
+So what should the nine weeks after the Final be spent on? The skills behind these tasks, most of which this course already introduces:
+
+- a PyTorch [training loop](#/learn/pytorch/training-loop) you can write from memory, run on a GPU;
+- [transfer learning and augmentation](#/learn/vision-tasks/transfer-learning-and-augmentation) for images, and [Hugging Face](#/learn/pretrained-models-text-speech/hugging-face-in-practice) models for text;
+- the right metric for the job ([imbalanced data](#/learn/model-evaluation/imbalanced-data), [segmentation metrics](#/learn/vision-tasks/segmentation-metrics));
+- the competition craft of the [next lesson](#/learn/road-to-ioai/baseline-to-better): trustworthy validation, one change at a time, and an experiment log.
+
+<Takeaways>
+
+- After results ({RESULTS}), about the top 60 finalists sit NTU's **Selection Test ({NTU_TEST})**, then **four Saturday training sessions** and a **residential camp ({CAMP})**, where the team is picked. **IOAI 2027 is in Singapore, {IOAI_DATES}**.
+- NTU re-ranks everyone: a NOAI Bronze winner placed 2nd in the world at IOAI 2025. Only **Singapore Citizens and PRs** can join the team, and IOAI requires contestants to be **20 or younger on 1 July 2027**.
+- IOAI has **two contest days with three tasks each**. Each task score is $\dfrac{S - \text{Min}}{\text{Max} - \text{Min}} \times 100$, with $\text{Max} = \max(0.9 \times \text{SC},\ \text{best})$: matching the baseline scores 0.
+- Medals: gold to at least **1/12** of contestants, gold or silver to at least **1/4**, a medal to at least **1/2**. Steady gains on all six tasks beat perfection on one.
+- NTU and IOAI tasks give you a **runnable baseline to complete and improve** on real data with a GPU, so start practising that straight after the Final.
+
+</Takeaways>
+
+<div style={{ fontSize: '0.85rem', color: 'var(--ink-3)' }}>
+  Dates checked against the official NOAI pages on {FACTS_CHECKED_ON}; scoring and medal rules from the IOAI 2026 contest rules (IOAI 2027 may update them). Confirm on the <a href={LINKS.noai2027} target="_blank" rel="noreferrer">NOAI 2027 page</a> and the <a href={LINKS.ioai2027} target="_blank" rel="noreferrer">IOAI 2027 site</a>.
+</div>

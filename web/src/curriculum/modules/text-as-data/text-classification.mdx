@@ -131,7 +131,7 @@ Because every $x_j$ for a missing word is 0, the sum is simply **the bias plus t
 The weights also show the model's blind spots:
 
 - **Word order is thrown away.** *The food was good, not bad* and *the food was bad, not good* contain exactly the same words, so they get exactly the same vector and the same prediction (0.28 in our model). The **Shuffle** button proves it.
-- **Negation and sarcasm** depend on how words combine, which a sum of separate votes cannot express.
+- **Negation and sarcasm** depend on how words combine, which a sum of separate votes cannot express. It is like judging a movie review by counting happy and sad words without ever noticing the word "not".
 - **Small data learns accidents.** `mee` has a large positive weight only because 3 of our 4 training reviews containing it were positive.
 
 A partial fix is to add <Term def="Sequences of n neighbouring tokens. Bigrams are word pairs such as 'not bad'; adding them as extra features lets a bag-of-words model see a little local order.">n-grams</Term>: word pairs such as "not bad" become extra vocabulary entries. That helps, but the vocabulary explodes and each pair needs its own training examples. The real fix is a model that reads words *in order*: a recurrent network (next lesson) or a Transformer.
@@ -144,15 +144,43 @@ Expect options that test whether you know **bag of words (and TF-IDF) ignores wo
 
 ## Three ways to build the vector
 
-| | TF-IDF + logistic regression | Averaged word embeddings + classifier | Fine-tuned pretrained encoder (e.g. BERT) |
-|---|---|---|---|
-| The vector | one slot per vocabulary word (thousands), mostly zeros | the mean of the word vectors (e.g. 300 numbers) | the encoder's output for the `[CLS]` token (768 numbers in BERT-base) |
-| Word order | ignored | ignored | used: every word is read in context |
-| Knows that "tasty" ≈ "delicious"? | no: they are unrelated slots | yes: similar words have similar vectors | yes |
-| Training cost | seconds on a CPU | seconds to minutes | minutes to hours, a GPU helps |
-| Easy to inspect? | yes, one weight per word | partly | hard |
+<Columns min={210}>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
 
-The third column needs a little more explanation. A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. It puts a special `[CLS]` token at the start of every input, and its final vector for `[CLS]` summarises the whole sentence, word order included. To classify, you add a small **classification head** (one linear layer and a softmax) on top of that vector. Then you <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term>: train the head *and* all of BERT's weights on your labelled examples for a few epochs, with a small learning rate (around $2 \times 10^{-5}$) so the pretrained knowledge is nudged rather than wiped out. Reusing knowledge from one task for another like this is called <Term def="Reusing a model trained on one big task (such as predicting missing words in billions of sentences) as the starting point for a different, smaller task.">transfer learning</Term>.
+**1. TF-IDF + logistic regression**
+
+- **Vector**: one slot per vocabulary word (thousands), mostly zeros.
+- **Word order**: ignored.
+- **"tasty" ≈ "delicious"?** No: they are unrelated slots.
+- **Training**: seconds on a CPU.
+- **Easy to inspect?** Yes, one weight per word.
+
+</div>
+<div style={{ border: '1px solid var(--rule)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--surface)' }}>
+
+**2. Averaged word embeddings + classifier**
+
+- **Vector**: the mean of the word vectors (e.g. 300 numbers).
+- **Word order**: ignored.
+- **"tasty" ≈ "delicious"?** Yes: similar words have similar vectors.
+- **Training**: seconds to minutes.
+- **Easy to inspect?** Partly.
+
+</div>
+<div style={{ border: '2px solid var(--accent-line)', borderRadius: 12, padding: '0.1rem 0.9rem', background: 'var(--accent-soft)' }}>
+
+**3. Fine-tuned pretrained encoder (e.g. BERT)**
+
+- **Vector**: the encoder's output for the `[CLS]` token (768 numbers in BERT-base).
+- **Word order**: used: every word is read in context.
+- **"tasty" ≈ "delicious"?** Yes.
+- **Training**: minutes to hours; a GPU helps.
+- **Easy to inspect?** Hard.
+
+</div>
+</Columns>
+
+The third approach needs a little more explanation. A pretrained encoder such as <Term def="Bidirectional Encoder Representations from Transformers: a Transformer encoder pretrained on huge amounts of text by filling in masked-out words. It is fine-tuned for tasks such as classification.">BERT</Term> has already read billions of words. It puts a special `[CLS]` token at the start of every input, and its final vector for `[CLS]` summarises the whole sentence, word order included. To classify, you add a small **classification head** (one linear layer and a softmax) on top of that vector. Then you <Term def="Continuing to train a pretrained model on your own labelled data, usually with a small learning rate, so it adapts to your task without forgetting what it learned in pretraining.">fine-tune</Term>: train the head *and* all of BERT's weights on your labelled examples for a few epochs, with a small learning rate (around $2 \times 10^{-5}$) so the pretrained knowledge is nudged rather than wiped out. Reusing knowledge from one task for another like this is called <Term def="Reusing a model trained on one big task (such as predicting missing words in billions of sentences) as the starting point for a different, smaller task.">transfer learning</Term>.
 
 The averaged-embedding model is short enough to write out in PyTorch. Notice the one line where word order disappears:
 

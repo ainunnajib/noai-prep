@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Figure, Controls, Segmented, Toggle, Readout } from '../../../../../kit'
+import { Figure, Controls, Segmented, Toggle, Readout, useNarrow } from '../../../../../kit'
 import css from './modules.module.css'
 
 /*
@@ -42,6 +42,9 @@ export default function ModuleTreeExplorer() {
   const [withSuper, setWithSuper] = useState(true)
   const [sel, setSel] = useState<Sel>('root')
   const set = (k: keyof Sizes) => (n: number) => setSz((s) => ({ ...s, [k]: n }))
+  // phones: indent by 2 spaces per level so the ◀ ▶ steppers stay on screen
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(560)
+  const I = (level: number) => ' '.repeat(level * (narrow ? 2 : 4))
 
   const registered = storage !== 'list'
   const names = storage === 'modulelist' ? { fc1: 'layers.0', act: 'layers.1', fc2: 'layers.2' } : { fc1: 'fc1', act: 'act', fc2: 'fc2' }
@@ -105,21 +108,21 @@ export default function ModuleTreeExplorer() {
   const initLines: ReactNode[] =
     storage === 'attr'
       ? [
-          L(<>        self.fc1 = {linCode('i1', 'o1', 'fc1')}</>, { on: sel === 'fc1' }, 'a1'),
-          L(<>        self.act = nn.ReLU()</>, { on: sel === 'act' }, 'a2'),
-          L(<>        self.fc2 = {linCode('i2', 'o2', 'fc2')}</>, { on: sel === 'fc2' }, 'a3'),
+          L(<>{I(2)}self.fc1 = {linCode('i1', 'o1', 'fc1')}</>, { on: sel === 'fc1' }, 'a1'),
+          L(<>{I(2)}self.act = nn.ReLU()</>, { on: sel === 'act' }, 'a2'),
+          L(<>{I(2)}self.fc2 = {linCode('i2', 'o2', 'fc2')}</>, { on: sel === 'fc2' }, 'a3'),
         ]
       : [
-          L(<>        self.layers = {storage === 'modulelist' ? 'nn.ModuleList([' : '['}</>, { on: sel === 'layers' }, 'l0'),
-          L(<>            {linCode('i1', 'o1', 'first layer')},</>, { on: sel === 'fc1' }, 'l1'),
-          L(<>            nn.ReLU(),</>, { on: sel === 'act' }, 'l2'),
-          L(<>            {linCode('i2', 'o2', 'second layer')},</>, { on: sel === 'fc2' }, 'l3'),
-          L(<>        {storage === 'modulelist' ? '])' : ']'}</>, {}, 'l4'),
+          L(<>{I(2)}self.layers = {storage === 'modulelist' ? 'nn.ModuleList([' : '['}</>, { on: sel === 'layers' }, 'l0'),
+          L(<>{I(3)}{linCode('i1', 'o1', 'first layer')},</>, { on: sel === 'fc1' }, 'l1'),
+          L(<>{I(3)}nn.ReLU(),</>, { on: sel === 'act' }, 'l2'),
+          L(<>{I(3)}{linCode('i2', 'o2', 'second layer')},</>, { on: sel === 'fc2' }, 'l3'),
+          L(<>{I(2)}{storage === 'modulelist' ? '])' : ']'}</>, {}, 'l4'),
         ]
   const fwdLines: ReactNode[] =
     storage === 'attr'
-      ? [L('        x = self.fc1(x)', {}, 'f1'), L('        x = self.act(x)', {}, 'f2'), L('        return self.fc2(x)', {}, 'f3')]
-      : [L('        for layer in self.layers:', {}, 'f1'), L('            x = layer(x)', {}, 'f2'), L('        return x', {}, 'f3')]
+      ? [L(I(2) + 'x = self.fc1(x)', {}, 'f1'), L(I(2) + 'x = self.act(x)', {}, 'f2'), L(I(2) + 'return self.fc2(x)', {}, 'f3')]
+      : [L(I(2) + 'for layer in self.layers:', {}, 'f1'), L(I(3) + 'x = layer(x)', {}, 'f2'), L(I(2) + 'return x', {}, 'f3')]
 
   const treeNode = (id: Sel, label: string, kind: string, depth: number, count?: number) => (
     <button type="button" key={id} className={`${css.node} ${sel === id ? css.nodeOn : ''}`} style={{ marginLeft: depth * 18, width: `calc(100% - ${depth * 18}px)` }} onClick={() => setSel(id)}>
@@ -160,7 +163,8 @@ export default function ModuleTreeExplorer() {
         <Toggle label={<code>super().__init__()</code>} checked={withSuper} onChange={setWithSuper} />
       </Controls>
 
-      <pre className={css.code} aria-label="The model's code">
+      <div ref={wrapRef} style={{ width: '100%' }}>
+      <pre className={`${css.code} ${narrow ? css.codeNarrow : ''}`} aria-label="The model's code">
         {L(
           <>
             {k('class')} TinyNet(nn.Module):
@@ -168,29 +172,41 @@ export default function ModuleTreeExplorer() {
         )}
         {L(
           <>
-            {'    '}
+            {I(1)}
             {k('def')} __init__(self):
           </>,
         )}
-        {L('        super().__init__()', { gone: !withSuper, on: !withSuper })}
+        {L(I(2) + 'super().__init__()', { gone: !withSuper, on: !withSuper })}
         {initLines}
         {L(
           <>
-            {'    '}
+            {I(1)}
             {k('def')} forward(self, x):
           </>,
         )}
         {fwdLines}
       </pre>
+      </div>
 
       {!withSuper ? (
-        <div className={css.err} role="alert">
-          {`model = TinyNet()\nAttributeError: cannot assign module before Module.__init__() call`}
-          <div style={{ fontFamily: 'var(--font-body)', fontWeight: 400, color: 'var(--ink-2)', marginTop: 4 }}>
-            <code>nn.Module.__init__</code> creates the registries that hold parameters and sub-modules. Without it, the very first <code>self.fc1 = …</code> has nowhere
-            to go, so building the model fails.
+        storage === 'list' ? (
+          <div className={css.err} role="alert">
+            {`model = TinyNet()             # no error yet\nlist(model.parameters())\nAttributeError: 'TinyNet' object has no attribute '_parameters'`}
+            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 400, color: 'var(--ink-2)', marginTop: 4 }}>
+              A plain list is stored like any Python attribute, so building the model seems to work. But <code>nn.Module.__init__</code> never ran, so the
+              registries that hold parameters and sub-modules do not exist: the first thing that needs them (<code>model.parameters()</code>,{' '}
+              <code>model(x)</code>, <code>print(model)</code>) fails.
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={css.err} role="alert">
+            {`model = TinyNet()\nAttributeError: cannot assign module before Module.__init__() call`}
+            <div style={{ fontFamily: 'var(--font-body)', fontWeight: 400, color: 'var(--ink-2)', marginTop: 4 }}>
+              <code>nn.Module.__init__</code> creates the registries that hold parameters and sub-modules. Without it, the very first{' '}
+              <code>{storage === 'attr' ? 'self.fc1 = …' : 'self.layers = nn.ModuleList(…)'}</code> has nowhere to go, so building the model fails.
+            </div>
+          </div>
+        )
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, width: '100%' }}>

@@ -85,6 +85,13 @@ Two more initialisation ideas come up in harder questions.
 - **Orthogonal initialisation.** An <Term def="A square matrix whose columns are perpendicular unit vectors, so that multiplying by it rotates or reflects a vector without changing its length.">orthogonal matrix</Term> rotates a vector without stretching it, so $\lVert W\mathbf{v} \rVert = \lVert \mathbf{v} \rVert$ exactly. Starting with a random orthogonal weight matrix means the linear part of each layer can neither blow the signal up nor shrink it, which helps very deep networks and recurrent networks, where the same matrix is applied at every time step. PyTorch: `nn.init.orthogonal_(W)`.
 - **The output layer's bias.** With small weights, the output layer's bias decides the first predictions. Starting it at 0 makes all $K$ classes equally likely, so the first cross-entropy loss should be about $\ln K$ ($\ln 10 \approx 2.3$ for 10 classes): a handy sanity check. For imbalanced data, set each class's bias to the log of its frequency so the model starts by predicting the base rates. A bias set far too **low** for some classes can stop them ever being predicted.
 
+<QuickCheck
+  q="A 4-class classifier starts with small random weights and every output bias at 0. Roughly what should the cross-entropy loss be on the very first batch?"
+  options={['1.39', '0.25', '4', '0.69']}
+  answer={0}
+  explain="Zero biases and tiny weights make every class equally likely, $p = 1/4$, so the loss is $-\ln(1/4) = \ln 4 = 2 \ln 2 \approx 2 \times 0.69 = 1.39$. 0.25 is the probability, not the loss, and 0.69 is $\ln 2$, the value for 2 classes. A first loss far above $\ln K$ points to a badly initialised output layer."
+/>
+
 In PyTorch, layers already come with a sensible random initialisation, but you can choose your own:
 
 ```python

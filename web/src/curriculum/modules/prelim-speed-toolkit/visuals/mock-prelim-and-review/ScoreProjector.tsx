@@ -1,0 +1,251 @@
+import { useState } from 'react'
+import { Figure, Controls, Readout, Slider, Segmented, Toggle, Button, Bars, Plot, Grid, Axes, Path, Dots, VLine, Label, DraggablePoint, useNarrow } from '../../../../../kit'
+import m from './mp.module.css'
+
+/*
+  Score projector. Weekly full-mock scores (out of 150) over an 18-week run-up to the Prelim.
+  Drag any week's score; the least-squares trend, the ±2 SD noise of a single sitting
+  (SD = √(150·p·(1 − p))) and a projected range on Prelim day update. Planned study hours scale
+  the future trend; questions reached plus guessing adds (150 − reached)/4 expected marks.
+  The trend uses the last four mocks, so an early jump followed by a plateau projects flat.
+  The latest mock is broken down by domain. A button loads the mocks saved by this site's
+  Mock exam page, if there are any in this browser.
+*/
+
+const WEEKS = 18
+const PAST_HOURS = 6
+const DOMS = ['Maths', 'Computing', 'AI/ML/DL', 'GenAI', 'Problem solving']
+const DOM_KEYS = ['mathematics', 'computing', 'ai_ml_dl', 'generative_ai', 'problem_solving']
+
+interface Profile {
+  id: string
+  label: string
+  scores: number[]
+  /** latest mock by domain, out of 30 each */
+  domains: number[]
+}
+
+const PROFILES: Profile[] = [
+  { id: 'steady', label: 'Steady climber', scores: [62, 70, 66, 75, 79, 77], domains: [20, 17, 16, 10, 14] },
+  { id: 'plateau', label: 'Fast start, then flat', scores: [80, 92, 95, 94, 96, 95], domains: [24, 21, 19, 14, 17] },
+  { id: 'noisy', label: 'Noisy but rising', scores: [55, 71, 60, 74, 69, 82], domains: [15, 19, 18, 16, 14] },
+]
+
+const sd = (score: number) => {
+  const p = Math.min(0.99, Math.max(0.01, score / 150))
+  return Math.sqrt(150 * p * (1 - p))
+}
+
+/** Least-squares line through the last `k` weekly scores (x = week number). */
+function fit(all: number[], k = 4) {
+  const start = Math.max(0, all.length - k)
+  const scores = all.slice(start)
+  const n = scores.length
+  const xs = scores.map((_, i) => start + i + 1)
+  const mx = xs.reduce((a, b) => a + b, 0) / n
+  const my = scores.reduce((a, b) => a + b, 0) / n
+  let sxy = 0
+  let sxx = 0
+  xs.forEach((x, i) => {
+    sxy += (x - mx) * (scores[i] - my)
+    sxx += (x - mx) ** 2
+  })
+  const b = sxx ? sxy / sxx : 0
+  return { b, a: my - b * mx, mean: my, from: start + 1 }
+}
+
+interface Saved {
+  total: number
+  correct: number
+  byDomain?: Record<string, { total: number; correct: number }>
+}
+
+function loadSiteMocks(): Saved[] {
+  try {
+    const raw = window.localStorage.getItem('noai-prep:progress-v1')
+    if (!raw) return []
+    const exams = (JSON.parse(raw)?.exams ?? []) as Saved[]
+    return exams.filter((e) => e && e.total >= 30 && Number.isFinite(e.correct))
+  } catch {
+    return []
+  }
+}
+
+export default function ScoreProjector() {
+  const [profile, setProfile] = useState('steady')
+  const [scores, setScores] = useState<number[]>(PROFILES[0].scores)
+  const [domains, setDomains] = useState<number[]>(PROFILES[0].domains)
+  const [hours, setHours] = useState(PAST_HOURS)
+  const [reached, setReached] = useState(140)
+  const [guess, setGuess] = useState(true)
+  const [noise, setNoise] = useState(true)
+  const [msg, setMsg] = useState('')
+  const [ref, narrow] = useNarrow<HTMLDivElement>(520)
+
+  const pick = (id: string) => {
+    const p = PROFILES.find((x) => x.id === id)
+    if (!p) return
+    setProfile(id)
+    setScores(p.scores)
+    setDomains(p.domains)
+    setMsg('')
+  }
+
+  const loadMine = () => {
+    const ex = loadSiteMocks()
+    if (!ex.length) {
+      setMsg('No mocks of 30 or more questions are saved in this browser yet. Sit one on the Mock exam page, then come back.')
+      return
+    }
+    const last = ex.slice(-12)
+    setScores(last.map((e) => Math.round((150 * e.correct) / e.total)))
+    const bd = last[last.length - 1].byDomain ?? {}
+    setDomains(DOM_KEYS.map((k) => (bd[k]?.total ? Math.round((30 * bd[k].correct) / bd[k].total) : 0)))
+    setProfile('mine')
+    setMsg(`Loaded your last ${last.length} mock${last.length === 1 ? '' : 's'}, scaled to 150 marks, one per week in the order you sat them.`)
+  }
+
+  const n = scores.length
+  const { b, a, mean, from } = fit(scores)
+  const level = n >= 2 ? a + b * n : scores[0]
+  // fraction of the remaining gap closed per week, from the trend, scaled by planned hours
+  const f0 = n >= 2 && b > 0 ? b / Math.max(5, 150 - mean) : 0
+  const f = Math.min(0.1, (f0 * hours) / PAST_HOURS)
+  const bonus = guess ? (150 - reached) / 4 : 0
+  const proj: [number, number][] = [[n, level]]
+  let s = level
+  for (let w = n + 1; w <= WEEKS; w++) {
+    s = s + f * (150 - s)
+    proj.push([w, s])
+  }
+  const withBonus = proj.map(([w, v], i) => [w, Math.min(150, v + (bonus * i) / Math.max(1, proj.length - 1))] as [number, number])
+  const final = withBonus[withBonus.length - 1][1]
+  const half = (w: number, v: number) => 2 * sd(v) * Math.sqrt(1 + Math.max(0, w - n) / Math.max(2, n))
+  const band: [number, number][] = [
+    ...withBonus.map(([w, v]) => [w, Math.min(150, v + half(w, v))] as [number, number]),
+    ...withBonus
+      .slice()
+      .reverse()
+      .map(([w, v]) => [w, Math.max(0, v - half(w, v))] as [number, number]),
+  ]
+  const lo = Math.max(0, final - half(WEEKS, final))
+  const hi = Math.min(150, final + half(WEEKS, final))
+  const domSum = domains.reduce((p, q) => p + q, 0)
+  const weakest = domains.indexOf(Math.min(...domains))
+
+  return (
+    <Figure
+      title="Project your Prelim score"
+      caption={
+        <>
+          Drag any week’s score. The grey dashed line is the trend of your last four mocks; the shaded fan is where your score on 19 February would probably land, if you keep improving at that rate (scaled by your planned
+          hours). Error bars show ±2 SD of chance alone for a single sitting. Notice how much one mock can wobble, and how the projection moves when you change the trend rather than one point. A model,
+          not a promise: real progress is lumpier.
+        </>
+      }
+    >
+      <div className={m.wrap} ref={ref}>
+        <Segmented
+          label="Example student"
+          value={profile}
+          onChange={pick}
+          options={[...PROFILES.map((p) => ({ value: p.id, label: p.label })), ...(profile === 'mine' ? [{ value: 'mine', label: 'My mocks' }] : [])]}
+        />
+        <Plot x={[0.4, WEEKS + 0.6]} y={[0, 150]} width={560} height={320} minHeight={270} margin={{ left: 42, right: narrow ? 14 : 20, top: 18, bottom: 36 }} ariaLabel="Weekly mock scores out of 150, the trend line and a projected range on Prelim day">
+          <Grid xTicks={9} yTicks={6} />
+          <Axes xTicks={9} yTicks={6} xLabel="week" yLabel="score / 150" />
+          <Path points={band} closed fill="color-mix(in srgb, var(--viz-1) 14%, transparent)" color="transparent" width={0} />
+          {n >= 2 && (
+            <Path
+              points={[
+                [from, a + b * from],
+                [n, level],
+              ]}
+              color="var(--viz-muted)"
+              dash="6 5"
+              width={2}
+            />
+          )}
+          <Path points={withBonus} color="var(--viz-1)" width={2.5} dash="2 4" />
+          {noise &&
+            scores.map((v, i) => (
+              <Path
+                key={`e${i}`}
+                points={[
+                  [i + 1, Math.max(0, v - 2 * sd(v))],
+                  [i + 1, Math.min(150, v + 2 * sd(v))],
+                ]}
+                color="var(--viz-2)"
+                width={2}
+              />
+            ))}
+          <VLine x={WEEKS} color="var(--viz-4)" dash="5 4" />
+          <Label x={WEEKS} y={0} dx={-6} dy={-7} anchor="end" color="var(--viz-4)" weight={750}>
+            {narrow ? 'Prelim' : 'Prelim, 19 Feb'}
+          </Label>
+          <Dots points={[{ x: WEEKS, y: final, color: 'var(--viz-4)', r: 6 }]} />
+          <Label x={WEEKS} y={final} dx={-10} dy={final > 128 ? 18 : -12} anchor="end" color="var(--viz-4)" weight={800}>
+            {`≈ ${Math.round(final)}`}
+          </Label>
+          {scores.map((v, i) => (
+            <DraggablePoint
+              key={i}
+              x={i + 1}
+              y={v}
+              lockX
+              r={7}
+              color="var(--viz-2)"
+              label={undefined}
+              constrain={(x, y) => [x, Math.round(Math.max(0, Math.min(150, y)))]}
+              onChange={(_, y) => setScores((sc) => sc.map((q, j) => (j === i ? y : q)))}
+            />
+          ))}
+        </Plot>
+        <Readout
+          items={[
+            ['latest mock', `${scores[n - 1]} / 150`],
+            ['trend', n >= 2 ? `${b >= 0 ? '+' : '−'}${Math.abs(b).toFixed(1)} a week` : '–'],
+            ['projected on 19 Feb', `${Math.round(final)} (likely ${Math.round(lo)}–${Math.round(hi)})`],
+          ]}
+        />
+        <Controls>
+          <Slider label={`Study hours a week from now (so far: ${PAST_HOURS})`} value={hours} min={1} max={15} step={1} onChange={setHours} format={(v) => `${v} h`} />
+          <Slider label="Questions reached in your last mock" value={reached} min={100} max={150} step={1} onChange={setReached} format={(v) => `${v}`} />
+        </Controls>
+        <div className={m.formRow}>
+          <Toggle label={`Guess every blank on the day (+${((150 - reached) / 4).toFixed(1)} expected)`} checked={guess} onChange={setGuess} />
+          <Toggle label="Show ±2 SD noise bars" checked={noise} onChange={setNoise} />
+        </div>
+        <div className={m.formRow}>
+          <Button onClick={() => setScores((sc) => (sc.length < 12 ? [...sc, sc[sc.length - 1]] : sc))} disabled={n >= 12}>
+            Add a week
+          </Button>
+          <Button onClick={() => setScores((sc) => (sc.length > 2 ? sc.slice(0, -1) : sc))} disabled={n <= 2}>
+            Remove a week
+          </Button>
+          <Button onClick={loadMine}>Use my mocks from this site</Button>
+        </div>
+        {msg && <div className={m.banner}>{msg}</div>}
+        <div style={{ display: 'grid', gap: '0.35rem', width: '100%' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 750, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>Latest mock by domain (out of 30 each)</div>
+          <Bars
+            ariaLabel="Latest mock score per domain, out of 30"
+            max={30}
+            format={(v) => `${v} / 30`}
+            data={DOMS.map((d, i) => ({ label: d, value: domains[i], color: `var(--viz-${i + 1})`, strong: i === weakest }))}
+          />
+          <div style={{ fontSize: '0.88rem', color: 'var(--ink-2)' }}>
+            {domSum > 0 ? (
+              <>
+                Most marks still available in <strong>{DOMS[weakest]}</strong>: {30 - domains[weakest]} of 30 missed. Check your error log for that domain before deciding whether it needs lessons (gaps) or
+                drills (slips).
+              </>
+            ) : (
+              'No domain breakdown saved for this mock.'
+            )}
+          </div>
+        </div>
+      </div>
+    </Figure>
+  )
+}

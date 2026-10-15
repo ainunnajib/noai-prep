@@ -42,7 +42,7 @@ const relu = (v: number[]) => v.map((z) => Math.max(0, z))
 
 /** fixed uniforms per training step, so raising p drops a superset of neurons */
 function uniforms(step: number): number[] {
-  const r = mulberry32(9001 + step * 7919)
+  const r = mulberry32(9003 + step * 7919)
   return Array.from({ length: 2 * NH }, () => r())
 }
 

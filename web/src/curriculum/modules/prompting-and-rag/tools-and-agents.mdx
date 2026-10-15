@@ -1,3 +1,166 @@
-{/* stub: lesson 'Tool use and agents' is being written */}
+import FunctionCallAnatomy from './visuals/tools-and-agents/FunctionCallAnatomy'
+import AgentLoopStepper from './visuals/tools-and-agents/AgentLoopStepper'
+import StepReliability from './visuals/tools-and-agents/StepReliability'
+import RAGEvalMatrix from './visuals/tools-and-agents/RAGEvalMatrix'
+import { AGENT_CODE } from './visuals/tools-and-agents/code'
 
-This lesson is being written.
+Ask a plain chatbot "How many days until the NOAI Prelim?" and it is stuck. It does not know today's date, its training data may be out of date, and counting days across months is exactly the kind of arithmetic language models slip on. Give the model a search box, a calendar and a calculator, let it decide when to use them, and run it in a loop: that is an **agent**.
+
+<Analogy title="A student doing a project">
+
+Picture a student writing a project on the MRT. They think ("I need ridership numbers"), look something up in the library, read what they found, update their notes, and think again, until they can write the conclusion. They never do everything in their head, and every trip to the library changes what they do next. An agent works the same way: think, use a tool, read the result, repeat.
+
+</Analogy>
+
+## Function calling: the model asks, your code acts
+
+A language model can only produce text. To let it use a <Term def="A function your program makes available to the model, such as a calculator, a search engine, a database query or a calendar.">tool</Term>, your program describes each tool in a <Term def="A precise description of a tool: its name, what it does, and the names and types of its arguments, usually written in JSON.">schema</Term>:
+
+```json
+{
+  "name": "days_between",
+  "description": "Count the days from one date to a later date.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "start": {"type": "string", "description": "first date, YYYY-MM-DD"},
+      "end":   {"type": "string", "description": "second date, YYYY-MM-DD"}
+    },
+    "required": ["start", "end"]
+  }
+}
+```
+
+The schemas are sent to the model along with the conversation. When a tool would help, the model replies not with an answer but with a **tool call**: text in an exact format, such as `{"name": "days_between", "arguments": {"start": "2026-10-14", "end": "2027-02-19"}}`. Your program reads it, checks the arguments, runs the real function and sends the result back as a new message. Then the model carries on. This is called <Term def="Letting a language model request a function by writing a structured call (a name plus arguments) that the surrounding program executes.">function calling</Term>, or tool use.
+
+<FunctionCallAnatomy />
+
+<KeyIdea>
+
+The model never runs anything. It writes a structured request; your code decides whether to run it, runs it, and returns the result as more text for the model to read.
+
+</KeyIdea>
+
+The tool call is generated like any other text, one token at a time, each token depending on everything before it. The tool's result is appended to the input and generation continues from there. Tool use is ordinary autoregressive generation with a program in the loop.
+
+<PastPaperQuestion paper="prelim2026" n={228} />
+
+<Mistake title="“The AI looked it up itself”">
+
+It is tempting to say the model "searched the web" or "ran the code". It did not: it asked, and the application did it. This matters for safety, because your code chooses which tools exist and what they may do. It also matters for debugging, because a wrong result may come from the tool, not the model.
+
+</Mistake>
+
+## The agent loop: think, act, observe
+
+One tool call answers one sub-question. Harder tasks need several, and each result decides the next step. An <Term def="A program that runs a language model in a loop: the model chooses an action (often a tool call), the program runs it and feeds back the result, until the model gives a final answer or a limit is reached.">agent</Term> runs the model in a loop. A popular pattern called <Term def="Reason + Act: a pattern in which the model alternates written reasoning (Thought), a tool call (Action) and the tool's result (Observation).">ReAct</Term> (reason + act) makes each pass explicit:
+
+1. **Thought**: the model writes what it knows and what it needs next.
+2. **Action**: it calls a tool.
+3. **Observation**: the program runs the tool and appends the result.
+4. Repeat until the model writes a **final answer**, or a step limit stops it.
+
+<AgentLoopStepper />
+
+The agent's only memory is that growing transcript. Every thought, call and result is pasted back into the prompt for the next step, which is why one wrong observation can mislead every step after it.
+
+<Steps title="Check the agent's arithmetic by hand">
+  <Step title="The rest of October">
+    From 14 October to 31 October: $31 - 14 = 17$ days.
+  </Step>
+  <Step title="Whole months">
+    November, December and January: $30 + 31 + 31 = 92$ days.
+  </Step>
+  <Step title="Into February">
+    Up to 19 February: 19 days.
+  </Step>
+  <Step title="Add them up">
+    $17 + 92 + 19 = 128$ days, matching `days_between`. Month lengths make this easy to get wrong, which is exactly why the agent hands it to a tool.
+  </Step>
+</Steps>
+
+Here is the loop as real Python. The "LLM" is a rule-based stand-in so that it runs offline, but the loop around it has the same shape as real agent code: ask the model for the next step, run the requested tool, append the observation, and stop at a limit.
+
+<PyRunner code={AGENT_CODE} />
+
+<TryIt>
+
+Change `search` to return last year's page, `"NOAI 2026 Preliminary Round: Friday 20 February 2026"`, and run it again: the agent confidently reports -236 days. Then put the date back and set `MAX_STEPS = 2`: the loop stops before it can answer. Both are real failure modes.
+
+</TryIt>
+
+## What goes wrong, and the guardrails
+
+Each step adds capability, and also another chance to fail. If each step is right with probability $p$, independently of the others, a chain of $n$ steps is entirely right with probability
+
+$$
+P(\text{all } n \text{ steps right}) = p^{\,n}
+$$
+
+Here $p$ is the chance that a single step is right (0.9 means 9 times out of 10) and $n$ is the number of steps. With $p = 0.9$ and three steps, $0.9^3 = 0.729$: about 73%.
+
+<StepReliability />
+
+The common failure modes, and what guards against each:
+
+- **Wrong tool or wrong arguments**, for example a date in the wrong format. Guard: clear tool descriptions, check arguments against the schema, and return error messages the model can act on.
+- **Bad observations**, such as an out-of-date web page or a buggy tool. The model trusts what it reads. Guard: sanity checks ("is that date in the past?") and trusted sources.
+- **Loops**: a tool keeps failing and the agent keeps retrying. Guard: a step limit and a retry limit, then an honest "I could not do this".
+- **<Term def="Instructions hidden inside content the model reads (a web page, document or tool result) that try to override the user's or developer's instructions.">Prompt injection</Term>**: text inside a tool result says "ignore your instructions and …". The model cannot reliably tell data from orders. Guard: treat tool output as data, give the agent only the tools it needs, and ask a person to confirm anything with side effects, such as sending a message, paying or deleting.
+
+<QuickCheck
+  q="An agent answers a question in 4 steps, and each step is right with probability 0.9, independently. Roughly how likely is the whole answer to be right?"
+  options={['About 66%', 'About 90%', 'About 60%', 'About 34%']}
+  answer={0}
+  explain="$0.9^4 = 0.81 \times 0.81 = 0.6561$, about 66%. Reliability does not stay at 90%: it multiplies at every step. 60% comes from subtracting 10% per step ($1 - 4 \times 0.1$), which is close here but wrong in general, and 34% ($1 - 0.6561$) is the chance that at least one step goes wrong."
+/>
+
+## Evaluating LLM applications
+
+When a RAG system or an agent gives a wrong answer, "the AI is bad" is not a diagnosis. You met the two kinds of RAG failure in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline); evaluation turns them into numbers. Split the system and score each part separately:
+
+- **Retrieval**: did the retrieved context contain what was needed? Score it with the <Term def="The fraction of test questions for which at least one relevant document appears among the top k retrieved.">hit rate</Term>, often called recall@k: the fraction of test questions whose relevant document appears in the top $k$.
+- **Generation**: given that context, is the answer correct (it matches a reference answer) and <Term def="Every claim in the answer is supported by the retrieved context; nothing is added from elsewhere.">faithful</Term> (supported by the context, with nothing added)?
+- **Agents**: also the task success rate, the number of steps, and whether each tool call used the right tool with valid arguments.
+
+<RAGEvalMatrix />
+
+<Steps title="Diagnose from the numbers">
+  <Step title="The headline">
+    A school helpdesk bot is tested on 20 questions with known answers. Only 11 answers are right: 55%.
+  </Step>
+  <Step title="Split it">
+    The relevant document was in the top 3 for 18 of the 20 questions, a hit rate of $18/20 = 90\%$. Of those 18, 10 answers were right. Of the 2 misses, 1 was right anyway.
+  </Step>
+  <Step title="Where are the failures?">
+    $18 - 10 = 8$ wrong answers had the right context in front of the model. Only $2 - 1 = 1$ came from a retrieval miss.
+  </Step>
+  <Step title="Decide">
+    Fix the generator first: a stricter prompt, fewer distracting chunks or a stronger model. A perfect retriever could fix at most 1 of the 9 failures.
+  </Step>
+</Steps>
+
+To evaluate fairly, build a test set of questions with reference answers and the ids of the documents that contain them. Tune prompts, chunk sizes and $k$ on one part, a development set, and report the final score on questions you never tuned on. That is the same reason machine learning keeps a validation set apart from the test set. At scale, teams also use a second LLM as a judge of faithfulness, checked against a sample of human judgements.
+
+<PastPaperQuestion paper="prelim2026" n={143} />
+
+<Note title="How much of this is examined?">
+
+"LLM Agents Basics" was in the IOAI 2025 syllabus but was removed from the 2026 list, and neither the 2025 nor the 2026 NOAI Final asked you to build an agent. The ideas still belong to Generative AI literacy (NOAI's own learning-resource list includes the Hugging Face Agents course), and evaluating retrieval and generation separately applies to every RAG system.
+
+</Note>
+
+<ExamTip>
+
+For 36-second questions, have these ready. Function calling: the model outputs a structured call, and the application executes it. ReAct: thought, action, observation, repeat. Reliability over $n$ independent steps is $p^n$; know $0.9^2 = 0.81$ and $0.9^3 = 0.729$. Diagnosis: right context but wrong answer is a generation problem; wrong context is a retrieval problem, so fix the retriever first.
+
+</ExamTip>
+
+<Takeaways>
+
+- Function calling: the model writes a structured tool call that matches a schema; your application checks it, runs the function and returns the result as a new message.
+- An agent loops think → act → observe until it can answer. The transcript is its memory, so one bad observation can spoil every later step.
+- Reliability compounds: $n$ independent steps that each succeed with probability $p$ all succeed with probability $p^n$. Use step limits and argument checks, and treat tool output as data, not instructions.
+- Evaluate retrieval (hit rate, recall@k) separately from generation (correct and faithful) to know which part to fix.
+
+</Takeaways>

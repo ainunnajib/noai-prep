@@ -10,15 +10,26 @@ import s from './cv.module.css'
   classifier, scored with stratified 5-fold cross-validation.
     A (leaky):  pick the 10 columns using all 40 rows, then cross-validate
     B (honest): inside each fold, pick the 10 columns using only that fold's 32 training rows
-  The honest answer is 0.5 (a coin flip). The curves average 16 random datasets per p;
-  the dots are the single dataset you are looking at.
+  The honest answer is 0.5 (a coin flip). The curves are the average over 1,000 noise datasets per p,
+  precomputed offline with exactly this procedure (a NumPy port of runOnce, seed 2026) so the page
+  does not spend seconds simulating; the hollow dots are the single dataset generated live below.
 */
 
 const N = 40
 const K_SEL = 10
 const FOLDS = 5
 const P_LIST = [10, 20, 50, 100, 200, 500, 1000, 2000]
-const REPS = 16
+/** mean reported accuracy over 1,000 noise datasets for each entry of P_LIST (A: leaky, B: honest) */
+const CURVE: { p: number; leaky: number; honest: number }[] = [
+  { p: 10, leaky: 0.501, honest: 0.501 },
+  { p: 20, leaky: 0.615, honest: 0.5 },
+  { p: 50, leaky: 0.726, honest: 0.503 },
+  { p: 100, leaky: 0.784, honest: 0.497 },
+  { p: 200, leaky: 0.831, honest: 0.505 },
+  { p: 500, leaky: 0.872, honest: 0.501 },
+  { p: 1000, leaky: 0.9, honest: 0.503 },
+  { p: 2000, leaky: 0.916, honest: 0.505 },
+]
 
 /** indices of the k columns whose class means differ most, using only `rows` */
 function selectTop(X: Float64Array, p: number, y: number[], rows: number[], k: number): number[] {
@@ -36,12 +47,23 @@ function selectTop(X: Float64Array, p: number, y: number[], rows: number[], k: n
       for (let j = 0; j < p; j++) s0[j] += X[off + j]
     }
   }
-  const gap = Array.from({ length: p }, (_, j) => Math.abs(s1[j] / n1 - s0[j] / n0))
-  return gap
-    .map((g, j) => [g, j] as [number, number])
-    .sort((a, b) => b[0] - a[0])
-    .slice(0, Math.min(k, p))
-    .map((e) => e[1])
+  // keep a small sorted list of the k biggest gaps (much faster than sorting all p columns)
+  const kk = Math.min(k, p)
+  const topIdx: number[] = []
+  const topGap: number[] = []
+  for (let j = 0; j < p; j++) {
+    const g = Math.abs(s1[j] / n1 - s0[j] / n0)
+    if (topIdx.length === kk && g <= topGap[kk - 1]) continue
+    let pos = topGap.length
+    while (pos > 0 && topGap[pos - 1] < g) pos--
+    topGap.splice(pos, 0, g)
+    topIdx.splice(pos, 0, j)
+    if (topIdx.length > kk) {
+      topGap.pop()
+      topIdx.pop()
+    }
+  }
+  return topIdx
 }
 
 /** nearest-centroid accuracy on `test`, centroids from `train`, using columns `cols` */
@@ -129,19 +151,7 @@ export default function CVLeakageCompare() {
   const [seed, bump] = useBump()
   const p = P_LIST[pi]
 
-  const curve = useMemo(() => {
-    const rng = mulberry32(31337 + seed * 1013)
-    return P_LIST.map((pp) => {
-      let l = 0
-      let h = 0
-      for (let r = 0; r < REPS; r++) {
-        const o = runOnce(pp, rng)
-        l += o.leaky
-        h += o.honest
-      }
-      return { p: pp, leaky: l / REPS, honest: h / REPS }
-    })
-  }, [seed])
+  const curve = CURVE
 
   const one = useMemo(() => runOnce(p, mulberry32(777 + seed * 31 + p)), [p, seed])
 
@@ -157,7 +167,7 @@ export default function CVLeakageCompare() {
           columns that best separate the labels and use the same simple classifier. Slide the number of columns: workflow A (selection on all rows,
           then CV) reports better and better accuracy as the number of columns grows, because with more columns there are more that match the labels
           by luck, <i>including the validation rows' labels</i>. Workflow B never lets the validation fold vote on which columns to keep, so it stays at
-          chance. Press <b>New noise</b> to draw fresh data.
+          chance. The lines average 1,000 noise datasets; the hollow rings are the one dataset shown in the boxes above. Press <b>New noise</b> a few times to see how much a single dataset wobbles around its line.
         </>
       }
     >
@@ -217,7 +227,10 @@ export default function CVLeakageCompare() {
           <Grid xTicks={0} yTicks={7} />
           <Axes xLabel="number of noise columns (log scale)" yLabel="reported CV accuracy" hideXTicks yTicks={7} />
           <LogTicks />
-          <HLine y={0.5} color="var(--viz-muted)" label="chance (coin flip)" />
+          <HLine y={0.5} color="var(--viz-muted)" />
+          <Label x={lg(10)} y={0.5} dx={2} dy={18} color="var(--ink-3)">
+            coin flip = 0.5
+          </Label>
           <VLine x={lg(p)} color="var(--viz-axis)" dash="3 4" />
           <Path points={curve.map((c) => [lg(c.p), c.leaky])} color={leakyColor} width={3} />
           <Path points={curve.map((c) => [lg(c.p), c.honest])} color={honestColor} width={3} />
@@ -238,7 +251,7 @@ export default function CVLeakageCompare() {
         </Plot>
         <div className={s.legend}>
           <span>
-            <span className={s.swatchLine} style={{ borderColor: leakyColor }} /> average of {REPS} noise datasets
+            <span className={s.swatchLine} style={{ borderColor: leakyColor }} /> average of 1,000 noise datasets
           </span>
           <span>
             <span className={s.dot} style={{ background: 'var(--surface)', borderColor: 'var(--ink-3)' }} /> this dataset

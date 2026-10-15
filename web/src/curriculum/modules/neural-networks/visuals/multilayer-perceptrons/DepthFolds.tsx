@@ -33,7 +33,7 @@ export default function DepthFolds() {
         </>
       }
     >
-      <NeuralNet layers={[1, ...Array.from({ length: k }, () => 2), 1]} height={110} width={520} ariaLabel={`A thin network: 1 input, ${k} hidden layers of 2 neurons, 1 output`} />
+      <NeuralNet layers={[1, ...Array.from({ length: k }, () => 2), 1]} height={150} width={520} ariaLabel={`A thin network: 1 input, ${k} hidden layers of 2 neurons, 1 output`} />
       <Plot x={[0, 1]} y={[-0.05, 1.12]} width={520} height={250} minHeight={190} margin={{ left: 36, bottom: 32, top: 12, right: 14 }} ariaLabel={`Output of the thin network: a zig-zag with ${pieces} straight pieces`}>
         <Grid xTicks={5} yTicks={4} />
         <Axes xLabel="input x" yLabel="output" xTicks={5} yTicks={4} />

@@ -1,0 +1,254 @@
+/* Styles for the encoder-decoder-models visuals. Colours come only from theme tokens. */
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.45;
+  margin: 0;
+  width: 100%;
+}
+.hint b {
+  color: var(--ink);
+}
+
+.status {
+  width: 100%;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+}
+.statusOk {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+.statusBad {
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+}
+.statusWarn {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+/* ---------- heat map ---------- */
+.heat {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+.hColLab {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-bottom: 2px;
+}
+.hRowLab {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: none;
+  border: none;
+  padding: 0 4px 0 0;
+  cursor: pointer;
+}
+.hRowLab:focus-visible,
+.hCell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.hRowOn {
+  color: var(--viz-2);
+}
+.hCell {
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: var(--ink);
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+}
+.hCellRow {
+  border-color: var(--viz-2);
+}
+.axisNote {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+
+/* ---------- task cards and family columns ---------- */
+.deck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: 2.4rem;
+  padding: 0.5rem;
+  border: 1.5px dashed var(--rule);
+  border-radius: var(--radius-m);
+  align-items: center;
+}
+.deckEmpty {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+.card {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  cursor: grab;
+  line-height: 1.25;
+  text-align: left;
+}
+.card:hover {
+  border-color: var(--accent-line);
+}
+.card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.cardSel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.cardOk {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.cardAlso {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+.cardBad {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 0.7rem;
+  width: 100%;
+}
+.col {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  background: var(--surface);
+  min-width: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+}
+.colTarget {
+  border-color: var(--accent);
+  border-style: dashed;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.colDrop {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.colHead {
+  display: grid;
+  gap: 0.15rem;
+}
+.colName {
+  font-weight: 800;
+  font-size: 0.98rem;
+}
+.colSub {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  line-height: 1.3;
+}
+.colCards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 2rem;
+}
+.placeBtn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px dashed var(--accent-line);
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+.placeBtn:focus-visible {
+  outline: 3px solid var(--accent);
+}
+
+/* ---------- token chips ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: 100%;
+  align-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.12rem 0.5rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+.chipLab {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  margin-right: 0.2rem;
+}
+.chipOn {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 20%, var(--surface));
+  font-weight: 700;
+}
+.chipNew {
+  border-color: var(--viz-3);
+  background: color-mix(in srgb, var(--viz-3) 20%, var(--surface));
+  font-weight: 700;
+}
+.chipGhost {
+  border-style: dashed;
+  color: var(--ink-3);
+  background: transparent;
+}

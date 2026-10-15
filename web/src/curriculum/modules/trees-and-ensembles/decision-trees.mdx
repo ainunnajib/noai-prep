@@ -3,15 +3,11 @@ import ImpurityCurves from './visuals/decision-trees/ImpurityCurves'
 import WeightedSplit from './visuals/decision-trees/WeightedSplit'
 import TreeDepthOverfit from './visuals/decision-trees/TreeDepthOverfit'
 
-export const flowchart = `           Is the lease ≤ 59.5 years?
-            /                      \\
-          yes                       no
-           |                         |
-  predict: under $600k       Is the area ≤ 93 m²?
-                              /              \\
-                            yes               no
-                             |                 |
-                predict: under $600k   predict: $600k or more`
+export const flowchart = `Is the lease ≤ 59.5 years?
+├ yes → predict: under $600k
+└ no  → Is the area ≤ 93 m²?
+        ├ yes → predict: under $600k
+        └ no  → predict: $600k or more`
 
 export const treeCode = `import numpy as np
 from sklearn.tree import DecisionTreeClassifier, export_text
@@ -65,7 +61,7 @@ Here is a small tree, learned by scikit-learn from 32 resale flats, that predict
 
 <CodeBlock language="text" title="the learned tree, as a flowchart" showLineNumbers={false} code={flowchart} />
 
-- Each question looks at **one feature** and compares it with a **threshold**, such as "lease ≤ 59.5". The answer "yes" goes left, "no" goes right.
+- Each question looks at **one feature** and compares it with a **threshold**, such as "lease ≤ 59.5". Each answer leads down its own branch; in tree diagrams "yes" is usually drawn on the left and "no" on the right.
 - A question box is a <Term def="A point in a tree where the data is split by a question. The top node is the root; nodes with no questions below them are leaves.">node</Term>. The first one is the **root**. The end points, which hold the predictions, are <Term def="A node at the bottom of a tree with no question. It stores the prediction: the majority class of its training examples (or their average, for regression).">leaves</Term>.
 - The **depth** of a node is how many questions you answer to reach it. The tree above has depth 2.
 - To predict, start at the root and follow the answers. A 100 m² flat with 70 years left: lease ≤ 59.5? **No**. Area ≤ 93? **No**. Prediction: \$600k or more.

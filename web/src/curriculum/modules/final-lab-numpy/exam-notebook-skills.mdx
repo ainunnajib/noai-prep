@@ -1,3 +1,215 @@
-{/* stub: lesson 'Working in the exam notebook and planning three hours' is being written */}
+import { FINAL } from '../../../data/facts'
+import NotebookAnatomy from './visuals/exam-notebook-skills/NotebookAnatomy'
+import TinyTestBuilder from './visuals/exam-notebook-skills/TinyTestBuilder'
+import KernelStateTimeline from './visuals/exam-notebook-skills/KernelStateTimeline'
+import FinalTimePlanner from './visuals/exam-notebook-skills/FinalTimePlanner'
 
-This lesson is being written.
+export const testCode = `import numpy as np
+
+def euclidean_distance(a, b):
+    a = np.array(a, dtype=float)
+    b = np.array(b, dtype=float)
+    return float(np.sqrt(np.sum((a - b) ** 2)))
+
+# tiny tests whose answers you know by heart
+assert euclidean_distance((0, 0), (3, 4)) == 5.0        # 3-4-5 triangle
+assert euclidean_distance((1, 2, 3), (1, 2, 3)) == 0.0  # same point
+assert euclidean_distance((2, 2), (2, 10)) == 8.0       # straight up
+print("all tests passed")
+
+# what will the grader see? the same centroid, five ways
+c = (2, 22 / 3)
+print(c)
+print(tuple(round(v, 4) for v in c))
+print(np.round(np.array(c), 4))
+print(tuple(np.round(np.array(c), 4)))
+print(tuple(float(v) for v in np.round(np.array(c), 4)))`
+
+In the Final, most of the marks come from Python notebooks, and those are marked by **running your code**. A correct idea earns nothing if the function has been renamed, returns `None`, prints 16 digits where 4 were asked for, or only worked because of a cell you ran an hour ago. This lesson is about the craft around the algorithm: reading what the notebook expects, testing as you go, avoiding the kernel's memory traps, and spending three hours where the marks are.
+
+<Analogy title="Read the whole recipe before you light the stove">
+
+A good cook reads the recipe to the end before starting: what goes in, in what order, what the dish should look like, what to serve it on. An exam notebook is a recipe with the plating already decided. The markdown says what to make, the code stub fixes the names, and the test cell shows how the dish will be tasted.
+
+</Analogy>
+
+## What the Final asks you to do
+
+**The format.** {FINAL.format} {FINAL.lastYear}
+
+The programming tasks arrive as <Term def="A document made of cells. Text cells explain; code cells hold Python that you run one at a time, and each code cell's output appears under it.">Jupyter notebooks</Term>, and you work offline: in 2026 the internet was off except for submitting, and AI assistants were banned.
+
+| | 2025 Final | 2026 Final |
+|---|---|---|
+| Tasks | 3 questions: 15 + 25 + 40 = 80 marks | 3 tasks: 25 + 20 + 35 = 80 marks, including 10 bonus marks |
+| What you write | one function or one short pipeline per question | several numbered parts per task, each worth 2–10 marks |
+| Libraries | Python standard library and NumPy only | listed per task (NumPy, scikit-learn trees, PyTorch); some are banned |
+| Checking | an example input in a protected cell; only Question 3 showed the expected output | self-check test cells, plus hidden tests that call your functions by name |
+
+Every task follows the same pattern. A text cell describes the job, a protected cell (marked `# DO NOT MAKE CHANGES TO THIS CELL`) holds the data, and an answer cell holds a <Term def="An unfinished function given to you: its name, inputs and outputs are fixed, and its body is left for you to fill in.">stub</Term>. Then another protected cell calls your function, or runs tests on it.
+
+## Reading the stub
+
+Before you type a line, read these six things, in this order:
+
+1. **The text cell**: what goes in, what comes out, and the output format (e.g. "rounded to four decimal places").
+2. **The protected data cell**: the actual input. Note the shapes.
+3. **The signature**: the function name, parameter names, and the <Term def="Labels such as x: np.ndarray or -> float written in a function's first line. Python ignores them when running, but they tell you the expected types.">type hints</Term>. They are a contract with the marker's code.
+4. **The <Term def="The text in triple quotes just under a function's first line, describing what it does, its parameters and what it returns.">docstring</Term>**: often lists the algorithm step by step.
+5. **The TODO comments**: in 2026 these *were* the algorithm, written as steps a, b, c, d, e.
+6. **The test cell**: shows how your function will be called and with what shapes.
+
+<NotebookAnatomy />
+
+<KeyIdea>
+
+The stub is a partial solution. Its name, parameters, return type, step list and test inputs are already written for you, so your job is to fill the gap, not to redesign it.
+
+</KeyIdea>
+
+<Mistake title="Changing the contract">
+
+Renaming a parameter (`alpha` to `lr`), reordering parameters, changing the function name, editing a protected cell, or returning a list where an array was asked for. Each one can turn a correct algorithm into zero marks, because the marking code calls your function exactly as the stub defines it. If you want a different name inside the function, assign it on the first line: `lr = alpha`.
+
+</Mistake>
+
+<QuickCheck
+  q="Your function ends with `print(np.round(theta, 4))` and has no `return`. You run the protected cell that calls it. What happens?"
+  options={['The array is printed, but the function returns None, so a check on its returned value fails', 'Nothing is printed, because Jupyter only shows the value of the last line of a cell', 'The array is printed and returned, because print also passes its value back to the caller', 'Python raises an error, because a function with type hints must end with a return']}
+  answer={0}
+  explain="`print` shows text on the screen and gives back `None`. A function without `return` also returns `None`, which Jupyter does not display. So you see `[0.003  0.9987]` and think it worked, but any code that uses the returned value gets `None`. Always `return` the answer; print only to debug."
+/>
+
+## Test as you go
+
+Run the provided test cell straight after each function, not at the end. Then add **one tiny test of your own** whose answer you know without a computer: a 3-4-5 triangle for a distance, one gradient step done by hand, a cluster of two points whose mean you can see. Finally, try the edge cases the task hints at, such as an empty cluster, a division by zero, or a 2-D input where you expected 1-D.
+
+<TinyTestBuilder />
+
+An <Term def="A Python statement, assert condition, that does nothing when the condition is True and stops with an AssertionError when it is False.">assert</Term> turns a hand-checked answer into a test that shouts when it fails. Run this, then break the function on purpose (change `** 2` to `* 2`) and run it again:
+
+<PyRunner packages={['numpy']} code={testCode} rows={22} />
+
+```text
+all tests passed
+(2, 7.333333333333333)
+(2, 7.3333)
+[2.     7.3333]
+(np.float64(2.0), np.float64(7.3333))
+(2.0, 7.3333)
+```
+
+The last five lines are the same centroid shown five ways. Which one is right depends on what the task asked for:
+
+| You need | Write | Shows |
+|---|---|---|
+| Python floats rounded to 4 d.p. | `round(v, 4)` | `7.3333` |
+| a NumPy array rounded to 4 d.p. | `np.round(arr, 4)` | `[2.     7.3333]` (spaces pad the columns) |
+| a tuple of plain floats from an array | `tuple(float(v) for v in arr)` | `(2.0, 7.3333)` |
+
+Since NumPy 2, a NumPy number inside a tuple or list prints as `np.float64(7.3333)`. The value is identical, but if the expected output is a list of plain tuples, convert with `float(v)`.
+
+<Mistake title="Rounding too early">
+
+Round **once**, on the value you return. Rounding inside a loop throws away a little accuracy at every step, and the errors pile up: in the 2025 gradient descent task, rounding θ to 4 d.p. inside the loop gives `[0.012, 0.9946]` instead of the correct `[0.003, 0.9987]`. A result like `-0.0` from rounding a tiny negative number is fine: `-0.0 == 0.0` is `True`, and the 2025 task said so explicitly.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={127} />
+
+<PastPaperQuestion paper="prelim2026" n={126} />
+
+## The kernel remembers everything
+
+When you run a cell, its code is sent to the <Term def="The Python process running behind a notebook. It keeps every variable and function from every cell you have run, until you restart it.">kernel</Term>, which keeps every variable and function it has ever been given, in the order you ran the cells. The number in `In [7]:` is that order. The page shows you the *current text* of each cell, and the kernel holds the *last version you ran*. These are not always the same.
+
+<Analogy title="A whiteboard nobody erases">
+
+Your working from an hour ago is still on the board, even after you changed your mind. Anyone reading it will mix the old and the new, until you wipe it clean and rewrite it from the top.
+
+</Analogy>
+
+<KernelStateTimeline />
+
+Three habits avoid every trap above:
+
+- **Re-run a function's cell after every edit**, then re-run its test.
+- **Never reuse the task's variable names** (`X`, `y`, `points`, `data`) in scratch cells. Call your experiments `X_small`, `pts_test`, and delete scratch cells before you submit.
+- **Restart & Run All** (Kernel menu) before you submit, then scroll from the top and read every output. It is the only run that proves the notebook works from an empty kernel.
+
+<QuickCheck
+  q="Three cells, from top to bottom of the page, show `In [5]:`, `In [2]:` and `In [9]:`. Which cell's code was run most recently?"
+  options={['The bottom cell, because 9 is the largest execution count', 'The top cell, because cells always run from the top of the page', 'The middle cell, because the smallest count means the newest run', 'It cannot be told, because the numbers only count cells on the page']}
+  answer={0}
+  explain="The number in `In [n]` counts runs since the kernel started, so the largest number was run last. Here the order was middle (2), top (5), bottom (9): not the page order."
+/>
+
+In 2026 the exam room had no internet, but documentation still works offline. In Jupyter, type `np.argmin?` and run the cell, or press **Shift + Tab** inside a function's brackets, to see its docstring. `help(np.argmin)` works in any Python. A few keys save minutes:
+
+| Key | Does |
+|---|---|
+| Shift + Enter | run the cell, move to the next |
+| Esc, then A / B | new cell above / below (for your own tests) |
+| Esc, then M / Y | turn the cell into text / code |
+| Ctrl + S (⌘ + S) | save the notebook |
+
+## Planning three hours
+
+In 2026 the three tasks were worth 25, 20 and 35 marks, out of 80, and the 20 MCQs were worth another 20. Every task was split into numbered parts with their own tests, so a finished small part scores even if the big part next to it is unfinished.
+
+<Analogy title="Pace by checkpoint, not by the first hill">
+
+In a cross-country race you do not sprint the first hill and walk the rest. You know where the checkpoints are and spend effort where it gains the most. In the Final, the checkpoints are the parts, and "effort" is minutes.
+
+</Analogy>
+
+The useful number for each part is its **expected marks per minute**:
+
+$$
+\text{marks per minute} = \frac{m \times p}{t}
+$$
+
+Here $m$ is the part's marks, $p$ is the chance you get it right (0.3 means 30% sure), and $t$ is the minutes it will take you. The top, $m \times p$, is the marks you can *expect* to bank: a 10-mark part you are 30% sure of is worth about 3 marks to you. The bottom is what it costs.
+
+<FinalTimePlanner />
+
+<Steps title="Ranking three parts by hand">
+  <Step title="Part 1.3: 2 marks, 2 minutes, 90% sure">
+    $\dfrac{2 \times 0.9}{2} = 0.9$ marks per minute.
+  </Step>
+  <Step title="Part 3.8: 5 marks, about 7 minutes, 60% sure">
+    $\dfrac{5 \times 0.6}{7} = \dfrac{3}{7} \approx 0.43$ marks per minute.
+  </Step>
+  <Step title="Part 2.1: 10 marks, 45 minutes, 30% sure">
+    $\dfrac{10 \times 0.3}{45} = \dfrac{3}{45} \approx 0.07$ marks per minute.
+  </Step>
+  <Step title="Order">
+    1.3 first, then 3.8, then 2.1. The 10-mark part is the biggest on paper and the worst use of your first 45 minutes.
+  </Step>
+</Steps>
+
+A plan that works for most students:
+
+1. **Skim all three notebooks for 5 minutes.** Note the easy parts, the allowed and banned libraries, and dependencies such as "QUESTION 1.6 MUST BE COMPLETED FIRST".
+2. **MCQs in about 30 minutes** (about 1.5 minutes each, the pace the 2026 paper recommended), then move on.
+3. **Bank the confident parts across all three tasks**, highest marks per minute first, respecting dependencies.
+4. **Then the "maybe" parts, then bonus and hard parts.** If you are stuck for 10 minutes, write what you have so the cell runs, and move on.
+5. **Keep the last 10 minutes** for Restart & Run All, reading every output, and saving.
+
+<ExamTip>
+
+- Never leave a part blank. A function that runs and returns the right type and shape can pass some tests, and a half-right answer can earn partial marks. A cell that crashes can earn nothing, and if the marker runs the notebook top to bottom, a crash can stop the cells after it from running too.
+- If a self-check disagrees with a clearly written rule, trust the rule: in 2026 one self-check cell was itself wrong. Spend 30 seconds checking a small case by hand, then move on.
+- For written answers ("share your thought process", "explain why"), write 2–4 clear sentences. In 2025 the 40-mark task ended with such a cell.
+
+</ExamTip>
+
+<Takeaways>
+
+- Read the text cell, data cell, signature, docstring, TODO steps and test cell before coding: the stub is a partial solution.
+- Keep every name, parameter and return type exactly; `return` the answer, round once at the end, and convert NumPy numbers with `float()` when plain values are expected.
+- After each function, run the given test and one tiny hand-checked test of your own, including the edge cases the task hints at.
+- The kernel runs cells in the order you clicked them, not the page order: re-run edited cells, avoid reusing task variable names, and Restart & Run All before submitting.
+- Spend time by expected marks per minute: bank easy parts in every task first, leave bonus and hard parts for later, and keep 10 minutes to check.
+
+</Takeaways>

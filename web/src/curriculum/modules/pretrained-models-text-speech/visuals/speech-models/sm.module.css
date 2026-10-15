@@ -1,0 +1,333 @@
+/* Shared styles for the speech-models visuals. Colours come only from theme tokens. */
+
+.stack {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+  min-width: 0;
+}
+.colsNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  padding: 0.7rem 0.8rem;
+  min-width: 0;
+}
+.panelTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+}
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin: 0;
+}
+.hint b {
+  color: var(--ink);
+}
+.small {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
+}
+
+/* ---------- stage chips (pipeline header) ---------- */
+.stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+.stage {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.stage:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.stageDone {
+  color: var(--ink-2);
+  background: var(--surface);
+}
+.stageOn {
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.arrow {
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+/* ---------- token chips ---------- */
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  min-width: 0;
+  min-height: 2rem;
+}
+.tok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.9rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+button.tok {
+  cursor: pointer;
+}
+button.tok:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.tokSpecial {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  background: var(--surface);
+  border-style: dashed;
+}
+.tokTask {
+  border-color: var(--viz-2);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-2) 14%, var(--surface));
+}
+.tokLang {
+  border-color: var(--viz-3);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-3) 14%, var(--surface));
+}
+.tokNow {
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 20%, var(--surface));
+  font-weight: 700;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-1) 35%, transparent);
+}
+.tokGhost {
+  opacity: 0.3;
+  border-style: dotted;
+}
+.tokAudio {
+  border-color: var(--viz-5);
+  background: color-mix(in srgb, var(--viz-5) 18%, var(--surface));
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+/* ---------- block diagram ---------- */
+.flow {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.block {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.block:hover {
+  border-color: var(--accent-line);
+}
+.block:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.blockOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.blockName {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.blockSub {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badgeFrozen {
+  color: var(--ink-2);
+  background: var(--surface-3);
+  border: 1.5px dashed var(--ink-3);
+}
+.badgeTrained {
+  color: var(--surface);
+  background: var(--viz-2);
+  border: 1.5px solid var(--viz-2);
+}
+.badgeNone {
+  color: var(--ink-3);
+  border: 1.5px solid var(--rule);
+}
+.down {
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+/* ---------- context meter ---------- */
+.meter {
+  height: 0.9rem;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--rule);
+  overflow: hidden;
+  display: flex;
+}
+.meterFill {
+  display: block;
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+/* ---------- scenario picker ---------- */
+.scenarios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.scenario {
+  font: inherit;
+  font-size: 0.84rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.scenario:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.scenarioOn {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+.scenarioDone {
+  border-color: var(--viz-pos);
+}
+.choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+.choicesNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.choice {
+  font: inherit;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 0.15rem;
+}
+.choice:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.choiceName {
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+.choiceSub {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.choiceRight {
+  border-color: var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 14%, var(--surface));
+}
+.choiceWrong {
+  border-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+}
+.verdict {
+  font-weight: 800;
+}
+.verdictRight {
+  color: var(--viz-pos);
+}
+.verdictWrong {
+  color: var(--viz-neg);
+}
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--surface-2);
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  padding: 0.45rem 0.6rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  margin: 0.45rem 0 0;
+}

@@ -1,3 +1,229 @@
-{/* stub: lesson '2026 Prelim: Mathematics and Computing' is being written */}
+import { PRELIM } from '../../../data/facts'
+import PatternCards from './visuals/prelim-maths-computing/PatternCards'
+import MathsComputingWalkthrough from './visuals/prelim-maths-computing/MathsComputingWalkthrough'
+import TimeBank from './visuals/prelim-maths-computing/TimeBank'
 
-This lesson is being written.
+The 2026 Prelim opened with 119 questions on mathematics and computing: Q1–60 were Mathematics and Q61–119 were Computing. On paper that is 119 different questions. In practice it is about two dozen kinds of question, asked again and again with new numbers or new wording, and each kind is decided by one fact you can recall in seconds. This lesson walks through both blocks the way a tutor talks you through a past paper. The 2027 Prelim has {PRELIM.questions} questions in {PRELIM.minutes} minutes, about {PRELIM.secondsPerQuestion} seconds each, so how fast you get through these will matter.
+
+<Analogy title="The Ten-Year Series">
+
+If you have worked through the TYS for an O-level subject, you know the moment: after a few papers you stop seeing new questions and start seeing old friends. "That is the moles question." "That is the circle-theorem question." You know the method before you finish reading the stem. The NOAI Prelim works the same way, and a single 300-question paper is already enough to learn the types.
+
+</Analogy>
+
+## What the first two blocks looked like
+
+A quick census of the 2026 paper (counted from the official questions):
+
+- **Mathematics, Q1–60:** 25 linear algebra, 14 calculus, 12 probability and statistics, 6 optimisation and 3 on evaluation metrics.
+- **Computing, Q61–119:** 15 Python, 14 PyTorch, 12 NumPy, 8 optimisation (optimisers and schedules), 4 probability, 3 pandas and 3 others.
+- **Style:** 62 of the 119 were plain definitions ("What is the trace of a matrix?"). The 21 maths computations were all short enough to do in your head (a shape, a dot product, a derivative, a mean), and only 9 questions had purely numeric options. The 13 code-reading questions were a few lines at most.
+
+So speed in these blocks comes from **recognising** a question, not from long calculation. To talk about that precisely we need one word. A question <Term def="A question shape that keeps coming back with different numbers or wording, such as 'what shape is this matrix product?'. Each template is decided by one fact.">template</Term> is a shape of question that recurs; once you know its template, you know which single fact decides it, and which wrong answer the setters expect you to fall for.
+
+## The pattern catalogue
+
+Here are all 26 templates. Each card shows how the template was asked in 2026, which items used it, the fastest method, the usual trap and the lesson that teaches it. The coloured bar at the top shows how much of the paper each template covers.
+
+<PatternCards />
+
+<KeyIdea>
+
+For most of Q1–119 the method is the same three moves: **recognise the template, recall its one fact, check your answer against the usual trap.** Practise all three until they are automatic.
+
+</KeyIdea>
+
+<ExamTip title="Use the drill like flashcards">
+
+Do five deals a day for a week. If a template keeps beating the 20-second clock, open its "Taught in" lesson. You do not need more practice questions; you need the fact behind them.
+
+</ExamTip>
+
+## Seven model solutions against the clock
+
+The seven questions below were chosen to cover the main kinds: a shape rule (Q1), a matrix property (Q15), a derivative (Q34), a statistic (Q54), a cost argument (Q74), a pandas call (Q99) and a PyTorch behaviour (Q115). Each has a target time. Answer first, under the clock if you can, and only then reveal the steps. Answering before looking is what makes the solution stick.
+
+<MathsComputingWalkthrough />
+
+Most of these took under 15 seconds once you knew the fact. Four of the facts are worth understanding rather than memorising, because the same idea is asked in other forms. Let us open them up.
+
+### Why a zero eigenvalue means "singular" (Q15)
+
+Recall that an <Term def="A non-zero vector v that the matrix A only stretches or shrinks, without turning it: Av = λv.">eigenvector</Term> $v$ of a matrix $A$ satisfies
+
+$$
+A v = \lambda v
+$$
+
+- $A$ is the matrix, $v$ is a non-zero vector, and $\lambda$ (the Greek letter lambda) is a plain number called the **eigenvalue**.
+- In words: $A$ does not turn $v$; it only scales it by $\lambda$.
+
+Now suppose one eigenvalue is $0$. Then $Av = 0 \cdot v = 0$: the matrix squashes the whole direction of $v$ flat onto the origin. Two different inputs, $v$ and $0$, both give the output $0$, so no matrix can "undo" $A$ and tell them apart. A matrix with no inverse is called <Term def="A square matrix with no inverse. Equivalently, its determinant is 0, or it squashes some non-zero vector to zero.">singular</Term>.
+
+The **determinant** measures how much $A$ scales areas (in 2-D) or volumes (in 3-D), and it equals the product of the eigenvalues. One factor of 0 makes the product 0, which is the fast route through Q15.
+
+<Steps title="Check it on a small matrix">
+  <Step title="Pick a matrix">
+    $A = \begin{bmatrix} 2 & 1 \\ 4 & 2 \end{bmatrix}$. Its second row is twice its first, which is suspicious.
+  </Step>
+  <Step title="Determinant">
+    $ad - bc = 2 \times 2 - 1 \times 4 = 0$.
+  </Step>
+  <Step title="Find the squashed direction">
+    Try $v = [1, -2]$: $Av = [2 \cdot 1 + 1 \cdot (-2),\; 4 \cdot 1 + 2 \cdot (-2)] = [0, 0]$. So $v$ is an eigenvector with $\lambda = 0$.
+  </Step>
+  <Step title="The other eigenvalue">
+    The eigenvalues add up to the **trace** (sum of the diagonal), $2 + 2 = 4$, and multiply to the determinant, 0. So they are $4$ and $0$, and $4 \times 0 = 0$ agrees with step 2.
+  </Step>
+</Steps>
+
+A squashed direction also costs **rank**: the number of independent directions the matrix's outputs can fill. A $3 \times 3$ matrix with eigenvalues 4, 2, 0 has rank below 3. And no matrix can have more independent directions than it has rows or columns, so $\text{rank} \le \min(\text{rows}, \text{columns})$.
+
+<QuickCheck
+  q="Each list gives the eigenvalues of a $3 \times 3$ matrix. Which matrix is singular?"
+  options={['$[3, -1, 2]$', '$[5, 0.1, 1]$', '$[2, 0, 7]$', '$[-4, -4, 1]$']}
+  answer={2}
+  explain="Only $[2, 0, 7]$ contains a 0, so its determinant is $2 \times 0 \times 7 = 0$. Negative or small eigenvalues are fine: $-4 \times -4 \times 1 = 16$ and $5 \times 0.1 \times 1 = 0.5$ are not zero."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={19} />
+
+### The sigmoid derivative in four lines (Q34)
+
+The <Term def="The S-shaped function σ(x) = 1/(1 + e^(−x)). It squeezes any number into the range 0 to 1.">sigmoid</Term> is $\sigma(x) = \dfrac{1}{1 + e^{-x}}$. Its derivative has a famous short form.
+
+<Steps title="Derive σ′(x) = σ(x)(1 − σ(x))">
+  <Step title="Rewrite as a power">
+    $\sigma(x) = (1 + e^{-x})^{-1}$.
+  </Step>
+  <Step title="Chain rule: outer × inner">
+    The outer function is $u^{-1}$, with derivative $-u^{-2}$. The inner function is $u = 1 + e^{-x}$, with derivative $-e^{-x}$. Multiply: $\sigma'(x) = -(1 + e^{-x})^{-2} \cdot (-e^{-x}) = \dfrac{e^{-x}}{(1 + e^{-x})^2}$.
+  </Step>
+  <Step title="Split the fraction">
+    $\dfrac{e^{-x}}{(1 + e^{-x})^2} = \dfrac{1}{1 + e^{-x}} \cdot \dfrac{e^{-x}}{1 + e^{-x}}$. The first factor is $\sigma(x)$.
+  </Step>
+  <Step title="Spot 1 − σ">
+    $1 - \sigma(x) = \dfrac{1 + e^{-x} - 1}{1 + e^{-x}} = \dfrac{e^{-x}}{1 + e^{-x}}$, which is the second factor. So $\sigma'(x) = \sigma(x)\,(1 - \sigma(x))$.
+  </Step>
+</Steps>
+
+At $x = 0$, $\sigma(0) = \tfrac12$, so the slope is $\tfrac12 \times \tfrac12 = \tfrac14$. That is the steepest the sigmoid ever gets. In a deep network, backpropagation multiplies one such factor per sigmoid layer, so ten layers shrink the gradient by at least $(\tfrac14)^{10} = \tfrac{1}{1\,048\,576}$, less than a millionth. That is the **vanishing gradient** problem behind Q44.
+
+<Mistake title="σ′ = σ is the rule for eˣ">
+
+The function that is its own derivative is $e^x$, not the sigmoid. The option "σ(x)" in Q34 is there to catch that mix-up. If in doubt, plug in $x = 0$: the true slope is 0.25, and "σ(x)" gives 0.5.
+
+</Mistake>
+
+<ExamTip title="Plug in a number">
+
+When the options are formulas and you have forgotten the rule, evaluate every option at an easy point (here $x = 0$) and compare with what you know must be true there (the slope is positive and at most $\tfrac14$). Usually only one option survives, in about 10 seconds.
+
+</ExamTip>
+
+The same outer-times-inner move from step 2 decides this backpropagation question. Try it before you open the answer.
+
+<PastPaperQuestion paper="prelim2026" n={35} />
+
+### Newton's method: count before you guess (Q74)
+
+Newton's method takes the step $w \leftarrow w - H^{-1} \nabla L$.
+
+- $w$ is the vector of all $n$ parameters, and $\nabla L$ is the gradient (one slope per parameter).
+- $H$ is the <Term def="The square table of all second derivatives of the loss, one row and one column per parameter. It describes the curvature of the loss surface.">Hessian</Term>: all the second derivatives, an $n \times n$ table.
+- $H^{-1}$ is its inverse, which Newton uses to scale the step to the curvature.
+
+For the network in Q74, $n = 10{,}000 = 10^4$. The Hessian has $n^2 = 10^8$ entries, about 400 MB in 32-bit floats, and inverting an $n \times n$ matrix takes on the order of $n^3 = 10^{12}$ operations, **at every step**. A forward pass costs roughly one multiply per weight, about $10^4$ per example, and backpropagation a small multiple of that. Adam needs only those. So the one Newton-only operation is the one eating 95% of the time.
+
+<Mistake title="Blaming something both optimisers do">
+
+A 100× gap between two methods must come from something one of them does and the other does not. The forward pass, backpropagation and data loading are shared, so they are eliminated without any arithmetic.
+
+</Mistake>
+
+### Two computing traps, run for real (Q99 and Q115)
+
+Q99 is about how pandas reads square brackets. Run this and watch three of the four options fail, each with a different error:
+
+<PyRunner packages={['pandas']} code={`import pandas as pd
+
+df = pd.DataFrame({"item": ["kaya toast", "kopi"], "total price": [2.5, 1.8]})
+print(df["total price"].tolist())         # square brackets: works
+print(df.loc[:, "total price"].tolist())  # .loc with rows first: also works
+
+for attempt in ["df.total price", "df('total price')", "df.loc['total price']"]:
+    try:
+        eval(attempt)
+    except Exception as e:
+        print(f"{attempt:24} -> {type(e).__name__}")`} />
+
+The second line shows why the paper's word "ONLY" is a little too strong: `df.loc[:, 'total price']` also works. Among the four options offered, though, square brackets are the only one that runs.
+
+Q115 is about where PyTorch keeps gradients. Every tensor created with `requires_grad=True` has a `.grad` slot, and `loss.backward()` **adds** the new gradient into it. Here $\text{loss} = w^2$, so $\frac{d\,\text{loss}}{dw} = 2w = 4$ at $w = 2$:
+
+```python
+import torch
+
+w = torch.tensor(2.0, requires_grad=True)
+
+for step in range(2):
+    loss = w ** 2          # a fresh loss each time
+    loss.backward()        # d(loss)/dw = 2w = 4
+    print(f"after backward {step + 1}: w.grad = {w.grad.item()}")
+
+w.grad.zero_()             # what optimiser.zero_grad() does for every parameter
+loss = w ** 2
+loss.backward()
+print("after zero_grad and one backward:", w.grad.item())
+```
+
+```text
+after backward 1: w.grad = 4.0
+after backward 2: w.grad = 8.0
+after zero_grad and one backward: 4.0
+```
+
+Read literally, though, "call `loss.backward()` twice" could mean twice on the *same* loss tensor. PyTorch frees the graph after the first backward pass to save memory, so that version fails:
+
+```python
+w = torch.tensor(2.0, requires_grad=True)
+loss = w ** 2
+loss.backward()
+loss.backward()        # the SAME loss tensor again
+```
+
+```text
+RuntimeError: Trying to backward through the graph a second time (or directly access saved tensors after they have already been freed)
+```
+
+The key accepts "Gradients accumulate", the intended reading (two training steps without zeroing). Knowing both behaviours means neither reading can surprise you.
+
+<ExamTip title="Twin options cancel">
+
+In Q115, "Second call overwrites first" and "Only second call's gradients are kept" say the same thing. A question has one right answer, so two options that mean the same must both be wrong. Look for twins whenever you are stuck.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={110} />
+
+## The time you bank
+
+Why care whether Q1 takes 5 seconds or 30? Because the Prelim gives one clock for the whole paper, and in 2026 the last block, Problem Solving, was by far the slowest to read. Every second saved on a one-fact question is a second you can spend on a long scenario.
+
+<TimeBank />
+
+<ExamTip title="Two passes, not one">
+
+If a maths or computing question is not falling within about 20 seconds, it is probably one whose fact you have not learnt. Pick your best guess (no marks are deducted for wrong answers), flag it and move on. Come back only if the end of the paper leaves time.
+
+</ExamTip>
+
+<Takeaways>
+
+- The 119 maths and computing questions of the 2026 Prelim fit 26 templates; the 8 biggest cover 63 of them.
+- Each template turns on **one fact**: the shape rule, det = product of eigenvalues, $\sigma' = \sigma(1-\sigma)$, $z = (x-\mu)/\sigma$, Newton's $n^3$ cost, `df['col']`, gradients add up.
+- Wrong options are that fact with one step skipped or swapped, so name the trap before you commit.
+- Plug in an easy number to test formula options; cross out twin options.
+- One-fact answers in about 15 seconds bank the minutes the problem-solving scenarios need.
+
+</Takeaways>

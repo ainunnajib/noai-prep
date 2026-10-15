@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Button, Plot, Grid, Axes, Path, HLine, VLine, Dots, useAnimationFrame, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Button, Plot, Grid, Axes, Path, HLine, VLine, Dots, Label, useAnimationFrame, M } from '../../../../../kit'
 import s from './heads.module.css'
 
 /*
@@ -77,7 +77,10 @@ export default function SaturationRace() {
       <Plot x={[0, xMax]} y={[0, 1]} width={520} height={260} minHeight={220} margin={{ left: 42, bottom: 32, top: 26, right: 14 }} ariaLabel="Probability of the correct class against training step, for cross-entropy and squared error">
         <Grid xTicks={5} yTicks={4} />
         <Axes xLabel="gradient-descent step" yLabel="p (correct class)" xTicks={5} yTicks={4} tickFormat={(v) => (Number.isInteger(v) ? v.toLocaleString('en-GB') : String(v))} />
-        <HLine y={0.5} label="p = 0.5" />
+        <HLine y={0.5} />
+        <Label x={xMax * 0.5} y={0.5} dy={-6} anchor="middle" color="var(--viz-muted)" size={12}>
+          p = 0.5
+        </Label>
         <Path points={curve(mse)} color="var(--viz-4)" width={2.6} dash="7 5" />
         <Path points={curve(bce)} color="var(--viz-3)" width={2.6} />
         <VLine x={tt} color="var(--viz-ink)" dash="2 3" width={1.2} />
@@ -91,11 +94,11 @@ export default function SaturationRace() {
       <div className={s.legend}>
         <span>
           <span className={s.swatch} style={{ borderColor: 'var(--viz-3)' }} />
-          binary cross-entropy: reaches p &gt; 0.5 after {nB ?? '–'} steps
+          binary cross-entropy: reaches p &gt; 0.5 after {nB == null ? '–' : nB.toLocaleString('en-GB')} steps
         </span>
         <span>
           <span className={s.swatch} style={{ borderColor: 'var(--viz-4)', borderTopStyle: 'dashed' }} />
-          squared error: after {nM} steps
+          squared error: after {nM.toLocaleString('en-GB')} steps
         </span>
       </div>
       <Controls>

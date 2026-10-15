@@ -1,3 +1,375 @@
-{/* stub: lesson 'Using and fine-tuning models with Hugging Face' is being written */}
+import HFPipelineFlow from './visuals/hugging-face-in-practice/HFPipelineFlow'
+import TokenizerBatch from './visuals/hugging-face-in-practice/TokenizerBatch'
+import IgnoreIndexMask from './visuals/hugging-face-in-practice/IgnoreIndexMask'
 
-This lesson is being written.
+Nobody trains BERT from scratch for a school project: it took a large lab days of computing. Instead, you download it. The **Hugging Face Hub** hosts hundreds of thousands of pretrained models, and the `transformers` library loads any of them in one line. At IOAI, the contest computers have no internet, but popular model weights are pre-cached and the Hugging Face libraries are installed, and many tasks are "adapt this pretrained model". This lesson takes you from a one-line pipeline to the parts inside it, then to fine-tuning, including the label value $-100$ that NOAI Final questions love.
+
+## Pipelines: one line from text to answer
+
+<Analogy title="A drinks vending machine">
+
+You press one button and a cup of teh tarik comes out. Inside there is a cup dispenser, a mixer and a pump, each doing one job in order. A Hugging Face **pipeline** is the button: it hides a tokenizer, a model and a post-processing step.
+
+</Analogy>
+
+A model on the Hub is named `owner/model-name`, for example `distilbert/distilbert-base-uncased-finetuned-sst-2-english`: a small BERT (DistilBERT) fine-tuned on SST-2, a dataset of film-review sentences labelled positive or negative. The first time you use a name, `transformers` downloads the model's weights, its <Term def="A small file (config.json) that records a model's architecture: number of layers, hidden size, vocabulary size, label names and so on. Hugging Face reads it to build the right model class.">config</Term> and its tokenizer files, and caches them on disk.
+
+```python
+from transformers import pipeline
+
+clf = pipeline("sentiment-analysis",
+               model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")
+print(clf(["The chicken rice here is amazing!",
+           "The queue was long and the food was cold."]))
+```
+
+```text
+[{'label': 'POSITIVE', 'score': 0.9998237490653992}, {'label': 'NEGATIVE', 'score': 0.9996987581253052}]
+```
+
+Other task names work the same way: `"ner"` (tag people, places and organisations), `"fill-mask"` (BERT's fill-in-the-blank game), `"text-generation"` (GPT-style), `"zero-shot-classification"`, `"automatic-speech-recognition"` (for example with Whisper) and `"image-classification"`. In `transformers` version 4 there are also `"summarization"`, `"translation"` and `"question-answering"`; version 5 removed those three, so for them you call the model directly, as shown below. It is good practice to always pass `model=` explicitly, so you know exactly which model you are running.
+
+<HFPipelineFlow />
+
+<KeyIdea>
+
+Every pipeline is **tokenise → model → post-process**. You can run each stage yourself, and when you fine-tune or debug, you must.
+
+</KeyIdea>
+
+## The three stages by hand
+
+**Stage 1: the tokenizer.** `AutoTokenizer.from_pretrained(name)` loads the tokenizer that matches the model. Calling it on text returns a dictionary of tensors:
+
+- `input_ids`: the token ids, shape $(B, T)$ for $B$ texts of $T$ tokens, including the special tokens such as `[CLS]` (101) and `[SEP]` (102).
+- `attention_mask`: 1 for a real token, 0 for padding, same shape. The model uses it to stop attention from looking at padding, as in the [padding mask](#/learn/attention-and-transformers/scaled-dot-product-attention).
+- for BERT, also `token_type_ids`: 0 for the first sentence and 1 for the second, when you feed two sentences as a pair.
+
+A batch must be a rectangle to become a tensor, so the tokenizer can **pad** short texts and **truncate** long ones:
+
+<TokenizerBatch />
+
+**Stage 2: the model.** `AutoModelForSequenceClassification.from_pretrained(name)` reads the config, builds the right architecture with a classification head, and loads the weights. Its output has `.logits` of shape $(B, \text{num\_labels})$.
+
+**Stage 3: post-processing.** Softmax turns logits into probabilities, `argmax` picks the class, and `model.config.id2label` turns the class number into a name.
+
+```python
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+name = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+tok = AutoTokenizer.from_pretrained(name)
+model = AutoModelForSequenceClassification.from_pretrained(name)
+model.eval()
+
+texts = ["The chicken rice here is amazing!",
+         "The queue was long and the food was cold."]
+enc = tok(texts, padding=True, return_tensors="pt")      # stage 1
+print(enc["input_ids"].shape)
+print(enc["attention_mask"])
+
+with torch.no_grad():                                      # stage 2
+    logits = model(**enc).logits
+print(logits)
+
+probs = logits.softmax(dim=-1)                             # stage 3
+for p in probs:
+    k = p.argmax().item()
+    print(model.config.id2label[k], round(p[k].item(), 4))
+```
+
+```text
+torch.Size([2, 12])
+tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]])
+tensor([[-4.1453,  4.4979],
+        [ 4.4555, -3.6515]])
+POSITIVE 0.9998
+NEGATIVE 0.9997
+```
+
+The first sentence has 9 tokens and the second 12, so the first row gets 3 padding positions, marked 0 in the mask. The `**enc` passes `input_ids` and `attention_mask` to the model as keyword arguments.
+
+The `Auto` classes pick the architecture from the config. The part after `AutoModelFor` says which **head** sits on top, and therefore what shape the logits have:
+
+| Class | Head | `logits` shape | Typical models |
+|---|---|---|---|
+| `AutoModel` | none: returns hidden states $(B, T, d)$ | n/a | any, for embeddings |
+| `AutoModelForSequenceClassification` | one label per text, from `[CLS]` | $(B, \text{num\_labels})$ | BERT, DistilBERT, RoBERTa |
+| `AutoModelForTokenClassification` | one label per token | $(B, T, \text{num\_labels})$ | BERT-style NER models |
+| `AutoModelForMaskedLM` | a word for every position | $(B, T, V)$ | BERT (fill-mask) |
+| `AutoModelForCausalLM` | the next token | $(B, T, V)$ | GPT-2, Llama, Qwen |
+| `AutoModelForSeq2SeqLM` | encoder-decoder; use `.generate()` | $(B, T_\text{out}, V)$ | T5, BART, MarianMT |
+
+Here $V$ is the vocabulary size. For an encoder-decoder such as T5, `model.generate(**enc)` runs the [decoding loop](#/learn/pretrained-models-text-speech/encoder-decoder-models) for you, and `tok.decode(ids, skip_special_tokens=True)` turns the output ids back into text. This is how you summarise in any version of `transformers`:
+
+```python
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+tok = AutoTokenizer.from_pretrained("google-t5/t5-small")
+model = AutoModelForSeq2SeqLM.from_pretrained("google-t5/t5-small")
+text = ("Singapore's public libraries will open longer hours from next month, "
+        "the National Library Board said on Monday. Twelve libraries will stay "
+        "open until 11pm on weekdays, two hours later than now, after surveys "
+        "showed that many students and working adults wanted quiet places to "
+        "study in the evenings. The board will also add more study seats and "
+        "power points at its busiest branches, including those in Jurong, "
+        "Tampines and Woodlands.")
+enc = tok("summarize: " + text, return_tensors="pt")     # T5 reads the task from a prefix
+out = model.generate(**enc, max_new_tokens=40)
+print(tok.decode(out[0], skip_special_tokens=True))
+```
+
+```text
+the national library board says 12 public libraries will stay open until 11pm on weekdays. the board will add more study seats and power points at its busiest branches.
+```
+
+<QuickCheck
+  q="A batch of 8 sentences, padded to 40 tokens, goes into `AutoModelForTokenClassification` with `num_labels=9`. What is the shape of `outputs.logits`?"
+  options={['`(8, 40, 9)`', '`(8, 9)`', '`(8, 40)`', '`(40, 9)`']}
+  answer={0}
+  explain="Token classification gives every token its own 9 scores: (batch, tokens, labels) = (8, 40, 9). `(8, 9)` is what sequence classification would give (one label per sentence), and `(8, 40)` is the shape of `input_ids` and the attention mask."
+/>
+
+<Mistake title="Mixing tokenizers and models">
+
+Always load the tokenizer and the model from the **same** name. Each model learned its own vocabulary: id 2474 is `la` to BERT but `!"` to GPT-2, so a mismatched tokenizer feeds the model nonsense, often with no error at all. And when you batch texts of different lengths, pass `padding=True` (and `truncation=True` for long texts) and pass the `attention_mask` on to the model.
+
+</Mistake>
+
+## Fine-tuning with your own labels
+
+The SST-2 model above only knows "positive" and "negative" film reviews. To build your own classifier, say for hawker-centre reviews, start from a pretrained model **without** a task head and let `transformers` add a fresh one:
+
+<Steps title="Fine-tuning a sequence classifier">
+  <Step title="Load the body, add a new head">
+    `AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)` loads the pretrained encoder and adds a **randomly initialised** classification head. Hugging Face warns that weights such as `classifier.weight` and `classifier.bias` are newly initialised: that is expected, because training them is the whole point.
+  </Step>
+  <Step title="Tokenize the data">
+    Run the tokenizer on your texts with `padding=True, truncation=True`, and keep the labels as a tensor of class numbers.
+  </Step>
+  <Step title="Train gently">
+    Use AdamW with a **small** learning rate, typically $2 \times 10^{-5}$ to $5 \times 10^{-5}$, for 2 to 4 epochs on real data. Passing `labels=` to the model makes it compute the cross-entropy loss for you, in `outputs.loss`.
+  </Step>
+  <Step title="Evaluate">
+    Check accuracy or F1 on a validation set the model never trained on, and stop when the validation loss stops improving.
+  </Step>
+</Steps>
+
+Here is the whole loop on 8 example sentences (far too few for real use, but enough to watch the loss fall). It uses DistilBERT, a 6-layer, 66-million-parameter version of BERT:
+
+```python
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+torch.manual_seed(0)
+name = "distilbert/distilbert-base-uncased"
+tok = AutoTokenizer.from_pretrained(name)
+model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)
+
+texts = ["the laksa was shiok", "worst kopi ever", "service was fast and friendly",
+         "the food was cold and bland", "love this hawker stall", "the queue was terrible",
+         "great value for money", "never coming back again"]
+labels = torch.tensor([1, 0, 1, 0, 1, 0, 1, 0])         # 1 = positive, 0 = negative
+
+batch = tok(texts, padding=True, truncation=True, max_length=32, return_tensors="pt")
+optimiser = torch.optim.AdamW(model.parameters(), lr=5e-5)
+
+model.train()
+for epoch in range(1, 31):
+    out = model(**batch, labels=labels)    # with labels, the model also returns the loss
+    out.loss.backward()
+    optimiser.step()
+    optimiser.zero_grad()
+    if epoch % 10 == 0:
+        print(f"epoch {epoch}: loss {out.loss.item():.4f}")
+
+model.eval()
+with torch.no_grad():
+    test = tok(["the chicken rice was shiok", "cold and bland"],
+               padding=True, return_tensors="pt")
+    probs = model(**test).logits.softmax(dim=-1)
+print(probs.round(decimals=3))
+```
+
+```text
+epoch 10: loss 0.1713
+epoch 20: loss 0.0242
+epoch 30: loss 0.0071
+tensor([[0.0100, 0.9900],
+        [0.9940, 0.0060]])
+```
+
+Column 1 is "positive", so the model now calls "the chicken rice was shiok" positive (0.99) and "cold and bland" negative. This is the same [training loop](#/learn/pytorch/training-loop) as always: forward, loss, `backward`, `step`, `zero_grad`.
+
+The library also has a `Trainer` that runs this loop for you, with batching, padding, a learning-rate schedule and logging built in. Continuing with the same `name`, `tok`, `texts` and `labels`, and a fresh copy of the model:
+
+```python
+from transformers import Trainer, TrainingArguments
+
+model = AutoModelForSequenceClassification.from_pretrained(name, num_labels=2)
+enc = tok(texts, truncation=True, max_length=32)    # Trainer pads each batch
+train_ds = [{"input_ids": enc["input_ids"][i],
+             "attention_mask": enc["attention_mask"][i],
+             "labels": int(labels[i])} for i in range(len(texts))]
+
+args = TrainingArguments(output_dir="out", learning_rate=5e-5,
+                         num_train_epochs=10, per_device_train_batch_size=4,
+                         logging_steps=5, report_to="none")
+trainer = Trainer(model=model, args=args, train_dataset=train_ds,
+                  processing_class=tok)
+trainer.train()
+```
+
+```text
+{'loss': '0.6381', 'grad_norm': '2.183', 'learning_rate': '4e-05', 'epoch': '2.5'}
+{'loss': '0.4804', 'grad_norm': '2.944', 'learning_rate': '2.75e-05', 'epoch': '5'}
+{'loss': '0.2946', 'grad_norm': '2.212', 'learning_rate': '1.5e-05', 'epoch': '7.5'}
+{'loss': '0.2113', 'grad_norm': '2.133', 'learning_rate': '2.5e-06', 'epoch': '10'}
+```
+
+It logs the average loss every 5 steps (then a summary line with timings, not shown). Notice the learning rate shrinking from $5 \times 10^{-5}$ towards 0: by default the Trainer decays it linearly, a [schedule](#/learn/training-deep-networks/learning-rate-warmup-schedules) that suits fine-tuning. (Older versions of `transformers` call the `processing_class` argument `tokenizer`.)
+
+<PastPaperQuestion paper="prelim2026" n={217} />
+
+<PastPaperQuestion paper="final2026" n={20} />
+
+## Labels of −100: "do not mark this one"
+
+<Analogy title="Marking only what was attempted">
+
+A teacher marking a worksheet skips the blank answer spaces at the end of the page: they were never questions. The label value $-100$ is that instruction for the loss: **skip this position**.
+
+</Analogy>
+
+PyTorch's `nn.CrossEntropyLoss` and `F.cross_entropy` have an argument `ignore_index`, and its default value is $-100$. Any position whose label is $-100$ adds nothing to the loss and is **not counted** in the average:
+
+$$
+\mathcal{L} = \frac{1}{|S|} \sum_{i \in S} -\ln p_i(y_i), \qquad S = \{\, i : y_i \neq -100 \,\}
+$$
+
+- $y_i$ is the label at position $i$, and $p_i(y_i)$ is the probability the model gives that label.
+- $S$ is the set of positions that are scored, and $|S|$ is how many there are. The average divides by $|S|$, not by the total length.
+
+You meet $-100$ wherever a sequence has positions that should not be graded:
+
+- **Token classification** (such as NER): special tokens, padding, and often the later pieces of a split word.
+- **Language modelling**: padding, and when fine-tuning a chatbot, the prompt tokens, so the model is only graded on the answer.
+- **BERT's masked language modelling**: every position not chosen by the 15% rule, as you saw in [the BERT lesson](#/learn/pretrained-models-text-speech/bert-and-gpt).
+
+<IgnoreIndexMask />
+
+The same thing in PyTorch, with 5 positions and 3 classes, where the last 2 positions are padding:
+
+```python
+import torch
+import torch.nn.functional as F
+
+logits = torch.tensor([[2.0, 0.5, 0.1],
+                       [0.2, 1.5, 0.3],
+                       [0.1, 0.2, 3.0],
+                       [1.0, 1.0, 1.0],
+                       [1.0, 1.0, 1.0]])
+labels = torch.tensor([0, 1, 2, -100, -100])
+
+print(F.cross_entropy(logits, labels))            # ignore_index=-100 is the default
+print(F.cross_entropy(logits[:3], labels[:3]))    # the same: only 3 real positions count
+bad = torch.tensor([0, 1, 2, 0, 0])               # bug: padding labelled as class 0
+print(F.cross_entropy(logits, bad))
+```
+
+```text
+tensor(0.2933)
+tensor(0.2933)
+tensor(0.6154)
+```
+
+For NER, the labels come per **word** but the model sees **tokens**, so you line them up with the tokenizer's `word_ids()`, which says which word each token came from (`None` for special tokens):
+
+```python
+from transformers import AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained("dslim/bert-base-NER")
+words = ["Joseph", "Schooling", "won", "gold", "in", "Rio"]
+word_labels = [3, 4, 0, 0, 0, 7]          # B-PER, I-PER, O, O, O, B-LOC
+enc = tok(words, is_split_into_words=True)
+print(tok.convert_ids_to_tokens(enc["input_ids"]))
+print(enc.word_ids())
+
+labels, prev = [], None
+for w in enc.word_ids():
+    if w is None:
+        labels.append(-100)              # [CLS], [SEP]: not scored
+    elif w != prev:
+        labels.append(word_labels[w])    # first piece of a word gets the word's label
+    else:
+        labels.append(-100)              # later pieces of the same word: not scored
+    prev = w
+print(labels)
+```
+
+```text
+['[CLS]', 'Joseph', 'School', '##ing', 'won', 'gold', 'in', 'Rio', '[SEP]']
+[None, 0, 1, 1, 2, 3, 4, 5, None]
+[-100, 3, 4, -100, 0, 0, 0, 7, -100]
+```
+
+When batches are padded later, Hugging Face's `DataCollatorForTokenClassification` fills the labels of padding positions with $-100$ too.
+
+<Mistake title="Padding id is not a label">
+
+The `[PAD]` **token id** (0 for BERT) goes in `input_ids`. The **label** for a padded position must be $-100$, not 0, because label 0 is a real class (here "O", not a name). And $-100$ must never appear in `input_ids`: it is not a token, and the embedding lookup will crash.
+
+</Mistake>
+
+<ExamTip>
+
+Common NOAI checks: the attention mask is **1 for real tokens, 0 for padding**; padded or special positions in the **labels** are $-100$, the default `ignore_index` of cross-entropy; the loss is averaged over the scored positions only; a freshly added head is **randomly initialised** and must be trained; fine-tuning BERT uses a **small learning rate** ($2 \times 10^{-5}$ to $5 \times 10^{-5}$), and a large one makes validation loss rise as the pretrained knowledge is overwritten.
+
+</ExamTip>
+
+## Open-source models or an API?
+
+There are two ways to use a pretrained language model:
+
+| | Open-weights models (download) | API-based models (call over the internet) |
+|---|---|---|
+| Examples | BERT, DistilBERT, T5, Whisper, Llama, Qwen, Gemma on the Hugging Face Hub | GPT-4o, Claude, Gemini |
+| Where it runs | your own computer or GPU | the provider's servers |
+| Internet needed | only to download once | for every call |
+| Fine-tuning | full control: any layer, any method | limited, or not offered |
+| Data privacy | your data never leaves your machine | your text is sent to the provider |
+| Cost and size | free weights, but you pay in hardware; size limited by your GPU memory | pay per token; can use the very largest models |
+
+An API call is just an HTTP request with your text and a secret key, and the reply comes back as JSON. A typical chat-style request looks like this (it needs a provider and a key, so there is no output to show):
+
+```python
+import requests
+
+reply = requests.post(
+    "https://api.example.com/v1/chat/completions",          # the provider's address
+    headers={"Authorization": "Bearer YOUR_API_KEY"},
+    json={"model": "some-model",
+          "messages": [{"role": "user", "content": "Classify: 'The laksa was shiok!'"}]},
+).json()
+print(reply["choices"][0]["message"]["content"])
+```
+
+At IOAI the contest machines are **offline**, so you work with open models whose weights are already cached, plus a small built-in LLM assistant. That is why the skills in this lesson, loading, running and fine-tuning local models, matter most.
+
+<QuickCheck
+  q="A hospital wants to sort patient messages into 4 categories. The messages must not leave the hospital's own servers, and the team has 5,000 labelled examples. What is the most suitable approach?"
+  options={['Fine-tune an open-weights encoder such as DistilBERT on the 5,000 examples, on the hospital\'s own servers', 'Send every message to a large API-based model and ask it for the category, since bigger models are always better', 'Train a new BERT from random weights on the 5,000 messages, so no outside model is involved at all', 'Use the SST-2 sentiment pipeline as it is, and map positive and negative to the 4 categories']}
+  answer={0}
+  explain="The privacy rule rules out sending messages to an external API, and 5,000 labelled examples are plenty to fine-tune a pretrained encoder with a new 4-class head. Training BERT from scratch on 5,000 messages throws away pretraining and would perform far worse. A 2-class sentiment model cannot produce 4 categories."
+/>
+
+<Takeaways>
+
+- `pipeline("task", model=...)` = **tokenizer → model → post-processing**. You can run each stage yourself with `AutoTokenizer` and an `AutoModelFor...` class from the same model name.
+- The tokenizer returns **`input_ids`** (token ids with `[CLS]`/`[SEP]`) and an **`attention_mask`** (1 = real token, 0 = padding); `padding=True` and `truncation=True` make a batch rectangular.
+- To fine-tune, load the pretrained body with a new head (`num_labels=...`), pass `labels=` to get `outputs.loss`, and train with AdamW at a small learning rate (about $2 \times 10^{-5}$ to $5 \times 10^{-5}$), in your own loop or with `Trainer`.
+- Label **$-100$** = "do not score": cross-entropy's default `ignore_index` skips it and averages over the remaining positions. Use it for padding, special tokens and extra word pieces, never as an input id.
+- **Open-weights** models run locally (private, fine-tunable, offline); **API** models run on a provider's servers (largest models, pay per call, needs internet).
+
+</Takeaways>

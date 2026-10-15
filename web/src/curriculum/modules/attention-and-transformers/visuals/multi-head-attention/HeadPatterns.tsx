@@ -99,7 +99,7 @@ export default function HeadPatterns() {
   const Wpx = Math.max(280, Math.min(width, 460))
   const labelW = 66
   const top = 58
-  const c = Math.floor(Math.min(42, (Wpx - labelW - 6) / T))
+  const c = Math.floor(Math.min(42, (Wpx - labelW - 40) / T)) // 40 px spare on the right for the slanted last key label
   const Hpx = top + T * c + 4
 
   const gathers = useMemo(
@@ -163,8 +163,11 @@ export default function HeadPatterns() {
           aria-label={`Attention weights of ${isAvg ? 'the averaged head' : HEADS[sel].name}. Selected: ${TOKENS[qi]} looks at ${TOKENS[kj]} with weight ${pct(W[qi][kj])}`}
           style={{ display: 'block', touchAction: 'manipulation' }}
         >
+          <text x={labelW - 6} y={top - 22} textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 11, fontWeight: 700 }}>
+            key →
+          </text>
           <text x={labelW - 6} y={top - 8} textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 11, fontWeight: 700 }}>
-            query ↓ key →
+            query ↓
           </text>
           {TOKENS.map((tk, j) => (
             <text

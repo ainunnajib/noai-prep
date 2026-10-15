@@ -1,3 +1,213 @@
-{/* stub: lesson '2025 Task 1: Linear regression by gradient descent' is being written */}
+import VectorisedLinesStepper from './visuals/task-linear-regression-gd/VectorisedLinesStepper'
+import GDRegressionRunner from './visuals/task-linear-regression-gd/GDRegressionRunner'
+import MistakeToggles from './visuals/task-linear-regression-gd/MistakeToggles'
 
-This lesson is being written.
+export const solveCode = `import numpy as np
+
+# DO NOT MAKE CHANGES TO THIS CELL
+X = np.array([[2, 2], [2, 4], [2, 6]])
+y = np.array([2, 4, 6])
+alpha = 0.01
+iterations = 1000
+
+def linear_regression_gradient_descent(X: np.ndarray, y: np.ndarray,
+                                       alpha: float, iterations: int) -> np.ndarray:
+    m, n = X.shape
+    theta = np.zeros(n)                   # start at zeros
+    for _ in range(iterations):
+        errors = X @ theta - y            # h(x) - y for every example, shape (m,)
+        gradient = X.T @ errors / m       # one value per theta_j, shape (n,)
+        theta = theta - alpha * gradient  # update every theta_j together
+    return np.round(theta, 4)             # round once, at the end
+
+print(repr(linear_regression_gradient_descent(X=X, y=y, alpha=alpha, iterations=iterations)))
+
+# check 1: one iteration by hand gives [0.08, 0.1867]
+print(linear_regression_gradient_descent(X, y, 0.01, 1))
+# check 2: the exact least-squares answer
+print(np.round(np.linalg.lstsq(X, y, rcond=None)[0], 4))
+# check 3: more iterations head there
+print(linear_regression_gradient_descent(X, y, 0.01, 3000))`
+
+Question 1 of the 2025 Final was worth 15 marks and asked for one function: linear regression trained by gradient descent, in NumPy, with the answer rounded to 4 decimal places. You met the algorithm in the linear regression module. This lesson rebuilds it the way you would in the exam: read the task, write three vectorised lines, prove the answer is right without being told it, and recognise the mistakes that cost marks.
+
+<Analogy title="The downhill walk, written as code">
+
+In the gradient descent lesson you walked downhill in the fog: feel the slope under your feet, take a small step the other way, repeat. In the exam the walk becomes four lines of a loop. Predict, measure the errors, average them into a slope, step. The skill now is writing those lines without a slip and checking where you ended up.
+
+</Analogy>
+
+## What the task gives you
+
+The notebook gives the data in a protected cell, an empty function, and the update rule:
+
+$$
+\theta_j := \theta_j - \alpha\,\frac{1}{m}\sum_{i=1}^{m}\left(h_\theta(x^{(i)}) - y^{(i)}\right)x_j^{(i)}
+$$
+
+Read it symbol by symbol:
+
+- $\theta$ (theta) is the list of <Term def="The numbers a model learns. For a straight line, the slope and the intercept.">coefficients</Term>, one per column of `X`; $\theta_j$ is the one in column $j$. The `:=` means "replace with".
+- $\alpha$ (alpha) is the <Term def="How big a step gradient descent takes each iteration. Too small is slow; too large overshoots and can blow up.">learning rate</Term>, and $m$ is the number of examples (rows of `X`).
+- $x^{(i)}$ is row $i$ of `X`, and $x_j^{(i)}$ is the number in row $i$, column $j$. $y^{(i)}$ is that row's target.
+- $h_\theta(x^{(i)}) = \theta_0 x_0^{(i)} + \theta_1 x_1^{(i)}$ is the model's prediction for row $i$, so $h_\theta(x^{(i)}) - y^{(i)}$ is its error.
+- The whole fraction is the **average of (error × the input in column $j$)**: the slope of the cost in the $\theta_j$ direction.
+
+The data cell holds `X = [[2, 2], [2, 4], [2, 6]]`, `y = [2, 4, 6]`, `alpha = 0.01` and `iterations = 1000`. Three things are *not* said, and you should decide them before typing:
+
+| Not stated | What to do, and why |
+|---|---|
+| where θ starts | **zeros**, `np.zeros(n)`: the textbook default, and the one the official answer assumes |
+| one example per step, or all of them | **all of them**, <Term def="Gradient descent that uses every training example to compute each update. Stochastic gradient descent uses one example per update.">batch gradient descent</Term>: the formula sums over all $m$ examples before each update |
+| when to round | **once**, on the returned value: rounding inside the loop changes the answer |
+
+<PastPaperQuestion paper="prelim2026" n={67} />
+
+## Three vectorised lines
+
+The sum over $i$, done for every $j$ at once, is one matrix product. Stack the errors into a vector $\mathbf{e}$ of length $m$. Row $j$ of $X^\top$ ("X transpose", `X.T`: rows and columns swapped) holds column $j$ of `X`, so row $j$ of $X^\top\mathbf{e}$ is exactly $\sum_i e_i\,x_j^{(i)}$. The whole update becomes
+
+$$
+\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha\,\frac{1}{m}\,X^\top\left(X\boldsymbol{\theta} - \mathbf{y}\right).
+$$
+
+Writing whole-array operations like this instead of loops over $i$ and $j$ is called <Term def="Using one NumPy operation on whole arrays instead of a Python loop over their elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>. Step through it on the exam data:
+
+<VectorisedLinesStepper />
+
+<KeyIdea>
+
+Predictions `X @ theta`, errors minus `y`, gradient `X.T @ errors / m`, update `theta - alpha * gradient`. Three lines in a loop, all coefficients updated together, round at the end.
+
+</KeyIdea>
+
+<QuickCheck
+  q="`X` has shape `(3, 2)` and `errors` has shape `(3,)`. What is the shape of `X.T @ errors / m`?"
+  options={['(2,)', '(3,)', '(2, 3)', '(3, 2)']}
+  answer={0}
+  explain="`X.T` has shape `(2, 3)`. A `(2, 3)` matrix times a length-3 vector gives a length-2 vector: one gradient value per coefficient, which is exactly what the update needs. Dividing by `m` does not change the shape."
+/>
+
+If the matrix version feels risky under exam pressure, a loop that follows the formula symbol by symbol is just as correct, and gives the identical answer:
+
+<Tabs>
+<Tab label="Vectorised (NumPy)">
+
+```python
+def linear_regression_gradient_descent(X, y, alpha, iterations):
+    m, n = X.shape
+    theta = np.zeros(n)
+    for _ in range(iterations):
+        errors = X @ theta - y
+        gradient = X.T @ errors / m
+        theta = theta - alpha * gradient
+    return np.round(theta, 4)
+```
+
+</Tab>
+<Tab label="Loops (the formula, literally)">
+
+```python
+def linear_regression_gradient_descent(X, y, alpha, iterations):
+    m, n = X.shape
+    theta = [0.0] * n
+    for _ in range(iterations):
+        h = [sum(theta[j] * X[i][j] for j in range(n)) for i in range(m)]  # predictions
+        grad = [sum((h[i] - y[i]) * X[i][j] for i in range(m)) / m          # the task's sum
+                for j in range(n)]
+        theta = [theta[j] - alpha * grad[j] for j in range(n)]              # all together
+    return np.round(np.array(theta), 4)
+```
+
+</Tab>
+</Tabs>
+
+Both return `array([0.003 , 0.9987])`. Notice that the loop version builds the whole `grad` list from the old `theta` before replacing it: that is what "update all $\theta_j$ together" means in code.
+
+## Run it, then prove it is right
+
+In 2025 the notebook did not show the expected answer for this question, so your own checks were the only check. Run the full solution with three of them:
+
+<PyRunner packages={['numpy']} code={solveCode} rows={26} />
+
+```text
+array([0.003 , 0.9987])
+[0.08   0.1867]
+[-0.  1.]
+[0. 1.]
+```
+
+- **Check 1, one step by hand.** With θ = 0 every prediction is 0, the errors are −2, −4, −6, the gradient is $\left(\frac{-24}{3}, \frac{-56}{3}\right) = (-8, -18.667)$, and θ becomes $(0.08, 0.1867)$. The code agrees.
+- **Check 2, the exact answer.** The data lie exactly on the line $y = x$, and `np.linalg.lstsq` (the least-squares solver) gives θ = (0, 1). The `-0.` is a tiny negative number rounded to zero; it equals 0.
+- **Check 3, convergence.** With 3000 iterations gradient descent reaches (0, 1) to 4 decimal places. With 1000 it is close but not there, and that unfinished answer is what the task asks for.
+
+<GDRegressionRunner />
+
+Why is the answer after 1000 steps not exactly (0, 1)? The cost surface is a long, narrow valley: steep across, almost flat along. The first few steps race down the steep sides, then θ crawls along the flat floor, and 1000 steps of size 0.01 are not quite enough to finish the crawl. Raising α speeds the crawl, but past about 0.09 the steps across the steep sides overshoot further each time and the run blows up.
+
+<PastPaperQuestion paper="prelim2026" n={66} />
+
+## What the column of 2s means
+
+The task says `X` has "a column of values for the intercept", but the column holds **2s, not 1s**. The prediction for an input $x$ is therefore
+
+$$
+\hat{y} = 2\,\theta_0 + \theta_1\,x,
+$$
+
+so the <Term def="Where a line crosses the y-axis: its value when the input x is 0.">intercept</Term> is $2\theta_0$, not $\theta_0$, and the slope is $\theta_1$.
+
+<Steps title="Reading the answer [0.003, 0.9987]">
+  <Step title="Intercept">
+    $2 \times 0.003 = 0.006$: the line crosses the y-axis just above 0.
+  </Step>
+  <Step title="Slope">
+    $\theta_1 = 0.9987$: almost exactly 1, like the data $y = x$.
+  </Step>
+  <Step title="A prediction">
+    At $x = 5$: $\hat{y} = 0.006 + 0.9987 \times 5 = 0.006 + 4.9935 = 4.9995$, very close to the true 5.
+  </Step>
+  <Step title="Why it matters">
+    Do not add your own column of 1s. The column of 2s already does the intercept's job, and an extra column gives three coefficients and the wrong answer.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="With this task's column of 2s, gradient descent returns θ = [1.5, 0.5]. Where does the fitted line cross the y-axis?"
+  options={['At y = 3', 'At y = 1.5', 'At y = 0.75', 'At y = 0.5']}
+  answer={0}
+  explain="The prediction is $\hat{y} = 2\theta_0 + \theta_1 x$. At $x = 0$ this is $2 \times 1.5 = 3$. Reading $\theta_0$ itself (1.5) as the intercept forgets that its column holds 2s, not 1s."
+/>
+
+## The mistakes that cost marks
+
+Every one of these produces an answer that looks reasonable at a glance. The trick is to know what each one looks like in the output:
+
+<MistakeToggles />
+
+<Mistake title="If your output looks like this, check this">
+
+- **Last digit off** (0.0027, 0.9988): you updated θ₀ before computing θ₁'s gradient. Compute the whole gradient first.
+- **Exactly (0, 1)**: you used the sum instead of the mean (no `/ m`), or a factor of 2: you walked faster than the task's rule.
+- **A table instead of two numbers**, or a "broadcast" error: mixed shapes, `(n, 1)` against `(n,)`. Keep everything 1-D.
+- **Nothing printed**: no `return`. **Three numbers**: an extra bias column. **Eight decimals**: no rounding. **Off in the 3rd decimal**: rounding inside the loop.
+
+</Mistake>
+
+<ExamTip>
+
+- 15 marks is about 20 minutes. Read the shapes, write the three lines, then **check one iteration by hand** before running the full call: (0.08, 0.1867) takes a minute to compute and catches most bugs.
+- Use exactly the task's α, iteration count, $\frac{1}{m}$ and starting point: the expected answer is the value after exactly those 1000 steps, not the true minimum.
+- In the Prelim, the same algorithm appears as one-step arithmetic ("θ after one update is…") and as definitions: batch gradient descent uses all examples per update; the learning rate sets the step size.
+
+</ExamTip>
+
+<Takeaways>
+
+- The task's $\frac{1}{m}\sum_i (h_\theta(x^{(i)}) - y^{(i)})x_j^{(i)}$ for every $j$ is `X.T @ (X @ theta - y) / m`.
+- Start θ at zeros, update every coefficient together from the same old θ, and round once with `np.round(theta, 4)` on the returned value.
+- The constant column holds 2s, so the intercept is $2\theta_0$; do not add your own column of 1s.
+- Check without an answer key: one step by hand gives (0.08, 0.1867), the cost falls every iteration, and more iterations approach the least-squares answer (0, 1).
+- Each classic mistake has a fingerprint: last digit off (sequential update), exactly (0, 1) (sum not mean), a 2 × 3 table (shapes), nothing (no return), three numbers (extra column).
+
+</Takeaways>

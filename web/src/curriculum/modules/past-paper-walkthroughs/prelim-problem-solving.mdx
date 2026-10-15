@@ -1,3 +1,152 @@
-{/* stub: lesson '2026 Prelim: Problem-solving scenarios' is being written */}
+import { PRELIM } from '../../../data/facts'
+import ScenarioHighlighter from './visuals/prelim-problem-solving/ScenarioHighlighter'
+import CaseStudyStepper from './visuals/prelim-problem-solving/CaseStudyStepper'
+import KeywordTriggerMap from './visuals/prelim-problem-solving/KeywordTriggerMap'
 
-This lesson is being written.
+The last 30 questions of the 2026 Prelim (Q271 to Q300) were long <Term def="A question that describes a situation (a training log, a set of metrics, an error message) and asks what is wrong or what to do.">scenario questions</Term>: a training log, a confusion matrix or a GPU error, followed by four options of a sentence or more each. Every one of them was worth exactly 1 mark, the same as "what is the determinant of the identity matrix?". This lesson gives you a reading method and a short list of diagnoses, so that a scenario costs you about a minute instead of three.
+
+<Analogy>
+In an English comprehension paper, good students read the questions **before** the passage. Then, as they read, they already know which lines matter. Scenario questions work the same way: the passage is the stem, and most of it is scenery.
+</Analogy>
+
+## Why the end of the paper feels slow
+
+Every MCQ has a <Term def="The question text that comes before the answer options, including any numbers, tables or code.">stem</Term> and four options. The wrong options are called <Term def="A wrong option written to look right, usually built from a common misconception.">distractors</Term>. In 2026 most questions were short. The scenario block was not:
+
+<Figure title="Reading load across the 2026 Prelim" caption={<>Median number of words per question (stem plus all four options), counted from the 2026 paper as reproduced on this site. Q271–300 needed almost five times as much reading as everything before them.</>}>
+  <Bars
+    ariaLabel="Median words per question by block of the 2026 Prelim"
+    max={100}
+    format={(v) => v.toFixed(0)}
+    data={[
+      { label: 'Q1–60 Maths', value: 20, color: 'var(--viz-1)' },
+      { label: 'Q61–119 Computing', value: 21, color: 'var(--viz-1)' },
+      { label: 'Q120–178 AI/ML/DL', value: 20, color: 'var(--viz-1)' },
+      { label: 'Q179–237 GenAI', value: 19, color: 'var(--viz-1)' },
+      { label: 'Q238–270 Problem solving', value: 20, color: 'var(--viz-1)' },
+      { label: 'Q271–300 Scenarios', value: 94, color: 'var(--viz-2)', strong: true },
+    ]}
+  />
+</Figure>
+
+The 2027 Prelim has {PRELIM.questions} questions in {PRELIM.minutes} minutes, about {PRELIM.secondsPerQuestion} seconds each. If you read technical English at about 200 words a minute, 94 words take about 28 seconds ($94 \div 200 \times 60 \approx 28$). Read top to bottom, a scenario uses up most of its time budget before you have even started thinking. The fix is not to read faster. It is to read **less**, in the right order.
+
+## Stem-first reading
+
+Scenario stems are long, but the question they ask is usually short. Four moves:
+
+1. **Read the question line first.** It is the last sentence of the stem. It tells you what kind of answer you need: a diagnosis, a metric, a fix, or a mechanism.
+2. **Scan for the numbers that question needs.** Training versus validation scores, the class ratio, the learning rate, the memory, the epoch, the dates.
+3. **Sort the rest** into "useful" (rules an option out) and "noise" (the story around the numbers).
+4. **Compare the options on the one phrase that differs.** Long options usually share most of their words. Find the part that is different and judge only that.
+
+Watch an expert do it on a real question, then take the highlighter yourself.
+
+<ScenarioHighlighter />
+
+<KeyIdea>
+A long scenario hides **one diagnosis** among many details. Read the question line, extract the two or three numbers that decide it, and compare the options only on the phrase where they differ.
+</KeyIdea>
+
+### Turning numbers into one deciding number
+
+Step 2 is faster when you know which number to compute. Four quantities decide most of the 2026 scenarios.
+
+- **Generalisation gap**, $g = \text{acc}_{\text{train}} - \text{acc}_{\text{val}}$. A gap of tens of points means **overfitting**. Both scores low with a tiny gap means **underfitting**.
+- **Chance level**, $1/K$ for $K$ balanced classes. Validation accuracy sitting at $1/K$ while training clearly improves points to a **bug**, not to the model.
+- **Positive rate**, $\pi = N_{+} / N$. When $\pi$ is small, predicting "negative" for everything already scores $1 - \pi$, so **accuracy misleads**.
+- **Size ratio**, features $p$ against samples $n$. When $p > n$ (or there are hundreds of parameters per example), the model can **memorise**.
+
+In words: $\text{acc}_{\text{train}}$ and $\text{acc}_{\text{val}}$ are the accuracies on the training and validation sets, and $g$ is how much worse the model does on data it has not seen. <Term def="The model learns its training data too closely, noise included, so it does much worse on new data. Also called high variance.">Overfitting</Term> is a big $g$. <Term def="The model is too simple to capture the pattern, so it does badly even on its training data. Also called high bias.">Underfitting</Term> is a low score everywhere. $K$ is the number of classes: random guessing among 10 balanced classes is right $1/10 = 10\%$ of the time, which is the <Term def="The accuracy you would get by guessing at random. For K balanced classes it is 1/K.">chance level</Term>. $\pi$ (the Greek letter pi, used here as a proportion, not 3.14) is the share of positive examples: $N_{+}$ is the number of positive examples and $N$ the total number of examples.
+
+<QuickCheck
+  q="A stem says: on a 5-class problem with balanced classes, validation accuracy is stuck at 20% while training loss falls smoothly to 0.02. What is the most likely diagnosis?"
+  options={['A label or pipeline bug affecting the validation data', 'Overfitting caused by too little regularisation', 'A learning rate that is too high', 'Underfitting because the model is too simple']}
+  answer={0}
+  explain="Chance level for 5 balanced classes is $1/5 = 20\%$. The falling training loss proves the model learns, so scoring exactly chance on validation means the validation labels do not match what was learnt. An overfitted model would still beat chance, and a too-high learning rate or a too-simple model would stop the training loss from falling smoothly to 0.02."
+/>
+
+Here is a real three-model scenario. Use the gap and the training score for each model; the descriptions in between are scenery.
+
+<PastPaperQuestion paper="prelim2026" n={266} />
+
+## Case studies: the same few diagnoses
+
+Doctors train on classic cases because real patients repeat a small number of patterns. The 2026 scenarios do the same. Below are six of them, each turned into a patient chart. The <Term def="Your conclusion about what is wrong, named precisely (for example 'overfitting because p > n', not just 'bad model').">diagnosis</Term> is yours to make before the evidence is shown.
+
+<CaseStudyStepper />
+
+Two of these charts carry an answer-key caveat. That is honest, not a flaw in your reasoning: a few 2026 items had two defensible options, and the key went with the one that best fits the stem's emphasis. When two options both look right, re-read the question line and pick the one that answers **that exact question** (for Q274, the "best throughput–memory trade-off" for a recipe built around batch 128).
+
+### Case 2 under the microscope: arithmetic without a calculator
+
+Scenarios hide the paper's hardest arithmetic. Here is the fraud case done by hand, the way you would on scrap paper. The terms: a <Term def="A positive case the model correctly flags (here: a fraud it caught).">true positive</Term> (TP) is a fraud caught, a false positive (FP) is a legitimate transaction flagged, a false negative (FN) is a fraud missed, and a true negative (TN) is a legitimate transaction passed.
+
+<Steps title="Q265: 9,800 legitimate, 200 fraud; TP 180, FP 294, TN 9,506, FN 20">
+  <Step title="Find the do-nothing baseline">
+    A model that calls every transaction legitimate is right $9{,}800$ times out of $10{,}000$: **98%** accuracy, while catching zero fraud. Any accuracy below 98% is worse than doing nothing, by this measure.
+  </Step>
+  <Step title="Check the stem's accuracy">
+    $\text{accuracy} = \dfrac{TP + TN}{N} = \dfrac{180 + 9{,}506}{10{,}000} = \dfrac{9{,}686}{10{,}000} = 96.86\%$. Practitioner A wrote 98.7%, which is simply wrong. Never trust arithmetic printed in a stem without a quick check.
+  </Step>
+  <Step title="Precision: of the alerts, how many are real?">
+    $\text{precision} = \dfrac{TP}{TP + FP} = \dfrac{180}{474}$. No calculator: $474 \times 0.4 = 189.6$, a bit more than 180, so the answer is a bit under 40%. Since $474 \times 0.38 \approx 180$, precision $\approx 38\%$.
+  </Step>
+  <Step title="Recall: of the frauds, how many did we catch?">
+    $\text{recall} = \dfrac{TP}{TP + FN} = \dfrac{180}{200} = 90\%$.
+  </Step>
+  <Step title="Which error costs more?">
+    A missed fraud (FN) loses money; a false alarm (FP) costs a few minutes of review. So recall is the primary metric. For reference, $F_1 = \dfrac{2PR}{P + R}$ simplifies to $\dfrac{2\,TP}{2\,TP + FP + FN} = \dfrac{360}{674} \approx 0.53$, a number that treats both errors as equally bad, which is exactly what this stem argues against.
+  </Step>
+</Steps>
+
+In the $F_1$ formula, $P$ is precision and $R$ is recall; $F_1$ is their <Term def="2 divided by (1/P + 1/R). It is pulled towards the smaller of the two numbers, so it is only high when both are high.">harmonic mean</Term>. The simplified form is handy without a calculator because it only needs the raw counts.
+
+<Mistake title="Picking the 'shotgun' option">
+Options that apply three fixes at once ("reduce the learning rate by 10×, add gradient clipping, switch to mixed precision") sound thorough. They are usually wrong when the question asks how to **diagnose**, because changing three things at once tells you nothing about the cause, and one of the three may even make things worse. The same goes for the reflex "it's overfitting": when validation sits exactly at chance, or the test data comes from a different year, the gap is not the story.
+</Mistake>
+
+The out-of-memory case needs one idea in particular. <Term def="Running several small batches one after another and adding up their gradients before a single optimiser step, so the update matches a bigger batch.">Gradient accumulation</Term> splits a batch that does not fit into $k$ <Term def="A slice of a batch small enough to fit in GPU memory.">micro-batches</Term> of size $b$, runs them one after another, adds up their gradients (dividing each micro-batch loss by $k$), and only then calls the optimiser. The update behaves like one batch of
+
+$$
+B_{\text{eff}} = b \times k,
+$$
+
+where $B_{\text{eff}}$ is the effective batch size. Only one micro-batch's activations are in memory at a time, so memory drops; training does not get faster, because the micro-batches run in sequence. For Q274, $32 \times 4 = 128$.
+
+<PastPaperQuestion paper="prelim2026" n={285} />
+
+## Keyword triggers
+
+A doctor who hears "chest pain and sweating" immediately thinks of a short list of causes. Long scenario questions usually hinge on one or two phrases in the same way. <Hl>"Oscillates wildly" points to the learning rate. "CUDA out of memory" points to batch size and precision. "1% positives" points to precision and recall. "p > n" points to overfitting.</Hl> Validation at 10% on 10 classes points to a label or pipeline bug, and "trained on 2023 data, tested in 2024" points to <Term def="The data the model meets after deployment differs from the data it was trained on (new customers, new prices, a new economy).">distribution drift</Term>.
+
+<KeywordTriggerMap />
+
+The map has twelve keywords but only ten diagnoses, in five families. That is the point: once you have a trigger, the options shrink to the one that names its diagnosis. The 2026 drift question below is a good test. Decide which phrase is the trigger before you look at the options.
+
+<PastPaperQuestion paper="prelim2026" n={275} />
+
+## Pacing the scenario block
+
+<ExamTip title="A two-speed pace">
+If 2027 keeps the 2026 shape, the last tenth of the paper (about 15 of the {PRELIM.questions} questions) will be long scenarios. Plan about 30 seconds for each short question and about 60 seconds for each scenario: $135 \times 30\,\text{s} + 15 \times 60\,\text{s} = 4{,}050\,\text{s} + 900\,\text{s} = 4{,}950\,\text{s} = 82.5$ minutes, which leaves 7.5 minutes spare. Scoring is {PRELIM.marking}, so never leave a scenario blank: if the trigger does not appear within about 10 seconds, eliminate what you can, pick one, note the number and move on.
+</ExamTip>
+
+<Note title="About guessing by option length">
+In the 2026 answer key the uniquely longest option was correct in 215 of 274 such questions, but in the scenario block Q271–300 only 18 of 29 times. Long scenarios are exactly where that shortcut is weakest, and AI Singapore may remove it in 2027. Use it only to break a blind guess; the reading method is what earns the marks.
+</Note>
+
+<QuickCheck
+  q="You give 135 short questions 30 seconds each and 15 scenario questions 60 seconds each. How much of the 90 minutes is left over?"
+  options={['7.5 minutes', '0 minutes', '15 minutes', '2.5 minutes']}
+  answer={0}
+  explain="$135 \times 30 = 4050$ s $= 67.5$ min and $15 \times 60 = 900$ s $= 15$ min, so the plan uses $82.5$ min. $90 - 82.5 = 7.5$ minutes remain for flagged questions."
+/>
+
+<Takeaways>
+- Read the **question line first**, then scan for the numbers it needs; most of a scenario stem is scenery.
+- Turn the numbers into one deciding quantity: the train–validation gap, chance level $1/K$, the positive rate, or features versus samples.
+- Long options differ in one phrase: compare them on that phrase only, and distrust options that apply several fixes at once.
+- A small set of diagnoses repeats: learning rate, warm-up and schedules, numerical blow-ups, memory, over- and underfitting, label bugs, drift and imbalanced metrics.
+- Spot the trigger phrase ("oscillates wildly", "CUDA out of memory", "1% positives", "$p > n$", "10% on 10 classes", "2023 data, tested in 2024") and the answer usually follows.
+</Takeaways>

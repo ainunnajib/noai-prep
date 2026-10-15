@@ -81,7 +81,7 @@ export default function PCAReconstruct() {
           <div style={head}>The building blocks: average image, then PC1 to PC5</div>
           <BlockRow />
           <div style={{ fontSize: '0.8125rem', color: 'var(--ink-3)', textAlign: 'center', marginTop: 4 }}>
-            Orange = add ink, blue = remove ink. A rebuild is the average image plus a weighted mix of these patterns.
+            A rebuild is the average image plus each pattern times the image's score on it. Orange and blue have opposite signs: a positive score adds ink where orange and removes it where blue.
           </div>
         </div>
       </div>

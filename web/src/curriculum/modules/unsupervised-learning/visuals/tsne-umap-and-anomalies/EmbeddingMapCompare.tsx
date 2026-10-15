@@ -22,7 +22,7 @@ function colourOf(ds: DS, v: number) {
   return ds === 'digits' ? DIGIT_COLOURS[v] : rampColour(v)
 }
 
-/** digit numerals at the median position of each class */
+/** digit numerals just above the median position of each class */
 function ClassLabels({ pts, labels }: { pts: XY[]; labels: number[] }) {
   const { xs, ys } = usePlot()
   const med = (a: number[]) => {
@@ -34,7 +34,8 @@ function ClassLabels({ pts, labels }: { pts: XY[]; labels: number[] }) {
       {Array.from({ length: 10 }, (_, d) => {
         const mine = pts.filter((_, i) => labels[i] === d)
         const x = xs(med(mine.map((p) => p[0])))
-        const y = ys(med(mine.map((p) => p[1])))
+        // sit just above the island so small, tight islands (UMAP) stay visible under their label
+        const y = ys(med(mine.map((p) => p[1]))) - 13
         return (
           <text
             key={d}

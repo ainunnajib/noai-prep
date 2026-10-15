@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, Rect, Label, usePlot, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Plot, Grid, Axes, Path, Dots, Rect, Label, usePlot, useNarrow, M } from '../../../../../kit'
 
 /*
   Backpropagation through time multiplies one factor per step. For a plain RNN the factor is
@@ -50,6 +50,7 @@ export default function GradientThroughTime() {
   const [r, setR] = useState(0.6)
   const [f, setF] = useState(0.95)
   const [K, setK] = useState(30)
+  const [ref, narrow] = useNarrow<HTMLDivElement>(480)
   const ks = Array.from({ length: K + 1 }, (_, k) => k)
   const rnn = ks.map((k) => [k, clampY(k * Math.log10(r))] as [number, number])
   const lstm = ks.map((k) => [k, clampY(k * Math.log10(f))] as [number, number])
@@ -65,15 +66,16 @@ export default function GradientThroughTime() {
         </>
       }
     >
+      <div ref={ref} style={{ width: '100%' }}>
       <Plot x={[0, K]} y={[YMIN, YMAX]} width={520} height={330} minHeight={300} margin={{ left: 52, bottom: 38 }} ariaLabel="Gradient size against number of steps back, log scale, for a plain RNN and an LSTM cell path">
         <Rect x0={0} x1={K} y0={YMIN} y1={-3} fill="color-mix(in srgb, var(--viz-1) 9%, transparent)" />
         <Rect x0={0} x1={K} y0={3} y1={YMAX} fill="color-mix(in srgb, var(--viz-neg) 9%, transparent)" />
         <Grid xTicks={5} yTicks={20} />
         <Label x={K} y={-9.4} anchor="end" dx={-6} color="var(--ink-2)" size={12}>
-          vanishing: almost no learning signal
+          {narrow ? 'vanishing' : 'vanishing: almost no learning signal'}
         </Label>
         <Label x={K} y={9.4} anchor="end" dx={-6} dy={8} color="var(--ink-2)" size={12}>
-          exploding: huge, unstable updates
+          {narrow ? 'exploding' : 'exploding: huge, unstable updates'}
         </Label>
         <Path points={rnn} color="var(--viz-2)" width={2.5} />
         <Path points={lstm} color="var(--viz-3)" width={2.5} />
@@ -82,6 +84,7 @@ export default function GradientThroughTime() {
         <Axes xLabel="steps back in time →" yLabel="gradient size" xTicks={5} hideYTicks />
         <PowerTicks />
       </Plot>
+      </div>
       <Controls>
         <Slider label={<span style={{ color: 'var(--viz-2)' }}>RNN factor per step r</span>} value={r} min={0.2} max={1.5} step={0.05} onChange={setR} format={(v) => v.toFixed(2)} />
         <Slider label={<span style={{ color: 'var(--viz-3)' }}>LSTM forget gate f</span>} value={f} min={0.5} max={1} step={0.01} onChange={setF} format={(v) => v.toFixed(2)} />

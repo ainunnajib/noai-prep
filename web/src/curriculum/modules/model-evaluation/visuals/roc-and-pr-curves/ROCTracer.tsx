@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, type ReactElement } from 'react'
 import { Figure, Controls, Slider, Readout, Button, Plot, Grid, Axes, Path, Dots, Label, usePlot, DraggablePoint, useContainerWidth, usePlayer } from '../../../../../kit'
 import { normalQuantiles, sigmoid } from '../confusion-matrix-and-metrics/evalMath'
+import { HaloLabel } from '../confusion-matrix-and-metrics/HaloLabel'
 import { rocPoints, pairAUC, ratesAt, type Pt } from './roc'
 import s from '../confusion-matrix-and-metrics/eval.module.css'
 
@@ -131,9 +132,10 @@ export default function ROCTracer() {
             <Path points={roc} color="var(--viz-1)" width={1.6} opacity={0.45} />
             <Path points={traced} color="var(--viz-1)" width={3} />
             <Dots points={[{ x: cur.fpr, y: cur.tpr, color: CUR_C, r: 6.5 }]} />
-            <Label x={cur.fpr} y={cur.tpr} dx={cur.fpr > 0.6 ? -10 : 10} dy={cur.tpr > 0.85 ? 18 : -8} anchor={cur.fpr > 0.6 ? 'end' : 'start'}>
+            {/* below-right of the point is always under the curve, so the label never sits on it */}
+            <HaloLabel x={cur.fpr} y={cur.tpr} dx={cur.fpr > 0.7 ? -10 : 10} dy={cur.tpr < 0.15 ? -10 : 17} anchor={cur.fpr > 0.7 ? 'end' : 'start'}>
               {`t = ${t.toFixed(2)}`}
-            </Label>
+            </HaloLabel>
             <Label x={0.62} y={0.3} anchor="middle" color="var(--viz-1)" size={13} weight={700}>
               {`AUC = ${auc.toFixed(3)}`}
             </Label>

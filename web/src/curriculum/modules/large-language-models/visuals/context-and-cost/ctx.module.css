@@ -1,0 +1,319 @@
+/* Styles for the context-and-cost visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.subhead {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  margin: 0 0 0.3rem;
+}
+.wrap p.subhead {
+  margin: 0 0 0.3rem;
+}
+.note {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  margin: 0;
+}
+.wrap p.note {
+  margin: 0;
+}
+.note b {
+  color: var(--ink);
+}
+
+/* ---------- strip (mini-map of the conversation) ---------- */
+.strip {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-body);
+}
+
+/* ---------- chat ---------- */
+.chat {
+  display: grid;
+  gap: 0.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.55rem;
+  background: var(--surface-2);
+  min-width: 0;
+}
+.msg {
+  max-width: 94%;
+  padding: 0.38rem 0.6rem;
+  border-radius: 11px;
+  font-size: 0.8rem;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+  border: 1.5px solid transparent;
+  transition: opacity 0.25s ease;
+}
+.msgUser {
+  justify-self: end;
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+  color: var(--ink);
+  border-bottom-right-radius: 3px;
+}
+.msgBot {
+  justify-self: start;
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--rule);
+  border-bottom-left-radius: 3px;
+}
+.msgOut {
+  opacity: 0.32;
+  border-style: dashed;
+  border-color: var(--viz-muted);
+}
+.msgPart {
+  border-style: dashed;
+  border-color: var(--viz-2);
+}
+.msgNew {
+  border-color: var(--viz-3);
+  border-width: 2px;
+}
+.msgMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.1rem;
+}
+.fact {
+  background: color-mix(in srgb, var(--highlight) 55%, transparent);
+  color: var(--ink);
+  border-radius: 3px;
+  padding: 0 0.15rem;
+}
+.factGone {
+  text-decoration: line-through;
+  text-decoration-color: var(--viz-neg);
+  text-decoration-thickness: 2px;
+}
+
+/* ---------- facts checklist ---------- */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  color: var(--ink-3);
+}
+.chipOn {
+  border-color: var(--viz-pos);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-pos) 14%, var(--surface));
+  font-weight: 700;
+}
+.chipOff {
+  border-color: var(--viz-neg);
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--viz-neg) 10%, var(--surface));
+}
+
+.twoCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  align-items: start;
+}
+@media (max-width: 680px) {
+  .twoCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- KV table ---------- */
+.kv {
+  display: grid;
+  grid-template-columns: max-content max-content max-content minmax(3.5rem, 1fr);
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  width: 100%;
+}
+.kvHead {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.kvTok {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.vec {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 5px;
+  border: 1.5px solid transparent;
+}
+.vecNew {
+  border-color: var(--viz-2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-2) 30%, transparent);
+}
+.vecCached {
+  border-color: color-mix(in srgb, var(--viz-1) 55%, var(--rule));
+}
+.cell {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 2px;
+}
+.wbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.4rem;
+  gap: 0.3rem;
+  align-items: center;
+}
+.wtrack {
+  height: 0.6rem;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.wfill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--viz-3);
+  transition: width 0.25s ease;
+}
+.wval {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-2);
+  text-align: right;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+.tagNew {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-2) 30%, var(--surface));
+}
+.tagCache {
+  color: var(--ink-2);
+  background: color-mix(in srgb, var(--viz-1) 18%, var(--surface));
+}
+.output {
+  font-size: 0.84rem;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.45rem 0.65rem;
+}
+.output b {
+  color: var(--ink);
+}
+.output .gen {
+  color: var(--ink);
+  font-weight: 800;
+  background: color-mix(in srgb, var(--viz-3) 22%, var(--surface));
+  border-radius: 4px;
+  padding: 0 0.2rem;
+}
+.counter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+.count {
+  border: 1.5px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+.countOn {
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 8%, var(--surface));
+}
+.count strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  color: var(--ink);
+}
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.55rem;
+  border-radius: 2px;
+}
+
+@media (max-width: 480px) {
+  .cell {
+    width: 0.62rem;
+    height: 0.62rem;
+  }
+  .kv {
+    gap: 0.3rem 0.4rem;
+  }
+  .kvTok {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+  }
+  .kvTok .tag {
+    margin-left: 0;
+  }
+  .wbar {
+    grid-template-columns: minmax(1.2rem, 1fr) 2.1rem;
+  }
+}

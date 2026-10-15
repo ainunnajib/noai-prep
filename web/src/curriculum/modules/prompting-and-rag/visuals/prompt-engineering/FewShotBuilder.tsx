@@ -90,7 +90,7 @@ export default function FewShotBuilder() {
   const promptPanel = (
     <div>
       <div className={s.panelHead}>
-        <span>The prompt ({shotName(k)})</span>
+        <span>The prompt: {shotName(k)}</span>
         <small>the model continues this text</small>
       </div>
       <div className={s.prompt} aria-label="The prompt sent to the model">

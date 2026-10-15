@@ -1,3 +1,306 @@
-{/* stub: lesson 'NaNs, numerical issues and gradient diagnostics' is being written */}
+import StableSoftmax from './visuals/nan-and-numerical-issues/StableSoftmax'
+import NaNPropagation from './visuals/nan-and-numerical-issues/NaNPropagation'
+import LossScaleWindow from './visuals/nan-and-numerical-issues/LossScaleWindow'
+import GradNormBars from './visuals/nan-and-numerical-issues/GradNormBars'
+import { SOFTMAX_NUMPY, LOG_SOFTMAX_CODE, LOG_SOFTMAX_OUTPUT, ZERO_TIMES_LOG_CODE, ANOMALY_CODE, ANOMALY_OUTPUT, BCE_FIX_CODE, BCE_FIX_OUTPUT, GRAD_NORMS_CODE, GRAD_NORMS_OUTPUT } from './visuals/nan-and-numerical-issues/snippets'
 
-This lesson is being written.
+Your training log reads `2.31, 2.27, 2.25, 2.24, nan, nan, nan`, and it will say `nan` for ever. A `nan` is never the disease; it is a symptom, and the real cause happened a few steps earlier, somewhere else in the network. In this lesson you will learn where these broken numbers come from, why one of them destroys a whole model, how to find the first one, and how to read per-layer gradient sizes to find the layer that is failing. NOAI asks about all of this, both as Prelim scenarios ("the loss becomes NaN at epoch 23...") and as code in the Final.
+
+## Numbers in a computer have limits
+
+<Analogy title="Math ERROR on your calculator">
+
+Type $10^{99} \times 10^{99}$ into your school calculator and it gives up: the answer has too many digits for its display. Divide 0 by 0 and it shows **Math ERROR**, because no answer makes sense. A computer has the same two problems, but instead of stopping, it writes a special value into the result and carries on calculating, which is how errors spread silently.
+
+</Analogy>
+
+Neural networks store numbers as <Term def="A way of storing real numbers in a fixed number of bits, like scientific notation: a few significant digits times a power of 2. Fast, but with a largest value, a smallest value and limited precision.">floating-point numbers</Term>. PyTorch's default, `float32`, uses 32 bits per number; <Term def="Training that does most calculations in 16-bit numbers (float16 or bfloat16) to save memory and time, while keeping a 32-bit copy of the weights for the updates.">mixed-precision</Term> training uses 16-bit `float16`. Each has a range:
+
+| Format | Largest number | Smallest positive number | $e^x$ overflows when |
+|---|---|---|---|
+| `float32` | about $3.4 \times 10^{38}$ | about $1.4 \times 10^{-45}$ | $x > 88.7$ |
+| `float16` | $65\,504$ | about $6 \times 10^{-8}$ | $x > 11.1$ |
+
+A result that is too big becomes `inf` (infinity): this is <Term def="When a result is too large for the number format, so it is stored as infinity (inf).">overflow</Term>. A positive result that is too small becomes exactly 0: this is <Term def="When a result is too close to zero for the number format, so it is rounded to exactly 0.">underflow</Term>. The last column comes from logarithms: $e^x$ passes $3.4 \times 10^{38}$ when $x > \ln(3.4 \times 10^{38}) \approx 88.7$.
+
+A third special value, `nan` ("not a number"), is the computer's Math ERROR: the result of an operation with no sensible answer. These rules are fixed in every language and library:
+
+| Operation | Result | Why |
+|---|---|---|
+| $e^{1000}$, or $10^{39}$ in `float32` | `inf` | overflow |
+| $1/0$ | `inf` | division by zero (NumPy and PyTorch; plain Python raises an error) |
+| $\log 0$ | `-inf` | $\log x$ dives to $-\infty$ as $x$ shrinks to 0 |
+| $0/0$, $\infty - \infty$, $0 \times \infty$ | `nan` | no sensible answer |
+| $\sqrt{-1}$, $\log(-1)$ | `nan` | no real answer |
+| `nan` + 5, `nan` × 0, `max(nan, 3)` in PyTorch | `nan` | anything touching `nan` is `nan` |
+
+<KeyIdea>
+
+`inf` comes from **overflow or division by zero**. `nan` comes from an operation with **no sensible answer** ($0/0$, $\infty - \infty$, $0 \times \infty$, $\log$ of a negative). Once a `nan` exists, every calculation that touches it is `nan` too.
+
+</KeyIdea>
+
+<QuickCheck
+  q="Which of these gives nan rather than inf?"
+  options={['$e^{1000}$ in float32', '$1 / 0$', '$0 \\times \\infty$', '$-\\log 0$']}
+  answer={2}
+  explain="$0 \times \infty$ has no sensible answer (is it 0? infinite?), so the result is nan. $e^{1000}$ overflows to inf, $1/0$ is inf, and $-\log 0 = -(-\infty) = \infty$."
+/>
+
+## Stable softmax: shift before you exponentiate
+
+A classifier's last layer outputs one raw score per class, called a <Term def="A raw, unnormalised score from the last layer of a classifier, one per class. Any real number. Softmax turns logits into probabilities.">logit</Term>. Softmax turns $K$ logits $z_1, \dots, z_K$ into probabilities:
+
+$$
+p_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}
+$$
+
+Here $e \approx 2.718$, so $e^{z_i}$ is a positive number that grows quickly with $z_i$. The bottom adds up $e^{z_j}$ over all $K$ classes. Dividing by that total makes the $p_i$ add up to 1.
+
+Now try logits $(1000, 999, 998)$. That is a perfectly ordinary situation for a confident model, but $e^{1000}$ is far past $e^{88.7}$, so all three exponentials overflow to `inf`, and every probability is $\infty / \infty =$ `nan`.
+
+<Analogy title="Measuring from the tallest building">
+
+Survey the towers in the CBD by height above sea level and the numbers are big. Measure each one relative to the tallest tower instead: the tallest is 0 m, the others are, say, $-20$ m and $-45$ m. The numbers are smaller, yet the *differences* between towers, which are what you care about, have not changed.
+
+</Analogy>
+
+Softmax only cares about the differences between logits. Subtract the same number $m$ from every logit and nothing changes, because $e^{a - m} = e^a \cdot e^{-m}$ and the factor $e^{-m}$ appears in every term on top and bottom, so it cancels:
+
+$$
+\frac{e^{z_i - m}}{\sum_j e^{z_j - m}}
+= \frac{e^{z_i}\, e^{-m}}{\left(\sum_j e^{z_j}\right) e^{-m}}
+= \frac{e^{z_i}}{\sum_j e^{z_j}} = p_i
+$$
+
+Choose $m = \max_j z_j$, the largest logit. Then every shifted logit $z_i - m$ is $\le 0$, so every exponential is between 0 and 1: nothing can overflow. And the largest one is exactly $e^0 = 1$, so the sum on the bottom is at least 1 and can never be 0.
+
+<Steps title="Stable softmax of $z = (1000, 999, 998)$">
+  <Step title="Find the max">
+    $m = 1000$.
+  </Step>
+  <Step title="Subtract it from every logit">
+    $z - m = (0, -1, -2)$.
+  </Step>
+  <Step title="Exponentiate">
+    $e^0 = 1$, $e^{-1} \approx 0.368$, $e^{-2} \approx 0.135$. Sum $\approx 1.503$.
+  </Step>
+  <Step title="Divide by the sum">
+    $p \approx (1/1.503,\ 0.368/1.503,\ 0.135/1.503) \approx (0.665,\ 0.245,\ 0.090)$. This is exactly the softmax of $(2, 1, 0)$, or of $(0, -1, -2)$: only the gaps between logits matter.
+  </Step>
+</Steps>
+
+Every number in the table below is computed in `float32`, the way PyTorch does it.
+
+<StableSoftmax />
+
+<KeyIdea>
+
+**Subtract the max logit before exponentiating.** The answer is unchanged, the largest exponential is exactly 1, and nothing can overflow.
+
+</KeyIdea>
+
+<QuickCheck
+  q="Why can the stable softmax never divide by zero?"
+  options={['After the shift, one exponential is exactly $e^0 = 1$, so the sum is at least 1', 'After the shift, every logit is positive, so each exponential is above 1', 'float32 has no exact zero, so a sum of exponentials can never be 0', 'The probabilities are rounded to two decimal places before the division']}
+  answer={0}
+  explain="After subtracting the max, one shifted logit is exactly 0 and $e^0 = 1$ is in the sum, so the sum is at least 1. The shifted logits are $\le 0$, not positive, which is exactly why none of them overflows."
+/>
+
+### Log-sum-exp: never take the log of a tiny probability
+
+The visual's "far apart" preset shows a second trap. With logits $(1000, 0, -1000)$, the stable softmax gives $p_3 = e^{-2000}/1$, which underflows to exactly 0. If the true class is the third one, the <Term def="The standard loss for classification: minus the log of the probability the model gave the true class, $-\log p_y$. 0 when the model is certain and right; huge when it is confident and wrong.">cross-entropy loss</Term> $-\log p_3 = -\log 0$ is `inf`, even though the true answer is a perfectly finite 2000.
+
+The fix is to never form $p_3$ at all. Take the log of the stable softmax formula algebraically:
+
+$$
+\log p_i = (z_i - m) - \log \sum_{j} e^{z_j - m}
+$$
+
+The first part is just a subtraction. The second part is the log of a sum that is at least 1, so it is a modest, finite number. This is the <Term def="Computing $\log \sum_j e^{z_j}$ safely as $m + \log \sum_j e^{z_j - m}$, where m is the largest $z_j$. Used inside log-softmax and cross-entropy.">log-sum-exp trick</Term>. For our example: $\log p_3 = (-1000 - 1000) - \log(1 + e^{-1000} + e^{-2000}) \approx -2000 - \log 1 = -2000$, so the loss is 2000.
+
+You rarely write this yourself: PyTorch's `F.log_softmax`, `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss` all take **logits** and use it inside.
+
+<CodeBlock language="python" code={LOG_SOFTMAX_CODE} />
+
+<CodeBlock language="text" title="Output" code={LOG_SOFTMAX_OUTPUT} />
+
+<Mistake title="Doing softmax and log in two steps">
+
+`torch.log(torch.softmax(z, dim=1))` and `torch.log(torch.sigmoid(z))` are mathematically right but numerically fragile: the probability can round to 0 first, and the log turns it into `-inf`. Use `F.log_softmax`, `F.cross_entropy` (`nn.CrossEntropyLoss`) or `F.binary_cross_entropy_with_logits` (`nn.BCEWithLogitsLoss`), and feed them raw logits, not probabilities.
+
+</Mistake>
+
+Try both versions of softmax yourself. The last line checks the special-value rules from the table above.
+
+<PyRunner packages={['numpy']} code={SOFTMAX_NUMPY} />
+
+## Where NaNs come from, and the standard fixes
+
+Almost every `nan` in practice comes from one of a handful of places:
+
+| Source | Where it usually hides | Standard fix |
+|---|---|---|
+| $e^x$ overflow | softmax, sigmoid, attention, any `exp` | subtract the max; log-sum-exp; fused losses on logits |
+| $\log 0$ | a hand-written cross-entropy, a log of a feature that can be 0 | fused losses; `torch.log(p + eps)` or `torch.clamp(p, min=eps)` |
+| Division by 0 | dividing by a standard deviation, norm or count that can be 0 (a constant feature, an empty mask) | divide by `std + eps` |
+| $\sqrt{x}$ at or below 0 | distances and norms (the slope of $\sqrt{x}$ at 0 is infinite) | `torch.sqrt(x + eps)` |
+| Weights blowing up | learning rate too high, exploding gradients | lower the learning rate, clip gradients, normalisation |
+| float16's small range | mixed-precision training | loss scaling (below), or bfloat16 |
+| Bad data | missing values (`NaN`) in the inputs or labels | check with `torch.isnan(x).any()` before training |
+
+The <Term def="A tiny positive constant (often written eps or ε, e.g. 1e-8 or 1e-5) added to keep an operation away from a forbidden value such as log 0 or division by 0.">epsilon</Term> trick deserves one worked example.
+
+<Steps title="Capping $-\log p$ with $\varepsilon = 10^{-8}$">
+  <Step title="Without epsilon">
+    The model gave the true class $p = 0$ (it underflowed). Loss $= -\log 0 = \infty$, and the gradient $-1/p$ is $-\infty$.
+  </Step>
+  <Step title="With epsilon">
+    Loss $= -\log(0 + 10^{-8}) = 8 \ln 10 \approx 8 \times 2.30 = 18.4$.
+  </Step>
+  <Step title="What changed">
+    The loss is big (the model was badly wrong) but finite, and its gradient $-1/(p + \varepsilon) = -10^{8}$ is huge but finite too. The fused losses above are still better: they give the exact loss without any epsilon.
+  </Step>
+</Steps>
+
+A sneakier source of `nan` is an ordinary-looking cross-entropy written by hand:
+
+<CodeBlock language="python" code={ZERO_TIMES_LOG_CODE} />
+
+<Reveal label="What does it print? Predict, then reveal">
+
+```text
+tensor([-inf, 0.])
+tensor(nan)
+```
+
+The first class has target $y_1 = 0$, so its term *should* contribute nothing. But $\log p_1 = \log 0 = -\infty$, and $0 \times (-\infty)$ is `nan`, not 0. Multiplying by zero does not rescue an infinite value.
+
+</Reveal>
+
+### Loss scaling: the fix for float16 underflow
+
+In mixed-precision training, the gradients are stored in `float16`, where anything smaller than about $6 \times 10^{-8}$ becomes 0. Many real gradients are that small, so they silently vanish and those weights stop learning. The fix is <Term def="Multiplying the loss by a big factor S before backward() so the float16 gradients are S times bigger and do not underflow; the gradients are divided by S again (in float32) before the weight update.">loss scaling</Term>: multiply the loss by a big number $S$ before `backward()`. By the chain rule every gradient is then multiplied by $S$ too. Before the weight update, divide the gradients by $S$ again, in `float32`. For example, a gradient of $10^{-8}$ becomes $10^{-8} \times 65\,536 \approx 6.6 \times 10^{-4}$, which `float16` stores easily, and dividing by $65\,536$ afterwards gives back $10^{-8}$.
+
+<LossScaleWindow />
+
+If $S$ is too big, the largest gradients overflow to `inf`. PyTorch's `GradScaler` handles both sides automatically: it skips any step whose gradients contain `inf` or `nan` and halves $S$, and it slowly raises $S$ again while all is well. (The lesson on [gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale) has the full training loop.)
+
+## How one nan takes over a whole network
+
+<Analogy title="One drop of food colouring">
+
+One drop of red food colouring in a glass of water, and soon the whole glass is red. You cannot pick the red back out; you can only find the dropper and pour a fresh glass.
+
+</Analogy>
+
+Any arithmetic with `nan` gives `nan`. So one bad value spreads in three waves: **forward** to everything computed after it, including the loss; **backward** into every gradient, because every gradient passes through the loss; and through the **update** $w \leftarrow w - \eta\, g$ into every weight. After that, even perfectly clean data produces `nan`. Watch it happen:
+
+<NaNPropagation />
+
+<KeyIdea>
+
+**Find the first nan, not the last.** After one bad step, every weight and every later value is `nan`, so the latest `nan` tells you nothing about the cause. You need to catch the bad value at the moment it is created.
+
+</KeyIdea>
+
+Three tools catch it:
+
+1. **Checks** such as `assert torch.isfinite(loss)` every step, or `torch.isfinite(out).all()` after each layer, stop training at the first bad step. Save that batch: is something in its data odd?
+2. **Anomaly detection.** `torch.autograd.set_detect_anomaly(True)` makes the backward pass raise an error at the first operation whose gradient is `nan`, and it prints the line of *your* code that created that operation. It slows training a lot, so switch it on only while debugging.
+3. **Logging** the loss, the gradient norms (next section) and the largest absolute activation per layer shows which value grew out of control in the steps before the crash.
+
+Here is anomaly detection catching a hand-written binary cross-entropy. The third logit is 120, so the sigmoid rounds to exactly 1.0 and $\log(1 - p) = \log 0$:
+
+<CodeBlock language="python" title="train.py" code={ANOMALY_CODE} />
+
+<CodeBlock language="text" title="Output (traceback shortened)" code={ANOMALY_OUTPUT} />
+
+The error names line 7, `p = torch.sigmoid(z)`, as the start of the trouble. The fix is the fused, stable loss, which works on the logits directly:
+
+<CodeBlock language="python" code={BCE_FIX_CODE} />
+
+<CodeBlock language="text" title="Output" code={BCE_FIX_OUTPUT} />
+
+The loss is large (the model is confidently wrong about the third example), but finite, and the gradients are finite too, so training can correct the mistake.
+
+<PastPaperQuestion paper="prelim2026" n={130} />
+
+{/* The wrapper lets the long `torch.autograd.set_detect_anomaly(True)` option wrap on phones. */}
+<div style={{ overflowWrap: 'anywhere' }}>
+  <PastPaperQuestion paper="prelim2026" n={272} />
+</div>
+
+## Per-layer gradient norms: finding the failing layer
+
+A `nan` is the dramatic failure. A quieter one is a network that runs without errors but never learns, because some layers receive almost no gradient. To see which layers, measure each layer's <Term def="The length of a gradient: the square root of the sum of the squares of all its entries. It measures how strongly the loss is pushing that layer's weights to change.">gradient norm</Term>. If a layer has $n$ weights with gradients $g_1, \dots, g_n$ (each one is $\partial L / \partial w$ for one weight $w$), its gradient norm is
+
+$$
+\lVert g \rVert = \sqrt{g_1^2 + g_2^2 + \dots + g_n^2}
+$$
+
+the length of the gradient vector: how hard the loss is pushing on that layer.
+
+<Analogy title="Water pressure on every floor">
+
+A plumber checking an HDB block reads the water-pressure gauge on every floor. If pressure is normal at the top and drops floor by floor until it is a trickle at the bottom, the problem is in the pipe on the way down. Gradients flow *backwards* from the loss at the output, so layer 10 is the "top floor" and layer 1 is the bottom.
+
+</Analogy>
+
+Backpropagation multiplies one factor per layer on the way back (see [vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients)), so if those factors are below 1 the gradient shrinks geometrically, layer after layer. Logging the norms takes three lines after `loss.backward()`. Here is a 10-layer sigmoid network:
+
+<CodeBlock language="python" code={GRAD_NORMS_CODE} />
+
+<CodeBlock language="text" title="Output" code={GRAD_NORMS_OUTPUT} />
+
+Read it from the bottom (the output layer) up: each layer gets several times (about 4 to 9 times) less gradient than the one after it, and the first layer gets about $10^{7}$ times less than the last. The early layers will hardly change: **vanishing gradients**. Now explore real training runs and try the standard fixes:
+
+<GradNormBars />
+
+| Gradient-norm profile | Diagnosis | First things to try |
+|---|---|---|
+| Similar sizes in every layer | Healthy | Nothing |
+| Tiny near the input, normal near the output, shrinking layer by layer | Vanishing gradients | ReLU with He initialisation, BatchNorm or LayerNorm, residual connections |
+| Huge (hundreds or more) in every layer, loss spikes then `nan` | Exploding gradients | Lower learning rate, gradient clipping, proper initialisation, normalisation |
+| Exactly 0 in one layer | Dead layer: dead ReLUs, a frozen layer, or a broken graph (`.detach()`, `.item()`) | Check `requires_grad`, Leaky ReLU, keep the loss in PyTorch operations |
+
+<Term def="Rescaling the whole gradient whenever its norm is above a threshold c, so the update keeps its direction but never exceeds length c.">Gradient clipping</Term> deserves a closer look, because the visual shows (exploding, clip at 1) that it keeps exploding training alive without curing it. Clipping by norm with threshold $c$ does this:
+
+$$
+\text{if } \lVert g \rVert > c: \quad g \leftarrow g \cdot \frac{c}{\lVert g \rVert}
+$$
+
+In words: if the gradient is longer than $c$, shrink it to length exactly $c$, keeping its direction. For example, $g = (3, 4)$ has norm $\sqrt{9 + 16} = 5$; with $c = 1$ it becomes $(3, 4) \times \tfrac{1}{5} = (0.6, 0.8)$, which has length 1. In PyTorch, `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` goes between `loss.backward()` and `optimizer.step()`. Clipping can only shrink gradients, so it does nothing for vanishing ones.
+
+<QuickCheck
+  q="A gradient is $g = (6, 8)$ and you clip by norm with $c = 5$. What is the clipped gradient?"
+  options={['$(3, 4)$', '$(5, 5)$', '$(0.6, 0.8)$', '$(6, 8)$, unchanged']}
+  answer={0}
+  explain="$\lVert g \rVert = \sqrt{36 + 64} = 10 > 5$, so multiply by $5/10 = 0.5$: $(3, 4)$, length 5, same direction. Clipping each entry to 5 separately would give $(5, 5)$, which changes the direction; that is clipping by value, not by norm."
+/>
+
+<PastPaperQuestion paper="final2026" n={7} />
+
+<ExamTip>
+
+NOAI questions on this topic are mostly symptom-to-cause matching:
+
+- "loss becomes **NaN**" → learning rate too high, $\log 0$ or division by zero in the loss, exploding gradients, or NaNs in the data; the fixes are a lower learning rate, an epsilon or a stable built-in loss, and gradient clipping.
+- "**where** does the NaN come from?" → `torch.autograd.set_detect_anomaly(True)`, and checks on activations and inputs: localise first, then fix.
+- "**softmax overflow** / large logits" → subtract the max; log-sum-exp; give `CrossEntropyLoss` raw logits.
+- A **table of gradient norms per layer** → compare the input end with the output end. Tiny at the input: vanishing → residual connections, normalisation, ReLU + He init. Huge everywhere: exploding → clip and lower the learning rate.
+- "**mixed precision** gives NaN or zero gradients" → loss scaling (`GradScaler`); unscale before clipping.
+
+Quick numbers: $e^x$ overflows `float32` above $x \approx 88.7$ and `float16` above $x \approx 11$; $\ln 10 \approx 2.3$.
+
+</ExamTip>
+
+<Takeaways>
+
+- `float32` overflows above about $3.4 \times 10^{38}$ ($e^{88.7}$) to `inf`; $0/0$, $\infty - \infty$, $0 \times \infty$ and $\log$ of a negative give `nan`, and anything touching `nan` is `nan`.
+- **Stable softmax** subtracts the max logit first (same answer, no overflow); **log-sum-exp** computes $\log p$ without ever forming a tiny $p$. Use the built-in losses on logits.
+- Standard fixes: epsilon in logs, divisions and square roots; gradient clipping; a lower learning rate; loss scaling for `float16`.
+- One `nan` spreads forward to the loss, backward to every gradient, and through the update to every weight. **Find the first one** with checks and `set_detect_anomaly`.
+- **Per-layer gradient norms** locate the failing layer: tiny near the input means vanishing; huge everywhere means exploding.
+
+</Takeaways>

@@ -42,7 +42,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'neural-networks.outputs-and-losses.4',
     prompt: 'A student trains a 3-class model with this code. Training runs without errors, but the loss never drops below about 0.55, even when every prediction is correct. What is the bug?',
-    code: 'model = nn.Sequential(\n    nn.Linear(16, 32), nn.ReLU(),\n    nn.Linear(32, 3),\n    nn.Softmax(dim=1),\n)\nloss_fn = nn.CrossEntropyLoss()\nloss = loss_fn(model(x), y)   # y holds class indices 0, 1 or 2',
+    code: 'model = nn.Sequential(\n    nn.Linear(16, 32),\n    nn.ReLU(),\n    nn.Linear(32, 3),\n    nn.Softmax(dim=1),\n)\nloss_fn = nn.CrossEntropyLoss()\n# y holds class indices 0, 1 or 2\nloss = loss_fn(model(x), y)',
     options: [
       'The softmax is applied twice, because `nn.CrossEntropyLoss` already applies log-softmax to its input',
       'The targets `y` must be one-hot vectors such as `[0, 1, 0]`, not class indices',

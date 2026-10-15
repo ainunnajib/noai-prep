@@ -204,10 +204,10 @@ test_tf = transforms.Compose([                # fixed: the same every time
 Notice `Normalize` with ImageNet's mean and standard deviation in both pipelines. A pretrained network expects its inputs scaled the way they were during pretraining, so you reuse those statistics.
 
 <QuickCheck
-  q="A classifier trained on 800 images reaches 99% training accuracy but only 70% validation accuracy. Which change most directly targets this problem?"
-  options={['Add random crops, flips and colour jitter to the training images', 'Train for more epochs so validation accuracy catches up', 'Apply the same random augmentations to the validation images', 'Unfreeze the whole backbone and raise the learning rate']}
+  q="You have 300 training photos on disk and train for 20 epochs, with a random flip and crop applied each time a photo is loaded. How many image files are on disk, and roughly how many different images does the model see?"
+  options={['300 files; about 6,000 different images', '6,000 files; about 6,000 different images', '300 files; only 300 different images', '6,000 files; only 300 different images']}
   answer={0}
-  explain="A big train-validation gap is overfitting, and augmentation is a regulariser: it stops the model memorising exact pixels. More epochs usually widen the gap. Randomly augmenting the validation set only makes its score noisy. Unfreezing everything with a high learning rate adds capacity and risks catastrophic forgetting."
+  explain="Augmentation happens on the fly, so nothing new is saved: still 300 files. But every load gets a fresh random flip and crop, so the $300 \times 20 = 6000$ looks are almost all different pictures. That variety is what stops the model memorising exact pixels."
 />
 
 <PastPaperQuestion paper="prelim2026" n={288} />

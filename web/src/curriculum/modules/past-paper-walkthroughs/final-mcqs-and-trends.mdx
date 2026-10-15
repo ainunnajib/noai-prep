@@ -1,3 +1,216 @@
-{/* stub: lesson '2026 Final MCQs and the 2025 paper' is being written */}
+import { PRELIM, FINAL, FORMAT_HISTORY } from '../../../data/facts'
+import LineSpotter from './visuals/final-mcqs-and-trends/LineSpotter'
+import CodeMCQWalkthrough from './visuals/final-mcqs-and-trends/CodeMCQWalkthrough'
+import TrendHeatmap from './visuals/final-mcqs-and-trends/TrendHeatmap'
 
-This lesson is being written.
+In 2025, an NOAI multiple-choice question looked like this: "What is the primary function of pooling layers in a CNN?". In the 2026 Final, a typical one showed 10 to 25 lines of Python and asked which line must change. Same 20 questions, a very different skill. This lesson teaches that skill, walks through five real Final questions line by line, and reads the trend across the three papers so you know what to expect in 2027.
+
+<Analogy>
+Proofreading an essay. You do not re-read the whole paragraph hoping something feels off. You check each sentence against a rule you know (agreement, spelling, tense) until one breaks it. A code MCQ is a paragraph with one broken sentence, and the rules are formulas you have already learnt.
+</Analogy>
+
+## What the Final MCQs look like
+
+{FINAL.format} {FINAL.lastYear} The 2026 Section 1 suggested about 30 minutes for its 20 MCQs, roughly 90 seconds each, and 18 of the 20 showed a code <Term def="A short excerpt of a program, here 8 to 24 lines of Python, NumPy, scikit-learn or PyTorch.">snippet</Term>. They come in three shapes:
+
+- **Which line must change?** ("If you switch to L1 loss, which line(s) must change?")
+- **What is the bug?** ("The model performs poorly. What's wrong?")
+- **Why is this line here?** ("Why is Line A necessary?")
+
+In almost every case one line (occasionally two) decides the answer. Call it the <Term def="The single line (occasionally two) whose content decides the answer; every other line is scaffolding.">decisive line</Term>. The rest is scaffolding: imports, loops, `append` calls, setting up variables.
+
+## Six patterns behind the bugs
+
+The 2026 Final bugs fall into six families. Learn the family and you know where to look.
+
+1. **Sign or formula error.** A line contradicts a formula you know: the AdaBoost weight update (Q5), the pseudo-residual of gradient boosting (Q2).
+2. **Wrong normalisation.** Dividing by the wrong thing, or forgetting to divide: $\sqrt{d_k}$ in attention (Q16), `loss / accumulation_steps` (Q10).
+3. **<Term def="Information from the validation or test data sneaking into training, so the measured score is better than the model really is.">Data leakage</Term>.** Something learns from data it should not see: feature selection outside the cross-validation loop (Q3).
+4. **Wrong function choice.** Softmax where each label needs its own sigmoid (Q6).
+5. **State bugs.** A PyTorch object remembers the wrong thing: an optimiser built before a new layer exists (Q14), BatchNorm running statistics (Q8).
+6. **Unhandled edge cases.** The code works until an input sits on a boundary: IoU when the union is 0 (Q13), truncation that cuts off the end-of-sequence token (Q18).
+
+Practise spotting each one on a short snippet first.
+
+<LineSpotter />
+
+<KeyIdea>
+A code MCQ hinges on **one line read against one formula or rule you already know**. Find that line before you read the options, then pick the option that describes it.
+</KeyIdea>
+
+### A reading routine for a 20-line snippet
+
+<Steps title="Reading a code MCQ in about 90 seconds">
+  <Step title="Read the question line and the symptom">
+    "Performs poorly", "predictions are poor in eval mode", "weights are very peaked", "why is Line A necessary". The symptom tells you which part of the code can cause it.
+  </Step>
+  <Step title="Read the signature and comments for conventions">
+    Shapes such as `(batch, seq, d_k)`, labels in $\{-1, +1\}$ or $\{0, 1\}$, which lines are labelled "Line A" to "Line D". Conventions change what a correct formula looks like.
+  </Step>
+  <Step title="Skip the scaffolding">
+    Imports, `__init__` bookkeeping, `append`, loop headers. Stop at lines that compute a formula, divide, pick a function (softmax, sigmoid), touch state (`fit`, `step`, buffers) or slice.
+  </Step>
+  <Step title="Check each of those lines against the rule">
+    Write the textbook formula on scrap paper and compare symbol by symbol. The first line that disagrees is almost always the decisive one.
+  </Step>
+  <Step title="Only now read the options">
+    Match the option to your line. Options that talk about lines you already checked can be crossed out at once.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A from-scratch attention layer with $d_k = 256$ produces attention weights that are almost uniform: every position gets about the same weight. What did the code most likely divide the scores by?"
+  options={['$d_k = 256$ instead of $\\sqrt{d_k} = 16$', 'Nothing at all: the scaling was left out', '$\\sqrt{d_k} = 16$, as it should', 'The number of attention heads']}
+  answer={0}
+  explain="Random dot products of length-256 vectors have a standard deviation of about $\sqrt{256} = 16$. Dividing by 16 gives scores of size about 1, a healthy softmax. Dividing by 256 shrinks them to about $1/16$, so softmax is nearly uniform. Leaving the scaling out does the opposite: scores of size 16 make softmax put almost all weight on one position, which is the symptom in 2026 Final Q16."
+/>
+
+The real question below has the opposite symptom. Decide which direction the scaling went before you look at the options.
+
+<PastPaperQuestion paper="final2026" n={16} />
+
+## Five Final MCQs, read line by line
+
+Here are five real 2026 Final questions. Some of them are imperfect, and the walkthrough says so: three carry caveats where a second option is defensible or the example does not quite trigger the bug. That is useful too. In the exam, pick the option that names the textbook rule broken by the decisive line.
+
+<CodeMCQWalkthrough />
+
+### Check Q3 and Q10 yourself
+
+Two of these are easy to test. For Q3, here is the leak in action on data that is **pure noise**: random features and random labels, so no honest method can beat 50%. Run it.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score, KFold
+from sklearn.pipeline import make_pipeline
+
+rng = np.random.default_rng(0)
+X = rng.normal(size=(100, 2000))   # 2,000 features of pure noise
+y = rng.integers(0, 2, size=100)   # random labels: true accuracy is 50%
+model = LogisticRegression(max_iter=1000)
+cv = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Approach A: select on ALL rows, then cross-validate
+X_sel = SelectKBest(f_classif, k=10).fit_transform(X, y)
+print("A (selection outside CV):", cross_val_score(model, X_sel, y, cv=cv).mean())
+
+# Approach B: selection inside each fold (a pipeline does it for you)
+pipe = make_pipeline(SelectKBest(f_classif, k=10), model)
+print("B (selection inside CV): ", cross_val_score(pipe, X, y, cv=cv).mean())`} />
+
+On our machine Approach A reported 0.80 and Approach B 0.57: an "80% model" built from coin flips. Approach B's score is just noise around 50%, which is the truth.
+
+For Q10, here is a PyTorch check that compares the gradient from 4 micro-batches with the gradient from one real batch of the same 8 samples. `.backward()` **adds** onto `.grad`, so without Line A the total is the sum of 4 mean-gradients.
+
+```python
+import torch
+
+torch.manual_seed(0)
+model = torch.nn.Linear(3, 1)
+x, y = torch.randn(8, 3), torch.randn(8, 1)
+criterion = torch.nn.MSELoss()        # returns the MEAN loss over the batch
+
+# one real batch of 8
+model.zero_grad()
+criterion(model(x), y).backward()
+full = model.weight.grad.clone()
+
+# the same 8 samples as 4 micro-batches of 2
+for divide in [False, True]:
+    model.zero_grad()
+    for xb, yb in zip(x.split(2), y.split(2)):
+        loss = criterion(model(xb), yb)
+        if divide:
+            loss = loss / 4           # Line A
+        loss.backward()               # adds onto .grad
+    ratio = model.weight.grad / full  # 1.0 means "same as one big batch"
+    print(f"divide={divide}:", ratio.round(decimals=4).tolist())
+```
+
+```text
+divide=False: [[4.0, 4.0, 4.0]]
+divide=True: [[1.0, 1.0, 1.0]]
+```
+
+In symbols: with $k$ micro-batches whose mean losses are $L_1, \dots, L_k$, the accumulated gradient without Line A is $\sum_{j=1}^{k} \nabla L_j$, which is $k$ times the full-batch gradient $\frac{1}{k}\sum_{j=1}^{k} \nabla L_j$. Here $\nabla L_j$ means the gradient of micro-batch $j$'s loss with respect to the weights. Dividing each $L_j$ by $k$ turns the sum into that average.
+
+<Mistake title="Reading the options first">
+Code MCQ options are long and confident, and each one names a plausible line. If you read them before the code, you start checking whichever line sounds most technical. In Q5, "the alpha calculation is wrong" draws attention to the scariest-looking line (Line C), which in fact matches the textbook exactly. Find your own line first.
+</Mistake>
+
+The edge-case pattern deserves one more real question. Decide what IoU should mean when a class appears in neither the prediction nor the target.
+
+<PastPaperQuestion paper="final2026" n={13} />
+
+## The 2025 paper and the trend across years
+
+NOAI has changed shape every year:
+
+<ul>
+  {FORMAT_HISTORY.map((r) => (
+    <li key={r.year}>
+      <b>{r.year}</b>. Prelim: {r.prelim}. Final: {r.final}.
+    </li>
+  ))}
+</ul>
+
+The 2025 MCQs were <Hl>definition-level</Hl>: one line of question, four short options, one fact each. They are still excellent recall practice: every 2025 topic except reinforcement learning came back in the 2026 papers.
+
+<Reveal label="The 20 questions of 2025, one fact each">
+
+1. **Unsupervised learning**: PCA is an example (no labels needed).
+2. **Bagging**: used to decrease variance.
+3. **Reinforcement learning**: learning from rewards and penalties in an environment.
+4. **Underfitting**: high training error *and* high validation error.
+5. **Boosting**: weak learners combined sequentially into a strong learner.
+6. **Optimisers**: Adam extends SGD and adapts the step size using past gradients.
+7. **Vanishing gradients**: a problem when training deep networks.
+8. **Early stopping**: stop when validation performance stops improving (a regulariser).
+9. **Residual connections**: let gradients flow across layers, easing vanishing gradients.
+10. **Learning-rate schedule**: change (usually decrease) the learning rate by a rule.
+11. **Pooling**: reduces the spatial size of feature maps.
+12. **YOLO**: a one-stage detector; regions and classes in a single pass.
+13. **Region Proposal Network**: suggests candidate object regions in Faster R-CNN.
+14. **Depthwise separable convolutions**: fewer parameters and less computation.
+15. **Mask R-CNN**: instance segmentation.
+16. **Attention**: lets the model focus on the relevant parts of the input.
+17. **BERT**: the classic pretrained model for transfer learning in NLP.
+18. **Beam search**: decoding that keeps several candidate sequences.
+19. **The [CLS] token**: a pooled representation of the input for classification.
+20. **Causal masking**: stops a token attending to future tokens.
+
+</Reveal>
+
+Here is the 2025 style. Compare it with the Final questions above: one fact, no code.
+
+<PastPaperQuestion paper="noai2025" n={20} />
+
+Now put the three papers side by side.
+
+<TrendHeatmap />
+
+Three things stand out:
+
+- **A core that never left.** Six subtopics were examined in all three papers (the starred rows): training and regularisation, CNNs and vision, NLP and Transformers, neural networks, model evaluation, and trees and ensembles. Attention, regularisation, ensembles, CNN basics and metrics are the safest bets for 2027.
+- **The Final moved from recall to reading.** 2025 asked for definitions; the 2026 Final asked you to find the line where a definition is broken. Knowing what BatchNorm *is* was no longer enough: you had to know what its code must do.
+- **Maths and Python live in the Prelim.** Linear algebra, calculus, probability, Python, NumPy and pandas had no Final MCQs in 2026, but they had dozens of Prelim questions, and the Final's programming tasks use them constantly.
+
+<QuickCheck
+  q="Which of these subtopics was examined in the 2025 MCQs, the 2026 Prelim and the 2026 Final MCQs alike?"
+  options={['NLP and Transformers', 'Linear algebra', 'Probability and statistics', 'Generative models']}
+  answer={0}
+  explain="NLP and Transformers had 4, 12 and 4 questions in the three papers. Linear algebra (25) and probability (16) appeared only in the 2026 Prelim, and generative models (10) also only in the Prelim."
+/>
+
+<ExamTip title="Budgeting the Final">
+The 2027 Final again has two sections. {FINAL.format} In 2026 the MCQs were worth 20 of the 100 marks over a 3-hour paper. About 30 minutes on the MCQs (90 seconds each) leaves about 150 minutes for the 80 programming marks, so do not let one stubborn MCQ eat ten minutes: find the line, answer, flag, move on. The Prelim before it is {PRELIM.questions} questions in {PRELIM.minutes} minutes, the same pace as 2026, so the speed drills still apply.
+</ExamTip>
+
+<Takeaways>
+- 2026 Final MCQs were code-heavy: 18 of 20 showed a snippet, and one decisive line decided each answer.
+- Six bug families recur: sign or formula errors, wrong normalisation, leakage, wrong function choice, state bugs and unhandled edge cases.
+- Read the question line and conventions, skip scaffolding, check formula lines against the rule, and only then read the options.
+- The 2025 MCQs were one-fact definitions; all but one of their topics came back in 2026, so they remain good recall practice.
+- Training and regularisation, CNNs, NLP and Transformers, neural networks, evaluation and ensembles were examined in every paper: revise them first.
+</Takeaways>

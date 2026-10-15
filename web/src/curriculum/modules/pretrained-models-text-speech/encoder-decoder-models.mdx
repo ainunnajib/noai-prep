@@ -1,3 +1,217 @@
-{/* stub: lesson 'Encoder-decoder models' is being written */}
+import Seq2SeqFlow from './visuals/encoder-decoder-models/Seq2SeqFlow'
+import CrossAttentionAlignment from './visuals/encoder-decoder-models/CrossAttentionAlignment'
+import ModelFamilyMap from './visuals/encoder-decoder-models/ModelFamilyMap'
 
-This lesson is being written.
+Some tasks turn one sequence into a **different** sequence: English into Malay, a long article into a three-line summary, a photo into a caption, a recording into subtitles. The output has its own length, its own words and often its own word order. BERT can read but not write, and GPT writes by continuing one stream of text. The very first Transformer, from the 2017 paper *Attention Is All You Need*, was built for translation and had **two halves**: an encoder that reads the input and a decoder that writes the output, joined by **cross-attention**. This lesson shows how the halves work together and how to tell which of the three Transformer families suits a task, which NOAI likes to ask.
+
+## Two halves and a bridge
+
+<Analogy title="A conference interpreter">
+
+An interpreter first listens to the whole speech and takes notes. Then they deliver it in another language, one sentence at a time, glancing back at their notes for the part they need right now. The **encoder** is the listening and note-taking, the **decoder** is the speaking, and the glance back at the notes is **cross-attention**.
+
+</Analogy>
+
+A <Term def="A model that turns an input sequence into an output sequence that can have a different length, for example translating a sentence. Also called seq2seq.">sequence-to-sequence (seq2seq)</Term> Transformer has two stacks of blocks:
+
+- The **encoder** is exactly what BERT is made of: blocks of self-attention with **no causal mask**, so every input token sees every other. It reads the whole input once and outputs one vector per input token. This set of vectors is often called the <Term def="The encoder's output: one vector per input token, shape (B, S, d_model). Every decoder layer reads it through cross-attention.">memory</Term>, with shape $(B, S, d_\text{model})$ for a batch of $B$ inputs of $S$ tokens.
+- The **decoder** writes the output one token at a time, like GPT. Each decoder block has **three** sub-layers instead of two:
+  1. **masked self-attention** over the output written so far (a causal mask, so no peeking at future output words);
+  2. **cross-attention** to the encoder's memory;
+  3. a feed-forward network.
+
+  Each is wrapped with a residual connection and LayerNorm, as in the [Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks).
+- A final linear layer and softmax turn the decoder's newest vector into probabilities over the **output** vocabulary. The decoder starts from a start token `<s>` and stops when it produces the end token `</s>`.
+
+<Seq2SeqFlow />
+
+<KeyIdea>
+
+The encoder **reads the whole input once**. The decoder **writes one token at a time**, and in every layer it uses **cross-attention** to look back at the encoder's output.
+
+</KeyIdea>
+
+## Cross-attention: who asks, who answers
+
+Cross-attention is the [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) you already know, with one change: the queries come from one sequence and the keys and values come from another.
+
+$$
+\text{CrossAttn}(H_\text{dec}, H_\text{enc}) = \text{softmax}\!\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V,
+\qquad Q = H_\text{dec} W_Q,\quad K = H_\text{enc} W_K,\quad V = H_\text{enc} W_V
+$$
+
+- $H_\text{dec}$ holds the decoder's vectors, one per **output** token written so far ($T$ of them). They make the **queries** $Q$: "what do I need to know to write the next word?"
+- $H_\text{enc}$ is the encoder's memory, one vector per **input** token ($S$ of them). It makes the **keys** $K$ (labels to match against) and the **values** $V$ (the content to mix in).
+- $W_Q$, $W_K$, $W_V$ are learned weight matrices, and $d_k$ is the length of each query and key vector, as before.
+- $QK^\top$ has shape $T \times S$: one row per output token, one column per input token. After the softmax, each row adds up to 1 and says how much that output word draws from each input word.
+
+Because the queries come from the output side, the result has **one vector per output token**. The model learns by itself which input words matter for each output word, a soft <Term def="Which words of the input correspond to which words of the output, for example 'library' ↔ 'perpustakaan'. Cross-attention learns a soft version, where each output word spreads its attention over several input words.">alignment</Term> between the two sentences.
+
+<CrossAttentionAlignment />
+
+<Steps title="Shapes in a translation batch">
+  <Step title="The setting">
+    A batch of $B = 32$ English sentences of $S = 20$ tokens is translated into Malay sentences of $T = 15$ tokens. The model has $d_\text{model} = 512$ and $h = 8$ heads.
+  </Step>
+  <Step title="Encoder output (memory)">
+    One vector per source token: $(32, 20, 512)$.
+  </Step>
+  <Step title="Decoder self-attention weights">
+    Output tokens attend to output tokens: $(32, 8, 15, 15)$, with a causal mask.
+  </Step>
+  <Step title="Cross-attention weights">
+    Output tokens (queries) attend to source tokens (keys): $(32, 8, 15, 20)$. Rows: the 15 targets. Columns: the 20 sources. No causal mask.
+  </Step>
+  <Step title="Decoder output and logits">
+    One vector per target token, $(32, 15, 512)$, then a linear layer to the target vocabulary of, say, 32,000 tokens: logits $(32, 15, 32000)$.
+  </Step>
+</Steps>
+
+In PyTorch, cross-attention is an ordinary `nn.MultiheadAttention` called with a different sequence for the query than for the key and value:
+
+```python
+import torch
+import torch.nn as nn
+
+torch.manual_seed(0)
+d = 16
+enc_out = torch.randn(2, 7, d)   # encoder output: 2 sentences, 7 source tokens
+dec_x = torch.randn(2, 5, d)     # decoder states: 5 target tokens so far
+
+cross = nn.MultiheadAttention(d, num_heads=4, batch_first=True)
+out, w = cross(query=dec_x, key=enc_out, value=enc_out)  # Q: decoder; K, V: encoder
+
+print("output: ", tuple(out.shape))   # one vector per TARGET token
+print("weights:", tuple(w.shape))     # (batch, target, source), averaged over heads
+print("each row sums to 1:", torch.allclose(w.sum(dim=-1), torch.ones(2, 5)))
+```
+
+```text
+output:  (2, 5, 16)
+weights: (2, 5, 7)
+each row sums to 1: True
+```
+
+<Mistake title="Swapping the roles">
+
+It is **queries from the decoder, keys and values from the encoder**. Swap them and the output has one vector per *source* token, which the decoder cannot use to predict its next word. Also, cross-attention needs **no causal mask**: the whole input is known before the decoder starts, so every output word may look at every input word. Only a **padding** mask on the source keys is needed.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={254} />
+
+### Three attention layers, three masks
+
+An encoder-decoder model contains three kinds of attention, and NOAI questions often test which one gets which mask:
+
+| Attention layer | Queries from | Keys and values from | Causal mask? |
+|---|---|---|---|
+| Encoder self-attention | input tokens | input tokens | **no**: every input token sees all others |
+| Decoder self-attention | output tokens | output tokens | **yes**: no peeking at later output words |
+| Cross-attention | output tokens | encoder memory | **no**: the whole input is already known |
+
+<QuickCheck
+  q="In an encoder-decoder Transformer, which attention layer must use a causal (look-ahead) mask?"
+  options={['Only the decoder self-attention', 'Only the cross-attention, so output words cannot see later input words', 'All three, because the model generates text left to right', 'Only the encoder self-attention, so it reads the input in order']}
+  answer={0}
+  explain="The decoder must not see the output words it is about to predict, so its self-attention is causal. The input is fully known before decoding starts, so neither the encoder's self-attention nor the cross-attention needs a causal mask; masking them would only throw away useful context."
+/>
+
+## Training and generating
+
+**Generating** works like GPT: start with `<s>`, run the decoder, pick the next token, append it, and repeat until `</s>`. The encoder's memory is computed **once** and reused at every step. Here is that loop with an untrained `nn.Transformer`, so the token ids are meaningless, but the mechanics are real:
+
+```python
+import torch
+import torch.nn as nn
+
+torch.manual_seed(0)
+d, V = 32, 100
+model = nn.Transformer(d_model=d, nhead=4, num_encoder_layers=2,
+                       num_decoder_layers=2, dim_feedforward=64,
+                       batch_first=True).eval()
+embed, to_vocab = nn.Embedding(V, d), nn.Linear(d, V)
+
+src = torch.randint(V, (1, 7))                  # one source sentence, 7 token ids
+BOS, EOS = 1, 2
+memory = model.encoder(embed(src))              # the encoder runs ONCE
+print("memory:", tuple(memory.shape))
+
+out_ids = [BOS]
+for step in range(4):                           # greedy decoding, one token per step
+    tgt = embed(torch.tensor([out_ids]))
+    mask = nn.Transformer.generate_square_subsequent_mask(len(out_ids))
+    h = model.decoder(tgt, memory, tgt_mask=mask)   # causal self-attn + cross-attn
+    next_id = to_vocab(h[0, -1]).argmax().item()    # most likely next token
+    out_ids.append(next_id)
+    print(f"step {step + 1}: input length {len(out_ids) - 1} -> next id {next_id}")
+print("generated:", out_ids)
+```
+
+```text
+memory: (1, 7, 32)
+step 1: input length 1 -> next id 59
+step 2: input length 2 -> next id 87
+step 3: input length 3 -> next id 64
+step 4: input length 4 -> next id 59
+generated: [1, 59, 87, 64, 59]
+```
+
+Picking the single most likely token each time is called **greedy decoding**. Translation models usually use **beam search**, which keeps several candidate translations alive and picks the one with the highest total probability; you will meet both in [decoding strategies](#/learn/large-language-models/decoding-and-sampling).
+
+**Training** is faster than generating, because we already know the correct output. The decoder is fed the whole correct translation **shifted right by one** (`<s> Saya suka makan durian` to predict `Saya suka makan durian </s>`) and predicts every position in one pass, with the causal mask stopping each position from seeing its own answer. Feeding the true previous words, rather than the model's own guesses, is called <Term def="Training a decoder by feeding it the correct previous output tokens (shifted right by one), instead of its own predictions, so every position can be trained in parallel.">teacher forcing</Term>. The loss is the cross-entropy over the target positions, exactly as for GPT. Switch on the training view in the first visual to see it.
+
+<ExamTip>
+
+Three facts answer most encoder-decoder questions. **Cross-attention = Q from the decoder, K and V from the encoder.** **Only the decoder's self-attention is causal.** **The encoder runs once per input; the decoder runs once per output token** when generating. For shape questions, the cross-attention weights are (target length) × (source length), per head.
+
+</ExamTip>
+
+## Three families of Transformers
+
+<Analogy title="A reader, a writer and a translator">
+
+A **reader** studies a text and tells you something about it (its topic, its mood, who is mentioned). A **writer** keeps going from where the text stops. A **translator** reads one text completely and then produces a different one. Transformers come in the same three families.
+
+</Analogy>
+
+The three families use the same building blocks, arranged to fit three task shapes:
+
+| Family | Shape of the task | Typical uses | Examples |
+|---|---|---|---|
+| **Encoder-only** | text in → labels out | classification, tagging names (NER), finding answer spans, sentence embeddings | BERT, RoBERTa, DistilBERT |
+| **Decoder-only** | text in → more text, same stream | chatbots, writing, code completion; most LLMs | GPT, Llama, Qwen, Gemma |
+| **Encoder-decoder** | sequence in → a different sequence out | translation, summarisation, speech-to-text, captioning | T5, BART, MarianMT, Whisper |
+
+Their pretraining games differ too: encoder-only models fill in masked words, decoder-only models predict the next token, and encoder-decoders learn to rebuild or rewrite text.
+
+A few names to know:
+
+- **T5** (Google) treats every task as text-to-text: the input starts with an instruction such as `translate English to German:` or `summarize:`, and the decoder writes the answer. It was pretrained by hiding spans of words in the input and having the decoder write out the missing spans.
+- **BART** (Meta) was pretrained by corrupting text (hiding spans, shuffling sentences) and having the decoder rebuild the original. That makes it strong at summarisation.
+- **MarianMT** models (such as the Helsinki-NLP `opus-mt` family on Hugging Face) are small encoder-decoders, each trained for one language pair.
+- **Whisper** (OpenAI) is an encoder-decoder for speech: the encoder reads a spectrogram of the audio, and the decoder writes the transcript. You will meet it in [speech models](#/learn/pretrained-models-text-speech/speech-models).
+
+The same pattern works for any input the encoder can read. For image captioning, a vision encoder (such as a [Vision Transformer](#/learn/multimodal-ai/vision-transformers)) turns the picture into a sequence of patch vectors, and a text decoder cross-attends to them. The decoder does not care whether its memory came from words, image patches or slices of audio.
+
+<ModelFamilyMap />
+
+One modern twist: today's large decoder-only LLMs can also translate and summarise. They put the input and the output in **one** stream ("English: I like durian. Malay: ...") and use causal self-attention over all of it, so the "cross-attention" happens inside ordinary self-attention. Encoder-decoders remain popular when the task is a fixed mapping and the model must be small and fast, as in Whisper or on-device translation.
+
+<PastPaperQuestion paper="prelim2026" n={212} />
+
+<QuickCheck
+  q="A hospital wants to (1) turn doctors' voice notes into written text, and (2) sort the written notes into 5 departments. Which pair of model families is the classic fit?"
+  options={['(1) encoder-decoder, such as Whisper; (2) encoder-only with a classification head', '(1) encoder-only, such as BERT; (2) encoder-decoder, such as T5', '(1) decoder-only, such as GPT; (2) decoder-only, such as GPT', '(1) encoder-only with a head on every token; (2) encoder-decoder with cross-attention']}
+  answer={0}
+  explain="Speech-to-text turns one sequence (audio) into a different one (text), the encoder-decoder shape, and Whisper is exactly that. Sorting into 5 departments is classification: text in, one label out, which suits an encoder-only model with a head on `[CLS]`. An encoder-only model cannot write the transcript."
+/>
+
+<Takeaways>
+
+- An **encoder-decoder** Transformer has an encoder (no causal mask) that reads the whole input once, and a decoder that writes the output one token at a time.
+- Each decoder block has **masked self-attention**, **cross-attention** and a feed-forward network. In cross-attention, **queries come from the decoder** and **keys and values from the encoder**; the weights have shape (target length) × (source length).
+- Only the decoder's self-attention is causal. Training uses **teacher forcing**: the correct output shifted right, all positions in one pass.
+- Match the family to the task's shape: **encoder-only** (BERT) for labels, **decoder-only** (GPT, Llama, Qwen) for open generation, **encoder-decoder** (T5, BART, MarianMT, Whisper) for sequence → different sequence: translation, summarisation, speech-to-text, captioning.
+
+</Takeaways>

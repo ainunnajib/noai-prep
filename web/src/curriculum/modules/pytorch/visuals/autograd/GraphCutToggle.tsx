@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Segmented, Toggle, Button, Readout, Plot, Grid, Axes, Path, HLine, Dots, useAnimationFrame, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Segmented, Toggle, Button, Readout, Plot, Grid, Axes, Path, HLine, Dots, Label, useAnimationFrame, useContainerWidth } from '../../../../../kit'
 import css from './autograd.module.css'
 
 /*
@@ -206,7 +206,10 @@ export default function GraphCutToggle() {
         <Plot x={[0, STEPS]} y={[0, 9]} height={210} minHeight={190} margin={{ left: 44, bottom: 36, top: 14, right: 14 }} ariaLabel="GPU memory in use at each step">
           <Grid xTicks={5} yTicks={4} />
           <Axes xLabel="step" yLabel="GB" xTicks={5} yTicks={4} />
-          <HLine y={GPU} color="var(--viz-neg)" label="GPU limit 8 GB" />
+          <HLine y={GPU} color="var(--viz-neg)" />
+          <Label x={STEPS} y={GPU} dx={-4} dy={15} anchor="end" color="var(--viz-neg)">
+            GPU limit 8 GB
+          </Label>
           {curve.length > 1 && <Path points={curve} color={m.oom ? 'var(--viz-neg)' : 'var(--viz-1)'} width={2.5} />}
           {curve.length === 1 && <Dots points={[{ x: curve[0][0], y: curve[0][1] }]} />}
           {m.oom && shown >= m.oom && <Dots points={[{ x: m.oom, y: GPU, color: 'var(--viz-neg)', shape: 'cross', r: 7, label: `CUDA out of memory (step ${m.oom})` }]} />}

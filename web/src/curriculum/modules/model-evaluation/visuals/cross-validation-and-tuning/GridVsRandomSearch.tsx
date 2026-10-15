@@ -212,6 +212,9 @@ function SearchPanel({
           <line key={`tb${i}`} x1={rx0} x2={sx(t.s)} y1={py(t.b)} y2={py(t.b)} style={{ stroke: col, strokeWidth: 1.2, opacity: 0.55 }} />
         ))}
         {trials.map((t, i) => marker(sx(t.s), py(t.b), 3.5, `mb${i}`))}
+        <text transform={`translate(${rx0 + 12},${y0 + S - 6}) rotate(-90)`} className="plot-label" style={{ fontSize: 11 }}>
+          best score at each B
+        </text>
 
         {/* main square */}
         <g aria-hidden="true">{cells}</g>

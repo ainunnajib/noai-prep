@@ -110,7 +110,7 @@ export default function NormAxes() {
             Batch of 1: each column holds a single mark, so its mean is that mark and its spread is 0. Every output is 0.
           </span>
         ) : (
-          <M>{`\\text{${who}: } \\dfrac{${x} - ${s.mu.toFixed(1)}}{${s.sd.toFixed(1)}} = ${f2(out[fi][fj])}`}</M>
+          <M>{`\\text{${who}: } \\dfrac{${x} - ${+s.mu.toFixed(2)}}{${s.sd.toFixed(2)}} = ${f2(out[fi][fj])}`}</M>
         )}
       </div>
       <Controls>

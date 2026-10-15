@@ -30,7 +30,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A table has two features: monthly income (from about S\\$2,000 to S\\$15,000) and age (15 to 80 years). You run PCA on the raw numbers without standardising. What will PC1 most likely be?',
     options: [
-      'Almost exactly the income axis, because its numbers and so its variance are far larger',
+      'Almost exactly the income axis, since its variance is far larger',
       'Almost exactly the age axis, because age varies more in relative terms than income',
       'The 45° diagonal, because PCA always weighs every feature equally',
       'Undefined, because PCA raises an error when features have different units',
@@ -55,7 +55,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'Points lie on a rolled-up sheet in 3-D (a "Swiss roll"). Reducing them to 2-D with PCA makes points from different layers of the roll land on top of each other. Why?',
     options: [
-      'PCA is linear: it can only rotate the axes and drop some, so it cannot unroll a curved sheet',
+      'PCA is linear, so it can only rotate and flatten the data, not unroll a curve',
       'PCA needs labels to know which layer each point belongs to, and none were given',
       'The data was not standardised, so one axis dominated the principal components',
       'PCA can keep only one component when the original data is three-dimensional',

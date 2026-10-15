@@ -97,8 +97,6 @@ torch.Size([2, 5, 16]) torch.Size([1, 2, 16]) torch.Size([1, 2, 16])
   explain="$W_x$ is $4 \times 3 = 12$, $W_h$ is $4 \times 4 = 16$ and $b$ has 4 numbers: $12 + 16 + 4 = 32$. The same weights are reused at every step, so the count does not depend on the sentence length. 28 forgets the bias; 19 adds the sizes ($3 + 4 \times 4$) instead of multiplying them."
 />
 
-<PastPaperQuestion paper="prelim2026" n={208} />
-
 ## Why plain RNNs forget: vanishing gradients through time
 
 An RNN is trained like any network: compute the loss, then backpropagate. Because the same cell is used at every step, backpropagation runs backwards through the unrolled chain, from the last word to the first. This is called <Term def="Backpropagation through time: training an RNN by unrolling it over the sequence and applying ordinary backpropagation to the unrolled chain, from the last step back to the first.">backpropagation through time (BPTT)</Term>.
@@ -123,6 +121,8 @@ The two problems have different fixes. **Exploding** gradients are tamed with <T
 Vanishing gradients mean the gradient becomes **tiny** (not exactly zero), so early steps learn extremely slowly. Exploding gradients mean it becomes **huge**. Gradient clipping fixes only exploding gradients. LSTMs (and GRUs) were designed for the vanishing problem. This is the same disease as in very deep feed-forward networks, because an unrolled RNN *is* a very deep network, one layer per word.
 
 </Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={222} />
 
 <QuickCheck
   q="In a plain RNN each step back in time multiplies the gradient by about 0.5. Roughly how much of the gradient from word 11 reaches word 1?"
@@ -153,6 +153,8 @@ $$
 - $\tilde c_t$, the **candidate**: the new note itself, between $-1$ and $1$.
 - $o_t$, the **output gate**: how much of the memory to reveal as the output $h_t$.
 - $c_t$: keep part of the old note **plus** write part of the new one. $h_t$: a gated, squashed read-out of the memory, passed to the next step as before.
+
+Think of a notebook with three rules: what to cross out (forget gate), what new notes to add (input gate) and what to read aloud right now (output gate). Unlike the sticky note, nothing is rewritten from scratch: old notes stay unless the forget gate crosses them out.
 
 The gates use $\sigma$ because they must be between 0 and 1; the candidate uses $\tanh$ because a note can be positive or negative. There are **four** weight blocks ($W_f, W_i, W_c, W_o$) where a plain RNN has one, which is why the PyTorch LSTM above had exactly 4 times the parameters.
 
@@ -189,7 +191,7 @@ Translation turns one sequence into another of a different length: *I like chick
 1. The **encoder** RNN reads the whole source sentence. Its final hidden state is the <Term def="In an encoder–decoder RNN, the single fixed-size vector (the encoder's final state) that is supposed to summarise the whole input sentence for the decoder.">context vector</Term>.
 2. The **decoder** RNN starts from the context vector and writes the translation one token at a time, feeding each word it outputs back in as its next input, until it outputs an end-of-sentence token.
 
-Everything the decoder knows about the source sentence must squeeze through that one fixed-size vector, whether the sentence has 5 words or 50. That is the **bottleneck**. In 2014 Bahdanau, Cho and Bengio removed it with <Term def="A mechanism that lets a model, at each output step, compute a relevance weight for every input position and take a weighted average of their states, instead of relying on one fixed summary vector.">attention</Term>: at every output step the decoder looks back at **all** the encoder's hidden states, gives each a relevance weight (a softmax over scores), and uses their weighted average as a fresh context made for that step.
+Everything the decoder knows about the source sentence must squeeze through that one fixed-size vector, whether the sentence has 5 words or 50. That is the **bottleneck**: like summarising a whole lecture into one tweet and then writing your full lecture notes from the tweet alone. In 2014 Bahdanau, Cho and Bengio removed it with <Term def="A mechanism that lets a model, at each output step, compute a relevance weight for every input position and take a weighted average of their states, instead of relying on one fixed summary vector.">attention</Term>: at every output step the decoder looks back at **all** the encoder's hidden states, gives each a relevance weight (a softmax over scores), and uses their weighted average as a fresh context made for that step.
 
 We trained small GRU encoder–decoders on a toy translation task (write out a sequence of 4 to 40 random "words" from a 20-word vocabulary) with and without attention, and measured how many output words were right on new sentences:
 

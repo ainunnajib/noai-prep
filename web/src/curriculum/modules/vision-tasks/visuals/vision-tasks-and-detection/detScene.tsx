@@ -9,8 +9,8 @@ export const DW = 100
 export const DH = 70
 
 export const GT: { id: string; cls: 'person' | 'car'; label: string; b: [number, number, number, number] }[] = [
-  { id: 'A', cls: 'person', label: 'person A', b: [20, 14, 38, 60] },
-  { id: 'B', cls: 'person', label: 'person B', b: [27, 15, 45, 61] },
+  { id: 'A', cls: 'person', label: 'person A', b: [22, 14, 40, 60] },
+  { id: 'B', cls: 'person', label: 'person B', b: [29, 15, 47, 61] },
   { id: 'car', cls: 'car', label: 'car', b: [58, 34, 94, 60] },
 ]
 
@@ -20,8 +20,8 @@ export function DetScene() {
   const person = (cx: number, top: number, shirt: string) => (
     <g>
       <rect x={cx - 3.6} y={top + 30} width={7.2} height={16} rx={2} style={{ fill: legs }} />
-      <rect x={cx - 5} y={top + 9} width={10} height={22} rx={3.5} style={{ fill: shirt }} />
-      <circle cx={cx} cy={top + 5} r={5} style={{ fill: skin }} />
+      <rect x={cx - 5} y={top + 9} width={10} height={22} rx={3.5} style={{ fill: shirt, stroke: 'var(--surface)', strokeWidth: 0.6 }} />
+      <circle cx={cx} cy={top + 5} r={5} style={{ fill: skin, stroke: 'var(--surface)', strokeWidth: 0.6 }} />
     </g>
   )
   return (
@@ -37,8 +37,8 @@ export function DetScene() {
       <rect x={59} y={44} width={34} height={11} rx={3} style={{ fill: 'var(--viz-5)' }} />
       <circle cx={67} cy={55} r={4} style={{ fill: 'var(--viz-ink)' }} />
       <circle cx={86} cy={55} r={4} style={{ fill: 'var(--viz-ink)' }} />
-      {person(29, 14, 'var(--viz-1)')}
-      {person(36, 15, 'var(--viz-6)')}
+      {person(31, 14, 'var(--viz-1)')}
+      {person(38, 15, 'var(--viz-6)')}
     </g>
   )
 }

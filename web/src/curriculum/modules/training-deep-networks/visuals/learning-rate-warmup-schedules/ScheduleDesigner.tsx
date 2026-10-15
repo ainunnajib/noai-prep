@@ -117,6 +117,7 @@ export default function ScheduleDesigner() {
           y={[0, yMax]}
           width={narrow ? 360 : 600}
           height={narrow ? 240 : 260}
+          minHeight={220}
           maxWidth={720}
           margin={{ left: narrow ? 54 : 60, right: 16, top: 16 }}
           ariaLabel={`${kind} learning-rate schedule over ${T} steps with base ${fmtLR(base)}. At step ${tt} the learning rate is ${fmtLR(lr)}.`}
@@ -124,8 +125,8 @@ export default function ScheduleDesigner() {
           <Grid xTicks={narrow ? 4 : 8} yTicks={5} />
           {showWarm && <Rect x0={0} x1={W} y0={0} y1={yMax} fill="color-mix(in srgb, var(--viz-3) 13%, transparent)" />}
           {showWarm && (
-            <Label x={W / 2} y={yMax} dy={14} anchor="middle" size={11.5} color="var(--viz-3)" weight={700}>
-              warm-up
+            <Label x={W} y={0} dy={-7} dx={5} anchor="start" size={11.5} color="var(--viz-3)" weight={700}>
+              ← warm-up
             </Label>
           )}
           <Axes xLabel="step" yLabel="learning rate" xTicks={narrow ? 4 : 8} yTicks={5} tickFormat={(v) => fmtLR(v)} />

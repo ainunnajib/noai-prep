@@ -1,0 +1,10 @@
+/*
+  Runnable code for the lesson (NumPy and scikit-learn run in the browser).
+  Outputs checked locally with scikit-learn 1.9 / NumPy 2.5.
+*/
+
+export const ENCODER_CODE = "from sklearn.preprocessing import LabelEncoder\n\ntrain_labels = [\"cat\", \"dog\", \"fox\", \"dog\", \"cat\"]\nval_labels   = [\"dog\", \"fox\", \"fox\", \"dog\"]        # no cats in this batch\n\n# Bug: a separate encoder for each set\ny_train = LabelEncoder().fit_transform(train_labels)\ny_val   = LabelEncoder().fit_transform(val_labels)\nprint(\"train:\", y_train, \"  val:\", y_val)\n\n# Fix: fit once on the training labels, then reuse it everywhere\nenc = LabelEncoder().fit(train_labels)\nprint(\"classes:\", enc.classes_.tolist())\nprint(\"fixed val:\", enc.transform(val_labels))"
+
+export const LEAK_CODE = "import numpy as np\nfrom sklearn.feature_selection import SelectKBest, f_classif\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import cross_val_score\nfrom sklearn.pipeline import make_pipeline\n\nrng = np.random.default_rng(0)\nX = rng.normal(size=(100, 5000))      # 5000 features of pure noise\ny = rng.integers(0, 2, size=100)      # random labels: honest accuracy is 50%\n\n# Leaky: pick the 10 \"best\" features using ALL rows, then cross-validate\nX_best = SelectKBest(f_classif, k=10).fit_transform(X, y)\nleaky = cross_val_score(LogisticRegression(), X_best, y, cv=5).mean()\n\n# Honest: the selection happens inside each training fold\npipe = make_pipeline(SelectKBest(f_classif, k=10), LogisticRegression())\nhonest = cross_val_score(pipe, X, y, cv=5).mean()\n\nprint(f\"leaky CV accuracy:  {leaky:.0%}\")\nprint(f\"honest CV accuracy: {honest:.0%}\")"
+
+export const TIME_SPLIT_CODE = "import numpy as np\nfrom sklearn.model_selection import TimeSeriesSplit\n\nmonths = np.arange(12)                  # 12 months of data, oldest first\nfor fold, (tr, va) in enumerate(TimeSeriesSplit(n_splits=3).split(months)):\n    print(f\"fold {fold}: train on months {tr.tolist()}, validate on {va.tolist()}\")"

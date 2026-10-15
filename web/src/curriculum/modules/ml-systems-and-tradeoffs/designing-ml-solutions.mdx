@@ -1,3 +1,207 @@
-{/* stub: lesson 'Designing an ML solution under constraints' is being written */}
+import MetricBaseline from './visuals/designing-ml-solutions/MetricBaseline'
+import ModelChooser from './visuals/designing-ml-solutions/ModelChooser'
+import CompressionLab from './visuals/designing-ml-solutions/CompressionLab'
+import DistillSoftTargets from './visuals/designing-ml-solutions/DistillSoftTargets'
+import ParetoFrontier from './visuals/designing-ml-solutions/ParetoFrontier'
 
-This lesson is being written.
+A model that is 95% accurate but takes two seconds per answer is useless at a payment terminal that must decide in a tenth of a second. Real machine-learning design starts from the problem and its limits, not from the newest architecture. NOAI's Problem Solving questions give you a scenario (the data, its size, a time limit, a device) and ask what you would build; this lesson gives you a short checklist that answers most of them.
+
+## Frame the problem before choosing a model
+
+Before writing any code, answer four questions:
+
+1. **What decision will the prediction drive?** "Block this card payment", "show this video next", "send this X-ray to a doctor first".
+2. **What does each kind of mistake cost?** This decides the <Term def="The number you use to judge a model, such as accuracy, recall or the money lost to mistakes. It should reflect what a mistake costs in the real problem.">metric</Term>.
+3. **What must you beat?** This is the <Term def="The simplest sensible way to solve the problem, used as the bar every model must clear: for example always predicting the most common class, predicting the average, a simple rule, or a logistic regression.">baseline</Term>.
+4. **What are the limits?** How fast each answer must be (<Term def="The time between a request arriving and its prediction being returned, usually in milliseconds (ms).">latency</Term>), the device's memory, privacy, cost, and whether each decision must be explained.
+
+A classifier can make two kinds of mistake. A <Term def="The model says 'yes' (e.g. fraud) but the truth is 'no': a false alarm.">false positive</Term> is a false alarm; a <Term def="The model says 'no' but the truth is 'yes': a missed case.">false negative</Term> is a missed case. Recall (the share of real cases the model catches) punishes false negatives; precision (the share of alarms that are real) punishes false positives. When the two mistakes have different prices, the most honest metric is often simply the money they cost.
+
+<MetricBaseline />
+
+<KeyIdea>
+
+Choose the metric that matches what a mistake really costs, and always compare against a trivial baseline. A model that cannot beat "always predict the most common class" (or "always predict the average") has learned nothing useful, however high its accuracy looks.
+
+</KeyIdea>
+
+<Steps title="Fraud check: 10,000 transactions, 100 of them fraud">
+  <Step title="The do-nothing baseline">
+    Always answer "legit": $9{,}900$ of $10{,}000$ correct, so 99% accuracy. Recall: $0$ of $100$ frauds caught, 0%.
+  </Step>
+  <Step title="Model A">
+    Catches 80 frauds and raises 300 false alarms. Accuracy $(80 + 9{,}600)/10{,}000 = 96.8\%$: *lower* than the baseline. Recall $80/100 = 80\%$, precision $80/380 \approx 21\%$.
+  </Step>
+  <Step title="Price the mistakes">
+    A missed fraud costs the bank &#36;500 and a false alarm (a phone call to the customer) costs &#36;5. Baseline: $100 \times 500 = 50{,}000$ dollars. Model A: $20 \times 500 + 300 \times 5 = 11{,}500$ dollars.
+  </Step>
+  <Step title="Conclusion">
+    Model A saves &#36;38,500 per 10,000 transactions even though its accuracy is lower. Judge it by cost (or recall), never by accuracy alone.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={263} />
+
+## Strong defaults for each kind of data
+
+<Analogy title="Getting around Singapore">
+
+To cross the island you take the MRT, to go three stops you take a bus, and to visit the next block you walk. No mode of transport is best for every trip: the distance, your time and your budget decide. Models are the same, and the type of data is the first thing that decides.
+
+</Analogy>
+
+Years of competitions and real projects have produced strong starting points:
+
+- **Table** (rows and columns of features) → <Term def="An ensemble of decision trees built one after another, each new tree fixing the errors of the ones before. XGBoost, LightGBM and CatBoost are popular libraries.">gradient-boosted trees</Term>. They handle mixed numeric and categorical columns, interactions and missing values, and usually beat neural networks on tables. *Baseline:* linear or logistic regression.
+- **Images** → a pretrained CNN or <Term def="Vision Transformer: a Transformer that cuts an image into small patches and treats them like a sequence of tokens.">ViT</Term>, <Term def="Trained a little further on your own labelled data, usually with a small learning rate, starting from the pretrained weights.">fine-tuned</Term>. It already detects edges, textures and shapes. *Baseline:* logistic regression on features from a frozen pretrained network.
+- **Text** → a pretrained Transformer (BERT-style), fine-tuned. It already knows word meanings and context. *Baseline:* <Term def="Term frequency–inverse document frequency: describes a text by how often each word appears in it, giving less weight to words that appear in almost every text, such as 'the'.">TF-IDF</Term> word features plus logistic regression.
+- **Audio** → a pretrained audio model (a CNN or Transformer) on <Term def="A picture of sound: time along one axis, pitch (frequency) along the other, and brightness for loudness. A log-mel spectrogram spaces the frequencies the way human hearing does.">spectrograms</Term>. It already recognises speech and everyday sounds. *Baseline:* <Term def="Mel-frequency cepstral coefficients: a short list of numbers summarising the shape of a sound's spectrum at each moment; a classic hand-made audio feature.">MFCC</Term> features plus logistic regression.
+
+Reusing a network trained on a huge dataset and adapting it to your task is called <Term def="Starting from a model already trained on a large dataset and adapting it to a new task, instead of training from random weights. You can freeze its layers and train only a new head, or fine-tune everything with a small learning rate.">transfer learning</Term>, and it is the default for images, text and audio because it needs far less labelled data and compute than training from scratch.
+
+Then the **constraints** narrow the choice. With only hundreds of examples, freeze the pretrained layers and train just a new final layer, or use a simpler model. A tight time budget rules out huge models, big ensembles and k-NN over millions of stored points (from the last lesson: $O(nd)$ per prediction). A phone or a microcontroller needs a small or compressed model. And if every decision must be explained, for example a loan refusal, a linear model or shallow trees may beat a black box even at slightly lower accuracy.
+
+Finally, the <Term def="The result that no single learning algorithm is best for every possible problem. Averaged over all problems, every algorithm performs the same, so you must test candidates on your own data.">no free lunch</Term> idea says that no model is best for every problem. The defaults above are where you **start**; the winner is decided by comparing candidates against the baseline on your own validation data.
+
+<ModelChooser />
+
+<PastPaperQuestion paper="prelim2026" n={256} />
+
+<QuickCheck
+  q="A clinic has 300 labelled retina photos and wants to flag a disease. What is the best starting point?"
+  options={['Fine-tune a pretrained CNN, freezing most of its layers', 'Train a large CNN from scratch on the 300 photos', 'Gradient-boosted trees on the raw pixel values', 'k-NN on the raw pixel values with k = 1']}
+  answer={0}
+  explain="300 images is far too few to train a big network from scratch: it would memorise them. A pretrained CNN already recognises edges, textures and shapes, so only a small new head needs training. Boosted trees and k-NN on raw pixels ignore the image's spatial structure."
+/>
+
+<Mistake title="Starting with the biggest, newest model">
+
+A giant model trained from scratch is the most expensive way to start and often not the most accurate one, especially with little data or on a table. Start with the baseline, then the strong default for your data type, and only scale up if the validation results justify the extra cost.
+
+</Mistake>
+
+When the time budget is strict, the architecture itself must be chosen for speed. Object detection is the classic example: a two-stage detector proposes regions and then classifies each one, while a single-stage detector predicts every box in one forward pass.
+
+<PastPaperQuestion paper="prelim2026" n={257} />
+
+## Shrinking a model for a small device
+
+<Analogy title="Packing for a budget flight">
+
+With a 7 kg cabin-bag limit you can roll your clothes tightly (the same items, packed smaller), leave out the things you rarely use, or bring a compact travel kit designed to do what your full kit does. Those are the three ways to shrink a model.
+
+</Analogy>
+
+Phones, cameras and microcontrollers have little memory, slow processors and batteries to protect. Running the model **on the device** (at the <Term def="Running models on the device where the data is produced (a phone, camera, car or sensor) instead of on a remote server. It avoids network delays and keeps data private, but the device has little memory and power.">edge</Term>) avoids network delays and keeps data private, but the model must be small. Three techniques shrink it.
+
+**Quantisation** stores each weight with fewer bits, for example as an 8-bit integer instead of a 32-bit float. With $b$ bits there are $2^b$ possible values, so spread $2^b$ evenly spaced levels from the smallest weight $w_{\min}$ to the largest $w_{\max}$ and round every weight to the nearest level:
+
+$$
+\begin{aligned}
+\Delta &= \frac{w_{\max} - w_{\min}}{2^b - 1} \\[4pt]
+\hat w &= w_{\min} + \Delta \cdot \operatorname{round}\!\left(\frac{w - w_{\min}}{\Delta}\right)
+\end{aligned}
+$$
+
+Here $\Delta$ is the gap between neighbouring levels, $w$ is an original weight and $\hat w$ is the value the quantised model uses. Only the whole number $\operatorname{round}(\cdot)$, between $0$ and $2^b - 1$, is stored for each weight, plus $w_{\min}$ and $\Delta$ once for the whole layer. Going from 32 to 8 bits makes the model **4 times smaller**, and phones and CPUs compute with 8-bit integers faster. The price is a rounding error of at most $\Delta / 2$ per weight: tiny at 8 bits, serious at 2.
+
+**Pruning** sets the least important weights, usually the ones closest to zero, to exactly zero and then fine-tunes the rest. Removing whole channels or neurons (structured pruning) gives real speed-ups on ordinary hardware; removing scattered single weights mainly saves storage.
+
+<CompressionLab />
+
+<Steps title="Quantising weights to 2 bits by hand">
+  <Step title="The levels">
+    Weights lie between $w_{\min} = -1$ and $w_{\max} = 1$, and $b = 2$ gives $2^2 = 4$ levels. The gap is $\Delta = (1 - (-1))/(4 - 1) = 2/3$, so the levels are $-1, -\tfrac{1}{3}, \tfrac{1}{3}, 1$.
+  </Step>
+  <Step title="Round one weight">
+    For $w = 0.4$: $(0.4 - (-1))/\tfrac{2}{3} = 1.4 \times 1.5 = 2.1$, which rounds to $2$. Stored: the integer $2$, using just 2 bits.
+  </Step>
+  <Step title="Read it back">
+    $\hat w = -1 + 2 \times \tfrac{2}{3} = \tfrac{1}{3} \approx 0.33$. The error is $0.4 - 0.33 \approx 0.07$, within the limit $\Delta/2 = \tfrac{1}{3}$.
+  </Step>
+  <Step title="At 8 bits">
+    $\Delta = 2/255 \approx 0.008$, so no weight moves by more than about $0.004$. That is why 8-bit models usually lose almost no accuracy.
+  </Step>
+</Steps>
+
+You can watch the same effect on a million weights:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+rng = np.random.default_rng(0)
+# one layer's weights: a million small numbers
+w = rng.normal(0, 0.05, size=1_000_000)
+w = w.astype(np.float32)
+
+def quantise(w, bits):
+    lo, hi = w.min(), w.max()
+    # gap between neighbouring levels
+    step = (hi - lo) / (2**bits - 1)
+    # whole numbers from 0 to 2^bits - 1
+    q = np.round((w - lo) / step)
+    return q.astype(np.uint8), lo, step
+
+print(f"float32: {w.nbytes / 1e6:.1f} MB")
+for bits in [8, 4, 2]:
+    q, lo, step = quantise(w, bits)
+    # the weights the model now uses
+    w_back = lo + q * step
+    err = np.abs(w - w_back).mean()
+    mb = w.size * bits / 8 / 1e6  # packed
+    print(f"{bits}-bit: {mb:.2f} MB, "
+          f"average error {err:.5f}")`} />
+
+**Knowledge distillation** trains a small *student* network to imitate a large, accurate *teacher*. The trick is what the student imitates: not just the correct label, but the teacher's full set of output probabilities, softened with a <Term def="A number T that divides the logits before the softmax. T = 1 is the normal output; larger T makes the probabilities flatter, so small differences between the wrong classes become visible.">temperature</Term> $T$:
+
+$$
+p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
+$$
+
+where $z_i$ is the teacher's raw score (logit) for class $i$. At $T = 1$ this is the ordinary softmax; a larger $T$ spreads probability onto the "nearly right" classes. The student is trained to match these soft probabilities as well as the true labels.
+
+<DistillSoftTargets />
+
+Soft targets tell the student which mistakes are reasonable ("this 7 looks a bit like a 1"), so it learns more from every example than the bare label could teach it. The result is a student that is much smaller and faster than the teacher but more accurate than the same small network trained on labels alone. DistilBERT, for example, is 40% smaller and 60% faster than BERT while keeping about 97% of its language-understanding performance.
+
+| Technique | Typical gain | Price |
+|---|---|---|
+| **Quantisation**: fewer bits per weight | 32 → 8 bits is 4× smaller, often faster | small accuracy loss; very low bits hurt |
+| **Pruning**: fewer non-zero weights | smaller; faster if whole channels go | needs fine-tuning; too much loses accuracy |
+| **Distillation**: a smaller student network | as small and fast as the student | a training run and a good teacher |
+
+The three combine: a distilled student can then be pruned and quantised.
+
+<ExamTip>
+
+Spot the keywords. "Edge device", "phone", "limited memory" or "reduce model size" point to **quantisation, pruning or distillation**. "Store weights as 8-bit integers" is quantisation (about 4× smaller than 32-bit); "remove small weights" is pruning; "a small model trained to mimic a large model's outputs" is distillation. Quantisation keeps the same number of parameters and only shrinks each one.
+
+</ExamTip>
+
+## The trade-off frontier
+
+Most real decisions balance several goals at once: accuracy, latency, model size and running cost. Model X <Term def="Model X dominates model Y if X is at least as good as Y on every goal (e.g. at least as accurate AND at least as fast) and strictly better on at least one.">dominates</Term> model Y if X is at least as good on every goal and strictly better on at least one; then there is never a reason to choose Y. The models that nothing dominates form the <Term def="The set of options that are not dominated by any other option: to improve one goal (e.g. accuracy) you must give up some of another (e.g. speed).">Pareto frontier</Term>. Along the frontier, extra accuracy always costs extra time; the requirements of your product pick the point.
+
+<ParetoFrontier />
+
+<KeyIdea>
+
+There is no single best model, only the best model for your constraints. Draw the requirements (a time budget, a minimum accuracy, a size limit), discard dominated models, and deploy the most accurate model that satisfies them. Compression and distillation move models towards the top left, pushing the whole frontier outwards.
+
+</KeyIdea>
+
+<QuickCheck
+  q="Three models for an app with a 50 ms budget: P is 90% accurate at 200 ms, Q is 88% at 40 ms, R is 85% at 60 ms. Which statement is correct?"
+  options={['R is dominated by Q, and Q should be deployed', 'P should be deployed because it is the most accurate', 'R should be deployed because it is the cheapest compromise', 'No model is dominated, so any of them could be deployed']}
+  answer={0}
+  explain="Q is both faster (40 ms against 60 ms) and more accurate (88% against 85%) than R, so R is dominated. P is more accurate but breaks the 50 ms budget. Q is the most accurate model within the budget."
+/>
+
+<Takeaways>
+
+- Frame first: the decision, the cost of each kind of mistake (which picks the metric), the baseline to beat, and the limits (latency, memory, privacy, explanations).
+- Accuracy misleads on imbalanced data: compare every model with the majority-class baseline, using recall, precision, F1 or the real cost of mistakes.
+- Strong defaults: gradient-boosted trees for tables, pretrained CNNs or ViTs for images, pretrained Transformers for text and audio. Constraints then narrow the choice; no model wins everywhere.
+- To fit a small device: quantise (32 → 8 bits is about 4× smaller), prune small weights, or distil a large teacher into a small student trained on its soft probabilities.
+- Candidates form a Pareto frontier of accuracy against latency or size; requirements choose the point, and dominated models are never worth deploying.
+
+</Takeaways>

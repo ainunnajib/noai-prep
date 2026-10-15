@@ -64,7 +64,7 @@ const fmt = (x: number) => {
   if (ax === 0) return '0'
   if (ax >= 100) return x.toFixed(0)
   if (ax >= 1) return x.toFixed(2)
-  if (ax >= 0.01) return x.toFixed(3)
+  if (ax >= 0.0095) return x.toFixed(3)
   return x.toExponential(1)
 }
 

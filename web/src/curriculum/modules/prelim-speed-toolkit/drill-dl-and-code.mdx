@@ -1,3 +1,319 @@
-{/* stub: lesson 'Speed drills: conv sizes, parameter counts and code reading' is being written */}
+import { PRELIM } from '../../../data/facts'
+import ConvDrill from './visuals/drill-dl-and-code/ConvDrill'
+import ParamComplexityDrill from './visuals/drill-dl-and-code/ParamComplexityDrill'
+import ShapeAnnotator from './visuals/drill-dl-and-code/ShapeAnnotator'
+import CodePredictDrill from './visuals/drill-dl-and-code/CodePredictDrill'
 
-This lesson is being written.
+Deep-learning questions look as if they need a calculator: "how many parameters?", "what shape comes out?", "what does this print?". In the Prelim you have no calculator and about {PRELIM.secondsPerQuestion} seconds. The good news is that almost all of them come from **two conv formulas, a dozen parameter and cost formulas, one shape habit and about a dozen code traps**. This lesson drills each one until it is automatic.
+
+You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes), [attention](#/learn/attention-and-transformers/multi-head-attention) and [PyTorch](#/learn/pytorch/tensors) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
+
+## Conv arithmetic: two formulas
+
+<Analogy title="Bus fares you know by heart">
+
+The first time you take a new bus route you check the fare. By the hundredth trip you just tap your card: you know it is the same as always. Conv arithmetic should feel like that. You are not working anything out; you are recognising a fare you have paid a hundred times.
+
+</Analogy>
+
+A convolution layer slides a small square window, the <Term def="The small grid of learnt weights (k × k for each input channel) that slides across the image. Also called a filter.">kernel</Term>, across an image. Three settings decide how many places it can land:
+
+- **kernel size $k$**: the window is $k \times k$ pixels;
+- <Term def="Extra rows and columns of zeros added around the edge of the input, so the window can also sit over the border.">padding</Term> **$p$**: $p$ rings of zeros around the edge;
+- <Term def="How many pixels the window jumps each time it moves.">stride</Term> **$s$**: how far the window jumps each move.
+
+### Formula 1: the output size
+
+$$
+n_\text{out} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
+$$
+
+- $n$ is the input height (or width; the same formula applies to each side).
+- $n + 2p$ is the width after padding: $p$ zeros on the left **and** $p$ on the right.
+- Subtracting $k$ leaves the room the window can travel; dividing by $s$ counts how many jumps fit.
+- $\lfloor \; \rfloor$ means **round down**: a jump that would push the window off the edge is not taken.
+- The $+1$ counts the starting position, before any jump.
+
+In words: **the output size is the number of places the window fits.**
+
+### Formula 2: the parameter count
+
+$$
+\text{parameters} = (k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}
+$$
+
+- $C_\text{in}$ is the number of input <Term def="The separate layers of numbers stacked at each pixel: 3 for an RGB photo (red, green, blue), or the number of filters of the previous conv layer.">channels</Term>. One filter covers **all** of them, so it holds $k \cdot k \cdot C_\text{in}$ weights.
+- $+1$ is that filter's single bias.
+- $C_\text{out}$ is the number of filters, which is also the number of output channels.
+
+Notice what is **missing**: the image size $n$. The same filter is reused at every position, so a 3 × 3 conv has the same number of parameters on a 32 × 32 image as on a 1024 × 1024 one.
+
+| Layer | Shortcut |
+| --- | --- |
+| $k = 3$, $p = 1$, $s = 1$ ("same" padding) | size unchanged |
+| $p = \frac{k-1}{2}$ and stride $s$ | $\lceil n / s \rceil$ (divide, round **up**) |
+| $p = 0$, $s = 1$ | $n - k + 1$ |
+| `nn.MaxPool2d(2)` | $\lfloor n/2 \rfloor$, channels unchanged, **0** parameters |
+| $1 \times 1$ conv | size unchanged, $(C_\text{in} + 1)\,C_\text{out}$ parameters |
+
+<KeyIdea>
+
+Size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits. Parameters: $(k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, and the image size never appears.
+
+</KeyIdea>
+
+<Steps title="A 32 × 32 colour image through three layers">
+  <Step title="Conv2d(3, 16, kernel_size=5) on (3, 32, 32)">
+    Size: $\lfloor (32 + 0 - 5)/1 \rfloor + 1 = 27 + 1 = 28$, so $(16, 28, 28)$. Parameters: one filter is $5 \cdot 5 \cdot 3 = 75$ weights $+ 1$ bias $= 76$; times 16 filters: $76 \times 16 = 760 + 456 = 1216$.
+  </Step>
+  <Step title="MaxPool2d(2)">
+    Halve the size, keep the channels: $(16, 14, 14)$. No parameters.
+  </Step>
+  <Step title="Conv2d(16, 32, kernel_size=3, padding=1)">
+    Same padding with stride 1, so the size stays 14: $(32, 14, 14)$. Parameters: $3 \cdot 3 \cdot 16 = 144$, plus 1 is $145$; $145 \times 32 = 145 \times 30 + 145 \times 2 = 4350 + 290 = 4640$.
+  </Step>
+</Steps>
+
+The last step shows the mental trick for the big multiplications: split the smaller number into tens and units ($32 = 30 + 2$) and add the two easy products.
+
+<ConvDrill />
+
+<Mistake>
+
+The four slips the drill catches most: forgetting the $+1$; rounding up instead of down; adding $p$ instead of $2p$; and, for parameters, forgetting either the bias or the $C_\text{in}$. If two options differ by exactly $C_\text{out}$, the setter is testing the bias.
+
+</Mistake>
+
+The parameter formula also explains a classic "why" question. Two stacked $3 \times 3$ convs see the same $5 \times 5$ patch as one $5 \times 5$ conv. With $C$ channels in and out (ignoring biases), the stack costs $2 \times 9C^2 = 18C^2$ weights, against $25C^2$ for the single big kernel, and it adds an extra nonlinearity in between.
+
+<PastPaperQuestion paper="prelim2026" n={204} />
+
+## A dozen formulas for everything else
+
+<Analogy title="A cheat sheet you no longer need">
+
+Some students write a formula sheet the night before a test and then never look at it in the hall, because writing it fixed everything in memory. This section is that sheet for deep learning. The drill afterwards is how you stop needing it.
+
+</Analogy>
+
+**Parameters.** Every count below is "size of each weight matrix, plus one bias per output".
+
+- `nn.Linear(in, out)`: $\text{in} \cdot \text{out} + \text{out}$. The weight matrix, plus one bias per output.
+- `nn.Conv2d(C_in, C_out, k)`: $(k^2 C_\text{in} + 1)\,C_\text{out}$. One $k \times k \times C_\text{in}$ filter plus a bias, per output channel.
+- `nn.Embedding(V, d)`: $V \cdot d$. A lookup table with one row of $d$ numbers per token, and no bias.
+- `nn.MultiheadAttention(d, h)`: $4d^2 + 4d$. Four $d \times d$ projections ($W_Q, W_K, W_V, W_O$), each with $d$ biases.
+- <Term def="Low-Rank Adaptation: fine-tune a big model by freezing each weight matrix W and training a small correction B·A, where B is d × r and A is r × k with a small rank r.">LoRA</Term> with rank $r$ on a $d \times k$ matrix: $r(d + k)$. You train $B$ ($d \times r$) and $A$ ($r \times k$) instead of $W$.
+- `nn.LayerNorm(d)` and `nn.BatchNorm2d(C)`: $2d$ and $2C$. A scale $\gamma$ and a shift $\beta$ per feature.
+- ReLU, pooling, dropout, flatten: $0$. They apply fixed rules; there is nothing to learn.
+
+Two of these deserve a closer look.
+
+- **Multi-head attention:** the number of heads $h$ does not appear. The heads *split* the $d$ dimensions between them (8 heads of 64 when $d = 512$), so the four projection matrices are $d \times d$ whatever $h$ is.
+- **LoRA:** for one $4096 \times 4096$ matrix and $r = 8$, LoRA trains $8 \times (4096 + 4096) = 65{,}536$ numbers instead of $4096^2 = 16{,}777{,}216$: exactly 256 times fewer.
+
+**Costs.** <Term def="A way to describe how the work grows with the size of the input, ignoring constant factors. O(n²) means doubling n roughly quadruples the work.">Big-O</Term> notation says how the work grows as the inputs grow.
+
+| Operation | Cost | Consequence |
+| --- | --- | --- |
+| $(n \times m)$ matrix times $(m \times p)$ matrix | $O(nmp)$ | $np$ entries, each a dot product of length $m$ |
+| attention scores $QK^\top$, $n$ tokens of width $d$ | $O(n^2 d)$ | double the context, **four times** the work |
+| Hessian of a model with $p$ parameters | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids Newton's method |
+| brute-force $k$-NN, one query | $O(nd)$ | fast to train, slow to predict |
+| binary search / sorting $n$ items | $O(\log n)$ / $O(n \log n)$ | a million items: about 20 comparisons |
+
+**Learning-rate schedules.** A <Term def="A rule that changes the learning rate during training, usually starting high and ending low.">schedule</Term> changes the learning rate $\eta$ as training goes on. The cosine schedule over $T$ steps is
+
+$$
+\eta_t = \eta_\text{min} + \tfrac{1}{2}\,(\eta_\text{max} - \eta_\text{min})\left(1 + \cos\frac{\pi t}{T}\right)
+$$
+
+where $t$ is the current step. You never need the cosine of anything awkward, because exam questions ask about three points: at $t = 0$, $\cos 0 = 1$ gives $\eta_\text{max}$; at the **midpoint** $t = T/2$, $\cos\frac{\pi}{2} = 0$ gives $\frac{\eta_\text{max} + \eta_\text{min}}{2}$; at the **end**, $\cos \pi = -1$ gives $\eta_\text{min}$. Linear warm-up over $W$ steps is simply $\eta_t = \eta \cdot t / W$, and step decay multiplies by $\gamma$ after every $k$ epochs: $\eta_t = \eta_0 \, \gamma^{\lfloor t/k \rfloor}$.
+
+<Steps title="Multi-head attention with d = 512 and 8 heads, no calculator">
+  <Step title="Square d using powers of two">
+    $512 = 2^9$, so $512^2 = 2^{18} = 262{,}144$.
+  </Step>
+  <Step title="Four projection matrices">
+    $4 \times 262{,}144 = 1{,}048{,}576$ weights.
+  </Step>
+  <Step title="Four bias vectors">
+    $4 \times 512 = 2048$, so the total is $1{,}048{,}576 + 2048 = 1{,}050{,}624$. The 8 heads change nothing.
+  </Step>
+</Steps>
+
+<ParamComplexityDrill />
+
+<ExamTip>
+
+In 2026 these formulas came up mostly as **"why"** questions: why stacks of 3 × 3 convs (fewer parameters), why long contexts are hard ($O(n^2)$ attention), why not Newton's method ($O(p^3)$ Hessian), why LoRA is cheap ($r(d + k)$). If you know the formula, the reason is already in it, and you can strike every option that names a different one.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={74} />
+
+## Shape annotation: write the shape on every line
+
+<Analogy title="Platform numbers at an interchange">
+
+Changing lines at Dhoby Ghaut is easy if you wrote down "NS line, platform B, then NE line" before you left. If you did not, you stand there reading signs while the train goes. Shapes are the platform numbers of tensor code: write one next to each line and you never get lost.
+
+</Analogy>
+
+The habit is simple: for every line that makes an array or tensor, write its shape as a comment. Shapes in PyTorch images follow `(N, C, H, W)`: batch size, channels, height, width. You need only a handful of rules:
+
+| Operation | Shape rule |
+| --- | --- |
+| `nn.Conv2d(C_in, C_out, k)` | $C$ becomes $C_\text{out}$; $H, W$ follow the size formula |
+| pooling | $N$ and $C$ stay; $H, W$ shrink (halve for `MaxPool2d(2)`) |
+| `x.flatten(1)` or `nn.Flatten()` | $(N, C, H, W) \to (N, C \cdot H \cdot W)$ |
+| `nn.Linear(in, out)` | only the **last** dimension changes: in → out |
+| `A @ B` | $(\dots, n, m)$ times $(\dots, m, p)$ gives $(\dots, n, p)$ |
+| `sum`, `mean`, `max`, `argmax` over a dim | that dim disappears (`keepdim=True` keeps it as 1) |
+| broadcasting | line shapes up from the right; a 1 stretches to match |
+| `unsqueeze(i)`, `None` | insert a dimension of size 1 |
+| `cat` / `stack` | `cat` grows an existing dim; `stack` adds a new one |
+| `view` / `reshape` | same total count; `-1` means "whatever is left" |
+
+Here is the example from the start of most CNN questions, run for real:
+
+```python
+import torch
+import torch.nn as nn
+
+x = torch.randn(32, 3, 28, 28)          # (N, C, H, W)
+conv = nn.Conv2d(3, 16, kernel_size=3)  # k=3, p=0, s=1
+h = conv(x)
+print(h.shape)                          # (32, 16, 26, 26)
+print(nn.Flatten()(h).shape)            # keeps the batch
+print(torch.flatten(h).shape)           # trap: flattens the batch too
+print(sum(p.numel() for p in conv.parameters()))  # (3*3*3 + 1)*16
+```
+
+```text
+torch.Size([32, 16, 26, 26])
+torch.Size([32, 10816])
+torch.Size([346112])
+448
+```
+
+The conv keeps the batch of 32, sets the channels to 16, and shrinks $28 \to 28 - 3 + 1 = 26$. Flattening each image gives $16 \times 26 \times 26 = 16 \times 676 = 10{,}816$ numbers.
+
+<ShapeAnnotator />
+
+<Mistake>
+
+`torch.flatten(h)` with no second argument flattens **everything**, batch included: 346,112 numbers in one row instead of 32 rows of 10,816. Use `h.flatten(1)` or `nn.Flatten()`. When a model crashes with `mat1 and mat2 shapes cannot be multiplied`, check the flatten and the first `nn.Linear` first.
+
+</Mistake>
+
+<QuickCheck
+  q="`x` has shape (16, 10) and `W` has shape (10, 4). What is the shape of `(x @ W).sum(dim=0)`?"
+  options={['(16,)', '(16, 4)', '(4,)', '(10,)']}
+  answer={2}
+  explain="First the product: (16, 10) @ (10, 4) gives (16, 4). Summing over dim 0 removes the 16, leaving (4,). (16,) is what you get by summing over dim 1 instead; (10,) mixes up the inner dimension, which disappears in the product."
+/>
+
+## The trap catalogue
+
+<Analogy title="Where learners fail the driving test">
+
+Driving instructors in Singapore know the handful of junctions where learners fail most often, and they take you through them again and again. Code questions work the same way: the same dozen traps come back, and spotting the trap is usually the whole question.
+
+</Analogy>
+
+| Trap | What actually happens |
+| --- | --- |
+| `range` and slices | the end is **excluded**: `range(2, 8, 2)` is 2, 4, 6 |
+| `//` and `%` | floor division rounds **down**: `-7 // 2` is −4, and `-7 % 3` is 2 |
+| mutable default, `bag=[]` | the list is made once and **shared** by every call |
+| aliasing, `b = a` | one list with two names; `[[0]*3]*2` repeats one row |
+| views | a NumPy slice or a `view()` **shares memory**: writing to it changes the original |
+| `*` vs `@` | `*` is element-wise; `@` is the matrix product |
+| broadcasting | `(3,)` with `(3, 1)` stretches to `(3, 3)` |
+| `loc` vs `iloc` | `loc[1:2]` includes label 2; `iloc[1:2]` excludes position 2 |
+| integer dtypes | `torch.tensor([1, 2, 3])` is `int64`, so `.mean()` fails and it cannot take gradients; NumPy int arrays truncate 2.9 to 2 |
+| no `zero_grad()` | `.backward()` **adds** to `.grad`, so gradients pile up |
+| no `model.eval()` | dropout keeps dropping and batch norm keeps using batch statistics |
+| softmax before `CrossEntropyLoss` | the loss already applies log-softmax; pass raw <Term def="The raw scores a classifier outputs before softmax turns them into probabilities.">logits</Term> |
+
+Try the NumPy traps yourself. Change the slice to `a[1:3].copy()` and run it again.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+a = np.arange(5)
+b = a[1:3]        # a slice is a view
+b[:] = 0
+print("after slice write:", a)
+
+c = np.arange(5)
+d = c[[1, 2]]     # a list of indices makes a copy
+d[:] = 0
+print("after fancy write:", c)
+
+x = np.array([1, 2, 3])
+print("shape of x + x[:, None]:", (x + x[:, None]).shape)
+
+x[0] = 2.9        # integer array: 2.9 is truncated
+print("x:", x)
+print("7 // 2 =", 7 // 2, "and -7 // 2 =", -7 // 2)`} />
+
+And the two training-loop traps in PyTorch, run for real:
+
+```python
+import torch
+import torch.nn as nn
+
+w = torch.tensor(2.0, requires_grad=True)
+for step in range(3):
+    loss = 3 * w
+    loss.backward()        # no zero_grad: gradients pile up
+    print(step, w.grad)
+
+loss_fn = nn.CrossEntropyLoss()
+logits = torch.tensor([[10.0, 0.0]])   # confident and right
+target = torch.tensor([0])
+print(loss_fn(logits, target))                 # right: raw logits
+print(loss_fn(logits.softmax(dim=1), target))  # trap: softmax twice
+```
+
+```text
+0 tensor(3.)
+1 tensor(6.)
+2 tensor(9.)
+tensor(4.5418e-05)
+tensor(0.3133)
+```
+
+The true gradient of $3w$ is 3 at every step, but without `zero_grad()` the stored gradient grows 3, 6, 9. With the double softmax, a perfect prediction still has a loss of 0.31, so the model keeps being pushed and learns slowly.
+
+<CodePredictDrill />
+
+<QuickCheck
+  q="What does this print?"
+  code={`import numpy as np
+x = np.array([1, 2, 3])
+y = x
+y = y * 2
+print(x)`}
+  options={['[2 4 6]', '[1 2 3]', '[1 2 3 1 2 3]', 'An error']}
+  answer={1}
+  explain="Not every assignment is a trap. `y = x` makes two names for one array, but `y * 2` builds a brand-new array, and `y = ...` just moves the name y to it. x was never changed. Writing `y *= 2` instead would modify the shared array in place and print [2 4 6]."
+/>
+
+<ExamTip>
+
+A three-step routine for any code question: **(1)** name the trap the code is built around (end excluded? view? missing `zero_grad`?); **(2)** run the smallest case in your head, writing values or shapes on scrap paper; **(3)** match the exact print format: `tensor(9.)` is not `9`, and `[2 2 3]` (no commas) is a NumPy array, not a list. In the 2026 Final, 11 of the 20 MCQs were built around reading code like this.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={118} />
+
+<Takeaways>
+
+- Conv size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits. Conv parameters: $(k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, with no image size in it.
+- Parameter counts: Linear $\text{in} \cdot \text{out} + \text{out}$; Embedding $V d$; multi-head attention $4d^2 + 4d$ whatever the heads; LoRA $r(d + k)$; norms $2d$; ReLU, pooling and dropout 0.
+- Costs: matrix product $O(nmp)$, attention $O(n^2 d)$, Hessian $O(p^3)$. Cosine schedule: the midpoint is the average of max and min, the end is min.
+- Write the shape next to every line of tensor code; a handful of rules (layers change one dim, reductions remove one, 1s broadcast) answer most shape questions.
+- About a dozen traps recur: excluded ends, floor division, shared defaults and aliases, views, `*` vs `@`, broadcasting, `loc` vs `iloc`, integer dtypes, and the training-loop trio of `zero_grad`, `eval` and double softmax.
+
+</Takeaways>

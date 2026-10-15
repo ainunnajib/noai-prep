@@ -202,16 +202,16 @@ loader_drop = DataLoader(train_set, batch_size=32, shuffle=True, drop_last=True)
 print("with drop_last=True:", len(loader_drop))
 
 model = torch.nn.Linear(5, 1)
-optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
 loss_fn = torch.nn.MSELoss()
 
 steps = 0
 for epoch in range(3):
     for xb, yb in loader:            # one mini-batch at a time
         loss = loss_fn(model(xb), yb)
-        optimizer.zero_grad()
+        optimiser.zero_grad()
         loss.backward()
-        optimizer.step()             # one iteration = one update
+        optimiser.step()             # one iteration = one update
         steps += 1
 print("updates after 3 epochs:", steps)
 ```

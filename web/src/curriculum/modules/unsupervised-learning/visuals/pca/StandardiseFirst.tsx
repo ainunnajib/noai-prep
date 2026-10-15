@@ -91,7 +91,7 @@ export default function StandardiseFirst() {
             <Axes xTicks={4} yTicks={4} xLabel={xName} yLabel={yName} />
             <Dots points={r.pts.map(([x, y]) => ({ x, y, color: 'var(--viz-ink)', r: 3.5 }))} />
             <Arrow from={[0, 0]} to={[L1 * r.e.v1[0], L1 * r.e.v1[1]]} color="var(--viz-3)" width={3.5} label="PC1" />
-            {L2 > r.R * 0.04 && <Arrow from={[0, 0]} to={[L2 * r.e.v2[0], L2 * r.e.v2[1]]} color="var(--viz-4)" width={3} label="PC2" labelOffset={[-36, -4]} />}
+            {L2 > r.R * 0.08 && <Arrow from={[0, 0]} to={[L2 * r.e.v2[0], L2 * r.e.v2[1]]} color="var(--viz-4)" width={3} label="PC2" labelOffset={[-36, -4]} />}
           </Plot>
           <div style={{ textAlign: 'center', fontSize: '0.8125rem', color: 'var(--ink-3)' }}>Both axes use the same scale, exactly as PCA sees the numbers.</div>
         </div>

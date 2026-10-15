@@ -29,12 +29,16 @@ Nobody programs these patterns. Every head starts with random weights, and train
 
 ## The recipe: split, attend, glue, mix
 
-Here is the whole layer in one line. Do not panic: every symbol is explained underneath.
+Here is the whole layer in two lines. Do not panic: every symbol is explained underneath. First, each head $i$ runs ordinary attention on its own queries, keys and values:
 
 $$
-\text{MultiHead}(X) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\,W^O
-\quad\text{where}\quad
 \text{head}_i = \text{Attention}\big(XW_i^Q,\; XW_i^K,\; XW_i^V\big)
+$$
+
+Then the heads' answers are glued side by side and mixed (MHA is short for multi-head attention):
+
+$$
+\text{MHA}(X) = \text{Concat}(\text{head}_1, \dots, \text{head}_h)\,W^O
 $$
 
 - $X$ is the input: one row per token, so it is a $T \times d_\text{model}$ matrix. $T$ is the number of tokens (code often calls it `L` or `seq_len`) and <Term def="The length of every token's vector inside a Transformer, also called the model width or hidden size. 512 in the original Transformer, 768 in BERT-base.">$d_\text{model}$</Term> is the length of each token's vector.
@@ -138,7 +142,7 @@ class MultiHeadAttention(nn.Module):
 torch.manual_seed(0)
 mha = MultiHeadAttention(d_model=12, num_heads=3)
 x = torch.randn(2, 5, 12)                         # B=2 sentences, T=5 tokens
-out, attn = mha(x, x, x)                          # self-attention: q, k, v all from x
+out, attn = mha(x, x, x)                          # self-attention
 print("output:", tuple(out.shape))
 print("weights:", tuple(attn.shape))
 print("rows sum to 1:", torch.allclose(attn.sum(-1), torch.ones(2, 3, 5)))

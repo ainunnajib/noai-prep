@@ -1,3 +1,280 @@
-{/* stub: lesson 'Generative adversarial networks' is being written */}
+import GAN1DGame from './visuals/gans/GAN1DGame'
+import GANLoopStepper from './visuals/gans/GANLoopStepper'
+import ModeCollapseToggle from './visuals/gans/ModeCollapseToggle'
 
-This lesson is being written.
+In 2014 Ian Goodfellow and his colleagues published a strange idea: to teach a network to *make* realistic images, pit it against a second network whose only job is to catch its fakes. Five years later, the website "This Person Does Not Exist" showed a new, photo-realistic face every time you refreshed it, and not one of those people was real. That was a **generative adversarial network**, or GAN. This lesson shows how the two networks train each other, why the game sometimes goes wrong, and how GANs compare with the diffusion models in the next lesson.
+
+<Analogy title="The forger and the bank inspector">
+
+A forger prints fake \$10 notes. A bank inspector checks every note that comes in. At first the fakes are terrible and the inspector catches them all, so the forger studies *which* features gave him away and fixes them. As the fakes improve, the inspector has to look more carefully: the watermark, the texture, the tiny print. Each one gets better *because* the other does. If the game goes on long enough, the forger's notes become impossible to tell apart from real ones, and the inspector can do no better than guess.
+
+</Analogy>
+
+## The two players
+
+A GAN has two neural networks with opposite goals. The word <Term def="Set against each other, like opponents in a game. In a GAN, one network's gain is the other's loss.">adversarial</Term> means exactly that.
+
+- The <Term def="The network in a GAN that turns random noise into fake data (for example an image). It plays the forger.">generator</Term> $G$ is the forger. It takes a vector of random <Term def="Random numbers, usually drawn from a standard normal distribution, that a generator turns into an output. Different noise gives a different output.">noise</Term> $z$ (say 100 numbers drawn from a bell curve) and turns it into a fake example $G(z)$ with the same shape as the real data, for instance a $3 \times 64 \times 64$ colour image.
+- The <Term def="The network in a GAN that looks at one example and outputs the probability that it is real rather than produced by the generator. It plays the inspector.">discriminator</Term> $D$ is the inspector. It takes one example $x$, real or fake, and outputs a single number $D(x)$ between 0 and 1: its probability that $x$ is **real**. It is an ordinary binary classifier with a sigmoid at the end.
+
+| | Generator $G$ | Discriminator $D$ |
+|---|---|---|
+| Input | noise $z$ | one example $x$ (real or fake) |
+| Output | a fake example $G(z)$ | $D(x)$ = probability "real" |
+| Wants | $D(G(z))$ close to 1 (fool $D$) | $D(\text{real})$ close to 1 and $D(\text{fake})$ close to 0 |
+| Sees real data? | **never** | yes |
+
+That last row is the surprising part. The generator never looks at a single real example. Everything it learns about real data arrives second-hand, through the discriminator's verdicts on its fakes.
+
+Here is a complete GAN small enough to watch. The real data are single numbers, spread in a hump around 3. The generator can only shift and stretch its noise, $G(z) = b + a z$, so it has just two parameters to learn, and the discriminator draws one smooth curve. It is genuinely trained, round after round, with the same losses you will meet below.
+
+<GAN1DGame />
+
+Three things to notice. The orange curve rises wherever real data outnumbers fakes, so the fakes are pushed **uphill** towards the real hump. As the green curve settles onto the blue one, the orange curve flattens out at 0.5: the discriminator has been beaten. And the losses do not fall to zero: they level off at about 1.39 and 0.69, numbers we will explain shortly.
+
+## One round of training
+
+Training alternates between the two players, one mini-batch at a time. In the **discriminator's turn** the generator is frozen and $D$ learns to label real images 1 and fakes 0. In the **generator's turn** the discriminator is frozen and $G$ learns to make $D$ say 1 for its fakes. Step through one round:
+
+<GANLoopStepper />
+
+Two details from the code matter a lot. First, `fake.detach()` cuts the fakes off from the generator while the discriminator learns, so `loss_D.backward()` cannot change $G$. Second, in the generator's turn the fakes are graded against the label **1**, "real". The generator is rewarded for making the discriminator believe a lie.
+
+## The game in symbols
+
+Both losses are the <Term def="The loss for a yes/no prediction: L = −[y ln p + (1 − y) ln(1 − p)], where y is 1 or 0 and p is the predicted probability of 1.">binary cross-entropy</Term> you already know, $\text{BCE}(p, y) = -[\,y \ln p + (1 - y)\ln(1 - p)\,]$, applied with different target labels $y$:
+
+$$
+\text{loss}_D = \underbrace{-\ln D(x)}_{\text{real, target } 1} \; \underbrace{-\ln\big(1 - D(G(z))\big)}_{\text{fake, target } 0}
+$$
+
+$$
+\text{loss}_G = \underbrace{-\ln D(G(z))}_{\text{fake, target } 1}
+$$
+
+- $x$ is a real example and $z$ is random noise, so $G(z)$ is a fake.
+- $D(x)$ and $D(G(z))$ are the discriminator's "real" probabilities for the real and the fake example.
+- $\ln$ is the natural log. $-\ln p$ is 0 when $p = 1$ and grows without limit as $p \to 0$, so each term punishes a confident wrong answer heavily.
+
+In words: the discriminator is punished when it doubts a real example or believes a fake one; the generator is punished whenever the discriminator is *not* fooled. In practice these are averaged over a mini-batch.
+
+The original paper wrote the whole contest as one formula, a <Term def="A two-player game in which one player tries to make a quantity as large as possible while the other tries to make the same quantity as small as possible.">minimax</Term> game:
+
+$$
+\begin{aligned}
+& \min_G \, \max_D \; V(D, G), \quad \text{where} \\
+& V(D, G) = \mathbb{E}_{x \sim p_{\text{data}}}\big[\ln D(x)\big] \\
+& \qquad\quad\; + \mathbb{E}_{z \sim p_z}\big[\ln\big(1 - D(G(z))\big)\big]
+\end{aligned}
+$$
+
+$\mathbb{E}_{x \sim p_\text{data}}$ means "the average over real examples $x$", and $\mathbb{E}_{z \sim p_z}$ "the average over noise vectors $z$". The discriminator picks its weights to make $V$ as **large** as possible ($\max_D$): both logs are at most 0, and reach 0 when $D(x) = 1$ and $D(G(z)) = 0$. The generator picks its weights to make the same $V$ as **small** as possible ($\min_G$), by pushing $D(G(z))$ towards 1 so the second log plunges. Notice that $\text{loss}_D = -V$ for one example: the discriminator's loss is just the value of the game with the sign flipped.
+
+<Reveal label="Why does the generator minimise −ln D(G(z)) instead of ln(1 − D(G(z)))?">
+
+Both are smallest when $D(G(z)) = 1$, but they behave very differently at the start of training, when the fakes are bad and the discriminator rejects them easily, say $D(G(z)) = 0.01$. Measured against the discriminator's raw score (its <Term def="The raw score a classifier computes before the sigmoid turns it into a probability.">logit</Term>), the gradient of $\ln(1 - D)$ is $-D(G(z)) = -0.01$, almost nothing, while the gradient of $-\ln D$ is $-(1 - D(G(z))) = -0.99$, about 100 times stronger. The first version <Term def="Flattens out, so its gradient is close to zero and learning stalls.">saturates</Term> exactly when the generator most needs a push, so everyone uses the second, "non-saturating" loss. That is why the code labels the fakes 1 in the generator's turn.
+
+</Reveal>
+
+**What is the best the discriminator can do?** Suppose real examples near some point $x$ are three times as common as fakes there. The smartest possible inspector says "real" with probability $3/(3 + 1) = 0.75$. In general, for a fixed generator the best discriminator is
+
+$$
+D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)}
+$$
+
+where $p_\text{data}(x)$ is how common real examples are near $x$ and $p_g(x)$ is how common the generator's fakes are there. If the generator ever produces exactly the real distribution, $p_g = p_\text{data}$ everywhere, then $D^*(x) = \tfrac12$ for every input: the inspector can only flip a coin. That is the ideal end point of the game, and it is what the flat orange line at 0.5 showed.
+
+<KeyIdea>
+
+A GAN is a two-player game. The **discriminator** learns to output 1 for real data and 0 for fakes; the **generator** learns, only through the discriminator's feedback, to make fakes that score 1. Training alternates between their updates, and at the ideal end point the fakes match the real data and $D(x) = 0.5$ everywhere.
+
+</KeyIdea>
+
+## A worked example: reading the scoreboard
+
+You will need $\ln 0.9 \approx -0.105$, $\ln 0.5 = -\ln 2 \approx -0.693$ and $\ln 0.1 \approx -2.303$.
+
+<Steps title="GAN losses at three moments">
+  <Step title="Early: the discriminator is winning">
+    Say $D(\text{real}) = 0.9$ and $D(\text{fake}) = 0.1$. Then $\text{loss}_D = -\ln 0.9 - \ln(1 - 0.1) = 0.105 + 0.105 = 0.21$, small, while $\text{loss}_G = -\ln 0.1 = 2.30$, large. The inspector catches almost everything.
+  </Step>
+  <Step title="Middle: what the best discriminator says">
+    Near some $x$, real data has density $p_\text{data} = 0.3$ and fakes $p_g = 0.1$. The best verdict is $D^* = \dfrac{0.3}{0.3 + 0.1} = 0.75$: "probably real, but fakes do turn up here".
+  </Step>
+  <Step title="End: equilibrium">
+    The generator matches the data, so $p_g = p_\text{data}$ and $D^* = \dfrac{p}{p + p} = 0.5$ everywhere. Now $\text{loss}_D = -\ln 0.5 - \ln 0.5 = 2\ln 2 \approx 1.39$ and $\text{loss}_G = -\ln 0.5 = \ln 2 \approx 0.69$. These are exactly the levels the loss chart in the first figure settled at.
+  </Step>
+  <Step title="The moral">
+    In ordinary training a falling loss means progress. In a GAN, the discriminator's loss *rising* to about 1.39 can mean success, and a discriminator loss near 0 means the generator is losing badly. GAN losses tell you who is winning, not how good the images are, so practitioners always look at the samples.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A GAN has trained perfectly: its fakes follow exactly the same distribution as the real data. What does the best possible discriminator output for a real image?"
+  options={['0.5', '1', '0', '0.75']}
+  answer={0}
+  explain="With $p_g = p_\text{data}$, $D^*(x) = p_\text{data}/(p_\text{data} + p_g) = 1/2$ for every input, real or fake. The tempting answer 1 is what the discriminator *wants* to output for real images, but when fakes are indistinguishable it cannot do better than a coin flip."
+/>
+
+## In PyTorch
+
+Here is the 1D GAN from the first figure written in PyTorch, with small neural networks in place of the two-parameter generator and the one-curve discriminator. The training loop is the one you stepped through.
+
+```python
+import torch
+from torch import nn
+
+torch.manual_seed(0)
+def real_data(n):                       # real data: mean 3, std 0.7
+    return 3.0 + 0.7 * torch.randn(n, 1)
+
+# G: noise -> a fake number.  D: a number -> probability "real".
+G = nn.Sequential(nn.Linear(1, 16), nn.ReLU(), nn.Linear(16, 1))
+D = nn.Sequential(nn.Linear(1, 16), nn.ReLU(), nn.Linear(16, 1),
+                  nn.Sigmoid())
+opt_G = torch.optim.Adam(G.parameters(), lr=1e-3)
+opt_D = torch.optim.Adam(D.parameters(), lr=1e-3)
+bce = nn.BCELoss()
+B = 128
+ones, zeros = torch.ones(B, 1), torch.zeros(B, 1)
+
+for step in range(1, 4001):
+    real = real_data(B)
+    fake = G(torch.randn(B, 1))
+
+    # discriminator's turn: real -> 1, fake -> 0 (G left alone)
+    loss_D = bce(D(real), ones) + bce(D(fake.detach()), zeros)
+    opt_D.zero_grad()
+    loss_D.backward()
+    opt_D.step()
+
+    # generator's turn: make D say 1 for the fakes
+    loss_G = bce(D(fake), ones)
+    opt_G.zero_grad()
+    loss_G.backward()
+    opt_G.step()
+
+    if step % 1000 == 0:
+        with torch.no_grad():
+            s = G(torch.randn(10000, 1))
+            dr, df = D(real).mean(), D(fake).mean()
+        print(f"step {step}: fakes mean {s.mean():.2f} "
+              f"std {s.std():.2f} | D(real) {dr:.2f} D(fake) {df:.2f}")
+```
+
+```text
+step 1000: fakes mean 3.47 std 0.38 | D(real) 0.47 D(fake) 0.46
+step 2000: fakes mean 3.08 std 1.07 | D(real) 0.49 D(fake) 0.49
+step 3000: fakes mean 3.51 std 0.46 | D(real) 0.46 D(fake) 0.45
+step 4000: fakes mean 3.39 std 0.37 | D(real) 0.47 D(fake) 0.47
+```
+
+Read the output closely. Within a thousand steps the fakes' mean is near 3 and the discriminator scores real and fake numbers alike, just under 0.5. Yet the spread keeps swinging: 0.38, 1.07, 0.46, 0.37, against the real data's 0.7. That is GAN instability in miniature. With noisy mini-batches the game circles around the equilibrium instead of settling on it, and a discriminator that says about 0.5 to everything does not prove the fakes are right. (The figure above did settle, because it used exact averages instead of random mini-batches and a discriminator whose curve shape suits this problem perfectly.)
+
+For images, the same loop works with convolutional networks. The classic design, <Term def="Deep Convolutional GAN (2015): a GAN whose generator upsamples noise into an image with transposed convolutions and whose discriminator is a convolutional classifier.">DCGAN</Term>, turns a noise vector into an image with **transposed convolutions** (the upsampling layers from the U-Net lesson), and its discriminator is a CNN classifier that runs the other way:
+
+```python
+G = nn.Sequential(                          # noise (100, 1, 1)
+    nn.ConvTranspose2d(100, 256, 4, 1, 0),  # -> (256, 4, 4)
+    nn.BatchNorm2d(256), nn.ReLU(),
+    nn.ConvTranspose2d(256, 128, 4, 2, 1),  # -> (128, 8, 8)
+    nn.BatchNorm2d(128), nn.ReLU(),
+    nn.ConvTranspose2d(128, 64, 4, 2, 1),   # -> (64, 16, 16)
+    nn.BatchNorm2d(64), nn.ReLU(),
+    nn.ConvTranspose2d(64, 3, 4, 2, 1),     # -> (3, 32, 32)
+    nn.Tanh(),                              # pixels in [-1, 1]
+)
+D = nn.Sequential(                          # image (3, 32, 32)
+    nn.Conv2d(3, 64, 4, 2, 1),              # -> (64, 16, 16)
+    nn.LeakyReLU(0.2),
+    nn.Conv2d(64, 128, 4, 2, 1),            # -> (128, 8, 8)
+    nn.BatchNorm2d(128), nn.LeakyReLU(0.2),
+    nn.Conv2d(128, 256, 4, 2, 1),           # -> (256, 4, 4)
+    nn.BatchNorm2d(256), nn.LeakyReLU(0.2),
+    nn.Conv2d(256, 1, 4, 1, 0),             # -> (1, 1, 1)
+    nn.Flatten(), nn.Sigmoid(),             # -> P(real)
+)
+z = torch.randn(16, 100, 1, 1)              # 16 noise vectors
+fake = G(z)
+print(fake.shape, D(fake).shape)
+```
+
+```text
+torch.Size([16, 3, 32, 32]) torch.Size([16, 1])
+```
+
+Each `ConvTranspose2d(k=4, s=2, p=1)` doubles the size, because its output is $(n - 1)s - 2p + k = (n - 1) \cdot 2 - 2 + 4 = 2n$. The final `Tanh` keeps pixel values in $[-1, 1]$, so real images are scaled to the same range before training.
+
+<Mistake title="Three bugs that silently break a GAN">
+
+- **Forgetting `.detach()`** in the discriminator's loss. Then `loss_D.backward()` also sends gradients into $G$, pushing it to make fakes *easier* to catch, the opposite of what it should learn.
+- **Labelling the fakes 0 in the generator's turn.** That trains $G$ to help the discriminator. The generator's target is 1.
+- **A sigmoid twice.** `nn.BCELoss` expects probabilities (sigmoid already applied). If $D$ outputs raw logits, use `nn.BCEWithLogitsLoss` instead, which applies the sigmoid itself and is more numerically stable.
+
+</Mistake>
+
+## When the game goes wrong
+
+GANs are famous for being hard to train. Two failures come up again and again.
+
+<Term def="A GAN failure in which the generator produces only a few kinds of output (one 'mode' of the data) instead of the full variety of the training data.">Mode collapse</Term> happens when the generator finds a few outputs that fool the discriminator and produces only those. A <Term def="A peak of a distribution: a group of very common, similar examples, such as all the 7s in a digit dataset.">mode</Term> is one peak of the data, one family of common examples, such as all the 7s in a dataset of handwritten digits. A collapsed generator trained on all ten digits might draw beautiful 7s and nothing else. Every single fake looks convincing, so the generator's loss can look fine, yet the variety is gone.
+
+<Analogy title="The one-trick street performer">
+
+A busker on Orchard Road discovers that the crowd loves one particular trick, so he stops doing anything else. When the crowd gets bored of it, he switches to a new trick and does only that one. He keeps the crowd's attention, but you never see his full repertoire.
+
+</Analogy>
+
+The classic test is a ring of 8 clusters. A healthy generator spreads its samples over all 8. A collapsing one piles them onto one cluster, the discriminator learns that this cluster is full of fakes, and the whole pile hops to the next cluster, round and round the ring:
+
+<ModeCollapseToggle />
+
+The second failure is plain <Term def="Training that never settles: the losses and outputs keep swinging, or the numbers blow up.">instability</Term>. The two players can chase each other in circles instead of settling down, or one can overpower the other: if the discriminator becomes perfect too early, it rejects every fake with total confidence and the generator gets almost no useful signal. You saw both in the first figure with extreme learning rates. There is no single loss going downhill, so ordinary gradient descent is not guaranteed to reach the equilibrium.
+
+Researchers have found many fixes, none of them perfect:
+
+- **Better architectures**: DCGAN's rules of thumb (batch norm, LeakyReLU in $D$, no pooling) and later StyleGAN.
+- **Better losses**: the Wasserstein GAN (WGAN) measures *how far* the fakes are from the real data, which gives the generator a useful signal even when the discriminator is winning.
+- **Rewarding variety**: tricks such as letting the discriminator compare samples within a mini-batch, so a batch of identical fakes is easy to catch.
+- **Careful tuning**: balanced learning rates (often Adam with a small learning rate), and watching samples rather than losses.
+
+## GANs versus diffusion models
+
+Since about 2022, the best-known image generators (Stable Diffusion, DALL·E 2 and 3, Imagen) have been **diffusion models**, the topic of the next lesson. A diffusion model starts from pure noise and removes a little of it at a time, and each of those small steps is a full pass through a large network.
+
+| | GAN | Diffusion model |
+|---|---|---|
+| Generating one image | **one** forward pass of $G$ | one network pass **per denoising step**, typically 20 to 1000 |
+| Speed at generation time | very fast | much slower |
+| Training | two networks in a delicate game; can be unstable | one network with a simple, stable loss |
+| Variety of outputs | can suffer mode collapse | covers the data well |
+
+Note what a GAN does **not** need at generation time: the discriminator. It is only a training partner. Once training ends you throw it away and keep $G$, so producing an image is a single forward pass. That speed is why GAN-style generators are still used where time matters, for example in super-resolution tools such as ESRGAN that sharpen low-resolution photos.
+
+<PastPaperQuestion paper="prelim2026" n={244} />
+
+<ExamTip>
+
+Keyword map for GAN questions. "Two networks", "adversarial", "minimax", "real or fake" → GAN. "Produces only a few kinds of output", "lacks diversity" → **mode collapse**. "Unstable", "oscillates", "hard to train" → GAN training problems. "Single forward pass", "fast sampling" → GAN; "many denoising steps", "slow sampling" → diffusion. Watch the trap that a GAN uses its discriminator to generate: it does not.
+
+</ExamTip>
+
+## Famous GANs
+
+| Model | Year | Idea |
+|---|---|---|
+| GAN (Goodfellow et al.) | 2014 | the generator–discriminator game |
+| DCGAN | 2015 | convolutional generator and discriminator; the standard recipe |
+| Conditional GAN | 2014 | feed a label to both networks, so you can ask for "a 7" |
+| CycleGAN | 2017 | translate images between styles without paired examples (horse ↔ zebra, summer ↔ winter) |
+| StyleGAN | 2018 | photo-realistic faces, with separate control of coarse and fine features |
+
+<Takeaways>
+
+- A GAN trains a **generator** (noise $z$ → fake $G(z)$) against a **discriminator** ($x$ → probability real) in a two-player **minimax** game.
+- Training **alternates**: update $D$ with real → 1, fake → 0 (fakes detached, $G$ frozen); then update $G$ with fake → 1 (gradients flow through a frozen $D$). The generator never sees real data directly.
+- The best discriminator is $D^*(x) = p_\text{data}/(p_\text{data} + p_g)$; at the ideal end point $p_g = p_\text{data}$, so $D = 0.5$ everywhere, $\text{loss}_D = 2\ln 2 \approx 1.39$ and $\text{loss}_G = \ln 2 \approx 0.69$.
+- **Mode collapse** (only a few kinds of output) and **instability** (oscillating or exploding training) are the classic GAN failures.
+- A GAN generates in **one forward pass**, far faster than a diffusion model's many denoising steps, but diffusion models are easier to train and more diverse.
+
+</Takeaways>

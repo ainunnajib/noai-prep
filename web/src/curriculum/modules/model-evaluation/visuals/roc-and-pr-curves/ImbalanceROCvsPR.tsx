@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Readout, Plot, Grid, Axes, Path, Dots, HLine, Label, useNarrow } from '../../../../../kit'
 import { normInv } from '../confusion-matrix-and-metrics/evalMath'
+import { HaloLabel } from '../confusion-matrix-and-metrics/HaloLabel'
 import { binormalAt, binormalAUC, binormalCurves, type Pt } from './roc'
 import s from '../confusion-matrix-and-metrics/eval.module.css'
 
@@ -62,9 +63,9 @@ export default function ImbalanceROCvsPR() {
             <Path points={[[0, 0], [1, 1]]} color="var(--viz-muted)" dash="5 5" width={1.6} />
             <Path points={curves.roc} color={ROC_C} width={3} />
             <Dots points={[{ x: fpr, y: recall, color: OP_C, r: 6 }]} />
-            <Label x={fpr} y={recall} dx={10} dy={14}>
+            <HaloLabel x={fpr} y={recall} dx={10} dy={14}>
               {`FPR ${fpr.toFixed(3)}`}
-            </Label>
+            </HaloLabel>
             <Label x={0.62} y={0.3} anchor="middle" color={ROC_C} size={13} weight={700}>
               {`ROC-AUC = ${auc.toFixed(3)}`}
             </Label>
@@ -79,9 +80,10 @@ export default function ImbalanceROCvsPR() {
             <HLine y={share} color="var(--viz-muted)" dash="5 5" label={share >= 0.1 ? `baseline = ${pctTxt(share)}` : undefined} />
             <Path points={curves.pr} color={PR_C} width={3} />
             <Dots points={[{ x: recall, y: precision, color: OP_C, r: 6 }]} />
-            <Label x={recall} y={precision} dx={recall > 0.6 ? -10 : 10} dy={precision > 0.85 ? 18 : -10} anchor={recall > 0.6 ? 'end' : 'start'}>
+            {/* the PR curve falls to the right, so below-left of the point is under it; near the left edge use the right side */}
+            <HaloLabel x={recall} y={precision} dx={recall < 0.45 ? 10 : -10} dy={precision < 0.15 ? -12 : 18} anchor={recall < 0.45 ? 'start' : 'end'}>
               {`precision ${precision.toFixed(2)}`}
-            </Label>
+            </HaloLabel>
             <Label x={0.38} y={0.3} anchor="middle" color={PR_C} size={13} weight={700}>
               {`PR-AUC = ${curves.ap.toFixed(3)}`}
             </Label>

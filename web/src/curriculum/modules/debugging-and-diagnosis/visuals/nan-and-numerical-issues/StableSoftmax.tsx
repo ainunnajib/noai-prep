@@ -111,7 +111,7 @@ export default function StableSoftmax() {
 
   return (
     <Figure
-      title="Softmax by hand, in float32: three ways"
+      title="Softmax by hand, three ways"
       caption={
         <>
           Every number is rounded to {fmt}, as on a GPU. Start with <b>naive</b> and drag <M>z_1</M> past {limit.toFixed(1)}: one

@@ -103,7 +103,7 @@ export default function XorFold() {
             <Path points={inBox} closed fill="color-mix(in srgb, var(--viz-1) 12%, var(--surface))" color="none" width={0} />
             {orangeIn.length > 2 && <Path points={orangeIn} closed fill="color-mix(in srgb, var(--viz-2) 26%, var(--surface))" color="none" width={0} />}
             <Grid xTicks={4} yTicks={4} />
-            <Axes xLabel="x₁" yLabel="x₂" xTicks={4} yTicks={4} origin />
+            <Axes xLabel="x₁" yLabel="x₂" xTicks={4} yTicks={4} />
             <Path
               points={[
                 [-0.6, 0.6],
@@ -125,12 +125,12 @@ export default function XorFold() {
             <Label x={-0.58} y={0.6} dx={2} dy={-6} color="var(--viz-4)" size={12}>
               h₁ = 0
             </Label>
-            <Label x={1.4} y={-0.4} dx={-2} dy={-8} anchor="end" color="var(--viz-3)" size={12}>
+            <Label x={-0.4} y={1.4} dx={6} dy={-4} color="var(--viz-3)" size={12}>
               h₂ = 0
             </Label>
             <Dots points={CORNERS.map((c) => ({ x: c.x[0], y: c.x[1], color: COL(c.label), r: 7 }))} />
             {CORNERS.map((c) => (
-              <Label key={c.name} x={c.x[0]} y={c.x[1]} dx={10} dy={c.x[1] === 1 ? -10 : 18} size={12}>
+              <Label key={c.name} x={c.x[0]} y={c.x[1]} dx={c.name === '(0, 0)' ? -10 : 10} dy={c.name === '(0, 0)' ? 20 : -10} anchor={c.name === '(0, 0)' ? 'end' : 'start'} size={12}>
                 {c.name}
               </Label>
             ))}

@@ -51,7 +51,7 @@ function Panel({ pts, group, ds, x, y, label }: { pts: XY[]; group: number[]; ds
     <Plot x={x} y={y} width={340} height={340} maxWidth={400} margin={{ left: 6, right: 6, top: 6, bottom: 6 }} ariaLabel={label}>
       <Frame />
       {cols.map((c, g) => (
-        <DotCloud key={g} pts={pts.filter((_, i) => group[i] === g)} r={3.4} style={{ fill: c, stroke: 'var(--surface)', strokeWidth: 0.8 }} />
+        <DotCloud key={g} pts={pts.filter((_, i) => group[i] === g)} r={3.4} style={{ fill: c, stroke: 'var(--surface)', strokeWidth: 1.5, paintOrder: 'stroke' }} />
       ))}
     </Plot>
   )

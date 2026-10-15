@@ -1,3 +1,290 @@
-{/* stub: lesson 'Systematic debugging and shape bugs' is being written */}
+import DebugDecisionTree from './visuals/systematic-debugging/DebugDecisionTree'
+import OverfitOneBatch from './visuals/systematic-debugging/OverfitOneBatch'
+import ShapeErrorDetective from './visuals/systematic-debugging/ShapeErrorDetective'
+import SilentBugGallery from './visuals/systematic-debugging/SilentBugGallery'
 
-This lesson is being written.
+Your model trains, nothing crashes, and the accuracy is terrible. Where do you even start? Beginners change the learning rate, add layers and train again, hoping. Experienced engineers run a short, fixed routine of cheap checks that finds most bugs in minutes. This lesson teaches that routine, and the shape bugs that cause so many of the problems it finds.
+
+<Analogy title="When the lights go out">
+
+The lights in your HDB flat go off. You do not call an electrician to rewire the flat. You check, in order: is it only your flat or the whole block? Has the circuit breaker in the DB box tripped? Is it just one bulb? Each check takes a minute, and together they solve most cases. Only when they all pass do you pay for the expensive visit. Debugging a model works the same way: cheap and likely checks first, expensive experiments last.
+
+</Analogy>
+
+## Why ML bugs are sneaky
+
+In most programs a bug crashes the program or prints something obviously wrong. In machine learning, a bug usually just makes the model **worse**. The code runs, the loss goes down a bit, and the accuracy is a plausible 60% instead of 90%. Nothing tells you whether to blame the code, the data or the settings.
+
+So it helps to separate two kinds of problem:
+
+- A <Term def="A mistake in the code or data: wrong labels, wrong shapes, a missing line in the training loop. No amount of tuning fixes it.">bug</Term>: the code does not do what you think it does.
+- A <Term def="A setting you choose before training rather than one the model learns: learning rate, batch size, number of layers, dropout rate.">hyperparameter</Term> problem: the code is right, but the settings are poor.
+
+Tuning hyperparameters is slow (each try is a full training run) and it cannot fix a bug. So you rule out bugs first, with checks that each take a minute or two.
+
+## The debugging routine
+
+Run these checks in this order. Each one is cheap, and each one rules out a whole family of bugs:
+
+1. **Look at the data.** Print a few inputs next to their labels. Do the labels match? Are the values in a sensible range?
+2. **Check the shapes.** Print the shape of the inputs, the model's output, the labels and the loss.
+3. **Check the initial loss.** Before any training, a classifier with $K$ classes should have a loss of about $\ln K$.
+4. **Overfit one small batch.** Train on the same handful of examples over and over. A correct model and training loop drive the loss close to zero.
+5. **Compare with a simple baseline.** Does your model beat a trivial rule, such as always predicting the most common class, or a simple model like logistic regression?
+
+Only if all five pass is it time to tune hyperparameters, and then you **change one thing at a time**, so that you know which change caused which effect.
+
+<DebugDecisionTree />
+
+<KeyIdea>
+
+Rule out bugs before tuning. Check the data, the shapes, the initial loss and a one-batch overfit, then compare with a baseline. Fix the first check that fails, and change one thing at a time.
+
+</KeyIdea>
+
+## The initial-loss check
+
+Before training, the weights are small random numbers, so a classifier has no idea which class is right. Its best honest answer is to spread its belief evenly: probability $\frac{1}{K}$ on each of the $K$ classes. The <Term def="The standard loss for classification: minus the log of the probability the model gave to the correct class, averaged over the examples. A confident right answer costs almost 0; a confident wrong answer costs a lot.">cross-entropy loss</Term> on one example is
+
+$$
+\ell = -\ln p_y
+$$
+
+where $p_y$ is the probability the model gives to the correct class $y$, and $\ln$ is the natural logarithm. In words: the loss is small when the correct class gets a high probability and large when it gets a low one.
+
+<Steps title="The expected first loss for 10 classes">
+  <Step title="Probability of the right class">
+    An unsure model gives each of the 10 classes probability $\frac{1}{10}$, so $p_y = 0.1$ whatever the label is.
+  </Step>
+  <Step title="Plug into the loss">
+    $\ell = -\ln \frac{1}{10} = \ln 10$, because $-\ln \frac{1}{a} = \ln a$.
+  </Step>
+  <Step title="Put a number on it">
+    $\ln 10 \approx 2.30$. Every example gives the same value, so the average loss over the batch is also about $2.30$.
+  </Step>
+</Steps>
+
+So the rule is: **initial loss $\approx \ln K$**. The values worth memorising, since there is no calculator in the Prelim:
+
+| Classes $K$ | 2 | 4 | 10 | 100 | 1000 |
+|---|---|---|---|---|---|
+| $\ln K$ | 0.69 | 1.39 | 2.30 | 4.61 | 6.91 |
+
+You only need two of them: $\ln 2 \approx 0.69$ and $\ln 10 \approx 2.30$. The rest follow from $\ln(ab) = \ln a + \ln b$: for example $\ln 4 = 2 \ln 2 \approx 1.39$ and $\ln 100 = 2 \ln 10 \approx 4.61$.
+
+```python
+import math, torch, torch.nn as nn, torch.nn.functional as F
+torch.manual_seed(0)
+model = nn.Sequential(nn.Linear(784, 128), nn.ReLU(), nn.Linear(128, 10))
+x = torch.randn(64, 784)          # stand-in for 64 flattened images
+y = torch.randint(0, 10, (64,))   # labels for 10 classes
+loss = F.cross_entropy(model(x), y)
+print(f"initial loss {loss.item():.3f}   ln 10 = {math.log(10):.3f}")
+```
+
+```text
+initial loss 2.315   ln 10 = 2.303
+```
+
+What a wrong first loss tells you:
+
+- **Much higher than $\ln K$** (say 9.7 for 10 classes): the untrained model is confidently wrong, so its outputs are far too large. Look for inputs that were not normalised (pixels 0 to 255 instead of 0 to 1), huge initial weights, or the wrong loss function.
+- **Much lower than $\ln K$** (say 0.05 before any training): the model already "knows" the answers, which usually means the label has leaked into the inputs.
+
+<QuickCheck
+  q="A 4-class classifier logs a loss of 6.2 at step 0, before any training. What should you conclude?"
+  options={['Something is wrong: the loss should start near ln 4 ≈ 1.39, so the outputs are far too large', 'Nothing: a high starting loss just means there is a lot left to learn', 'The model is overfitting already', 'The learning rate is too low']}
+  answer={0}
+  explain="An untrained 4-class model should be unsure, giving each class about 1/4, so the first loss should be about $\ln 4 = 2 \ln 2 \approx 1.39$. A loss of 6.2 means the untrained model is confidently wrong: check input normalisation, weight initialisation and the loss function. The learning rate cannot matter yet, because no update has happened."
+/>
+
+## Overfit one batch
+
+The fourth check is the most powerful. Take one small batch (say 16 examples) and train on it again and again. A model with thousands of weights can memorise 16 answers easily, so if the model, the loss and the training loop are all correct, the loss on that batch should drop close to zero within a few hundred steps.
+
+<Analogy title="Test the recipe on one plate">
+
+Before cooking for a party of 50, you cook one plate and taste it. If that one plate is wrong, cooking 50 plates will not fix it. If your model cannot even learn 16 examples, more data and more epochs will not help: something is broken.
+
+</Analogy>
+
+<OverfitOneBatch />
+
+Each bug leaves its own fingerprint on the one-batch curve:
+
+| What the curve does | Likely cause |
+|---|---|
+| Perfectly flat, the same number every step | Nothing is updated: weights frozen, optimiser holding the wrong parameters, learning rate 0 |
+| Wanders around $\ln K$ | The labels do not belong to the inputs (shuffled separately, misaligned) |
+| Falls, then levels off well above 0 | The loss is wrong, for example softmax applied before `CrossEntropyLoss` |
+| Falls, then keeps lurching back up | Gradients piling up: a missing `optimizer.zero_grad()` |
+| Barely moves | Learning rate far too low |
+
+<Note title="One test cannot catch everything">
+
+With plain SGD instead of Adam, a missing `zero_grad()` can fit a single batch even *faster*: the piled-up gradients act like a very strong momentum, and on one fixed batch they all point the same way. The damage shows on the full dataset, where stale gradients from old batches push in the wrong direction. So read the training loop as well; the next lesson has a bug hunt for exactly that.
+
+</Note>
+
+In PyTorch the test is just the normal training loop with the data loader replaced by one fixed batch:
+
+```python
+import torch, torch.nn as nn, torch.nn.functional as F
+torch.manual_seed(0)
+model = nn.Sequential(nn.Linear(20, 64), nn.ReLU(), nn.Linear(64, 10))
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+x, y = torch.randn(32, 20), torch.randint(0, 10, (32,))  # ONE batch, kept fixed
+
+for step in range(201):
+    optimizer.zero_grad()
+    loss = F.cross_entropy(model(x), y)
+    loss.backward()
+    optimizer.step()
+    if step % 50 == 0:
+        print(f"step {step:3d}   loss {loss.item():.4f}")
+```
+
+```text
+step   0   loss 2.4255
+step  50   loss 0.0027
+step 100   loss 0.0011
+step 150   loss 0.0008
+step 200   loss 0.0006
+```
+
+The labels here are random, so there is no pattern to find at all: the network simply memorises 32 answers. That is all this test asks of it. Notice that the first loss, 2.43, is close to $\ln 10 \approx 2.30$, so check 3 passes too.
+
+<Mistake title="Passing the test does not mean the model is good">
+
+Overfitting one batch proves only that the pipeline *can* learn. It says nothing about whether the model will generalise; that is what the validation set and the loss curves are for. And a bug that is *consistent*, such as every label shifted by one class, passes this test, because the model happily memorises wrong answers. That is why check 1, looking at the data with your own eyes, comes first.
+
+</Mistake>
+
+### Baselines and one change at a time
+
+A <Term def="A deliberately simple reference model, such as always predicting the most common class, the average value, or a logistic regression. Any serious model should beat it.">baseline</Term> gives your numbers meaning. If always predicting the most common class scores 61% and your network scores 70%, the network has learned something; if logistic regression scores 78%, your network is the wrong tool or badly tuned. Without a baseline, "70%" is just a number.
+
+Once the bugs are gone, every experiment should change **one thing**. If you lower the learning rate *and* add dropout *and* double the batch size, and the result improves, you have no idea which change helped (or whether one of them hurt). Keep a short log of each run: what you changed, and what happened.
+
+## Reading shape errors
+
+The most common crash in PyTorch is a shape mismatch, and its message tells you almost exactly what to fix once you can read it. It comes from the rule for multiplying matrices: an $m \times n$ matrix times an $n \times p$ matrix gives an $m \times p$ matrix, and the two **inner** numbers must be equal.
+
+An `nn.Linear(in_features, out_features)` layer computes $xW^\top + b$. Here $x$ is the input, one row per example, and $W$ is the weight matrix with shape `(out_features, in_features)`. So the layer multiplies
+
+$$
+\underbrace{x}_{N \times \text{features}} \;\times\; \underbrace{W^\top}_{\text{in\_features} \times \text{out\_features}}
+$$
+
+where $N$ is the number of examples in the batch, and the inner numbers, the number of features the data has and the number the layer expects, must match. When they do not, PyTorch reports both matrices:
+
+```python
+import torch, torch.nn as nn
+model = nn.Sequential(nn.Linear(784, 512), nn.ReLU(), nn.Linear(256, 10))
+model(torch.randn(32, 784))
+```
+
+```text
+RuntimeError: mat1 and mat2 shapes cannot be multiplied (32x512 and 256x10)
+```
+
+<Steps title="Decoding (32x512 and 256x10)">
+  <Step title="mat1 is the data">
+    $32 \times 512$: a batch of 32 examples, each with 512 features, arriving at some Linear layer.
+  </Step>
+  <Step title="mat2 is the layer">
+    $256 \times 10$: a layer with `in_features=256` and `out_features=10`, that is `nn.Linear(256, 10)`.
+  </Step>
+  <Step title="Compare the inner numbers">
+    The layer expects 256 features but receives 512. The layer before it outputs 512, so either change this layer to `nn.Linear(512, 10)` or change the previous one to output 256.
+  </Step>
+</Steps>
+
+Two causes cover most of these errors: an `in_features` that does not match the layer before, and a **missing flatten**. A batch of images has shape $(N, C, H, W)$, and a Linear layer needs one row per image. For a CNN you must work out how many numbers each image has when it reaches the classifier, using the output-size formula for each convolution and pooling layer,
+
+$$
+\text{out} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
+$$
+
+where $n$ is the input height (or width), $p$ the padding, $k$ the kernel size, $s$ the stride, and $\lfloor\,\rfloor$ means round down. A $3 \times 3$ convolution with padding 1 and stride 1 keeps the size: $\lfloor (28 + 2 - 3)/1 \rfloor + 1 = 28$. A $2 \times 2$ max-pool with stride 2 halves it: $\lfloor (28 - 2)/2 \rfloor + 1 = 14$. So two conv-and-pool blocks take a $28 \times 28$ image to $14 \times 14$ and then $7 \times 7$, and with 32 channels the classifier needs `nn.Linear(32 * 7 * 7, 10)`, that is 1568 inputs.
+
+<ShapeErrorDetective />
+
+<Mistake title="The view(-1, ...) trap">
+
+Flattening with `x.view(-1, 6272)` asks PyTorch to work out the first dimension itself. If each image really has 1568 numbers, it packs 4 images into every row and your batch of 32 silently becomes 8. The crash then appears later, at the loss, as `Expected input batch_size (8) to match target batch_size (32)`. Flatten with `x.flatten(1)`, `nn.Flatten()` or `x.view(x.size(0), -1)`, which always keep the batch size.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={1} />
+
+## Silent bugs: broadcasting and wrong dimensions
+
+Worse than a crash is a bug that raises no error at all. Two families cause most of them.
+
+**Broadcasting.** When two tensors of different shapes meet in an element-wise operation (`+`, `-`, `*`), PyTorch and NumPy try to <Term def="Automatically stretching a tensor along dimensions of size 1 (or missing dimensions) so that two tensors of different shapes can be combined element by element.">broadcast</Term> them to a common shape. Compare the shapes from the right; each pair of sizes must be equal, or one of them must be 1 (a missing dimension counts as 1); a size-1 dimension is stretched to match.
+
+<Steps title="Why (4, 1) minus (4,) gives (4, 4)">
+  <Step title="Line the shapes up on the right">
+    `(4, 1)` and `(4,)`. The shorter one gets a 1 in front: `(4, 1)` and `(1, 4)`.
+  </Step>
+  <Step title="Compare each position">
+    First position: 4 and 1, so stretch to 4. Second position: 1 and 4, so stretch to 4.
+  </Step>
+  <Step title="The result is a table">
+    The result is `(4, 4)`: every one of the 4 predictions minus every one of the 4 targets. With predictions $[1.5, 2, 2.5, 4]$ and targets $[1, 2, 3, 4]$, the true MSE is $(0.25 + 0 + 0.25 + 0)/4 = 0.125$, but the mean over all 16 squared differences is $2.125$.
+  </Step>
+</Steps>
+
+```python
+y      = torch.tensor([1., 2., 3., 4.])                 # shape (4,)
+y_pred = torch.tensor([[1.5], [2.0], [2.5], [4.0]])     # shape (4, 1)
+print((y_pred - y).shape)
+print(((y_pred - y) ** 2).mean(), ((y_pred.squeeze(1) - y) ** 2).mean())
+```
+
+```text
+torch.Size([4, 4])
+tensor(2.1250) tensor(0.1250)
+```
+
+**Wrong dimensions.** Many functions take a `dim` argument, and choosing the wrong one still produces a tensor of a plausible shape:
+
+- `torch.softmax(logits, dim=0)` on logits of shape (batch, classes) makes each *class* sum to 1 across the batch, instead of each *example* summing to 1 across its classes.
+- `img.reshape(3, H, W)` on an image stored as $(H, W, C)$ regroups the numbers in memory order instead of moving the channel axis: use `img.permute(2, 0, 1)`.
+- `torch.cat([a, b], dim=0)` on two batches of shape $(8, 3, 32, 32)$ gives $(16, 3, 32, 32)$, twice as many images; `dim=1` gives $(8, 6, 32, 32)$, the same 8 images with 6 channels each. Only one of them is what you meant.
+
+<SilentBugGallery />
+
+Errors cannot catch these bugs, so you need **sanity checks**: quick tests of something you know must be true.
+
+- Print `.shape` after every step you are unsure about, or `assert` it (the next lesson shows how).
+- Probabilities: `probs.sum(dim=1)` should be all ones.
+- Compute one value by hand on a tiny input and compare.
+- Plot an input *after* preprocessing, exactly as the model sees it.
+- Read your warnings: PyTorch's `MSELoss` warns when the two shapes differ.
+
+<QuickCheck
+  q="`x` has shape (32, 10) and `m = x.mean(dim=0)`. What is the shape of `x - m`, and is it what you want for centring each feature?"
+  options={['(32, 10), and yes: each column has its own mean subtracted', '(32, 32), because broadcasting builds a table', '(10,), because the mean removed the batch dimension', 'It raises an error, because (32, 10) and (10,) do not match']}
+  answer={0}
+  explain="`x.mean(dim=0)` averages over the 32 examples and leaves one mean per feature, shape (10,). Lined up on the right, (32, 10) and (10,) become (32, 10) and (1, 10), so the means are stretched down all 32 rows: each feature has its own mean subtracted. Broadcasting is often exactly what you want; it only bites when the shapes are not the ones you think."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={93} />
+
+<ExamTip>
+
+The Prelim asks debugging as short scenarios ("accuracy is stuck at 10% on 10 classes; what should you check first?"). Favour the answer that checks something **cheap and fundamental** (the data, the shapes, the initial loss, overfitting one batch) over one that launches an expensive search. For shapes: in `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)`, the fix makes **B equal C**. In the Final's code-reading questions, look hard at every `dim=` argument, every `view`/`reshape`, and any subtraction of a `(N, 1)` tensor from an `(N,)` one.
+
+</ExamTip>
+
+<Takeaways>
+
+- Bugs make ML models quietly worse, and no amount of tuning fixes them, so rule them out first, cheapest checks first.
+- The routine: look at the data, check shapes, check the initial loss ($\approx \ln K$), overfit one batch, beat a baseline. Then tune one change at a time.
+- If the model cannot drive the loss on one small batch near zero, the problem is in the model, loss or training loop, not the amount of data.
+- In `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)`, the layer expects C features but gets B: fix `in_features` or add a flatten.
+- Broadcasting and wrong `dim`s fail silently: check shapes, row sums and pictures of your inputs.
+
+</Takeaways>

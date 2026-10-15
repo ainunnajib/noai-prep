@@ -158,7 +158,7 @@ const PIPES: Record<Family, { label: string; kind: string; stages: Stage[] }> = 
   },
 }
 
-const GRIDS = [4, 7, 13]
+const GRIDS = [5, 7, 14]
 /** which of the decoder's query slots ended up holding person A, person B and the car */
 const QUERY_HITS = [2, 5, 7]
 const B_BOXES = 2
@@ -168,10 +168,10 @@ const centre = (b: number[]) => [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2] as const
 
 // proposals for the Faster R-CNN view: the earlier NMS candidates plus some background boxes
 const PROPOSALS: { b: [number, number, number, number]; cls: 'person' | 'car' | 'bg' }[] = [
-  { b: [20, 14, 38, 60], cls: 'person' },
-  { b: [18, 12, 37, 58], cls: 'person' },
-  { b: [27, 15, 45, 61], cls: 'person' },
-  { b: [25, 19, 44, 63], cls: 'person' },
+  { b: [22, 14, 40, 60], cls: 'person' },
+  { b: [20, 12, 39, 58], cls: 'person' },
+  { b: [29, 15, 47, 61], cls: 'person' },
+  { b: [27, 19, 46, 63], cls: 'person' },
   { b: [58, 34, 94, 60], cls: 'car' },
   { b: [55, 32, 90, 58], cls: 'car' },
   { b: [61, 36, 96, 62], cls: 'car' },
@@ -208,7 +208,7 @@ function Overlay({ mode, S, family }: { mode: Mode; S: number; family: Family })
     for (let j = 1; j < rows; j++) lines.push(<line key={`h${j}`} y1={j * ch} y2={j * ch} x1={0} x2={DW} style={{ stroke: 'var(--viz-ink)', strokeWidth: 0.3, opacity: 0.5 }} />)
     const att: ReactNode[] = []
     if (mode === 'attention') {
-      const [sc, sr] = [Math.floor(29 / cw), Math.floor(37 / ch)]
+      const [sc, sr] = [Math.floor(31 / cw), Math.floor(37 / ch)]
       const sx = (sc + 0.5) * cw
       const sy = (sr + 0.5) * ch
       for (let c = 0; c < cols; c++)
@@ -227,7 +227,7 @@ function Overlay({ mode, S, family }: { mode: Mode; S: number; family: Family })
     )
   }
   if (mode === 'anchors') {
-    const [cx, cy] = [29, 37]
+    const [cx, cy] = [31, 37]
     const anchors: ReactNode[] = []
     ;[14, 26, 40].forEach((s, i) =>
       [0.5, 1, 2].forEach((r, j) => {

@@ -203,15 +203,15 @@ export default function AutogradTape() {
       </Controls>
 
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(0, 1fr)', gap: 10, width: '100%' }}>
-        <pre className={css.code} aria-label="Code being run">
+        <pre className={css.code} style={narrow ? { fontSize: '0.7rem' } : undefined} aria-label="Code being run">
           {lines.map((l, i) => {
             const on = cur.includes(i)
             const dim = i > Math.max(...cur)
             const [code, comment] = l.split('#')
             return (
               <span key={i} className={`${css.line} ${on ? css.lineOn : ''} ${dim ? css.lineDim : ''}`}>
-                {code}
-                {comment && <span className={css.comment}>#{comment}</span>}
+                {narrow ? code.trimEnd() : code}
+                {comment && !narrow && <span className={css.comment}>#{comment}</span>}
               </span>
             )
           })}

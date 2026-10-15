@@ -5,8 +5,8 @@ const questions: QuizQuestion[] = [
     id: 'text-as-data.rnns-and-lstms.1',
     prompt: 'An RNN updates its hidden state with $h_t = \\tanh(W_x x_t + W_h h_{t-1} + b)$. Which statement is true?',
     options: [
-      'The same $W_x$, $W_h$ and $b$ are reused at every step, whatever the length of the sequence',
-      'Each step has its own $W_h$, so a 50-word sentence needs 50 times the parameters',
+      'The same $W_x$, $W_h$ and $b$ are reused at every step, for sequences of any length',
+      'Each step has its own $W_h$, so a 50-word sentence needs 50 times as many parameters',
       '$h_{t-1}$ is the previous word\'s embedding, so the model remembers only one word back',
       'The $\\tanh$ lets the hidden state grow without limit, so long sentences fit in full',
     ],
@@ -43,8 +43,8 @@ const questions: QuizQuestion[] = [
     id: 'text-as-data.rnns-and-lstms.4',
     prompt: 'Compared with a plain RNN with the same input and hidden sizes, an LSTM:',
     options: [
-      'has about 4 times as many weights and can carry information over many more steps',
-      'has fewer weights, because its gates replace the recurrent matrix $W_h$',
+      'has about 4 times as many weights and carries information over more steps',
+      'has fewer weights, because its three gates replace the recurrent matrix $W_h$',
       'trains faster, because its three gates process all the time steps in parallel',
       'never needs gradient clipping, because its gates also stop exploding gradients',
     ],
@@ -58,7 +58,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'An RNN encoder–decoder without attention translates short sentences well but long ones badly. The encoder passes only its final hidden state to the decoder. Which change is most likely to help the long sentences?',
     options: [
-      'Let the decoder attend to all of the encoder\'s hidden states at every output step',
+      'Let the decoder attend to every encoder hidden state at each output step',
       'Use a larger output vocabulary so the decoder has more words to choose from',
       'Feed each source sentence through the encoder twice before decoding starts',
       'Replace the decoder\'s tanh with ReLU so that its hidden state can grow larger',

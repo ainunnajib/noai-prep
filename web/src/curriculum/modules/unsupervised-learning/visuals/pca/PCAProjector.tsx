@@ -89,15 +89,15 @@ export default function PCAProjector() {
             {d.pts.map((p, i) => (
               <Path key={i} points={[p, feet[i]]} color="var(--viz-2)" width={key === 'tiny' ? 2.5 : 1.6} />
             ))}
+            <Dots points={d.pts.map(([x, y]) => ({ x, y, color: 'var(--viz-ink)', r: key === 'tiny' ? 6 : 4 }))} />
+            <Dots points={feet.map(([x, y]) => ({ x, y, color: 'var(--viz-1)', r: key === 'tiny' ? 4.5 : 3 }))} />
+            {key === 'tiny' && <Dots points={[{ x: mx, y: my, shape: 'cross', r: 5, color: 'var(--viz-muted)' }]} />}
             {answer && (
               <>
                 <Arrow from={d.mu} to={[mx + s * sd1 * stats.e.v1[0], my + s * sd1 * stats.e.v1[1]]} color="var(--viz-3)" width={3} label="PC1" labelOffset={[8, 18]} />
                 <Arrow from={d.mu} to={[mx + s * sd2 * stats.e.v2[0], my + s * sd2 * stats.e.v2[1]]} color="var(--viz-4)" width={3} label="PC2" labelOffset={[-34, -4]} />
               </>
             )}
-            <Dots points={d.pts.map(([x, y]) => ({ x, y, color: 'var(--viz-ink)', r: key === 'tiny' ? 6 : 4 }))} />
-            <Dots points={feet.map(([x, y]) => ({ x, y, color: 'var(--viz-1)', r: key === 'tiny' ? 4.5 : 3 }))} />
-            {key === 'tiny' && <Dots points={[{ x: mx, y: my, shape: 'cross', r: 5, color: 'var(--viz-muted)' }]} />}
             <DraggablePoint x={handle[0]} y={handle[1]} onChange={setFromPointer} color="var(--viz-1)" label="turn me" />
           </Plot>
         </div>

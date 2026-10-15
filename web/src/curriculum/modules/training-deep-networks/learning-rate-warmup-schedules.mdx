@@ -16,8 +16,6 @@ You start slowly as you turn in from the road, cruise down the ramps when the wa
 
 Early in training the weights are far from any minimum, so big steps make fast progress. Late in training you are near a minimum, and mini-batch gradients are noisy: big steps now bounce from one side of the valley to the other and the loss stops improving. Shrinking the learning rate as training goes on (called **annealing** or **decay**) lets the model settle into the bottom of the valley.
 
-<PastPaperQuestion paper="prelim2026" n={41} />
-
 ## Finding a good learning rate: the range test
 
 <Analogy title="Heating oil in a wok">
@@ -82,7 +80,7 @@ Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta
 
 <ScheduleDesigner />
 
-<Steps title="Warm-up + cosine by hand: η_max = 0.001, W = 1000, T = 10000, η_min = 0">
+<Steps title="Warm-up + cosine by hand: $\eta_{\max} = 0.001$, $W = 1000$, $T = 10000$, $\eta_{\min} = 0$">
   <Step title="Step 250 (still warming up)">
     $250 < 1000$, so $\eta = 0.001 \times \frac{250}{1000} = 0.001 \times 0.25 = 0.00025$.
   </Step>
@@ -97,8 +95,12 @@ Check the ends. At $t = 0$, $\cos 0 = 1$, so the bracket is 2 and $\eta_0 = \eta
   </Step>
 </Steps>
 
+The Final paper asked exactly this, with a small twist: the decay ends at $\eta_{\min} = 10^{-6}$ instead of 0, and the halfway point is only *nearly* halfway. Estimate, don't compute: halfway through a cosine decay means halfway between the two rates.
+
+<PastPaperQuestion paper="final2026" n={9} />
+
 <QuickCheck
-  q="A model trains with η_max = 0.1 and step decay that multiplies the rate by 0.5 every 10 epochs. What learning rate is used in epoch 25 (counting from epoch 0)?"
+  q="A model trains with $\eta_{\max} = 0.1$ and step decay that multiplies the rate by 0.5 every 10 epochs. What learning rate is used in epoch 25 (counting from epoch 0)?"
   options={['0.025', '0.05', '0.0125', '0.01']}
   answer={0}
   explain="$\lfloor 25/10 \rfloor = 2$ cuts have happened (at epochs 10 and 20), so $\eta = 0.1 \times 0.5^2 = 0.025$. One cut gives 0.05, and three cuts (0.0125) would need epoch 30."

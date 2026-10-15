@@ -1,3 +1,283 @@
-{/* stub: lesson 'CLIP: one space for images and words' is being written */}
+import CLIPSimilarityMatrix from './visuals/clip-and-zero-shot/CLIPSimilarityMatrix'
+import JointEmbeddingSpace from './visuals/clip-and-zero-shot/JointEmbeddingSpace'
+import ZeroShotPrompts from './visuals/clip-and-zero-shot/ZeroShotPrompts'
 
-This lesson is being written.
+In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (next lesson). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
+
+<Analogy title="Speed dating at a CCA mixer">
+
+Six students arrive wearing name tags, and six friends each wrote a one-line description of one of them. Your job: match every description to the right person. You don't need a list of categories like "sporty" or "artsy"; you only need to know which description belongs to whom. Get good enough at this game, played with millions of photos and captions, and you end up understanding both people *and* descriptions. CLIP plays exactly this game: each picture must pick out its own caption from everyone in the room, and each caption must pick out its own picture.
+
+</Analogy>
+
+## Two encoders, one meeting point
+
+CLIP has two separate networks, called <Term def="A network that turns an input (a picture or a sentence) into a single vector of numbers that captures its meaning.">encoders</Term>:
+
+- an **image encoder** (a ViT from the last lesson, or a ResNet) that turns a picture into a vector;
+- a **text encoder** (a Transformer, like the ones inside language models) that turns a sentence into a vector.
+
+Each encoder ends with a small linear layer that makes both vectors the **same size**, for example 512 numbers each in CLIP ViT-B/32. These vectors are <Term def="A vector that represents something (a word, a sentence, a picture) so that things with similar meanings get similar vectors.">embeddings</Term>. Finally, every embedding is divided by its own length, so it becomes a <Term def="A vector of length 1. Dividing any non-zero vector by its length (its L2 norm) gives a unit vector pointing the same way.">unit vector</Term>. This step is called L2 normalisation.
+
+Why normalise? Recall from [Dot product and norms](#/learn/vectors-and-matrices/dot-product-and-norms) that $\mathbf{a} \cdot \mathbf{b} = \lVert \mathbf{a} \rVert \lVert \mathbf{b} \rVert \cos\theta$. When both vectors have length 1, the dot product **is** the <Term def="cos θ, where θ is the angle between two vectors. It is 1 when they point the same way, 0 at right angles and −1 when opposite. It ignores the vectors' lengths.">cosine similarity</Term>: a score from $-1$ to $1$ that depends only on the angle between the arrows. So CLIP compares *directions*, not lengths, and similarity becomes one cheap multiplication.
+
+## The training game: a batch similarity matrix
+
+Training takes a <Term def="A small group of training examples processed together in one step. CLIP used batches of 32,768 image-caption pairs.">batch</Term> of $N$ image-caption pairs. CLIP encodes all $N$ pictures and all $N$ captions, then computes **every** picture-caption similarity: an $N \times N$ table, the similarity matrix. Row $i$ is picture $i$; column $j$ is caption $j$.
+
+- The $N$ cells on the **diagonal** ($i = j$) are the real pairs: the **positives**.
+- The other $N^2 - N$ cells pair a picture with somebody else's caption: the **negatives**.
+
+Notice where the "labels" come from: nobody wrote them. The diagonal is simply "these two were posted together", and every other caption in the batch automatically serves as a wrong answer. That is why CLIP could learn from 400 million scraped pairs. Watch a tiny version learn.
+
+<CLIPSimilarityMatrix />
+
+Each row is a little multiple-choice question: "picture $i$, which of these $N$ captions is yours?" That is ordinary $N$-way classification, so CLIP uses the tools from [Softmax and multi-class](#/learn/classification/softmax-and-multiclass): softmax turns a row of scores into probabilities, and cross-entropy punishes a low probability on the right answer. Each column gets the same treatment ("caption $j$, which picture is yours?"), and the two are averaged.
+
+Write $\mathbf{u}_i$ for the unit embedding of picture $i$, $\mathbf{v}_j$ for the unit embedding of caption $j$, and $s_{ij} = \mathbf{u}_i \cdot \mathbf{v}_j$ for their cosine similarity. The loss for row $i$ is
+
+$$
+\ell^{\text{img}}_i = -\log \frac{e^{s_{ii}/\tau}}{\sum_{j=1}^{N} e^{s_{ij}/\tau}}
+$$
+
+Read it from the inside out:
+
+- $s_{ij}/\tau$ divides every similarity by the <Term def="A positive number τ that divides the scores before the softmax. Small τ makes the softmax sharp (winner takes almost all); large τ makes it flat.">temperature</Term> $\tau$ (Greek "tau"), giving the row's scores;
+- the fraction is the softmax probability that picture $i$ picks its own caption $i$, out of all $N$ captions;
+- $-\log$ (the natural log, $\ln$) turns that probability into a penalty: 0 when the probability is 1, and large when it is near 0.
+
+The column loss $\ell^{\text{txt}}_j$ is the same with the sum running down column $j$ instead (over $i$). The full loss averages everything:
+
+$$
+L = \frac{1}{2}\left( \frac{1}{N}\sum_{i=1}^{N} \ell^{\text{img}}_i + \frac{1}{N}\sum_{j=1}^{N} \ell^{\text{txt}}_j \right)
+$$
+
+This is called a **contrastive loss** (it contrasts each right answer with the wrong ones), and this particular form is known as **InfoNCE**. CLIP *learns* $\tau$ along with the weights: it starts at $\tau = 0.07$ and is capped at $0.01$, which means the similarities are multiplied by at most 100 before the softmax.
+
+<KeyIdea>
+
+CLIP's loss is cross-entropy run along every row (each picture picks its caption) and every column (each caption picks its picture) of the $N \times N$ similarity matrix divided by $\tau$. It pulls the $N$ diagonal pairs together and pushes the $N^2 - N$ mismatched pairs apart, and the only supervision is *which caption came with which picture*.
+
+</KeyIdea>
+
+### Worked example: a batch of two
+
+<Steps title="CLIP loss for N = 2, by hand">
+  <Step title="Normalise the embeddings">
+    Picture 1 (a cat) has raw embedding $(4, 3)$, of length $\sqrt{16 + 9} = 5$, so $\mathbf{u}_1 = (0.8, 0.6)$. Picture 2 (an MRT train): $(3, 4) \to \mathbf{u}_2 = (0.6, 0.8)$. Caption 1, "a cat on a sofa": $(2, 0) \to \mathbf{v}_1 = (1, 0)$. Caption 2, "an MRT train": $(0, 5) \to \mathbf{v}_2 = (0, 1)$.
+  </Step>
+  <Step title="Fill in the similarity matrix">
+    $s_{11} = 0.8 \times 1 + 0.6 \times 0 = 0.8$, $s_{12} = 0.6$, $s_{21} = 0.6$, $s_{22} = 0.8$. The diagonal (0.8) already beats the rest (0.6), but not by much.
+  </Step>
+  <Step title="Divide by the temperature τ = 0.1">
+    The scores become $\begin{bmatrix} 8 & 6 \\ 6 & 8 \end{bmatrix}$. A gap of 0.2 in similarity has become a gap of 2 in score.
+  </Step>
+  <Step title="Softmax along row 1">
+    $P(\text{caption 1} \mid \text{picture 1}) = \dfrac{e^{8}}{e^{8} + e^{6}} = \dfrac{1}{1 + e^{-2}} \approx \dfrac{1}{1 + 0.135} \approx 0.88$. (Divide top and bottom by $e^8$; $e^{-2} \approx 0.135$ is worth knowing.)
+  </Step>
+  <Step title="Cross-entropy, then average">
+    Row 1 costs $-\ln 0.88 \approx 0.13$. By symmetry every row and every column also has probability 0.88 on its right answer, so $L \approx 0.13$.
+  </Step>
+  <Step title="What one training step does">
+    The gradient raises $s_{11}$ and $s_{22}$ and lowers $s_{12}$ and $s_{21}$, by moving the encoders' weights so that each cat picture points more towards cat captions and away from train captions.
+  </Step>
+</Steps>
+
+Same similarities, hotter temperature: with $\tau = 1$ the scores are only 0.8 and 0.6, the probability falls to $1/(1 + e^{-0.2}) \approx 0.55$, and the loss rises to about 0.60. A small $\tau$ magnifies small gaps in similarity; that matters because real CLIP's cosine similarities are small (a good match often scores only about 0.3).
+
+<QuickCheck
+  q="In the batch of two above, suppose training goes badly and every similarity becomes 0.7, so all four cells are equal. What is the loss?"
+  options={['$\\ln 2 \\approx 0.69$', '$0$', '$0.7$', '$\\ln 4 \\approx 1.39$']}
+  answer={0}
+  explain="Equal scores in a row give softmax probabilities of $\frac{1}{2}$ and $\frac{1}{2}$, whatever $\tau$ is. Each row and column then costs $-\ln \frac{1}{2} = \ln 2 \approx 0.69$, and so does their average. In general, a model that cannot tell the $N$ captions apart scores $\ln N$: pure guessing."
+/>
+
+### The same thing in PyTorch
+
+This is the worked example in code. `F.cross_entropy` applies the softmax and the $-\log$ for you; the labels are just `0, 1, …, N-1` because picture $i$'s right answer is column $i$.
+
+```python
+import torch
+import torch.nn.functional as F
+
+# raw encoder outputs for a batch of N = 2 image-caption pairs
+img = torch.tensor([[4., 3.],    # image 1: a cat
+                    [3., 4.]])   # image 2: an MRT train
+txt = torch.tensor([[2., 0.],    # caption 1: "a cat on a sofa"
+                    [0., 5.]])   # caption 2: "an MRT train"
+
+img = F.normalize(img, dim=1)    # make every row length 1
+txt = F.normalize(txt, dim=1)
+S = img @ txt.T                  # (N, N) cosine similarities
+tau = 0.1
+logits = S / tau
+labels = torch.arange(len(S))    # image i belongs with caption i
+loss_i2t = F.cross_entropy(logits, labels)     # each row picks a caption
+loss_t2i = F.cross_entropy(logits.T, labels)   # each column picks an image
+loss = (loss_i2t + loss_t2i) / 2
+
+print(S)
+print(logits.softmax(dim=1))
+print(round(loss.item(), 4))
+```
+
+```text
+tensor([[0.8000, 0.6000],
+        [0.6000, 0.8000]])
+tensor([[0.8808, 0.1192],
+        [0.1192, 0.8808]])
+0.1269
+```
+
+The exact loss is $\ln(1 + e^{-2}) = 0.1269$, matching our hand estimate of 0.13. Real CLIP code is these same lines, with the two encoders in front and a batch of 32,768.
+
+<Mistake title="Three classic misreadings of CLIP's loss">
+
+- **"The negatives are labelled by people."** No: a negative is just another pair's caption that happens to be in the same batch. No one checks it.
+- **"Only the diagonal matters."** The off-diagonal cells matter just as much: the softmax's denominator contains them, so the loss falls only when the right pair beats *all* the wrong ones in its row and column.
+- **"Positives = $N^2$."** A batch of $N$ pairs has $N$ positives and $N^2 - N$ negatives. For $N = 4$: 4 positives and 12 negatives.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={248} />
+
+## One space for images and words
+
+After training, the two encoders agree on a shared map of meaning. A photo of a sleeping cat and the sentence "a sleepy cat" end up as nearby arrows, because the training game rewarded exactly that. This is a <Term def="An embedding space shared by two kinds of data (here images and text), so that an image and a sentence with the same meaning get nearby vectors.">joint embedding space</Term>, and it turns many tasks into "embed, then find the nearest neighbours". Explore a toy version.
+
+<JointEmbeddingSpace />
+
+Once pictures and words share a space, a lot of jobs become one line of maths:
+
+- **Text-to-image search**: embed the search text, rank every photo by cosine similarity, return the top few. Photo apps that find "beach at sunset" in your camera roll work like this.
+- **Image-to-text matching**: embed a photo and rank candidate captions, tags or class names.
+- **Image-to-image retrieval**: compare picture embeddings with each other, as in IOAI 2025's restroom-icon task (CLIP ViT-B/32 plus cosine retrieval).
+- **Steering image generators**: Stable Diffusion v1 turns your prompt into vectors with CLIP's text encoder, and many open chatbots that can see (such as LLaVA, next lesson) use a CLIP image encoder as their eyes.
+
+<Note title="Real CLIP numbers look small">
+
+In this lesson's toy, a good match scores around 0.9. In real CLIP, even a good image-caption match often scores only about 0.3, and an unrelated pair not much less (around 0.2; you will see real numbers later in this lesson). What matters is the *ranking*, and the learned temperature ($\tau = 0.01$, a factor of 100) turns those small gaps into confident probabilities.
+
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={247} />
+
+## Zero-shot classification: a classifier made of sentences
+
+Here is the payoff. Suppose you want to sort photos into cat, dog and bird, but you have **no labelled photos at all**. With CLIP you don't train anything:
+
+1. Write one sentence per class, from a <Term def="A fixed sentence with a gap for the class name, such as 'a photo of a {}'. Filling the gap with each class name gives one prompt per class.">prompt template</Term>: "a photo of a cat", "a photo of a dog", "a photo of a bird".
+2. Embed the three sentences with the text encoder and the photo with the image encoder (all normalised).
+3. Compute the photo's cosine similarity with each sentence.
+4. Divide by $\tau$ and apply softmax to get class probabilities; predict the class with the largest one.
+
+This is <Term def="Doing a task without any training examples for that particular task, such as classifying into classes the model was never trained on.">zero-shot classification</Term>: the model handles classes it was never explicitly trained on, with zero labelled examples. The embedded prompts play the part of a classifier's weights, and you can write new ones at any time. Try it, and pay attention to the wording.
+
+<ZeroShotPrompts />
+
+Wording matters for real CLIP too. Captions on the web are sentences, not lone words, so "a photo of a dog" lands in a more natural place than "dog". A single word can also be ambiguous: ImageNet has two classes both called "crane" (the bird and the construction machine), and in a pet dataset "boxer" means a dog breed, not an athlete. The CLIP paper found that
+
+- the template "A photo of a \{label\}." alone raised ImageNet accuracy by 1.3 percentage points over the bare class names;
+- an **ensemble** of 80 templates ("a photo of a big \{label\}", "a blurry photo of the \{label\}", "a drawing of a \{label\}", …), with each class's text embeddings averaged into one, added another 3.5 points;
+- adding context helped specific datasets, e.g. "a photo of a \{label\}, a type of pet."
+
+Together, prompt engineering and ensembling improved ImageNet accuracy by almost 5 points, with no extra training.
+
+<QuickCheck
+  q="A CLIP-based app sorts hawker-centre photos into 'chicken rice', 'laksa' and 'satay'. The owner now wants a fourth class, 'roti prata'. What is the least work that does it?"
+  options={["Add the prompt 'a photo of roti prata', embed it and compare photos with all four prompts", 'Collect about 1,000 labelled roti prata photos and fine-tune the image encoder', 'Retrain CLIP from scratch on a dataset that includes roti prata captions', 'Add a fourth output neuron to the image encoder and train only that neuron']}
+  answer={0}
+  explain="In zero-shot classification the classes are just sentences, so adding a class means adding one prompt and embedding it. Fine-tuning or retraining could improve accuracy later, but neither is needed to make the new class work; the image encoder has no fixed output neurons to add to."
+/>
+
+### Zero-shot in code
+
+The whole recipe is a few lines once you have the embeddings. Here three made-up 3-number embeddings stand in for CLIP's 512-number ones:
+
+```python
+import torch
+import torch.nn.functional as F
+
+classes = ['cat', 'dog', 'bird']
+prompts = [f'a photo of a {c}' for c in classes]
+print(prompts)
+
+# Pretend encoder outputs (real CLIP ViT-B/32 gives 512 numbers each)
+text_emb = F.normalize(torch.tensor([[0.9, 0.2, 0.1],    # "a photo of a cat"
+                                     [0.6, 0.8, 0.1],    # "a photo of a dog"
+                                     [0.1, 0.3, 0.9]]),  # "a photo of a bird"
+                       dim=1)
+image_emb = F.normalize(torch.tensor([[0.8, 0.4, 0.2]]), dim=1)   # our test photo
+
+sims = image_emb @ text_emb.T          # (1, 3): one cosine similarity per class
+probs = (sims / 0.01).softmax(dim=1)   # tau = 0.01, CLIP's learned value
+print(sims)
+print(probs)
+print(classes[probs.argmax()])
+```
+
+```text
+['a photo of a cat', 'a photo of a dog', 'a photo of a bird']
+tensor([[0.9648, 0.8903, 0.4346]])
+tensor([[9.9942e-01, 5.7997e-04, 9.4646e-24]])
+cat
+```
+
+Look at the effect of $\tau = 0.01$: cosine similarities of 0.96 and 0.89 differ by only 0.07, yet after dividing by 0.01 the scores differ by about 7.5, so the softmax gives "cat" 99.9%. The biggest similarity always wins; the temperature only decides how confident the probabilities look.
+
+### With the real CLIP
+
+In IOAI you load real CLIP weights, for example with the Hugging Face `transformers` library. (The weights are about 600 MB, so this cannot run in your browser.) Here is the real CLIP ViT-B/32 classifying this lesson's jaguar drawing:
+
+```python
+import torch
+from PIL import Image
+from transformers import CLIPModel, CLIPProcessor
+
+model = CLIPModel.from_pretrained('openai/clip-vit-base-patch32')
+processor = CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')
+
+image = Image.open('jaguar.png').convert('RGB')      # this lesson's jaguar drawing
+classes = ['cat', 'dog', 'jaguar', 'leopard', 'mouse']
+prompts = [f'a photo of a {c}' for c in classes]
+inputs = processor(text=prompts, images=image, return_tensors='pt', padding=True)
+
+with torch.no_grad():
+    out = model(**inputs)
+    cos = out.logits_per_image / model.logit_scale.exp()  # logits = 100 x cosine similarity
+    probs = out.logits_per_image.softmax(dim=1)
+print(cos.round(decimals=3))
+print(probs.round(decimals=3))
+print(classes[probs.argmax()])
+```
+
+```text
+tensor([[0.2430, 0.2230, 0.2380, 0.2670, 0.2050]])
+tensor([[0.0800, 0.0110, 0.0470, 0.8600, 0.0020]])
+leopard
+```
+
+Two lessons from one real run. First, every cosine similarity lies between 0.20 and 0.27, yet the learned factor of 100 turns a lead of less than 0.03 into 86% confidence. Second, real CLIP makes the same mistake as our toy and calls the drawing a leopard (its ring-shaped spots do look like a leopard's rosettes). We also tried the template "a photo of a \{\}, a type of wild animal" on the real model: "jaguar" rose from 4.7% to 7.9%, but "leopard" still won. Real models are messier than toys, which is why CLIP is often fine-tuned on a few labelled examples when zero-shot is not good enough, as in the reference solution to IOAI 2025's restroom-icon task.
+
+<ExamTip>
+
+NOAI asks about CLIP in short, recall-style questions, so have these phrases ready. CLIP learns **aligned image and text embeddings** in one space. Its contrastive loss **matches positive pairs and separates negative pairs**: the diagonal of the batch similarity matrix versus everything else. Zero-shot classification means classifying **without training on the specific classes**, using prompts such as "a photo of a \{label\}". CLIP is useful downstream because its **pretrained representations transfer** to many vision-language tasks. If a question gives a batch size $N$, there are $N$ positive pairs and $N^2 - N$ negatives.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={250} />
+
+<Note title="Where CLIP still fails">
+
+CLIP is strong but not magic. It is weak at **counting** objects and at very fine distinctions (exact car models, flower species). It often treats a caption like a **bag of words**, so "a horse riding a person" and "a person riding a horse" can score almost the same. Because it learned to read text in images, a handwritten label can fool it: an apple with a paper note saying "iPod" was classified as an iPod (a *typographic attack*). And it absorbs the biases of 400 million unfiltered web captions.
+
+</Note>
+
+<Takeaways>
+
+- CLIP has an image encoder and a text encoder whose outputs are projected to the same size and L2-normalised, so a dot product is a cosine similarity.
+- Training builds an $N \times N$ similarity matrix per batch; cross-entropy along rows and columns (InfoNCE), divided by a learned temperature $\tau$, pulls the $N$ diagonal pairs together and pushes the $N^2 - N$ others apart. No class labels are needed.
+- The result is a joint embedding space: images and sentences with the same meaning sit close, so search in either direction is nearest-neighbour lookup.
+- Zero-shot classification: embed one prompt per class ("a photo of a \{label\}"), pick the prompt most similar to the image. New classes cost one sentence, not retraining; wording and prompt ensembles change the accuracy.
+
+</Takeaways>

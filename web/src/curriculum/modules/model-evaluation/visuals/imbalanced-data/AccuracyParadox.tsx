@@ -124,7 +124,7 @@ export default function AccuracyParadox() {
         <MetricBars
           ariaLabel="Metrics of this model"
           data={[
-            { label: 'accuracy', value: m.accuracy, color: 'var(--viz-axis)' },
+            { label: 'accuracy', value: m.accuracy, color: 'var(--viz-axis)', digits: 3 },
             { label: 'precision', value: m.precision, color: 'var(--viz-5)', undefinedText: 'never flags fraud' },
             { label: 'recall', value: m.recall, color: 'var(--viz-4)' },
             { label: 'F1', value: m.f1, color: 'var(--viz-6)' },

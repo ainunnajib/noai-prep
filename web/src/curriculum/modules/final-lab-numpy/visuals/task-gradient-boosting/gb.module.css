@@ -1,0 +1,233 @@
+/* Styles shared by the task-gradient-boosting visuals. Colours come only from theme tokens. */
+
+.two {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+  width: 100%;
+}
+.twoEven {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.stack {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+}
+.panelLabel {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  margin: 0 0 0.15rem;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- code panel ---------- */
+.code {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+.codeBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.28rem 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.codeBody {
+  padding: 0.35rem 0;
+  overflow-x: auto;
+}
+.line {
+  display: block;
+  padding: 0.04rem 0.7rem;
+  line-height: 1.5;
+  white-space: pre;
+  font-family: var(--font-mono);
+  min-height: 1.5em;
+}
+.lineWrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.lineOn {
+  background: var(--highlight-soft);
+  box-shadow: inset 3px 0 0 var(--highlight);
+}
+.lineGiven {
+  opacity: 0.5;
+}
+.lineBad {
+  background: color-mix(in srgb, var(--bad) 14%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--bad);
+}
+.lineOk {
+  background: color-mix(in srgb, var(--ok) 13%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+.stepTag {
+  display: inline-block;
+  min-width: 1.1rem;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.stepTagOn {
+  color: var(--ink);
+}
+
+.note {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  min-height: 3.2em;
+}
+.note b {
+  color: var(--ink);
+}
+
+/* ---------- scaffold slots ---------- */
+.slot {
+  display: block;
+  width: calc(100% - 1.4rem);
+  margin: 0.15rem 0.7rem;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 0.22rem 0.5rem;
+  border-radius: 6px;
+  border: 1.5px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  cursor: pointer;
+}
+.slot:hover {
+  border-style: solid;
+}
+.slot:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.slotOn {
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface));
+  font-weight: 700;
+}
+.marks {
+  float: right;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+
+/* ---------- trap list ---------- */
+.traps {
+  display: grid;
+  gap: 0.3rem;
+}
+.trap {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: start;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.84rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.trap:hover {
+  border-color: var(--accent);
+}
+.trapOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.radio {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  border: 2px solid var(--ink-3);
+  margin-top: 0.15rem;
+}
+.radioOn {
+  border-color: var(--accent);
+  background: radial-gradient(circle, var(--accent) 0 40%, transparent 45%);
+}
+
+.out {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  background: var(--surface);
+}
+.outBad {
+  color: var(--bad);
+}
+.outWarn {
+  color: var(--warn);
+}
+.outOk {
+  color: var(--ok);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.swatch {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  border-top: 3px solid;
+}
+.swatchDash {
+  border-top-style: dashed;
+}
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+@media (max-width: 560px) {
+  .two,
+  .twoEven {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

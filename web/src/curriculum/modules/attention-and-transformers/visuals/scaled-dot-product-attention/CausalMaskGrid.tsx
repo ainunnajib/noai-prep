@@ -60,7 +60,7 @@ export default function CausalMaskGrid() {
   const lostPast = blocked.some((r, i) => r.some((b, j) => b && !intended[i][j]))
 
   const fullyBlocked = blocked.some((r) => r.every(Boolean))
-  const realSeesPad = blocked.some((r, i) => !isPad[i] && r.some((b, j) => !b && isPad[j]))
+  const realSeesPad = padding && blocked.some((r, i) => !isPad[i] && r.some((b, j) => !b && isPad[j]))
   let status: ReactNode
   if (!anyMask) status = <>✗ No mask: every token, [PAD]s included, can attend to every position, including the future.</>
   else if (correct)
@@ -72,7 +72,7 @@ export default function CausalMaskGrid() {
     )
   else {
     const parts: string[] = []
-    if (seesFuture) parts.push('tokens can see FUTURE positions, so a language model could simply copy the next word')
+    if (seesFuture) parts.push('tokens can see FUTURE positions (a language model could simply copy the next word)')
     if (realSeesPad) parts.push('real tokens attend to [PAD]s')
     if (lostPast) parts.push('tokens are blocked from positions they should see')
     let tail = ''
@@ -80,7 +80,7 @@ export default function CausalMaskGrid() {
     else if (fill === '1e9' && fullyBlocked) tail = ' With −1e9, a fully blocked row becomes uniform instead of NaN, which hides the bug.'
     status = (
       <>
-        ✗ Bug: the mask is built with one convention and read with the other, so {parts.join('; ')}.{tail}
+        ✗ Bug: the mask is built with one convention and read with the other. Result: {parts.join('; ')}.{tail}
       </>
     )
   }

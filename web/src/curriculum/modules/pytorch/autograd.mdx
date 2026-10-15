@@ -196,11 +196,9 @@ Notice `with torch.no_grad():` around the update. The update is bookkeeping, not
 
 Recording costs memory: every recorded node keeps the inputs it needs for the backward pass, and those *saved tensors* stay alive until `backward()` frees them or the graph is thrown away. Three tools turn tracking off:
 
-| Tool | What you get | Typical use |
-|---|---|---|
-| `torch.no_grad()` | inside a `with` block nothing is recorded; results have `requires_grad=False` | evaluation, inference, manual weight updates |
-| `t.detach()` | a new tensor with the same numbers (sharing memory), cut off from the graph | turning a result into NumPy, feeding it on as fixed data |
-| `t.item()` | a plain Python number from a one-element tensor | logging and printing the loss |
+- **`torch.no_grad()`**: inside a `with torch.no_grad():` block nothing is recorded, and results have `requires_grad=False`. Use it for evaluation, inference and manual weight updates.
+- **`t.detach()`**: a new tensor with the same numbers (sharing memory), cut off from the graph. Use it to turn a result into NumPy or to feed it on as fixed data.
+- **`t.item()`**: a plain Python number from a one-element tensor. Use it for logging and printing the loss.
 
 ```python
 import torch

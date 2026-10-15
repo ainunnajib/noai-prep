@@ -1,3 +1,221 @@
-{/* stub: lesson 'PyTorch patterns for the Final' is being written */}
+import { FINAL } from '../../../data/facts'
+import ShapeCommentTrace from './visuals/torch-exam-patterns/ShapeCommentTrace'
+import TranslationTable from './visuals/torch-exam-patterns/TranslationTable'
+import BugCatcherGrid from './visuals/torch-exam-patterns/BugCatcherGrid'
 
-This lesson is being written.
+The Final on {FINAL.dateLabel} ends with three Python programming tasks, and if 2027 looks like 2026, at least one of them will hand you half-finished PyTorch code to complete or repair. In 2026, two of the three tasks (55 of the 80 programming marks) were PyTorch, and almost every way to lose those marks was a **shape** mistake: a feature map a few pixels too big, a head axis in the wrong place, a softmax along the wrong dimension. This lesson sets up three habits that the rest of this module uses on every line: write the shape of every tensor as a comment, translate NumPy into PyTorch without thinking, and test tiny cases yourself before you trust the notebook's test cell.
+
+<Analogy title="Label every box when you move house">
+
+When your family moves to a new HDB flat, you could throw everything into unmarked boxes and sort it out later. Then you spend the first evening opening twenty boxes to find the kettle. Writing "kitchen: kettle, mugs" on each box takes a few seconds and saves the whole evening. A shape comment is that label. Typing `# (B, h, T, d_k)` after a line of tensor code takes five seconds, and when something breaks, it tells you what should be inside every box.
+
+</Analogy>
+
+## Habit 1: a shape comment on every line
+
+A tensor's **shape** is the list of its sizes, one per axis: `torch.zeros(2, 5, 12)` has shape `(2, 5, 12)`. In exam code every axis *means* something, and we give each meaning a short capital-letter name:
+
+- **B**: the <Term def="How many examples (sentences, images) are processed together in one forward pass. It is always axis 0 in PyTorch.">batch size</Term>, how many sequences or images go through together;
+- **T**: the sequence length, how many <Term def="The pieces a text is split into before a model reads it: words, parts of words or punctuation. Each token becomes one vector.">tokens</Term> each sequence has;
+- **d** (or `d_model`): how many numbers describe each token;
+- **h**: the number of attention heads, and **d_k** $= d / h$, the numbers per head;
+- **C, H, W**: the channels, height and width of an image, as in `(B, C, H, W)`.
+
+A <Term def="A comment such as # (B, T, d) written after a line of tensor code. It states the shape you expect the result to have, using letters that say what each axis means.">shape comment</Term> after each line says what you expect. Then you check: `print(x.shape)` while you work, or an `assert`, which stops the cell the moment a shape is wrong. The visual below runs a small function from the attention task, which turns a batch of token vectors into attention weights. Step through it, then inject a bug.
+
+<ShapeCommentTrace />
+
+<KeyIdea>
+
+Write the shape you expect **before** you run a line, then check it. A shape comment points at the line that *caused* a bug; PyTorch's error message usually points at a later line where the *symptom* appears, and it names tensors "a" and "b" instead of your variables.
+
+</KeyIdea>
+
+You should be able to do every one of those comments in your head. Here are the trickiest lines, traced by hand with $B = 2$, $T = 5$, $d = 12$, $h = 3$, so $d_k = 12 / 3 = 4$.
+
+<Steps title="Tracing the head split and the scores by hand">
+  <Step title="Split each token into heads: view(B, T, h, d_k)">
+    `x @ W_q` is $(B, T, d) = (2, 5, 12)$. `view(2, 5, 3, 4)` cuts each token's 12 numbers into 3 groups of 4, one group per head. Check that nothing is lost: $2 \times 5 \times 12 = 120 = 2 \times 5 \times 3 \times 4$.
+  </Step>
+  <Step title="Bring the heads forward: transpose(1, 2)">
+    Swap axis 1 ($T = 5$) with axis 2 ($h = 3$): $(2, 3, 5, 4) = (B, h, T, d_k)$. Now each head is its own $(T, d_k) = (5, 4)$ matrix, ready for matrix multiplication.
+  </Step>
+  <Step title="Scores: Q @ K.transpose(-2, -1)">
+    `transpose(-2, -1)` swaps only the last two axes of K: $(2, 3, 4, 5)$. The `@` multiplies the last two dims as matrices, a $(5 \times 4)$ matrix times a $(4 \times 5)$ matrix giving $(5 \times 5)$, and keeps $(2, 3)$ in front: $(B, h, T, T) = (2, 3, 5, 5)$. One score for every (query token, key token) pair, in every head of every sequence.
+  </Step>
+  <Step title="Softmax keeps the shape">
+    `torch.softmax(scores, dim=-1)` is still $(2, 3, 5, 5)$. `dim=-1` means each **row** (one query's 5 scores) becomes 5 weights that add up to 1.
+  </Step>
+</Steps>
+
+Here is the same function the way you would type it in the exam: a comment on every tensor line and one `assert` at the step most likely to go wrong.
+
+```python
+import math
+import torch
+
+def attention_weights(x, W_q, W_k, h):
+    B, T, d = x.shape                                   # (B, T, d)
+    d_k = d // h                                        # features per head
+    Q = (x @ W_q).view(B, T, h, d_k).transpose(1, 2)    # (B, h, T, d_k)
+    K = (x @ W_k).view(B, T, h, d_k).transpose(1, 2)    # (B, h, T, d_k)
+    scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k)   # (B, h, T, T)
+    assert scores.shape == (B, h, T, T), scores.shape
+    return torch.softmax(scores, dim=-1)                # (B, h, T, T)
+
+torch.manual_seed(0)
+x = torch.randn(2, 5, 12)                 # B=2, T=5, d=12: all different
+W_q, W_k = torch.randn(12, 12), torch.randn(12, 12)
+w = attention_weights(x, W_q, W_k, h=3)
+print(w.shape)
+print(w.sum(dim=-1)[0])                   # every row of weights sums to 1
+```
+
+```text
+torch.Size([2, 3, 5, 5])
+tensor([[1.0000, 1.0000, 1.0000, 1.0000, 1.0000],
+        [1.0000, 1.0000, 1.0000, 1.0000, 1.0000],
+        [1.0000, 1.0000, 1.0000, 1.0000, 1.0000]])
+```
+
+Notice that the function reads `B, T, d` from `x.shape` instead of using the numbers 2, 5 and 12. Graders can call your function with **other** sizes (in 2026 the U-Net test fed a second input size that the self-check never used), so a hard-coded 12 that passes the visible test can fail a hidden one. When an `assert` with a message fails, the message is the actual shape, which tells you at once what went wrong:
+
+```python
+B, T, h, d_k = 2, 5, 3, 4
+K = torch.randn(B, T, h * d_k).view(B, T, h, d_k)    # forgot .transpose(1, 2)
+assert K.shape == (B, h, T, d_k), K.shape
+```
+
+```text
+AssertionError: torch.Size([2, 5, 3, 4])
+```
+
+Reading it: the 5 and the 3 are the wrong way round, so the heads were never brought forward.
+
+<Mistake title="Two asserts that lie">
+
+- **Comparing with a list.** `x.shape` is a `torch.Size`, which behaves like a tuple. `x.shape == (2, 3)` is `True`, but `x.shape == [2, 3]` is `False` even when the shape is right, so the assert fails for no reason.
+- **Brackets around an assert.** `assert (x.shape == (9, 9), "wrong shape")` asserts a two-item tuple, which is always true, so it never stops anything (Python only prints `SyntaxWarning: assertion is always true`). Write `assert x.shape == (9, 9), "wrong shape"` with no outer brackets.
+
+</Mistake>
+
+<QuickCheck
+  q="`x` has shape (4, 10, 64), meaning (B, T, d), and h = 8. What is the shape of `x.view(4, 10, 8, 8).transpose(1, 2)`?"
+  options={['(4, 8, 10, 8)', '(4, 10, 8, 8)', '(4, 8, 8, 10)', '(8, 4, 10, 8)']}
+  answer={0}
+  explain="view splits the 64 features into 8 heads of 8: (4, 10, 8, 8) = (B, T, h, d_k). transpose(1, 2) swaps axis 1 (T = 10) and axis 2 (h = 8), giving (4, 8, 10, 8) = (B, h, T, d_k). (4, 10, 8, 8) is the shape before the transpose; (4, 8, 8, 10) would come from swapping the last two axes instead."
+/>
+
+## Habit 2: speak NumPy and PyTorch interchangeably
+
+If you have worked through Final lab I, you can already write NumPy. PyTorch <Term def="PyTorch's array type: like a NumPy array (a grid of numbers with a shape and a dtype), but it can also live on a GPU and track gradients for training.">tensors</Term> were designed to feel the same, so most lines translate by swapping `np.` for `torch.` and `axis=` for `dim=`. Search the phrasebook for the operations you know:
+
+<TranslationTable />
+
+The differences that cost marks are few enough to learn in one sitting:
+
+1. **Default floats.** `np.array([1.0])` is float64; `torch.tensor([1.0])` is float32. A float64 tensor made with `torch.from_numpy` crashes a layer with "mat1 and mat2 must have the same dtype"; add `.float()`.
+2. **`dim`, `keepdim`.** Write PyTorch's own names, `dim=` and `keepdim=True` (no s). Many tensor methods quietly accept NumPy's `axis=` as well, but not all: `F.softmax(scores, axis=-1)` is a `TypeError`. Always writing `dim` means you never have to remember which.
+3. **`t.max(dim=1)` returns two things**, the values and their indices. Take `.values` (or use `t.amax(dim=1)`), or `.indices` (same as `t.argmax(dim=1)`).
+4. **`mean` refuses integers.** Counting pixels gives an int64 tensor; call `.float()` before `.mean()`.
+5. **Size.** NumPy's `a.size` counts elements; PyTorch's `t.size()` is the *shape*. Count elements with `t.numel()`.
+6. **Plain numbers need `math`.** `torch.sqrt(16)` is a `TypeError`; the scaling factor $\sqrt{d_k}$ is a plain number, so write `math.sqrt(d_k)`.
+
+One more creation trap appears in the Prelim: `torch.tensor` (small t) is a function that copies your data and **infers** the dtype from it, while `torch.Tensor` (capital T) is the tensor class, and calling it always gives the default float32.
+
+<PastPaperQuestion paper="prelim2026" n={118} />
+
+The last conversion matters in every metric function. A sum or a count over a tensor is still a tensor, just one with zero axes, written like `tensor(3)`. The method <Term def="Tensor.item() returns the single number stored in a one-element tensor as a plain Python int or float, with no gradient tracking and no device.">`.item()`</Term> turns it into a plain Python number, which is what a docstring that says "Returns: float" wants:
+
+```python
+pred = torch.tensor([0, 1, 1, 0])
+true = torch.tensor([0, 1, 0, 0])
+c = (pred == true).sum()
+print(c, c.item(), type(c.item()))
+print(c / 4, (c / 4).item())
+```
+
+```text
+tensor(3) 3 <class 'int'>
+tensor(0.7500) 0.75
+```
+
+<PastPaperQuestion paper="prelim2026" n={134} />
+
+<QuickCheck
+  q="What does this print?"
+  code={`t = torch.tensor([[3, 9, 4],
+                  [8, 1, 5]])
+v = t.max(dim=1)
+print(v.indices)`}
+  options={['tensor([1, 0])', 'tensor([9, 8])', 'tensor([1, 2])', 'tensor([8, 9, 5])']}
+  answer={0}
+  explain="With a dim, max returns both the largest values (9 and 8, one per row) and where they are. Row 0's maximum 9 is at index 1 and row 1's maximum 8 is at index 0, so v.indices is tensor([1, 0]). tensor([9, 8]) is v.values; tensor([8, 9, 5]) is the maximum of each column, which dim=0 would give."
+/>
+
+## Habit 3: test tiny before you trust the test cell
+
+Final notebooks come with **self-check cells** that print a tick or a cross, and the graders run more **hidden tests** afterwards (the 2026 notebooks were built for an autograding tool called otter-grader). The visible checks often look only at shapes or at one easy example; hidden tests are likely to compare values on inputs you never see. So the checks you write yourself, in a scratch cell, decide whether a bug reaches the graders. Not all quick tests are equally good:
+
+<BugCatcherGrid />
+
+The table shows the three rules for a good scratch test:
+
+- **Make every size different.** With $B = T = h = d_k = 2$, swapping two axes changes nothing visible. With $(2, 3, 5, 4)$, a swap either crashes or shows up in the shape.
+- **Use random inputs, not all ones.** An all-ones input makes every score equal, so every softmax row is uniform whichever way it runs. Use `torch.manual_seed(0)` and `torch.randn` so the test is random but repeatable.
+- **Compare values with something you trust.** A slow version with plain loops (one sequence, one head at a time) is easy to get right, and a single `torch.allclose` against it catches bugs that keep the shape intact.
+
+```python
+def slow_attention(x, W_q, W_k, h):
+    """Obviously correct: one sequence and one head at a time."""
+    B, T, d = x.shape
+    d_k = d // h
+    out = torch.zeros(B, h, T, T)
+    for b in range(B):
+        for j in range(h):
+            cols = slice(j * d_k, (j + 1) * d_k)    # this head's columns
+            q = x[b] @ W_q[:, cols]                 # (T, d_k)
+            k = x[b] @ W_k[:, cols]                 # (T, d_k)
+            out[b, j] = torch.softmax(q @ k.T / math.sqrt(d_k), dim=-1)
+    return out
+
+torch.manual_seed(1)
+x = torch.randn(2, 5, 12)                           # sizes all different
+W_q, W_k = torch.randn(12, 12), torch.randn(12, 12)
+w = attention_weights(x, W_q, W_k, h=3)
+assert w.shape == (2, 3, 5, 5), w.shape
+assert torch.allclose(w.sum(dim=-1), torch.ones(2, 3, 5))
+assert torch.allclose(w, slow_attention(x, W_q, W_k, h=3), atol=1e-6)
+print("all checks passed")
+```
+
+```text
+all checks passed
+```
+
+`torch.allclose(a, b)` is `True` when every pair of numbers agrees up to a tiny rounding error; `atol=1e-6` allows differences up to one millionth, because the loop adds the same numbers in a different order. With the "view without transpose" bug, the first two asserts pass and the third fails: the largest difference from the slow version is about 1.0, a whole attention weight in the wrong place.
+
+<QuickCheck
+  q="Your `split_heads` passes your own test, which uses an input of shape (4, 4, 16) with h = 4, but fails a hidden test. Which change to your test is most likely to expose the bug?"
+  options={['Use sizes that are all different, such as (2, 5, 12) with h = 3', 'Use an all-ones input so you can predict the output by hand', 'Run the same test again with a larger batch of (16, 4, 16)', 'Add print statements that show the dtype of every tensor']}
+  answer={0}
+  explain="With B = T = h = d_k = 4, a transpose of the wrong two axes produces the right shape, so a shape test cannot notice it. Distinct sizes make a swapped axis crash or show up in the shape. An all-ones input is too symmetric to reveal axis bugs, a bigger batch keeps the other sizes equal, and dtypes are not the problem here."
+/>
+
+<ExamTip title="A routine for every PyTorch task">
+
+1. Before you type, write the shape comment for the line. Read sizes from `x.shape`; never hard-code 256, 12 or 512.
+2. Keep every given name and signature exactly (`center_crop(layer, target_shape)`, `self.W_q`): the graders' tests can call them by name.
+3. In a scratch cell: distinct sizes, `torch.manual_seed`, random input, one comparison with a slow or hand-worked version. Then run the notebook's own test cell.
+4. Before submitting, **Restart and Run All**. Later cells often reuse variables defined in earlier test cells, so a notebook that only works in the order you happened to run it can fail for the grader.
+
+</ExamTip>
+
+<Takeaways>
+
+- Name every axis (B, T, d, h, d_k; B, C, H, W) and write the expected shape as a comment on every tensor line; check with `print(x.shape)` or `assert x.shape == (…), x.shape`.
+- A shape comment flags the line that **causes** a bug; PyTorch's error usually appears a line or two later. Some bugs (a missing transpose after splitting heads, softmax on the wrong dim) keep every shape right and need a value test.
+- NumPy translates almost word for word (`np.` to `torch.`, `axis` to `dim`); learn the traps: float32 default, `keepdim`, `max(dim)` returns values and indices, `mean` needs floats, `numel`, `math.sqrt` for plain numbers, and `.item()` for a Python number.
+- Test tiny before the test cell: all sizes different, random input with a seed, and `torch.allclose` against a slow loop version.
+
+</Takeaways>

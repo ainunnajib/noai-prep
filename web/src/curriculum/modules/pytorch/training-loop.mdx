@@ -99,22 +99,19 @@ for step in range(3):
     outputs = model(x)
     loss = criterion(outputs, y)
     loss.backward()
-    print(f"step {step+1}: loss {loss.item():.3f}, grad {model.weight.grad.item():.2f}", end="")
+    g = model.weight.grad.item()          # the gradient just computed
     optimizer.step()
-    print(f", new w {model.weight.item():.2f}")
+    w = model.weight.item()               # the weight after the update
+    print(f"step {step+1}: loss {loss.item():.3f}, grad {g:.2f}, new w {w:.2f}")
 ```
 
-```text
-step 1: loss 10.000, grad -10.00, new w 1.00
+<CodeBlock language="text" title="output: with zero_grad()" code={`step 1: loss 10.000, grad -10.00, new w 1.00
 step 2: loss 2.500, grad -5.00, new w 1.50
-step 3: loss 0.625, grad -2.50, new w 1.75
-```
+step 3: loss 0.625, grad -2.50, new w 1.75`} />
 
-```text
-step 1: loss 10.000, grad -10.00, new w 1.00
+<CodeBlock language="text" title="output: zero_grad() deleted" code={`step 1: loss 10.000, grad -10.00, new w 1.00
 step 2: loss 2.500, grad -15.00, new w 2.50
-step 3: loss 0.625, grad -12.50, new w 3.75
-```
+step 3: loss 0.625, grad -12.50, new w 3.75`} />
 
 Without `zero_grad()` the weight overshoots to 2.5 and then runs away to 3.75, because every step still carries the old gradients. (`loss.item()` turns a one-number tensor into a plain Python number, the right way to print or log a loss.)
 
@@ -260,13 +257,19 @@ Some layers behave differently while training. Two you will meet everywhere:
 
 `model.train()` and `model.eval()` flip a switch (`model.training`) that these layers read. They do not train or evaluate anything by themselves.
 
+<Analogy title="Training drills versus match day">
+
+At CCA training the coach runs drills with handicaps: in each drill a few players sit out at random, so the team learns not to rely on one star. On match day everyone plays. Dropout is the random sitting-out, `model.train()` is drill time and `model.eval()` is match day. You judge a team by how it plays the match, not by one handicapped drill.
+
+</Analogy>
+
 <TrainEvalToggle />
 
-| Switch | Dropout | BatchNorm | Graph recorded? |
-|---|---|---|---|
-| `model.train()` | drops units at random, scales the rest by $\frac{1}{1-p}$ | batch statistics; updates running averages | yes |
-| `model.eval()` | off | stored running averages | yes |
-| `torch.no_grad()` | unchanged | unchanged | **no** |
+What each switch changes:
+
+- **`model.train()`**: Dropout drops units at random and scales the rest by $\frac{1}{1-p}$; BatchNorm uses the current batch's statistics and updates its running averages; autograd records the graph.
+- **`model.eval()`**: Dropout is off; BatchNorm uses its stored running averages; autograd *still* records the graph.
+- **`torch.no_grad()`**: Dropout and BatchNorm are unchanged (they follow whichever mode the model is in); autograd records **no** graph.
 
 The same input gives a different output every time in train mode, which is exactly what you want while training and exactly what you do not want while measuring:
 

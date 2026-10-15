@@ -1,3 +1,267 @@
-{/* stub: lesson 'Diffusion models' is being written */}
+import ForwardNoising from './visuals/diffusion-models/ForwardNoising'
+import DenoiseStepper from './visuals/diffusion-models/DenoiseStepper'
+import LatentPipeline from './visuals/diffusion-models/LatentPipeline'
+import GuidanceScale from './visuals/diffusion-models/GuidanceScale'
 
-This lesson is being written.
+Type "a cat asleep on an MRT seat" into Stable Diffusion and, a few seconds later, you get a picture nobody ever took. The idea behind it sounds backwards: to learn how to *make* images, first learn how to *destroy* them with noise, then train a network to undo the damage one small step at a time. These **diffusion models** power Stable Diffusion, DALL·E 2 and 3 and Imagen, and NOAI asks about them: the 2026 Prelim had eight diffusion questions in a row (Q238 to Q245). This lesson builds the whole idea from one formula.
+
+<Analogy title="A sugar sculpture and a sculptor">
+
+Drop a sugar sculpture of the Merlion into warm water. Minute by minute it blurs and dissolves until only sweet water is left. That direction is easy, and nobody needs to learn anything to do it. Now imagine a sculptor who has watched thousands of sculptures dissolve. Hand her a glass of sweet water and she works *backwards*, a little at a time: "this cloudiness was probably a tail", "this was the head", until a brand-new Merlion stands in the glass. Dissolving is the **forward process**; the sculptor is the **reverse process**, and she is the only part that has to be learned.
+
+</Analogy>
+
+## The forward process: adding noise
+
+Think of an image as a list of numbers $x_0$, the pixel values scaled to the range $-1$ to $1$. The forward process makes it a little noisier at each of $T$ steps, typically $T = 1000$:
+
+$$
+x_t = \sqrt{1 - \beta_t}\; x_{t-1} + \sqrt{\beta_t}\; \varepsilon, \qquad \varepsilon \sim \mathcal N(0, I)
+$$
+
+- $x_{t-1}$ is the image after step $t - 1$ and $x_t$ the slightly noisier image after step $t$.
+- $\varepsilon$ ("epsilon") is fresh <Term def="Random numbers drawn from the bell curve (normal distribution) with mean 0 and standard deviation 1, one for every pixel.">Gaussian noise</Term>: one random number per pixel, drawn from the bell curve with mean 0 and standard deviation 1.
+- $\beta_t$ ("beta") is a small number saying how much noise step $t$ adds. The list $\beta_1, \dots, \beta_T$ is the <Term def="The fixed list of noise amounts β₁ … β_T that says how much noise each forward step adds.">noise schedule</Term>. The original DDPM paper let it grow in a straight line from $0.0001$ to $0.02$.
+
+The two square roots are there for a reason. Shrinking the old image by $\sqrt{1 - \beta_t}$ while adding noise scaled by $\sqrt{\beta_t}$ keeps the overall size of the numbers steady, because $(\sqrt{1 - \beta_t})^2 + (\sqrt{\beta_t})^2 = 1$. So the image does not blow up; it slowly *turns into* noise.
+
+Each step only looks at the step just before it, which makes the forward process a <Term def="A sequence of random steps in which each step depends only on the step just before it, not on the whole history.">Markov chain</Term>. This is the setting of **DDPM**, *Denoising Diffusion Probabilistic Models* (Ho, Jain and Abbeel, 2020): a fixed forward Markov chain that adds noise, and a learned reverse chain that removes it.
+
+### Jumping straight to step t
+
+Adding noise 600 times to reach step 600 would be slow. Luckily the steps combine into one formula. Write $\alpha_t = 1 - \beta_t$ and multiply them up: $\bar\alpha_t = \alpha_1 \alpha_2 \cdots \alpha_t$ (read "alpha-bar t"). Then
+
+$$
+x_t = \sqrt{\bar\alpha_t}\; x_0 + \sqrt{1 - \bar\alpha_t}\; \varepsilon
+$$
+
+- $\sqrt{\bar\alpha_t}$ says how much of the **original image** $x_0$ survives at step $t$. It starts at 1 and falls towards 0.
+- $\sqrt{1 - \bar\alpha_t}$ says how much **noise** there is. It starts at 0 and rises towards 1.
+- $\varepsilon$ is a single noise image, drawn once.
+
+So $x_t$ is just a weighted mix of the clean image and one noise image, and you can jump to *any* step in one line.
+
+<Reveal label="Why do the steps combine like that? (two steps by hand)">
+
+Start from $x_0$. Step 1 gives $x_1 = \sqrt{\alpha_1}\,x_0 + \sqrt{1-\alpha_1}\,\varepsilon_1$. Step 2 gives
+
+$$
+x_2 = \sqrt{\alpha_2}\,x_1 + \sqrt{1-\alpha_2}\,\varepsilon_2 = \sqrt{\alpha_1\alpha_2}\,x_0 + \underbrace{\sqrt{\alpha_2(1-\alpha_1)}\,\varepsilon_1 + \sqrt{1-\alpha_2}\,\varepsilon_2}_{\text{two independent noises}}
+$$
+
+When you add independent Gaussian noises, their **variances add**: $\alpha_2(1 - \alpha_1) + (1 - \alpha_2) = 1 - \alpha_1\alpha_2$. So the two noise terms together are the same as one noise $\varepsilon$ scaled by $\sqrt{1 - \alpha_1 \alpha_2}$, and $x_2 = \sqrt{\bar\alpha_2}\,x_0 + \sqrt{1 - \bar\alpha_2}\,\varepsilon$ with $\bar\alpha_2 = \alpha_1\alpha_2$. The same argument works for every step.
+
+</Reveal>
+
+<ForwardNoising />
+
+<KeyIdea>
+
+The **forward process** is fixed and involves no learning: it mixes the image with Gaussian noise, $x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1 - \bar\alpha_t}\,\varepsilon$, until only noise is left. All the learning is in undoing it.
+
+</KeyIdea>
+
+<QuickCheck
+  q="At some step, $\bar\alpha_t = 0.36$. Which formula gives $x_t$?"
+  options={['$x_t = 0.6\\,x_0 + 0.8\\,\\varepsilon$', '$x_t = 0.36\\,x_0 + 0.64\\,\\varepsilon$', '$x_t = 0.6\\,x_0 + 0.4\\,\\varepsilon$', '$x_t = 0.8\\,x_0 + 0.6\\,\\varepsilon$']}
+  answer={0}
+  explain="The coefficients are square roots: $\sqrt{0.36} = 0.6$ for the image and $\sqrt{1 - 0.36} = \sqrt{0.64} = 0.8$ for the noise. Using $0.36$ and $0.64$ directly forgets the square roots, and $0.6 + 0.4 = 1$ wrongly makes the coefficients add to 1: it is their *squares* that add to 1."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={241} />
+
+<PastPaperQuestion paper="prelim2026" n={245} />
+
+## The reverse process: learning to predict the noise
+
+To generate, we need to run the film backwards: from noise to image. A neural network $\varepsilon_\theta$ (the $\theta$ stands for its weights) is trained for one job: **look at a noisy image $x_t$ and the step number $t$, and predict the noise $\varepsilon$ that was mixed in.** One training step:
+
+1. Take a real image $x_0$ from the training set.
+2. Pick a random step $t$ between 1 and $T$ and a random noise image $\varepsilon$.
+3. Make the noisy image in one line: $x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1 - \bar\alpha_t}\,\varepsilon$.
+4. Ask the network for its guess $\hat\varepsilon = \varepsilon_\theta(x_t, t)$ and score it with the mean squared error
+
+$$
+L = \big\lVert \varepsilon - \varepsilon_\theta(x_t, t) \big\rVert^2
+$$
+
+where $\lVert \cdot \rVert^2$ means "square every pixel's difference and add them up" (in practice, averaged). That is the whole training loss: an ordinary regression on the noise. Because the jump formula reaches any $t$ instantly, every training example can use a different, random step.
+
+For images the network is almost always a <Term def="An encoder-decoder CNN with skip connections whose output has the same height and width as its input; first built for segmentation.">U-Net</Term>, the encoder-decoder with skip connections from the segmentation lesson. That fits perfectly: an image goes in and a same-sized "noise image" comes out. The step $t$ is turned into a vector and added inside the network, so the same U-Net knows whether it is looking at a lightly or a heavily noised image.
+
+<Steps title="One training example by hand (a 1-pixel image)">
+  <Step title="Make the noisy pixel">
+    The clean pixel is $x_0 = 0.8$. The random step has $\bar\alpha_t = 0.64$, so $\sqrt{\bar\alpha_t} = 0.8$ and $\sqrt{1 - \bar\alpha_t} = 0.6$. The random noise is $\varepsilon = -1$. Then $x_t = 0.8 \times 0.8 + 0.6 \times (-1) = 0.64 - 0.6 = 0.04$.
+  </Step>
+  <Step title="The network guesses the noise">
+    Shown only $x_t = 0.04$ and $t$, the network guesses $\hat\varepsilon = -0.9$.
+  </Step>
+  <Step title="Score the guess">
+    The loss is $(\varepsilon - \hat\varepsilon)^2 = (-1 - (-0.9))^2 = (-0.1)^2 = 0.01$. Backpropagation nudges the weights to make the next guess closer to $-1$.
+  </Step>
+  <Step title="A noise guess is also an image guess">
+    Rearranging the jump formula, $\hat x_0 = \dfrac{x_t - \sqrt{1 - \bar\alpha_t}\,\hat\varepsilon}{\sqrt{\bar\alpha_t}} = \dfrac{0.04 - 0.6 \times (-0.9)}{0.8} = \dfrac{0.58}{0.8} = 0.725$, close to the true $0.8$. Predicting the noise and predicting the clean image are two sides of one coin.
+  </Step>
+</Steps>
+
+<Note title="Why predict the noise and not the image?">
+
+The noise is always a standard bell curve, at every step, so the network's target always has the same, well-behaved size. Ho and colleagues found that this choice trained better than predicting $x_0$ directly, and it became the standard. As the last step showed, a good noise guess can always be turned into an image guess.
+
+</Note>
+
+## Generating: many small steps
+
+Sampling starts from pure noise $x_T \sim \mathcal N(0, I)$ and walks back down, $t = T, T-1, \dots, 1$. At each step the network predicts the noise, and the DDPM update removes a little of it:
+
+$$
+x_{t-1} = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1 - \bar\alpha_t}}\, \hat\varepsilon \right) + \sigma_t\, z
+$$
+
+where $\hat\varepsilon = \varepsilon_\theta(x_t, t)$ is the network's noise guess and $z$ is fresh Gaussian noise. In words: subtract a small, scaled amount of the predicted noise, rescale, then add back a little fresh random noise (with $\sigma_t^2 = \beta_t$ in the original DDPM; none on the very last step). The fresh noise keeps the samples varied, so different starting noise gives different images.
+
+The figure below starts with **DDIM**, a variant you will meet in a moment that uses the same predicted noise but skips the fresh noise, so you can follow each dot; switch it to DDPM to see the original method.
+
+<DenoiseStepper />
+
+Why not jump from noise to image in one step, using $\hat x_0$? Try 1 step in the figure. From pure noise the best single guess is the **average** of all the data, which for images is a grey blur. Each small step only has to make a small correction, and by the time the noise is gone the samples have settled on real-looking data, all different from each other. There is no mode collapse here: the samples spread over the whole spiral.
+
+The price is speed. DDPM needs one full U-Net pass **per step**, 1000 of them for one image, while a GAN's generator needs one pass in total. Faster samplers help: **DDIM** (*Denoising Diffusion Implicit Models*, 2020) uses the same trained network but takes larger, deterministic steps, so 20 to 50 steps are enough. Even then, diffusion stays many times slower than a GAN.
+
+<KeyIdea>
+
+A diffusion model trains one network to **predict the noise** in $x_t$, with a simple MSE loss at random steps $t$. To **generate**, it starts from pure noise and calls that network once per step, removing a little noise each time. Many steps give high quality and variety, but make sampling slow.
+
+</KeyIdea>
+
+## In PyTorch
+
+Here is a complete diffusion model for 1-D data whose values sit near $-2$ or near $+2$. A small network stands in for the U-Net. Notice how short the training loop is: no second network, no game, just "predict the noise".
+
+```python
+import torch
+from torch import nn
+
+torch.manual_seed(0)
+T = 1000
+beta = torch.linspace(1e-4, 0.02, T)       # noise schedule
+abar = torch.cumprod(1 - beta, dim=0)       # abar[t - 1] = alpha-bar_t
+
+def real_data(n):                           # half near -2, half near +2
+    side = torch.randint(0, 2, (n, 1)) * 4.0 - 2.0
+    return side + 0.4 * torch.randn(n, 1)
+
+# the denoiser: input (x_t, t / T), output: its guess of the noise
+net = nn.Sequential(nn.Linear(2, 128), nn.ReLU(),
+                    nn.Linear(128, 128), nn.ReLU(),
+                    nn.Linear(128, 1))
+opt = torch.optim.Adam(net.parameters(), lr=1e-3)
+
+total = 0.0
+for step in range(1, 5001):
+    x0 = real_data(256)
+    t = torch.randint(1, T + 1, (256, 1))   # a random step per example
+    eps = torch.randn_like(x0)              # the noise we mix in
+    a = abar[t - 1]
+    xt = a.sqrt() * x0 + (1 - a).sqrt() * eps   # jump to step t
+    eps_hat = net(torch.cat([xt, t / T], dim=1))
+    loss = ((eps_hat - eps) ** 2).mean()    # MSE on the noise
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    total += loss.item()
+    if step % 1000 == 0:
+        print(f"steps up to {step}: average loss {total / 1000:.3f}")
+        total = 0.0
+
+# sampling (DDPM): start from pure noise, then T denoising steps
+x = torch.randn(2000, 1)
+with torch.no_grad():
+    for t in range(T, 0, -1):
+        a, b = abar[t - 1], beta[t - 1]
+        tt = torch.full_like(x, t / T)
+        eps_hat = net(torch.cat([x, tt], dim=1))
+        x = (x - b / (1 - a).sqrt() * eps_hat) / (1 - b).sqrt()
+        if t > 1:
+            x = x + b.sqrt() * torch.randn_like(x)   # fresh noise
+
+left, right = x[x < 0], x[x > 0]
+print(f"share near -2: {len(left) / len(x):.2f}, "
+      f"near +2: {len(right) / len(x):.2f}")
+print(f"left: mean {left.mean():.2f}, std {left.std():.2f} | "
+      f"right: mean {right.mean():.2f}, std {right.std():.2f}")
+```
+
+```text
+steps up to 1000: average loss 0.311
+steps up to 2000: average loss 0.286
+steps up to 3000: average loss 0.282
+steps up to 4000: average loss 0.284
+steps up to 5000: average loss 0.281
+share near -2: 0.49, near +2: 0.51
+left: mean -1.89, std 0.32 | right: mean 2.05, std 0.38
+```
+
+The samples split almost evenly between the two bumps, with roughly the right centres and widths (the real values are $\pm 2$ with standard deviation 0.4): both modes are covered. The loss levels off near 0.28 instead of reaching 0, because at small $t$ the tiny amount of added noise is impossible to tell apart from the data's own spread. Count the network calls in sampling: 1000 for this batch of samples, against 1 for a GAN.
+
+<Mistake title="Three common slips">
+
+- **Forgetting the square roots.** The coefficients are $\sqrt{\bar\alpha_t}$ and $\sqrt{1 - \bar\alpha_t}$, not $\bar\alpha_t$ and $1 - \bar\alpha_t$. A check: their *squares* add to 1.
+- **"The network predicts the clean image."** In standard DDPM training the target is the noise $\varepsilon$; the loss is $\lVert \varepsilon - \varepsilon_\theta(x_t, t) \rVert^2$.
+- **"The forward process is learned."** It is a fixed formula with no weights. Only the reverse (denoising) network is trained.
+
+</Mistake>
+
+## Latent diffusion: how Stable Diffusion affords it
+
+A $512 \times 512$ colour image is $3 \times 512 \times 512 = 786{,}432$ numbers, and the U-Net must process all of them at every one of dozens of steps. **Latent diffusion** (Rombach and colleagues, 2022), the method behind Stable Diffusion, adds one idea: first train a **variational autoencoder** (VAE, from the autoencoder lesson) whose encoder squeezes an image into a small <Term def="A compressed representation of the data inside a model; here a 4 × 64 × 64 grid of numbers that an autoencoder's decoder can turn back into a 512 × 512 image.">latent</Term> of shape $4 \times 64 \times 64 = 16{,}384$ numbers, and whose decoder can rebuild the image from it. Then run the whole diffusion process on latents instead of pixels:
+
+- **Training**: encode every training image into a latent, then train the U-Net to predict the noise added to latents.
+- **Generating**: start from random noise *in latent space*, denoise it step by step with the U-Net, then decode the final latent into pixels with the VAE decoder, **once**.
+
+The latent is $786{,}432 / 16{,}384 = 48$ times smaller, and it keeps the meaningful structure of the image while dropping fine pixel detail that the decoder can restore. That is what made high-quality text-to-image generation run on an ordinary gaming GPU.
+
+**Text conditioning.** The prompt is turned into numbers by a pretrained text encoder (the text half of CLIP for Stable Diffusion v1): 77 token vectors of 768 numbers each. Inside the U-Net, <Term def="Attention where the queries come from one sequence and the keys and values come from another. In Stable Diffusion, the image latent's positions ask questions (queries) and the prompt's tokens answer (keys and values).">cross-attention</Term> layers let every position in the latent ask "which words of the prompt matter for me?": the queries come from the latent, the keys and values from the text vectors.
+
+<LatentPipeline />
+
+<PastPaperQuestion paper="prelim2026" n={240} />
+
+## Classifier-free guidance
+
+A model trained only with prompts tends to follow them loosely. **Classifier-free guidance** (CFG) is the dial that makes it obey. During training, the prompt is replaced by an empty prompt about 10% of the time, so one U-Net learns two things: a **conditional** noise prediction $\varepsilon_\text{cond}$ ("noise, given that this is a cat on an MRT seat") and an **unconditional** one $\varepsilon_\text{uncond}$ ("noise, for any image at all"). At every sampling step it runs both and combines them:
+
+$$
+\hat\varepsilon = \varepsilon_\text{uncond} + w \,(\varepsilon_\text{cond} - \varepsilon_\text{uncond})
+$$
+
+- $\varepsilon_\text{cond} - \varepsilon_\text{uncond}$ is "what the prompt changes": the direction from any image towards an image of *this* prompt.
+- $w$ is the **guidance scale**. $w = 0$ ignores the prompt; $w = 1$ is plain conditional sampling; $w > 1$ pushes *further* in the prompt's direction than the model would on its own. Stable Diffusion uses $w = 7.5$ by default.
+
+For example, with $\varepsilon_\text{uncond} = 0.2$, $\varepsilon_\text{cond} = 0.5$ and $w = 3$ for one pixel: $\hat\varepsilon = 0.2 + 3 \times (0.5 - 0.2) = 0.2 + 0.9 = 1.1$. Notice that $1.1$ lies beyond both predictions: guidance extrapolates.
+
+It is called *classifier-free* because an older method, classifier guidance, needed a separate classifier trained on noisy images to steer sampling; CFG gets the same steering from the difference of the two predictions. The trade-off is clear in the toy below.
+
+<GuidanceScale />
+
+<KeyIdea>
+
+**Stable Diffusion** = a VAE that moves between pixels and a small latent space, a **U-Net** that denoises latents step by step, and a **text encoder** whose embeddings reach the U-Net through **cross-attention**. **Classifier-free guidance**, $\hat\varepsilon = \varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$, makes images follow the prompt more closely as $w$ grows, at the cost of variety and two U-Net passes per step.
+
+</KeyIdea>
+
+<ExamTip>
+
+Keyword map. "Adds noise gradually", "fixed", "Markov chain" → forward process. "Learns to denoise", "predicts the noise" → reverse process. "Many iterative steps" → why diffusion is slower than a GAN. "Compressed latent space", "VAE" → latent diffusion / Stable Diffusion. "Guidance scale", "steer towards the prompt" or the formula $\varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$ → classifier-free guidance. "Same model, fewer deterministic steps" → DDIM. For calculations, remember that the forward coefficients are square roots whose squares add to 1, so $\bar\alpha_t = 0.64$ gives 0.8 and 0.6, and $\bar\alpha_t = 0.36$ gives 0.6 and 0.8.
+
+</ExamTip>
+
+<Takeaways>
+
+- **Forward process** (fixed, no learning): a Markov chain that adds Gaussian noise; in one jump, $x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1 - \bar\alpha_t}\,\varepsilon$ with $\bar\alpha_t = \prod_s (1 - \beta_s)$.
+- **Training**: pick a random $t$ and noise $\varepsilon$, make $x_t$, and train a U-Net to predict $\varepsilon$ with the MSE loss $\lVert \varepsilon - \varepsilon_\theta(x_t, t) \rVert^2$.
+- **Sampling**: start from pure noise and denoise step by step, one network call per step (1000 in DDPM, about 20 to 50 with DDIM), which is why diffusion is much slower than a GAN's single pass, but stable to train and diverse.
+- **Latent diffusion** (Stable Diffusion) runs the loop on a $4 \times 64 \times 64$ VAE latent (48 times fewer numbers than a $3 \times 512 \times 512$ image), with text entering the U-Net through cross-attention, and decodes once at the end.
+- **Classifier-free guidance**: $\hat\varepsilon = \varepsilon_\text{uncond} + w(\varepsilon_\text{cond} - \varepsilon_\text{uncond})$; larger $w$ follows the prompt more closely but reduces variety.
+
+</Takeaways>

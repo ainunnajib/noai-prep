@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
     prompt: 'You freeze a pretrained backbone and build `optimizer = Adam([p for p in model.parameters() if p.requires_grad])`. After 5 epochs you unfreeze the last backbone block with `requires_grad_(True)` and keep training. That block\'s weights never change. Why?',
     options: [
       'The optimiser only updates tensors it was given at creation, and the block was not one of them',
-      'Gradients cannot flow through a block that was ever frozen',
+      'Gradients cannot flow through a block once it has been frozen, even after it is unfrozen',
       'Unfreezing resets `requires_grad` only after the next call to `model.train()`',
       'Adam ignores parameters whose gradients are much smaller than the head\'s',
     ],

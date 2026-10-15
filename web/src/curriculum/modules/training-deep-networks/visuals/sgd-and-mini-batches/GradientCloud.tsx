@@ -119,7 +119,7 @@ export default function GradientCloud() {
       title="One step, 40 different mini-batches"
       caption={
         <>
-          Each thin orange arrow is the downhill direction suggested by one random mini-batch of {B} example{B > 1 ? 's' : ''}; the thick
+          Each thin orange line (ending in a dot) is the downhill direction suggested by one random mini-batch of {B} example{B > 1 ? 's' : ''}; the thick
           arrow is the true downhill direction, averaged over all {N} examples. Slide the batch size: every time it is multiplied by 4, the
           spread (dashed circle) roughly halves, while the cost of one estimate goes up 4 times. Then move <b>near the minimum</b>: the true
           slope is tiny there, so single examples disagree wildly and some even point uphill.

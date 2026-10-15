@@ -69,7 +69,7 @@ export default function CenterCropper() {
   const code = `top  = (${hEnc} - ${dec}) // 2  = ${start}
 crop = x[:, :, ${start}:${start} + ${dec}, ${start}:${start} + ${dec}]
 # rows ${start} to ${end - 1}, same for columns`
-  const bugCode = `x[:, :, ${d}:-${d}, ${d}:-${d}]\n# ${d === 0 ? '-0 is 0, so this is 0:0, an EMPTY slice' : `${bugRows} rows`}`
+  const bugCode = `x[:, :, ${d}:-${d}, ${d}:-${d}]\n# ${d === 0 ? '0:-0 means 0:0, an EMPTY slice:\n# 0 rows' : `${bugRows} rows`}`
 
   const preset = (a: number, b: number) => {
     setHEnc(a)
@@ -117,8 +117,8 @@ crop = x[:, :, ${start}:${start} + ${dec}, ${start}:${start} + ${dec}]
           fontSize: '0.82rem',
           lineHeight: 1.5,
           color: 'var(--ink)',
-          whiteSpace: 'pre',
-          overflowX: 'auto',
+          whiteSpace: 'pre-wrap',
+          overflowWrap: 'anywhere',
           width: '100%',
           boxSizing: 'border-box',
         }}

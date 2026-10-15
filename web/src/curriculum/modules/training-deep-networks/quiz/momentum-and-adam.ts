@@ -15,10 +15,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'Gradient descent on a long, narrow valley zig-zags from wall to wall while creeping along the floor. You add momentum with $\\beta = 0.9$. Why does the path improve?',
     options: [
-      'Gradient components that flip sign each step cancel in the running average, while components that keep the same sign add up',
-      'Momentum lowers the learning rate in steep directions by dividing each step by the size of recent gradients',
-      'Momentum computes second derivatives, so it can step straight to the bottom of the valley',
-      'Momentum adds random noise to the gradient, which knocks the parameters off the valley walls',
+      'Components that flip sign each step cancel in the running average, while steady components add up',
+      'Momentum divides each step by the size of recent gradients, so steep directions get smaller steps',
+      'Momentum uses second derivatives to measure the curvature, so it can step straight to the valley floor',
+      'Momentum adds random noise to each gradient, which knocks the parameters away from the valley walls',
     ],
     answer: 0,
     explanation:
@@ -29,14 +29,14 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.momentum-and-adam.3',
     prompt: 'Training with Adagrad goes well at first, but after many epochs the loss stops improving even though the model is far from good. Switching to RMSProp fixes it. What is the most likely reason?',
     options: [
-      "Adagrad divides by the root of the running sum of all past squared gradients, which only grows, so its steps shrink towards zero; RMSProp uses a moving average that forgets old gradients",
-      'Adagrad has no learning rate, so it cannot take large steps; RMSProp adds a learning rate to fix this',
-      "Adagrad uses momentum, which overshoots the minimum; RMSProp removes the momentum term to stop overshooting",
-      'Adagrad divides by a moving average of squared gradients that forgets too quickly; RMSProp sums every past squared gradient instead',
+      "Adagrad's sum of past squared gradients only grows, so its steps shrink towards zero; RMSProp's moving average forgets old gradients",
+      'Adagrad has no learning-rate setting, so it cannot take large steps late in training; RMSProp adds a learning rate to fix this',
+      'Adagrad includes momentum, which overshoots the minimum again and again; RMSProp removes the momentum term to stop the overshooting',
+      "Adagrad's moving average of squared gradients forgets too quickly; RMSProp sums every past squared gradient so that nothing is forgotten",
     ],
     answer: 0,
     explanation:
-      "Adagrad's denominator $\\sqrt{g_1^2 + g_2^2 + \\dots + g_t^2}$ keeps growing, so for a steady gradient its step falls like $1/\\sqrt{t}$ and eventually stalls. RMSProp replaces the sum with an exponential moving average, which stays the size of recent gradients. The last option describes the two methods the wrong way round.",
+      "Adagrad's denominator $\\sqrt{g_1^2 + g_2^2 + \\dots + g_t^2}$ keeps growing, so for a steady gradient its step falls like $1/\\sqrt{t}$ and eventually stalls. RMSProp replaces the sum with an exponential moving average, which stays the size of recent gradients. The option claiming that Adagrad forgets and RMSProp sums describes the two methods the wrong way round.",
     difficulty: 'intermediate',
   },
   {
@@ -53,10 +53,10 @@ const questions: QuizQuestion[] = [
     id: 'training-deep-networks.momentum-and-adam.5',
     prompt: 'A team adds weight decay by passing `weight_decay=0.01` to `torch.optim.Adam`, which adds $\\lambda w$ to each gradient. Why is `torch.optim.AdamW` usually the better choice?',
     options: [
-      "In Adam the added $\\lambda w$ is divided by $\\sqrt{\\hat v}$, so weights with large gradients are barely decayed; AdamW applies the decay to the weights directly, so every weight shrinks by the same fraction",
-      'AdamW turns off the second-moment estimate $v$, so weight decay becomes the only regulariser and works more strongly',
-      "Adam ignores the `weight_decay` argument entirely, while AdamW is the only PyTorch optimiser that supports weight decay",
-      'AdamW applies weight decay only to the biases, which prevents the weights from shrinking too much',
+      'Adam divides the added $\\lambda w$ by $\\sqrt{\\hat v}$, so weights with big gradients barely decay; AdamW shrinks every weight directly by the same fraction',
+      'AdamW switches off the second moment $v$ whenever weight decay is used, so the decay becomes the only force on the weights and works more strongly',
+      '`torch.optim.Adam` silently ignores the `weight_decay` argument, and AdamW is the only PyTorch optimiser that actually supports weight decay',
+      'AdamW applies weight decay only to the biases and never to the weights, which stops the weights from shrinking too far during long training runs',
     ],
     answer: 0,
     explanation:

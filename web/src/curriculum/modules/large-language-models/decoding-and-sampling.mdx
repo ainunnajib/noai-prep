@@ -1,3 +1,231 @@
-{/* stub: lesson 'Decoding: greedy, beam search, temperature, top-k and top-p' is being written */}
+import GenerationLoop from './visuals/decoding-and-sampling/GenerationLoop'
+import TemperatureSoftmax from './visuals/decoding-and-sampling/TemperatureSoftmax'
+import TopKTopPCutoff from './visuals/decoding-and-sampling/TopKTopPCutoff'
+import BeamSearchTree from './visuals/decoding-and-sampling/BeamSearchTree'
 
-This lesson is being written.
+export const decodeCode = `import numpy as np
+
+tokens = np.array(["chicken", "laksa", "prata",
+                   "satay", "pizza"])
+logits = np.array([2.0, 1.5, 1.0, 0.5, -1.0])
+
+def softmax(z, T=1.0):
+    z = z / T              # temperature
+    e = np.exp(z - z.max())
+    return e / e.sum()
+
+def top_k_filter(p, k):
+    # indices of the k largest
+    keep = np.argsort(p)[::-1][:k]
+    q = np.zeros_like(p)
+    q[keep] = p[keep]
+    return q / q.sum()     # renormalise
+
+def top_p_filter(p, top_p):
+    order = np.argsort(p)[::-1]
+    cum = np.cumsum(p[order])
+    # smallest n with cum >= top_p
+    n_keep = np.searchsorted(cum, top_p) + 1
+    keep = order[:n_keep]
+    q = np.zeros_like(p)
+    q[keep] = p[keep]
+    return q / q.sum()
+
+for T in [0.5, 1.0, 2.0]:
+    print(f"T = {T}:", softmax(logits, T).round(3))
+
+p = softmax(logits)
+print("top-k, k=2:  ", top_k_filter(p, 2).round(3))
+print("top-p, p=0.8:", top_p_filter(p, 0.8).round(3))
+
+print("greedy:", tokens[np.argmax(p)])
+rng = np.random.default_rng(0)
+q = top_p_filter(p, 0.8)
+print("samples:", rng.choice(tokens, size=8, p=q))`
+
+Ask a chatbot the same question twice and you may get two different answers, yet a translation app gives the same output every time. Both use models that output exactly the same kind of thing: a probability for every possible next token. The difference is the **decoding** rule that turns those probabilities into text. A handful of settings (temperature, top-k, top-p, beam width) decide whether the output is robotic, natural or nonsense, and NOAI asks what each one does.
+
+## The decoding loop
+
+At each step an LLM outputs one <Term def="Raw scores, one per token in the vocabulary, produced by the model's last layer. Softmax turns them into probabilities; a bigger logit means a more likely token.">logit</Term> $z_i$ for every token $i$ in its vocabulary (often 50,000 to over 100,000 of them). [Softmax](#/learn/classification/softmax-and-multiclass) turns the logits into probabilities. A <Term def="The rule for choosing the next token from the model's probabilities: always the top one (greedy), a random draw (sampling, possibly reshaped by temperature, top-k or top-p), or a search over whole sequences (beam search).">decoding strategy</Term> then chooses one token, which is appended to the text, and the whole thing runs again with the longer text. Generating one token at a time, each conditioned on the ones before, is called <Term def="Generating a sequence one element at a time, where each new element depends on the ones already generated. GPT-style LLMs are autoregressive.">autoregressive</Term> generation.
+
+<GenerationLoop />
+
+The simplest strategy is <Term def="Decoding that always picks the single most likely next token. It is deterministic: the same prompt always gives the same output.">greedy decoding</Term>: always take the top token. It is fast and **deterministic** (the same prompt always gives the same output), which suits questions with one right answer. But it has two weaknesses you just saw or will see: it tends to **repeat itself**, and it is **short-sighted**, because the most likely next token is not always the start of the most likely sentence. The alternative is <Term def="Choosing the next token at random, with each token's chance equal to its probability. A token with probability 0.3 is chosen about 30% of the time.">sampling</Term>: draw the next token at random, so a token with probability 0.3 is chosen about 30% of the time. The rest of this lesson is about controlling that randomness, and about a smarter alternative to greedy.
+
+## Temperature: how adventurous to be
+
+<Analogy title="Two hawker uncles">
+
+Ask one uncle what to order and he always points to his bestseller: reliable, a bit boring. Ask the other and he suggests something different every time, occasionally something strange. Low temperature is the first uncle; high temperature is the second. Both know the same menu.
+
+</Analogy>
+
+Before the softmax, the logits are divided by a positive number $T$, the <Term def="A positive number T that the logits are divided by before softmax. T below 1 sharpens the distribution (more predictable), T above 1 flattens it (more random). It never changes which token is most likely.">temperature</Term>:
+
+$$
+p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
+$$
+
+- $z_i$ is the logit of token $i$, and $p_i$ is its probability after applying temperature.
+- The sum $\sum_j$ runs over every token in the vocabulary, so the $p_i$ add up to 1.
+- $T = 1$ leaves the model's distribution unchanged. $T < 1$ stretches the gaps between logits, so the top tokens grab even more probability: a **sharper** distribution. $T > 1$ shrinks the gaps: a **flatter** one.
+
+<TemperatureSoftmax />
+
+<KeyIdea>
+
+Temperature divides the logits before softmax. **$T < 1$: sharper, safer, more repetitive. $T > 1$: flatter, more varied, more mistakes.** As $T \to 0$ it becomes greedy decoding; as $T \to \infty$ every token becomes equally likely. It **never changes the ranking** of the tokens.
+
+</KeyIdea>
+
+<Steps title="Temperature without a calculator">
+  <Step title="Start from probabilities in the ratio 4 : 2 : 1">
+    Take logits $z = (\ln 4, \ln 2, 0)$. Then $e^{z} = (4, 2, 1)$, so at $T = 1$ the probabilities are $\tfrac47, \tfrac27, \tfrac17 \approx (0.571, 0.286, 0.143)$.
+  </Step>
+  <Step title="Spot the trick">
+    $e^{z_i/T} = \left(e^{z_i}\right)^{1/T}$. So temperature **raises each odds number to the power $1/T$**: $p_i \propto \left(p_i^{(T=1)}\right)^{1/T}$.
+  </Step>
+  <Step title="T = 0.5 squares the odds">
+    $1/T = 2$, so $4 : 2 : 1$ becomes $16 : 4 : 1$, giving $\tfrac{16}{21}, \tfrac{4}{21}, \tfrac{1}{21} \approx (0.762, 0.190, 0.048)$. The favourite grew from 0.571 to 0.762.
+  </Step>
+  <Step title="T = 2 square-roots the odds">
+    $1/T = \tfrac12$, so the odds become $2 : \sqrt2 : 1 \approx 2 : 1.41 : 1$, giving about $(0.453, 0.320, 0.227)$. Flatter, but the order is still the same.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={229} />
+
+<Mistake title="Temperature does not make a model smarter or more truthful">
+
+Temperature only changes *how the model picks* from what it already predicts. A low temperature makes the model repeat its favourite answer more reliably, including a wrong favourite. Also, $T = 0$ cannot literally be used (you would divide by zero); libraries and APIs treat "temperature 0" as plain greedy decoding.
+
+</Mistake>
+
+## Top-k and top-p: cut off the long tail
+
+Even at $T = 1$, pure sampling has a problem: the vocabulary is huge. Suppose 49,000 junk tokens each have probability only 0.000002. Together that is $49{,}000 \times 0.000002 \approx 0.1$, a 10% chance of a junk token at **every** step. Over a 100-token answer, the chance of avoiding junk every time is about $0.9^{100} \approx 0.00003$, so a weird word is almost guaranteed. The fix is to throw away the unlikely tail before sampling.
+
+<Analogy title="Picking a dinner stall">
+
+Top-k: "only consider the 3 stalls I like most", every night, whatever the mood. Top-p: "consider as many of my favourite stalls as it takes to cover 90% of what I usually enjoy". On a night when you are craving one thing, that is a single stall; on a night when anything goes, it is many.
+
+</Analogy>
+
+- <Term def="Sampling only from the k most likely tokens, after renormalising their probabilities so they add up to 1. With k = 1 it is greedy decoding.">Top-k sampling</Term> keeps only the $k$ most likely tokens.
+- <Term def="Also called nucleus sampling: keep the smallest set of most-likely tokens whose probabilities add up to at least p, renormalise, then sample. The set is small when the model is confident and large when it is unsure.">Top-p (nucleus) sampling</Term> sorts tokens from most to least likely and keeps the **smallest set whose probabilities add up to at least $p$**.
+- Either way, the kept probabilities are **renormalised**: divided by their total, so they add up to 1 again. Then one token is sampled.
+
+<TopKTopPCutoff />
+
+<Steps title="Filter p = (0.50, 0.25, 0.15, 0.06, 0.04) by hand">
+  <Step title="Top-k with k = 2">
+    Keep 0.50 and 0.25. Their total is 0.75, so divide by it: $\tfrac{0.50}{0.75} = \tfrac23 \approx 0.667$ and $\tfrac{0.25}{0.75} = \tfrac13 \approx 0.333$.
+  </Step>
+  <Step title="Top-p with p = 0.8: running totals">
+    Add the sorted probabilities until the total reaches 0.8: $0.50$, then $0.75$ (not yet), then $0.90 \geq 0.8$. Stop: keep **3** tokens.
+  </Step>
+  <Step title="Renormalise">
+    Divide by 0.90: $\tfrac{0.50}{0.90} \approx 0.556$, $\tfrac{0.25}{0.90} \approx 0.278$, $\tfrac{0.15}{0.90} \approx 0.167$. The last two tokens can never be chosen.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A model is very sure: the top token has probability 0.95. With top-p sampling at p = 0.9, how many tokens can be sampled?"
+  options={['1', '2', '5', 'It depends on k']}
+  answer={0}
+  explain="The running total already reaches 0.95 ≥ 0.9 with the first token, so the nucleus is that single token and sampling behaves like greedy here. If the model were unsure, the same p = 0.9 could keep dozens of tokens: top-p adapts to the model's confidence. Top-p has no k."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={230} />
+
+In practice the settings are combined: temperature reshapes the logits, then top-k and/or top-p cut the tail, then one token is sampled. In Hugging Face's `model.generate(...)`, `do_sample=True` switches sampling on, with `temperature=…`, `top_k=…` and `top_p=…` as the knobs (`num_beams=…` controls the beam search coming next). The library's own default is greedy decoding (`do_sample=False`, `num_beams=1`), although a model can ship its own generation settings that override it.
+
+## Greedy versus beam search
+
+<Analogy title="Planning a route">
+
+Greedy decoding is a driver who always takes whichever road looks shortest at the next junction, and sometimes ends up in a traffic jam. Beam search is like a map app that keeps the few most promising routes open as it plans, and only commits once it can compare whole journeys.
+
+</Analogy>
+
+The probability of a whole output is the product of the probabilities of its tokens, each given the ones before:
+
+$$
+\begin{aligned}
+P(y_1, \dots, y_n) &= \prod_{t=1}^{n} p(y_t \mid y_1, \dots, y_{t-1}) \\[4pt]
+\log P &= \sum_{t=1}^{n} \log p(y_t \mid y_1, \dots, y_{t-1})
+\end{aligned}
+$$
+
+The product $\prod$ multiplies the $n$ conditional probabilities. Because these products get tiny very quickly, programs add their logs instead (a <Term def="The logarithm of a probability. It is 0 for probability 1 and negative otherwise; adding log-probabilities is the same as multiplying probabilities, without numbers becoming too small for the computer.">log-probability</Term> is 0 for certainty and negative otherwise; higher is better). <Term def="A search that keeps the b highest-probability partial sequences at each step, extends each by every possible next token, and keeps the best b again; it finally returns the sequence with the highest total probability. b is the beam width; b = 1 is greedy.">Beam search</Term> with beam width $b$ works like this:
+
+1. Start with the prompt as the only partial sentence.
+2. Extend every kept sentence by each possible next token and compute each new sentence's total (log-)probability.
+3. Keep only the $b$ best and throw the rest away (prune them).
+4. Repeat until the sentences end; return the one with the highest total probability.
+
+With $b = 1$ this is exactly greedy decoding.
+
+<BeamSearchTree />
+
+<Steps title="Why greedy loses in the tree above">
+  <Step title="Greedy">
+    Step 1 takes *chicken* (0.5 beats 0.4), then *rice* (0.4), then *tonight* (0.35): $0.5 \times 0.4 \times 0.35 = 0.070$.
+  </Step>
+  <Step title="Beam, b = 2: step 2">
+    Both first words are kept. Their extensions score: *chicken rice* $0.5 \times 0.4 = 0.20$, *chicken wings* $0.15$, *at home* $0.4 \times 0.55 = 0.22$, *at Maxwell* $0.16$. Keep the top two: *at home* and *chicken rice*.
+  </Step>
+  <Step title="Beam, b = 2: step 3">
+    *at home tonight* $= 0.22 \times 0.6 = 0.132$ beats *chicken rice tonight* $= 0.070$. Beam search returns the sentence that starts with the *less* likely word.
+  </Step>
+  <Step title="Beam, b = 3">
+    Now *at Maxwell* (0.16) also survives step 2, and *at Maxwell tonight* $= 0.16 \times 0.95 = 0.152$ is the best sentence of all. A wider beam searches more, at more cost.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="noai2025" n={18} />
+
+Beam search is the standard choice when there is roughly one right output, as in **translation**, **summarisation** and **speech recognition**. Two quirks are worth knowing. Every extra token multiplies in another number below 1, so plain beam search favours **short** outputs; implementations usually divide the log-probability by the length (length normalisation). And in open-ended writing, the most probable text is often bland and repetitive, so chatbots sample instead.
+
+<Mistake title="Beam width b is not top-k">
+
+Top-k sampling picks **one** token at random from the $k$ most likely, at each step. Beam search keeps $b$ **whole partial sentences**, involves no randomness, and returns the single highest-probability sequence it found. "Keeps the k best" appears in both, so exam options love to mix them up.
+
+</Mistake>
+
+## Choosing settings for a task
+
+| Task | Typical settings | Why |
+|---|---|---|
+| Maths, code, factual answers | greedy, or $T \approx 0$ to $0.3$ | one right answer; reproducible |
+| Translation, summarisation | beam search, $b \approx 4$ to $5$ | want the single most probable output |
+| Everyday chatbot | $T \approx 0.7$, top-p $\approx 0.9$ | natural variety, few weird words |
+| Stories, brainstorming | $T \approx 1$, top-p $\approx 0.95$ | variety is the point |
+
+Above about $T = 1.5$ most models start producing nonsense. And none of these settings adds knowledge: they only decide how to pick from what the model already predicts.
+
+<ExamTip>
+
+- "Higher temperature = more random/diverse; lower = more deterministic/focused." Temperature divides the **logits** (not the probabilities) and never changes the ranking.
+- Top-k: the **k most likely** tokens. Top-p: the **smallest set with cumulative probability ≥ p**, so its size changes with the model's confidence. Both renormalise.
+- Beam search: keeps $b$ best partial **sequences** to maximise the **total sequence probability**; $b = 1$ is greedy. Greedy and beam search are deterministic; sampling is not.
+- Quick computation: $T = 0.5$ squares the probability ratios; $T = 2$ square-roots them.
+
+</ExamTip>
+
+## Try it in Python
+
+The functions below are exactly the rules from this lesson, in NumPy. Change the temperature, `k` and `p`, and check the printed probabilities by hand.
+
+<PyRunner packages={['numpy']} code={decodeCode} rows={26} />
+
+<Takeaways>
+
+- An LLM outputs probabilities for the next token; a **decoding strategy** picks one, appends it and repeats (autoregressive generation).
+- **Greedy** always takes the top token: deterministic, but repetitive and short-sighted. **Sampling** draws at random in proportion to the probabilities.
+- **Temperature** $T$ divides the logits before softmax: $T < 1$ sharper, $T > 1$ flatter, $T \to 0$ greedy. The ranking never changes.
+- **Top-k** keeps the $k$ most likely tokens; **top-p** keeps the smallest set with total probability $\geq p$, which adapts to the model's confidence. Survivors are renormalised.
+- **Beam search** keeps the $b$ most probable partial sequences to find a high-probability whole output: good for translation, bland for open-ended chat.
+
+</Takeaways>

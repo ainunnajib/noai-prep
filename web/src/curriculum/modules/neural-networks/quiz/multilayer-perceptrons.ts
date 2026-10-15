@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'neural-networks.multilayer-perceptrons.3',
     prompt: 'What does this code print?',
-    code: 'import numpy as np\nx = np.array([1, 2])\nW = np.array([[1, 1], [2, -1], [-1, 0]])\nb = np.array([0, 1, 0])\nh = np.maximum(0, W @ x + b)\nprint(h)',
+    code: 'import numpy as np\nx = np.array([1, 2])\nW = np.array([[ 1,  1],\n              [ 2, -1],\n              [-1,  0]])\nb = np.array([0, 1, 0])\nh = np.maximum(0, W @ x + b)\nprint(h)',
     options: ['`[3 1 0]`', '`[3 1 -1]`', '`[3 0 0]`', 'A shape error, because `W` has 3 rows but `x` has only 2 entries'],
     answer: 0,
     explanation:

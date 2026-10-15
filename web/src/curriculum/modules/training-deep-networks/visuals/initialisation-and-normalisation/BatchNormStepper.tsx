@@ -66,18 +66,30 @@ export default function BatchNormStepper() {
   const shown = stage <= 1 ? batch : stage <= 3 ? centred : stage === 4 ? xhat : out
   const normalised = stage >= 4
 
-  const nextBatch = () => {
-    // a training step: fold this batch's statistics into the running averages, then draw a new batch
-    setRunMean((rm) => rm.map((v, j) => (1 - MOMENTUM) * v + MOMENTUM * mu[j]))
-    setRunVar((rv) => rv.map((v, j) => (1 - MOMENTUM) * v + MOMENTUM * varB[j] * (M_ROWS / (M_ROWS - 1))))
-    setSeen((n) => n + 1)
-    const r = mulberry32(batchSeed * 7919)
-    const g = () => {
-      const u = Math.max(r(), 1e-12)
-      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r())
+  /** k training steps: fold each batch's statistics into the running averages, then draw the next batch */
+  const advance = (k: number) => {
+    let b = batch
+    let rm = runMean
+    let rv = runVar
+    let seed = batchSeed
+    for (let s = 0; s < k; s++) {
+      const bm = cols.map((j) => b.reduce((acc, row) => acc + row[j], 0) / M_ROWS)
+      const bv = cols.map((j) => b.reduce((acc, row) => acc + (row[j] - bm[j]) ** 2, 0) / M_ROWS)
+      rm = rm.map((v, j) => (1 - MOMENTUM) * v + MOMENTUM * bm[j])
+      rv = rv.map((v, j) => (1 - MOMENTUM) * v + MOMENTUM * bv[j] * (M_ROWS / (M_ROWS - 1)))
+      const r = mulberry32(seed * 7919)
+      const g = () => {
+        const u = Math.max(r(), 1e-12)
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r())
+      }
+      b = Array.from({ length: M_ROWS }, () => cols.map((j) => Math.round((FEATURE_MEAN[j] + FEATURE_SD[j] * g()) * 10) / 10))
+      seed += 1
     }
-    setBatch(Array.from({ length: M_ROWS }, () => cols.map((j) => Math.round((FEATURE_MEAN[j] + FEATURE_SD[j] * g()) * 10) / 10)))
-    setBatchSeed((s) => s + 1)
+    setRunMean(rm)
+    setRunVar(rv)
+    setBatch(b)
+    setBatchSeed(seed)
+    setSeen((n) => n + k)
   }
   const resetAll = () => {
     setBatch(START)
@@ -120,9 +132,11 @@ export default function BatchNormStepper() {
         <>
           Rows are 5 examples in a batch; columns are 3 features with very different scales. Step through: BatchNorm works on each
           <b> column</b> separately, subtracting its mean and dividing by its spread, so every feature ends up centred on 0 with spread 1;
-          then γ and β let the network choose a new scale and shift. Click any cell to follow it in the formula and to edit it. Press{' '}
-          <b>Next batch</b> a few times to update the running averages, then switch to <b>eval</b>: now the stored averages are used, so
-          the result no longer depends on the other examples in the batch.
+          then γ and β let the network choose a new scale and shift. Click any cell to follow it in the formula and to edit it. Each{' '}
+          <b>Next batch</b> is one training step, which moves the stored running averages 10% of the way towards that batch&apos;s
+          statistics. Switch to <b>eval</b> and the stored averages are used instead, so the result no longer depends on the other examples
+          in the batch. After only a few batches the stored averages are still far from the true means, so eval outputs come out badly
+          scaled; press <b>+20 batches</b> and they settle.
         </>
       }
     >
@@ -158,8 +172,15 @@ export default function BatchNormStepper() {
         <div style={{ display: 'grid', gap: '0.4rem', justifyItems: 'center' }}>
           <MatrixGrid label="running mean (stored)" data={[runMean]} format={fmt} cellSize={50} ariaLabel="Running mean" />
           <MatrixGrid label="running var (stored)" data={[runVar]} format={fmt} cellSize={50} ariaLabel="Running variance" />
-          <div style={{ fontSize: 'var(--step--1)', color: 'var(--ink-2)' }}>batches seen in training: {seen}</div>
-          <Button onClick={nextBatch}>Next batch (one training step)</Button>
+          <div style={{ fontSize: 'var(--step--1)', color: 'var(--ink-2)', textAlign: 'center', maxWidth: '16rem' }}>
+            batches seen in training: {seen}
+            <br />
+            true feature means: 5, 50, 1
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', justifyContent: 'center' }}>
+            <Button onClick={() => advance(1)}>Next batch</Button>
+            <Button onClick={() => advance(20)}>+20 batches</Button>
+          </div>
         </div>
       </div>
       <div style={{ minHeight: '2.6em', textAlign: 'center' }}>

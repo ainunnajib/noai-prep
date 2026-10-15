@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, FnPath, HLine, Dots, Bars, useNarrow, M } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Segmented, Toggle, Plot, Grid, Axes, FnPath, HLine, Dots, Label, Bars, useNarrow, M } from '../../../../../kit'
 import s from './heads.module.css'
 
 /*
@@ -70,7 +70,10 @@ export default function DoubleSoftmax() {
             <Plot x={[0, 10]} y={[0, yMax]} width={340} height={250} minHeight={220} margin={{ left: 40, bottom: 32, top: 26, right: 12 }} ariaLabel="Cross-entropy loss against the true-class lead, with and without the extra softmax">
               <Grid xTicks={5} yTicks={4} />
               <Axes xLabel="m" yLabel="loss" xTicks={5} yTicks={4} />
-              <HLine y={floor} color="var(--viz-neg)" label={`floor ${floor.toFixed(2)}`} />
+              <HLine y={floor} color="var(--viz-neg)" />
+              <Label x={5} y={floor} dy={16} anchor="middle" color="var(--viz-neg)" size={12}>
+                {`floor for the bug: ${floor.toFixed(2)}`}
+              </Label>
               <FnPath f={(v) => pipeline(v, K, false).loss} color="var(--viz-3)" width={2.6} samples={160} />
               {bug && <FnPath f={(v) => pipeline(v, K, true).loss} color="var(--viz-neg)" width={2.6} dash="7 5" samples={160} />}
               <Dots points={[{ x: m, y: good.loss, color: 'var(--viz-3)', r: 6 }, ...(bug ? [{ x: m, y: bad.loss, color: 'var(--viz-neg)', r: 6 }] : [])]} />

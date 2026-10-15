@@ -23,8 +23,28 @@ const BAD_C = 'var(--viz-neg)'
 const order = (v: number[]) => v.map((_, i) => i).sort((a, b) => v[b] - v[a] || a - b)
 const snap = (x: number) => Math.max(0.01, Math.min(0.99, Math.round(x * 100) / 100))
 
+/**
+ * Label rows: scan the points from left to right and put each label on the first row whose
+ * previous label is at least `gap` px away (or, if every row is crowded, the row with the most room).
+ */
+function labelRows(vals: number[], px: (v: number) => number, nRows: number, gap = 24): number[] {
+  const order = vals.map((_, i) => i).sort((a, b) => vals[a] - vals[b])
+  const rows = new Array<number>(vals.length).fill(0)
+  const lastX = new Array<number>(nRows).fill(-Infinity)
+  for (const i of order) {
+    const x = px(vals[i])
+    let r = lastX.findIndex((lx) => x - lx >= gap)
+    if (r < 0) r = lastX.indexOf(Math.min(...lastX))
+    rows[i] = r
+    lastX[r] = x
+  }
+  return rows
+}
+
 function StripLayer({ pos, neg, sel }: { pos: number[]; neg: number[]; sel: [number, number] }) {
   const { xs, ys } = usePlot()
+  const posRows = labelRows(pos, xs, 3)
+  const negRows = labelRows(neg, xs, 2)
   const yP = ys(0.72)
   const yN = ys(0.28)
   const [pi, nj] = sel
@@ -44,12 +64,12 @@ function StripLayer({ pos, neg, sel }: { pos: number[]; neg: number[]; sel: [num
       <line x1={xs(0)} x2={xs(1)} y1={ys(0)} y2={ys(0)} style={{ stroke: 'var(--viz-axis)', strokeWidth: 1.2 }} />
       <line x1={xs(pos[pi])} y1={yP} x2={xs(neg[nj])} y2={yN} style={{ stroke: tie ? 'var(--viz-6)' : good ? OK_C : BAD_C, strokeWidth: 3, strokeDasharray: good ? undefined : '5 4' }} />
       {pos.map((v, i) => (
-        <text key={`pl${i}`} className="plot-label" x={xs(v)} y={yP - 13} textAnchor="middle" style={{ fill: POS_C, fontSize: 11.5 }}>
+        <text key={`pl${i}`} className="plot-label" x={xs(v)} y={yP - 13 - 12 * posRows[i]} textAnchor="middle" style={{ fill: POS_C, fontSize: 11.5 }}>
           {P_NAMES[i]}
         </text>
       ))}
       {neg.map((v, i) => (
-        <text key={`nl${i}`} className="plot-label" x={xs(v)} y={yN + 22} textAnchor="middle" style={{ fill: NEG_C, fontSize: 11.5 }}>
+        <text key={`nl${i}`} className="plot-label" x={xs(v)} y={yN + 22 + 12 * negRows[i]} textAnchor="middle" style={{ fill: NEG_C, fontSize: 11.5 }}>
           {N_NAMES[i]}
         </text>
       ))}

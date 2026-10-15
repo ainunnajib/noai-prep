@@ -1,3 +1,198 @@
-{/* stub: lesson '2025 Task 2: K-means from scratch' is being written */}
+import KMeansTaskTrace from './visuals/task-kmeans/KMeansTaskTrace'
+import LoopVsVectorKMeans from './visuals/task-kmeans/LoopVsVectorKMeans'
+import KMeansConvergence from './visuals/task-kmeans/KMeansConvergence'
 
-This lesson is being written.
+export const kmCode = `import numpy as np
+
+# DO NOT MAKE CHANGES TO THIS CELL
+points = [(2, 4), (2, 8), (2, 10), (10, 2), (10, 4), (10, 0)]
+k = 2
+initial_centroids = [(2, 2), (10, 1)]
+max_iterations = 10
+
+def euclidean_distance(a, b):
+    return np.sqrt(np.sum((np.array(a) - np.array(b)) ** 2))
+
+def k_means_clustering(points, k, initial_centroids, max_iterations):
+    points = np.array(points, dtype=float)
+    centroids = np.array(initial_centroids, dtype=float)
+    for _ in range(max_iterations):
+        # assign: index of the nearest centroid for every point
+        labels = np.array([np.argmin([euclidean_distance(p, c) for c in centroids])
+                           for p in points])
+        # update: mean of each cluster (keep the old centroid if empty)
+        new_centroids = centroids.copy()
+        for i in range(k):
+            members = points[labels == i]
+            if len(members) > 0:
+                new_centroids[i] = members.mean(axis=0)
+        # stop when no centroid moved
+        if np.allclose(new_centroids, centroids):
+            break
+        centroids = new_centroids
+    return [tuple(round(float(v), 4) for v in c) for c in centroids]
+
+print(k_means_clustering(points=points, k=k, initial_centroids=initial_centroids,
+                         max_iterations=max_iterations))
+
+# your own tests
+print(euclidean_distance((0, 0), (3, 4)))                          # 3-4-5: expect 5.0
+print(k_means_clustering(points, 2, [(2, 4), (2, 8)], 10))          # another start
+print(k_means_clustering(points, 2, [(2, 2), (100, 100)], 10))      # an empty cluster
+print(k_means_clustering([(1, 2, 3), (1, 2, 4), (9, 9, 9), (10, 9, 9)],
+                         2, [(1, 2, 3), (9, 9, 9)], 10))           # 3-D points`
+
+Question 2 of the 2025 Final was worth 25 marks: write <Term def="A clustering algorithm that splits points into k groups by repeating two steps: give each point to its nearest centre, then move each centre to the mean of its points.">K-means</Term> from scratch, with a distance helper, and return the final centroids rounded to 4 decimal places. Unlike Question 1, the notebook spelled out the algorithm as a five-step recipe. Full marks came from turning each step into a few lines of code and handling the two details the hints warned about: empty clusters and when to stop.
+
+<Analogy title="Bubble tea shops chasing their customers">
+
+Two bubble tea shops open at random spots in a new estate. Every resident walks to the nearer shop. Each shop then moves to the middle of its own customers, and residents choose again. After a few rounds nobody switches and the shops stop moving. The code does exactly that: **assign** every point to its nearest centre, **update** each centre to its customers' mean, **check** whether anything changed.
+
+</Analogy>
+
+<PastPaperQuestion paper="prelim2026" n={137} />
+
+## The recipe in the notebook
+
+The notebook gave these steps, and a stub with two functions, `euclidean_distance(a, b)` and `k_means_clustering(points, k, initial_centroids, max_iterations)`:
+
+1. **Initialisation**: use the given `initial_centroids` (no randomness).
+2. **Assignment**: for each point, compute its distance to each centroid and assign it to the nearest. *Hint: a helper for the Euclidean distance.*
+3. **Update**: move each centroid to the mean of its points. *Hint: decide how to handle empty clusters, e.g. keep the previous centroid.*
+4. **Iteration**: repeat 2 and 3 until the centroids no longer change significantly, or `max_iterations` is reached.
+5. **Result**: return the list of final centroids, each coordinate rounded to 4 decimal places.
+
+The protected data cell: `points = [(2, 4), (2, 8), (2, 10), (10, 2), (10, 4), (10, 0)]`, `k = 2`, `initial_centroids = [(2, 2), (10, 1)]`, `max_iterations = 10`. Note that the points are Python **tuples**, which cannot be subtracted: `(2, 4) - (2, 2)` is a `TypeError`. Convert them with `np.array` first.
+
+## The distance helper
+
+The <Term def="The straight-line distance between two points: square the difference in each coordinate, add the squares, take the square root.">Euclidean distance</Term> between $a = (a_1, \dots, a_d)$ and $b = (b_1, \dots, b_d)$ is
+
+$$
+d(a, b) = \sqrt{\sum_{j=1}^{d} (a_j - b_j)^2}.
+$$
+
+Subtract coordinate by coordinate, square each difference, add them up, take the square root: Pythagoras in any number of dimensions $d$. For $(2, 4)$ and $(10, 1)$: $\sqrt{(2-10)^2 + (4-1)^2} = \sqrt{64 + 9} = \sqrt{73} \approx 8.544$. In NumPy, `np.sqrt(np.sum((np.array(a) - np.array(b)) ** 2))`, which works for 2-D, 3-D or any length. Do not hard-code `(a[0] - b[0])` and `(a[1] - b[1])`: hidden tests may use other dimensions.
+
+<PastPaperQuestion paper="prelim2026" n={2} />
+
+## Trace it by hand first
+
+To find the **nearest** centroid you can compare squared distances and skip the square roots: if $d_1^2 < d_2^2$ then $d_1 < d_2$.
+
+<Steps title="Iteration 1 with C1 = (2, 2) and C2 = (10, 1)">
+  <Step title="Assign (2, 4)">
+    To C1: $0^2 + 2^2 = 4$. To C2: $8^2 + 3^2 = 73$. Nearer to C1.
+  </Step>
+  <Step title="Assign the rest the same way">
+    (2, 8) and (2, 10) are nearer C1; (10, 2), (10, 4) and (10, 0) are nearer C2. For (10, 2): to C1 $8^2 + 0^2 = 64$, to C2 $0^2 + 1^2 = 1$.
+  </Step>
+  <Step title="Update C1">
+    Mean of (2, 4), (2, 8), (2, 10): $\left(\frac{2+2+2}{3}, \frac{4+8+10}{3}\right) = \left(2, \frac{22}{3}\right) \approx (2, 7.3333)$.
+  </Step>
+  <Step title="Update C2">
+    Mean of (10, 2), (10, 4), (10, 0): $\left(10, \frac{6}{3}\right) = (10, 2)$.
+  </Step>
+  <Step title="Iteration 2">
+    With the new centroids every point keeps its cluster, so the means do not change. Nothing moved: stop, and return `[(2.0, 7.3333), (10.0, 2.0)]`.
+  </Step>
+</Steps>
+
+Now watch the code do the same, block by block:
+
+<KMeansTaskTrace />
+
+<KeyIdea>
+
+Assign, update, check: three blocks inside one loop. Assign with `argmin` over distances, update with the mean of each cluster (keeping the old centroid if a cluster is empty), and break when no centroid moved or after `max_iterations`.
+
+</KeyIdea>
+
+## The full solution
+
+<PyRunner packages={['numpy']} code={kmCode} rows={30} />
+
+```text
+[(2.0, 7.3333), (10.0, 2.0)]
+5.0
+[(10.0, 2.0), (2.0, 7.3333)]
+[(6.0, 4.6667), (100.0, 100.0)]
+[(1.0, 2.0, 3.5), (9.5, 9.0, 9.0)]
+```
+
+The four extra lines are the tests worth writing in the exam: a 3-4-5 triangle for the helper, a different start (same clusters, **opposite order**, because centroid $i$ stays tied to `initial_centroids[i]`), an empty cluster (the far-away (100, 100) gets no points and is kept), and 3-D points.
+
+A few details decide the marks:
+
+- **Return the right type.** A list of tuples of plain floats. Since NumPy 2, `tuple(np.round(c, 4))` prints as `(np.float64(2.0), np.float64(7.3333))`; `round(float(v), 4)` gives `(2.0, 7.3333)`.
+- **Round once, at the end.** The official solution rounded the centroids inside the loop and then compared rounded old centroids with unrounded new ones using `==`. That test is never true (7.3333 is not 7.333333…), so its early stop never fired and the loop always ran all 10 iterations. Here that was harmless, but comparing with `np.allclose` and rounding only on return is cleaner.
+- **`k` equals `len(initial_centroids)`.** Loop over the given centroids; do not invent new ones.
+
+<Mistake title="Stopping in the wrong place">
+
+`for _ in range(max_iterations)` with a `break` when nothing moves covers both stopping rules. Two slips are common: putting `return` inside the loop (it stops after one iteration), and checking `new_centroids == centroids` on whole arrays in an `if` (NumPy raises "the truth value of an array with more than one element is ambiguous"; use `np.all(...)` or `np.allclose(...)`).
+
+</Mistake>
+
+<QuickCheck
+  q="With the exam points, starting centroids [(2, 4), (2, 8)] and `max_iterations = 1`, what does the function return?"
+  options={['[(8.0, 2.5), (2.0, 9.0)]', '[(2.0, 7.3333), (10.0, 2.0)]', '[(10.0, 2.0), (2.0, 7.3333)]', '[(2.0, 4.0), (2.0, 8.0)]']}
+  answer={0}
+  explain="One assign-update round only. (2, 8) and (2, 10) are nearer (2, 8); the other four points, including (10, 4) at distance 8 versus 8.944, are nearer (2, 4). The means are ((2+10+10+10)/4, (4+2+4+0)/4) = (8, 2.5) and (2, 9). The converged answer needs more iterations."
+/>
+
+## The vectorised version
+
+The double loop (every point, every centroid) can be replaced by one array operation using <Term def="NumPy's rule for combining arrays of different shapes: dimensions of size 1 are stretched to match the other array.">broadcasting</Term>. With the points `P` of shape `(n, d)` and the centroids `C` of shape `(k, d)`:
+
+- `P[:, None, :]` has shape `(n, 1, d)` and `C[None, :, :]` has shape `(1, k, d)`. Subtracting them stretches both to `(n, k, d)`: every point minus every centroid.
+- Squaring, summing over the last axis (`axis=2`) and taking the square root gives the distance matrix `D` of shape `(n, k)`.
+- `D.argmin(axis=1)` gives, for each row (each point), the column (centroid) with the smallest distance.
+- `P[labels == i]` is a <Term def="Indexing an array with an array of True/False values keeps only the rows where the value is True.">boolean mask</Term>: the rows of cluster $i$. Its `.mean(axis=0)` is the new centroid.
+
+<LoopVsVectorKMeans />
+
+<QuickCheck
+  q="`P` has shape `(6, 2)` and `C` has shape `(2, 2)`. What is the shape of `np.sqrt(((P[:, None, :] - C[None, :, :]) ** 2).sum(axis=2))`?"
+  options={['(6, 2)', '(2, 6)', '(6, 2, 2)', '(6,)']}
+  answer={0}
+  explain="The difference broadcasts to `(6, 2, 2)`: 6 points × 2 centroids × 2 coordinates. Summing over `axis=2` removes the coordinate axis, leaving `(6, 2)`: one distance per point per centroid. `argmin(axis=1)` would then give shape `(6,)`."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={93} />
+
+## Convergence and empty clusters
+
+K-means always stops in the end: each assignment and each update can only lower (or keep) the total squared distance from points to their centroids, and there are finitely many ways to split the points. The code needs a rule to notice it has stopped:
+
+- **No change**: the new centroids equal the old ones (exactly, or within a tiny tolerance with `np.allclose`). This is what "no longer change significantly" means.
+- **A tolerance**: stop when every centroid moves less than some small number. Too large, and you stop before the clusters are right.
+- **`max_iterations`**: a safety net, in case it takes longer.
+
+An **empty cluster** happens when no point is nearest to some centroid. Its mean is a division by zero: NumPy returns `nan` with a "Mean of empty slice" warning, and the `nan` then spreads. The task suggested keeping the previous centroid; re-starting it at a random data point is another common fix. When the starting centroids are chosen randomly, fix a <Term def="A number that sets a random number generator's starting state, so the same 'random' choices happen every run.">seed</Term> (for example `np.random.seed(0)`) so your results can be reproduced.
+
+<KMeansConvergence />
+
+<Mistake title="The mean of nothing">
+
+`points[labels == i].mean(axis=0)` on an empty selection returns `array([nan, nan])`, not an error, so the bug can stay hidden. Every distance to a `nan` centroid is `nan`, and `np.argmin` treats `nan` as the smallest value, so points start joining the broken cluster. Always guard the update with `if len(members) > 0` (or `np.any(labels == i)`).
+
+</Mistake>
+
+<ExamTip>
+
+- 25 marks is about 30–35 minutes. Write `euclidean_distance` first and test it on (0, 0), (3, 4) → 5.0. Then the loop, then the extra tests above (other start, empty cluster, 3-D).
+- Keep the centroid order tied to `initial_centroids`, round only on return, and convert NumPy numbers with `float()`.
+- Ties: `np.argmin` and `list.index(min(...))` both pick the **first** smallest, so a point exactly halfway joins the lower-numbered cluster. In the Prelim, K-means appears as "which is unsupervised", "how to choose k" (elbow method) and one-step traces like the one above.
+
+</ExamTip>
+
+<Takeaways>
+
+- The task is the five-step recipe in code: initialise with the given centroids, assign each point to its nearest centroid, update each centroid to its cluster's mean, repeat until nothing moves or `max_iterations`, return rounded tuples.
+- `euclidean_distance` is $\sqrt{\sum_j (a_j - b_j)^2}$; convert tuples to arrays and never hard-code two dimensions.
+- On the exam data: C1 = mean of (2, 4), (2, 8), (2, 10) = (2, 7.3333) and C2 = (10, 2), converged after 2 iterations.
+- Guard empty clusters (keep the old centroid), stop with `np.allclose` or exact equality, and round with `round(float(v), 4)` only on the way out.
+- Vectorised: `D = np.sqrt(((P[:, None] - C[None]) ** 2).sum(axis=2))`, `labels = D.argmin(axis=1)`, `P[labels == i].mean(axis=0)`: the same algorithm as the loops.
+
+</Takeaways>

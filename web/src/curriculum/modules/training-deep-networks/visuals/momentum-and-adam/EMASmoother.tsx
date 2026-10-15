@@ -72,7 +72,7 @@ export default function EMASmoother() {
           <Path points={ema} color="var(--viz-1)" width={2.8} />
           {corrected && <Path points={hat} color="var(--viz-2)" width={2.4} dash="6 4" />}
           <Label x={T} y={6} dx={-4} dy={14} anchor="end" color="var(--viz-1)" weight={700}>
-            {corrected ? 'EMA m (solid), corrected m̂ (dashed)' : 'EMA m'}
+            {corrected ? (narrow ? 'm solid, m̂ dashed' : 'EMA m (solid), corrected m̂ (dashed)') : 'EMA m'}
           </Label>
         </Plot>
         <Plot x={[-0.6, K - 0.4]} y={[0, Math.max(0.12, 1 - beta) * 1.08]} width={narrow ? 360 : 540} height={narrow ? 120 : 120} maxWidth={680} minHeight={110} margin={{ left: 40, bottom: 30, top: 10 }} ariaLabel="Weight of each past value in the average">

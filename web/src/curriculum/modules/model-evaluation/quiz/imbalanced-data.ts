@@ -4,27 +4,32 @@ const questions: QuizQuestion[] = [
   {
     id: 'model-evaluation.imbalanced-data.1',
     prompt:
-      'A test set has 1,000 transactions, 10 of which are fraud. Model A never flags anything. Model B flags 60 transactions, 8 of which are fraud. Which statement is true?',
+      'A screening model for a rare disease is tested on a large set of patients, 0.5% of whom have the disease. The team reports an accuracy of 99.4%. What is the most sensible conclusion?',
     options: [
-      'Model A has the higher accuracy, but Model B has far higher recall',
-      'Model B has both the higher accuracy and the higher recall',
-      'Both models have the same recall, because both miss some frauds',
-      'Model A has the higher precision, because it never raises a false alarm',
+      'The accuracy tells you little: calling everyone healthy would score 99.5%, so check recall and precision on the disease class',
+      'The model is excellent, because it gives the right answer for more than 99 out of every 100 patients it sees',
+      'The model must have a high recall, because its mistakes add up to at most 0.6% of all the patients tested',
+      'The model is useless, because its accuracy is lower than the accuracy of always answering "healthy"',
     ],
     answer: 0,
     explanation:
-      'Model A: accuracy $= 990/1000 = 99\\%$, recall $= 0/10 = 0$. Model B: $TP = 8$, $FP = 52$, $FN = 2$, $TN = 938$, so accuracy $= 946/1000 = 94.6\\%$ but recall $= 8/10 = 0.8$. The useless model wins on accuracy: the accuracy paradox. Model A\'s precision is not "higher": with no positive predictions it is $0/0$, undefined.',
+      'With 0.5% prevalence, the do-nothing model that always says "healthy" scores $1 - 0.005 = 99.5\\%$, so 99.4% on its own proves nothing. The 0.6% of mistakes could include every sick patient (recall 0), or the model could catch most of them while raising a few false alarms, which is exactly how a useful detector can score *below* the do-nothing baseline. Only recall and precision on the disease class tell the two apart.',
     difficulty: 'intermediate',
   },
   {
     id: 'model-evaluation.imbalanced-data.2',
     prompt:
-      'A training set has 4,750 negative and 250 positive examples. Using class weights $w_0 = 1$ and $w_1 = n_0 / n_1$, what weight does each positive example get in the loss?',
-    options: ['19', '20', '0.05', '10'],
+      'A training set has 4,750 negative and 250 positive examples. Which statement comparing class weights with random oversampling is correct?',
+    options: [
+      'Giving each positive weight 19 has the same effect on the loss as copying each positive 19 times, but the copies make training slower',
+      'Copying each positive 19 times adds new information about the positive class, so it generalises better than class weights',
+      'Each positive needs weight 20 to balance the classes, because there are 5,000 examples and 250 of them are positive',
+      'Class weights must also be applied when scoring the test set, whereas an oversampled model can be tested as it is',
+    ],
     answer: 0,
     explanation:
-      '$w_1 = n_0 / n_1 = 4{,}750 / 250 = 19$, so the 250 positives weigh $250 \\times 19 = 4{,}750$ in total, the same as all the negatives. 20 is $5{,}000/250$ (total over positives), and 0.05 is the prevalence $250/5{,}000$.',
-    difficulty: 'beginner',
+      '$w_1 = n_0 / n_1 = 4{,}750 / 250 = 19$, so the positives weigh $250 \\times 19 = 4{,}750$ in total, the same as the negatives. Copying a row 19 times adds 19 identical terms to the loss, which is exactly weight 19, but the training set grows to 9,500 rows and contains no new information. 20 wrongly divides the total (5,000) instead of the negatives, and the test set is never reweighted or resampled.',
+    difficulty: 'intermediate',
   },
   {
     id: 'model-evaluation.imbalanced-data.3',

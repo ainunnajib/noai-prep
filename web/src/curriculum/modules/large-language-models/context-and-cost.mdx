@@ -1,3 +1,184 @@
-{/* stub: lesson 'Context windows, the KV cache and cost' is being written */}
+import ContextWindowSlider from './visuals/context-and-cost/ContextWindowSlider'
+import KVCacheStepper from './visuals/context-and-cost/KVCacheStepper'
+import ChatCostMeter from './visuals/context-and-cost/ChatCostMeter'
 
-This lesson is being written.
+Why does a chatbot "forget" something you told it at the start of a long conversation? Why does pasting in a whole textbook chapter make it slower and more expensive? The answers come from three ideas: the **context window**, the **quadratic cost of attention** and the **KV cache**. They explain how LLMs are served to millions of people, and NOAI asks about all three.
+
+## Tokens are the unit of everything
+
+An LLM never sees words. It sees [tokens](#/learn/text-as-data/tokenisation): whole words, pieces of words, digits or punctuation. Limits, speed and price are all counted in tokens. For English text with GPT-style tokenisers, a useful rule of thumb is **1 token ≈ ¾ of a word**, so 100 tokens ≈ 75 words, or equivalently about 4 tokens for every 3 words.
+
+Common words are usually one token each. Rare words, names, long numbers, code and many languages other than English are split into more pieces, so the same message can cost noticeably more tokens. **Tokens are not words**, and exam questions about context length or cost always mean tokens.
+
+<QuickCheck
+  q="Roughly how many tokens is a 1,500-word English essay?"
+  options={['About 2,000', 'About 1,125', 'About 1,500', 'About 15,000']}
+  answer={0}
+  explain="1 token ≈ 3/4 of a word, so tokens ≈ words × 4/3 = 1,500 × 4/3 = 2,000. Multiplying by 3/4 instead (1,125) is the common slip: there are more tokens than words, not fewer."
+/>
+
+## The context window
+
+<Analogy title="A whiteboard of fixed size">
+
+A tutor explains a problem on a whiteboard that holds only so much. Once it is full, writing anything new means erasing the oldest notes, and whatever was erased can no longer be pointed at. A bigger whiteboard helps, but it costs more and takes longer to read from end to end.
+
+</Analogy>
+
+The <Term def="The maximum number of tokens an LLM can attend to at once: the system instructions, the conversation so far, any pasted documents and the reply being written all have to fit inside it.">context window</Term> is the maximum number of tokens an LLM can take into account at once. **Everything** has to fit: the system instructions, the conversation so far, any pasted documents and the reply being generated. GPT-2 had a window of 1,024 tokens and GPT-3 2,048; recent models offer 128,000 or more.
+
+The model itself has **no memory between calls**. A chat app creates the illusion of memory by sending the whole conversation again on every turn. When the conversation grows longer than the window, the oldest tokens must be cut off (or summarised, or looked up again with [retrieval](#/learn/prompting-and-rag/rag-pipeline)), and the model cannot use them at all.
+
+<ContextWindowSlider />
+
+<KeyIdea>
+
+An LLM's "memory" is just its **context window**: a fixed number of tokens it attends to at once. Anything outside the window, such as the start of a long chat, simply does not exist for the model.
+
+</KeyIdea>
+
+Why not make the window enormous? Because [self-attention](#/learn/attention-and-transformers/scaled-dot-product-attention) compares **every token with every other token**. For $T$ tokens in the window, each attention head in each layer computes a $T \times T$ table of scores:
+
+$$
+\text{attention scores per head, per layer} = T^2
+$$
+
+- $T$ is the number of tokens being attended to (up to the window size).
+- Doubling $T$ multiplies $T^2$ by $2^2 = 4$, and multiplying $T$ by 10 multiplies it by 100.
+
+For $T = 4{,}096$ that is about 16.8 million scores per head per layer; for $T = 8{,}192$ it is about 67 million, four times as many. (The [quadratic cost visual](#/learn/attention-and-transformers/positional-encoding-and-blocks) in the Transformers module lets you slide $T$ and watch the table grow.) Longer windows also need more memory, as you will see with the KV cache below. Labs use many tricks to stretch windows further, but this quadratic growth is the classic answer to the past-paper question below.
+
+<PastPaperQuestion paper="prelim2026" n={236} />
+
+Even when a long document fits, models tend to use information at the very start and end of a long context more reliably than information buried in the middle (researchers called this being "lost in the middle"). Putting the important part of a prompt near the start or the end helps.
+
+<Mistake title="Myth: a bigger window means the model knows more">
+
+The context window is working memory for one request, not knowledge. What the model *knows* was fixed by training. A 128,000-token window lets you show it more at once; it does not make it remember yesterday's chat, unless the app sends that chat again.
+
+</Mistake>
+
+## Generating text: read the prompt, then one token at a time
+
+Generation has two phases:
+
+1. **Prefill**: the whole prompt is processed in one pass. All its tokens are handled in parallel, so this is fast per token, but a longer prompt still means a longer wait before the first word appears (the *time to first token*).
+2. **Decode**: the model then produces the answer **one token per pass**, each new token depending on all the ones before. This is [autoregressive generation](#/learn/large-language-models/decoding-and-sampling), and it cannot be done in parallel: token 50 depends on token 49.
+
+<PastPaperQuestion paper="prelim2026" n={228} />
+
+Here is the problem. To produce token $t$, attention needs the keys and values of all $t - 1$ earlier tokens, in every layer. A naive implementation would push the whole text through the model again on every pass, recomputing everything it already computed on the previous pass.
+
+## The KV cache
+
+Recall from [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) that each token produces a **query** $q$, a **key** $k$ and a **value** $v$. The new token's output is a weighted average of the values, with weights from comparing its query with every key:
+
+$$
+\begin{aligned}
+\text{out}_t &= \sum_{j \le t} a_{tj}\, v_j \\[6pt]
+a_{tj} &= \text{softmax}_j\!\left(\frac{q_t \cdot k_j}{\sqrt{d_k}}\right)
+\end{aligned}
+$$
+
+Here $a_{tj}$ is how much token $t$ attends to token $j$, the softmax runs over all $j \le t$, and $d_k$ is the length of each key.
+
+Look at what the new token $t$ needs: its own query $q_t$, plus the keys $k_j$ and values $v_j$ of every token $j \le t$. Now the crucial fact: GPT-style models use a **causal mask**, so a token never attends to tokens after it. Adding new tokens at the end therefore never changes the keys and values of earlier tokens.
+
+<PastPaperQuestion paper="prelim2026" n={220} />
+
+So we compute each token's keys and values once and **store** them: the <Term def="Key-value cache: during generation, the keys and values of all earlier tokens (in every layer) are stored after they are first computed, so each new step only computes the newest token's query, key and value and reuses the rest. It makes generation much faster at the cost of memory.">KV cache</Term>. Each later pass then computes $q$, $k$ and $v$ for the newest token only, appends its $k$ and $v$ to the cache, and attends over the cached rows. Queries are never stored: each one is used once, by its own token, at its own step.
+
+<Analogy title="Keep your working">
+
+In a long maths problem you do not redo lines 1 to 9 every time you write line 10; you keep your working and build on it. The KV cache is the model's kept working. The price is paper: the working takes up space, and it grows with every line.
+
+</Analogy>
+
+<KVCacheStepper />
+
+<Steps title="How much work does the cache save?">
+  <Step title="Set up">
+    A prompt of $p = 1{,}000$ tokens, and we generate $n = 100$ tokens, one per pass. Count how many token positions go through the model in total.
+  </Step>
+  <Step title="Without the cache">
+    Pass $i$ reprocesses the prompt plus the $i - 1$ tokens generated so far: $1{,}000 + (i - 1)$ positions. Over 100 passes: $100 \times 1{,}000 + (0 + 1 + \dots + 99) = 100{,}000 + 4{,}950 = 104{,}950$.
+  </Step>
+  <Step title="With the cache">
+    The prompt goes through once (prefill), then each of the other 99 passes processes just one new token: $1{,}000 + 99 = 1{,}099$.
+  </Step>
+  <Step title="Compare">
+    $104{,}950 / 1{,}099 \approx 95$ times less work, and the gap widens as answers get longer, because the no-cache total grows like $n^2$.
+  </Step>
+</Steps>
+
+The cache costs memory. Each token stores a key and a value (2 vectors) of length $d_\text{model}$ in each of the $L$ layers:
+
+$$
+\text{KV cache} = 2 \times L \times T \times d_\text{model} \times b
+$$
+
+Here the 2 counts one key and one value, $L$ is the number of layers, $T$ the number of tokens cached, $d_\text{model}$ the width of the keys and values summed over all heads, and $b$ the number of bytes used to store each number. For a 7-billion-parameter model like Llama 2 7B ($L = 32$, $d_\text{model} = 4{,}096$, 16-bit numbers = 2 bytes), one token takes $2 \times 32 \times 4{,}096 \times 2 = 524{,}288$ bytes, about **0.5 MB**. A 4,096-token conversation needs about **2 GB**, and 32,768 tokens about **16 GB**: more than the model's own weights ($7 \times 10^9 \times 2$ bytes $= 14$ GB). This is why long contexts are memory-hungry, and why newer models let groups of attention heads share keys and values to shrink the cache.
+
+<QuickCheck
+  q="During generation, why does the KV cache store keys and values, but not queries?"
+  options={['Each query is used only once, by its own token at its own step', 'Queries are the same for every token, so one copy is enough', 'Queries change whenever a new token is added', 'Queries are part of the model weights, so they are already stored']}
+  answer={0}
+  explain="The new token compares its own query with all keys, then averages all values. Old keys and values are needed again at every later step; old queries never are. They do not change either (the causal mask), but nothing would reuse them. The weights that produce q, k and v are stored in the model, but the vectors themselves depend on the text."
+/>
+
+<Mistake title="The KV cache changes speed, not answers">
+
+With or without the cache, the model produces exactly the same output: the cache only avoids recomputing numbers it already has. It is a trick for **generating** text (inference). During training, every position of a text is processed at once in a single pass, so there is nothing to cache.
+
+</Mistake>
+
+## Cost and latency, counted in tokens
+
+LLM APIs bill **per token**, usually with separate prices for input and output tokens, and output tokens cost several times more. That matches the two phases: input tokens are read in parallel during prefill, while every output token needs its own decode pass. Latency follows the same split:
+
+$$
+t_\text{total} \approx t_\text{first} + n_\text{out} \times t_\text{token}
+$$
+
+- $t_\text{first}$ is the time to the first token, mostly spent reading the prompt (prefill), so it grows with the prompt length.
+- $n_\text{out}$ is the number of output tokens and $t_\text{token}$ the time to generate each one (one decode pass).
+
+At 50 output tokens per second, a 500-token answer takes about 10 seconds to write, however fast the prompt was read. In a chat, the bill has a twist: since the model keeps no memory, **the whole history is input again on every turn**.
+
+<ChatCostMeter />
+
+<Steps title="The bill for a 10-turn chat">
+  <Step title="Set up">
+    Every question is 100 tokens and every reply is 200 tokens. Turn $k$ sends all $k - 1$ earlier exchanges ($300$ tokens each) plus the new question.
+  </Step>
+  <Step title="Input on turn k">
+    $300(k - 1) + 100$: that is 100, 400, 700, … up to $300 \times 9 + 100 = 2{,}800$ on turn 10.
+  </Step>
+  <Step title="Add them up">
+    $\sum_{k=1}^{10} \big(300(k-1) + 100\big) = 300 \times (0 + 1 + \dots + 9) + 10 \times 100 = 300 \times 45 + 1{,}000 = 14{,}500$ input tokens, plus $10 \times 200 = 2{,}000$ output tokens.
+  </Step>
+  <Step title="Compare">
+    The ten questions themselves are only 1,000 tokens. Re-sending history made the input 14.5 times bigger, and it grows like the square of the number of turns.
+  </Step>
+</Steps>
+
+Ways to cut cost and waiting time all come back to tokens: keep prompts short; summarise old history instead of re-sending it; retrieve only the relevant chunks of a document instead of pasting all of it ([RAG](#/learn/prompting-and-rag/rag-pipeline)); cap the maximum number of output tokens; use a smaller model when it is good enough; and reuse the KV cache of a prompt prefix that many requests share (providers call this prompt caching and often charge less for those tokens).
+
+<ExamTip>
+
+- Context length is measured in **tokens** (≈ ¾ of an English word each), and it counts the prompt, the history *and* the output.
+- **Why long contexts are hard**: self-attention is **quadratic**, $T^2$ scores per head per layer. Double the length, four times the attention work.
+- **KV cache**: stores the **keys and values** of earlier tokens so each generation step computes only the new token's $q, k, v$. Faster generation, more memory (grows linearly with length). It works because of the **causal mask**: past tokens never see future ones.
+- **Autoregressive** = each new token is predicted from the previous ones, one at a time.
+
+</ExamTip>
+
+<Takeaways>
+
+- Everything about LLM limits and prices is counted in **tokens**, not words: about 4 tokens for every 3 English words.
+- The **context window** is the most tokens a model can attend to at once, including the reply. The model has no other memory: whatever falls out of the window is gone.
+- Attention compares every pair of tokens, so its cost grows like $T^2$: doubling the context quadruples the attention work.
+- The **KV cache** stores keys and values of earlier tokens (they never change, thanks to the causal mask), so each new token needs one pass over one token instead of the whole text. It trades repeated computation for memory: $2 \times L \times T \times d_\text{model} \times$ bytes.
+- Cost and latency scale with tokens: output tokens are pricier and slower than input tokens, and chats re-send their history every turn.
+
+</Takeaways>

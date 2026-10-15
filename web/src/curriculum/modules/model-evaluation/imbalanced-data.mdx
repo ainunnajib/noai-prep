@@ -148,13 +148,13 @@ a point on the straight line from $x_i$ to $x_{nn}$: $\lambda = 0$ gives $x_i$ i
 
 You can also leave training alone and **lower the threshold**, exactly as in the previous lesson. For a well-behaved model, weighting the positives by $w$ has roughly the same effect as lowering the threshold to $\frac{1}{1 + w}$. With $w = 49$ that is $\frac{1}{50} = 0.02$, the fraud rate itself. The code at the end of the lesson shows the two giving almost identical results.
 
-| remedy | what changes | training set | main risk |
-|---|---|---|---|
-| class weights | the loss | unchanged | probabilities no longer calibrated |
-| random oversampling | the data | bigger (copies) | memorising duplicated rows; slower |
-| SMOTE | the data | bigger (synthetic) | unrealistic points where classes overlap |
-| random undersampling | the data | much smaller | throws away information; unstable |
-| lower threshold | the decision | unchanged | needs a validation set to choose it |
+| remedy | what changes | main risk |
+|---|---|---|
+| class weights | the loss (data unchanged) | probabilities no longer calibrated |
+| random oversampling | the data: more rows (copies) | memorising duplicated rows; slower |
+| SMOTE | the data: more rows (synthetic) | unrealistic points where classes overlap |
+| random undersampling | the data: far fewer rows | throws away information; unstable |
+| lower threshold | the decision only | needs a validation set to choose it |
 
 Every remedy moves the model along the same precision-recall trade-off: more frauds caught, more false alarms. None of them creates information that was not in the data.
 
@@ -220,11 +220,11 @@ Match the metric to the cost of mistakes. When misses are expensive (fraud, dise
 
 </KeyIdea>
 
-| scenario | positive class | prioritise | why |
-|---|---|---|---|
-| card fraud | fraud | recall, with a precision floor | a miss loses money; too many alarms swamp investigators |
-| rare-disease screening | disease | recall | a missed patient goes untreated; a false alarm costs a follow-up test |
-| confirming a diagnosis before surgery | disease | precision | a false positive means an unnecessary operation |
+| scenario (positive class) | prioritise | why |
+|---|---|---|
+| card fraud (fraud) | recall, with a minimum precision | a miss loses money; too many alarms swamp investigators |
+| rare-disease screening (disease) | recall | a missed patient goes untreated; a false alarm costs a follow-up test |
+| confirming a diagnosis before surgery (disease) | precision | a false positive means an unnecessary operation |
 
 ## In code
 
@@ -264,6 +264,8 @@ The weighted loss is much larger because the two frauds' losses (0.127 and 2.127
 SMOTE fits in a dozen lines of NumPy, a typical "implement it from scratch" Final task:
 
 <PyRunner packages={['numpy']} code={smoteCode} />
+
+Each printed row is a new "fraud" on the line between two real ones. Because $\lambda$ is random, a new point can land almost on top of its parent: with this seed the last row has $\lambda \approx 0.003$, so it prints as $(2.5, 2.0)$, which is the second real fraud to two decimal places.
 
 <Takeaways>
 

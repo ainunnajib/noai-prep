@@ -123,11 +123,11 @@ export default function InitHistograms() {
   const last = sim.rms[DEPTH - 1]
   const offNote =
     init === 'zeros'
-      ? { up: false, text: 'exactly 0 at every layer (a log scale cannot show 0)' }
+      ? { up: false, text: narrow ? 'exactly 0 everywhere (off a log scale)' : 'exactly 0 at every layer (a log scale cannot show 0)' }
       : last > 10 ** LOG_HI
-        ? { up: true, text: `↑ off the chart: ${last.toExponential(0)} at layer ${DEPTH}` }
+        ? { up: true, text: narrow ? `↑ ${last.toExponential(0)} by layer ${DEPTH}` : `↑ off the chart: ${last.toExponential(0)} at layer ${DEPTH}` }
         : last < 10 ** LOG_LO
-          ? { up: false, text: `↓ off the chart: ${last.toExponential(0)} at layer ${DEPTH}` }
+          ? { up: false, text: narrow ? `↓ ${last.toExponential(0)} by layer ${DEPTH}` : `↓ off the chart: ${last.toExponential(0)} at layer ${DEPTH}` }
           : null
   const verdict =
     init === 'zeros'
@@ -147,8 +147,8 @@ export default function InitHistograms() {
         <>
           Each layer multiplies by random weights with spread σ and applies the activation. The top chart shows the typical size of the
           activations at every layer (log scale: each grid line is 10 times bigger); the shaded band is a healthy size. Try every
-          initialisation with <b>ReLU</b>: tiny weights make the signal vanish, huge ones make it explode, Xavier slowly fades, and only{' '}
-          <b>He</b> keeps it steady. Then switch to <b>tanh</b>: huge weights now pile everything at ±1 (saturation), Xavier fades only slowly,
+          initialisation with <b>ReLU</b>: tiny weights make the signal vanish, huge ones make it explode, Xavier fades steadily (ReLU halves
+          the variance at every layer, so by layer 20 the signal is about 1,000 times smaller), and only <b>He</b> keeps it steady. Then switch to <b>tanh</b>: huge weights now pile everything at ±1 (saturation), Xavier fades only slowly,
           and the signal survives all 20 layers.
         </>
       }
@@ -185,7 +185,7 @@ export default function InitHistograms() {
             healthy
           </Label>
           {offNote && (
-            <Label x={DEPTH + 0.5} y={offNote.up ? LOG_HI : LOG_LO} dx={-4} dy={offNote.up ? 16 : -8} anchor="end" color="var(--viz-neg)" size={11.5} weight={700}>
+            <Label x={DEPTH + 0.5} y={offNote.up ? LOG_HI : LOG_LO} dx={-4} dy={offNote.up ? 34 : -24} anchor="end" color="var(--viz-neg)" size={11.5} weight={700}>
               {offNote.text}
             </Label>
           )}

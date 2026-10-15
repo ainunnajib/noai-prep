@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'You run t-SNE on 500 points drawn from a single random Gaussian blob (no real groups). At perplexity 2 the map shows several small, separate clumps. What is the best explanation?',
     options: [
-      'With so few neighbours per point, t-SNE turns random gaps in the noise into fake clusters',
+      'Each point looks at so few neighbours that chance gaps become fake clusters',
       'The blob really contains several clusters, which a low perplexity is best at revealing',
       'Perplexity 2 tells t-SNE to keep only 2 dimensions, which splits the blob apart',
       'The clumps are the 2 principal components that t-SNE computes before drawing',
@@ -35,10 +35,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A t-SNE map shows three clusters. A and B look the same size, and C is drawn three times farther from A than B is. Which conclusion is justified?',
     options: [
-      'Points inside each tight cluster were close neighbours in the original data',
-      'A and B have about the same spread in the original data',
-      'C is about three times more different from A than B is',
-      'The original data contains exactly three natural groups',
+      'Points within each cluster were close neighbours in the original data',
+      'A and B have about the same spread in the original high-dimensional data',
+      'C is about three times more different from A than B is in the original data',
+      'The original data contains exactly three natural groups of similar size',
     ],
     answer: 0,
     explanation:
@@ -49,7 +49,7 @@ const questions: QuizQuestion[] = [
     id: 'unsupervised-learning.tsne-umap-and-anomalies.4',
     prompt: 'A student wants to use the 2-D t-SNE coordinates of each training image as input features for a classifier. Why is this usually a bad idea?',
     options: [
-      't-SNE cannot place new test points on an existing map, and the map changes with settings and seeds',
+      't-SNE cannot place new test points on an existing map, and reruns give different maps',
       't-SNE is supervised, so the coordinates would leak the training labels into the features',
       't-SNE always produces exactly one coordinate per point, which is too little information',
       't-SNE increases the number of dimensions, so the classifier would face the curse of dimensionality',
@@ -64,7 +64,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A factory has a year of sensor readings from machines working normally, but has recorded only two breakdowns, and future faults may look different from both. Which approach fits best?',
     options: [
-      'Fit a one-class model, such as a one-class SVM, on the normal readings and flag readings that fall outside',
+      'Fit a one-class SVM on the normal readings and flag new readings that fall outside its boundary',
       'Train a binary classifier on normal readings versus the two breakdowns and flag what it predicts as faults',
       'Run t-SNE on all readings and flag points whose map coordinates are larger than a threshold',
       'Run PCA, keep the top two components, and flag the readings with the largest PC1 scores',

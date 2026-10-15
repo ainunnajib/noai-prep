@@ -28,19 +28,24 @@ Each logit is exponentiated (made positive), then divided by the total so they s
 
 ## Four kinds of task, four heads
 
-| Task | Example | Output layer | Turn logits into | Loss | PyTorch |
-|---|---|---|---|---|---|
-| **Regression** | an HDB flat's resale price | 1 output (one per target) | nothing: use it as it is | mean squared error (or mean absolute error) | `nn.MSELoss` (`nn.L1Loss`) |
-| **Binary** classification | spam or not | 1 logit | sigmoid | binary cross-entropy | `nn.BCEWithLogitsLoss` |
-| **Multi-class** classification | which digit, 0 to 9 | $K$ logits | softmax | cross-entropy | `nn.CrossEntropyLoss` |
-| **Multi-label** classification | which dishes are in a photo | $K$ logits | a separate sigmoid on each | binary cross-entropy on each label | `nn.BCEWithLogitsLoss` |
+| Task | Output layer | Loss |
+|---|---|---|
+| **Regression**, e.g. an HDB flat's resale price | 1 output per target, used as it is (no activation) | mean squared error (or mean absolute error) |
+| **Binary** classification, e.g. spam or not | 1 logit → sigmoid | binary cross-entropy |
+| **Multi-class** classification, e.g. which digit, 0 to 9 | $K$ logits → softmax | cross-entropy |
+| **Multi-label** classification, e.g. which dishes are in a photo | $K$ logits → a separate sigmoid on each | binary cross-entropy on each label |
+
+In PyTorch the four losses are `nn.MSELoss` (or `nn.L1Loss` for MAE) for regression, `nn.BCEWithLogitsLoss` for binary **and** multi-label, and `nn.CrossEntropyLoss` for multi-class.
 
 ### Regression: a raw number
 
-The output can be any size, so the last layer has **no activation**: squashing it with a sigmoid would make 118 impossible to predict. For $N$ examples with true values $y_i$ and predictions $\hat{y}_i$:
+The output can be any size, so the last layer has **no activation**: squashing it with a sigmoid (always between 0 and 1) would make a price such as 500,000 impossible to predict. For $N$ examples with true values $y_i$ and predictions $\hat{y}_i$, the two standard losses are
 
 $$
-\text{MSE} = \frac{1}{N}\sum_{i=1}^{N} (y_i - \hat{y}_i)^2, \qquad \text{MAE} = \frac{1}{N}\sum_{i=1}^{N} |y_i - \hat{y}_i|
+\begin{gathered}
+\text{MSE} = \frac{1}{N}\sum_{i=1}^{N} (y_i - \hat{y}_i)^2 \\[6pt]
+\text{MAE} = \frac{1}{N}\sum_{i=1}^{N} |y_i - \hat{y}_i|
+\end{gathered}
 $$
 
 The <Term def="Mean squared error: the average of the squared differences between predictions and true values. The standard regression loss.">MSE</Term> averages the squared errors; the <Term def="Mean absolute error: the average of the absolute (unsigned) differences between predictions and true values.">MAE</Term> averages the plain sizes of the errors. Predict $3$ and $5$ when the truth is $2$ and $9$: the errors are $1$ and $4$, so $\text{MSE} = (1 + 16)/2 = 8.5$ but $\text{MAE} = (1 + 4)/2 = 2.5$. The single big miss supplies 16 of the 17 squared units: MSE punishes large errors much harder, while MAE is less thrown by a few outliers.
@@ -90,7 +95,7 @@ Match the head to the answer: a **number** gets no activation and MSE (or MAE); 
 
 ## Why PyTorch wants raw logits
 
-Look again at the PyTorch column: `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss` take the **logits** and apply the softmax or sigmoid **inside** the loss. So the model itself should end with a plain `nn.Linear` layer, with no softmax or sigmoid after it. There are two good reasons.
+The two PyTorch classification losses, `nn.CrossEntropyLoss` and `nn.BCEWithLogitsLoss`, take the **logits** and apply the softmax or sigmoid **inside** the loss. So the model itself should end with a plain `nn.Linear` layer, with no softmax or sigmoid after it. There are two good reasons.
 
 **1. Numerical stability.** Computers store numbers with limited precision. In PyTorch's default 32-bit floats, $\sigma(20)$ rounds to exactly $1.0$, so a hand-made loss that needs $\ln(1 - p)$ ends up taking $\ln 0$. Computing the loss straight from the logit avoids that subtraction, using the identity $-\ln \sigma(z) = \ln(1 + e^{-z})$:
 
@@ -191,13 +196,16 @@ Remember the two equations `nn.CrossEntropyLoss` = log-softmax + negative log-li
 
 ## Why not use MSE for classification?
 
-Mean squared error also gets smaller as $p$ approaches the target, so why not use it with a sigmoid? Look at the push each loss gives the logit. With $p = \sigma(z)$:
+Mean squared error also gets smaller as $p$ approaches the target, so why not use it with a sigmoid? Look at the push each loss gives the logit, with $p = \sigma(z)$. For binary cross-entropy it is the clean
 
 $$
-\begin{aligned}
-\text{binary cross-entropy:} \quad & \frac{\partial L}{\partial z} = p - y \\[4pt]
-\text{squared error } (y - p)^2\text{:} \quad & \frac{\partial L}{\partial z} = 2(p - y)\,\underbrace{p(1 - p)}_{\sigma'(z)}
-\end{aligned}
+\frac{\partial L}{\partial z} = p - y
+$$
+
+but for the squared error $L = (y - p)^2$ the chain rule adds an extra factor, the slope of the sigmoid:
+
+$$
+\frac{\partial L}{\partial z} = 2(p - y)\,\underbrace{p(1 - p)}_{\sigma'(z)}
 $$
 
 The squared-error push is multiplied by the sigmoid's slope $\sigma'(z) = p(1 - p)$, which is almost zero whenever the sigmoid is <Term def="A sigmoid or tanh is saturated when its input is far from 0: the output is pinned near its limit and its slope is nearly 0, so gradients through it are tiny.">saturated</Term>, that is, whenever the model is very sure. Take a model that is confidently **wrong**: $y = 1$ but $z = -6$, so $p \approx 0.0025$. Binary cross-entropy pushes with $p - 1 \approx -1.00$; squared error pushes with only $2(-0.9975)(0.0025)(0.9975) \approx -0.005$, about 200 times weaker. The more wrong the model, the less it learns: exactly backwards.
@@ -216,9 +224,15 @@ $$
 
 So a well-behaved $K$-class classifier should start with a loss close to $\ln K$:
 
-| classes $K$ | 2 | 3 | 4 | 5 | 10 | 100 | 1000 |
-|---|---|---|---|---|---|---|---|
-| $\ln K$ | 0.693 | 1.099 | 1.386 | 1.609 | 2.303 | 4.605 | 6.908 |
+| classes $K$ | starting loss $\ln K$ |
+|---|---|
+| 2 | 0.693 |
+| 3 | 1.099 |
+| 4 | 1.386 |
+| 5 | 1.609 |
+| 10 | 2.303 |
+| 100 | 4.605 |
+| 1000 | 6.908 |
 
 You only need two values to rebuild the table without a calculator: $\ln 2 \approx 0.693$ and $\ln 10 \approx 2.303$. Then $\ln 4 = 2\ln 2$, $\ln 5 = \ln 10 - \ln 2$, $\ln 100 = 2\ln 10$ and $\ln 1000 = 3\ln 10$. (The coin-flip line at 0.693 in the playground of the previous lesson was exactly $\ln 2$.)
 
