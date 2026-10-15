@@ -2,53 +2,7 @@ import DendrogramCutter from './visuals/hierarchical-dbscan-spectral/DendrogramC
 import DBSCANExplorer from './visuals/hierarchical-dbscan-spectral/DBSCANExplorer'
 import LaplacianToy from './visuals/hierarchical-dbscan-spectral/LaplacianToy'
 import SpectralGraph from './visuals/hierarchical-dbscan-spectral/SpectralGraph'
-
-export const spectralCode = `import numpy as np
-from sklearn.datasets import make_circles
-from sklearn.cluster import KMeans
-
-X, y = make_circles(n_samples=200, factor=0.4, noise=0.05, random_state=0)
-
-# 1. similarity graph: connect points closer than r = 0.3
-D = np.linalg.norm(X[:, None, :] - X[None, :, :], axis=2)
-W = ((D < 0.3) & (D > 0)).astype(float)
-
-# 2. Laplacian L = D - W (degrees on the diagonal)
-L = np.diag(W.sum(axis=1)) - W
-
-# 3. eigenvalues (ascending) and eigenvectors
-vals, vecs = np.linalg.eigh(L)
-vals = np.clip(vals, 0, None)        # rounding can give -0.0
-print("smallest eigenvalues:", np.round(vals[:4], 3))
-
-# 4. K-means on the rows of the first 2 eigenvectors
-U = vecs[:, :2]
-labels = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(U)
-acc = max((labels == y).mean(), (labels != y).mean())
-print(f"spectral: {acc:.2f} of points in the right ring")
-
-raw = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(X)
-acc = max((raw == y).mean(), (raw != y).mean())
-print(f"K-means on raw points: {acc:.2f}")`
-
-export const compareCode = `from sklearn.datasets import make_moons
-from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, SpectralClustering
-from sklearn.metrics import adjusted_rand_score
-
-X, y = make_moons(n_samples=200, noise=0.06, random_state=0)
-
-models = {
-    "K-means": KMeans(n_clusters=2, n_init=10, random_state=0),
-    "Agglomerative (single)": AgglomerativeClustering(n_clusters=2, linkage="single"),
-    "Agglomerative (ward)": AgglomerativeClustering(n_clusters=2, linkage="ward"),
-    "DBSCAN": DBSCAN(eps=0.2, min_samples=5),
-    "Spectral": SpectralClustering(n_clusters=2, affinity="nearest_neighbors",
-                                   n_neighbors=10, random_state=0),
-}
-for name, model in models.items():
-    labels = model.fit_predict(X)
-    n_noise = int((labels == -1).sum())
-    print(f"{name:24s} ARI = {adjusted_rand_score(y, labels):.2f}   noise points: {n_noise}")`
+import { spectralCode, compareCode } from './visuals/hierarchical-dbscan-spectral/code'
 
 K-means pictures every cluster as a round ball around a centre. Real data is often a chain, a crescent, a ring or a crowd with stragglers around it. This lesson gives you three other ideas of what a cluster *is*: a branch of a **family tree** of merges (hierarchical clustering), a **dense crowd** (DBSCAN), and a **well-connected group** in a network of similar points (spectral clustering). All three are on the IOAI syllabus, and NOAI asks which one fits which data.
 
@@ -166,13 +120,13 @@ DBSCAN defines a cluster by **density**, not by distance to a centre: dense regi
 
 Raising eps (or lowering min_samples) makes more points core, so clusters grow and merge and fewer points are noise. Lowering eps does the opposite: clusters break up and more points become noise. A common way to choose eps is to sort every point's distance to its $k$-th nearest neighbour ($k$ = min_samples) and pick the distance where that curve bends sharply upwards.
 
-DBSCAN's weak spot is **one eps for the whole dataset**. In **Mixed density** above, two tight blobs sit close together and a third blob is spread out. An eps small enough to keep the tight pair apart (about 0.4 or less) turns most of the spread-out blob into noise, and an eps large enough to hold the spread-out blob together (about 0.7) also merges the tight pair. No single eps gets all three right. Extensions such as HDBSCAN and OPTICS handle varying density. Like every distance-based method, DBSCAN also works less well in very high dimensions, where all distances look alike.
-
 <PastPaperQuestion paper="prelim2026" n={260} />
+
+DBSCAN's weak spot is **one eps for the whole dataset**. In **Mixed density** above, two tight blobs sit close together and a third blob is spread out. An eps small enough to keep the tight pair apart (about 0.4 or less) turns most of the spread-out blob into noise, and an eps large enough to hold the spread-out blob together (about 0.7) also merges the tight pair. No single eps gets all three right. Extensions such as HDBSCAN and OPTICS handle varying density. Like every distance-based method, DBSCAN also works less well in very high dimensions, where all distances look alike.
 
 <ExamTip>
 
-Among the options above, DBSCAN is the right answer: K-means assumes round clusters of similar spread, and the regressions are not clustering methods at all. Exam questions pair DBSCAN with **arbitrary shapes**, **noise/outliers** and **no need to choose k**. If a question asks what DBSCAN *struggles* with, the answer is clusters of **very different densities** (and choosing eps).
+Did we not just say DBSCAN struggles with varying density? Both statements are true. Among the options in that question, K-means assumes round clusters of similar spread and the regressions are not clustering methods at all, so DBSCAN is the best of the four. Exam questions pair DBSCAN with **arbitrary shapes**, **noise/outliers** and **no need to choose k**; if a question asks what DBSCAN *struggles* with, the answer is clusters of **very different densities** (and choosing eps).
 
 </ExamTip>
 

@@ -226,7 +226,7 @@ export default function KMeansFailureGallery() {
           }}
           options={ORDER.map((key) => ({ value: key, label: SPECS[key].label }))}
         />
-        <Slider label="k for K-means" value={k} min={1} max={6} step={1} onChange={setK} />
+        <Slider label="k for K-means" value={k} min={2} max={6} step={1} onChange={setK} />
         <Toggle label="Compare with DBSCAN" checked={showDb} onChange={setShowDb} />
       </Controls>
     </Figure>

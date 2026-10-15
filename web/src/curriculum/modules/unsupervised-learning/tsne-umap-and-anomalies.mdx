@@ -42,6 +42,21 @@ $$
 
 How wide should each bell curve be? You choose the <Term def="t-SNE's main setting: roughly the number of close neighbours each point pays attention to. Typical values are 5 to 50.">perplexity</Term>, and t-SNE picks every $\sigma_i$ so that point $i$ has about that many effective neighbours. Formally, $\text{perplexity} = 2^{H}$, where $H = -\sum_j p_{j|i} \log_2 p_{j|i}$ is the <Term def="A measure of how spread out a probability distribution is. If the probability is shared equally among m outcomes, the entropy in bits is log2(m), so 2 to the power H equals m.">entropy</Term>. If the probability were shared equally among $m$ points, then $H = \log_2 m$ and $2^H = m$ exactly.
 
+<Steps title="Perplexity by hand">
+  <Step title="Three neighbours, unequal shares">
+    Point $i$ gives its neighbours the probabilities 0.5, 0.25 and 0.25.
+  </Step>
+  <Step title="The entropy">
+    $-\log_2 0.5 = 1$ and $-\log_2 0.25 = 2$, so $H = 0.5 \times 1 + 0.25 \times 2 + 0.25 \times 2 = 1.5$ bits.
+  </Step>
+  <Step title="The perplexity">
+    $2^{1.5} \approx 2.8$: between 2 and 4 "effective" neighbours, because one favourite takes half the attention.
+  </Step>
+  <Step title="Compare an equal split">
+    Four neighbours at 0.25 each give $H = 4 \times 0.25 \times 2 = 2$ bits and perplexity $2^2 = 4$, exactly the number of neighbours.
+  </Step>
+</Steps>
+
 <PerplexityNeighbours />
 
 In a crowded region the circle shrinks, and in a sparse region it grows. So every point gets roughly the same number of neighbours wherever it is. Keep this in mind: it explains the first trap in the next section. (t-SNE then averages $p_{j|i}$ and $p_{i|j}$ into one symmetric similarity $p_{ij}$ for each pair.)
@@ -52,7 +67,14 @@ $$
 q_{ij} = \frac{\left(1 + \lVert \mathbf y_i - \mathbf y_j \rVert^2\right)^{-1}}{\sum_{k \ne l} \left(1 + \lVert \mathbf y_k - \mathbf y_l \rVert^2\right)^{-1}}
 $$
 
-The curve $1/(1 + d^2)$ falls off far more slowly than a bell curve. A flat map has far less room than 64-D space, so not every moderate distance can be kept. The slow fall-off lets t-SNE push moderately different points well apart at little cost, which is what opens up the clear gaps between clusters.
+The curve $1/(1 + d^2)$ falls off far more slowly than a bell curve. Compare the two at a few distances:
+
+| distance $d$ | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| bell curve $e^{-d^2/2}$ | 1 | 0.61 | 0.14 | 0.011 |
+| Student-t $1/(1 + d^2)$ | 1 | 0.5 | 0.2 | 0.1 |
+
+At $d = 3$ the t-curve still keeps about 9 times as much similarity. Why that helps: a flat map has far less room than 64-D space, so not every moderate distance can be kept. With the slow t-curve, two moderately similar points can sit far apart on the map and still keep their small similarity, so t-SNE can push groups well apart at little cost. That is what opens up the clear gaps between clusters.
 
 **Step 3: move the points until the two agree.** Gradient descent nudges the $\mathbf y_i$ to make the map similarities $q_{ij}$ match the original ones $p_{ij}$. The cost is the <Term def="Kullback–Leibler divergence: a measure of how different one probability distribution is from another; zero only when they are identical.">KL divergence</Term>:
 
