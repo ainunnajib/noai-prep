@@ -50,7 +50,7 @@ function ScrubArea({ onEpoch }: { onEpoch: (e: number) => void }) {
       y={yt}
       width={x1 - x0}
       height={yb - yt}
-      style={{ fill: 'transparent', cursor: 'ew-resize', touchAction: 'pan-y' }}
+      style={{ fill: 'transparent', cursor: 'ew-resize' }}
       onPointerDown={(e) => {
         down.current = true
         ;(e.currentTarget as Element).setPointerCapture(e.pointerId)

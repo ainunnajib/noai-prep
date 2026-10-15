@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Figure, Controls, Readout, Segmented, Button, MBlock, useAnimationFrame, useContainerWidth } from '../../../../../kit'
+import { Figure, Controls, Readout, Segmented, Button, MBlock, useAnimationFrame, useContainerWidth, useTouchDragHandles } from '../../../../../kit'
 import { ft } from '../derivatives-as-slopes/plotHelpers'
 
 /*
@@ -50,6 +50,8 @@ export default function ChainGears() {
   const [wrapRef, measured] = useContainerWidth<HTMLDivElement>(560)
   const svgRef = useRef<SVGSVGElement>(null)
   const drag = useRef<{ last: number } | null>(null)
+  // a swipe over the figure scrolls the page; one that starts on gear x turns it
+  useTouchDragHandles(svgRef)
 
   const [na, nb, nc] = useMemo(() => teeth(r1, r2), [r1, r2])
   const W = Math.max(260, Math.min(680, measured))
@@ -125,7 +127,8 @@ export default function ChainGears() {
             <g key={i}>
               <path
                 d={gearPath(g.cx, cy, g.n, m, g.th)}
-                style={{ fill: `color-mix(in srgb, ${COLS[i]} 22%, var(--surface))`, stroke: COLS[i], strokeWidth: 1.6, cursor: i === 0 ? 'grab' : undefined }}
+                className={i === 0 ? 'plot-drag' : undefined}
+                style={{ fill: `color-mix(in srgb, ${COLS[i]} 22%, var(--surface))`, stroke: COLS[i], strokeWidth: 1.6 }}
                 strokeLinejoin="round"
                 onPointerDown={
                   i === 0

@@ -42,6 +42,25 @@ export function usePlot(): PlotCtx {
   return c
 }
 
+/**
+ * Plots let a vertical swipe scroll the page on touch screens (touch-action: pan-y on the svg). Chromium ignores
+ * touch-action on SVG shapes, so a touch that starts on a `.plot-drag` handle cancels its touchstart instead:
+ * the page stays put and the handle gets every pointer move. React registers onTouchStart as passive, hence the
+ * native listener. Plot does this itself; call it for a hand-made `<svg className="plot">` with drag handles.
+ */
+export function useTouchDragHandles(svgRef: React.RefObject<SVGSVGElement>) {
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const hold = (e: TouchEvent) => {
+      const t = e.target
+      if (t instanceof Element && t.closest('.plot-drag') && e.cancelable) e.preventDefault()
+    }
+    svg.addEventListener('touchstart', hold, { passive: false })
+    return () => svg.removeEventListener('touchstart', hold)
+  }, [svgRef])
+}
+
 export function Plot({
   x,
   y,
@@ -70,7 +89,12 @@ export function Plot({
   children: ReactNode
   /** cap on rendered CSS width (defaults to the design width × 1.25) */
   maxWidth?: number
-  /** pointer handlers receive data coordinates */
+  /**
+   * Pointer handlers receive data coordinates. With only onPointerDown, the plot still scrolls the page on touch
+   * screens: a touch calls onPointerDown when it lifts after a tap (with the pointerup event), never on a swipe.
+   * Passing onPointerMove makes the whole plot take every gesture (touch-action: none), for dragging on the
+   * background; prefer DraggablePoint where a handle will do.
+   */
   onPointerDown?: (p: [number, number], e: React.PointerEvent<SVGSVGElement>) => void
   onPointerMove?: (p: [number, number], e: React.PointerEvent<SVGSVGElement>) => void
 }) {
@@ -100,18 +124,12 @@ export function Plot({
     [xs, ys],
   )
 
-  // Plots allow vertical page scrolling on touch screens (touch-action: pan-y). Chromium ignores touch-action on
-  // SVG shapes, so a touch that starts on a draggable handle cancels its touchstart to keep the drag.
-  useEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const hold = (e: TouchEvent) => {
-      const t = e.target
-      if (t instanceof Element && t.closest('.plot-drag') && e.cancelable) e.preventDefault()
-    }
-    svg.addEventListener('touchstart', hold, { passive: false })
-    return () => svg.removeEventListener('touchstart', hold)
-  }, [])
+  useTouchDragHandles(svgRef)
+
+  // A plot that only listens for presses keeps touch-action: pan-y, so on touch it waits for a tap: a swipe that
+  // starts on it scrolls the page without also picking whatever was under the finger.
+  const tapOnly = !!onPointerDown && !onPointerMove
+  const tap = useRef<{ id: number; x: number; y: number } | null>(null)
 
   const ctx: PlotCtx = { xs, ys, width, height, margin: m, clipId, toData }
   return (
@@ -119,12 +137,30 @@ export function Plot({
       <div ref={wrapRef} className="plot-wrap" style={{ maxWidth: cap }}>
         <svg
           ref={svgRef}
-          className={onPointerDown || onPointerMove ? 'plot plot-interactive' : 'plot'}
+          className={onPointerMove ? 'plot plot-interactive' : 'plot'}
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={ariaLabel}
-          onPointerDown={onPointerDown ? (e) => onPointerDown(toData(e.clientX, e.clientY), e) : undefined}
+          onPointerDown={
+            onPointerDown
+              ? (e) => {
+                  if (tapOnly && e.pointerType === 'touch') tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY }
+                  else onPointerDown(toData(e.clientX, e.clientY), e)
+                }
+              : undefined
+          }
           onPointerMove={onPointerMove ? (e) => onPointerMove(toData(e.clientX, e.clientY), e) : undefined}
+          onPointerUp={
+            tapOnly && onPointerDown
+              ? (e) => {
+                  const t0 = tap.current
+                  if (!t0 || t0.id !== e.pointerId) return
+                  tap.current = null
+                  if (Math.hypot(e.clientX - t0.x, e.clientY - t0.y) < 10) onPointerDown(toData(e.clientX, e.clientY), e)
+                }
+              : undefined
+          }
+          onPointerCancel={tapOnly ? () => (tap.current = null) : undefined}
         >
           <defs>
             <clipPath id={clipId}>
