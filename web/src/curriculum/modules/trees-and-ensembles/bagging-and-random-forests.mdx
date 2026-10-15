@@ -41,7 +41,7 @@ print("random forest:      ", rf.score(X_val, y_val))
 print("out-of-bag estimate:", round(rf.oob_score_, 3))
 print("importances:", rf.feature_importances_.round(3))`
 
-At the end of the last lesson, a fully grown tree memorised the noise: perfect on its training data, shaky on new data, and completely different whenever the training data changed a little. The fix sounds too simple to work: grow **lots** of deep trees, each on a slightly different version of the data, and let them vote. That is **bagging**. Add one extra twist and you get a **random forest**, one of the most reliable models for tables of data, and a favourite NOAI topic.
+At the end of the last lesson, [Decision trees](#/learn/trees-and-ensembles/decision-trees), a fully grown tree memorised the noise: perfect on its training data, shaky on new data, and completely different whenever the training data changed a little. The fix sounds too simple to work: grow **lots** of deep trees, each on a slightly different version of the data, and let them vote. That is **bagging**. Add one extra twist and you get a **random forest**, one of the most reliable models for tables of data, and a favourite NOAI topic.
 
 <Analogy title="Asking 100 friends where to eat">
 
@@ -123,7 +123,7 @@ Bootstrap samples overlap a lot (each holds about 63% of the same data), so bagg
 
 <PastPaperQuestion paper="prelim2026" n={151} />
 
-Each individual tree gets a little **worse**, since it sometimes cannot use the best feature. But the trees become **less correlated**, which lowers the floor $\rho\,\sigma^2$, so the **average** gets better. Try it on the noisy circle from the last lesson:
+Each individual tree gets a little **worse**, since it sometimes cannot use the best feature. But the trees become **less correlated**, which lowers the floor $\rho\,\sigma^2$, so the **average** gets better. Try it on the noisy circle from [Decision trees](#/learn/trees-and-ensembles/decision-trees):
 
 <ForestAverager />
 
@@ -154,7 +154,7 @@ Scoring the forest on its own training rows with **all** the trees is not the OO
 
 A forest of hundreds of trees is hard to read, but it can still tell you which inputs it relies on. Think of crediting each football player by how many goals their passes led to. There are two common ways.
 
-1. **Impurity importance** (mean decrease in impurity, MDI). Every split reduces the impurity: by $n\,I(\text{node}) - n_\text{yes}\,I(\text{yes}) - n_\text{no}\,I(\text{no})$, the weighted drop from the last lesson. Give that amount to the feature the split used, scale each tree's totals to add up to 1, then average over all the trees. This is scikit-learn's `feature_importances_`. It is free to compute, but it is measured on the **training** data.
+1. **Impurity importance** (mean decrease in impurity, MDI). Every split reduces the impurity: by $n\,I(\text{node}) - n_\text{yes}\,I(\text{yes}) - n_\text{no}\,I(\text{no})$, the weighted drop you met in [Decision trees](#/learn/trees-and-ensembles/decision-trees). Give that amount to the feature the split used, scale each tree's totals to add up to 1, then average over all the trees. This is scikit-learn's `feature_importances_`. It is free to compute, but it is measured on the **training** data.
 2. **Permutation importance.** Take held-out data, randomly shuffle one feature's column (which breaks its link to the target while keeping its values realistic), and measure how much the score drops (below, the score is $R^2$: the fraction of the variation in price that the model explains, where 1 is perfect). A big drop means the model really relies on that feature for new data. In scikit-learn: `sklearn.inspection.permutation_importance`.
 
 <ImportanceBars />

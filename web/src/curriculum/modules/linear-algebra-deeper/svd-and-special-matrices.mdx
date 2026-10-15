@@ -3,7 +3,7 @@ import SVDStepper from './visuals/svd-and-special-matrices/SVDStepper'
 import LowRankPicture from './visuals/svd-and-special-matrices/LowRankPicture'
 import QRAndFrobenius from './visuals/svd-and-special-matrices/QRAndFrobenius'
 
-The last lesson found PCA's directions as the eigenvectors of the covariance matrix, but eigenvectors need a square matrix, and even then a rotation has none. The **SVD** works for every matrix: it says that every matrix turns, stretches and turns again, so you start with the "turn" part, the **orthogonal matrices**. Along the way you meet a few more special matrices that NOAI loves to ask about.
+The last lesson, [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca), found PCA's directions as the eigenvectors of the covariance matrix, but eigenvectors need a square matrix, and even then a rotation has none. The **SVD** works for every matrix: it says that every matrix turns, stretches and turns again, so you start with the "turn" part, the **orthogonal matrices**. Along the way you meet a few more special matrices that NOAI loves to ask about.
 
 ## Orthogonal matrices: pure turns
 
@@ -44,7 +44,7 @@ $$
 - $U$ is orthogonal too. Its columns $u_i$ are the output directions, and $U$ turns the stretched axes into place.
 - **Shapes.** For an $m \times n$ matrix $A$, $U$ is $m \times m$, $\Sigma$ is $m \times n$ (the $\sigma_i$ on its diagonal, zeros everywhere else) and $V$ is $n \times n$. There are only $\min(m, n)$ singular values. The *thin* SVD (`full_matrices=False`) keeps just the first $\min(m, n)$ columns of $U$ and $V$.
 
-Read the product right to left, as it acts on a vector: $Ax = U(\Sigma(V^T x))$. In 2-D the unit circle is turned (still a circle), stretched into an oval with half-widths $\sigma_1$ and $\sigma_2$, then turned again. **The singular values are the half-widths of the oval that $A$ makes from the unit circle**: the same oval you saw in the eigenvector hunt, whose longest and shortest half-widths gave the condition number in the rank lesson.
+Read the product right to left, as it acts on a vector: $Ax = U(\Sigma(V^T x))$. In 2-D the unit circle is turned (still a circle), stretched into an oval with half-widths $\sigma_1$ and $\sigma_2$, then turned again. **The singular values are the half-widths of the oval that $A$ makes from the unit circle**: the same oval you saw in the eigenvector hunt, whose longest and shortest half-widths gave the condition number in [Span, linear independence and rank](#/learn/linear-algebra-deeper/span-rank-independence).
 
 <SVDStepper />
 
@@ -161,7 +161,7 @@ $R$ is upper triangular because the first column is built from $q_1$ alone, the 
 
 <Reveal label="Going further: what QR is used for">
 
-QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back-substitution instead of inverting $X^TX$, whose condition number is the square of $X$'s (see the rank lesson). For a tall data matrix $X$ ($n \times d$ with $n > d$), $Q$ is $n \times d$ with perpendicular unit columns, so $Q^TQ = I$, but it is not square, so it is not an orthogonal matrix and has no inverse. Repeating QR steps (the *QR algorithm*) is also a classic way to compute eigenvalues.
+QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back-substitution instead of inverting $X^TX$, whose condition number is the square of $X$'s (see [Span, linear independence and rank](#/learn/linear-algebra-deeper/span-rank-independence)). For a tall data matrix $X$ ($n \times d$ with $n > d$), $Q$ is $n \times d$ with perpendicular unit columns, so $Q^TQ = I$, but it is not square, so it is not an orthogonal matrix and has no inverse. Repeating QR steps (the *QR algorithm*) is also a classic way to compute eigenvalues.
 
 </Reveal>
 
@@ -171,7 +171,7 @@ QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back
 
 <ExamTip title="Know which letter does which job">
 
-As in the last lesson, most NOAI questions here are one-line definitions whose wrong options swap the roles around. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
+As in [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca), most NOAI questions here are one-line definitions whose wrong options swap the roles around. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
 
 </ExamTip>
 
@@ -185,7 +185,7 @@ As in the last lesson, most NOAI questions here are one-line definitions whose w
 
 ## In code
 
-PCA from the SVD of the centred data, then QR and the Frobenius norm, on the examples from this lesson and the last:
+PCA from the SVD of the centred data, then QR and the Frobenius norm, on the examples from this lesson and from [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca):
 
 <PyRunner packages={['numpy']} rows={16} code={`import numpy as np
 
@@ -239,6 +239,8 @@ tensor([-2.1213, -2.1213,  2.1213,  2.1213])
 ```
 
 PyTorch returned PC1 as $[-0.71, -0.71]$, the same line pointing the other way, so every score has flipped sign too. Other useful functions: `torch.linalg.eigh`, `torch.linalg.qr` and `torch.linalg.matrix_norm` (Frobenius by default).
+
+Next, [k-means clustering](#/learn/unsupervised-learning/k-means) opens the unsupervised-learning module, which looks for structure in data that has no labels at all: first by sorting points into groups, then by putting this module's PCA and SVD to work on real datasets.
 
 <Takeaways>
 

@@ -31,7 +31,7 @@ const mod: ModuleDef = {
       slug: "eigenvectors-eigenvalues",
       title: "Eigenvectors and eigenvalues",
       summary: "The special directions a matrix only stretches, never turns, and the numbers that say by how much.",
-      minutes: 35,
+      minutes: 30,
       objectives: ["You can check whether a vector is an eigenvector with Av = λv and read off its eigenvalue", "You can find the eigenvalues of a 2×2 matrix, by inspection when it is triangular", "You can use sum = trace and product = determinant, and spot a singular matrix from a zero eigenvalue", "You can predict what multiplying by the same matrix again and again does to a vector"],
       load: () => import('./eigenvectors-eigenvalues.mdx'),
     },

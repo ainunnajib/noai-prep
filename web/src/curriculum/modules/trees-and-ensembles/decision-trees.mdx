@@ -196,7 +196,7 @@ A few consequences that exam questions love:
 - **No feature scaling needed.** A split only uses the *order* of one feature's values, so changing units moves the threshold but sends the same flats each way.
 - **Boundaries are axis-aligned.** A diagonal boundary, such as "price depends on area minus lease", needs a staircase of many small cuts.
 - **Missing values can be handled.** CART can send a row with a missing value down a *surrogate split* (a backup question on another feature); XGBoost, LightGBM and scikit-learn's newer trees learn a default direction for missing values at each split instead.
-- **Trees also do regression.** A <Term def="A decision tree that predicts a number. Each leaf predicts the average target of its training examples, and splits are chosen to reduce the mean squared error.">regression tree</Term> predicts a number: each leaf predicts the **average** of its training targets, and splits are chosen to reduce the **mean squared error** instead of Gini. This is scikit-learn's `DecisionTreeRegressor`, the building block of gradient boosting later in this module.
+- **Trees also do regression.** A <Term def="A decision tree that predicts a number. Each leaf predicts the average target of its training examples, and splits are chosen to reduce the mean squared error.">regression tree</Term> predicts a number: each leaf predicts the **average** of its training targets, and splits are chosen to reduce the **mean squared error** instead of Gini. This is scikit-learn's `DecisionTreeRegressor`, the building block of gradient boosting in the last lesson of this module, [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting).
 
 Here is the split search from scratch in NumPy, checked against scikit-learn. Run it, then change `max_depth` to 3 or 4.
 
@@ -233,11 +233,9 @@ Choose their values by checking accuracy on validation data (or with cross-valid
 
 <KeyIdea>
 
-Deep trees have **low bias but high variance**: they memorise noise. Keep a single tree simple with `max_depth` or `min_samples_leaf`, or keep the deep trees and **average many of them**, which is what random forests do in the next lesson.
+Deep trees have **low bias but high variance**: they memorise noise. Keep a single tree simple with `max_depth` or `min_samples_leaf`, or keep the deep trees and **average many of them**, which is what random forests do in the next lesson, [Bagging and random forests](#/learn/trees-and-ensembles/bagging-and-random-forests).
 
 </KeyIdea>
-
-<PastPaperQuestion paper="prelim2026" n={147} />
 
 <ExamTip>
 

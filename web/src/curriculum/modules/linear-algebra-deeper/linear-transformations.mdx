@@ -2,7 +2,7 @@ import GridWarper from './visuals/linear-transformations/GridWarper'
 import MatrixMatch from './visuals/linear-transformations/MatrixMatch'
 import ComposeOrder from './visuals/linear-transformations/ComposeOrder'
 
-In *Vectors and matrices* you multiplied matrices number by number, which hides what a matrix actually **does**. Push every point of the plane through a matrix and the whole grid moves at once: it stretches, turns, slants, flips or gets flattened. Once you can *see* a matrix like this, the rest of this module (rank, eigenvectors, PCA and SVD) turns from formulas into pictures.
+In [Matrices, shapes and matrix multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication) you multiplied matrices number by number, which hides what a matrix actually **does**. Push every point of the plane through a matrix and the whole grid moves at once: it stretches, turns, slants, flips or gets flattened. Once you can *see* a matrix like this, the rest of this module (rank, eigenvectors, PCA and SVD) turns from formulas into pictures.
 
 <Analogy title="A fishing net pinned to the floor">
 
@@ -104,7 +104,7 @@ Writing the images of $\hat\imath$ and $\hat\jmath$ as **rows** instead of colum
 
 ## A gallery of transformations
 
-Most matrices in exam questions belong to one of five families. Each is easiest to remember by asking one question: where do $\hat\imath$ and $\hat\jmath$ go? The last column uses the determinant from *Vectors and matrices*: the factor by which areas are scaled (negative if the picture is mirrored).
+Most matrices in exam questions belong to one of five families. Each is easiest to remember by asking one question: where do $\hat\imath$ and $\hat\jmath$ go? The last column uses the determinant from [Identity, inverse, determinant and trace](#/learn/vectors-and-matrices/identity-inverse-determinant): the factor by which areas are scaled (negative if the picture is mirrored).
 
 | Family | Matrix | det |
 |---|---|---|
@@ -145,7 +145,7 @@ In the y-axis, $\hat\imath$ flips to $(-1, 0)$ and $\hat\jmath$ stays. The x-axi
   </Tab>
   <Tab label="Projection">
 
-Onto the x-axis, $\hat\imath$ stays and $\hat\jmath$ is crushed to $(0, 0)$: every point drops onto the line, like a <Term def="The projection of a point onto a line: the spot where it lands when it drops straight onto the line.">shadow</Term>. Onto the line $y = x$ the matrix is $\begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix}$. Projecting twice changes nothing more, so $P^2 = P$. A whole dimension is crushed, so det $= 0$ and there is no way to undo it; the next lesson is about exactly this kind of collapse.
+Onto the x-axis, $\hat\imath$ stays and $\hat\jmath$ is crushed to $(0, 0)$: every point drops onto the line, like a <Term def="The projection of a point onto a line: the spot where it lands when it drops straight onto the line.">shadow</Term>. Onto the line $y = x$ the matrix is $\begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix}$. Projecting twice changes nothing more, so $P^2 = P$. A whole dimension is crushed, so det $= 0$ and there is no way to undo it; the next lesson, [Span, linear independence and rank](#/learn/linear-algebra-deeper/span-rank-independence), is about exactly this kind of collapse.
 
   </Tab>
 </Tabs>
@@ -176,8 +176,6 @@ Matrices don't have to be square. An $m \times n$ matrix has $n$ columns, one fo
 - A 2×3 matrix takes 3-D points down to 2-D, like the midday sun casting the shadow of a 3-D object onto the flat ground. (A real camera is *not* linear: far-away things shrink.)
 
 This is exactly what a <Term def="A neural-network layer in which every input is connected to every output. It multiplies the input vector by a weight matrix and adds a bias.">fully connected layer</Term> does. In PyTorch, `nn.Linear(784, 128)` stores a weight matrix $W$ of shape 128×784 (outputs × inputs) and turns each 784-pixel image vector into 128 numbers. Entry $W_{ij}$ is the weight on the connection from input $j$ to output $i$, so there is one weight for every (input, output) pair: $784 \times 128 = 100{,}352$ weights.
-
-<PastPaperQuestion paper="prelim2026" n={166} />
 
 ## One move after another
 

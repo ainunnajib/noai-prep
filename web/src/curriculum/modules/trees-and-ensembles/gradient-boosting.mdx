@@ -245,8 +245,6 @@ Adding trees keeps lowering the **training** loss, but after a point each new tr
 
 </KeyIdea>
 
-<PastPaperQuestion paper="prelim2026" n={178} />
-
 Here is the bonus part of the 2026 Final's Task 1 in a few lines, run for three learning rates on a harder, curved dataset (`make_friedman1`):
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={esCode} />
@@ -260,8 +258,6 @@ Three famous libraries run the same loop, faster and with extra protection again
 - <Term def="eXtreme Gradient Boosting (2014): a fast gradient boosting library with regularisation of the leaf values, second-order (Newton) steps and built-in handling of missing values.">XGBoost</Term> penalises large leaf values and many leaves (**regularisation**), uses the second derivative of the loss to choose leaf values, and learns a **default direction for missing values** at every split, so you do not need to fill them in.
 - <Term def="Light Gradient Boosting Machine (Microsoft, 2017): gradient boosting that bins feature values into histograms for very fast split search and grows trees leaf by leaf.">LightGBM</Term> sorts feature values into a few hundred **histogram bins**, which makes finding splits very fast on big data. scikit-learn's `HistGradientBoostingRegressor` copies this design and also handles missing values natively.
 - <Term def="Categorical Boosting (Yandex, 2017): gradient boosting with careful built-in handling of categorical features such as town or flat type.">CatBoost</Term> handles **categorical** features (such as town or flat type) directly, without you turning them into numbers first.
-
-<PastPaperQuestion paper="prelim2026" n={259} />
 
 Here is scikit-learn's LightGBM-style booster on a table where a fifth of all the values are missing. It trains anyway, while a linear model refuses:
 
@@ -312,8 +308,6 @@ model.fit(X_tr, y_tr, eval_set=(X_val, y_val))  # cat_features=[...]
 
 On **tabular data** (rows and columns, like a spreadsheet of HDB resale flats), a gradient-boosted tree model is usually the strongest first thing to try: a large 2022 benchmark (Grinsztajn, Oyallon and Varoquaux) found tree ensembles still beat deep networks on medium-sized tables, while deep learning wins on images, text and audio.
 
-<PastPaperQuestion paper="prelim2026" n={256} />
-
 But "usually" matters. Here are real scores on three tables:
 
 <TabularLeaderboard />
@@ -330,6 +324,8 @@ But "usually" matters. Here are real scores on three tables:
 Traps in NOAI gradient-boosting questions: "boosting trains its trees in parallel" (it is sequential); `y_pred - y` offered as the pseudo-residual (that is the gradient, not the negative gradient); the **mean** as the L1 starting value (it is the median); and "a smaller learning rate needs fewer trees" (it needs more).
 
 </ExamTip>
+
+Next, [A matrix is a transformation of space](#/learn/linear-algebra-deeper/linear-transformations) turns from models back to maths: where a tree cuts the space into rectangles, a matrix moves the whole space at once, and that picture leads to rank, eigenvectors and the SVD behind PCA.
 
 <Takeaways>
 

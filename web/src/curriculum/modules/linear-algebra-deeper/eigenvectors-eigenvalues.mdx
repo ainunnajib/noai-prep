@@ -2,7 +2,7 @@ import EigenHunter from './visuals/eigenvectors-eigenvalues/EigenHunter'
 import EigenBars from './visuals/eigenvectors-eigenvalues/EigenBars'
 import PowerIteration from './visuals/eigenvectors-eigenvalues/PowerIteration'
 
-When a matrix acts on the plane, almost every arrow gets knocked off its course, but a few special directions are only stretched, never turned. These are the matrix's **eigenvectors** (from the German *eigen*, "own"), and the stretch factors are its **eigenvalues**. They are behind PCA, Google's PageRank and the exploding gradients of deep networks, and the 2026 Preliminary Round asked about them several times; three of those questions appear below.
+When a matrix acts on the plane, almost every arrow gets knocked off its course, but a few special directions are only stretched, never turned. These are the matrix's **eigenvectors** (from the German *eigen*, "own"), and the stretch factors are its **eigenvalues**. They are behind PCA, Google's PageRank and the exploding gradients of deep networks, and the 2026 Preliminary Round asked about them several times; two of those questions appear below.
 
 <Analogy title="Stretching prata dough">
 
@@ -12,7 +12,7 @@ A prata seller grabs a ball of dough by its left and right edges and pulls. Supp
 
 ## Arrows that turn, and arrows that don't
 
-Recall from the first lesson of this module that a matrix moves every point of the plane. Take
+Recall from [A matrix is a transformation of space](#/learn/linear-algebra-deeper/linear-transformations) that a matrix moves every point of the plane. Take
 
 $$
 A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}
@@ -95,7 +95,7 @@ $$
 
 We wrote $\lambda v$ as $\lambda I v$ because you cannot subtract a plain number from a matrix, but you can subtract the matrix $\lambda I$ (the identity with $\lambda$ down its diagonal).
 
-Now read the last equation geometrically. The matrix $A - \lambda I$ sends a **non-zero** vector $v$ to the zero vector, so it squashes a whole direction flat. From the module *Vectors and matrices*, that means it is <Term def="A square matrix with determinant 0. It squashes space into fewer dimensions and has no inverse.">singular</Term>:
+Now read the last equation geometrically. The matrix $A - \lambda I$ sends a **non-zero** vector $v$ to the zero vector, so it squashes a whole direction flat. From [Identity, inverse, determinant and trace](#/learn/vectors-and-matrices/identity-inverse-determinant), that means it is <Term def="A square matrix with determinant 0. It squashes space into fewer dimensions and has no inverse.">singular</Term>:
 
 $$
 \det(A - \lambda I) = 0
@@ -168,7 +168,7 @@ $$
 \lambda_1 + \lambda_2 = \operatorname{tr} A \qquad\qquad \lambda_1 \lambda_2 = \det A
 $$
 
-There is a picture for the product too. The determinant is the factor by which a matrix scales areas. Along its eigenvectors the matrix does nothing but stretch, by $\lambda_1$ one way and $\lambda_2$ the other, so a parallelogram built on the eigenvectors has its area multiplied by $|\lambda_1 \lambda_2|$, and flipped over when $\lambda_1 \lambda_2 < 0$. That signed factor, $\lambda_1 \lambda_2$, is exactly $\det A$. Think of the diagonal matrix with entries 2 and 3 from the determinant lesson in *Vectors and matrices*: it stretches the width by 2 and the height by 3, so every area grows by $2 \times 3 = 6$, and its eigenvalues are exactly 2 and 3.
+There is a picture for the product too. The determinant is the factor by which a matrix scales areas. Along its eigenvectors the matrix does nothing but stretch, by $\lambda_1$ one way and $\lambda_2$ the other, so a parallelogram built on the eigenvectors has its area multiplied by $|\lambda_1 \lambda_2|$, and flipped over when $\lambda_1 \lambda_2 < 0$. That signed factor, $\lambda_1 \lambda_2$, is exactly $\det A$. Think of the diagonal matrix with entries 2 and 3 from [Identity, inverse, determinant and trace](#/learn/vectors-and-matrices/identity-inverse-determinant): it stretches the width by 2 and the height by 3, so every area grows by $2 \times 3 = 6$, and its eigenvalues are exactly 2 and 3.
 
 <EigenBars />
 
@@ -177,8 +177,6 @@ There is a picture for the product too. The determinant is the factor by which a
 **Sum of the eigenvalues = trace. Product of the eigenvalues = determinant.** This holds for square matrices of every size (an $n \times n$ matrix has $n$ eigenvalues, counting repeats and any complex ones), so many eigenvalue questions can be answered from the diagonal and the determinant alone.
 
 </KeyIdea>
-
-<PastPaperQuestion paper="prelim2026" n={16} />
 
 A big consequence: **a zero eigenvalue means the matrix is singular.** Algebraically, if any $\lambda_i = 0$ then the product $\det A = 0$. Geometrically, $Av = 0 \cdot v = 0$ for some non-zero $v$, so two different inputs ($0$ and $v$) give the same output, and no inverse could know which one to return. It works the other way round as well: if $\det A = 0$, then $\lambda = 0$ solves $\det(A - \lambda I) = 0$.
 
@@ -231,7 +229,7 @@ $$
 Two consequences matter for AI:
 
 - **Powers are easy.** $A^2 = V\Lambda V^{-1}V\Lambda V^{-1} = V\Lambda^2V^{-1}$, because the middle $V^{-1}V$ cancels. In general $A^k = V\Lambda^k V^{-1}$, and $\Lambda^k$ just raises each diagonal entry to the power $k$. That is the next section in one line.
-- **Symmetric matrices are the best case.** Their eigenvectors can be chosen perpendicular and of length 1, so $V$ is an <Term def="A square matrix whose columns are perpendicular and of length 1. Its inverse is its transpose, and it only rotates or reflects. The SVD lesson covers it properly.">orthogonal matrix</Term> $Q$ with $Q^{-1} = Q^T$, and $A = Q\Lambda Q^T$ (the *spectral theorem*). The covariance matrix in the next lesson is symmetric, and this is exactly how PCA reads off its directions.
+- **Symmetric matrices are the best case.** Their eigenvectors can be chosen perpendicular and of length 1, so $V$ is an <Term def="A square matrix whose columns are perpendicular and of length 1. Its inverse is its transpose, and it only rotates or reflects. The SVD lesson covers it properly.">orthogonal matrix</Term> $Q$ with $Q^{-1} = Q^T$, and $A = Q\Lambda Q^T$ (the *spectral theorem*). The covariance matrix in [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca) is symmetric, and this is exactly how PCA reads off its directions.
 
 <KeyIdea>
 
