@@ -73,7 +73,7 @@ describe('course structure', () => {
         for (const l of m.lessons) {
           expect(l.slug).toMatch(/^[a-z0-9-]+$/)
           expect(l.minutes).toBeGreaterThanOrEqual(5)
-          expect(l.minutes).toBeLessThanOrEqual(40)
+          expect(l.minutes).toBeLessThanOrEqual(50)
           expect(l.objectives.length).toBeGreaterThan(0)
           expect(l.summary.length).toBeGreaterThan(10)
         }

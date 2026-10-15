@@ -1,6 +1,6 @@
 # NOAI Prep: final curriculum
 
-**39 modules · 178 lessons · 498 concepts (each with its own visual) · about 57 hours of lessons**
+**39 modules · 178 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
 
 Synthesised from three designs: **A** (beginner pedagogy), **B** (exam coverage) and **C2** (IOAI syllabus, visual-first). The sequencing comes from A, most concept content and visual specs from C2, and the exam part (drills, past-paper walkthroughs, separate NumPy and PyTorch Final labs) from B. A completeness critic pass then audited it against every past-paper question, the IOAI 2026 syllabus and the six Final tasks and made 43 changes (listed near the end). Details are in the rationale and scorecard at the end.
 

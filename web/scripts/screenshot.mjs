@@ -33,9 +33,16 @@ for (const r of routes) {
     try {
       await page.goto(base + r, { waitUntil: 'networkidle', timeout: 60000 })
       // wait until lazy lessons and embedded past-paper questions have rendered
-      await page
-        .waitForFunction(() => !document.querySelector('.loading-block, .pastq-loading'), null, { timeout: 15000 })
-        .catch(() => console.log(`  ${r}: still loading after 15 s`))
+      const loaded = await page
+        .waitForFunction(() => !document.querySelector('.loading-block, .pastq-loading'), null, { timeout: 30000 })
+        .then(() => true)
+        .catch(() => false)
+      if (!loaded) {
+        // a capture of a half-loaded page is useless: retry, and fail on the last attempt
+        if (attempt < 2) throw new Error('still loading after 30 s')
+        console.log(`  ${r}: STILL LOADING after 30 s (the screenshot shows a partly loaded page)`)
+        failed = true
+      }
       await page.waitForTimeout(500)
       const name = `${opt.out}/${r.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'home'}_${opt.width}_${opt.theme}.png`
       await page.screenshot({ path: name, fullPage: opt.full })

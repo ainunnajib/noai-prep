@@ -80,7 +80,7 @@ Every lesson follows this arc. Headings are `##` (the page already shows the les
 9. **`<QuickCheck>`** at least once mid-lesson.
 10. **`<Takeaways>`** with a 3–5 item bullet list at the end.
 
-The checkpoint from `quiz.ts` is appended automatically after the lesson. Lessons should take 10–25 minutes. Aim for roughly 900–1800 words of prose per lesson plus visuals, never a wall of text: alternate short paragraphs with visuals, steps and checks.
+The checkpoint from `quiz.ts` is appended automatically after the lesson. Lessons should take 20–35 minutes for a beginner, including the visuals, checks and checkpoint (`minutes` in `index.ts` is estimated from the content by `python3 scripts/estimate-minutes.py --write`: prose at about 150 words a minute, plus 1.5 minutes per visual, 1 per quick check or past-paper question, 3 per runnable exercise and 4 for the checkpoint). Aim for roughly 900–1800 words of prose per lesson plus visuals, never a wall of text: alternate short paragraphs with visuals, steps and checks.
 
 ### Components available in MDX without importing
 

@@ -127,6 +127,7 @@ export function PyRunner({ code: initial, packages = [], title = 'Try it: Python
         className="pyrunner-code"
         value={code}
         spellCheck={false}
+        wrap="off"
         aria-label="Python code editor"
         rows={rows ?? Math.min(18, code.split('\n').length + 1)}
         onChange={(e) => setCode(e.target.value)}
