@@ -6,7 +6,7 @@ import s from './algo.module.css'
 /*
   The doubling test. Each snippet's exact step count is computed for n and for 2n, and its work is
   drawn to the SAME scale in two panels: one cell per step (a line, two lines, a square, a staircase),
-  or one row per pass for the halving loop. In the 2n panel the old work is drawn in the first colour
+  or one equal cell per pass for the halving loop. In the 2n panel the old work is drawn in the first colour
   and the extra work in the second, so "x2", "x4" and "+1" can be seen, not just read.
 */
 
@@ -122,6 +122,8 @@ for q in queries:     # n queries
 
 const OLD = 'var(--viz-1)'
 const NEW = 'var(--viz-2)'
+const HALF_ROW = 18
+const HALF_CELL = 22
 const fillOf = (c: string) => `color-mix(in srgb, ${c} 55%, var(--surface))`
 
 function shapeHeight(shape: Shape, m: number, u: number) {
@@ -134,7 +136,7 @@ function shapeHeight(shape: Shape, m: number, u: number) {
     case 'triangle':
       return m * u
     case 'halving':
-      return halvings(m) * 12
+      return halvings(m) * HALF_ROW
   }
 }
 
@@ -206,10 +208,16 @@ function Work({ shape, m, u, isDouble, height }: { shape: Shape; m: number; u: n
       )
       break
     case 'halving': {
+      // one equal cell per pass (a pass is one unit of work, whatever n is), labelled with how n shrinks
       const rows: number[] = []
       for (let v = m; v > 1; v = Math.floor(v / 2)) rows.push(v)
       body = rows.map((v, i) => (
-        <rect key={i} x={0} y={i * 12} width={Math.max(1.5, v * u)} height={9} rx={2} style={{ fill: fillOf(isDouble && i === 0 ? NEW : OLD), ...outline }} />
+        <g key={i}>
+          <rect x={0} y={i * HALF_ROW} width={HALF_CELL} height={HALF_ROW - 3} rx={2} style={{ fill: fillOf(isDouble && i === 0 ? NEW : OLD), ...outline }} />
+          <text x={HALF_CELL + 6} y={i * HALF_ROW + (HALF_ROW - 3) / 2} dy="0.35em" style={{ fontSize: 12, fill: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
+            {comma(v)} → {comma(Math.floor(v / 2))}
+          </text>
+        </g>
       ))
       break
     }
@@ -257,7 +265,7 @@ export default function LoopCounter() {
         <>
           Pick a snippet and slide <M>n</M>. The right panel runs the same code on twice as much input, drawn to the same scale: blue is the
           old work, orange is the extra work that doubling <M>n</M> added. A line doubles, a square (or a staircase, which is half a square)
-          quadruples, and the halving loop gains a single row. Try the <b>"in" a list</b> snippet, then switch it to a set.
+          quadruples, and the halving loop gains a single pass. Try the <b>"in" a list</b> snippet, then switch it to a set.
         </>
       }
     >

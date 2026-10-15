@@ -102,19 +102,27 @@ def bfs_path(graph, start, goal):
         node = parent[node]
     return path[::-1]
 
-def dfs_order(graph, start):
-    order, seen = [], set()
-    def visit(u):
-        seen.add(u)
-        order.append(u)
-        for v in graph[u]:
-            if v not in seen:
-                visit(v)         # go deeper first
-    visit(start)
-    return order
+def dfs_path(graph, start, goal):
+    stack = [(start, None)]      # (place, came from)
+    parent = {}
+    while stack:
+        u, p = stack.pop()       # newest first
+        if u in parent:          # an old copy: already visited
+            continue
+        parent[u] = p            # mark when popped
+        if u == goal:
+            break
+        for v in reversed(graph[u]):
+            if v not in parent:
+                stack.append((v, u))
+    path, node = [], goal
+    while node is not None:      # walk back
+        path.append(node)
+        node = parent[node]
+    return path[::-1]
 
 print(bfs_path(graph, "Home", "Stadium"))
-print(dfs_order(graph, "Home"))`
+print(dfs_path(graph, "Home", "Stadium"))`
 
 Some problems are easiest to solve by first solving a smaller copy of the same problem. This lesson covers three ideas built on that thought: **recursion** (a function that calls itself), **dynamic programming** (remember the answers to smaller problems so you never solve one twice) and **graph search** (explore a network of connected things, breadth-first or depth-first). They sit underneath spell-checkers, route planners, speech recognisers and even backpropagation, and NOAI asks you to trace them by hand.
 
@@ -324,7 +332,7 @@ You can search floor by floor: check every shop on level 1, then every shop on l
   </Step>
 </Steps>
 
-Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so both take $O(V + E)$ time for $V$ nodes and $E$ edges. The essential difference is which end of the frontier you take from: the oldest item (a queue, BFS) or the newest (a stack, DFS). In code there is one more detail: a stack-based DFS must mark a node as visited when it is **popped**, not when it is pushed, so just swapping `popleft()` for `pop()` in `bfs_path` does not give a true DFS. A recursive DFS gets this right automatically.
+Both searches look at each node once and each edge once (twice, once from each end, in an undirected graph), so both take $O(V + E)$ time for $V$ nodes and $E$ edges. The essential difference is which end of the frontier you take from: the oldest item (a queue, BFS) or the newest (a stack, DFS). In code there is one more detail: a stack-based DFS must mark a node as visited when it is **popped**, not when it is pushed, so just swapping `popleft()` for `pop()` in `bfs_path` does not give a true DFS. Compare the two functions below: `dfs_path` takes the newest item with `pop()`, skips old copies of places it has already visited, and pushes neighbours in reverse so it explores them in the same order as the picture. Its path has 9 hops where BFS needs only 4: DFS finds *a* path, not the shortest.
 
 <PyRunner code={graphCode} />
 

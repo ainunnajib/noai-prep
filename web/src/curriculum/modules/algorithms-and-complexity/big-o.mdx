@@ -1,5 +1,6 @@
 import BigORace from './visuals/big-o/BigORace'
 import DominantTerm from './visuals/big-o/DominantTerm'
+import BigOBound from './visuals/big-o/BigOBound'
 import LoopCounter from './visuals/big-o/LoopCounter'
 import SpaceVsTime from './visuals/big-o/SpaceVsTime'
 
@@ -151,10 +152,15 @@ Because Big-O is only an upper bound, $3n^2 + 50n + 200$ is also $O(n^3)$, just 
   <Step title="Read off $c$ and $n_0$">
     The definition is satisfied with $c = 253$ and $n_0 = 1$, so the cost is $O(n^2)$. The constant 253 is ugly, but Big-O does not care how big $c$ is, only that it exists.
   </Step>
+  <Step title="A tighter $c$ needs a later $n_0$">
+    Try $c = 4$ instead. Now we need $4n^2 \ge 3n^2 + 50n + 200$, that is $n^2 \ge 50n + 200$, which first holds at $n = 54$ (the exact crossover is about 53.7). So $c = 4$, $n_0 = 54$ also works. Both pairs prove the same thing; $n_0$ exists to let small inputs misbehave.
+  </Step>
   <Step title="Sanity-check with numbers">
     At $n = 1000$: $3n^2 = 3{,}000{,}000$, $50n = 50{,}000$ and the constant is $200$. The $n^2$ term is already about 98% of the total of 3,050,200.
   </Step>
 </Steps>
+
+<BigOBound />
 
 <DominantTerm />
 
