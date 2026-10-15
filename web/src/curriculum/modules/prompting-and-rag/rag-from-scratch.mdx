@@ -12,7 +12,7 @@ Think of a teacher marking a stack of scripts against a marking scheme. Each scr
 
 </Analogy>
 
-You met the ideas in [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf): count vectors, IDF and cosine similarity. This lesson is about **implementation**: turning those ideas into clean, vectorised, robust NumPy code, the way the Final asks.
+You met the ideas (count vectors, IDF and cosine similarity), and ran a complete solution to this exact 2025 task, in [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf). This lesson goes deeper on what that solution skipped: the shape of every array, why `D @ q` replaces a loop, `argsort` ties, the edge cases hidden tests try, a grounded template answer and the written explanation.
 
 ## Five arrays make a retriever
 
@@ -38,7 +38,7 @@ $$
 
 - $V$ is the vocabulary size (9 here), and $j$ runs over the columns, one per word.
 - $D_{ij}$ is the count of word $j$ in document $i$; $q_j$ is its count in the query.
-- The top line, the **dot product**, adds up matching counts, so only words in both texts contribute. Dividing by the **lengths** (L2 norms) removes the advantage of simply being long.
+- The top line, the **dot product**, multiplies the two counts for each word and adds the products, so only words in both texts contribute. Dividing by the **lengths** (L2 norms) removes the advantage of simply being long.
 
 NumPy computes all the scores, one per document, in one line. `D @ q` gives every dot product, `np.linalg.norm(D, axis=1)` gives every row length, and the division happens element by element:
 
@@ -55,7 +55,7 @@ The whole retriever is two lines: `scores = D @ q / (np.linalg.norm(D, axis=1) *
     Lower-case it and drop punctuation and stop words ("is", "the", "on"). The tokens are library, open, friday, so $q$ has a 1 in each of those three columns and 0 elsewhere. $\lVert q \rVert^2 = 1 + 1 + 1 = 3$.
   </Step>
   <Step title="Dot products: D @ q">
-    Add up each row's counts in the query's three columns. d0 has library, open, friday: $1+1+1 = 3$. d1 has open, friday: $2$. d2 has library, open, friday: $3$. d3 has none: $0$. So `D @ q` = `[3, 2, 3, 0]`.
+    Every entry of $q$ is 0 or 1, so multiplying by $q$ just picks out each row's counts in the query's three columns; add them up. d0 has library, open, friday: $1+1+1 = 3$. d1 has open, friday: $2$. d2 has library, open, friday: $3$. d3 has none: $0$. So `D @ q` = `[3, 2, 3, 0]`.
   </Step>
   <Step title="Squared lengths of the rows">
     Sum the squares of each row. d0: $1+1+1 = 3$. d1: five words once each, $5$. d2: "exam" twice, so $2^2 + 6 \times 1^2 = 10$. d3: $3$.
@@ -123,12 +123,12 @@ Here is the complete pipeline as small functions. Run it, then change the query.
 
 The first query prints `scores: [1.    0.516 0.548 0.   ] -> top: [0, 2]`, the same numbers you worked out by hand. The swimming-pool question has no word in the vocabulary, so every score is 0, nothing is returned and the answer is "I don't know".
 
-Recall TF-IDF from [Text as data](#/learn/text-as-data/bag-of-words-and-tfidf): multiply each count by $\text{idf}_j = \ln(N / \text{df}_j)$, where $N$ is the number of documents and $\text{df}_j$ the number of documents that contain word $j$. Rare words get bigger weights.
+Recall TF-IDF from [Text as data](#/learn/text-as-data/bag-of-words-and-tfidf): multiply each count by $\text{idf}_j = \ln(N / \text{df}_j)$, where $N$ is the number of documents and $\text{df}_j$ the number of documents that contain word $j$. Rare words get bigger weights. That lesson's hand example used $\log_2$, but any base gives the same ranking, and `np.log` is $\ln$.
 
 <TryIt title="Switch to TF-IDF, then rerun the 2025 Final">
 
 1. After the line `D = np.array(...)`, add `idf = np.log(len(documents) / (D > 0).sum(axis=0))` and `D = D * idf`. In `retrieve`, change the first line to `q = vectorise(query) * idf`. Then replace the first query in the `for` loop's list with "Is the canteen open on Monday?" and run it. With counts, d0 and d3 tie at 0.333; with TF-IDF the rarer word "monday" separates them.
-2. Undo that, then replace the four documents with the five from the 2025 Final ("Artificial intelligence is transforming industries.", "Machine learning is a subset of artificial intelligence.", "Deep learning allows machines to solve complex problems.", "Data science involves statistics and machine learning.", "Neural networks are inspired by the human brain.") and ask "How does machine learning work?". You should get `top: [1, 3]`, the two documents the exam expected.
+2. Undo that, swap in the 2025 Final's five documents from [the TF-IDF lesson](#/learn/text-as-data/bag-of-words-and-tfidf), ask "How does machine learning work?" and check you get `top: [1, 3]`.
 
 </TryIt>
 
@@ -141,7 +141,7 @@ Code that works on the example can still fail the marker. In the 2026 Final, the
 The fixes, in the order they appear in the code:
 
 1. **Lower-case** documents and queries alike, so "LIBRARY" and "Library" become "library".
-2. **Strip punctuation**: `re.findall(r"[a-z]+", text)` turns "Friday?" into "friday". Splitting on spaces keeps "Friday?" as a different word.
+2. **Strip punctuation**: `re.findall(r"[a-z]+", text)` turns "Friday?" into "friday". Splitting on spaces keeps "Friday?" as a different word. This pattern also drops digits; use `r"[a-z0-9]+"` if years or room numbers matter, and say which you chose.
 3. **Remove stop words** from both sides. Otherwise "the" and "is" match every document and outvote the real keyword.
 4. **Guard the division.** If no query word is in the vocabulary, $q$ is all zeros, $\lVert q \rVert = 0$ and every score is $0/0$ = `nan`. Adding `1e-10` to the denominator turns that into 0 (checking `if np.linalg.norm(q) == 0` and returning early also works).
 5. **Skip zero scores.** `[:k]` always returns $k$ positions, even when nothing matched. Keep only documents with a positive score (or above a threshold), and answer "I don't know" if none are left.
@@ -182,7 +182,7 @@ The 2025 notebook ended by asking you to share your thought process, so part of 
 2. **Weighting**: counts or TF-IDF, and why. TF-IDF boosts rare, informative words; with only five documents the two often agree.
 3. **Similarity**: cosine, because it compares the mix of words and ignores length.
 4. **Selection**: top $k$ with `argsort`, a minimum score, and a tie rule.
-5. **Generation and limits**: a template that only uses retrieved text, plus what it cannot do. A bag of words misses synonyms ("machines" is not "machine") and word order, which is why real systems use learned embeddings.
+5. **Generation and limits**: a template that only uses retrieved text, plus what it cannot do. A bag of words treats different forms of a word as unrelated ("machines" is not "machine"; stemming fixes that), misses synonyms ("fee" and "cost") and ignores word order, which is why real systems use learned embeddings.
 
 <ExamTip>
 

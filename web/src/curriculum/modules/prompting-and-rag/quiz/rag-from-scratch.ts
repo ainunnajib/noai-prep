@@ -27,7 +27,7 @@ const questions: QuizQuestion[] = [
       'A retriever computes `scores = D @ q / (np.linalg.norm(D, axis=1) * np.linalg.norm(q))`. For the query "Quantum?" it prints `[nan nan nan nan]`. What is the most likely cause?',
     options: [
       'No query word is in the vocabulary, so $q = 0$ and every score is $0/0$',
-      'The query is shorter than every document, so the cosine is undefined for it',
+      'The query is shorter than each document, so the cosine is undefined for it',
       'Stop words were not removed, so the dot products became too large to store',
       'Two documents tie, and `np.linalg.norm` returns nan for ties',
     ],
@@ -51,7 +51,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'In a NumPy-only RAG task (no language model allowed), you must produce a `response` string from the retrieved documents. Which approach keeps the answer **grounded** in the documents?',
     options: [
-      'Join the retrieved sentences into a template, and say "I don\'t know" when no document scores above 0',
+      'Join only the retrieved sentences into a template, and say "I don\'t know" when no document scores above 0',
       'Hard-code the expected sentence, and return it whenever the retrieved documents contain the right keywords',
       'Always return the top 2 documents, even when they score 0, so that the response is never empty',
       'Write a fluent paragraph that adds well-known facts about the topic to the retrieved sentences',

@@ -131,6 +131,7 @@ export default function GenVsDiscToggle() {
         ) : (
           <span>lines: P(B | x) = 0.1, 0.5, 0.9</span>
         )}
+        <span style={{ fontStyle: 'italic' }}>tip: every point can be dragged</span>
       </div>
       <p style={note}>
         {view === 'disc'
@@ -307,7 +308,7 @@ function DragDot({ p, k, onChange }: { p: P2; k: 0 | 1; onChange: (p: P2) => voi
         ;(e.currentTarget as Element).releasePointerCapture(e.pointerId)
       }}
     >
-      <circle cx={cx} cy={cy} r={r + 7} style={{ fill: 'transparent' }} />
+      <circle cx={cx} cy={cy} r={r + 10} style={{ fill: 'transparent' }} />
       {k === 0 ? <circle cx={cx} cy={cy} r={r} style={style} /> : <rect x={cx - r} y={cy - r} width={2 * r} height={2 * r} style={style} />}
     </g>
   )

@@ -61,7 +61,7 @@ export default function ReparamKL() {
         </>
       }
     >
-      <Plot x={[-4, 4]} y={[0, YTOP]} width={520} height={250} minHeight={220} margin={{ left: 40, bottom: 30, top: 12 }} ariaLabel="The prior bell curve N(0, 1) and the encoder's bell curve N(mu, sigma squared), with the latest sample">
+      <Plot x={[-4, 4]} y={[0, YTOP]} width={520} height={260} minHeight={230} margin={{ left: 40, bottom: 40, top: 12 }} ariaLabel="The prior bell curve N(0, 1) and the encoder's bell curve N(mu, sigma squared), with the latest sample">
         <Grid xTicks={8} yTicks={4} />
         <Path points={area(prior)} closed fill="color-mix(in srgb, var(--viz-muted) 22%, transparent)" color="none" width={0} />
         <Path points={area(q, qSamples)} closed fill="color-mix(in srgb, var(--viz-5) 22%, transparent)" color="none" width={0} />
@@ -174,7 +174,8 @@ function Graph({ mu, sigma, e, z, back }: { mu: number; sigma: number; e: number
     ['z', 'dec'],
     ['dec', 'xh'],
   ]
-  const grad = new Set(['enc-mu', 'enc-sg', 'mu-z', 'sg-z', 'z-dec', 'dec-xh', 'x-enc'])
+  // gradients stop at the encoder's weights: the input image, like ε, needs none
+  const grad = new Set(['enc-mu', 'enc-sg', 'mu-z', 'sg-z', 'z-dec', 'dec-xh'])
   const h = 34
   const fillOf = (k: Node['kind']) =>
     k === 'net' ? 'color-mix(in srgb, var(--viz-1) 14%, var(--surface))' : k === 'rand' ? 'color-mix(in srgb, var(--viz-muted) 20%, var(--surface))' : k === 'z' ? 'color-mix(in srgb, var(--viz-5) 16%, var(--surface))' : 'var(--surface)'

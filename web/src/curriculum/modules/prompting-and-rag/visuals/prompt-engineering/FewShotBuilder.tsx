@@ -223,7 +223,7 @@ export default function FewShotBuilder() {
     >
       <div ref={ref} className={s.wrap}>
         <p className={s.tryLine}>
-          <b>Try:</b> add the two <b>sarcasm</b> examples, then the <b>mislabelled</b> one, and move it up and down. Finish with <b>New chat</b>.
+          <b>Try:</b> add one <b>sarcasm</b> example, then the <b>mislabelled</b> one: the label flips. Move the mislabelled one up and it flips back. Then add the other sarcasm example, and finish with <b>New chat</b>.
         </p>
         {narrow ? (
           <div className={s.stack}>

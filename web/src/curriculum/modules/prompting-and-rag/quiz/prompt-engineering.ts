@@ -16,7 +16,7 @@ const questions: QuizQuestion[] = [
     id: 'prompting-and-rag.prompt-engineering.2',
     prompt: 'Which statement correctly compares few-shot prompting with fine-tuning?',
     options: [
-      'Few-shot puts examples in the input and leaves the weights alone; fine-tuning updates the weights by training.',
+      'Few-shot only changes the input and never touches the weights; fine-tuning updates the weights by training.',
       'Few-shot prompting nudges the weights a little for each example; fine-tuning nudges them a lot using many examples.',
       'Few-shot prompting needs thousands of labelled examples; fine-tuning needs only two or three examples placed in the prompt.',
       'Both change the weights for good, but few-shot is faster because it uses a smaller learning rate.',
@@ -48,7 +48,7 @@ const questions: QuizQuestion[] = [
       'Ask for JSON with a single key "grade", and show one example reply',
       'Add the role "You are a strict and very experienced English teacher"',
       'Raise the sampling temperature so that the model sounds more decisive',
-      'Add "Let\'s think step by step" so the model explains every grade',
+      'Add "Let\'s think step by step" so the model explains each grade',
     ],
     answer: 0,
     explanation:

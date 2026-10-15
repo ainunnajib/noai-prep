@@ -58,7 +58,7 @@ function Points({ pts, color, r, hollow }: { pts: Pt[]; color: string; r: number
           cx={xs(p[0])}
           cy={ys(p[1])}
           r={r}
-          style={hollow ? { fill: 'none', stroke: color, strokeWidth: 1, opacity: 0.45 } : { fill: color, stroke: 'var(--surface)', strokeWidth: 0.8, opacity: 0.95 }}
+          style={hollow ? { fill: 'none', stroke: color, strokeWidth: 1.3, opacity: 0.6 } : { fill: color, stroke: 'var(--surface)', strokeWidth: 0.8, opacity: 0.95 }}
         />
       ))}
     </g>
@@ -85,10 +85,12 @@ export default function GuidanceScale() {
   const verdict =
     w === 0
       ? 'w = 0: the prompt is ignored, so you get a mix of all three kinds.'
-      : w <= 1
+      : w < 1
+        ? `w = ${w}: between 0 and 1, a blend of unconditional and conditional sampling. Some samples still look like the other prompts.`
+        : w === 1
         ? 'w = 1: plain conditional sampling. Most samples fit the prompt, but some sit in the overlap with other classes.'
         : w <= 4
-          ? 'w > 1: pushed away from the other classes. Every sample clearly fits the prompt, with a little less variety.'
+          ? 'w > 1: pushed away from the other classes. Nearly every sample clearly fits the prompt (all of them from w = 2), with a little less variety.'
           : 'Large w: samples are exaggerated, crowding into the far corner, beyond most real examples. Real images start to look over-saturated.'
 
   return (
@@ -99,7 +101,7 @@ export default function GuidanceScale() {
         <>
           Faint rings: real training data for three prompts. Filled dots: 140 samples generated with the prompt you choose, using{' '}
           <M>{'\\hat\\varepsilon = \\varepsilon_\\text{uncond} + w\\,(\\varepsilon_\\text{cond} - \\varepsilon_\\text{uncond})'}</M>. Slide the guidance scale{' '}
-          <M>w</M> from 0 to 10 and watch the samples move <i>away</i> from the other prompts and bunch together. Stable Diffusion uses <M>{'w = 7.5'}</M> by default.
+          <M>w</M> from 0 to 10 and watch the samples move <i>away</i> from the other prompts and bunch together. Stable Diffusion uses <M>{'w = 7.5'}</M> by default (this toy's <M>w</M> is not on the same scale, so do not read its 7.5 as Stable Diffusion's).
         </>
       }
     >
@@ -114,7 +116,7 @@ export default function GuidanceScale() {
         ))}
         <Points pts={pts} color={COLS[c]} r={3.6} />
       </Plot>
-      <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--ink-2)', textAlign: 'center' }} aria-live="polite">
+      <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: 'var(--ink-2)', textAlign: 'center', minHeight: '4.2em' }} aria-live="polite">
         {verdict}
       </p>
       <Controls>

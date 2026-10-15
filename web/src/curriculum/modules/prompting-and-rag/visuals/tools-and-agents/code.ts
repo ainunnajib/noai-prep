@@ -12,6 +12,8 @@ def get_today():
     return "2026-10-14"
 
 def days_between(start, end):
+    # fromisoformat: "2027-02-19" -> a date object;
+    # one date minus another is a gap with .days
     d = date.fromisoformat(end) - date.fromisoformat(start)
     return d.days
 
@@ -34,6 +36,9 @@ def fake_llm(history):
                 "tool": "get_today", "args": {}}
     if "days_between" not in seen:
         text = seen["search"].split(": ")[1]
+        # "Friday 19 February 2027" -> a date (%A day name,
+        # %d day, %B month name, %Y year); .isoformat()
+        # turns it back into "2027-02-19"
         exam = datetime.strptime(text, "%A %d %B %Y").date()
         return {"thought": "I'll let a tool count the days.",
                 "tool": "days_between",
@@ -56,11 +61,14 @@ for step in range(1, MAX_STEPS + 1):
         break
     # act: YOUR code runs the tool
     name, args = reply["tool"], reply["args"]
+    # json.dumps: dict -> JSON text
     print(f"        act:   {name}({json.dumps(args)})")
+    # ** unpacks the dict into keyword arguments,
+    # e.g. search(query="NOAI 2027 Prelim date")
     result = TOOLS[name](**args)
     # observe: add the result
     print("        observation:", result)
     history.append({"role": "tool", "tool": name,
                     "content": str(result)})
-else:
+else:  # a loop's else runs only if the loop ended WITHOUT break
     print("Stopped: hit the step limit without an answer.")`

@@ -8,7 +8,7 @@ const questions: QuizQuestion[] = [
       'Vision encoder → projector → LLM (reading image tokens and text tokens together)',
       'Projector → vision encoder → LLM (reading only the image tokens)',
       'LLM → projector → vision encoder (which generates the answer from the image)',
-      'Text tokenizer → LLM → vision encoder (which checks the answer against the image)',
+      'Text tokeniser → LLM → vision encoder (which checks the answer against the image)',
     ],
     answer: 0,
     explanation:
@@ -57,14 +57,29 @@ const questions: QuizQuestion[] = [
     prompt:
       'A team wants a model that answers questions about Singapore street signs, but has only 5,000 photos with good questions and answers. Which plan is most sensible?',
     options: [
-      'Reuse a pretrained CLIP encoder and a pretrained LLM, and train mainly a small projector',
+      'Reuse a pretrained CLIP encoder and LLM, and at first train only a small projector',
       'Train a new vision encoder and a new LLM from scratch on just the 5,000 examples',
-      'Caption every photo by hand, then train a text-only LLM on those captions alone',
+      'Reuse a pretrained text-only LLM and feed it hand-written captions instead of photos',
       'Train a CNN classifier with one output class for each kind of Singapore street sign',
     ],
     answer: 0,
     explanation:
-      'Paired image-text data is scarce, so VLMs reuse pretrained parts that already understand images and language, and train a small bridge that needs little data (perhaps followed by light fine-tuning). 5,000 examples are far too few to train an encoder and LLM from scratch. Hand-written captions lose whatever they leave out (and the model could never see new photos), and a fixed-class CNN cannot answer open questions.',
+      'Paired image-text data is scarce, so VLMs reuse pretrained parts that already understand images and language, and first train only a small bridge, which needs little data (light fine-tuning can follow). 5,000 examples are far too few to train an encoder and LLM from scratch. A text-only LLM fed hand-written captions loses whatever the captions leave out, and someone would have to caption every new photo; a fixed-class CNN cannot answer open questions.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'multimodal-ai.vision-language-models.6',
+    prompt:
+      'An image captioner has a ViT encoder and a Transformer text decoder, and is trained on photo-caption pairs. Which describes its standard training on one caption?',
+    options: [
+      'Feed in the true words so far and predict each next word, with cross-entropy at every position',
+      'Feed in only the image and predict all the words of the caption at once, ignoring their order',
+      'Embed the image and the caption, pull the true pair together and push mismatched pairs apart',
+      'Feed in the whole true caption at once and predict only its final word, scored by cross-entropy',
+    ],
+    answer: 0,
+    explanation:
+      'The decoder is trained like a language model, with teacher forcing: at each position it sees the image features (through cross-attention) and the true words before that position, predicts the next word, and the cross-entropy is averaged over every caption token. Predicting all the words at once throws away their order; pulling true pairs together and pushing others apart is CLIP\'s contrastive loss, which matches pictures with captions but cannot write one; and scoring only the final word wastes every other position, so the model would never learn how a caption starts.',
     difficulty: 'intermediate',
   },
 ]

@@ -25,7 +25,7 @@ const questions: QuizQuestion[] = [
     prompt: 'What is the [CLS] token in a Vision Transformer?',
     options: [
       'A learned extra token at position 0 whose final vector summarises the image for the head',
-      'The top-left patch of the image, which the model treats as a reference point for all other patches',
+      'The top-left patch of the image, which the model treats as the reference point for the other patches',
       'A vector containing the correct class label, which is fed to the model during training',
       'A marker placed after the last patch so the model knows where one image ends in a batch',
     ],
@@ -38,7 +38,7 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.vision-transformers.4',
     prompt: 'You build a ViT **without** position embeddings. You then cut one photo into patches and feed the patches in two different shuffled orders. What happens to the [CLS] output?',
     options: [
-      'It is exactly the same both times, because attention treats the tokens as an unordered set',
+      'It is exactly the same both times, because attention treats all the tokens as an unordered set',
       'It differs slightly both times, because the patch-embedding convolution mixes neighbouring patches',
       'It becomes random noise, because patch embeddings cannot be computed without positions',
       'It is the same only when the image is symmetric, because attention compares mirror-image patches',
@@ -54,12 +54,12 @@ const questions: QuizQuestion[] = [
     options: [
       'Take a ViT pretrained on a large image collection and fine-tune it on the 2,000 photos',
       'Train a ViT from scratch with a smaller patch size so that each photo provides more tokens',
-      'Train a ViT from scratch and remove the position embeddings to cut down the parameters',
+      'Take a Transformer language model pretrained on web text and fine-tune it on the 2,000 photos',
       'Train a ViT from scratch with a higher learning rate to make up for the small dataset',
     ],
     answer: 0,
     explanation:
-      'ViTs have weak image-specific inductive biases: apart from cutting the image into patches, nothing tells them that neighbouring patches belong together (self-attention is global from layer 1), so from scratch they need far more than 2,000 images and would overfit. Pretraining supplies that knowledge. Smaller patches add tokens and cost but not more labelled examples, removing position embeddings throws away the layout of the image, and a higher learning rate adds no data and usually makes overfitting or instability worse.',
+      'ViTs have weak image-specific inductive biases: apart from cutting the image into patches, nothing tells them that neighbouring patches belong together (self-attention is global from layer 1), so from scratch they need far more than 2,000 images and would overfit. Pretraining on a large collection of images supplies that knowledge; a language model pretrained on text has learned about words, not about how the patches of a photo relate. Smaller patches add tokens and cost but not more labelled examples, and a higher learning rate adds no data and usually makes overfitting or instability worse.',
     difficulty: 'intermediate',
   },
 ]

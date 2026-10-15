@@ -232,8 +232,8 @@ export default function CLIPSimilarityMatrix() {
             ['loss', loss.toFixed(2)],
             ['image→text', lossI.toFixed(2)],
             ['text→image', lossT.toFixed(2)],
-            ['avg cos, true pairs', diag.toFixed(2).replace('-', '−')],
-            ['avg cos, others', off.toFixed(2).replace('-', '−')],
+            ['avg cos, diagonal', diag.toFixed(2).replace('-', '−')],
+            ['avg cos, off-diagonal', off.toFixed(2).replace('-', '−')],
           ]}
         />
       </Controls>

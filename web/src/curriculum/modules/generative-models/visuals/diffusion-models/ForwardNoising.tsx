@@ -40,6 +40,10 @@ function noiseImage(seed: number): Float32Array {
 const lab: CSSProperties = { fontSize: '0.8125rem', fontWeight: 600, color: 'var(--ink-2)', textAlign: 'center', marginTop: 4, lineHeight: 1.3 }
 const op: CSSProperties = { fontSize: '1.4rem', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center', alignSelf: 'center', paddingBottom: '1.4rem' }
 
+const legendRow: CSSProperties = { display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.3rem 1.1rem', fontSize: '0.8125rem', color: 'var(--ink-2)', margin: '0.5rem 0 0' }
+/** no e-notation: tiny values read as 0.00004, or ≈ 0 */
+const fmtAbar = (v: number) => (v >= 0.001 ? v.toFixed(3) : v < 0.000005 ? '≈ 0' : v.toFixed(5))
+
 export default function ForwardNoising() {
   const [t, setT] = useState(250)
   const [sched, setSched] = useState<ScheduleName>('linear')
@@ -110,14 +114,28 @@ export default function ForwardNoising() {
           </div>
         </div>
       </div>
-      <Plot x={[0, T]} y={[0, 1.05]} width={620} height={200} minHeight={170} ariaLabel="The schedule: alpha-bar, the image's share of the variance, at each step">
+      <div style={legendRow} aria-hidden="true">
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <svg width={24} height={10}>
+            <line x1={1} x2={23} y1={5} y2={5} style={{ stroke: 'var(--viz-1)', strokeWidth: 2.8 }} />
+          </svg>
+          <b style={{ color: 'var(--ink)' }}>{sched}</b> (chosen)
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <svg width={24} height={10}>
+            <line x1={1} x2={23} y1={5} y2={5} style={{ stroke: 'var(--viz-muted)', strokeWidth: 1.8, strokeDasharray: '5 4' }} />
+          </svg>
+          {other}, for comparison
+        </span>
+      </div>
+      <Plot x={[0, T]} y={[0, 1.05]} width={620} height={210} minHeight={180} margin={{ top: 24 }} ariaLabel="The schedule: alpha-bar, the image's share of the variance, at each step">
         <Grid xTicks={5} yTicks={4} />
         <FnPath f={(x) => ABAR[other][Math.round(x)]} color="var(--viz-muted)" width={1.8} dash="5 4" samples={200} />
         <FnPath f={(x) => ABAR[sched][Math.round(x)]} color="var(--viz-1)" width={2.8} samples={300} />
         <VLine x={t} color="var(--viz-2)" dash="4 3" width={1.5} />
         <Dots points={[{ x: t, y: abar, color: 'var(--viz-2)', r: 6 }]} />
         <Label x={t} y={abar} dx={t > 700 ? -10 : 10} dy={-10} anchor={t > 700 ? 'end' : 'start'} color="var(--viz-2)" weight={700}>
-          {`ᾱ = ${abar < 0.001 ? abar.toExponential(1) : abar.toFixed(3)}, √ᾱ = ${Math.sqrt(abar).toFixed(2)}`}
+          {`ᾱ = ${fmtAbar(abar)}, √ᾱ = ${Math.sqrt(abar).toFixed(2)}`}
         </Label>
         <Axes xLabel="step t" yLabel="ᾱ (image's share of variance)" xTicks={5} yTicks={4} tickFormat={(v) => String(Math.round(v * 100) / 100)} />
       </Plot>
@@ -138,7 +156,7 @@ export default function ForwardNoising() {
         <Button onClick={() => setSeed((s) => s + 1)}>New noise ε</Button>
         <Readout
           items={[
-            [<M key="a">{'\\bar\\alpha_t'}</M>, abar < 0.001 ? abar.toExponential(1) : abar.toFixed(3)],
+            [<M key="a">{'\\bar\\alpha_t'}</M>, fmtAbar(abar)],
             [<M key="b">{'\\sqrt{\\bar\\alpha_t}'}</M>, sa.toFixed(3)],
             [<M key="c">{'\\sqrt{1 - \\bar\\alpha_t}'}</M>, sb.toFixed(3)],
           ]}

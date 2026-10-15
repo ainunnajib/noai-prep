@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt: 'An autoencoder for 64-pixel images is given a bottleneck of 64 numbers, as many as the input. What is the main risk?',
     options: [
       'It can pass the pixels straight through, reconstructing well without learning a useful summary',
-      'It cannot be trained, because the loss is undefined when the code and input are the same size',
+      'It cannot be trained, because the loss is undefined when the code and the input are exactly the same size',
       'It now needs a label for every image, because the bottleneck no longer compresses anything',
       'It becomes a variational autoencoder, because a wide latent space is automatically smooth',
     ],
@@ -46,22 +46,22 @@ print(z)`,
     prompt:
       'A factory trains an autoencoder on 10,000 photos of good circuit boards only. On new boards the reconstruction error is usually about 0.01, but one board scores 0.20. What is the most sensible conclusion?',
     options: [
-      'The board looks unlike the good boards seen in training, so it should be flagged for inspection',
-      'The autoencoder is underfitting, so it should be retrained on this board until its error is small',
-      'The board is fine: a high error means the autoencoder found it unusually easy to compress',
+      'The board looks unlike the good boards, the only kind seen in training, so it should be flagged for inspection',
+      'The autoencoder is underfitting this board, so it should be retrained on it until its error is as small as usual',
+      'The board is fine: a high error means the autoencoder found it unusually easy to squeeze into its code',
       'Nothing can be concluded, since autoencoders need labelled faulty boards before they can spot faults',
     ],
     answer: 0,
     explanation:
-      'An autoencoder trained only on normal data rebuilds normal inputs well and unfamiliar ones badly, so an error 20 times the usual level is exactly the anomaly signal. Retraining on the odd board would teach the model to accept it. No labelled faults are needed, which is the main attraction of this method.',
+      'An autoencoder trained only on normal data rebuilds normal inputs well and unfamiliar ones badly, so an error 20 times the usual level is exactly the anomaly signal. A high error means the board was *hard* to rebuild, not easy, and retraining on the odd board would only teach the model to accept it. No labelled faults are needed, which is the main attraction of this method.',
     difficulty: 'beginner',
   },
   {
     id: 'generative-models.autoencoders-and-vaes.5',
     prompt: 'Why can a VAE generate new images from random codes $z \\sim \\mathcal N(0, I)$ when a plain autoencoder usually cannot?',
     options: [
-      'Its KL term pulls each code towards $\\mathcal N(0, I)$, filling that region with codes the decoder knows',
-      'Its decoder is trained with digit labels, so it knows which digit each random code is supposed to become',
+      'Its KL term pulls every code towards $\\mathcal N(0, I)$, filling that region with codes the decoder knows',
+      'Its decoder is trained with digit labels, so it knows which digit each random code is supposed to turn into',
       'A plain autoencoder has no decoder of its own; it can only encode images into codes and never back',
       'Its bottleneck is always much larger, so a random code is likely to match one training code exactly',
     ],

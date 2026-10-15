@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { Figure, Controls, Segmented, Button, mulberry32, shuffled, useNarrow } from '../../../../../kit'
+import { Figure, Controls, Segmented, Button, mulberry32, shuffled, useContainerWidth } from '../../../../../kit'
 import { PICTURES } from './pictures'
 import css from './ssl.module.css'
 
@@ -42,7 +42,10 @@ export default function PretextTasks() {
   const [k, setK] = useState(0)
   const [revealed, setRevealed] = useState(false)
   const [guess, setGuess] = useState<number | null>(null)
-  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(320)
+  const [wrapRef, rowWidth] = useContainerWidth<HTMLDivElement>(600)
+  const narrow = rowWidth < 320
+  // on a phone the question gets its own line, so the four angle buttons stay together
+  const narrowRow = rowWidth < 440
 
   const pic = k % PICTURES.length
   const name = PICTURES[pic].name
@@ -84,7 +87,7 @@ export default function PretextTasks() {
         <div>
           <div className={css.bigLabel}>{a}°</div>
           <div>
-            class {ex.angleIdx} of 4 ({a === 0 ? 'upright' : `turned ${a}° clockwise`})
+            label k = {ex.angleIdx} (classes 0–3): {a === 0 ? 'upright' : `turned ${a}° clockwise${a === 270 ? ', i.e. 90° anticlockwise' : ''}`}
           </div>
         </div>
       </div>
@@ -168,7 +171,7 @@ export default function PretextTasks() {
             { value: 'rotation', label: 'rotation' },
             { value: 'jigsaw', label: 'jigsaw' },
             { value: 'colour', label: 'colourise' },
-            { value: 'mask', label: 'fill the gaps' },
+            { value: 'mask', label: 'mask' },
           ]}
         />
       </Controls>
@@ -185,7 +188,9 @@ export default function PretextTasks() {
 
       {task === 'rotation' && (
         <div className={css.guessRow} role="group" aria-label="Guess how far the picture was rotated">
-          <span className={css.small}>Which way was it turned?</span>
+          <span className={css.small} style={{ flexBasis: narrowRow ? '100%' : undefined, textAlign: 'center' }}>
+            Which way was it turned?
+          </span>
           {ANGLES.map((a, i) => (
             <Button key={a} onClick={() => setGuess(i)} primary={guess === i}>
               {a}°

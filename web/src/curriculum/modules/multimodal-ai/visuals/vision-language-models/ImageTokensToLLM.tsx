@@ -66,16 +66,23 @@ export default function ImageTokensToLLM() {
   const H = yLLM + llmH + 16
   const fs = narrow ? 10.5 : 12
   const vis = (k: number) => (step >= k ? 1 : 0.35)
+  // changing the encoder or the number of pictures jumps to the token sequence, so the change is not hidden in a dimmed stage
+  const reveal = () => {
+    if (step < 4) player.setStep(4)
+  }
   const cur = (k: number) => step === k
 
   // token strip: a few image squares, an ellipsis with the count, then the text tokens
   const charW = narrow ? 5.4 : 6.6
   const chipW = (w: string) => Math.max(15, w.length * charW + (narrow ? 9 : 10))
-  const textW = QUESTION.reduce((a, w) => a + chipW(w) + 3, 0)
+  const textChips = narrow ? [`${QUESTION.length} text tokens`] : QUESTION
+  const textW = textChips.reduce((a, w) => a + chipW(w) + 3, 0)
   const sq = narrow ? 9 : 13
-  const dw = narrow ? 46 : 58
+  const dotsLabel = (k: number) => `… ${fmt(k)} …`
   const avail = W - 16 - textW - 8
   const fitsAll = imgTotal * (sq + 2) <= avail
+  // the dashed box is sized from its label (widest case: all but 2 squares hidden)
+  const dw = Math.max(narrow ? 46 : 58, dotsLabel(imgTotal).length * (narrow ? 5.6 : 6.6) + 12)
   const shownSq = fitsAll ? imgTotal : Math.max(2, Math.floor((avail - dw - 4) / (sq + 2)))
   const needDots = !fitsAll
   const lastSq = needDots ? Math.min(2, Math.floor(shownSq / 2)) : 0
@@ -88,7 +95,7 @@ export default function ImageTokensToLLM() {
       <g key="dots">
         <rect x={cx} y={yStrip + 2} width={dw} height={stripH - 4} rx={4} style={{ fill: 'color-mix(in srgb, var(--viz-3) 18%, var(--surface))', stroke: 'var(--viz-3)', strokeDasharray: '3 2' }} />
         <text x={cx + dw / 2} y={yStrip + stripH / 2 + 4} textAnchor="middle" style={{ fill: 'var(--ink)', fontSize: fs - 1, fontWeight: 700 }}>
-          … {fmt(imgTotal - firstSq - lastSq)} …
+          {dotsLabel(imgTotal - firstSq - lastSq)}
         </text>
       </g>,
     )
@@ -98,7 +105,7 @@ export default function ImageTokensToLLM() {
   const imgMid = Math.max(20, (cx - 8) / 2)
   const textStart = cx + 8
   let tx = textStart
-  for (const [i, w] of QUESTION.entries()) {
+  for (const [i, w] of textChips.entries()) {
     const cw = chipW(w)
     strip.push(
       <g key={`t${i}`}>
@@ -272,13 +279,15 @@ export default function ImageTokensToLLM() {
       <PlayerControls player={player} label={(k) => `Stage ${k + 1} of ${STEPS.length}`} />
 
       <Controls>
-        <Segmented<ConfigId>
-          label="vision encoder · image size"
-          value={cfgId}
-          onChange={setCfgId}
-          options={CONFIGS.map((c) => ({ value: c.id, label: c.short }))}
-        />
-        <Slider label="pictures in the chat" value={pics} min={1} max={8} step={1} onChange={setPics} />
+        <div className={narrow ? s.encPickNarrow : undefined}>
+          <Segmented<ConfigId>
+            label="vision encoder · image size"
+            value={cfgId}
+            onChange={(v) => (setCfgId(v), reveal())}
+            options={CONFIGS.map((c) => ({ value: c.id, label: c.short }))}
+          />
+        </div>
+        <Slider label="pictures in the chat" value={pics} min={1} max={8} step={1} onChange={(v) => (setPics(v), reveal())} />
         <Readout
           items={[
             ['tokens per picture', fmt(N)],

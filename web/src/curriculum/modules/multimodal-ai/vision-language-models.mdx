@@ -2,7 +2,7 @@ import VLMTasks from './visuals/vision-language-models/VLMTasks'
 import ImageTokensToLLM from './visuals/vision-language-models/ImageTokensToLLM'
 import SelfVsCrossAttention from './visuals/vision-language-models/SelfVsCrossAttention'
 
-Snap a photo of a hawker menu, a maths worksheet or a broken bicycle chain, and ask a chatbot about it. Models such as OpenAI's GPT-4V (2023) and Google's Gemini take a picture *and* text together and answer in text. They are called <Term def="A model that takes images and text as input and produces text, so it can describe pictures, answer questions about them and read text in them. Also called a multimodal LLM.">vision-language models</Term> (VLMs). How do you give a language model eyes? Surprisingly, mostly by reusing two models you already know, a CLIP-style image encoder from the last lesson and a pretrained LLM, joined by a small learned bridge.
+Snap a photo of a hawker menu, a maths worksheet or a broken bicycle chain, and ask a chatbot about it. Models such as OpenAI's GPT-4V (2023) and Google's Gemini take a picture *and* text together and answer in text. They are called <Term def="A model that takes images and text as input and produces text, so it can describe pictures, answer questions about them and read text in them. Also called a multimodal LLM.">vision-language models</Term> (VLMs). How do you give a language model eyes? Surprisingly, mostly by reusing two models you already know, a CLIP-style image encoder from the last lesson and a pretrained LLM, joined by a small learned bridge: the same encoder → projector → LLM recipe as the audio LLMs in [Speech models](#/learn/pretrained-models-text-speech/speech-models), with an image encoder instead of Whisper's.
 
 <Analogy title="Reading a photo in Braille">
 
@@ -21,9 +21,11 @@ The common tasks have names worth knowing, because exam questions use them:
 - <Term def="Producing a sentence that describes a picture.">Image captioning</Term>: describe the picture.
 - <Term def="Answering a question about a picture, e.g. 'What animal is on the stool?'.">Visual question answering (VQA)</Term>: answer a question about it.
 - <Term def="Optical character recognition: reading the text that appears inside an image, such as signs, receipts or handwriting.">OCR</Term>: read the text inside it.
-- **Few-shot prompting**: show a couple of picture-and-answer examples in the prompt, and the model copies the pattern.
+- **Few-shot prompting** (from [Prompt engineering](#/learn/prompting-and-rag/prompt-engineering)): show a couple of picture-and-answer examples in the prompt, and the model copies the pattern.
 
 They also fail in a characteristic way: <Term def="When a model confidently states something that is not true, e.g. describing an object that is not in the picture.">hallucination</Term>, describing things that are not there.
+
+<PastPaperQuestion paper="prelim2026" n={253} />
 
 ## Giving an LLM eyes: encoder, projector, LLM
 
@@ -33,7 +35,7 @@ An LLM reads a sequence of tokens, each one a vector (for a 7-billion-parameter 
 
 The three parts, in the order the picture meets them:
 
-1. **Vision encoder.** A pretrained ViT (usually CLIP's, from the last lesson) cuts the picture into patches and outputs one feature vector per patch. CLIP is the natural choice because its vectors were already trained to line up with words. It is <Term def="Not updated during training: its weights are kept exactly as they were after pretraining.">frozen</Term>.
+1. **Vision encoder.** A pretrained ViT (usually CLIP's, from the last lesson) cuts the picture into patches and outputs one feature vector per patch. CLIP is the natural choice because its vectors were already trained to line up with words. In LLaVA and Flamingo it is <Term def="Not updated during training: its weights are kept exactly as they were after pretraining.">frozen</Term> (some later VLMs fine-tune it a little too).
 2. **Projector.** A small trained network (a single linear layer in the first LLaVA, a 2-layer MLP in LLaVA-1.5) maps each patch vector to the LLM's embedding size. The outputs are called **image tokens** (or visual tokens). They are vectors, not words: the LLM never sees a description like "cat".
 3. **LLM.** The image tokens are placed in front of the text tokens, and the LLM reads the whole sequence with its usual self-attention and generates the answer one token at a time.
 
@@ -82,7 +84,7 @@ Most open VLMs are three parts: a **pretrained vision encoder** (often a CLIP Vi
   explain="$448 / 14 = 32$ patches per side, so $32 \times 32 = 1024$ image tokens. 32 counts only one side; 1,025 adds a [CLS] token that the question did not ask for; 14,336 divides the area by 14 instead of by $14^2$."
 />
 
-How is the bridge trained? LLaVA uses two stages. **Stage 1** freezes both the vision encoder and the LLM and trains only the projector on about 595,000 image-caption pairs, just to align image tokens with the LLM's word space. **Stage 2** also unfreezes the LLM and trains on about 158,000 examples of instructions about images (questions, conversations, detailed descriptions), which were themselves written by the text-only GPT-4 from captions and object lists. The vision encoder stays frozen throughout.
+How is the bridge trained? The first LLaVA was trained in two stages. **Stage 1** freezes both the vision encoder and the LLM and trains only the projector on about 595,000 image-caption pairs, just to align image tokens with the LLM's word space. **Stage 2** also unfreezes the LLM and trains on about 158,000 examples of instructions about images (questions, conversations, detailed descriptions), which were themselves written by the text-only GPT-4 from captions and object lists. The vision encoder stays frozen throughout.
 
 <Mistake title="“The VLM turns the picture into words first”">
 
@@ -165,7 +167,7 @@ DeepMind's **Flamingo** (2022) took the cross-attention route, and kept its big 
 
 Each new layer's output is added through a gate, $\mathbf{x} \leftarrow \mathbf{x} + \tanh(\alpha)\,\mathrm{CrossAttn}(\mathbf{x}, \text{image})$, where $\alpha$ is a learned number that **starts at 0**. Since $\tanh(0) = 0$, the model at the start of training is *exactly* the original LLM, so its language skill cannot be wrecked by the new, randomly initialised layers; the picture is blended in only as $\alpha$ grows. (Switch the figure above to cross-attention, then try the gate slider.)
 
-Flamingo was trained on web pages in which pictures and text are interleaved, so it learned to read sequences like "picture, caption, picture, caption, picture, ?". That gives it <Term def="Learning a new task from a few examples placed in the prompt, without changing any weights. Also called in-context learning.">few-shot</Term> ability: put two or three example pictures with answers in the prompt, and it answers a new picture in the same style. On 16 image and video benchmarks it beat earlier few-shot methods, and on several it beat models fine-tuned on thousands of times more task-specific data.
+Flamingo was trained on web pages in which pictures and text are interleaved, so it learned to read sequences like "picture, caption, picture, caption, picture, ?". That gives it <Term def="Prompting with a few worked examples, from which the model picks up the task by in-context learning, with no weight changes.">few-shot</Term> ability: put two or three example pictures with answers in the prompt, and it answers a new picture in the same style. On 16 image and video benchmarks it beat earlier few-shot methods, and on 6 of them it even beat models fine-tuned on about 1,000 times more task-specific data.
 
 | | LLaVA-style: concatenate | Flamingo-style: cross-attention |
 |---|---|---|
@@ -187,19 +189,28 @@ import torch
 import torch.nn as nn
 
 torch.manual_seed(0)
-patch_feats = torch.randn(1, 576, 1024)  # CLIP ViT-L/14 at 336 px: 24 x 24 patches, 1024 numbers each
-text_emb = torch.randn(1, 7, 4096)       # "How much is the chicken rice ?" as 7 LLM embeddings
+# CLIP ViT-L/14 at 336 px: 24 x 24 patches, 1024 numbers each
+patch_feats = torch.randn(1, 576, 1024)
+# "How much is the chicken rice ?" as 7 LLM embeddings
+text_emb = torch.randn(1, 7, 4096)
 
-# LLaVA-style: project every patch to the LLM's size, then put the image tokens in front
-projector = nn.Sequential(nn.Linear(1024, 4096), nn.GELU(), nn.Linear(4096, 4096))
+# LLaVA-style: project every patch to the LLM's size,
+# then put the image tokens in front of the words
+projector = nn.Sequential(
+    nn.Linear(1024, 4096), nn.GELU(), nn.Linear(4096, 4096))
 img_tokens = projector(patch_feats)
 seq = torch.cat([img_tokens, text_emb], dim=1)
 print(img_tokens.shape, seq.shape)
 print(sum(p.numel() for p in projector.parameters()))
 
-# Flamingo-style: queries from the text, keys and values from the image
-xattn = nn.MultiheadAttention(embed_dim=4096, num_heads=32, kdim=1024, vdim=1024, batch_first=True)
-out, weights = xattn(query=text_emb, key=patch_feats, value=patch_feats)
+# Flamingo-style: queries from the text, keys and values
+# from the image (real Flamingo first resamples the
+# patches to 64 tokens; here we keep all 576)
+xattn = nn.MultiheadAttention(
+    embed_dim=4096, num_heads=32, kdim=1024, vdim=1024,
+    batch_first=True)
+out, weights = xattn(query=text_emb,
+                     key=patch_feats, value=patch_feats)
 print(out.shape, weights.shape)
 print(weights[0, 1].sum().item())
 ```
@@ -215,7 +226,7 @@ Read the shapes. Concatenation makes one longer sequence ($576 + 7 = 583$ tokens
 
 ## Why vision-language training is hard
 
-Text-only LLMs learn from the whole written internet: Llama 2, for example, was pretrained on 2 trillion tokens of text. Pictures **paired** with text that truly describes them are much scarcer. One of the biggest public collections, LAION-5B, has about 5.85 billion image-text pairs, but its captions are short alt-texts scraped from web pages, and many barely describe the picture ("IMG_0412.jpg", "Shop now!"). Detailed, accurate descriptions and question-answer data about images are rarer still, and expensive to write by hand.
+Text-only LLMs learn from the whole written internet: Llama 2, for example, was pretrained on 2 trillion tokens of text. Pictures **paired** with text that truly describes them are much scarcer. One of the biggest public collections, LAION-5B, has about 5.85 billion image-text pairs, but its captions are short alt-texts scraped from web pages (the descriptions a page attaches to its images for screen readers), and many barely describe the picture ("IMG_0412.jpg", "Shop now!"). Detailed, accurate descriptions and question-answer data about images are rarer still, and expensive to write by hand.
 
 The model also has to **align two modalities**: a patch of orange fur and the word "cat" start out as unrelated vectors from different networks, and only paired data can teach the model that they mean the same thing. That is why VLM builders:
 
@@ -230,6 +241,8 @@ The model also has to **align two modalities**: a patch of orange fur and the wo
 NOAI's multimodal questions are short recall items, so memorise the matching phrases. *Multimodal* models process **multiple data types**. *Cross-attention* **allows one modality to attend to another** (queries from text, keys and values from the image). *Flamingo* combines **vision and language for few-shot multimodal learning**, using a frozen LLM with gated cross-attention. *GPT-4V* **processes images and text together**. Vision-language pretraining is hard because of **aligning different modalities and scaling data collection**. For the Final, be ready to trace shapes: $T$ text queries against $N$ image keys give a $T \times N$ weight matrix.
 
 </ExamTip>
+
+That completes the Generative AI part. Next, [Reading loss curves](#/learn/debugging-and-diagnosis/reading-loss-curves) begins the Problem solving part: diagnosing and fixing models like these when training goes wrong.
 
 <Takeaways>
 

@@ -89,7 +89,7 @@ const SCENARIOS: Scenario[] = [
       'Yes: it is one narrow skill, done millions of times, with 30,000 labelled examples.',
     ],
     verdict:
-      'Fine-tuning: train a small model on the 30,000 labelled reviews. It learns Singlish slang and is cheap to run. It may lose some general abilities (catastrophic forgetting), which does not matter for a one-task classifier.',
+      'Fine-tuning: fine-tune a small pretrained model (for example a BERT-style classifier) on the 30,000 labelled reviews. It learns Singlish slang and is cheap to run. It may lose some general abilities (catastrophic forgetting), which does not matter for a one-task classifier.',
   },
   {
     id: 'homework',
@@ -111,7 +111,7 @@ const leafOf = (ans: boolean[]): Leaf | null => {
 export default function AdaptationChooser() {
   const [sid, setSid] = useState('policy')
   const sc = SCENARIOS.find((x) => x.id === sid)!
-  const [ans, setAns] = useState<boolean[]>(sc.answers)
+  const [ans, setAns] = useState<boolean[]>([])
   const [showRec, setShowRec] = useState(false)
 
   const mine = leafOf(ans)
@@ -133,7 +133,7 @@ export default function AdaptationChooser() {
       title="Prompting, RAG or fine-tuning?"
       caption={
         <>
-          When you reach a box, the recommended answers and choice get a dashed green outline and the reasons appear. The rule of thumb: try <b>prompting</b> first, use <b>RAG</b> when
+          When you reach a box, the recommended answers and choice get a dashed green outline and a verdict explains the choice. The rule of thumb: try <b>prompting</b> first, use <b>RAG</b> when
           the model lacks knowledge, and <b>fine-tune</b> when it lacks a behaviour. Real projects often combine them.
         </>
       }

@@ -268,6 +268,7 @@ function Legend() {
       {item(<rect x={1} y={1} width={24} height={10} rx={2} style={{ fill: 'color-mix(in srgb, var(--viz-1) 25%, transparent)', stroke: 'var(--viz-1)', strokeWidth: 1.5 }} />, 'real data')}
       {item(<line x1={1} x2={25} y1={6} y2={6} style={{ stroke: 'var(--viz-3)', strokeWidth: 2.6 }} />, 'generator G')}
       {item(<line x1={1} x2={25} y1={6} y2={6} style={{ stroke: 'var(--viz-2)', strokeWidth: 2.6, strokeDasharray: '7 5' }} />, 'D(x) = P(real)')}
+      <span style={{ flexBasis: '100%', textAlign: 'center', fontSize: '0.75rem' }}>The humps show where values are common (their shape only); the 0 to 1 scale is for D(x).</span>
     </div>
   )
 }

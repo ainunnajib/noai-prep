@@ -106,7 +106,7 @@ export default function PatchAttentionMap() {
         tabIndex={0}
         onClick={pick}
         onKeyDown={onKey}
-        aria-label={`ViT attention from patch at row ${rq + 1}, column ${cq + 1} (${labels[q]}). ${pct(near)} of the attention stays within one patch; ${pct(sameObj)} lands on the same object. Arrow keys move the chosen patch.`}
+        aria-label={`ViT attention from patch at row ${rq + 1}, column ${cq + 1} (${labels[q]}). ${pct(near)} of the attention lands on the chosen patch and its 8 neighbours; ${pct(sameObj)} lands on the same object. Arrow keys move the chosen patch.`}
       >
         <defs>
           <g id={sceneId}>
@@ -128,10 +128,11 @@ export default function PatchAttentionMap() {
         ))}
         {queryBox}
       </svg>
+      <div className={css.panelNote}>Click any patch, or use the arrow keys.</div>
       <Readout
         items={[
           ['can attend to', `all ${N * N} patches`],
-          ['weight within 1 patch', pct(near)],
+          ['weight on the 3 × 3 block around it', pct(near)],
           [`weight on the ${labels[q]}`, pct(sameObj)],
         ]}
       />

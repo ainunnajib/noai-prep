@@ -5,8 +5,8 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.self-supervised-vision.1',
     prompt: 'What makes self-supervised learning different from supervised learning?',
     options: [
-      'A program creates the labels from unlabelled data, e.g. by hiding part of the input',
-      'People label a small part of the data and the model labels the rest for itself',
+      'A program always makes the labels from the data itself, e.g. by hiding part of it',
+      'People label a small part of the data, and the model labels the rest for itself',
       'The model learns by receiving rewards from an environment for the actions it takes',
       'The model groups the data into clusters and is never given any training objective',
     ],
@@ -20,7 +20,7 @@ const questions: QuizQuestion[] = [
     prompt: 'In SimCLR, which of these is a **positive pair**?',
     options: [
       'Two randomly augmented versions of the same photo',
-      'Two different photos that both show a cat',
+      'Two different photos in the batch that both show a cat',
       'A photo and the class label that describes it',
       'Two photos whose raw pixels are the most similar',
     ],
@@ -42,7 +42,7 @@ const questions: QuizQuestion[] = [
     id: 'multimodal-ai.self-supervised-vision.4',
     prompt: 'BERT hides about 15% of the words in a sentence, but MAE hides about 75% of an image\'s patches. Why so many?',
     options: [
-      'Images are redundant, so with few patches hidden the gaps can be filled from nearby pixels',
+      'Images are redundant: hide only a few patches and they can be filled from nearby pixels',
       'A ViT encoder can only read 25% of the patches at once, so the rest must be removed',
       'Hiding more patches gives more labelled examples, which removes the need for pretraining',
       'Pixels are harder to predict than words, so a larger mask makes the task easier to learn',

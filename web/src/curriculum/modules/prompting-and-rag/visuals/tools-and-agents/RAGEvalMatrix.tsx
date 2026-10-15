@@ -7,7 +7,8 @@ import s from './agents.module.css'
   retrieval right/wrong (did the retrieved context contain what was needed?) x answer right/wrong
   (it matches the reference answer and adds no claims found in neither the reference nor the context).
   The columns show only whether retrieval worked. Faithfulness (is every claim supported by the retrieved
-  context?) is a separate check on the answer: cases 4 and 8 both fail it, one in each column.
+  context?) is a separate check on the answer: only cases 1 and 5 pass it. Case 4 fails it although its answer
+  is right, and case 8 fails it although its core "yes" is right.
   Each quadrant suggests what to fix.
   Ground truth: R+A+ {1,5}, R+A- {2,6,8}, R-A+ {4}, R-A- {3,7} -> retrieval hit rate 5/8,
   answer accuracy 3/8, accuracy when retrieval was right 2/5.
@@ -202,9 +203,9 @@ export default function RAGEvalMatrix() {
       caption={
         <>
           <b>Retrieval right</b>: the context holds what the reference answer needs. <b>Answer right</b>: it matches the reference and adds no claims that are in neither the
-          reference nor the context. The columns show only whether retrieval worked; <b>faithfulness</b> (is every claim supported by the retrieved context?) is a
-          separate check on the answer, and cases 4 and 8 both fail it, one in each column. Notice that one overall accuracy hides two problems with two different
-          fixes.
+          reference nor the context. The columns show only whether retrieval worked. <b>Faithfulness</b> (is every claim supported by the retrieved context?) is a
+          separate check on the answer: only cases 1 and 5 pass it, and case 4 fails it even though its answer is right. Notice that one overall accuracy hides two
+          problems with two different fixes.
         </>
       }
     >

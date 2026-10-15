@@ -3,7 +3,7 @@ import DensityToBoundary from './visuals/generative-vs-discriminative/DensityToB
 import NoiseToSample from './visuals/generative-vs-discriminative/NoiseToSample'
 import ModelFamilySorter from './visuals/generative-vs-discriminative/ModelFamilySorter'
 
-Almost every model so far in this course has answered a question *about* an input: is this email spam, which digit is this, what will this flat sell for? Generative AI works the other way round. It produces brand-new inputs: a photo that was never taken, an essay nobody wrote, a voice that never spoke. This lesson is about the one idea that separates the two kinds of model, and it is a favourite of NOAI papers: **what each model learns about the data**.
+Most models in this course answer a question *about* an input: is this email spam, which digit is this, what will this flat sell for? Generative AI works the other way round. It produces brand-new inputs: a photo that was never taken, an essay nobody wrote, a voice that never spoke. You have already met one kind, the language models that write text; this module covers the rest. This lesson is about the one idea that separates the two kinds of model, and it is a favourite of NOAI papers: **what each model learns about the data**.
 
 <Analogy title="The judge and the artist">
 
@@ -17,13 +17,13 @@ Suppose each example has some features $x$ (the pixels of a photo, the words of 
 
 - $P(y \mid x)$, read "the probability of $y$ given $x$", is a <Term def="The probability of one thing once you already know another. P(y | x) asks: among the examples with features x, what fraction have label y?">conditional probability</Term>: *I have already seen this email; how likely is it to be spam?*
 - $P(x)$ is the probability of seeing the input $x$ at all: *how typical is an email like this one?* It describes how the data itself is spread out, its <Term def="A description of how likely every possible value is. For data, it tells you which inputs are common, which are rare and which never happen.">distribution</Term>.
-- $P(x, y)$ is the <Term def="The probability that two things happen together, e.g. P(x, y) = the chance that an email contains these words AND is spam.">joint probability</Term>: *how likely is it to see an email like this that is also spam?*
+- $P(x, y)$ is the <Term def="The probability that two things happen together, e.g. P(x, y) = the chance that an email contains these words AND is spam.">joint probability</Term> (the [probability rules](#/learn/probability-and-statistics/probability-rules) lesson wrote this as $P(A \cap B)$; the comma means the same "and"): *how likely is it to see an email like this that is also spam?*
 
 A **discriminative model** learns only $P(y \mid x)$, or even just a boundary between the classes. A **generative model** learns how the data itself is distributed: $P(x)$ if there are no labels, or $P(x, y)$ if there are. The second is a much bigger job, and you can see why when you watch both kinds of model fit the same data.
 
 <GenVsDiscToggle />
 
-The discriminative model needs 3 numbers: two weights and a bias for its straight boundary. The generative model needs 11: for each class, the centre of its hill (2 numbers) and the hill's width, height and tilt (3 numbers for a 2-D bell curve), plus how common class A is (class B's share is then whatever is left). With those extra numbers it knows *where the data lives*, so it can do something the boundary cannot: **press Sample and it makes new points**.
+The discriminative model needs 3 numbers: two weights and a bias for its straight boundary. The generative model needs 11: for each class, the centre of its hill (2 numbers) and how far the hill spreads left-right, how far it spreads up-down, and its tilt (3 numbers for a 2-D bell curve), plus how common class A is (class B's share is then whatever is left). With those extra numbers it knows *where the data lives*, so it can do something the boundary cannot: **press Sample and it makes new points**.
 
 ## A worked example you can do by hand
 
@@ -45,8 +45,8 @@ Here are 100 emails, counted by whether they contain the word "free" ($x$) and w
   <Step title="Conditional: $P(\text{spam} \mid \text{free})$">
     Look only at the "free" row: 18 of its 20 emails are spam, so $P(\text{spam} \mid \text{free}) = 18/20 = 0.9$. In symbols, $P(y \mid x) = P(x, y)/P(x) = 0.18/0.20 = 0.9$.
   </Step>
-  <Step title="The same answer with Bayes' rule">
-    A generative model is often stored as $P(y)$ and $P(x \mid y)$ instead. Here $P(\text{spam}) = 30/100 = 0.3$ and $P(\text{free} \mid \text{spam}) = 18/30 = 0.6$, so Bayes' rule gives $\dfrac{0.6 \times 0.3}{0.2} = \dfrac{0.18}{0.2} = 0.9$ again.
+  <Step title="The same answer with Bayes' rule (Bayes' theorem)">
+    A generative model is often stored as $P(y)$ and $P(x \mid y)$ instead. Here $P(\text{spam}) = 30/100 = 0.3$ and $P(\text{free} \mid \text{spam}) = 18/30 = 0.6$, so Bayes' rule, the [Bayes' theorem](#/learn/probability-and-statistics/bayes-theorem) you already know (written out below), gives $\dfrac{0.6 \times 0.3}{0.2} = \dfrac{0.18}{0.2} = 0.9$ again.
   </Step>
   <Step title="Now try going backwards">
     A discriminative model stores only $P(\text{spam} \mid \text{free}) = 0.9$ and $P(\text{spam} \mid \text{no free}) = 12/80 = 0.15$. From these two numbers you **cannot** recover the table. A different inbox with counts 54, 6, 6 and 34 (so 60 emails contain "free", not 20) gives exactly the same two numbers: $54/60 = 0.9$ and $6/40 = 0.15$. The information about the inputs is simply not there.
@@ -92,8 +92,6 @@ A **discriminative** model learns $P(y \mid x)$: just enough to separate the cla
 
 <PastPaperQuestion paper="prelim2026" n={225} />
 
-<PastPaperQuestion paper="prelim2026" n={52} />
-
 ## What "sampling" means
 
 To <Term def="To draw a random value from a probability distribution, so that common values come up often and rare values rarely.">sample</Term> from a distribution means to draw a random value from it, so that likely values come up often and unlikely values rarely. Rolling a fair die samples from the distribution "1 to 6, each with probability 1/6".
@@ -121,7 +119,7 @@ Imagine a machine that has learned what kaya toast looks like. It has four dials
 
 <NoiseToSample />
 
-Two things to notice. First, small changes to $z$ give small changes to the output, so the space of noise vectors is laid out smoothly. Second, the same seed always gives the same noise and therefore the same toast. That is why image generators such as Stable Diffusion let you type in a seed: reusing it reproduces an image exactly.
+Two things to notice. First, small changes to $z$ give small changes to the output, so the space of noise vectors is laid out smoothly. Second, the same seed always gives the same noise and therefore the same toast. That is why image generators such as Stable Diffusion let you type in a seed: reusing it with the same prompt and settings reproduces an image exactly.
 
 <KeyIdea>
 
@@ -140,7 +138,16 @@ Both are conditional probabilities, but they point in opposite directions. The g
 
 <Mistake title="“GPT predicts a probability given the previous words, so it must be discriminative”">
 
-GPT does learn a conditional, $P(\text{next token} \mid \text{tokens so far})$. But the "label" it predicts is part of the data itself, the next piece of the text. Multiplying these conditionals together gives the probability of a whole text, $P(x_1, x_2, \dots, x_n) = P(x_1)\,P(x_2 \mid x_1) \cdots P(x_n \mid x_1, \dots, x_{n-1})$, which is a model of $P(\text{text})$. Sampling one token at a time writes new text. Models that build $P(x)$ one piece at a time like this are called <Term def="Models that generate data one piece at a time, each piece conditioned on all the pieces before it (e.g. GPT writing token after token).">autoregressive</Term>, and they are generative.
+GPT does learn a conditional, $P(\text{next token} \mid \text{tokens so far})$. But the "label" it predicts is part of the data itself, the next piece of the text. Multiplying these conditionals together gives the probability of a whole text $x_1, x_2, \dots, x_n$:
+
+$$
+\begin{aligned}
+P(x_1, \dots, x_n) = {} & P(x_1)\,P(x_2 \mid x_1) \\
+& \cdots P(x_n \mid x_1, \dots, x_{n-1})
+\end{aligned}
+$$
+
+That is a model of $P(\text{text})$. Sampling one token at a time writes new text. Models that build $P(x)$ one piece at a time like this are called <Term def="Models that generate data one piece at a time, each piece conditioned on all the pieces before it (e.g. GPT writing token after token).">autoregressive</Term>, and they are generative.
 
 </Mistake>
 
@@ -149,7 +156,7 @@ GPT does learn a conditional, $P(\text{next token} \mid \text{tokens so far})$. 
 If a generative model can do everything a discriminative one can and more, why bother with discriminative models at all?
 
 - **Effort.** Modelling every detail of the inputs is a much larger task than drawing a boundary. If all you need is a label, a discriminative model puts all its capacity and data into exactly that.
-- **Accuracy.** With plenty of labelled data, a discriminative classifier usually classifies at least as well. A generative classifier is only as good as its picture of the data, and a wrong assumption (such as Naive Bayes's "words are independent") can mislead its Bayes'-rule answer.
+- **Accuracy.** With plenty of labelled data, a discriminative classifier usually classifies at least as well. A generative classifier is only as good as its picture of the data, and a wrong assumption (such as [Naive Bayes](#/learn/classification/naive-bayes)'s "words are independent once you know the class") can mislead its Bayes'-rule answer.
 - **But generative wins** when you need new data (images, text, music, synthetic training examples), when you want to know whether an input is unusual (low $P(x)$, as in the second figure), or when you have little labelled data and the shape of the inputs helps.
 
 <ExamTip>
@@ -162,7 +169,7 @@ Match the keywords. "$P(y \mid x)$", "decision boundary", "classify" point to **
 
 ## The generative family tree
 
-You will meet the big families of modern generative models in the rest of this module and the language-model module. Each one has a different answer to the question "how do we turn simple randomness into realistic data?"
+You met autoregressive models in the [decoding lesson](#/learn/large-language-models/decoding-and-sampling); the rest of this module covers VAEs, GANs and diffusion models. Each family has a different answer to the question "how do we turn simple randomness into realistic data?"
 
 | Family | How it generates | Famous examples |
 |---|---|---|
@@ -185,28 +192,32 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 
 rng = np.random.default_rng(0)
-A = rng.normal(loc=[3, 4], scale=0.8, size=(50, 2))   # 50 points of class A (label 0)
-B = rng.normal(loc=[7, 2], scale=0.8, size=(50, 2))   # 50 points of class B (label 1)
+# 50 points of class A (label 0) and 50 of class B (label 1)
+A = rng.normal(loc=[3, 4], scale=0.8, size=(50, 2))
+B = rng.normal(loc=[7, 2], scale=0.8, size=(50, 2))
 X = np.vstack([A, B])
 y = np.array([0] * 50 + [1] * 50)
 
-disc = LogisticRegression().fit(X, y)   # discriminative: learns P(y | x)
-gen = GaussianNB().fit(X, y)            # generative: learns P(x | y) and P(y)
+disc = LogisticRegression().fit(X, y)   # learns P(y | x)
+gen = GaussianNB().fit(X, y)            # learns P(x | y), P(y)
 
 x_new = [[5.0, 3.0]]
-print("P(B | x) from each model:", disc.predict_proba(x_new)[0, 1].round(3), gen.predict_proba(x_new)[0, 1].round(3))
+print("P(B | x), discriminative:", disc.predict_proba(x_new)[0, 1].round(3))
+print("P(B | x), generative:    ", gen.predict_proba(x_new)[0, 1].round(3))
 print("disc stores w and b:   ", disc.coef_.round(2), disc.intercept_.round(2))
 print("gen stores class means:", gen.theta_.round(2).tolist())
 print("gen stores variances:  ", gen.var_.round(2).tolist())
 print("gen stores P(y):       ", gen.class_prior_)
 
 # Only the generative model can make new data.
-k = rng.choice(2, size=5, p=gen.class_prior_)            # 1. pick a class with probability P(y)
-new_x = rng.normal(gen.theta_[k], np.sqrt(gen.var_[k]))  # 2. draw x from that class's bell curves
+# 1. pick a class with probability P(y)
+k = rng.choice(2, size=5, p=gen.class_prior_)
+# 2. draw x from that class's bell curves
+new_x = rng.normal(gen.theta_[k], np.sqrt(gen.var_[k]))
 for label, point in zip(k, new_x.round(2)):
     print("new point", point, "from class", "AB"[label])`} />
 
-Both models say the point $(5, 3)$, halfway between the classes, is more likely B, but they give different probabilities (about 0.58 and 0.74) because they reach $P(y \mid x)$ by different routes. The last two lines are the two-stage sampling recipe from earlier, written in NumPy. `LogisticRegression` keeps only `coef_` and `intercept_`, so there is no such recipe for it.
+Both models say the point $(5, 3)$, halfway between the classes, is more likely B, but they give different probabilities (about 0.58 and 0.74) because they reach $P(y \mid x)$ by different routes. The last few lines are the two-stage sampling recipe from earlier, written in NumPy. `LogisticRegression` keeps only `coef_` and `intercept_`, so there is no such recipe for it.
 
 <Takeaways>
 

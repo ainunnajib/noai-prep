@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Button, Readout, mulberry32, shuffled } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Readout, mulberry32, shuffled, useNarrow } from '../../../../../kit'
 import { GardenScene, patchLabels } from '../vision-transformers/scene'
 import css from './ssl.module.css'
 
@@ -15,12 +15,14 @@ import css from './ssl.module.css'
 
 const N = 14
 const S = 100 / N
-const BLUR = [0, 1.1, 2.4, 3.8, 5.5] // blur stdDeviation (user units) for 1, 2, 3, 4+ steps from a visible patch
+// blur stdDeviation (user units) for 1, 2, 3, 4+ steps from a visible patch; 4+ steps away is only a smudge
+const BLUR = [0, 1.1, 2.4, 3.8, 9]
 
 export default function MaskedPatches() {
   const [ratio, setRatio] = useState(0.75)
   const [seed, setSeed] = useState(1)
   const uid = useId().replace(/:/g, '')
+  const [wrapRef, narrow] = useNarrow<HTMLDivElement>(520)
   const labels = useMemo(() => patchLabels(N), [])
   const sceneId = `mae-scene-${uid}`
 
@@ -75,10 +77,10 @@ export default function MaskedPatches() {
       caption={
         <>
           The hatched grey squares on the left are the hidden patches. Slide the mask ratio and press <b>New mask</b>. At 10–30% almost every hidden patch has a visible patch right beside it, so copying
-          nearby pixels fills the gap: no understanding needed. At 75% a third or more of the hidden patches have no visible patch beside them, and
-          only about a quarter of the cat is left: to redraw the rest, the model has to know what cats look like. The middle panel is illustrative:
-          hidden patches are drawn from a blurred copy of the truth, blurrier the further they are from a visible patch, which is roughly what real
-          MAE reconstructions look like (right layout, soft details).
+          nearby pixels fills the gap: no understanding needed. At 75% about a third of the hidden patches (typically 30–40%) have no visible patch
+          beside them, and only about a quarter of the cat is left: to redraw the rest, the model has to know what cats look like. The middle panel is
+          illustrative, not a guaranteed output: hidden patches are drawn from a blurred copy of the truth, blurrier the further they are from a
+          visible patch (roughly what a well-trained MAE produces: right layout, soft details), and only a smudge far from any visible patch.
         </>
       }
     >
@@ -91,7 +93,7 @@ export default function MaskedPatches() {
             lv === 0 ? null : (
               <filter key={lv} id={`${sceneId}-b${lv}`} x="0" y="0" width="100" height="100" filterUnits="userSpaceOnUse">
                 <feGaussianBlur stdDeviation={b} edgeMode="duplicate" />
-                {lv >= 3 && <feColorMatrix type="saturate" values={lv === 3 ? '0.75' : '0.5'} />}
+                {lv >= 3 && <feColorMatrix type="saturate" values={lv === 3 ? '0.75' : '0.35'} />}
               </filter>
             ),
           )}
@@ -111,11 +113,11 @@ export default function MaskedPatches() {
         </defs>
       </svg>
 
-      <div className={css.row} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
+      <div ref={wrapRef} className={css.row} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: narrow ? '0.5rem' : undefined }}>
         <div className={css.panel}>
           <div className={css.panelTitle}>
             Encoder input
-            <br />({nVisible} visible patches)
+            <br />({nVisible} visible{narrow ? '' : ' patches'})
           </div>
           <svg viewBox="0 0 100 100" className={css.mae} role="img" aria-label={`The picture with ${nHidden} of 196 patches hidden`}>
             <rect width={100} height={100} style={{ fill: `url(#${sceneId}-hatch)` }} />
@@ -127,7 +129,7 @@ export default function MaskedPatches() {
         </div>
         <div className={css.panel}>
           <div className={css.panelTitle}>
-            Reconstruction
+            {narrow ? 'Rebuilt' : 'Reconstruction'}
             <br />
             (illustrative)
           </div>

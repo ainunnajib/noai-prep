@@ -8,7 +8,7 @@ import { Figure, CodeBlock, usePlayer, PlayerControls, useNarrow, mulberry32 } f
 
 const CODE = `for real in loader:                  # real images, target 1
     z = torch.randn(B, z_dim)        # random noise
-    fake = G(z)                      # fakes, target 0
+    fake = G(z)                      # fakes (0 for D, 1 for G)
 
     # --- discriminator's turn (G frozen) ---
     loss_D = bce(D(real), ones) + bce(D(fake.detach()), zeros)
@@ -267,9 +267,9 @@ function Diagram({ L, ph }: { L: Layout; ph: Phase }) {
     fill: on(id) ? `color-mix(in srgb, ${col} 10%, var(--surface))` : 'var(--surface)',
     stroke: on(id) ? col : 'var(--viz-muted)',
     strokeWidth: on(id) ? 2 : 1.2,
-    opacity: on(id) ? 1 : 0.55,
+    opacity: on(id) ? 1 : 0.75,
   })
-  const txt = (id: NodeId) => ({ fontSize: 13, fill: 'var(--ink)', opacity: on(id) ? 1 : 0.5, fontWeight: 600 })
+  const txt = (id: NodeId) => ({ fontSize: 13, fill: 'var(--ink)', opacity: on(id) ? 1 : 0.75, fontWeight: 600 })
   const trap = (b: Box, narrowRight: boolean) => {
     const i = b.h * 0.22
     return narrowRight

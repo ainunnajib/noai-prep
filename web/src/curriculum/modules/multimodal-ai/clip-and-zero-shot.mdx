@@ -2,7 +2,7 @@ import CLIPSimilarityMatrix from './visuals/clip-and-zero-shot/CLIPSimilarityMat
 import JointEmbeddingSpace from './visuals/clip-and-zero-shot/JointEmbeddingSpace'
 import ZeroShotPrompts from './visuals/clip-and-zero-shot/ZeroShotPrompts'
 
-In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (next lesson). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
+In 2021 OpenAI trained a model called **CLIP** (*Contrastive Language-Image Pre-training*) on 400 million pictures from the internet, each with the caption someone had posted with it. It applies the contrastive learning of the last lesson to pictures and their captions. Nobody labelled a single picture as "cat" or "aeroplane". Yet CLIP could then sort ImageNet's photos into 1,000 classes about as accurately as a ResNet-50 trained on ImageNet's 1.28 million hand-labelled photos, without using a single one of those labels. The trick is that CLIP builds **one space where pictures and sentences live together**, so "find the class" becomes "find the closest sentence". CLIP now sits inside image search engines, inside Stable Diffusion, and inside chatbots that can see (next lesson). IOAI 2025 had two tasks built on it: matching restroom icons with CLIP ViT-B/32, and keeping just enough pixels for CLIP ViT-L/14 to still recognise an animal.
 
 <Analogy title="A matching game at CCA orientation">
 
@@ -52,7 +52,7 @@ $$
 L = \frac{1}{2}\left( \frac{1}{N}\sum_{i=1}^{N} \ell^{\text{img}}_i + \frac{1}{N}\sum_{j=1}^{N} \ell^{\text{txt}}_j \right)
 $$
 
-This is called a **contrastive loss** (it contrasts each right answer with the wrong ones), and this particular form is known as **InfoNCE**. CLIP *learns* $\tau$ along with the weights: it starts at $\tau = 0.07$ and is capped at $0.01$, which means the similarities are multiplied by at most 100 before the softmax.
+This is the same **contrastive loss** (InfoNCE) as SimCLR's NT-Xent in [Self-supervised learning for vision](#/learn/multimodal-ai/self-supervised-vision): a picture and its own caption play the two "views", and pictures are compared only with captions. CLIP *learns* $\tau$ along with the weights: it starts at $\tau = 0.07$ and is capped at $0.01$, which means the similarities are multiplied by at most 100 before the softmax.
 
 <KeyIdea>
 
@@ -180,7 +180,7 @@ Wording matters for real CLIP too. Captions on the web are sentences, not lone w
 
 <QuickCheck
   q="A CLIP-based app sorts hawker-centre photos into 'chicken rice', 'laksa' and 'satay'. The owner now wants a fourth class, 'roti prata'. What is the least work that does it?"
-  options={["Embed one new prompt, 'a photo of roti prata', and compare it with each photo", 'Collect about 1,000 labelled roti prata photos and fine-tune the image encoder', 'Retrain CLIP from scratch on a dataset that includes roti prata captions', 'Add a fourth output neuron to the image encoder and train only that one neuron']}
+  options={["Embed one new prompt, 'a photo of roti prata', and compare every photo with it", 'Collect about 1,000 labelled roti prata photos and fine-tune the image encoder', 'Retrain CLIP from scratch on a dataset that includes roti prata captions', 'Add a fourth output neuron to the image encoder and train only that one neuron']}
   answer={0}
   explain="In zero-shot classification the classes are just sentences, so adding a class means adding one prompt and embedding it. Fine-tuning or retraining could improve accuracy later, but neither is needed to make the new class work; the image encoder has no fixed output neurons to add to."
 />

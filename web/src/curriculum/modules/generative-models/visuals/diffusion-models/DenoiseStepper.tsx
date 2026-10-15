@@ -105,7 +105,7 @@ export default function DenoiseStepper() {
         <>
           The grey spiral is where real data lives. The pink dots start as pure noise. At every step the network predicts each dot's noise, which is the same as
           guessing its clean version <M>{'\\hat x_0'}</M> (orange arrows), and the dot moves a little way towards it. Press <b>Play</b>: early on, every arrow points
-          at the centre, because from heavy noise the best guess is the <i>average</i> of the data; later the guesses sharpen onto the spiral. Set the steps to{' '}
+          at the same spot, the <i>average</i> of the data (near the middle of the spiral), because from heavy noise that is the best guess; later the guesses sharpen onto the spiral. Set the steps to{' '}
           <b>1</b>: one giant step lands every dot on that blurry average. With 5 they are only roughly placed; with 20 or 100 they find the spiral. Switch to <b>DDPM</b> to add a little fresh noise
           at each step, as in the original method: the dots jitter but still arrive.
         </>

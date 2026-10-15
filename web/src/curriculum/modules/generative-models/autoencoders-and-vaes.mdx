@@ -3,7 +3,7 @@ import AnomalyDetector from './visuals/autoencoders-and-vaes/AnomalyDetector'
 import LatentInterpolator from './visuals/autoencoders-and-vaes/LatentInterpolator'
 import ReparamKL from './visuals/autoencoders-and-vaes/ReparamKL'
 
-Here is a strange-sounding job for a neural network: take a picture, squeeze it down to a handful of numbers, then rebuild the picture from those numbers alone. The network that does this is called an **autoencoder**, and the squeezing forces it to discover what the pictures have in common. That turns out to be useful for cleaning up noisy images, for catching inputs that look wrong, and, after one clever change, for **generating** brand-new data. The image generator Stable Diffusion starts and ends with one.
+Here is a strange-sounding job for a neural network: take a picture, squeeze it down to a handful of numbers, then rebuild the picture from those numbers alone. The network that does this is called an **autoencoder**, and the squeezing forces it to discover what the pictures have in common. That turns out to be useful for cleaning up noisy images, for catching inputs that look wrong, and, after one clever change, for **generating** brand-new data. The image generator Stable Diffusion uses one: every image it makes is finished by an autoencoder's decoder.
 
 <Analogy title="Describing a face over the phone">
 
@@ -46,7 +46,7 @@ Why not just make the bottleneck as wide as the input? Then the network could si
 
 <AutoencoderBottleneck mode="squeeze" />
 
-Squeezing 64 numbers into 8 still gives recognisable digits, because handwritten digits are far from random: neighbouring pixels move together and strokes follow a few typical shapes. The bottleneck keeps those shared patterns and throws away the rest. Squeeze too hard and even the shared patterns do not fit: at $k = 1$ the 7 comes back looking like a 9, and the 2 and the 3 turn into smudges.
+Squeezing 64 numbers into 8 still gives recognisable digits, because handwritten digits are far from random: neighbouring pixels move together and strokes follow a few typical shapes. The bottleneck keeps those shared patterns and throws away the rest. Squeeze too hard and even the shared patterns do not fit: at $k = 1$ the 7 comes back looking like a 9, the 3 like a 2 and the 2 like an 8: one number can only say roughly which typical shape to draw.
 
 <KeyIdea>
 
@@ -54,15 +54,13 @@ An autoencoder is an **encoder** ($x \to z$), a **bottleneck** (the short latent
 
 </KeyIdea>
 
-If the encoder and decoder are both linear (no activation functions) and the loss is the squared error, the best an autoencoder can do is to keep the same $k$-dimensional subspace that PCA finds: the directions of greatest spread. Non-linear activations let an autoencoder bend and curve its summary, so you can think of it as a **non-linear PCA**: a learned form of <Term def="Representing each example with fewer numbers while keeping as much of the useful information as possible.">dimensionality reduction</Term>.
-
-<PastPaperQuestion paper="prelim2026" n={145} />
+If the encoder and decoder are both linear (no activation functions) and the loss is the squared error, the best an autoencoder can do is to keep the same $k$-dimensional subspace (flat slice of the space) that [PCA](#/learn/unsupervised-learning/pca) finds: the directions of greatest spread. Non-linear activations let an autoencoder bend and curve its summary, so you can think of it as a **non-linear PCA**: a learned form of <Term def="Representing each example with fewer numbers while keeping as much of the useful information as possible.">dimensionality reduction</Term>.
 
 <QuickCheck
   q="An autoencoder takes 28 × 28 greyscale images and has a bottleneck of 32 numbers. How many times fewer numbers does the code have than the image?"
-  options={['24.5', '32', '28', '752']}
+  options={['24.5', '752', '0.04', '28']}
   answer={0}
-  explain="The image has $28 \times 28 = 784$ numbers and the code has 32, so the code is $784 / 32 = 24.5$ times smaller. 752 is the difference $784 - 32$, not the ratio."
+  explain="The image has $28 \times 28 = 784$ numbers and the code has 32, so the code is $784 / 32 = 24.5$ times smaller. 752 is the difference $784 - 32$, not the ratio; 0.04 is the ratio upside down ($32/784$, the share of numbers kept); and 28 is only the side length of the image."
 />
 
 <Mistake title="“A bigger bottleneck is always better because the error is lower”">
@@ -83,19 +81,17 @@ The plain autoencoder makes things worse because nothing in its training ever lo
 
 ### Catching the odd one out
 
-Train an autoencoder only on **normal** data. It learns to rebuild normal examples well, but it has never seen anything else, so an unusual input comes back badly mangled: a large reconstruction error. Choosing a threshold turns that error into an alarm. This is <Term def="Finding examples that are very different from the normal data, such as faulty parts, fraud or a failing machine.">anomaly detection</Term>, and it is used to find faulty parts on a production line, fraudulent card payments and failing machines.
+Train an autoencoder only on **normal** data. It learns to rebuild normal examples well, but it has never seen anything else, so an unusual input comes back badly mangled: a large reconstruction error. Choosing a threshold turns that error into an alarm. This is <Term def="Finding examples that are very different from the normal data, such as faulty parts, fraud or a failing machine.">anomaly detection</Term>, which you met with PCA's reconstruction error in [t-SNE, UMAP and anomaly detection](#/learn/unsupervised-learning/tsne-umap-and-anomalies), and it is used to find faulty parts on a production line, fraudulent card payments and failing machines.
 
 <AnomalyDetector />
 
-The threshold is a trade-off. A common choice is a high percentile of the errors on normal validation data, for example the 99th percentile. Here, a threshold of 0.04 flags every odd input and only 2 of the 297 real digits (one of them is the scruffy 4 in the gallery). Lower it to 0.02 and 29 real digits raise false alarms; raise it above 0.075 and the upside-down 7 slips through.
+The threshold is a trade-off. A common choice is a high percentile of the errors on normal validation data, for example the 99th percentile (the error that 99% of normal examples stay below). Here, a threshold of 0.04 flags every odd input and only 2 of the 297 real digits (one of them is the scruffy 4 in the gallery). Lower it to 0.02 and 29 real digits raise false alarms; raise it to 0.075 or more and the upside-down 7 (error 0.075) slips through.
 
-The key point is that the detector **only needs normal examples to train**. That matters because anomalies are rare, varied and often unknown in advance: you cannot collect a labelled example of every possible fault. The one-class SVM in the next exam question works on the same principle.
-
-<PastPaperQuestion paper="prelim2026" n={159} />
+The key point is that the detector **only needs normal examples to train**. That matters because anomalies are rare, varied and often unknown in advance: you cannot collect a labelled example of every possible fault. The one-class SVM from [t-SNE, UMAP and anomaly detection](#/learn/unsupervised-learning/tsne-umap-and-anomalies) works on the same principle.
 
 ## Can an autoencoder invent new digits?
 
-You have a decoder that turns codes into digits. To make a *new* digit, just pick a code nobody has used and decode it. But which code? In a plain autoencoder, nothing in the training decides where codes should go. The encoder can scatter them over any range, in long thin arms, with big empty gaps in between. The decoder was only ever trained on codes from real digits, so a code from a gap can decode to something that is not a digit at all.
+You have a decoder that turns codes into digits. To make a *new* digit, just pick a code nobody has used and decode it: the noise-to-data recipe $x_\text{new} = G(z)$ from the [previous lesson](#/learn/generative-models/generative-vs-discriminative), with the decoder as $G$. But which code? In a plain autoencoder, nothing in the training decides where codes should go. The encoder can scatter them over any range, in long thin arms, with big empty gaps in between. The decoder was only ever trained on codes from real digits, so a code from a gap can decode to something that is not a digit at all.
 
 <Analogy title="A library with no shelving rules">
 
@@ -121,7 +117,7 @@ $$
 z = \mu + \sigma \cdot \varepsilon, \qquad \varepsilon \sim \mathcal N(0, 1)
 $$
 
-Read it as: take a random number $\varepsilon$ from the standard bell curve, stretch it by $\sigma$, and shift it by $\mu$. The result is a random draw from $\mathcal N(\mu, \sigma^2)$. This is called the <Term def="Writing a random sample as z = μ + σ·ε, with ε drawn from a fixed N(0, 1), so that z is an ordinary, differentiable function of μ and σ and backpropagation can train the encoder.">reparameterisation trick</Term>. Why bother writing it this way? Backpropagation needs to know how the loss changes when $\mu$ and $\sigma$ change, and "draw a random number from $\mathcal N(\mu, \sigma^2)$" has no derivative. In $z = \mu + \sigma\varepsilon$ the randomness comes in from the side, as an input $\varepsilon$ that nothing needs to learn, while $z$ depends on $\mu$ and $\sigma$ through plain arithmetic: $\partial z / \partial \mu = 1$ and $\partial z / \partial \sigma = \varepsilon$.
+Read it as: take a random number $\varepsilon$ from the standard bell curve, stretch it by $\sigma$, and shift it by $\mu$. The result is a random draw from $\mathcal N(\mu, \sigma^2)$ (the z-score formula run backwards, from [Distributions](#/learn/probability-and-statistics/distributions-and-clt)). This is called the <Term def="Writing a random sample as z = μ + σ·ε, with ε drawn from a fixed N(0, 1), so that z is an ordinary, differentiable function of μ and σ and backpropagation can train the encoder.">reparameterisation trick</Term>. Why bother writing it this way? Backpropagation needs to know how the loss changes when $\mu$ and $\sigma$ change, and "draw a random number from $\mathcal N(\mu, \sigma^2)$" has no derivative. In $z = \mu + \sigma\varepsilon$ the randomness comes in from the side, as an input $\varepsilon$ that nothing needs to learn, while $z$ depends on $\mu$ and $\sigma$ through plain arithmetic: $\partial z / \partial \mu = 1$ and $\partial z / \partial \sigma = \varepsilon$.
 
 **3. The loss gets a second term.**
 
@@ -132,15 +128,17 @@ $$
 \end{aligned}
 $$
 
-The first term asks the decoder to rebuild $x$ well, exactly as in a plain autoencoder. The second, the <Term def="Kullback–Leibler divergence: a measure of how different one probability distribution is from another. It is never negative and is zero only when the two are identical.">KL divergence</Term>, measures how far each input's cloud is from the standard normal $\mathcal N(0, 1)$, the <Term def="In a VAE, the distribution that codes are pulled towards and that new codes are sampled from when generating, normally the standard normal N(0, I).">prior</Term>. For one latent number it has a neat formula:
+The first term asks the decoder to rebuild $x$ well, exactly as in a plain autoencoder. The second, the <Term def="Kullback–Leibler divergence: a measure of how different one probability distribution is from another. It is never negative and is zero only when the two are identical.">KL divergence</Term>, measures how far each input's cloud is from the standard normal $\mathcal N(0, 1)$, the <Term def="In a VAE, the distribution that codes are pulled towards and new codes are sampled from, normally N(0, I). Like the class prior P(y) in the previous lesson, it is what the model assumes before seeing any input.">prior</Term>. For one latent number it has a neat formula:
 
 $$
 \mathrm{KL} = \tfrac12\left(\mu^2 + \sigma^2 - 1 - \ln \sigma^2\right)
 $$
 
-with one such term for each of the $k$ latent numbers, added up. Read it piece by piece. $\mu^2$ charges for a centre far from 0. $\sigma^2 - 1 - \ln\sigma^2$ is 0 when $\sigma = 1$ and grows when $\sigma$ is either smaller or larger. As $\sigma$ shrinks towards 0 it keeps growing without limit (because $\ln \sigma^2$ heads to $-\infty$), slowly but surely (with $\mu = 0$ the KL is about 1.8 at $\sigma = 0.1$ and 4.1 at $\sigma = 0.01$). So a VAE can never afford a perfectly sharp code. So the KL is zero only for $\mu = 0, \sigma = 1$.
+with one such term for each of the $k$ latent numbers, added up. Read it piece by piece. $\mu^2$ charges for a centre far from 0. $\sigma^2 - 1 - \ln\sigma^2$ is 0 when $\sigma = 1$ and grows when $\sigma$ is either smaller or larger. As $\sigma$ shrinks towards 0 it keeps growing without limit (because $\ln \sigma^2$ heads to $-\infty$), slowly but surely: with $\mu = 0$ the KL is about 1.8 at $\sigma = 0.1$ and 4.1 at $\sigma = 0.01$. A VAE can therefore never afford a perfectly sharp code, and the KL is zero only for $\mu = 0, \sigma = 1$. (The logs here are natural logs, so KL is measured in nats rather than bits.)
 
 <ReparamKL />
+
+The VAE loss (reconstruction + KL) has a name you may meet in harder papers: up to constants, it is the negative of the **ELBO** (evidence lower bound), so minimising it maximises a lower bound on how probable the model finds the training data.
 
 The two loss terms pull in opposite directions, and the balance is what makes the latent space smooth.
 
@@ -198,7 +196,8 @@ import torch, torch.nn as nn, torch.nn.functional as F
 from sklearn.datasets import load_digits
 
 torch.manual_seed(0)
-X = torch.tensor(load_digits().data / 16.0, dtype=torch.float32)   # (1797, 64), in 0..1
+# 1797 images of 64 pixels each, scaled to 0..1
+X = torch.tensor(load_digits().data / 16.0, dtype=torch.float32)
 
 class VAE(nn.Module):
     def __init__(self, k=2):
@@ -247,15 +246,15 @@ for img in new[:2]:                      # draw two: '#' = dark ink, '+' = faint
 
 ```text
 epoch   1: loss 45.90 = recon 45.87 + KL 0.02
-epoch 100: loss 26.87 = recon 26.33 + KL 0.54
-epoch 500: loss 24.71 = recon 22.43 + KL 2.28
+epoch 100: loss 26.87 = recon 26.33 + KL 0.55
+epoch 500: loss 24.71 = recon 22.44 + KL 2.27
 torch.Size([4, 64])
 ..####+.
 .+###+..
 .+#+....
 ..##+...
 ..+##...
-...##...
+...##+..
 ..+##...
 ..##+...
 
@@ -269,7 +268,17 @@ torch.Size([4, 64])
 ..+###..
 ```
 
-The reconstruction term falls as training goes on while the KL term rises from almost 0: at the start every cloud is close to $\mathcal N(0, 1)$, and the encoder gradually "pays" some KL to keep different digits apart. (The reconstruction term here is binary cross-entropy, summed over the 64 pixels, which treats each pixel value as a probability of ink; mean squared error also works.) The second generated image is clearly a 9, made from two random numbers. The first is scrappier: with only two latent numbers and 500 training steps, not every sample is perfect.
+The reconstruction term falls as training goes on while the KL term rises from almost 0: at the start every cloud is close to $\mathcal N(0, 1)$, and the encoder gradually "pays" some KL to keep different digits apart. (The reconstruction term here is binary cross-entropy, summed over the 64 pixels, which treats each pixel value as a probability of ink; mean squared error also works.) Drawn as pictures, the two samples look like this (brighter = more ink):
+
+<Columns min={150}>
+
+<MatrixGrid label="sample 1" data={[[0.0,0.17,0.8,0.93,0.95,0.85,0.28,0.0],[0.0,0.44,0.96,0.77,0.5,0.41,0.13,0.0],[0.0,0.44,0.83,0.32,0.13,0.04,0.01,0.0],[0.0,0.2,0.81,0.8,0.41,0.04,0.0,0.0],[0.0,0.02,0.43,0.74,0.7,0.15,0.02,0.0],[0.0,0.0,0.07,0.5,0.74,0.21,0.02,0.0],[0.0,0.04,0.43,0.74,0.75,0.1,0.0,0.0],[0.0,0.16,0.89,0.93,0.31,0.01,0.0,0.0]]} heat={[0, 1]} format={() => ''} cellSize={15} brackets={false} ariaLabel="First generated 8 by 8 digit, a scrappy 5" />
+
+<MatrixGrid label="sample 2" data={[[0.0,0.01,0.42,0.8,0.78,0.45,0.06,0.0],[0.0,0.14,0.84,0.63,0.6,0.71,0.14,0.0],[0.0,0.22,0.7,0.29,0.43,0.69,0.14,0.0],[0.0,0.15,0.57,0.61,0.72,0.65,0.13,0.0],[0.0,0.05,0.25,0.31,0.43,0.7,0.24,0.0],[0.0,0.04,0.18,0.08,0.17,0.76,0.34,0.0],[0.0,0.06,0.51,0.34,0.45,0.84,0.25,0.0],[0.0,0.01,0.43,0.87,0.87,0.54,0.06,0.0]]} heat={[0, 1]} format={() => ''} cellSize={15} brackets={false} ariaLabel="Second generated 8 by 8 digit, a 9" />
+
+</Columns>
+
+The second is a believable 9, made from just two random numbers. The first is a scrappy 5: with only two latent numbers and 500 training steps, not every sample is perfect.
 
 <ExamTip>
 

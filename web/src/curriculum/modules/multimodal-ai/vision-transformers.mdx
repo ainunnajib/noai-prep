@@ -2,7 +2,7 @@ import Patchifier from './visuals/vision-transformers/Patchifier'
 import PositionShuffle from './visuals/vision-transformers/PositionShuffle'
 import PatchAttentionMap from './visuals/vision-transformers/PatchAttentionMap'
 
-In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere: it is the image encoder inside CLIP and inside most models that chat about pictures (the CLIP and vision-language-model lessons later in this module), and IOAI tasks name ViTs directly (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). The whole trick is to turn an image into a sentence.
+In 2020 a team at Google published a paper with a playful title: *An Image is Worth 16×16 Words*. They took the Transformer, the model that reads sentences, changed almost nothing, and fed it photos. Given enough training data, it matched or beat the best convolutional networks. This **Vision Transformer (ViT)** is now everywhere: it is the image encoder inside CLIP and inside most models that chat about pictures (the CLIP and vision-language-model lessons later in this module), and IOAI tasks name ViTs directly (CLIP ViT-B/32 and ViT-L/14 in 2025, ViT-Tiny in 2026). You met the name in [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation); here is how it works. The whole trick is to turn an image into a sentence.
 
 <Analogy title="A jigsaw with numbered pieces">
 
@@ -12,7 +12,7 @@ You want to post a big NDP poster to a friend in a small envelope. You cut it in
 
 ## Why not one token per pixel?
 
-Recall how a Transformer works. Its input is a sequence of <Term def="One item in the sequence a Transformer reads, stored as a vector of numbers. For text a token is a word or piece of a word; for a ViT it is one image patch.">tokens</Term>, each a vector of $D$ numbers. In every layer, <Term def="The Transformer operation in which every token scores its relevance to every other token, turns the scores into weights with softmax, and takes a weighted average of their value vectors.">self-attention</Term> lets each token compare itself with every token, so $n$ tokens produce $n \times n$ attention scores per head.
+Recall from [Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention) how a Transformer works. Its input is a sequence of <Term def="One item in the sequence a Transformer reads, stored as a vector of numbers. For text a token is a word or piece of a word; for a ViT it is one image patch.">tokens</Term>, each a vector of $D$ numbers (the $d_\text{model}$ of the [Transformer lessons](#/learn/attention-and-transformers/multi-head-attention); the ViT paper writes $D$). In every layer, <Term def="The Transformer operation in which every token scores its relevance to every other token, turns the scores into weights with softmax, and takes a weighted average of their value vectors.">self-attention</Term> lets each token compare itself with every token, so $N$ tokens produce $N \times N$ attention scores per head.
 
 The obvious idea, one token per pixel, fails on cost. A $224 \times 224$ photo has $50\,176$ pixels, so one head in one layer would need $50\,176^2 \approx 2.5$ billion scores. Instead, a ViT groups pixels into square **patches** of $P \times P$ pixels and makes each patch one token.
 
@@ -30,7 +30,7 @@ $$
 N = \frac{H}{P} \times \frac{W}{P}
 $$
 
-where $H$ and $W$ are the image's height and width in pixels and $P$ is the patch's side length. One extra **[CLS]** token makes the sequence $N + 1$ long.
+where $H$ and $W$ are the image's height and width in pixels and $P$ is the patch's side length. (Here $N$ counts patches; it is not the batch size $N$ in $(N, C, H, W)$.) One extra **[CLS]** token makes the sequence $N + 1$ long.
 
 </KeyIdea>
 
@@ -91,13 +91,13 @@ The name **ViT-B/16** means the *Base* model size (12 layers, $D = 768$, 12 head
 
 ## The [CLS] token: a seat for the summary
 
-Which of the 197 output vectors should decide the class? ViT borrows BERT's answer. It puts an extra, learned vector called **[CLS]** (short for *classification*) at position 0. It contains no pixels at all. But in every layer it attends to all the patches, so by the last layer its vector has gathered whatever the image contains. A small <Term def="The final layer (or small MLP) that turns the model's summary vector into one score per class.">classification head</Term> reads only that vector.
+Which of the 197 output vectors should decide the class? ViT borrows [BERT's answer](#/learn/pretrained-models-text-speech/bert-and-gpt). It puts an extra, learned vector called **[CLS]** (short for *classification*) at position 0. It contains no pixels at all. But in every layer it attends to all the patches, so by the last layer its vector has gathered whatever the image contains. A small <Term def="The final layer (or small MLP) that turns the model's summary vector into one score per class.">classification head</Term> reads only that vector.
 
 Think of [CLS] as the class monitor who walks round the hall asking everyone, then reports to the teacher. Many later ViTs drop [CLS] and simply average all the patch outputs (global average pooling), which works about as well.
 
 ## Position embeddings: numbering the jigsaw pieces
 
-Here is a surprising property of attention. Each output is a weighted average of value vectors, and the weights depend only on *what* the tokens contain, not on *where* they sit. Shuffle the tokens and you get the same weights, attached to the same vectors, so the same sum. Try it.
+You saw this property of attention with words in [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks). Each output is a weighted average of value vectors, and the weights depend only on *what* the tokens contain, not on *where* they sit. Shuffle the tokens and you get the same weights, attached to the same vectors, so the same sum. Here it is with patches: try it.
 
 <PositionShuffle />
 
@@ -109,7 +109,7 @@ $$
 
 Read it piece by piece: $\mathbf{x}_i$ is patch $i$ flattened, $\mathbf{x}_i\mathbf{E}$ is its patch embedding, $\mathbf{x}_{\text{cls}}$ is the learned [CLS] vector, the square brackets stack the $N + 1$ vectors into a table, and $\mathbf{E}_{\text{pos}}$ (an $(N+1) \times D$ table of learned numbers) adds one position vector to each row. (We leave out the bias of the projection to keep it short.)
 
-ViT simply numbers the positions 0 to 196 in a line and learns one vector for each; nothing tells it which patches share a row or a column. Yet after training, the position vectors of patches that are close in the *image* become similar: the model learns the 2-D layout by itself. The sine-and-cosine encodings from the text Transformer would also work.
+ViT simply numbers the positions 0 to 196 in a line and learns one vector for each; nothing tells it which patches share a row or a column. Yet after training, the position vectors of patches that are close in the *image* become similar: the model learns the 2-D layout by itself. The sine-and-cosine encodings from the [text Transformer](#/learn/attention-and-transformers/positional-encoding-and-blocks) would also work.
 
 <PastPaperQuestion paper="prelim2026" n={214} />
 
@@ -136,6 +136,8 @@ print(tokens.shape)
 # 2. Prepend the learned [CLS] token, add position embeddings
 cls_token = nn.Parameter(torch.zeros(1, 1, 768))
 pos_embed = nn.Parameter(torch.zeros(1, 197, 768))
+# expand gives every image in the batch (here 1) its own
+# copy of [CLS]; -1 means "keep this size"
 z = torch.cat([cls_token.expand(1, -1, -1), tokens], dim=1)
 z = z + pos_embed
 print(z.shape)
@@ -206,7 +208,7 @@ The original ViT paper showed this directly. Trained only on ImageNet's 1.3 mill
 
 <QuickCheck
   q="A student trains a ViT from scratch on 5,000 labelled leaf photos, and a ResNet of similar size reaches higher test accuracy. What is the most likely reason?"
-  options={['It has weaker built-in assumptions about images, so it needs more data or pretraining', 'Self-attention cannot relate parts of an image that are far apart from each other', 'Flattening each patch throws away the colour information in the photo', 'Transformers are designed for text, so they read image patches in the wrong order']}
+  options={['It has weaker built-in assumptions about images, so it needs more data or pretraining', 'Self-attention cannot relate parts of an image that are far apart from one another', 'Flattening each patch into a list throws away the colour information in the photo', 'Transformers were designed for text, so they read the image patches in the wrong order']}
   answer={0}
   explain="With only 5,000 images, the CNN's built-in locality (small kernels that only see neighbours) is a big advantage, while the ViT must learn from scarce data that nearby patches matter, and overfits. Distant relations are the ViT's strength, not its weakness; flattening keeps all three colour channels, and the patches are read in a fixed order with position embeddings."
 />

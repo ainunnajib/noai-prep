@@ -47,8 +47,6 @@ The model never runs anything. It writes a structured request; your code decides
 
 The tool call is generated like any other text, one token at a time, each token depending on everything before it. The tool's result is appended to the input and generation continues from there. Tool use is ordinary autoregressive generation with a program in the loop.
 
-<PastPaperQuestion paper="prelim2026" n={228} />
-
 <Mistake title="“The AI looked it up itself”">
 
 It is tempting to say the model "searched the web" or "ran the code". It did not: it asked, and the application did it. This matters for safety, because your code chooses which tools exist and what they may do. It also matters for debugging, because a wrong result may come from the tool, not the model.
@@ -103,15 +101,17 @@ step 4: think: I have everything I need.
 FINAL ANSWER: 128 days until the Prelim.
 ```
 
+The `else:` lined up with `for` belongs to the loop, not to an `if`: Python runs it only when the loop finishes without `break`, which here means the step limit was reached.
+
 <TryIt>
 
-Change `search` to return last year's page, `"NOAI 2026 Preliminary Round: Friday 20 February 2026"`, and run it again: the agent confidently reports -236 days. Then put the date back and set `MAX_STEPS = 2`: the loop stops before it can answer. Both are real failure modes.
+Change `search` to return the out-of-date 2026 page, `"NOAI 2026 Preliminary Round: Friday 20 February 2026"`, and run it again: the agent confidently reports -236 days. Then put the date back and set `MAX_STEPS = 2`: the loop stops before it can answer. Both are real failure modes.
 
 </TryIt>
 
 ## What goes wrong, and the guardrails
 
-Each step adds capability, and also another chance to fail. If each step is right with probability $p$, independently of the others, a chain of $n$ steps is entirely right with probability
+Each step adds capability, and also another chance to fail, just like the facts in a long answer in [Limits and risks](#/learn/large-language-models/limits-and-responsible-ai). If each step is right with probability $p$, independently of the others, a chain of $n$ steps is entirely right with probability
 
 $$
 P(\text{all } n \text{ steps right}) = p^{\,n}
@@ -126,10 +126,10 @@ The common failure modes, and what guards against each:
 - **Wrong tool or wrong arguments**, for example a date in the wrong format. Guard: clear tool descriptions, check arguments against the schema, and return error messages the model can act on.
 - **Bad observations**, such as an out-of-date web page or a buggy tool. The model trusts what it reads. Guard: sanity checks ("is that date in the past?") and trusted sources.
 - **Loops**: a tool keeps failing and the agent keeps retrying. Guard: a step limit and a retry limit, then an honest "I could not do this".
-- **<Term def="Instructions hidden inside content the model reads (a web page, document or tool result) that try to override the user's or developer's instructions.">Prompt injection</Term>**: text inside a tool result says "ignore your instructions and …". The model cannot reliably tell data from orders. Guard: treat tool output as data, give the agent only the tools it needs, and ask a person to confirm anything with side effects, such as sending a message, paying or deleting.
+- **<Term def="Instructions hidden inside content the model reads (a web page, document or tool result) that try to override the user's or developer's instructions.">Prompt injection</Term>** (the attack from [Limits, risks and responsible use of AI](#/learn/large-language-models/limits-and-responsible-ai)): text inside a tool result says "ignore your instructions and …". The model cannot reliably tell data from orders. Guard: treat tool output as data, give the agent only the tools it needs, and ask a person to confirm anything with side effects, such as sending a message, paying or deleting.
 
 <QuickCheck
-  q="An agent answers a question in 4 steps, and each step is right with probability 0.9, independently. Roughly how likely is the whole answer to be right?"
+  q="An agent answers a question in 4 steps, and each step is right with probability 0.9, independently. Roughly how likely is it that all 4 steps are right?"
   options={['About 66%', 'About 90%', 'About 60%', 'About 34%']}
   answer={0}
   explain="$0.9^4 = 0.81 \times 0.81 = 0.6561$, about 66%. Reliability does not stay at 90%: it multiplies at every step. 60% comes from subtracting 10% per step ($1 - 4 \times 0.1$), which is close here but wrong in general, and 34% ($1 - 0.6561$) is the chance that at least one step goes wrong."
@@ -175,6 +175,8 @@ To evaluate fairly, build a test set of questions with reference answers and the
 For 36-second questions, have these ready. Function calling: the model outputs a structured call, and the application executes it. ReAct: thought, action, observation, repeat. Reliability over $n$ independent steps is $p^n$; know $0.9^2 = 0.81$ and $0.9^3 = 0.729$. Diagnosis: right context but wrong answer → fix the generator; wrong context → fix the retriever. Fix whichever accounts for more failures first.
 
 </ExamTip>
+
+So far every model in this part has written text. Next, [Generative versus discriminative models](#/learn/generative-models/generative-vs-discriminative) turns to models that create images and other data.
 
 <Takeaways>
 

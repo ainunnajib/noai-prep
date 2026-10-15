@@ -10,6 +10,7 @@ import {
   Label,
   Axes,
   Bars,
+  Button,
   usePlayer,
   PlayerControls,
   useNarrow,
@@ -33,6 +34,7 @@ const zoomOf = (z: number) => 1 + 0.18 * (z + 2)
 export default function ContrastivePairs() {
   const [tau, setTau] = useState(0.5)
   const [sel, setSel] = useState(0)
+  const [showAll, setShowAll] = useState(false)
   const frames = useMemo(() => trajectory(tau), [tau])
   const player = usePlayer({ steps: STEPS + 1, interval: 110 })
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(620)
@@ -43,7 +45,16 @@ export default function ContrastivePairs() {
   const v2 = v1 + 1
   const probs = partnerProbs(Z, v1, tau)
   const cos12 = Z[v1][0] * Z[v2][0] + Z[v1][1] * Z[v2][1]
-  const lossMax = frames[0].loss
+  // augmentations are redrawn every step, so the loss can rise above its starting value
+  // on a phone, list only the partner and its 3 strongest rivals unless the learner asks for all 11
+  const others = Z.map((_, k) => k).filter((k) => k !== v1)
+  const rivals = others
+    .filter((k) => k !== v2)
+    .sort((a, b) => probs[b] - probs[a])
+    .slice(0, 3)
+  const short = narrow && !showAll
+  const listed = short ? others.filter((k) => k === v2 || rivals.includes(k)) : others
+  const lossMax = Math.max(...frames.map((fr) => fr.loss))
 
   // view-2 squares (hollow) first, then view-1 circles on top, so a matched pair shows a dot inside a square
   const dots: DotDatum[] = [1, 0].flatMap((which) =>
@@ -98,8 +109,8 @@ export default function ContrastivePairs() {
         <span>a line joins each positive pair</span>
       </div>
       <div className={css.panelTitle}>Loss over the {STEPS} training steps</div>
-      <Plot x={[0, STEPS]} y={[0, lossMax * 1.05]} width={340} height={110} margin={{ top: 8, right: 14, bottom: 24, left: 40 }} ariaLabel="Training loss: the whole run faintly, the part played so far in bold">
-        <Axes yTicks={2} xTicks={4} />
+      <Plot x={[0, STEPS]} y={[0, lossMax * 1.05]} width={340} height={130} margin={{ top: 12, right: 14, bottom: 34, left: 40 }} ariaLabel="Training loss: the whole run faintly, the part played so far in bold">
+        <Axes xLabel="training step" yLabel="loss" yTicks={2} xTicks={4} />
         <Path points={frames.map((fr, t) => [t, fr.loss] as [number, number])} color="var(--viz-muted)" width={1.5} dash="3 3" />
         <Path points={frames.slice(0, player.step + 1).map((fr, t) => [t, fr.loss] as [number, number])} color="var(--viz-1)" width={2.5} />
         <Dots points={[{ x: player.step, y: f.loss, r: 4 }]} />
@@ -138,20 +149,25 @@ export default function ContrastivePairs() {
       <div className={css.small}>
         Cosine similarity of the two views: <b className="tabular">{cos12.toFixed(2)}</b> (1 = same direction).
       </div>
-      <div className={css.panelTitle}>View 1 asks: which of the other 11 is my partner?</div>
+      <div className={css.panelTitle}>
+        View 1 asks: which of the other 11 is my partner?{short ? ' (partner and top 3 rivals)' : ''}
+      </div>
       <Bars
         ariaLabel="Softmax probabilities that view 1 assigns to each other view"
         max={1}
         format={(x) => `${(x * 100).toFixed(0)}%`}
-        data={Z.map((_, k) => k)
-          .filter((k) => k !== v1)
-          .map((k) => ({
-            label: `${PICTURES[k >> 1].name} ${(k & 1) + 1}${k === v2 ? ' ✓' : ''}`,
-            value: probs[k],
-            color: PICTURES[k >> 1].color,
-            strong: k === v2,
-          }))}
+        data={listed.map((k) => ({
+          label: `${PICTURES[k >> 1].name} ${(k & 1) + 1}${k === v2 ? ' ✓' : ''}`,
+          value: probs[k],
+          color: PICTURES[k >> 1].color,
+          strong: k === v2,
+        }))}
       />
+      {narrow && (
+        <div style={{ justifySelf: 'center' }}>
+          <Button onClick={() => setShowAll((x) => !x)}>{showAll ? 'Show only the top rivals' : 'Show all 11'}</Button>
+        </div>
+      )}
     </div>
   )
 
@@ -172,7 +188,9 @@ export default function ContrastivePairs() {
             </li>
             <li>Click a point or a picture to follow another image, and slide τ: a low temperature makes the pulls and pushes stronger.</li>
           </ol>
-          <b>Notice:</b> the six images spread round the circle because the encoder has learned to ignore brightness and zoom.
+          <b>Notice:</b> the six images spread round the circle because the encoder has learned to ignore brightness and zoom. Even a perfect match
+          (cosine 1.00) gets only about 40% partner probability at τ = 0.5, because the 10 other views still share the softmax; at τ = 0.1 it climbs to
+          about 98%.
           <span className="fine">A tiny encoder (4 inputs → 2 numbers, then scaled to length 1) trained with SimCLR's real loss.</span>
         </>
       }

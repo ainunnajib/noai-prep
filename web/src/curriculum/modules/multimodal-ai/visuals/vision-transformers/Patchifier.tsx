@@ -18,10 +18,10 @@ const fmt = (v: number) => v.toLocaleString('en-GB')
 type Item = { kind: 'tok'; i: number } | { kind: 'gap'; hidden: number }
 
 /** Which patch tokens to draw: all of them when there are few, otherwise the start, the selected one and the end. */
-function stripItems(N: number, sel: number): Item[] {
+function stripItems(N: number, sel: number, lead: number): Item[] {
   if (N <= 20) return Array.from({ length: N }, (_, i) => ({ kind: 'tok', i }))
   const keep = new Set<number>()
-  for (let i = 0; i < 6; i++) keep.add(i)
+  for (let i = 0; i < lead; i++) keep.add(i)
   for (const k of [sel - 1, sel, sel + 1]) if (k >= 0 && k < N) keep.add(k)
   keep.add(N - 2)
   keep.add(N - 1)
@@ -73,7 +73,8 @@ export default function Patchifier() {
   // reading order (only drawn for small grids)
   const order = n > 8 ? '' : Array.from({ length: N }, (_, i) => `${i ? 'L' : 'M'}${((i % n) + 0.5) * s},${(Math.floor(i / n) + 0.5) * s}`).join('')
 
-  const items = stripItems(N, sel)
+  // on a phone, fewer leading tokens keep the strip to two rows
+  const items = stripItems(N, sel, narrow ? 4 : 6)
   const key = `${H}-${P}`
 
   const image = (

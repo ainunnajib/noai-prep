@@ -90,6 +90,9 @@ export default function AutoencoderBottleneck({ mode: fixed }: { mode?: Mode }) 
       )}
       <div ref={ref} style={{ width: '100%' }}>
         <Funnel width={w} k={mode === 'squeeze' ? k : 16} left={mode === 'squeeze' ? inputs[sel] : noisy[sel]} right={mode === 'squeeze' ? recs[sel] : outs[sel]} />
+        <p style={{ fontSize: '0.75rem', color: 'var(--ink-2)', textAlign: 'center', margin: '0 auto 0.4rem', maxWidth: '32rem' }}>
+          The encoder first spreads the 64 pixels out into 128 features, then squeezes them down to the bottleneck; the decoder does the same in reverse.
+        </p>
         {mode === 'squeeze' ? (
           <>
             <div style={rowHead}>Input: six test digits (64 numbers each)</div>
@@ -217,12 +220,12 @@ function ErrorCurve({ k }: { k: number }) {
   return (
     <div style={{ marginTop: '0.6rem', width: '100%' }}>
       <div style={{ ...rowHead, textAlign: 'center' }}>Average test error for each bottleneck size</div>
-      <Plot x={[-0.3, 6.3]} y={[0, 0.056]} width={520} height={170} minHeight={160} margin={{ left: 50, bottom: 34, top: 10, right: 16 }} ariaLabel="Reconstruction error falls as the bottleneck grows">
+      <Plot x={[-0.3, 6.3]} y={[0, 0.064]} width={520} height={170} minHeight={160} margin={{ left: 50, bottom: 34, top: 10, right: 16 }} ariaLabel="Reconstruction error falls as the bottleneck grows">
         <Grid xTicks={7} yTicks={4} />
         <Path points={pts} color="var(--viz-5)" width={2.4} />
         <Dots points={pts.map(([x, y]) => ({ x, y, r: 3.5, color: 'var(--viz-5)' }))} />
         <Dots points={[{ x: cur[0], y: cur[1], r: 7, color: 'var(--viz-5)' }]} />
-        <Label x={cur[0]} y={cur[1]} dx={cur[0] > 4.5 ? -10 : 10} dy={cur[1] > 0.04 ? 16 : -10} anchor={cur[0] > 4.5 ? 'end' : 'start'} weight={700} color="var(--viz-5)">
+        <Label x={cur[0]} y={cur[1]} dx={cur[0] > 4.5 ? -10 : 12} dy={cur[1] > 0.04 ? 5 : -10} anchor={cur[0] > 4.5 ? 'end' : 'start'} weight={700} color="var(--viz-5)">
           {cur[1].toFixed(4)}
         </Label>
         <Axes xTicks={7} hideYTicks tickFormat={(v) => (Number.isInteger(v) && v >= 0 ? String(2 ** v) : '')} xLabel="bottleneck size k" />

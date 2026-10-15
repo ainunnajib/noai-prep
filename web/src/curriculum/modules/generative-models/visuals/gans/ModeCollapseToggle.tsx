@@ -121,6 +121,10 @@ function Verdicts({ d }: { d: number[] }) {
             <text x={x} y={y + 4.5} textAnchor="middle" className="tabular" style={{ fontSize: 12, fontWeight: 700, fill: 'var(--ink)' }}>
               {v.toFixed(2)}
             </text>
+            {/* cluster number, inside the ring, matching the bar chart's "cluster k" */}
+            <text x={xs(1.35 * Math.cos(a))} y={ys(1.35 * Math.sin(a)) + 4} textAnchor="middle" className="tabular" style={{ fontSize: 11, fontWeight: 600, fill: 'var(--ink-2)' }}>
+              {k + 1}
+            </text>
           </g>
         )
       })}
@@ -168,9 +172,9 @@ export default function ModeCollapseToggle() {
       caption={
         <>
           Blue rings: real data, 8 equally common clusters. Orange dots: the generator's samples. The pill at each cluster is the discriminator's verdict there, from{' '}
-          <M>{'D = p_\\text{data} / (p_\\text{data} + p_g)'}</M>: green means "looks real", red means "full of fakes", grey means "can't tell". Press <b>Play</b> in both settings. In the collapsing run every
-          sample is convincing at each moment, yet the generator only ever makes one kind of output, and D's red pill just chases it around the ring. (A simplified
-          simulation of what real training runs show.)
+          <M>{'D = p_\\text{data} / (p_\\text{data} + p_g)'}</M>: green means "looks real", red means "full of fakes", grey means "can't tell". Small numbers inside the ring name the clusters. The figure opens mid-run: press <b>Restart</b>, then <b>Play</b>, in both settings. In the collapsing run each
+          sample on its own looks like real data (it sits on a real cluster), yet the generator only ever makes one kind of output, and D's red pill just chases it
+          around the ring. (A simplified simulation of what real training runs show.)
         </>
       }
     >

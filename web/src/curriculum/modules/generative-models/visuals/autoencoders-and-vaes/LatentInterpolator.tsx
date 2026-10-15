@@ -80,6 +80,12 @@ export default function LatentInterpolator() {
   const cur = pts[which]
   const set = (key: 'probe' | 'a' | 'b') => (x: number, y: number) => setPts((o) => ({ ...o, [which]: { ...o[which], [key]: [x, y] as P } }))
   const [[x0, x1], [y0, y1]] = M_.box
+  // where the training codes actually lie (the axes add a margin around them)
+  const span = useMemo(() => {
+    const zs = M_.codes
+    const r = (i: 0 | 1) => [Math.min(...zs.map((c) => c[i])), Math.max(...zs.map((c) => c[i]))]
+    return { z1: r(0), z2: r(1) }
+  }, [M_])
 
   const probeImg = decode[which](cur.probe)
   const probeNear = nearest(probeImg)
@@ -215,7 +221,7 @@ export default function LatentInterpolator() {
               : [
                   ['average distance to closest real digit', stripMean.toFixed(3)],
                   ['different digits among the 8', String(new Set(stripNear.map((n) => LATENT.labels[n.i])).size)],
-                  ['map spans', `z₁ ${x0.toFixed(0)} to ${x1.toFixed(0)}, z₂ ${y0.toFixed(0)} to ${y1.toFixed(0)}`],
+                  ['codes spread over', `z₁ ${span.z1[0].toFixed(0)} to ${span.z1[1].toFixed(0)}, z₂ ${span.z2[0].toFixed(0)} to ${span.z2[1].toFixed(0)}`],
                 ]
           }
         />

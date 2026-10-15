@@ -21,7 +21,7 @@ Nobody cares how well the network predicts rotations. The point is what it has t
 - a <Term def="An evaluation in which the pretrained encoder is frozen and only a single linear layer is trained on its features with labels. High accuracy means the features already separate the classes.">linear probe</Term>: freeze the encoder and train only one linear layer on top, using the labelled training data;
 - **fine-tuning**: train the whole network a little further on the labelled data, starting from the pretrained weights.
 
-You have already met self-supervision in language: GPT predicts the next word, BERT fills in hidden words, and word2vec predicts a word's neighbours. All three learn from raw text with no human labels. For images, early pretext tasks like rotation and jigsaw worked, but the features they learned were tied to those particular tricks. Two families now dominate: **contrastive learning** and **masked image modelling**.
+You have already met self-supervision in language: GPT predicts the next word, BERT fills in hidden words, and word2vec predicts a word's neighbours. All three learn from raw text with no human labels. For audio, HuBERT predicts hidden sound units in the same way ([Speech models](#/learn/pretrained-models-text-speech/speech-models)). For images, early pretext tasks like rotation and jigsaw worked, but the features they learned were tied to those particular tricks. Two families now dominate: **contrastive learning** and **masked image modelling**.
 
 <QuickCheck
   q="Which of these is NOT self-supervised learning?"
@@ -45,7 +45,7 @@ On the first day of school you see your classmates in uniform. Then you meet the
     For example $N = 256$ photos. No labels anywhere.
   </Step>
   <Step title="Augment each image twice">
-    Apply two independent random <Term def="Random changes to an image that keep what it shows, such as cropping, flipping, rotating a little, or changing brightness and colour.">augmentations</Term> (random crop and resize, flip, colour jitter, blur) to every image. That gives $2N$ views. Two views of the same image form a <Hl>positive pair</Hl>; a view of one image and a view of a different image form a <Hl>negative pair</Hl>.
+    Apply two independent random <Term def="Random changes to an image that keep what it shows, such as cropping, flipping, rotating a little, or changing brightness and colour.">augmentations</Term> (as in [transfer learning](#/learn/vision-tasks/transfer-learning-and-augmentation): random crop and resize, flip, colour jitter, blur) to every image. That gives $2N$ views. Two views of the same image form a <Hl>positive pair</Hl>; a view of one image and a view of a different image form a <Hl>negative pair</Hl>.
   </Step>
   <Step title="Encode every view">
     An encoder $f$ (a ResNet or a ViT) turns each view into a feature vector $\mathbf{h}$. A small <Term def="A small MLP after the encoder, used only during contrastive training. Its output z goes into the loss; it is thrown away afterwards and the encoder's output h is used for downstream tasks.">projection head</Term> $g$ maps $\mathbf{h}$ to $\mathbf{z}$, which is scaled to length 1.
@@ -72,7 +72,7 @@ $$
 $$
 
 - $\operatorname{sim}(\mathbf{u}, \mathbf{v}) = \dfrac{\mathbf{u} \cdot \mathbf{v}}{\lVert \mathbf{u} \rVert \, \lVert \mathbf{v} \rVert}$ is the <Term def="The dot product of two vectors divided by their lengths: the cosine of the angle between them. 1 means same direction, 0 means at right angles, −1 means opposite.">cosine similarity</Term>, between $-1$ and $1$;
-- $\tau$ (tau) is the <Term def="A positive number that divides the similarities before the softmax. Small values make the softmax sharper (one candidate takes almost all the probability); large values make it flatter.">temperature</Term>;
+- $\tau$ (tau) is the <Term def="A positive number that divides the similarities before the softmax. Small values make the softmax sharper (one candidate takes almost all the probability); large values make it flatter.">temperature</Term>, the same idea as the sampling temperature $T$ in [Decoding](#/learn/large-language-models/decoding-and-sampling); contrastive-learning papers write it $\tau$;
 - the sum on the bottom runs over all $2N - 1$ other views: the 1 positive plus $2N - 2$ negatives;
 - $\exp(x)$ means $e^x$, and $\log$ here is the natural log, $\ln$ (as in the worked example below).
 
@@ -106,7 +106,7 @@ Temperature matters. With the same vectors but $\tau = 1$, the partner gets only
 
 <QuickCheck
   q="In SimCLR you lower the temperature τ from 0.5 to 0.1 and keep everything else the same. What happens to the softmax over 'which view is my partner?'"
-  options={['It becomes sharper: the most similar views take almost all the probability', 'It becomes flatter: all the other views get closer to equal probability', 'It is unchanged, because τ divides every similarity by the same number', 'It now ignores the negatives and only looks at the positive pair']}
+  options={['It becomes sharper: the most similar views take almost all the probability', 'It becomes flatter: the other views all move closer to an equal probability', 'It is unchanged, because τ divides every similarity by the same number', 'It now ignores all the negatives and only looks at the positive pair']}
   answer={0}
   explain="Dividing by a smaller τ stretches the gaps between the scores (e.g. 0.8 and 0 become 8 and 0 instead of 1.6 and 0), and the softmax of widely spread scores is sharp. τ is the same for every score, but the softmax depends on the differences between scores, and those grow."
 />
@@ -182,7 +182,9 @@ def nt_xent(z, tau=0.5):
     # a view is never its own partner: set the diagonal to -inf
     self_mask = torch.eye(len(z), dtype=torch.bool)
     sim = sim.masked_fill(self_mask, float('-inf'))
-    partner = torch.arange(len(z)) ^ 1      # 0<->1, 2<->3, ...
+    # ^ is bitwise XOR: n ^ 1 flips the last binary digit,
+    # so it pairs 0<->1, 2<->3, ...
+    partner = torch.arange(len(z)) ^ 1
     # one loss per view
     return F.cross_entropy(sim, partner, reduction='none')
 
@@ -207,7 +209,9 @@ n_keep = int(196 * (1 - 0.75))   # keep 25% of them
 noise = torch.rand(1, 196)       # a random number per patch
 # keep the patches with the 49 smallest numbers
 keep = noise.argsort(dim=1)[:, :n_keep]
+# repeat each kept index for all 768 numbers of a token
 idx = keep.unsqueeze(-1).expand(-1, -1, 768)
+# gather picks those rows (patches) of x
 visible = torch.gather(x, 1, idx)
 print(n_keep, visible.shape)
 ```

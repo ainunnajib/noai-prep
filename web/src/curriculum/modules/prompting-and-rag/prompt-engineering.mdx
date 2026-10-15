@@ -57,7 +57,7 @@ Ask a chatbot "help me study" and you get a generic list of tips. Give it your e
 
 ## What a prompt really is
 
-A <Term def="Large language model: a neural network trained on huge amounts of text to predict the next token. GPT-4, Gemini, Claude and Llama are LLMs (ChatGPT is a chatbot built on GPT models).">large language model</Term> (LLM) does one thing over and over: given some text, it predicts the next <Term def="A small piece of text, often a word or part of a word, that a language model reads and writes one at a time.">token</Term>, adds it to the text, and repeats. The <Term def="The text you give a language model to continue: instructions, examples, documents and your question.">prompt</Term> is the text you give it to continue.
+As you saw in [How LLMs are built](#/learn/large-language-models/how-llms-are-built), a <Term def="Large language model: a neural network trained on huge amounts of text to predict the next token. GPT-4, Gemini, Claude and Llama are LLMs (ChatGPT is a chatbot built on GPT models).">large language model</Term> (LLM) does one thing over and over: given some text, it predicts the next <Term def="A small piece of text, often a word or part of a word, that a language model reads and writes one at a time.">token</Term>, adds it to the text, and repeats. The <Term def="The text you give a language model to continue: instructions, examples, documents and your question.">prompt</Term> is the text you give it to continue.
 
 So everything the model can use while answering comes from exactly two places:
 
@@ -110,7 +110,7 @@ The new review is sarcastic, which is the hard part. Build the prompt yourself b
 
 What the builder shows:
 
-- **Examples teach the format** better than any description. With zero shots the model often chats; with three it answers in one word.
+- **Examples teach the format**, often more reliably than a description. With zero shots the model often chats; with three it answers in one word.
 - **Relevant examples teach the hard part.** The two sarcasm examples move the label the most, because they look like the new review.
 - **Bad examples do real damage.** One mislabelled example close to the new review can flip the answer. Order matters too: many models show a <Term def="The tendency of a language model to be swayed most by the examples nearest the end of the prompt.">recency bias</Term>, so the same examples in a different order can change the answer.
 - **Nothing is kept.** Clear the examples and you are back to zero-shot behaviour.
@@ -132,7 +132,7 @@ $$
 - $x$ is the new input and $y$ the answer we want.
 - $\theta$ is unchanged. There is no loss, no gradient and no update. The "learning" lasts only as long as the examples stay in the prompt.
 
-That is the big difference from <Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">fine-tuning</Term>, which really does change $\theta$ by further training. You will compare the two in [the next lesson](#/learn/prompting-and-rag/rag-pipeline).
+That is the big difference from <Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">fine-tuning</Term> (see [Fine-tuning and LoRA](#/learn/large-language-models/fine-tuning-and-lora)), which really does change $\theta$ by further training. You will compare the two in [the next lesson](#/learn/prompting-and-rag/rag-pipeline).
 
 <QuickCheck
   q="You give a model 5 labelled examples and it classifies new reviews well. Then you open a new chat and send only a new review, with no examples. What happens?"
@@ -182,7 +182,7 @@ The role often goes in the <Term def="Instructions placed before the conversatio
 
 <KeyIdea>
 
-Most prompt quality comes from being **specific about the task and the format**. Context fills knowledge gaps: without it the model can only guess, and a confident guess that sounds right but is false is called a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term>.
+Most prompt quality comes from being **specific about the task and the format**. Context fills knowledge gaps: without it the model can only guess, and a confident guess that sounds right but is false is called a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term> (see [Limits, risks and responsible use of AI](#/learn/large-language-models/limits-and-responsible-ai)).
 
 </KeyIdea>
 

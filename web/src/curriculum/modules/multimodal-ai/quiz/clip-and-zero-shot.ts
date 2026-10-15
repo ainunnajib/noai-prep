@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'CLIP computes an $N \\times N$ similarity matrix for a batch of $N$ image-caption pairs (row $i$ = image $i$, column $j$ = caption $j$). Which cells does training push **up**?',
     options: [
-      'The diagonal cells, where image $i$ meets caption $i$',
+      'Only the diagonal cells, where image $i$ meets caption $i$',
       'Every cell whose cosine similarity is already above 0.5',
       'The cells of the first row and the first column',
       'The cells above the diagonal, where $j$ is greater than $i$',

@@ -10,9 +10,9 @@ In [the previous lesson](#/learn/prompting-and-rag/prompt-engineering) you saw t
 
 - **Knowledge cut-off.** Training data stops at some date, the model's <Term def="The date after which a model's training data stops. The model knows nothing that happened later unless it is given in the prompt.">knowledge cut-off</Term>. Anything newer is simply missing.
 - **Private data.** The model never saw your school's handbook, a company's HR policy or your own notes.
-- **Hallucination.** When the answer is missing, the model still produces fluent, plausible text. A confident but false answer is a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term>.
+- **Hallucination.** When the answer is missing, the model still produces fluent, plausible text. A confident but false answer is a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term> (why it happens: [Limits, risks and responsible use of AI](#/learn/large-language-models/limits-and-responsible-ai)).
 
-All three are fixed by putting the right facts **in the prompt**, but you cannot paste everything in. The <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> is limited, every extra token costs time and money, and models answer worse when the useful sentence is buried in pages of irrelevant text. So the real job is to find the **few passages that matter** and put only those in the prompt.
+All three are fixed by putting the right facts **in the prompt**, but you cannot paste everything in. The <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> is limited, every extra token costs time and money, and models answer worse when the useful sentence is buried in pages of irrelevant text ("lost in the middle", from [Context windows](#/learn/large-language-models/context-and-cost)). So the real job is to find the **few passages that matter** and put only those in the prompt.
 
 <Analogy title="An open-book exam">
 
@@ -57,7 +57,7 @@ The name lists the last three steps: the **generation** is **augmented** by **re
 Three things to notice:
 
 - **The model is the same in both modes.** Retrieval changes only the prompt, so updating the bot's knowledge means editing documents, not retraining.
-- **Search always returns $k$ chunks**, even when none of them is relevant (try the wifi question). It is the prompt's instructions that stop the model from forcing an answer out of irrelevant text.
+- **Search always returns $k$ chunks**, even when none of them is relevant (try the wifi question). It is the prompt's instructions (and, in many systems, a minimum similarity score) that stop the model from forcing an answer out of irrelevant text.
 - **A missing chunk cannot be fixed later.** With $k = 1$ the camp's cost never reaches the model, so even a perfect LLM can only say it doesn't know.
 
 ## How "most similar" is measured
@@ -72,7 +72,7 @@ $$
 - $\lVert \mathbf{q} \rVert$ and $\lVert \mathbf{c} \rVert$ are the **lengths** (L2 norms): the square root of the sum of squares.
 - Dividing by the lengths leaves only the **direction**. The score runs from $-1$ to $1$, and $1$ means "pointing exactly the same way".
 
-The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**. Many systems scale every vector to length 1 when they store it, so the score is just the dot product. With millions of chunks, vector databases use <Term def="A search index that finds vectors very close to the best matches much faster than checking every vector, at the cost of occasionally missing the exact best one. HNSW is a popular kind.">approximate nearest-neighbour</Term> indexes (such as HNSW) that find almost the best matches without checking every vector, and many systems then **re-rank** the top results or mix in keyword search.
+The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**. Many systems scale every chunk vector (and the question vector) to length 1, so the cosine is just the dot product. With millions of chunks, vector databases use <Term def="A search index that finds vectors very close to the best matches much faster than checking every vector, at the cost of occasionally missing the exact best one. HNSW is a popular kind.">approximate nearest-neighbour</Term> indexes (such as HNSW) that find almost the best matches without checking every vector, and many systems then **re-rank** the top results or mix in keyword search.
 
 <Steps title="Worked example: which 2 chunks does the retriever pick?">
   <Step title="The vectors">
@@ -92,11 +92,11 @@ The retriever then keeps the $k$ chunks with the highest scores, the **top-$k$**
   </Step>
 </Steps>
 
-Real embedding models produce hundreds of numbers per text (384, 768 and 1,536 are common sizes), and they are trained so that "What's the fee for the trip?" lands near "The coding camp costs \$40 per student" even though the two share no important word. That is the big advantage over keyword search. You will build the keyword version from scratch in [the next lesson](#/learn/prompting-and-rag/rag-from-scratch).
+Real embedding models produce hundreds to a few thousand numbers per text (384, 768 and 1,536 are common sizes), and they are trained so that "What's the fee for the trip?" lands near "The coding camp costs \$40 per student" even though the two share no important word. That is the big advantage over keyword search. You built a keyword version in [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf); [the next lesson](#/learn/prompting-and-rag/rag-from-scratch) makes it exam-ready.
 
 <QuickCheck
   q="Why must the question be embedded with the same embedding model that was used for the chunks?"
-  options={["Each model has its own coordinate system, so scores across models mean nothing", "The same model makes the question vector longer, which raises every cosine score", "The LLM can only read vectors that were made by the same embedding model as itself", "Using one model means the chunks never need to be embedded ahead of time"]}
+  options={["Each model has its own coordinate system, so scores across models mean nothing", "The same model makes the question vector longer, which raises each cosine score", "The LLM reads the chunks as vectors, so they need the same embedding model as the LLM", "Using one model means the chunks never need to be embedded ahead of time"]}
   answer={0}
   explain="Each embedding model has its own coordinate system (often with a different number of dimensions too), so comparing a vector from one model with a vector from another is meaningless. The length of the question vector does not matter at all, because cosine divides it out."
 />
@@ -126,7 +126,7 @@ RAG = **retrieve** the chunks most similar to the question, **augment** the prom
 Three settings decide what the model gets to read:
 
 - **Chunk size.** Small chunks match precisely, but an answer that spans two sentences gets **cut in half**, and a lone sentence may lose its meaning ("They must be submitted by 5 pm." Who are *they*?). Large chunks keep context, but bring in irrelevant text, blur the similarity score (the useful sentence is a small part of the chunk) and use up the context window.
-- **Overlap.** Neighbouring chunks share a few words, so an answer that falls on a boundary still appears whole in at least one chunk. The price is that some text is stored and sent twice.
+- **Overlap.** Neighbouring chunks share a few words, so a short passage (up to the overlap length) that straddles a boundary still appears whole in at least one chunk. Longer answers can still be cut, which is why chunk size matters too. The price is that some text is stored and sent twice.
 - **Top-$k$.** Retrieving more chunks makes it more likely the answer is included, but adds noise and length.
 
 <ChunkSizer />
@@ -208,7 +208,7 @@ You can **ask a tutor a clear question** (prompting). You can **hand them your s
 | **Data and cost** | none | documents + vector store | many examples + GPUs |
 | **Cites sources** | no | yes | no |
 
-<Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">Fine-tuning</Term> keeps training the model on examples of the task, so it is the tool for **behaviour**: a house style, a strict output format, or a narrow skill done millions of times. It needs good examples and compute, and training hard on one narrow task can make a model worse at things it used to do well, which is called <Term def="When further training on a new task makes a neural network lose abilities it had learned before.">catastrophic forgetting</Term>.
+<Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">Fine-tuning</Term> keeps training the model on examples of the task, so it is the tool for **behaviour**: a house style, a strict output format, or a narrow skill done millions of times. It needs good examples and compute, and training hard on one narrow task can make a model worse at things it used to do well, which is called <Term def="When further training on a new task makes a neural network lose abilities it had learned before.">catastrophic forgetting</Term> (see [Fine-tuning and LoRA](#/learn/large-language-models/fine-tuning-and-lora)).
 
 <AdaptationChooser />
 

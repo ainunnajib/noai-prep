@@ -88,8 +88,8 @@ export default function RAGPipeline() {
       title="A question's trip through a RAG pipeline"
       caption={
         <>
-          With retrieval off, the same model answers from memory and makes things up. With the wifi question, search still returns k chunks, but the instruction to say &ldquo;I don&rsquo;t
-          know&rdquo; keeps the answer honest. Click a citation to find its chunk. A toy: the embedding has 11 hand-made dimensions (real ones learn hundreds), and the &ldquo;LLM&rdquo; is a
+          With retrieval off, the same model answers from memory and usually makes things up. For the wifi question, search still returns k chunks, but the instruction to say &ldquo;I don&rsquo;t
+          know&rdquo; keeps the answer honest. Click a citation to find its chunk. A toy: the embedding has 11 hand-made dimensions (real ones learn hundreds or thousands), and the &ldquo;LLM&rdquo; is a
           stand-in.
         </>
       }

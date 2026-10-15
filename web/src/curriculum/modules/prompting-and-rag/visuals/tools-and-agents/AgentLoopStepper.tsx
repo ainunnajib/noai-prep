@@ -8,7 +8,7 @@ import s from './agents.module.css'
   "How many days until the NOAI 2027 Prelim?". The learner can inject a fault into one tool
   result and switch simple guardrails on. Illustrative trace; the arithmetic is real:
     (date(2027, 2, 19) - date(2026, 10, 14)).days = 128
-    (date(2026, 2, 20) - date(2026, 10, 14)).days = -236   (last year's Prelim date)
+    (date(2026, 2, 20) - date(2026, 10, 14)).days = -236   (the 2026 Prelim date)
 */
 
 type Kind = 'question' | 'thought' | 'action' | 'observation' | 'answer' | 'stop'
@@ -79,7 +79,7 @@ function trace(fault: Fault, guard: boolean): { entries: Entry[]; status: Status
           T2,
           A2,
           O2,
-          { kind: 'thought', text: 'That page is about 2026, which is before today. It must be last year’s page. I’ll search again for 2027.', guard: true },
+          { kind: 'thought', text: 'That date (20 Feb 2026) is before today, so this must be the 2026 edition’s page. I’ll search again for 2027.', guard: true },
           { kind: 'action', text: 'search("NOAI 2027 Prelim date official")' },
           O1,
           T3,

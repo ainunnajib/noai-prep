@@ -59,14 +59,17 @@ export default function ZeroShotPrompts() {
     setDraft('')
   }
 
-  // how the toy read ambiguous class names
+  // how the toy read ambiguous class names: one short phrase per class, with counts when several prompts are averaged
   const senseNotes = rows
     .filter((r) => r.senses.length)
     .map((r) => {
+      if (templates.length === 1) return `“${r.c}” as ${r.senses.join(', ')}`
       const counts = new Map<string, number>()
-      r.senses.forEach((x) => counts.set(x, (counts.get(x) ?? 0) + 1))
-      const parts = [...counts.entries()].map(([k, n]) => (templates.length > 1 ? `${k} in ${n} of ${templates.length} prompts` : k))
-      return `“${r.c}” as ${parts.join(', ')}`
+      r.senses.forEach((x) => {
+        const k = x.startsWith('a 50/50 mix') ? 'a 50/50 mix' : x
+        counts.set(k, (counts.get(k) ?? 0) + 1)
+      })
+      return `${r.c}: ${[...counts.entries()].map(([k, n]) => `${k} ×${n}`).join(', ')}`
     })
 
   return (
@@ -186,20 +189,39 @@ export default function ZeroShotPrompts() {
 
       <div className={s.verdict} aria-live="polite">
         Prediction: <b>{rows[win]?.c}</b>{' '}
-        {truthListed ? correct ? <span className={s.ok}>✓ correct</span> : <span className={s.bad}>✗ wrong (it is a {truth})</span> : <span className={s.bad}>(“{truth}” is not one of your classes)</span>}
+        {!truthListed ? (
+          <span className={s.bad}>(“{truth}” is not one of your classes)</span>
+        ) : !correct ? (
+          <span className={s.bad}>✗ wrong (it is a {truth})</span>
+        ) : nearTie ? (
+          <b>≈ right, but a lucky guess</b>
+        ) : (
+          <span className={s.ok}>✓ correct</span>
+        )}
         {nearTie && (
           <>
-            {' '}
-            but only just: {Math.round(probs[win] * 100)}% against {Math.round(probs[second] * 100)}% for “{rows[second].c}”. Random guessing among {classes.length} classes would give{' '}
+            . Only {Math.round(probs[win] * 100)}% against {Math.round(probs[second] * 100)}% for “{rows[second].c}”. Random guessing among {classes.length} classes would give{' '}
             {Math.round(100 / classes.length)}% each, so this classifier is barely better than a guess.
           </>
         )}
-        {senseNotes.length > 0 && (
-          <>
-            <br />
-            <span className={s.senseNote}>The toy text encoder read {senseNotes.join('; ')}.</span>
-          </>
-        )}
+        {senseNotes.length > 0 &&
+          (templates.length === 1 ? (
+            <>
+              <br />
+              <span className={s.senseNote}>The toy text encoder read {senseNotes.join('; ')}.</span>
+            </>
+          ) : (
+            <>
+              <br />
+              <span className={s.senseNote}>How the toy read the ambiguous names in the {templates.length} prompts:</span>
+              {senseNotes.map((n) => (
+                <span key={n}>
+                  <br />
+                  <span className={s.senseNote}>{n}</span>
+                </span>
+              ))}
+            </>
+          ))}
         {unknown.length > 0 && (
           <>
             <br />

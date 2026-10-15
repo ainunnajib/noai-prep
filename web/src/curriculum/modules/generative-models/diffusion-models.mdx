@@ -94,7 +94,7 @@ $$
 
 where $\lVert \cdot \rVert^2$ means "square every pixel's difference and add them up" (in practice, averaged). That is the whole training loss: an ordinary regression on the noise. Because the jump formula reaches any $t$ instantly, every training example can use a different, random step.
 
-For images the network is almost always a <Term def="An encoder-decoder CNN with skip connections whose output has the same height and width as its input; first built for segmentation.">U-Net</Term>, the encoder-decoder with skip connections from the segmentation lesson. That fits perfectly: an image goes in and a same-sized "noise image" comes out. The step $t$ is turned into a vector and added inside the network, so the same U-Net knows whether it is looking at a lightly or a heavily noised image.
+For images the network is classically a <Term def="An encoder-decoder CNN with skip connections whose output has the same height and width as its input; first built for segmentation.">U-Net</Term>, the encoder-decoder with skip connections from the [segmentation lesson](#/learn/vision-tasks/u-net-segmentation) (newer models such as Stable Diffusion 3 use a Transformer instead). That fits perfectly: an image goes in and a same-sized "noise image" comes out. The step $t$ is turned into a vector and added inside the network, so the same U-Net knows whether it is looking at a lightly or a heavily noised image.
 
 <Steps title="One training example by hand (a 1-pixel image)">
   <Step title="Make the noisy pixel">
@@ -122,12 +122,12 @@ The noise is always a standard bell curve, at every step, so the network's targe
 Sampling starts from pure noise $x_T \sim \mathcal N(0, I)$ and walks back down, $t = T, T-1, \dots, 1$. At each step the network predicts the noise, and the DDPM update removes a little of it:
 
 $$
-x_{t-1} = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1 - \bar\alpha_t}}\, \hat\varepsilon \right) + \sigma_t\, z
+x_{t-1} = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1 - \bar\alpha_t}}\, \hat\varepsilon \right) + \sigma_t\, \varepsilon_\text{new}
 $$
 
-where $\hat\varepsilon = \varepsilon_\theta(x_t, t)$ is the network's noise guess and $z$ is fresh Gaussian noise. In words: subtract a small, scaled amount of the predicted noise, rescale, then add back a little fresh random noise (with $\sigma_t^2 = \beta_t$ in the original DDPM; none on the very last step). The fresh noise keeps the samples varied, so different starting noise gives different images.
+where $\hat\varepsilon = \varepsilon_\theta(x_t, t)$ is the network's noise guess and $\varepsilon_\text{new}$ is a new draw of Gaussian noise, unrelated to that guess. In words: subtract a small, scaled amount of the predicted noise, rescale, then add back a little fresh random noise (with $\sigma_t^2 = \beta_t$ in the original DDPM; none on the very last step). Different starting noise $x_T$ gives different images; the fresh noise at each step adds more randomness along the way.
 
-The figure below starts with **DDIM**, a variant you will meet in a moment that uses the same predicted noise but skips the fresh noise, so you can follow each dot; switch it to DDPM to see the original method.
+The figure starts in a mode without the fresh noise, so you can follow each dot (this is **DDIM**, explained below); switch to DDPM to add it.
 
 <DenoiseStepper />
 
@@ -156,6 +156,7 @@ from torch import nn
 torch.manual_seed(0)
 T = 1000
 beta = torch.linspace(1e-4, 0.02, T)       # noise schedule
+# cumprod gives running products: a1, a1*a2, a1*a2*a3, ... (a_t = 1 - beta_t)
 abar = torch.cumprod(1 - beta, dim=0)       # abar[t - 1] = alpha-bar_t
 
 def real_data(n):                           # half near -2, half near +2
@@ -190,7 +191,7 @@ x = torch.randn(2000, 1)
 with torch.no_grad():
     for t in range(T, 0, -1):
         a, b = abar[t - 1], beta[t - 1]
-        tt = torch.full_like(x, t / T)
+        tt = torch.full_like(x, t / T)      # same shape as x, every entry t / T
         eps_hat = net(torch.cat([x, tt], dim=1))
         x = (x - b / (1 - a).sqrt() * eps_hat) / (1 - b).sqrt()
         if t > 1:
@@ -223,16 +224,16 @@ The samples split almost evenly between the two bumps, with roughly the right ce
 
 </Mistake>
 
-## Latent diffusion: how Stable Diffusion affords it
+## Latent diffusion: how Stable Diffusion runs on a gaming PC
 
-A $512 \times 512$ colour image is $3 \times 512 \times 512 = 786{,}432$ numbers, and the U-Net must process all of them at every one of dozens of steps. **Latent diffusion** (Rombach and colleagues, 2022), the method behind Stable Diffusion, adds one idea: first train a **variational autoencoder** (VAE, from the autoencoder lesson) whose encoder squeezes an image into a small <Term def="A compressed representation of the data inside a model; here a 4 × 64 × 64 grid of numbers that an autoencoder's decoder can turn back into a 512 × 512 image.">latent</Term> of shape $4 \times 64 \times 64 = 16{,}384$ numbers, and whose decoder can rebuild the image from it. Then run the whole diffusion process on latents instead of pixels:
+A $512 \times 512$ colour image is $3 \times 512 \times 512 = 786{,}432$ numbers, and the U-Net must process all of them at every one of dozens of steps. **Latent diffusion** (Rombach and colleagues, 2022), the method behind Stable Diffusion, adds one idea: first train a **variational autoencoder** (VAE, from [Autoencoders and VAEs](#/learn/generative-models/autoencoders-and-vaes)) whose encoder squeezes an image into a small <Term def="A compressed representation of the data inside a model; here a 4 × 64 × 64 grid of numbers that an autoencoder's decoder can turn back into a 512 × 512 image.">latent</Term> of shape $4 \times 64 \times 64 = 16{,}384$ numbers, and whose decoder can rebuild the image from it. Then run the whole diffusion process on latents instead of pixels:
 
 - **Training**: encode every training image into a latent, then train the U-Net to predict the noise added to latents.
 - **Generating**: start from random noise *in latent space*, denoise it step by step with the U-Net, then decode the final latent into pixels with the VAE decoder, **once**.
 
 The latent is $786{,}432 / 16{,}384 = 48$ times smaller, and it keeps the meaningful structure of the image while dropping fine pixel detail that the decoder can restore. That is what made high-quality text-to-image generation run on an ordinary gaming GPU.
 
-**Text conditioning.** The prompt is turned into numbers by a pretrained text encoder (the text half of CLIP for Stable Diffusion v1): 77 token vectors of 768 numbers each. Inside the U-Net, <Term def="Attention where the queries come from one sequence and the keys and values come from another. In Stable Diffusion, the image latent's positions ask questions (queries) and the prompt's tokens answer (keys and values).">cross-attention</Term> layers let every position in the latent ask "which words of the prompt matter for me?": the queries come from the latent, the keys and values from the text vectors.
+**Text conditioning.** The prompt is turned into numbers by a pretrained text encoder (the text half of <Term def="A model trained to match images with their captions; its text half turns a prompt into vectors. It is covered in the next module.">CLIP</Term> for Stable Diffusion v1): 77 token vectors of 768 numbers each. Inside the U-Net, <Term def="Attention where the queries come from one sequence and the keys and values come from another. In Stable Diffusion, the image latent's positions ask questions (queries) and the prompt's tokens answer (keys and values).">cross-attention</Term> layers (from [Encoder-decoder models](#/learn/pretrained-models-text-speech/encoder-decoder-models)) let every position in the latent ask "which words of the prompt matter for me?": the queries come from the latent, the keys and values from the text vectors.
 
 <LatentPipeline />
 

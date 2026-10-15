@@ -43,7 +43,9 @@ export default function DensityToBoundary() {
     pts.push([XD[1], 0])
     return pts
   }
-  const fmt = (v: number) => (v < 0.001 ? v.toExponential(1) : v.toFixed(3))
+  // no e-notation: tiny heights read as 0.0002, or ≈ 0 when they round to nothing
+  const fmt = (v: number) => (v < 0.00005 ? '≈ 0' : v < 0.001 ? v.toFixed(4) : v.toFixed(3))
+  const tick = (v: number) => (v === 0 ? '0' : Number.isInteger(v) ? String(v) : v.toFixed(1))
 
   return (
     <Figure
@@ -52,7 +54,7 @@ export default function DensityToBoundary() {
         <>
           Top: what a generative model knows, a hill <M>{'p(x \\mid y)\\,P(y)'}</M> for each class (drag the peaks; slide the class share). Bottom: the classifier you get by
           dividing, <M>{'P(B \\mid x)'}</M> = orange height ÷ (blue height + orange height). Now slide <M>x</M> to 11.5: the classifier is almost 100% sure it is B,
-          yet both hills are flat there, so <M>{'p(x)'}</M> warns that no training data looked like this. Tick the box to keep only the bottom curve, which is all a
+          yet both hills are flat there, so <M>{'p(x)'}</M> warns that no training data looked like this. Switch on the toggle to keep only the bottom curve, which is all a
           discriminative model learns: that warning is gone.
         </>
       }
@@ -87,16 +89,16 @@ export default function DensityToBoundary() {
           </Label>
         )}
         <VLine x={x} color="var(--viz-ink)" dash="3 3" />
-        <Axes xTicks={6} yTicks={4} tickFormat={(v) => v.toFixed(1)} />
+        <Axes xTicks={6} yTicks={4} yLabel="height" tickFormat={tick} />
         {!discOnly && (
           <>
-            <DraggablePoint x={muA} y={peakA} lockY color={COLA} r={7} onChange={(nx) => setMuA(Math.round(Math.min(10.5, Math.max(1, nx)) * 10) / 10)} label="" />
-            <DraggablePoint x={muB} y={peakB} lockY color={COLB} r={7} onChange={(nx) => setMuB(Math.round(Math.min(11, Math.max(1.5, nx)) * 10) / 10)} label="" />
+            <DraggablePoint x={muA} y={peakA} lockY color={COLA} r={7} onChange={(nx) => setMuA(Math.round(Math.min(10.5, Math.max(1, nx)) * 10) / 10)} label="" ariaLabel="class A peak" />
+            <DraggablePoint x={muB} y={peakB} lockY color={COLB} r={7} onChange={(nx) => setMuB(Math.round(Math.min(11, Math.max(1.5, nx)) * 10) / 10)} label="" ariaLabel="class B peak" />
           </>
         )}
       </Plot>
       <div style={head}>What both kinds of model can give you: P(B | x)</div>
-      <Plot x={XD} y={[0, 1]} width={520} height={150} minHeight={130} margin={{ left: 46, bottom: 30, top: 10 }} ariaLabel="The probability of class B given x, an S-shaped curve">
+      <Plot x={XD} y={[0, 1]} width={520} height={160} minHeight={140} margin={{ left: 46, bottom: 42, top: 10 }} ariaLabel="The probability of class B given x, an S-shaped curve">
         <Grid xTicks={12} yTicks={2} />
         <HLine y={0.5} />
         <FnPath f={post} color={COLB} width={2.8} />

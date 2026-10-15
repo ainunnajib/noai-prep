@@ -5,7 +5,7 @@ const questions: QuizQuestion[] = [
     id: 'prompting-and-rag.rag-pipeline.1',
     prompt: 'A user asks a RAG chatbot a question. In which order does the system handle it?',
     options: [
-      'Embed the question → retrieve the most similar chunks → add them to the prompt → generate the answer',
+      'Embed the question → retrieve the most similar chunks → add them to the prompt → only then generate',
       'Retrieve the most similar chunks → fine-tune the LLM on those chunks → generate the answer',
       'Embed the question → generate the answer → retrieve chunks that agree with it → attach them as citations',
       'Split the question into chunks → store them in the vector database → generate the answer from the database',
@@ -47,7 +47,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Retrieval: chunking, $k$ or the embeddings, so the library chunk reaches the prompt',
       'Generation: the model ignored the library chunk, so tighten the grounding instructions',
-      'Citations: add "cite every fact" to the prompt, so that the 6 pm answer gets a source',
+      'Citations: add "cite each fact" to the prompt, so that the 6 pm answer gets a source',
       'The LLM: switch to a larger model that is more likely to know the library hours',
     ],
     answer: 0,
@@ -60,8 +60,8 @@ const questions: QuizQuestion[] = [
     prompt:
       "A polyclinic wants a chatbot that answers patients' questions about its own opening hours, fees and procedures. These change every few weeks, and each answer should point to the page it came from. Which approach fits best?",
     options: [
-      "RAG over the clinic's own documents, re-indexing them whenever they change",
-      "Fine-tuning the LLM on the clinic's documents again every time they change",
+      "RAG over the clinic's own documents, re-indexing only the pages that change",
+      "Fine-tuning the LLM on the clinic's documents again each time they change",
       'Few-shot prompting with three example questions and answers about the clinic',
       "Training a new language model from scratch on the clinic's website",
     ],

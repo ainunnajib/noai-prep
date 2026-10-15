@@ -14,7 +14,7 @@ A forger prints fake \$10 notes. A bank inspector checks every note that comes i
 
 A GAN has two neural networks with opposite goals. The word <Term def="Set against each other, like opponents in a game. In a GAN, one network's gain is the other's loss.">adversarial</Term> means exactly that.
 
-- The <Term def="The network in a GAN that turns random noise into fake data (for example an image). It plays the forger.">generator</Term> $G$ is the forger. It takes a vector of random <Term def="Random numbers, usually drawn from a standard normal distribution, that a generator turns into an output. Different noise gives a different output.">noise</Term> $z$ (say 100 numbers drawn from a bell curve) and turns it into a fake example $G(z)$ with the same shape as the real data, for instance a $3 \times 64 \times 64$ colour image.
+- The <Term def="The network in a GAN that turns random noise into fake data (for example an image). It plays the forger.">generator</Term> $G$ is the forger. It takes a vector of random <Term def="Random numbers, usually drawn from a standard normal distribution, that a generator turns into an output. Different noise gives a different output.">noise</Term> $z$ (say 100 numbers drawn from a bell curve) and turns it into a fake example $G(z)$ with the same shape as the real data, for instance a $3 \times 64 \times 64$ colour image. This is exactly the $x_\text{new} = G(z)$ recipe from [Generative versus discriminative models](#/learn/generative-models/generative-vs-discriminative), now trained against a judge.
 - The <Term def="The network in a GAN that looks at one example and outputs the probability that it is real rather than produced by the generator. It plays the inspector.">discriminator</Term> $D$ is the inspector. It takes one example $x$, real or fake, and outputs a single number $D(x)$ between 0 and 1: its probability that $x$ is **real**. It is an ordinary binary classifier with a sigmoid at the end.
 
 | | Generator $G$ | Discriminator $D$ |
@@ -105,7 +105,7 @@ You will need $\ln 0.9 \approx -0.105$, $\ln 0.5 = -\ln 2 \approx -0.693$ and $\
     The generator matches the data, so $p_g = p_\text{data}$ and $D^* = \dfrac{p}{p + p} = 0.5$ everywhere. Now $\text{loss}_D = -\ln 0.5 - \ln 0.5 = 2\ln 2 \approx 1.39$ and $\text{loss}_G = -\ln 0.5 = \ln 2 \approx 0.69$. These are exactly the levels the loss chart in the first figure settled at.
   </Step>
   <Step title="The moral">
-    In ordinary training a falling loss means progress. In a GAN, the discriminator's loss *rising* to about 1.39 can mean success, and a discriminator loss near 0 means the generator is losing badly. GAN losses tell you who is winning, not how good the images are, so practitioners always look at the samples.
+    In ordinary training a falling loss means progress. In a GAN, the discriminator's loss *rising* to about 1.39 can mean success, and a discriminator loss near 0 means the generator is losing badly. GAN losses tell you who is winning, not how good the images are, so practitioners always look at the samples. To compare generators with a number, researchers use scores such as **FID** (Fréchet Inception Distance), which compares the statistics of generated and real images: lower is better, and it rewards both quality and variety.
   </Step>
 </Steps>
 
@@ -169,11 +169,11 @@ step 3000: fakes mean 3.51 std 0.46 | D(real) 0.46 D(fake) 0.45
 step 4000: fakes mean 3.39 std 0.37 | D(real) 0.47 D(fake) 0.47
 ```
 
-Read the output closely. Within a thousand steps the fakes' mean is near 3 and the discriminator scores real and fake numbers alike, just under 0.5. Yet the spread keeps swinging: 0.38, 1.07, 0.46, 0.37, against the real data's 0.7. That is GAN instability in miniature. With noisy mini-batches the game circles around the equilibrium instead of settling on it, and a discriminator that says about 0.5 to everything does not prove the fakes are right. (The figure above did settle, because it used exact averages instead of random mini-batches and a discriminator whose curve shape suits this problem perfectly.)
+Read the output closely. Within a thousand steps the fakes' mean is in the right region (between about 3.1 and 3.5) and the discriminator scores real and fake numbers alike, just under 0.5. Yet the spread keeps swinging: 0.38, 1.07, 0.46, 0.37, against the real data's 0.7, and it is mostly too narrow, a hint of partial collapse. That is GAN instability in miniature. With noisy mini-batches the game circles around the equilibrium instead of settling on it, and a discriminator that says about 0.5 to everything does not prove the fakes are right. (The figure above did settle, because it used exact averages instead of random mini-batches and a discriminator whose curve shape suits this problem perfectly.)
 
 <Reveal label="Going further: DCGAN for images">
 
-For images, the same loop works with convolutional networks. The classic design, <Term def="Deep Convolutional GAN (2015): a GAN whose generator upsamples noise into an image with transposed convolutions and whose discriminator is a convolutional classifier.">DCGAN</Term>, turns a noise vector into an image with **transposed convolutions** (the upsampling layers from the U-Net lesson), and its discriminator is a CNN classifier that runs the other way:
+For images, the same loop works with convolutional networks. The classic design, <Term def="Deep Convolutional GAN (2015): a GAN whose generator upsamples noise into an image with transposed convolutions and whose discriminator is a convolutional classifier.">DCGAN</Term>, turns a noise vector into an image with **transposed convolutions** (the upsampling layers from the [U-Net lesson](#/learn/vision-tasks/u-net-segmentation)), and its discriminator is a CNN classifier that runs the other way:
 
 ```python
 G = nn.Sequential(                          # noise (100, 1, 1)
@@ -213,7 +213,7 @@ Each `ConvTranspose2d(k=4, s=2, p=1)` doubles the size, because its output is $(
 
 - **Forgetting `.detach()`** in the discriminator's loss. Then `loss_D.backward()` runs on through $G$ as well. In the loop above that crashes: it frees $G$'s part of the graph, so `loss_G.backward()` raises `RuntimeError: Trying to backward through the graph a second time`. In loops that zero $G$'s gradients only once at the start of each iteration, the stray gradients from `loss_D` would instead be added to $G$'s update and push it to make fakes *easier* to catch.
 - **Labelling the fakes 0 in the generator's turn.** That trains $G$ to help the discriminator. The generator's target is 1.
-- **A sigmoid twice.** `nn.BCELoss` expects probabilities (sigmoid already applied). If $D$ outputs raw logits, use `nn.BCEWithLogitsLoss` instead, which applies the sigmoid itself and is more numerically stable.
+- **A sigmoid twice.** If $D$ already ends in `nn.Sigmoid`, use `nn.BCELoss`; if it outputs raw logits, use `nn.BCEWithLogitsLoss`, which applies the sigmoid itself and is more numerically stable. Pairing a `Sigmoid` layer with `BCEWithLogitsLoss` applies the sigmoid twice: no error is raised, but training is quietly weakened.
 
 </Mistake>
 
@@ -233,7 +233,7 @@ The classic test is a ring of 8 clusters. A healthy generator spreads its sample
 
 <ModeCollapseToggle />
 
-The second failure is plain <Term def="Training that never settles: the losses and outputs keep swinging, or the numbers blow up.">instability</Term>. The two players can chase each other in circles instead of settling down, or one can overpower the other: if the discriminator becomes perfect too early, it rejects every fake with total confidence and the generator gets almost no useful signal. You saw both in the first figure with extreme learning rates. There is no single loss going downhill, so ordinary gradient descent is not guaranteed to reach the equilibrium.
+The second failure is plain <Term def="Training that never settles: the losses and outputs keep swinging, or the numbers blow up.">instability</Term>. The two players can chase each other in circles instead of settling down, or one can overpower the other: if the discriminator becomes perfect too early, it rejects every fake with total confidence and the generator gets almost no useful signal. With the original $\ln(1 - D)$ loss the gradient vanishes outright; even with the non-saturating loss, a near-perfect $D$'s score is flat or erratic around the fakes, so the direction it gives $G$ is not much use. You saw both in the first figure with extreme learning rates. There is no single loss going downhill, so ordinary gradient descent is not guaranteed to reach the equilibrium.
 
 Researchers have found many fixes, none of them perfect:
 

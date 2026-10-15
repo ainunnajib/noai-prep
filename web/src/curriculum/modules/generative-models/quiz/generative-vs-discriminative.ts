@@ -5,10 +5,10 @@ const questions: QuizQuestion[] = [
     id: 'generative-models.generative-vs-discriminative.1',
     prompt: 'Which statement correctly pairs each model with what it learns?',
     options: [
-      'Logistic regression learns $P(y \\mid x)$; a diffusion model learns the image distribution $P(x)$',
-      'Logistic regression learns the joint $P(x, y)$; a GAN learns only $P(y \\mid x)$, real or fake',
-      'Naive Bayes learns only $P(y \\mid x)$; GPT learns a decision boundary between tokens',
-      'A random forest learns the input distribution $P(x)$; Stable Diffusion learns $P(y \\mid x)$',
+      'Logistic regression learns only $P(y \\mid x)$; a diffusion model learns the image distribution $P(x)$',
+      'Logistic regression learns the joint $P(x, y)$; a GAN learns only $P(y \\mid x)$, the chance an image is real',
+      'Naive Bayes learns only $P(y \\mid x)$ from word counts; GPT learns a decision boundary between tokens',
+      'A random forest learns the input distribution $P(x)$; Stable Diffusion learns $P(y \\mid x)$ for each image',
     ],
     answer: 0,
     explanation:
@@ -63,14 +63,14 @@ print(np.mean([free for spam, free in rows]))`,
     prompt:
       'A hospital has 50,000 heart scans, all from healthy patients. It wants to flag new scans that look unlike anything seen before, and to create realistic synthetic scans for teaching. Which approach fits both goals?',
     options: [
-      'A generative model of the scans, $P(x)$: a low $P(x)$ flags an odd scan, and sampling makes new ones',
-      'Train a discriminative classifier $P(y \\mid x)$ on the healthy scans, which learns a tight boundary around them',
-      'Train logistic regression with a high threshold, then run it backwards from the label to produce scans',
-      'Fit a decision tree, whose leaves store typical scans that can be handed out as new synthetic data',
+      'A generative model of $P(x)$, which needs only the healthy scans: a low $P(x)$ flags an odd scan, and sampling makes new ones',
+      'A discriminative classifier $P(y \\mid x)$ trained on the healthy scans, which learns a tight boundary around them and draws new scans inside it',
+      'Logistic regression with a high threshold to flag odd scans, then run backwards from the label "healthy" to produce new scans',
+      'A decision tree trained on the healthy scans, whose leaves store typical scans that can be handed out as new synthetic data',
     ],
     answer: 0,
     explanation:
-      'Both goals need knowledge of what scans look like: how typical a scan is ($P(x)$) and the ability to sample from that distribution. A classifier cannot even be trained here, because every scan has the same label, and $P(y \\mid x)$ cannot be "run backwards" to recover inputs. Decision-tree leaves store labels, not scans.',
+      'Both goals need knowledge of what scans look like: how typical a scan is ($P(x)$) and the ability to sample from that distribution, and a generative model can learn both from the healthy scans alone. A classifier cannot even be trained here, because every scan has the same label; a boundary holds nothing to draw new scans from, and $P(y \\mid x)$ cannot be "run backwards" to recover inputs. Decision-tree leaves store labels, not scans.',
     difficulty: 'intermediate',
   },
 ]

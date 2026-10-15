@@ -61,7 +61,8 @@ export default function JointEmbeddingSpace() {
 
   // ---- geometry
   const W = Math.max(280, Math.min(width, 760))
-  const H = Math.round(Math.max(300, Math.min(460, W * 0.7)))
+  // phones get a taller map, so the thumbnails and caption markers have room
+  const H = Math.round(Math.max(W < 420 ? 360 : 300, Math.min(460, W * 0.7)))
   const pad = 26
   const tsz = W < 420 ? 30 : W < 600 ? 36 : 44
   const px = (x: number) => pad + ((x + 1.15) / 2.3) * (W - 2 * pad)
@@ -170,7 +171,8 @@ export default function JointEmbeddingSpace() {
               Mix two ideas, e.g. <i>a bird flying over the sea</i>: it lands between the groups.
             </li>
           </ol>
-          <b>Notice:</b> trust the numbers in the list, which are true cosine similarities; the map is only a flattened sketch.
+          <b>Notice:</b> trust the numbers in the list, which are true cosine similarities (a negative one gets no bar); the map is only a flattened
+          sketch.
           <span className="fine">
             The map flattens a 40-dimensional toy space and nudges points so they do not overlap. The toy text encoder knows about 170 words (grey ones are
             ignored filler; struck-through ones are unknown to it).
@@ -264,7 +266,7 @@ export default function JointEmbeddingSpace() {
               const hi = hiCaps.has(j)
               return (
                 <g key={`c${j}`}>
-                  <rect x={p.x - 5} y={p.y - 5} width={10} height={10} transform={`rotate(45 ${p.x} ${p.y})`} style={{ fill: hi ? 'var(--viz-2)' : 'color-mix(in srgb, var(--viz-2) 55%, var(--surface))', stroke: 'var(--surface)', strokeWidth: 1.5 }}>
+                  <rect x={p.x - 5} y={p.y - 5} width={10} height={10} transform={`rotate(45 ${p.x} ${p.y})`} style={{ fill: hi ? 'var(--viz-2)' : 'color-mix(in srgb, var(--viz-2) 75%, var(--surface))', stroke: 'var(--surface)', strokeWidth: 1.5 }}>
                     <title>{t}</title>
                   </rect>
                 </g>
@@ -374,9 +376,10 @@ export default function JointEmbeddingSpace() {
                         {IMAGES[r.id].label}
                       </span>
                     ),
-                    value: Math.max(0, r.c),
+                    // signed value in the text; a negative cosine gets no bar
+                    value: r.c,
                     strong: k === 0,
-                    color: k < 3 ? 'var(--viz-4)' : 'var(--viz-muted)',
+                    color: r.c <= 0 ? 'transparent' : k < 3 ? 'var(--viz-4)' : 'var(--viz-muted)',
                   }))}
                 />
               ) : (
@@ -394,7 +397,12 @@ export default function JointEmbeddingSpace() {
                 ariaLabel="Captions ranked by cosine similarity to the picture"
                 format={fmt}
                 max={1}
-                data={capRank.slice(0, 5).map((r, k) => ({ label: `${k + 1}. ${r.t}`, value: Math.max(0, r.c), strong: k === 0, color: k < 3 ? 'var(--viz-2)' : 'var(--viz-muted)' }))}
+                data={capRank.slice(0, 5).map((r, k) => ({
+                  label: `${k + 1}. ${r.t}`,
+                  value: r.c,
+                  strong: k === 0,
+                  color: r.c <= 0 ? 'transparent' : k < 3 ? 'var(--viz-2)' : 'var(--viz-muted)',
+                }))}
               />
             </>
           )}

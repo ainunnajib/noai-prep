@@ -59,7 +59,7 @@ const questions: QuizQuestion[] = [
     id: 'generative-models.gans.5',
     prompt: 'A trained GAN generates an image in a fraction of a second, while a diffusion model of similar size takes much longer. Which statement explains the difference?',
     options: [
-      'The GAN needs one forward pass of its generator, while the diffusion model runs its denoising network once for every one of many denoising steps',
+      'The GAN needs one forward pass of its generator, while the diffusion model runs its denoising network once for every one of many steps',
       'The GAN skips its discriminator at generation time, while the diffusion model must also run a discriminator to check each image it makes',
       'The diffusion model is slower because it has far more parameters; with equal parameter counts both would need the same time',
       'The GAN generates at a lower resolution and then upsamples, while the diffusion model always works directly on full-resolution pixels',

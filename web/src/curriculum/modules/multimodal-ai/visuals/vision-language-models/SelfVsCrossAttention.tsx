@@ -171,7 +171,7 @@ export default function SelfVsCrossAttention() {
           <p className={s.split}>
             {mode === 'concat' ? (
               <>
-                {Math.round(imgShare * 100)}% of “{WORDS[sel]}”'s attention goes to the picture and {100 - Math.round(imgShare * 100)}% to {sel === 0 ? 'itself' : 'itself and earlier words'}.
+                {Math.round(imgShare * 100)}% of the attention from “{WORDS[sel]}” goes to the picture, and {100 - Math.round(imgShare * 100)}% to {sel === 0 ? 'the word itself' : 'itself and earlier words'}.
               </>
             ) : (
               <>Cross-attention only looks at the picture: the 16 patches share 100%.</>
@@ -203,7 +203,7 @@ export default function SelfVsCrossAttention() {
             {Array.from({ length: cols }, (_, c) => (
               <rect key={`h${c}`} x={gx + c * cell + 1} y={gy - 12} width={cell - 2} height={8} rx={2} style={{ fill: c < NI ? 'var(--viz-3)' : 'var(--viz-1)' }} />
             ))}
-            <text x={gx} y={gy - 18} style={{ fill: 'var(--ink-3)', fontSize: 10.5 }}>
+            <text x={gx} y={gy - 18} style={{ fill: 'var(--ink-2)', fontSize: 11.5 }}>
               keys: {mode === 'concat' ? '16 patches, then the words' : '16 patches'}
             </text>
             {/* rows */}
@@ -233,8 +233,8 @@ export default function SelfVsCrossAttention() {
               </g>
             ))}
             <rect x={gx - 2} y={gy + sel * cell - 2} width={cols * cell + 3} height={cell + 3} rx={3} style={{ fill: 'none', stroke: 'var(--viz-1)', strokeWidth: 2 }} />
-            <text x={gx} y={gy + NT * cell + 18} style={{ fill: 'var(--ink-3)', fontSize: 10.5 }}>
-              {mode === 'concat' ? 'grey = causal mask (no peeking at later words)' : 'rows: text queries · each row sums to 100%'}
+            <text x={gx} y={gy + NT * cell + 18} style={{ fill: 'var(--ink-2)', fontSize: 11.5 }}>
+              {mode === 'concat' ? 'grey = masked: a word cannot see later words' : 'rows: text queries · each row sums to 100%'}
             </text>
           </svg>
         </div>
