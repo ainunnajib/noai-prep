@@ -66,6 +66,7 @@ export const progress = {
     commit({ ...state, answers: { ...state.answers, [questionId]: hist } })
   },
   recordExam(rec: ExamRecord) {
+    if (state.exams.some((e) => e.id === rec.id)) return // the same attempt is only recorded once
     commit({ ...state, exams: [...state.exams, rec].slice(-50) })
   },
   reset() {

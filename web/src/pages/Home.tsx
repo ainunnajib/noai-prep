@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { FitLineDemo } from '../components/home/FitLineDemo'
 import { lessonHref, lessonSequence, modules, partList, totalMinutes } from '../curriculum/registry'
-import { PRELIM, FINAL, daysUntil } from '../data/facts'
+import { PRELIM, FINAL, daysUntil, nextMilestone } from '../data/facts'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { useProgress } from '../lib/progress'
 import { nextLesson } from './Roadmap'
 
@@ -9,8 +10,13 @@ export default function Home() {
   const prog = useProgress()
   const nxt = nextLesson(prog)
   const started = Object.keys(prog.lessons).length > 0
-  const days = daysUntil(PRELIM.date)
-  const weeks = Math.max(0, Math.floor(days / 7))
+  const next = nextMilestone()
+  const weeks = next ? Math.floor(next.days / 7) : 0
+  const hours = Math.round(totalMinutes / 60)
+  // hours a week to finish the course two weeks before the Prelim
+  const prelimDays = daysUntil(PRELIM.date)
+  const perWeek = prelimDays > 21 ? Math.ceil(hours / ((prelimDays - 14) / 7)) : null
+  useDocumentTitle()
 
   return (
     <div className="page">
@@ -34,6 +40,10 @@ export default function Home() {
               What's in the exam?
             </Link>
           </div>
+          <p className="hero-time">
+            About {hours} hours in total{perWeek ? `: roughly ${perWeek} hours a week finishes the course two weeks before the Prelim` : ''}.{' '}
+            <Link to="/plan">Make my study plan →</Link>
+          </p>
         </div>
         <div className="hero-demo">
           <FitLineDemo />
@@ -41,14 +51,23 @@ export default function Home() {
       </section>
 
       <div className="examstrip" aria-label="NOAI 2027 at a glance">
-        <div className="examstrip-item">
-          <span className="eyebrow">Prelim</span>
-          <span className="examstrip-big">
-            {days > 0 ? days : 0}
-            <small> days</small>
-          </span>
-          <span className="examstrip-label">until {PRELIM.dateLabel.replace(', 9:30 am', '')}{weeks ? ` (${weeks} weeks)` : ''}</span>
-        </div>
+        {next && (
+          <div className="examstrip-item">
+            <span className="eyebrow">{next.name}</span>
+            {next.days === 0 ? (
+              <span className="examstrip-big">Today</span>
+            ) : (
+              <span className="examstrip-big">
+                {next.days}
+                <small> {next.days === 1 ? 'day' : 'days'}</small>
+              </span>
+            )}
+            <span className="examstrip-label">
+              {next.days === 0 ? next.dateLabel : `until ${next.dateLabel}`}
+              {weeks ? ` (${weeks} weeks)` : ''}
+            </span>
+          </div>
+        )}
         <div className="examstrip-item">
           <span className="eyebrow">Format</span>
           <span className="examstrip-big">

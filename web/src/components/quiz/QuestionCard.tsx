@@ -36,7 +36,7 @@ export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, 
         <RichText text={q.prompt} />
         {q.code && <CodeBlock code={q.code} language={q.codeLang ?? 'python'} />}
       </div>
-      <div className="qcard-options" role="radiogroup" aria-label="Answer options">
+      <div className="qcard-options" role="group" aria-label="Answer options">
         {order.map((orig, pos) => {
           const isSel = selected === orig
           const isAns = orig === q.answer
@@ -44,15 +44,18 @@ export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, 
           if (revealed && isAns) state = ' is-answer'
           else if (revealed && isSel && !isAns) state = ' is-chosen-wrong'
           else if (isSel) state = ' is-selected'
+          // aria-disabled (not disabled) once answered, so keyboard focus stays on the chosen option
+          const locked = revealed || !onSelect
           return (
             <button
               key={orig}
               type="button"
-              role="radio"
-              aria-checked={isSel}
-              className={`qopt${state}`}
-              disabled={revealed || !onSelect}
-              onClick={() => onSelect?.(orig)}
+              aria-pressed={isSel}
+              aria-disabled={locked || undefined}
+              className={`qopt${state}${locked ? ' is-locked' : ''}`}
+              onClick={() => {
+                if (!locked) onSelect?.(orig)
+              }}
             >
               <span className="qopt-letter" aria-hidden="true">
                 {LETTERS[pos]}
@@ -66,12 +69,20 @@ export function QuestionCard({ q, selected, onSelect, revealed, shuffle = true, 
           )
         })}
       </div>
-      {revealed && (
-        <div className="qcard-explain">
-          <div className="qcard-verdict">{selected == null ? 'Not answered' : correct ? 'Correct' : 'Not quite'}</div>
-          <RichText text={q.explanation} />
-        </div>
-      )}
+      {/* a live region, so screen readers announce the verdict when it appears */}
+      <div aria-live="polite">
+        {revealed && (
+          <div className="qcard-explain">
+            <div className="qcard-verdict">{selected == null ? 'Not answered' : correct ? 'Correct' : 'Not quite'}</div>
+            <RichText text={q.explanation} />
+            {q.caveat && (
+              <p className="qcard-caveat">
+                <strong>Note:</strong> <RichText text={q.caveat} inline />
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </article>
   )
 }

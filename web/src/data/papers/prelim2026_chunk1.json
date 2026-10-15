@@ -69,7 +69,8 @@
    ],
    "explanation": "Two $3 \\times 3$ matrices can be added and subtracted (same shape, done element by element) and multiplied (inner dimensions $3 = 3$ match). There is no 'division' operation for matrices. The closest idea is multiplying by an inverse, $AB^{-1}$, and that only works when $B$ is invertible (and $AB^{-1} \\neq B^{-1}A$ in general, so even that is not a single well-defined 'division'). So $A \\div B$ is the operation that is not defined.",
    "confidence": "high",
-   "notes": "In NumPy, A / B on two arrays is element-wise division and does run, but as a matrix operation (linear algebra), division is undefined. The intended answer is clear."
+   "notes": "In NumPy, A / B on two arrays is element-wise division and does run, but as a matrix operation (linear algebra), division is undefined. The intended answer is clear.",
+   "caveat": "In NumPy, A / B on two arrays is element-wise division and does run, but as a matrix operation (linear algebra), division is undefined. The intended answer is clear."
   },
   {
    "n": 4,
@@ -92,7 +93,8 @@
    ],
    "explanation": "The identity matrix has 1s on the main diagonal and 0s everywhere else, e.g. $I_2 = \\begin{bmatrix}1 & 0\\\\ 0 & 1\\end{bmatrix}$. That is why $AI = IA = A$: it is the matrix version of the number 1. A matrix of all 1s is the 'ones matrix', and a matrix of all 0s is the zero matrix, which are both different things. The last option is a trap: $I^T = I = I^{-1}$ is *also* true, but it describes all orthogonal matrices, not just the identity. The *defining* property is the diagonal of 1s.",
    "confidence": "high",
-   "notes": "Flawed options: 'Transpose equals inverse' is also a true statement about I (I is orthogonal, so I^T = I^{-1} = I). The intended answer is the defining property (index 1), and the official NOAI self-assessment tool (noai.aisingapore.org/preliminary-trial) keys index 1 too. Grammar 'has' (should be 'have') and the Roman-numeral glyph 'Ⅰ' are normalised to 'I' from the source."
+   "notes": "Flawed options: 'Transpose equals inverse' is also a true statement about I (I is orthogonal, so I^T = I^{-1} = I). The intended answer is the defining property (index 1), and the official NOAI self-assessment tool (noai.aisingapore.org/preliminary-trial) keys index 1 too. Grammar 'has' (should be 'have') and the Roman-numeral glyph 'Ⅰ' are normalised to 'I' from the source.",
+   "caveat": "Flawed options: 'Transpose equals inverse' is also true of the identity matrix (I is orthogonal, so Iᵀ = I⁻¹ = I). The intended answer is the defining property (option B), which AI Singapore's online self-assessment tool also keys."
   },
   {
    "n": 5,
@@ -295,7 +297,8 @@
    ],
    "explanation": "Entry $(i, j)$ of the covariance matrix is $\\mathrm{Cov}(X_i, X_j) = E[(X_i - \\mu_i)(X_j - \\mu_j)]$. Swapping $i$ and $j$ just swaps the two factors in the product, which gives the same number. So $\\Sigma_{ij} = \\Sigma_{ji}$ and the matrix equals its own transpose. It has nothing to do with the data being 'symmetric'. PCA *uses* this symmetry (it guarantees real eigenvalues and orthogonal eigenvectors), but PCA is not the cause. The matrix form $\\Sigma = \\frac{1}{n-1}X_c^TX_c$ is symmetric too, but that comes from the same fact underneath.",
    "confidence": "high",
-   "notes": "Option D is partly defensible, because the matrix form (1/(n-1)) X_c^T X_c is symmetric by transpose rules. Option A is the intended and most fundamental reason, and the official self-assessment tool keys A."
+   "notes": "Option D is partly defensible, because the matrix form (1/(n-1)) X_c^T X_c is symmetric by transpose rules. Option A is the intended and most fundamental reason, and the official self-assessment tool keys A.",
+   "caveat": "Option D is partly defensible, because the matrix form (1/(n-1)) X_c^T X_c is symmetric by transpose rules. Option A is the intended and most fundamental reason, and the official self-assessment tool keys A."
   },
   {
    "n": 14,
@@ -409,7 +412,8 @@
    ],
    "explanation": "An orthogonal matrix $W$ preserves vector length: $\\|Wx\\| = \\|x\\|$, because all its singular values equal 1. When signals pass through many layers, both forwards (activations) and backwards (gradients), they are multiplied by the weight matrices again and again. With orthogonal weights they neither blow up nor shrink towards zero. It does not save memory or speed up computation (the matrix has the same size), and it does not change how many functions the network can represent.",
    "confidence": "high",
-   "notes": "The premise 'prefer' is overstated. He/Xavier initialisation are the usual defaults, and orthogonal initialisation is used mainly in RNNs and very deep networks. The intended answer is clear."
+   "notes": "The premise 'prefer' is overstated. He/Xavier initialisation are the usual defaults, and orthogonal initialisation is used mainly in RNNs and very deep networks. The intended answer is clear.",
+   "caveat": "The premise 'prefer' is overstated. He/Xavier initialisation are the usual defaults, and orthogonal initialisation is used mainly in RNNs and very deep networks. The intended answer is clear."
   },
   {
    "n": 19,
@@ -454,7 +458,8 @@
    ],
    "explanation": "QR decomposition writes $A = QR$, where $Q$ is **orthogonal** (its columns are orthonormal, so $Q^TQ = I$) and $R$ is **upper triangular**. You can think of it as Gram-Schmidt: $Q$ holds the orthonormalised columns of $A$, and $R$ records how to rebuild the original columns from them. 'Upper triangular' is the classic mix-up, because it describes $R$, not $Q$.",
    "confidence": "high",
-   "notes": "For a non-square (tall) A, the reduced QR gives a Q with orthonormal columns rather than a square orthogonal matrix. That does not change the answer."
+   "notes": "For a non-square (tall) A, the reduced QR gives a Q with orthonormal columns rather than a square orthogonal matrix. That does not change the answer.",
+   "caveat": "For a non-square (tall) A, the reduced QR gives a Q with orthonormal columns rather than a square orthogonal matrix. That does not change the answer."
   },
   {
    "n": 21,
@@ -477,7 +482,8 @@
    ],
    "explanation": "A symmetric matrix $A$ is positive definite when $x^TAx > 0$ for every non-zero $x$. This is equivalent to **all eigenvalues being positive**. Positive entries are not enough: $\\begin{bmatrix}1 & 2\\\\ 2 & 1\\end{bmatrix}$ has all entries $> 0$ but eigenvalues $3$ and $-1$. $\\det > 0$ is not enough either: $-I$ has $\\det = (-1)(-1) = 1 > 0$ but eigenvalues $-1, -1$. $\\det > 0$ and trace $> 0$ are *necessary* (they are the product and sum of positive eigenvalues) but not *sufficient* in general.",
    "confidence": "high",
-   "notes": "Positive definiteness is normally defined for symmetric (Hermitian) matrices, and the question leaves this out. For a non-symmetric matrix, positive eigenvalues are not enough: [[1, 10], [0, 1]] has eigenvalues 1, 1, but x = [1, -1] gives x^T A x = -8. The intended answer (all eigenvalues > 0, for a symmetric matrix) is clear."
+   "notes": "Positive definiteness is normally defined for symmetric (Hermitian) matrices, and the question leaves this out. For a non-symmetric matrix, positive eigenvalues are not enough: [[1, 10], [0, 1]] has eigenvalues 1, 1, but x = [1, -1] gives x^T A x = -8. The intended answer (all eigenvalues > 0, for a symmetric matrix) is clear.",
+   "caveat": "Positive definiteness is normally defined for symmetric (Hermitian) matrices, and the question leaves this out. For a non-symmetric matrix, positive eigenvalues are not enough: [[1, 10], [0, 1]] has eigenvalues 1, 1, but x = [1, -1] gives x^T A x = -8. The intended answer (all eigenvalues > 0, for a symmetric matrix) is clear."
   },
   {
    "n": 22,
@@ -569,7 +575,8 @@
    ],
    "explanation": "In spectral clustering, the data points become nodes in a similarity graph. The eigenvectors of its Laplacian $L = D - W$ with the smallest eigenvalues change slowly across strongly connected nodes. So points in the same cluster get similar coordinates in these eigenvectors; in the ideal case of $k$ completely separate groups, the eigenvalue $0$ appears $k$ times and its eigenvectors are spanned by the 'indicator' vectors of the groups. Running k-means on these coordinates then separates the clusters, even ring-shaped ones. Using a few eigenvectors does give a lower-dimensional embedding, but that is a side effect of exposing the cluster structure (and eigendecomposition is expensive, not a speed-up).",
    "confidence": "high",
-   "notes": "Option C (reduce dimensionality) is partly true as a side effect. Option A is the intended reason."
+   "notes": "Option C (reduce dimensionality) is partly true as a side effect. Option A is the intended reason.",
+   "caveat": "Option C (reduce dimensionality) is partly true as a side effect. Option A is the intended reason."
   },
   {
    "n": 26,
@@ -816,7 +823,8 @@
    ],
    "explanation": "$\\mathrm{ReLU}(x) = \\max(0, x)$ has a sharp corner at $x = 0$. The slope from the left is 0 and from the right is 1, so the derivative is **undefined** at exactly 0, and the derivative function jumps (is discontinuous) there. It is never infinite (there is no vertical tangent) and never negative (it is 0 or 1). In practice, frameworks simply pick a subgradient, usually 0, at $x = 0$, so this rarely causes trouble.",
    "confidence": "high",
-   "notes": "ReLU itself is continuous at 0. It is the derivative that is undefined there and discontinuous around it, and 'problematic' overstates how much this matters in practice. The intended answer is clear."
+   "notes": "ReLU itself is continuous at 0. It is the derivative that is undefined there and discontinuous around it, and 'problematic' overstates how much this matters in practice. The intended answer is clear.",
+   "caveat": "ReLU itself is continuous at 0. It is the derivative that is undefined there and discontinuous around it, and 'problematic' overstates how much this matters in practice. The intended answer is clear."
   },
   {
    "n": 37,
@@ -1112,7 +1120,8 @@
    ],
    "explanation": "The favourable outcomes are 5 and 6, which is 2 of the 6 equally likely faces. So $P(\\ge 5) = 2/6 = 1/3$. '1/6' counts only one face (e.g. just 6, the probability of '> 5'). '1/2' would be $P(\\ge 4)$, i.e. faces 4, 5, 6.",
    "confidence": "high",
-   "notes": "Not in the official self-assessment tool: the tool's item 49 duplicates the Hessian question (n=38) instead, which is why it lists 299 unique questions. The answer was checked by enumerating the outcomes {5, 6} out of 6, which gives 1/3."
+   "notes": "Not in the official self-assessment tool: the tool's item 49 duplicates the Hessian question (n=38) instead, which is why it lists 299 unique questions. The answer was checked by enumerating the outcomes {5, 6} out of 6, which gives 1/3.",
+   "caveat": "The answer was checked by enumerating the outcomes {5, 6} out of 6, which gives 1/3."
   },
   {
    "n": 50,

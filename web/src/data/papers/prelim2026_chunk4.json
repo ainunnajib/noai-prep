@@ -120,7 +120,8 @@
    ],
    "explanation": "Boosting starts from **weak learners** (e.g. very shallow trees or stumps) that underfit, i.e. have high bias, and adds them sequentially so each one fixes the errors of the current ensemble. This step-by-step correction is what drives the **bias** down. Reducing variance is the main job of bagging, so \"Variance only\" is the classic mix-up. (Boosting can sometimes lower variance a little too, but its primary effect — and the textbook answer — is bias reduction; too many rounds can even increase variance by overfitting.)",
    "confidence": "high",
-   "notes": "Textbook simplification: boosting mainly reduces bias but can also reduce variance somewhat; 'Bias' is clearly the intended answer."
+   "notes": "Textbook simplification: boosting mainly reduces bias but can also reduce variance somewhat; 'Bias' is clearly the intended answer.",
+   "caveat": "Textbook simplification: boosting mainly reduces bias but can also reduce variance somewhat; 'Bias' is clearly the intended answer."
   },
   {
    "n": 156,
@@ -591,7 +592,8 @@
    ],
    "explanation": "Good initialisation does two jobs. First, it **breaks symmetry**: if all weights start equal (e.g. all zeros), every neuron in a layer computes the same thing and receives the same gradient, so they never become different. Second, using the right scale (Xavier/He) keeps activations and gradients from shrinking or exploding through the layers, so training converges. The intended answer is the third option, although its wording is garbled: initialisation *achieves* (enables) symmetry breaking rather than *preventing* it. \"Random is fine\" is wrong because the **scale** of the random values matters a lot, especially in deep networks.",
    "confidence": "medium",
-   "notes": "Option wording is flawed: proper initialisation ENABLES symmetry breaking (it breaks symmetry), it does not 'prevent symmetry breaking'. Still clearly the intended answer since the other options are plainly false."
+   "notes": "Option wording is flawed: proper initialisation ENABLES symmetry breaking (it breaks symmetry), it does not 'prevent symmetry breaking'. Still clearly the intended answer since the other options are plainly false.",
+   "caveat": "Option wording is flawed: proper initialisation ENABLES symmetry breaking (it breaks symmetry), it does not 'prevent symmetry breaking'. Still clearly the intended answer since the other options are plainly false."
   },
   {
    "n": 176,
@@ -639,7 +641,8 @@
    ],
    "explanation": "For a ReLU layer with fan-in $n$, the activation variance is multiplied by about $n\\,\\sigma_w^2/2$ per layer. With $\\sigma_w=0.01$ and $n=256$ that factor is $256\\times10^{-4}/2\\approx0.013$ (std shrinks about $\\times0.11$), so after 10 layers activations are around $10^{-10}$ of their original size — and the backward pass shrinks gradients the same way (a quick PyTorch simulation with 256 units per layer gives final activations with std $\\approx2.5\\times10^{-10}$ and weight gradients of only about $10^{-11}$, versus roughly $10^{-3}$ to $10^{-1}$ with He init). He init uses $\\sigma_w^2=2/n$, making that factor exactly 1, so signals keep their scale. Option A is tempting but wrong: ReLU still outputs non-zero values for about half the units (they are just *tiny*), it does not output all zeros. ReLU works fine with negative weights, and the main issue is exponential shrinkage, not float32 underflow (float32 can represent values down to about $10^{-38}$).",
    "confidence": "medium",
-   "notes": "AI Singapore's key marks 'Small weights make ReLU output all zeros, blocking gradient flow'; we believe 'Small weight initialisation causes activations to shrink exponentially through layers, leading to vanishing gradients' because the official Self-Assessment Tool shows this question with a different option D ('Small weight initialisation causes random walk instead of learning'), so its key was chosen without the vanishing-gradient option on offer. With the PDF's options, D is the precise textbook explanation: ReLU outputs become tiny, not literally all zero. Option A describes the same symptom loosely ('blocking gradient flow'), so if your paper shows the tool's version of option D, choose A."
+   "notes": "AI Singapore's key marks 'Small weights make ReLU output all zeros, blocking gradient flow'; we believe 'Small weight initialisation causes activations to shrink exponentially through layers, leading to vanishing gradients' because the official Self-Assessment Tool shows this question with a different option D ('Small weight initialisation causes random walk instead of learning'), so its key was chosen without the vanishing-gradient option on offer. With the PDF's options, D is the precise textbook explanation: ReLU outputs become tiny, not literally all zero. Option A describes the same symptom loosely ('blocking gradient flow'), so if your paper shows the tool's version of option D, choose A.",
+   "caveat": "AI Singapore's key marks 'Small weights make ReLU output all zeros, blocking gradient flow'; we believe 'Small weight initialisation causes activations to shrink exponentially through layers, leading to vanishing gradients' because the official Self-Assessment Tool shows this question with a different option D ('Small weight initialisation causes random walk instead of learning'), so its key was chosen without the vanishing-gradient option on offer. With the PDF's options, D is the precise textbook explanation: ReLU outputs become tiny, not literally all zero. Option A describes the same symptom loosely ('blocking gradient flow'), so if your paper shows the tool's version of option D, choose A."
   },
   {
    "n": 178,

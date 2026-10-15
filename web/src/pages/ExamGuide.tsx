@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { CONTACT_EMAIL, DOMAINS, FACTS_CHECKED_ON, FINAL, FORMAT_HISTORY, FUNNEL, IOAI_RESULTS, LINKS, PRELIM, TIMELINE, daysUntil } from '../data/facts'
-import { useEffect, useState } from 'react'
+import { CONTACT_EMAIL, DOMAINS, FACTS_CHECKED_ON, FINAL, FORMAT_HISTORY, FUNNEL, IOAI_RESULTS, LINKS, PRELIM, TIMELINE, daysUntil, nextMilestone, plural } from '../data/facts'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { useState } from 'react'
 import { Bars } from '../components/interactive/Bars'
 import { SUBTOPIC_LABEL } from '../data/bank'
 import paperStats from '../data/paperStats.json'
@@ -36,14 +37,14 @@ function CopyEmail() {
 }
 
 export default function ExamGuide() {
-  const days = daysUntil(PRELIM.date)
   const today = new Date()
-  useEffect(() => {
-    document.title = 'NOAI 2027 exam guide · NOAI Prep'
-    return () => {
-      document.title = 'NOAI Prep'
-    }
-  }, [])
+  const next = nextMilestone(today)
+  const writeInDays = daysUntil('2026-11-27T23:59:00+08:00', today)
+  const schoolDays = daysUntil('2027-01-15T23:59:00+08:00', today)
+  const longest = paperStats.cues.longest
+  const absolute = paperStats.cues.absoluteStart
+  const pct = (r: { right: number; of: number }) => Math.round((100 * r.right) / r.of)
+  useDocumentTitle('NOAI 2027 exam guide')
 
   return (
     <div className="page">
@@ -54,11 +55,32 @@ export default function ExamGuide() {
           The National Olympiad in Artificial Intelligence is run by AI Singapore. It has two rounds, and the strongest finalists go on to NTU's selection and training
           for the International Olympiad in AI, which Singapore hosts in July 2027.
         </p>
-        {days > 0 && (
+        {next && (
           <div className="lesson-meta">
-            <span className="chip tabular" style={{ color: 'var(--accent)', borderColor: 'var(--accent-line)' }}>
-              Preliminary Round in {days} days
+            <span className="chip chip-accent tabular">
+              {next.days === 0 ? `${next.name}: today` : `${next.name} in ${plural(next.days, 'day')}`}
             </span>
+          </div>
+        )}
+        {(writeInDays >= 0 || schoolDays >= 0) && (
+          <div className="guide-now" role="note" aria-label="Do this now">
+            <strong>Do this now</strong>
+            <ul>
+              {schoolDays >= 0 && (
+                <li>
+                  <b>In an MOE school, IP, JC, ITE or poly:</b> ask your school's NOAI teacher representative whether your school has signed up. Schools register interest by 15 Jan
+                  2027, and only 12 had done so by 29 Sep 2026 (the list is on the <a href={LINKS.noai2027}>NOAI 2027 page</a>). Students cannot register on their own.
+                </li>
+              )}
+              {writeInDays >= 0 && (
+                <li>
+                  <b>Not in an MOE school:</b> email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> by 27 Nov 2026 ({plural(writeInDays, 'day')} left).
+                  Home-schooled Singapore Citizens and PRs: give your full name, age and learning arrangement. Between schools (for example, finished Sec 4 and joining a JC or
+                  poly): your name, your most recent school and where you will study next. Private or international school students: your name, school, year level and
+                  nationality (decided case by case, with no guarantee).
+                </li>
+              )}
+            </ul>
           </div>
         )}
       </div>
@@ -106,26 +128,33 @@ export default function ExamGuide() {
           <span className="eyebrow">What is tested</span>
           <h2 id="g-domains">Five domains, roughly equal weight</h2>
           <p>
-            These are AI Singapore's official assessment areas. In the 2026 Preliminary Round the 300 questions were split almost evenly across the five domains, so you cannot
-            skip any of them.
+            These are AI Singapore's official assessment areas, with how the 2026 paper split them. The 300 questions of the 2026 Preliminary Round were divided almost evenly
+            across five blocks, so you cannot skip any of them.
           </p>
         </div>
         <div className="domains">
           {DOMAINS.map((d) => (
             <div key={d.domain} className={`domain-card dom-${d.domain}`}>
               <h3>{d.title}</h3>
-              <ul>
-                {d.items.map((i) => (
-                  <li key={i}>{i}</li>
-                ))}
-              </ul>
+              {d.items.length > 0 ? (
+                <ul>
+                  {d.items.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="domain-note">
+                  A separate fifth block in the 2026 paper and the FAQ; AI Singapore gives no sub-list. By our tags, the 2026 block was mostly CNNs and vision (21 questions),
+                  NLP and transformers (12), LLMs (10), and prompting and RAG (4).
+                </p>
+              )}
               <span className="domain-share tabular">{d.share2026} of 300 questions in 2026</span>
             </div>
           ))}
         </div>
         <p className="fineprint" style={{ marginTop: '0.75rem' }}>
-          The 2027 page lists Generative AI inside AI/ML/DL; the 2026 paper and the FAQ count it as a separate fifth domain. Question counts are from AI Singapore's Self-Assessment
-          Tool tags.
+          The 2027 page lists the first four areas, with GenAI inside AI/ML/DL; the 2026 paper and the FAQ count Generative AI as a separate fifth block. Question counts are
+          the sizes of the official blocks in the 2026 paper; the topics inside a block do not always match its name.
         </p>
       </section>
 
@@ -198,14 +227,15 @@ export default function ExamGuide() {
         </div>
         <div className="funnel">
           {FUNNEL.map((f, i) => (
-            <div key={f.n} className="funnel-row" style={{ width: `${100 - i * 11}%`, ['--mix' as string]: `${12 + i * 14}%` }}>
+            <div key={f.n} className="funnel-row" style={{ ['--w' as string]: `${100 - i * 11}%`, ['--mix' as string]: `${12 + i * 14}%` }}>
               <strong>{f.n}</strong>
               <span>{f.label}</span>
             </div>
           ))}
         </div>
         <p className="fineprint" style={{ marginTop: '0.75rem' }}>
-          The NTU stage re-ranks students: at IOAI 2025, a NOAI Bronze winner placed 2nd in the world.
+          Singapore sent 8 contestants (two teams of 4) in past years. From 2027 IOAI allows one national team per country, normally up to 4 contestants; any extra places for
+          the host have not been announced. The NTU stage re-ranks students: at IOAI 2025, a NOAI Bronze winner placed 2nd in the world.
         </p>
       </section>
 
@@ -256,9 +286,11 @@ export default function ExamGuide() {
               <li>Learn to trace short Python, NumPy and PyTorch snippets in your head (shapes, slicing, list aliasing, broadcasting).</li>
               <li>Ties may be broken by domain performance and time taken, so steady pacing matters.</li>
               <li>
-                If you must guess, eliminate first, then lean on a pattern from the 2026 paper: when one option was clearly longer and more specific than the rest, it was the
-                answer 85% of the time (205 of 240), and options starting with absolute words like <em>always</em>, <em>never</em> or <em>only</em> were right just once in 69.
-                It's a habit of past question writers, not a rule, so use it last.
+                Last resort only, after eliminating what you can: in the 2026 paper, the option longer than all the others was the answer in {longest.right} of {longest.of}{' '}
+                questions ({pct(longest)}%), but only {longest.byDomain.mathematics.right} of {longest.byDomain.mathematics.of} in Mathematics and{' '}
+                {longest.lastThirty.right} of {longest.lastThirty.of} in the long scenarios at the end. Options starting with <em>always</em>, <em>never</em>, <em>only</em>,{' '}
+                <em>cannot</em>, <em>all</em> or <em>none</em> were right {absolute.right === 1 ? 'once' : `${absolute.right} times`} in {absolute.of}. This is a habit of past
+                question writers, not a rule, and the 2027 setters may have changed it.
               </li>
             </ul>
             <Link to="/mock" className="btn btn-primary" style={{ justifySelf: 'start' }}>

@@ -19,6 +19,8 @@ export const LINKS = {
   noai2025Repo: 'https://github.com/AISGNUSNOAI/NOAI-2025',
   ioaiGithub: 'https://github.com/ioai-official',
   aicc: 'https://aicc-official.org/',
+  /** this site's source code and issue tracker */
+  siteIssues: 'https://github.com/ainunnajib/noai-prep/issues',
   prelim2026Pdf: 'https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf',
   final2026Pdf: 'https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Final-Assessment-Section-1-MCQs-Google-Forms.pdf',
 }
@@ -72,7 +74,7 @@ export const FUNNEL = [
   { n: '150', label: 'Finalists from the Preliminary Round' },
   { n: '~60', label: 'Invited to the NTU Selection Test' },
   { n: '~10', label: 'Residential training camp (2026: 10 students)' },
-  { n: '4–8', label: 'Singapore’s IOAI team (8 in past years; from 2027 IOAI allows one national team per country)' },
+  { n: '4–8', label: 'Singapore’s IOAI team' },
 ]
 
 export const DOMAINS = [
@@ -91,13 +93,13 @@ export const DOMAINS = [
   {
     domain: 'ai_ml_dl' as const,
     title: 'AI / ML / DL',
-    items: ['Classical machine learning', 'Neural networks', 'Computer vision', 'Natural language processing'],
+    items: ['Classical ML', 'Neural networks', 'Computer vision', 'NLP', 'GenAI'],
     share2026: 59,
   },
   {
     domain: 'generative_ai' as const,
     title: 'Generative AI',
-    items: ['Large language models', 'Generative models (GANs, VAEs, diffusion)', 'Multimodal AI', 'Responsible AI'],
+    items: [],
     share2026: 59,
   },
   {
@@ -121,7 +123,34 @@ export const IOAI_RESULTS = [
   { year: 'IOAI 2027 · Singapore', result: 'Host country, 4–10 July 2027' },
 ]
 
+/** Whole calendar days from today to the date, counted in Singapore time: 0 means today, 1 means tomorrow. */
 export function daysUntil(iso: string, now = new Date()): number {
-  const ms = new Date(iso).getTime() - now.getTime()
-  return Math.ceil(ms / 86400000)
+  const sgDay = (d: Date) => Math.floor((d.getTime() + 8 * 3600000) / 86400000)
+  return sgDay(new Date(iso)) - sgDay(now)
+}
+
+/** "1 day", "2 days" */
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+export interface Milestone {
+  name: string
+  iso: string
+  dateLabel: string
+}
+
+/** Dated milestones in order, for countdowns. */
+export const MILESTONES: Milestone[] = [
+  { name: 'Preliminary Round', iso: '2027-02-19T09:30:00+08:00', dateLabel: 'Friday 19 February 2027' },
+  { name: 'Final Assessment', iso: '2027-03-05T09:30:00+08:00', dateLabel: 'Friday 5 March 2027' },
+  { name: 'NTU Selection Test', iso: '2027-05-08T09:00:00+08:00', dateLabel: 'Saturday 8 May 2027' },
+  { name: 'IOAI 2027 in Singapore', iso: '2027-07-04T09:00:00+08:00', dateLabel: '4–10 July 2027' },
+]
+
+/** The next milestone that is today or later, with the days left (0 = today). */
+export function nextMilestone(now = new Date()): (Milestone & { days: number }) | null {
+  for (const m of MILESTONES) {
+    const days = daysUntil(m.iso, now)
+    if (days >= 0) return { ...m, days }
+  }
+  return null
 }

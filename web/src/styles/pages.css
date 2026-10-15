@@ -38,6 +38,11 @@
   flex-wrap: wrap;
   gap: 0.6rem;
 }
+.hero-time {
+  margin: 0.9rem 0 0;
+  color: var(--ink-2);
+  font-size: var(--step--1);
+}
 .hero-demo {
   min-width: 0;
 }
@@ -545,6 +550,7 @@
   justify-items: center;
 }
 .funnel-row {
+  width: var(--w, 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -566,6 +572,35 @@
 .funnel-row span {
   font-size: 0.95rem;
   text-align: right;
+}
+@media (max-width: 600px) {
+  /* narrow screens: rows shrink only a little and labels read left to right */
+  .funnel-row {
+    width: calc(100% - (100% - var(--w, 100%)) / 3);
+  }
+  .funnel-row span {
+    text-align: left;
+  }
+}
+.domain-note {
+  margin: 0.3rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+.guide-now {
+  margin-top: 1.2rem;
+  padding: 0.9rem 1.1rem;
+  border: 1.5px solid var(--accent-line);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius-m);
+  background: var(--accent-soft);
+  max-width: 50rem;
+}
+.guide-now ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.45rem;
 }
 .domains {
   display: grid;
@@ -847,9 +882,12 @@
 }
 .paper-q-list {
   display: grid;
+  /* minmax(0, 1fr): long code lines scroll inside their box instead of widening the page */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 .paper-q {
+  min-width: 0;
   scroll-margin-top: calc(var(--header-h) + 20px);
 }
 .paper-q .qcard-meta .chip {
@@ -872,10 +910,14 @@
   gap: 0.75rem;
 }
 .plan-week {
-  padding: 0.9rem 1rem;
+  padding: 0.8rem 1rem;
   border-radius: var(--radius-l);
   background: var(--surface);
   border: 1px solid var(--rule);
+}
+.plan-week.is-current {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 1px var(--accent-line);
 }
 .plan-week-head {
   display: flex;
@@ -884,9 +926,46 @@
   align-items: center;
   margin-bottom: 0.4rem;
 }
-.plan-week-head span {
+.plan-week-head > span.tabular {
   color: var(--ink-2);
   font-size: var(--step--1);
+}
+.plan-week details > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.plan-week details > summary::-webkit-details-marker {
+  display: none;
+}
+.plan-week details > summary .plan-week-head {
+  margin-bottom: 0;
+}
+.plan-week details > summary .plan-week-head::before {
+  content: '▸';
+  color: var(--ink-3);
+  font-size: 0.8em;
+}
+.plan-week details[open] > summary .plan-week-head {
+  margin-bottom: 0.4rem;
+}
+.plan-week details[open] > summary .plan-week-head::before {
+  content: '▾';
+}
+.plan-groups {
+  display: grid;
+  gap: 0.6rem;
+}
+.plan-module {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-decoration: none;
+  margin: 0.2rem 0 0.1rem 0.4rem;
+}
+.plan-module:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 .plan-lessons {
   list-style: none;
@@ -908,20 +987,30 @@
 .plan-lessons a:hover {
   background: var(--surface-2);
 }
-.plan-lessons a > span:nth-child(2) {
+.plan-lessons a > span:first-child {
   flex: 1;
   min-width: 0;
 }
-.plan-module {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--ink-3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.plan-note {
+  margin: 0.2rem 0 0;
+  color: var(--ink-2);
+  font-size: var(--step--1);
 }
 .plan-min {
   flex: none;
   color: var(--ink-3);
   font-size: var(--step--1);
+}
+
+/* module page: actions after finishing, and the module pager */
+.module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.module-actions .btn {
+  white-space: normal;
+}
+.page > .pager {
+  margin-top: 2.5rem;
 }

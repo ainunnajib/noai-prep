@@ -58,6 +58,12 @@ for (const { mod, kind, q } of rows) {
   }
   q.options.forEach((o, i) => ABS.test(o) && (i === q.answer ? absRight++ : absWrong++))
 }
+// options are shuffled on screen, so explanations must not point at positions
+const POSITIONAL = /\b(first|second|third|fourth|last) (option|choice)\b|\boption [A-D]\b/i
+const positional = Object.entries(quizzes)
+  .filter(([p]) => !moduleOf(p).startsWith('_') && (!only || moduleOf(p) === only))
+  .flatMap(([, m]) => (m.default ?? []).filter((q) => POSITIONAL.test((q as Q & { explanation: string }).explanation)).map((q) => q.id))
+if (positional.length) console.log(`explanations that point at an option's position (options are shuffled): ${positional.join(', ')}`)
 const n = rows.length
 console.log(
   `${only ?? 'course'}: ${n} questions; correct option strictly longest in ${strict} (${((100 * strict) / Math.max(1, n)).toFixed(0)}%, chance is about 25%), longest or tied in ${longest}; absolute words in ${absRight} correct vs ${absWrong} wrong options`,

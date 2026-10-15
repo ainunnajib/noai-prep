@@ -17,7 +17,7 @@ const questions: QuizQuestion[] = [
     options: ['$[+1, -1, -1, +1]$', '$[0.5, -1.5, -0.5, 7.5]$', '$[-1, +1, +1, -1]$', '$[0.5, 1.5, 0.5, 7.5]$'],
     answer: 0,
     explanation:
-      'For L1 the negative gradient is $\\operatorname{sign}(y - F)$: $3 - 2.5 > 0$ gives $+1$, $1 - 2.5 < 0$ gives $-1$, and so on. $[0.5, -1.5, -0.5, 7.5]$ are the plain residuals, which is the L2 answer. $[-1, +1, +1, -1]$ is the gradient itself (`y_pred - y`), with the wrong sign, and the last option takes absolute values.',
+      'For L1 the negative gradient is $\\operatorname{sign}(y - F)$: $3 - 2.5 > 0$ gives $+1$, $1 - 2.5 < 0$ gives $-1$, and so on. $[0.5, -1.5, -0.5, 7.5]$ are the plain residuals, which is the L2 answer. $[-1, +1, +1, -1]$ is the gradient itself (`y_pred - y`), with the wrong sign, and $[0.5, 1.5, 0.5, 7.5]$ takes absolute values of the residuals.',
     difficulty: 'intermediate',
   },
   {

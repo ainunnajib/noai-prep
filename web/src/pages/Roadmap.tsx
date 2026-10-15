@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { lessonHref, lessonSequence, moduleHref, modules, partList, totalMinutes } from '../curriculum/registry'
 import type { ModuleDef } from '../curriculum/types'
 import { DOMAIN_LABEL } from '../lib/domains'
@@ -15,6 +16,7 @@ export function nextLesson(prog: ProgressState) {
 
 export default function Roadmap() {
   const prog = useProgress()
+  useDocumentTitle('Course map')
   const totalLessons = lessonSequence.length
   const doneLessons = lessonSequence.filter((r) => prog.lessons[lessonKey(r.module.slug, r.lesson.slug)]).length
   const nxt = nextLesson(prog)

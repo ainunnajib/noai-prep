@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { useTheme, type ThemeChoice } from '../../lib/theme'
 
 const NAV = [
@@ -8,6 +8,7 @@ const NAV = [
   { to: '/practice', label: 'Practice' },
   { to: '/mock', label: 'Mock exam' },
   { to: '/papers', label: 'Past papers' },
+  { to: '/plan', label: 'Study plan' },
 ]
 
 export function BrandMark({ className = 'brand-mark' }: { className?: string }) {
@@ -23,8 +24,37 @@ export function BrandMark({ className = 'brand-mark' }: { className?: string }) 
   )
 }
 
-const NEXT_THEME: Record<ThemeChoice, ThemeChoice> = { system: 'light', light: 'dark', dark: 'system' }
 const THEME_LABEL: Record<ThemeChoice, string> = { system: 'Theme: follows your device', light: 'Theme: light', dark: 'Theme: dark' }
+
+/** The theme on screen now: an explicit choice, or the device setting when following the device. */
+function shownTheme(t: ThemeChoice): 'light' | 'dark' {
+  if (t !== 'system') return t
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+/** Page-shaped placeholder shown inside the layout while a page's code loads. */
+export function PageSkeleton() {
+  return (
+    <div className="page page-skeleton loading-block" role="status" aria-live="polite">
+      <span className="sr-only">Loading…</span>
+      <div className="skel skel-eyebrow" />
+      <div className="skel skel-title" />
+      <div className="skel skel-line" />
+      <div className="skel skel-line" />
+      <div className="skel skel-line short" />
+    </div>
+  )
+}
+
+/** Run `fn` on each animation frame until it returns true or about a second has passed (content may still be rendering). */
+function retryFrames(fn: () => boolean, frames = 60) {
+  let n = 0
+  const tick = () => {
+    if (fn() || ++n >= frames) return
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
 
 function ThemeIcon({ t }: { t: ThemeChoice }) {
   if (t === 'light')
@@ -52,10 +82,45 @@ export function AppShell() {
   const [theme, setTheme] = useTheme()
   const [open, setOpen] = useState(false)
   const loc = useLocation()
+  const navType = useNavigationType()
+  const positions = useRef(new Map<string, number>())
+  const first = useRef(true)
+
+  // remember how far down each history entry was scrolled, so Back returns to the same place
+  useEffect(() => {
+    const save = () => positions.current.set(loc.key, window.scrollY)
+    window.addEventListener('scroll', save, { passive: true })
+    return () => window.removeEventListener('scroll', save)
+  }, [loc.key])
 
   useEffect(() => {
     setOpen(false)
-    if (!loc.hash) window.scrollTo(0, 0)
+    const isFirst = first.current
+    first.current = false
+    if (loc.hash) {
+      // in-page anchors such as /learn#part-vision: the browser cannot jump there itself under hash routing
+      const id = decodeURIComponent(loc.hash.slice(1))
+      retryFrames(() => {
+        const el = document.getElementById(id)
+        el?.scrollIntoView({ block: 'start' })
+        return Boolean(el)
+      })
+      return
+    }
+    if (navType === 'POP' && !isFirst) {
+      const y = positions.current.get(loc.key)
+      if (y != null) {
+        // wait until the page is tall enough to scroll that far (lazy content may still be arriving)
+        retryFrames(() => {
+          window.scrollTo(0, y)
+          return Math.abs(window.scrollY - y) < 2
+        })
+        return
+      }
+    }
+    window.scrollTo(0, 0)
+    // tell keyboard and screen-reader users that a new page has opened
+    if (!isFirst) document.getElementById('main')?.focus({ preventScroll: true })
   }, [loc.pathname, loc.hash])
 
   return (
@@ -81,13 +146,21 @@ export function AppShell() {
               </NavLink>
             ))}
           </nav>
-          <button type="button" className="theme-btn" onClick={() => setTheme(NEXT_THEME[theme])} aria-label={THEME_LABEL[theme]} title={THEME_LABEL[theme]}>
-            <ThemeIcon t={theme} />
+          <button
+            type="button"
+            className="theme-btn"
+            onClick={() => setTheme(shownTheme(theme) === 'dark' ? 'light' : 'dark')}
+            aria-label={`${THEME_LABEL[theme]}. Switch to ${shownTheme(theme) === 'dark' ? 'light' : 'dark'}`}
+            title={`${THEME_LABEL[theme]} (click for ${shownTheme(theme) === 'dark' ? 'light' : 'dark'})`}
+          >
+            <ThemeIcon t={shownTheme(theme)} />
           </button>
         </div>
       </header>
       <main id="main" tabIndex={-1}>
-        <Outlet />
+        <Suspense fallback={<PageSkeleton />}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="site-footer">
         <div className="site-footer-inner">

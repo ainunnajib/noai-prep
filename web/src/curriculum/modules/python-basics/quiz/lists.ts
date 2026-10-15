@@ -57,7 +57,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Strings are immutable, so you cannot change a character in place: Python raises `TypeError: \'str\' object does not support item assignment`. Lists are mutable, so assigning to `letters[0]` or appending works. The last option is fine because it builds a **new** string, `"bat"`, and moves the name `word` to it.',
+      'Strings are immutable, so you cannot change a character in place: Python raises `TypeError: \'str\' object does not support item assignment`. Lists are mutable, so assigning to `letters[0]` or appending works. `word = "b" + word[1:]` is fine because it builds a **new** string, `"bat"`, and moves the name `word` to it.',
     difficulty: 'beginner',
   },
 ]

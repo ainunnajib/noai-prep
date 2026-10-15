@@ -25,6 +25,8 @@ export interface QuizQuestion {
   answer: number
   explanation: string
   difficulty?: Level
+  /** a short student-facing note shown after the answer, e.g. where an official key differs from ours */
+  caveat?: string
 }
 
 export interface LessonDef {

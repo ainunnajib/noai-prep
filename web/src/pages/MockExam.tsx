@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { Bars } from '../components/interactive/Bars'
@@ -37,6 +37,8 @@ interface Attempt {
 }
 
 const KEY = 'mock-current'
+/** wrong answers shown per page on the results screen (a full mock can have 100+) */
+const REVIEW_PAGE = 20
 
 function buildExam(pool: BankQuestion[], n: number, seed: number): string[] {
   const rng = mulberry32(seed)
@@ -63,6 +65,7 @@ export default function MockExam() {
   const [now, setNow] = useState(Date.now())
   const [confirming, setConfirming] = useState(false)
   const [reviewFilter, setReviewFilter] = useState<'wrong' | 'all' | 'flagged'>('wrong')
+  const [reviewLimit, setReviewLimit] = useState(REVIEW_PAGE)
   const prog = useProgress()
 
   useEffect(() => {
@@ -86,10 +89,11 @@ export default function MockExam() {
   }, [running])
 
   const remaining = attempt ? attempt.durationSec - Math.floor((now - attempt.startedAt) / 1000) : 0
+  // time's up: submit automatically, but only once the questions have loaded (scoring needs them)
   useEffect(() => {
-    if (running && remaining <= 0) submit()
+    if (running && all && remaining <= 0) submit()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, remaining])
+  }, [running, remaining, all])
 
   const pool = useMemo(() => (all ?? []).filter((q) => q.source !== 'course' && (includePapers || q.source !== 'paper')), [all, includePapers])
 
@@ -98,41 +102,44 @@ export default function MockExam() {
     const seed = Math.floor(Math.random() * 2 ** 31)
     const ids = buildExam(pool, f.questions, seed)
     const a: Attempt = { formatId, ids, answers: {}, flags: [], startedAt: Date.now(), durationSec: f.minutes * 60, current: 0, seed }
+    submitting.current = false
     setNow(Date.now())
     setAttempt(a)
     window.scrollTo(0, 0)
   }
 
+  const submitting = useRef(false)
   function submit() {
     setConfirming(false)
-    setAttempt((a) => {
-      if (!a || a.submittedAt) return a
-      const done = { ...a, submittedAt: Date.now() }
-      const byDomain: Record<string, { total: number; correct: number }> = {}
-      let correct = 0
-      for (const id of a.ids) {
-        const q = byId.get(id)
-        if (!q) continue
-        byDomain[q.domain] ??= { total: 0, correct: 0 }
-        byDomain[q.domain].total++
-        const sel = a.answers[id]
-        if (sel != null) progress.recordAnswer(id, sel === q.answer)
-        if (sel === q.answer) {
-          correct++
-          byDomain[q.domain].correct++
-        }
+    const a = attempt
+    // score once, outside any state updater (StrictMode may run updaters twice)
+    if (!a || a.submittedAt || !all || submitting.current) return
+    submitting.current = true
+    const done = { ...a, submittedAt: Date.now() }
+    const byDomain: Record<string, { total: number; correct: number }> = {}
+    let correct = 0
+    for (const id of a.ids) {
+      const q = byId.get(id)
+      if (!q) continue
+      byDomain[q.domain] ??= { total: 0, correct: 0 }
+      byDomain[q.domain].total++
+      const sel = a.answers[id]
+      if (sel != null) progress.recordAnswer(id, sel === q.answer)
+      if (sel === q.answer) {
+        correct++
+        byDomain[q.domain].correct++
       }
-      progress.recordExam({
-        id: `${a.startedAt}`,
-        date: new Date().toISOString(),
-        mode: a.formatId,
-        total: a.ids.length,
-        correct,
-        seconds: Math.min(a.durationSec, Math.round((done.submittedAt - a.startedAt) / 1000)),
-        byDomain,
-      })
-      return done
+    }
+    progress.recordExam({
+      id: `${a.startedAt}`,
+      date: new Date().toISOString(),
+      mode: a.formatId,
+      total: a.ids.length,
+      correct,
+      seconds: Math.min(a.durationSec, Math.round((done.submittedAt - a.startedAt) / 1000)),
+      byDomain,
     })
+    setAttempt(done)
     window.scrollTo(0, 0)
   }
 
@@ -268,6 +275,7 @@ export default function MockExam() {
             <div className="lab">answered ({questions.length - answered} left blank)</div>
           </div>
         </div>
+        {used >= attempt.durationSec && <p className="fineprint">Time ran out, so your answers were submitted automatically.</p>}
 
         <div className="guide-grid">
           <section className="guide-card">
@@ -305,7 +313,14 @@ export default function MockExam() {
             </h2>
             <label>
               Show
-              <select id="mock-review-filter" value={reviewFilter} onChange={(e) => setReviewFilter(e.target.value as typeof reviewFilter)}>
+              <select
+                id="mock-review-filter"
+                value={reviewFilter}
+                onChange={(e) => {
+                  setReviewFilter(e.target.value as typeof reviewFilter)
+                  setReviewLimit(REVIEW_PAGE)
+                }}
+              >
                 <option value="wrong">Wrong or blank ({questions.length - correct})</option>
                 <option value="flagged">Flagged ({attempt.flags.length})</option>
                 <option value="all">All ({questions.length})</option>
@@ -318,7 +333,7 @@ export default function MockExam() {
             </span>
           </div>
           <div className="paper-q-list">
-            {review.map((q) => (
+            {review.slice(0, reviewLimit).map((q) => (
               <QuestionCard
                 shuffle={q.source !== 'paper'}
                 key={q.id}
@@ -337,6 +352,13 @@ export default function MockExam() {
             ))}
             {review.length === 0 && <div className="empty">Nothing to show here.</div>}
           </div>
+          {review.length > reviewLimit && (
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <button type="button" className="btn" onClick={() => setReviewLimit((l) => l + REVIEW_PAGE)}>
+                Show {Math.min(REVIEW_PAGE, review.length - reviewLimit)} more ({review.length - reviewLimit} left)
+              </button>
+            </div>
+          )}
         </section>
       </div>
     )

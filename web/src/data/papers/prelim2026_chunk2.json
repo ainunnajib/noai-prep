@@ -184,7 +184,8 @@
    ],
    "explanation": "A right-skewed (positively skewed) distribution has a long tail of large values, like household income. The mean is pulled toward that tail by the extreme values, the median is more resistant, and the mode sits at the peak on the left, so typically **Mean > Median > Mode**. A quick check with an exponential distribution (scale 1): mean $\\approx 1.0$, median $\\approx 0.69$, mode $= 0$. \"Mode > Median > Mean\" is the pattern for a *left*-skewed distribution, and \"all equal\" is the symmetric (e.g. normal) case.",
    "confidence": "high",
-   "notes": "Note the stem asks 'which is typically largest' but the options are full orderings; the ordering Mean > Median > Mode is a rule of thumb that holds for most, but not all, right-skewed distributions."
+   "notes": "Note the stem asks 'which is typically largest' but the options are full orderings; the ordering Mean > Median > Mode is a rule of thumb that holds for most, but not all, right-skewed distributions.",
+   "caveat": "Note the stem asks 'which is typically largest' but the options are full orderings; the ordering Mean > Median > Mode is a rule of thumb that holds for most, but not all, right-skewed distributions."
   },
   {
    "n": 59,
@@ -207,7 +208,8 @@
    ],
    "explanation": "The CLT says that if you repeatedly take samples of size $n$ and compute each sample's mean, the distribution of those means becomes approximately normal as $n$ grows, **whatever the shape of the original population** (as long as its variance is finite). Its spread is $\\sigma/\\sqrt{n}$. That is why normal-based confidence intervals and tests work even for skewed data. \"Variance decreases with sample size\" is tempting because the variance of the *sample mean* does shrink ($\\sigma^2/n$), but that is a side fact, not the CLT's key insight, and the data's own variance does not shrink. The CLT does not claim that all distributions are normal.",
    "confidence": "high",
-   "notes": "Strictly, sample means are *approximately* normal for large n; the option's wording is the usual simplification."
+   "notes": "Strictly, sample means are *approximately* normal for large n; the option's wording is the usual simplification.",
+   "caveat": "Strictly, sample means are *approximately* normal for large n; the option's wording is the usual simplification."
   },
   {
    "n": 60,
@@ -276,7 +278,8 @@
    ],
    "explanation": "A p-value is computed **assuming the null hypothesis is true**: it is the probability of getting data at least as extreme as what you observed. So $p = 0.03$ means that, if $H_0$ were true, results this extreme would show up only about 3% of the time; since $0.03 < 0.05$, we would usually reject $H_0$. It is *not* \"97% confidence that the result is right\" and *not* the probability that $H_0$ is true, which are very common misreadings. It also says nothing about how big the effect is: a tiny effect can have a small p-value with a huge sample.",
    "confidence": "high",
-   "notes": "The correct option omits the standard phrase 'at least as extreme as'; it is still clearly the intended and best answer."
+   "notes": "The correct option omits the standard phrase 'at least as extreme as'; it is still clearly the intended and best answer.",
+   "caveat": "The correct option omits the standard phrase 'at least as extreme as'; it is still clearly the intended and best answer."
   },
   {
    "n": 63,
@@ -322,7 +325,8 @@
    ],
    "explanation": "MLE picks the parameters $\\theta$ that make the observed data most probable: maximise the likelihood $L(\\theta) = P(\\text{data} \\mid \\theta)$ (in practice the log-likelihood). Example: a coin gives 7 heads in 10 flips; $L(p) = p^7(1-p)^3$ is largest at $\\hat p = 7/10 = 0.7$. Maximising the **posterior** $P(\\theta \\mid \\text{data}) \\propto P(\\text{data} \\mid \\theta)P(\\theta)$ is a different method called MAP, which also uses a prior. Minimising cross-entropy or MSE in ML training is equivalent to MLE under the matching probability model, but MLE does not directly maximise accuracy.",
    "confidence": "high",
-   "notes": "For continuous data the likelihood is a probability density rather than a probability; the option's wording is the standard simplification."
+   "notes": "For continuous data the likelihood is a probability density rather than a probability; the option's wording is the standard simplification.",
+   "caveat": "For continuous data the likelihood is a probability density rather than a probability; the option's wording is the standard simplification."
   },
   {
    "n": 65,
@@ -389,7 +393,8 @@
    ],
    "explanation": "In (full-)batch gradient descent, each update uses the gradient averaged over the **entire training set**: $w \\leftarrow w - \\eta \\cdot \\frac{1}{N}\\sum_{i=1}^{N} \\nabla L_i(w)$. This gives a smooth, exact gradient but each step is expensive when $N$ is large. Using one sample per update is stochastic gradient descent, and using small subsets is mini-batch gradient descent. Validation data is never used to compute training updates; it is kept aside to check generalisation.",
    "confidence": "high",
-   "notes": "Beware the naming trap: in deep-learning code 'batch size' usually refers to mini-batches, but 'batch gradient descent' classically means the full dataset."
+   "notes": "Beware the naming trap: in deep-learning code 'batch size' usually refers to mini-batches, but 'batch gradient descent' classically means the full dataset.",
+   "caveat": "Beware the naming trap: in deep-learning code 'batch size' usually refers to mini-batches, but 'batch gradient descent' classically means the full dataset."
   },
   {
    "n": 68,
@@ -411,7 +416,8 @@
    ],
    "explanation": "Classic SGD picks **one random training example** at a time and updates the weights using just that example's gradient. Each update is very cheap but noisy, so the loss zig-zags downward; that noise can even help escape shallow local minima. Using all data per update is batch gradient descent, and using groups of samples is mini-batch gradient descent. The validation set is never used for weight updates.",
    "confidence": "high",
-   "notes": "In libraries such as torch.optim.SGD, 'SGD' is applied to mini-batches in practice; the option matches the textbook definition."
+   "notes": "In libraries such as torch.optim.SGD, 'SGD' is applied to mini-batches in practice; the option matches the textbook definition.",
+   "caveat": "In libraries such as torch.optim.SGD, 'SGD' is applied to mini-batches in practice; the option matches the textbook definition."
   },
   {
    "n": 69,
@@ -503,7 +509,8 @@
    ],
    "explanation": "At step 0 the weights are random, so gradients are large and erratic, and Adam's second-moment estimate $v_t$ has only seen a handful of gradients, so its per-parameter scaling $1/\\sqrt{\\hat v_t}$ is unreliable. A full LR of 1e-3 on top of that produces huge, badly scaled updates: the loss jumps above its starting value (12.7 > 9.5) and then becomes NaN. Warmup ramps the LR from 0 to 1e-3 over 5K steps, so early updates stay small while $v_t$ settles and the network moves into a better-behaved region; once stable, the higher peak LR lets C beat A (1.8 vs 2.3). Warmup changes only the learning rate, not the batch size, so the first option is wrong. The \"memorise first\" story is invented, and gradient clipping does not change the loss landscape (and is not mentioned in the setup).",
    "confidence": "high",
-   "notes": "The PDF says 'Two initialisation strategies' but lists three (A, B, C) learning-rate strategies; the stem here says three. AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) words the options differently, but its keyed answer ('warmup allows gradual parameter adjustment before large updates') corresponds to option index 2 here. Solvers A and B agreed independently."
+   "notes": "The PDF says 'Two initialisation strategies' but lists three (A, B, C) learning-rate strategies; the stem here says three. AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) words the options differently, but its keyed answer ('warmup allows gradual parameter adjustment before large updates') corresponds to option index 2 here. Solvers A and B agreed independently.",
+   "caveat": "The PDF says 'Two initialisation strategies' but lists three learning-rate strategies; the stem here says three. AI Singapore's online self-assessment tool words the options differently, but its keyed answer ('warmup allows gradual parameter adjustment before large updates') is option C here."
   },
   {
    "n": 73,
@@ -526,7 +533,8 @@
    ],
    "explanation": "Cosine decay lowers the LR gradually: early steps are big enough to explore, and later steps become steadily finer, so the model *progressively refines* its parameters and settles into a region that generalises well (best validation perplexity, 19.1). Step decay holds the high LR for 60K steps and then cuts it 10× twice; the sudden anneal quickly squeezes the training loss down (1.7) but the result generalises slightly worse (19.8). The constant schedule never anneals, so its large noisy steps keep bouncing around and it ends worst (22.3). The keyed option is the only one that compares all three schedules in the right direction, but read it critically: a sudden LR *drop* usually makes the loss fall sharply rather than spike, and flatter (not sharper) minima are the ones usually linked to good generalisation. The second option sounds convincing, but a small final LR does not by itself cause overfitting (annealing to near zero is standard practice); what matters is the shape of the whole schedule. The third and fourth options are vague or false: there is no special cosine-Adam \"synergy\", and lowering the LR does not make a model forget what it learned.",
    "confidence": "medium",
-   "notes": "Intended answer is option index 0: both solvers agreed independently, and AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) keys the same option, reworded. Confidence is medium because the keyed option's wording is imprecise: step-decay drops usually produce sudden loss decreases rather than spikes, and 'prevents convergence to sharp minima' is odd (flatter minima are usually linked to better generalisation). Option index 1 is partly defensible because C's lower train loss with worse validation perplexity looks like mild overfitting. The stem's mid-schedule LRs are also approximate: a true cosine curve from 3e-4 to 3e-5 gives about 2.74e-4 at step 20K and 1.65e-4 at step 50K (stated as 2.8e-4 and 1.8e-4). This does not change the answer."
+   "notes": "Intended answer is option index 0: both solvers agreed independently, and AI Singapore's interactive Self-Assessment Tool (noai.aisingapore.org/preliminary-trial/) keys the same option, reworded. Confidence is medium because the keyed option's wording is imprecise: step-decay drops usually produce sudden loss decreases rather than spikes, and 'prevents convergence to sharp minima' is odd (flatter minima are usually linked to better generalisation). Option index 1 is partly defensible because C's lower train loss with worse validation perplexity looks like mild overfitting. The stem's mid-schedule LRs are also approximate: a true cosine curve from 3e-4 to 3e-5 gives about 2.74e-4 at step 20K and 1.65e-4 at step 50K (stated as 2.8e-4 and 1.8e-4). This does not change the answer.",
+   "caveat": "The keyed option (A, which AI Singapore's online self-assessment tool also keys) is worded loosely: step-decay drops usually cause sudden loss decreases rather than spikes. Option B is partly defensible, because C's lower training loss with worse validation perplexity looks like mild overfitting. The stem's mid-schedule learning rates are also slightly off; this does not change the answer."
   },
   {
    "n": 74,
@@ -572,7 +580,8 @@
    ],
    "explanation": "In a convex function every local minimum is a global minimum (think of a single bowl, like $f(x) = x^2$), so if gradient descent converges at all, it converges to the global minimum. It converges as long as the learning rate is small enough; for an $L$-smooth function, any $\\eta \\le 1/L$ works. Example: for $f(x) = x^2$, $x \\leftarrow x - \\eta \\cdot 2x = (1 - 2\\eta)x$ shrinks to 0 when $0 < \\eta < 1$ but blows up when $\\eta > 1$. GD is not always faster than other methods (Newton's method can need far fewer steps), and it still needs a learning-rate hyperparameter.",
    "confidence": "high",
-   "notes": "Strictly, 'converges to a global minimum' assumes a minimum exists and the function is suitably smooth; this is the standard textbook guarantee."
+   "notes": "Strictly, 'converges to a global minimum' assumes a minimum exists and the function is suitably smooth; this is the standard textbook guarantee.",
+   "caveat": "Strictly, 'converges to a global minimum' assumes a minimum exists and the function is suitably smooth; this is the standard textbook guarantee."
   },
   {
    "n": 76,
@@ -756,7 +765,8 @@
    ],
    "explanation": "Python passes a reference to the same list object into the function, so in-place changes are visible outside. Example: `def f(l): l.append(99)`, then `a = [1, 2]; f(a)` leaves `a == [1, 2, 99]` (verified). No copy is made automatically; if you want one, call `l.copy()` or `list(l)` yourself. Subtle point: if the function *rebinds* the name, e.g. `l = [0]`, the caller's list is untouched, because you only pointed the local name at a new object.",
    "confidence": "high",
-   "notes": "Strictly, Python's model is 'pass by object reference' (call by sharing), not C++-style pass by reference; mutation through the parameter affects the caller but rebinding does not. The intended answer is still clearly option index 2."
+   "notes": "Strictly, Python's model is 'pass by object reference' (call by sharing), not C++-style pass by reference; mutation through the parameter affects the caller but rebinding does not. The intended answer is still clearly option index 2.",
+   "caveat": "Strictly, Python's model is 'pass by object reference' (call by sharing), not C++-style pass by reference; mutation through the parameter affects the caller but rebinding does not. The intended answer is still clearly option C."
   },
   {
    "n": 84,
@@ -825,7 +835,8 @@
    ],
    "explanation": "Python's structure is `try:` followed by one or more `except` blocks; `else:` and `finally:` are optional extras. So the `try` / `except ValueError` shape is correct Python. `catch` is the keyword in Java, C++ and JavaScript, not Python, which makes it the most tempting distractor. `finally` (runs no matter what) and `else` (runs only if no exception occurred) are allowed but never required.",
    "confidence": "high",
-   "notes": "Pedantic flaw: the snippet exactly as written (blocks containing only comments) is a SyntaxError ('expected an indented block'), verified with compile(); a real program needs at least a statement such as `pass` in each block. The question clearly means the try/except structure, so 'This is correct' is the intended answer."
+   "notes": "Pedantic flaw: the snippet exactly as written (blocks containing only comments) is a SyntaxError ('expected an indented block'), verified with compile(); a real program needs at least a statement such as `pass` in each block. The question clearly means the try/except structure, so 'This is correct' is the intended answer.",
+   "caveat": "Pedantic flaw: the snippet exactly as written (blocks containing only comments) is a SyntaxError ('expected an indented block'), verified with compile(); a real program needs at least a statement such as `pass` in each block. The question clearly means the try/except structure, so 'This is correct' is the intended answer."
   },
   {
    "n": 87,
@@ -894,7 +905,8 @@
    ],
    "explanation": "In standard CPython, the GIL is a lock that allows only **one thread to execute Python bytecode at a time**. So splitting a CPU-heavy pure-Python loop across 4 threads does not make it about 4× faster; you would use `multiprocessing` or libraries like NumPy (whose C code releases the GIL) instead. Threads still help for I/O-bound work (downloads, file reads), because the GIL is released while waiting. \"Protects against race conditions\" is the tempting distractor: the GIL protects the interpreter's *own* internals (like reference counts), but it does **not** make your code free of race conditions, so you still need locks for shared data.",
    "confidence": "high",
-   "notes": "Option index 2 is partly true (the GIL does protect CPython's internal state from races), but option index 3 is the standard definition-level answer. Python 3.13+ also offers an optional free-threaded (no-GIL) build; the question refers to standard CPython."
+   "notes": "Option index 2 is partly true (the GIL does protect CPython's internal state from races), but option index 3 is the standard definition-level answer. Python 3.13+ also offers an optional free-threaded (no-GIL) build; the question refers to standard CPython.",
+   "caveat": "Option C is partly true (the GIL does protect CPython's internal state from races), but option D is the standard definition-level answer. Python 3.13+ also offers an optional free-threaded (no-GIL) build; the question refers to standard CPython."
   },
   {
    "n": 90,
@@ -1124,7 +1136,8 @@
    ],
    "explanation": "Bracket notation `df['total price']` works for any column name, including ones with spaces (verified). Dot notation `df.total price` is a syntax error, because attribute names cannot contain spaces. `df('total price')` fails because a DataFrame is not callable (`TypeError`). `df.loc['total price']` looks up a **row** label called 'total price', so it raises a `KeyError`; to select a column with `.loc` you would need `df.loc[:, 'total price']`.",
    "confidence": "high",
-   "notes": "'ONLY valid way' is true only among the four options: df.loc[:, 'total price'] and df.get('total price') would also work."
+   "notes": "'ONLY valid way' is true only among the four options: df.loc[:, 'total price'] and df.get('total price') would also work.",
+   "caveat": "'ONLY valid way' is true only among the four options: df.loc[:, 'total price'] and df.get('total price') would also work."
   },
   {
    "n": 100,
@@ -1147,7 +1160,8 @@
    ],
    "explanation": "`groupby('category')` splits the rows into groups, one per distinct value of `category`, and `.mean()` then averages the other columns within each group, returning one row per category (split-apply-combine). Example: categories a, a, b with values 1, 3, 5 give `a → 2.0` and `b → 5.0` (verified). It does not group by the mean values or create new columns, and although the result is indexed by category (sorted by default), sorting is a side effect, not its purpose.",
    "confidence": "high",
-   "notes": "In pandas 2.0 and later (verified on 3.0.5), .mean() raises a TypeError if the DataFrame has non-numeric columns other than the grouping key; use .mean(numeric_only=True) in that case. The intended conceptual answer is unaffected."
+   "notes": "In pandas 2.0 and later (verified on 3.0.5), .mean() raises a TypeError if the DataFrame has non-numeric columns other than the grouping key; use .mean(numeric_only=True) in that case. The intended conceptual answer is unaffected.",
+   "caveat": "In pandas 2.0 and later (verified on 3.0.5), .mean() raises a TypeError if the DataFrame has non-numeric columns other than the grouping key; use .mean(numeric_only=True) in that case. The intended conceptual answer is unaffected."
   }
  ]
 }

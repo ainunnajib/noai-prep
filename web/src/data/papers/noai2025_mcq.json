@@ -138,7 +138,8 @@
    ],
    "explanation": "Adaptive optimisers keep a running record of **past gradients** and use it to give each parameter its own effective step size. **Adam** (the official answer) keeps two running averages: the mean of past gradients (*momentum*, $m_t$) and the mean of past *squared* gradients ($v_t$), and updates $\\theta \\leftarrow \\theta - \\eta\\, \\hat m_t / (\\sqrt{\\hat v_t} + \\epsilon)$. It is the most widely used SGD extension. Be careful, though: **Adagrad** (divides by the root of the *sum* of all past squared gradients) and **RMSProp** (divides by the root of a *moving average* of past squared gradients) also fit the description exactly; Adam actually builds on RMSProp. Only plain **SGD** (D) uses the same fixed learning rate for every parameter, so it is the one option that is clearly wrong.",
    "confidence": "medium",
-   "notes": "Official key A (Adam) kept; both solvers agree. The question is ambiguous: RMSProp (B) and Adagrad (C) are also SGD extensions that adapt the learning rate from past gradients, so the wording does not single out Adam. A is the most defensible choice because Adam uses past gradients twice (momentum m_t and squared-gradient scaling v_t) and is the best-known adaptive optimiser. Only D (plain SGD) is clearly wrong. Flag for learners: on this paper, pick the most complete or most widely used answer when several options are technically true."
+   "notes": "Official key A (Adam) kept; both solvers agree. The question is ambiguous: RMSProp (B) and Adagrad (C) are also SGD extensions that adapt the learning rate from past gradients, so the wording does not single out Adam. A is the most defensible choice because Adam uses past gradients twice (momentum m_t and squared-gradient scaling v_t) and is the best-known adaptive optimiser. Only D (plain SGD) is clearly wrong. Flag for learners: on this paper, pick the most complete or most widely used answer when several options are technically true.",
+   "caveat": "Ambiguous: RMSProp (B) and Adagrad (C) also adapt the learning rate from past gradients, so the wording does not single out Adam. A is the most defensible choice because Adam uses past gradients twice (momentum and squared-gradient scaling) and is the best-known adaptive optimiser. Tip: when several options are technically true, pick the most complete or most widely used one."
   },
   {
    "n": 7,
@@ -230,7 +231,8 @@
    ],
    "explanation": "A **learning rate schedule** changes the learning rate $\\eta$ during training instead of keeping it fixed. Typically you start with a larger $\\eta$ to make fast progress, then shrink it so the optimiser can settle into a minimum without bouncing around. The rule can be fixed in advance (step decay, e.g. halve $\\eta$ every 10 epochs; cosine decay) or driven by a metric (e.g. PyTorch's `ReduceLROnPlateau` cuts $\\eta$ when validation loss stops improving). The other options change the batch size (A), the model (C) or restart training (D), not the learning rate.",
    "confidence": "high",
-   "notes": "Minor wording simplification: real schedules can also increase the learning rate (linear warm-up, cyclical or warm-restart schedules), but B is clearly the best of the four options."
+   "notes": "Minor wording simplification: real schedules can also increase the learning rate (linear warm-up, cyclical or warm-restart schedules), but B is clearly the best of the four options.",
+   "caveat": "Minor wording simplification: real schedules can also increase the learning rate (linear warm-up, cyclical or warm-restart schedules), but B is clearly the best of the four options."
   },
   {
    "n": 11,
@@ -276,7 +278,8 @@
    ],
    "explanation": "**YOLO** is a **one-stage** detector: the image passes through the network once, and a single output grid directly predicts bounding boxes, objectness and class probabilities together, as its name 'You Only Look Once' says. **R-CNN** and **Fast R-CNN** are **two-stage** detectors: first a separate algorithm (Selective Search) proposes about 2,000 candidate regions, then each region is classified. R-CNN runs the CNN once per region; Fast R-CNN runs it once on the whole image and pools features for each region, but it still depends on the separate proposal step. That is why they were slower. An **SVM** is just a classifier (it was used inside the original R-CNN to classify regions) and is not a detection algorithm by itself.",
    "confidence": "high",
-   "notes": "Loose wording: YOLO has no separate region-proposal stage at all; it predicts boxes and classes in a single forward pass. The intended answer (one-stage detector) is clear."
+   "notes": "Loose wording: YOLO has no separate region-proposal stage at all; it predicts boxes and classes in a single forward pass. The intended answer (one-stage detector) is clear.",
+   "caveat": "Loose wording: YOLO has no separate region-proposal stage at all; it predicts boxes and classes in a single forward pass. The intended answer (one-stage detector) is clear."
   },
   {
    "n": 13,
@@ -299,7 +302,8 @@
    ],
    "explanation": "Faster R-CNN replaced the slow, hand-crafted Selective Search with a small learned network, the **RPN**, whose job is to **propose candidate regions** that probably contain an object. It slides over the shared CNN feature map and, for each location, scores a fixed set of pre-defined **anchor boxes** for 'objectness' and nudges their coordinates. The best proposals are then passed to the second stage, which assigns the final class and refines the box. The other options are tempting because each describes *part* of what happens: the anchors are fixed in advance rather than generated by the RPN (A); the RPN's object-vs-background score (B) and coarse box adjustment are internal steps used to produce proposals; and the final box refinement (D) is done by the second-stage detection head.",
    "confidence": "high",
-   "notes": "Options B (objectness scoring) and partly D (box regression of anchors) describe sub-steps the RPN really performs, but C is the standard description of its overall role."
+   "notes": "Options B (objectness scoring) and partly D (box regression of anchors) describe sub-steps the RPN really performs, but C is the standard description of its overall role.",
+   "caveat": "Options B (objectness scoring) and partly D (box regression of anchors) describe sub-steps the RPN really performs, but C is the standard description of its overall role."
   },
   {
    "n": 14,
@@ -345,7 +349,8 @@
    ],
    "explanation": "**Instance segmentation** must label every pixel **and** tell separate objects of the same class apart (person #1 vs person #2). **Mask R-CNN** extends Faster R-CNN with an extra branch that predicts a pixel mask for each detected object, so it outputs one mask per instance. **U-Net** (A) is the classic **semantic** segmentation network: it labels every pixel with a class but does not separate individual objects. Classic **YOLO** (C) outputs bounding boxes (detection), and **ResNet** (D) is a classification backbone that other models are built on.",
    "confidence": "high",
-   "notes": "Newer YOLO versions (e.g. YOLOv8-seg) also add instance-segmentation heads, but the textbook answer is Mask R-CNN."
+   "notes": "Newer YOLO versions (e.g. YOLOv8-seg) also add instance-segmentation heads, but the textbook answer is Mask R-CNN.",
+   "caveat": "Newer YOLO versions (e.g. YOLOv8-seg) also add instance-segmentation heads, but the textbook answer is Mask R-CNN."
   },
   {
    "n": 16,

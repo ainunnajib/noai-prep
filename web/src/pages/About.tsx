@@ -28,7 +28,10 @@ export default function About() {
           NOAI pages on {FACTS_CHECKED_ON}. Past-paper answers were worked out independently by two solvers, reconciled, and then checked against AI Singapore's official answers (they match on 297 of 300 Preliminary Round questions; disagreements are noted on the question).
           The question bank was re-solved and its explanations rewritten for beginners.
         </p>
-        <p>If something looks wrong, trust the official sources below and let us know through the project's GitHub page.</p>
+        <p>
+          If something looks wrong, trust the official sources below and tell us by <a href={LINKS.siteIssues}>opening an issue on GitHub</a>: say which page, what it says and what
+          you think is right.
+        </p>
         <h2>Official sources</h2>
         <ul>
           <li>

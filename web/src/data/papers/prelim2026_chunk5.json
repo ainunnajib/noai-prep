@@ -301,7 +301,8 @@
       ],
       "explanation": "BERT uses the Transformer **encoder** and sees context on **both sides** of each word (trained with masked language modelling), which suits understanding tasks. GPT uses the Transformer **decoder** with a causal mask, so each token sees only earlier tokens; it is trained to predict the next token and is naturally suited to **generating** text. \"GPT is older\" is a tempting distractor: GPT-1 (June 2018) did appear a few months before BERT (October 2018), but that is a historical detail, not the *key difference* between the models. BERT is a language model, not a vision model.",
       "confidence": "high",
-      "notes": "Option 'GPT is older' is factually true for GPT-1 (June 2018) vs BERT (Oct 2018), but it is clearly not the 'key difference' asked for."
+      "notes": "Option 'GPT is older' is factually true for GPT-1 (June 2018) vs BERT (Oct 2018), but it is clearly not the 'key difference' asked for.",
+      "caveat": "Option 'GPT is older' is factually true for GPT-1 (June 2018) vs BERT (Oct 2018), but it is clearly not the 'key difference' asked for."
     },
     {
       "n": 214,
@@ -579,7 +580,8 @@
       ],
       "explanation": "A **discriminative** model (e.g. logistic regression) learns $P(Y\\mid X)$, the boundary between classes, directly. A **generative** model (e.g. Naive Bayes) learns how the data itself is produced, $P(X,Y) = P(X\\mid Y)P(Y)$, so it can also *sample new data* and can still classify via Bayes' rule. Neither is \"always better\": discriminative models often classify more accurately with plenty of data, and classifying is exactly what discriminative models are built for.",
       "confidence": "high",
-      "notes": "Many modern generative models (e.g. unconditional image generators) model P(X) rather than P(X,Y); the option is the textbook definition and clearly the intended answer."
+      "notes": "Many modern generative models (e.g. unconditional image generators) model P(X) rather than P(X,Y); the option is the textbook definition and clearly the intended answer.",
+      "caveat": "Many modern generative models (e.g. unconditional image generators) model P(X) rather than P(X,Y); the option is the textbook definition and clearly the intended answer."
     },
     {
       "n": 226,
@@ -764,7 +766,8 @@
       ],
       "explanation": "In **few-shot** prompting (in-context learning) you put a **small number of worked examples** in the prompt, e.g. three input-output pairs, followed by the new input, and the model infers the pattern without any weight updates. \"No examples\" and \"Only instructions\" describe **zero-shot** prompting, and a full dataset would be used for training or fine-tuning, not a prompt.",
       "confidence": "high",
-      "notes": "Answer assumes the LLM-prompting sense of few-shot (in-context examples); in classical ML 'few-shot learning' means learning from a few labelled examples, not necessarily in a prompt, but the intended answer is unambiguous."
+      "notes": "Answer assumes the LLM-prompting sense of few-shot (in-context examples); in classical ML 'few-shot learning' means learning from a few labelled examples, not necessarily in a prompt, but the intended answer is unambiguous.",
+      "caveat": "Answer assumes the LLM-prompting sense of few-shot (in-context examples); in classical ML 'few-shot learning' means learning from a few labelled examples, not necessarily in a prompt, but the intended answer is unambiguous."
     },
     {
       "n": 234,
@@ -833,7 +836,8 @@
       ],
       "explanation": "Self-attention compares every token with every other token, so compute and attention memory grow as $O(n^2)$ in the sequence length $n$: going from 4k to 32k tokens (8× longer) needs about $64\\times$ the attention work. That is why long-context models rely on tricks like FlashAttention, sparse or sliding-window attention. \"Memory for weights\" is tempting, but the number of weights does **not** depend on context length; the same model weights handle 1k or 100k tokens.",
       "confidence": "high",
-      "notes": "In practice the KV-cache memory (which grows linearly with context) is also a major long-context bottleneck at inference; the quadratic-attention answer is the standard intended one."
+      "notes": "In practice the KV-cache memory (which grows linearly with context) is also a major long-context bottleneck at inference; the quadratic-attention answer is the standard intended one.",
+      "caveat": "In practice the KV-cache memory (which grows linearly with context) is also a major long-context bottleneck at inference; the quadratic-attention answer is the standard intended one."
     },
     {
       "n": 237,
@@ -995,7 +999,8 @@
       ],
       "explanation": "**Classifier-free guidance (CFG)** trains one model both with and without the condition (the text is randomly dropped during training). At sampling time it combines the two predictions: $\\hat\\epsilon = \\epsilon_\\theta(x_t,\\varnothing) + w\\,[\\epsilon_\\theta(x_t,c)-\\epsilon_\\theta(x_t,\\varnothing)]$ with guidance scale $w>1$, **pushing samples towards the text prompt** and improving prompt adherence and perceived quality. Its *purpose* is this steering; it does not speed sampling (it needs two predictions per step, so it is actually slower) or shrink the model. The name means it achieves guidance *without* a separate classifier, which is why \"Removes need for classifier\" sounds tempting; that is a property of how it works, while steering towards the prompt is what it is *for*.",
       "confidence": "medium",
-      "notes": "Ambiguous: option 0 ('Removes need for classifier') is also literally true; CFG was designed to avoid the separate noisy-image classifier that 'classifier guidance' needs. Option 2 describes what CFG does and is the most likely intended answer, but option 0 is defensible."
+      "notes": "Ambiguous: option 0 ('Removes need for classifier') is also literally true; CFG was designed to avoid the separate noisy-image classifier that 'classifier guidance' needs. Option 2 describes what CFG does and is the most likely intended answer, but option 0 is defensible.",
+      "caveat": "Ambiguous: option A ('Removes need for classifier') is also literally true; CFG was designed to avoid the separate noisy-image classifier that 'classifier guidance' needs. Option C describes what CFG does and is the most likely intended answer, but option A is defensible."
     },
     {
       "n": 244,

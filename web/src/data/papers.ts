@@ -13,7 +13,10 @@ export interface PaperQuestion {
   concepts: string[]
   explanation: string
   confidence?: 'high' | 'medium' | 'low'
+  /** internal provenance notes (solving, reconciliation with the official key); not shown to students */
   notes?: string
+  /** short student-facing note shown after answering, e.g. where AI Singapore's key differs from ours */
+  caveat?: string
 }
 
 export interface Paper {
@@ -82,5 +85,5 @@ export async function loadPaper(id: string): Promise<PaperQuestion[]> {
 }
 
 export function toQuiz(paperId: string, q: PaperQuestion): QuizQuestion {
-  return { id: `${paperId}.${q.n}`, prompt: q.question, options: q.options, answer: q.answer, explanation: q.explanation, difficulty: q.difficulty }
+  return { id: `${paperId}.${q.n}`, prompt: q.question, options: q.options, answer: q.answer, explanation: q.explanation, difficulty: q.difficulty, caveat: q.caveat }
 }

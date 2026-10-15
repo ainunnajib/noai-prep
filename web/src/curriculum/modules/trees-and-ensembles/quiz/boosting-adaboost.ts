@@ -12,7 +12,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'Bagging grows strong, deep trees in parallel on different bootstrap samples and averages them, which cancels their random wobbles (variance). Boosting adds weak learners one at a time, each focusing on the examples the team still gets wrong, which removes systematic error (bias). The second option swaps the two exactly, and boosting, not bagging, is the one with the weighted vote.',
+      'Bagging grows strong, deep trees in parallel on different bootstrap samples and averages them, which cancels their random wobbles (variance). Boosting adds weak learners one at a time, each focusing on the examples the team still gets wrong, which removes systematic error (bias). The statement that says bagging trains in sequence swaps the two exactly, and boosting, not bagging, is the one with the weighted vote.',
     difficulty: 'beginner',
   },
   {

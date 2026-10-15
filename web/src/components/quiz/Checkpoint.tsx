@@ -1,10 +1,25 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { QuizQuestion } from '../../curriculum/types'
 import { progress } from '../../lib/progress'
 import { QuestionCard } from './QuestionCard'
 
-/** End-of-lesson checkpoint: answer each question for instant feedback; score is remembered. */
-export function Checkpoint({ questions, progressKey, title = 'Checkpoint' }: { questions: QuizQuestion[]; progressKey?: string; title?: string }) {
+/**
+ * End-of-lesson checkpoint: answer each question for instant feedback. When every question is answered the score is
+ * remembered, the lesson is marked complete, and a result panel offers the next lesson.
+ */
+export function Checkpoint({
+  questions,
+  progressKey,
+  title = 'Checkpoint',
+  next,
+}: {
+  questions: QuizQuestion[]
+  progressKey?: string
+  title?: string
+  /** where to go after finishing, e.g. the next lesson */
+  next?: { to: string; label: string }
+}) {
   const [sel, setSel] = useState<Record<string, number>>({})
   const [round, setRound] = useState(0)
   if (!questions.length) return null
@@ -21,6 +36,7 @@ export function Checkpoint({ questions, progressKey, title = 'Checkpoint' }: { q
     if (nAnswered === questions.length && progressKey) {
       const score = questions.filter((x) => next[x.id] === x.answer).length / questions.length
       progress.recordCheckpoint(progressKey, score)
+      progress.markLesson(progressKey, true)
     }
   }
 
@@ -45,20 +61,40 @@ export function Checkpoint({ questions, progressKey, title = 'Checkpoint' }: { q
           />
         ))}
       </div>
-      {done && (
-        <div className="checkpoint-foot">
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              setSel({})
-              setRound((r) => r + 1)
-            }}
-          >
-            Try again with shuffled options
-          </button>
-        </div>
-      )}
+      <div aria-live="polite">
+        {done && (
+          <div className="checkpoint-foot checkpoint-result">
+            <p className="checkpoint-score">
+              <strong className="tabular">
+                You scored {correct} / {questions.length}.
+              </strong>{' '}
+              {progressKey ? 'Lesson marked complete. ' : ''}
+              {correct === questions.length
+                ? 'Every one right: well done.'
+                : correct >= Math.ceil(questions.length * 0.6)
+                  ? 'Read the explanations for the ones you missed, then move on.'
+                  : 'Reread the parts of the lesson these questions came from, then try again.'}
+            </p>
+            <div className="checkpoint-actions">
+              {next && (
+                <Link className="btn btn-primary" to={next.to}>
+                  {next.label} →
+                </Link>
+              )}
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setSel({})
+                  setRound((r) => r + 1)
+                }}
+              >
+                Try again with shuffled options
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

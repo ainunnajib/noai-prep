@@ -546,11 +546,11 @@ mark {
   transition: border-color 0.12s ease, background 0.12s ease;
   min-width: 0;
 }
-.qopt:not(:disabled):hover {
+.qopt:not(.is-locked):hover {
   border-color: var(--accent-line);
   background: var(--accent-soft);
 }
-.qopt:disabled {
+.qopt.is-locked {
   cursor: default;
 }
 .qopt-letter {
@@ -706,6 +706,25 @@ mark {
 }
 .checkpoint-foot {
   margin-top: 1rem;
+}
+.checkpoint-result {
+  padding: 1rem 1.1rem;
+  border: 1.5px solid var(--accent-line);
+  border-radius: var(--radius-m);
+  background: var(--accent-soft);
+}
+.checkpoint-score {
+  margin: 0 0 0.8rem;
+}
+.checkpoint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.checkpoint-actions .btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
 }
 .pastq {
   margin: 2rem 0;
@@ -1106,4 +1125,24 @@ mark {
 .plot-wrap {
   width: 100%;
   min-width: 0;
+}
+
+/* on phones the "Correct answer" / "Your answer" pill gets its own row instead of squeezing the option text */
+@media (max-width: 560px) {
+  .qopt {
+    flex-wrap: wrap;
+  }
+  .qopt-text {
+    flex-basis: calc(100% - 2.4rem);
+  }
+  .qopt-mark {
+    order: 3;
+    margin-left: 2.4rem;
+    align-self: flex-start;
+  }
+}
+.qcard-caveat {
+  margin: 0.6rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
 }

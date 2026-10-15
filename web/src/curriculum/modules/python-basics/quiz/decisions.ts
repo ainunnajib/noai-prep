@@ -58,7 +58,7 @@ const questions: QuizQuestion[] = [
     ],
     answer: 0,
     explanation:
-      'The brackets make Python decide "suspicious?" first, and only then apply "and not a contact". Without brackets, `and` is done before `or`, so the second option means `links > 5 or (has_winner and not in_contacts)`: a friend\'s email with 6 links would still be flagged. The third option needs both warning signs at once, and the fourth flags every email from a stranger.',
+      'The brackets make Python decide "suspicious?" first, and only then apply "and not a contact". Without brackets, `and` is done before `or`, so the version without brackets means `links > 5 or (has_winner and not in_contacts)`: a friend\'s email with 6 links would still be flagged. The version with `and` between the two warning signs needs both at once, and the one starting `not in_contacts or` flags every email from a stranger.',
     difficulty: 'intermediate',
   },
 ]

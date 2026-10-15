@@ -138,6 +138,14 @@ export default function LessonPage() {
             questions={quiz}
             progressKey={key}
             title="Checkpoint"
+            next={
+              next
+                ? {
+                    to: lessonHref(next.module.slug, next.lesson.slug),
+                    label: next.module.slug === mod.slug ? `Next lesson: ${next.lesson.title}` : `Next module: ${next.module.title}`,
+                  }
+                : undefined
+            }
           />
         )}
 

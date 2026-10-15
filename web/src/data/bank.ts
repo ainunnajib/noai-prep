@@ -71,6 +71,55 @@ const SUB_TO_DOMAIN: Record<string, ExamDomain> = Object.fromEntries(
   Object.entries(DOMAIN_SUBTOPICS).flatMap(([d, subs]) => subs.map((s) => [s, d as ExamDomain])),
 )
 
+/** Practice-topic tag for each course module's checkpoint questions (the module's main exam subtopic). */
+const MODULE_SUBTOPIC: Record<string, string> = {
+  'ai-first-look': 'ml-fundamentals',
+  'python-basics': 'python',
+  'python-toolkit': 'python',
+  'algorithms-and-complexity': 'algorithms-complexity',
+  'maths-foundations': 'calculus',
+  'vectors-and-matrices': 'linear-algebra',
+  numpy: 'numpy',
+  'probability-and-statistics': 'probability-statistics',
+  'pandas-and-plotting': 'pandas',
+  'ml-fundamentals': 'ml-fundamentals',
+  'data-and-features': 'data-preprocessing',
+  'calculus-and-gradient-descent': 'calculus',
+  'linear-regression': 'regression',
+  classification: 'classification',
+  'model-evaluation': 'model-evaluation',
+  'trees-and-ensembles': 'trees-ensembles',
+  'linear-algebra-deeper': 'linear-algebra',
+  'unsupervised-learning': 'unsupervised',
+  'neural-networks': 'neural-networks',
+  backpropagation: 'neural-networks',
+  pytorch: 'pytorch',
+  'training-deep-networks': 'training-regularisation',
+  'convolutional-networks': 'cnn-vision',
+  'vision-tasks': 'cnn-vision',
+  'text-as-data': 'nlp-transformers',
+  'attention-and-transformers': 'nlp-transformers',
+  'pretrained-models-text-speech': 'nlp-transformers',
+  'large-language-models': 'llms',
+  'prompting-and-rag': 'prompting-rag',
+  'generative-models': 'generative-models',
+  'multimodal-ai': 'multimodal',
+  'debugging-and-diagnosis': 'ml-debugging-diagnosis',
+  'ml-systems-and-tradeoffs': 'ml-system-design',
+}
+
+/** Lessons whose topic differs from their module's (same domain only). */
+const LESSON_SUBTOPIC: Record<string, string> = {
+  'ml-fundamentals/reinforcement-learning': 'reinforcement-learning',
+  'calculus-and-gradient-descent/gradient-descent': 'optimisation',
+  'calculus-and-gradient-descent/curvature-convexity': 'optimisation',
+  'pandas-and-plotting/cleaning-data': 'data-preprocessing',
+  'text-as-data/rnns-and-lstms': 'sequence-models',
+  'large-language-models/limits-and-responsible-ai': 'ai-ethics-safety',
+  'ml-systems-and-tradeoffs/compute-and-memory-tradeoffs': 'optimisation-tradeoffs',
+  'ml-systems-and-tradeoffs/cost-of-ml': 'optimisation-tradeoffs',
+}
+
 let cache: Promise<BankQuestion[]> | null = null
 
 async function loadCoreBank(): Promise<BankQuestion[]> {
@@ -97,16 +146,16 @@ async function loadCourseQuestions(): Promise<BankQuestion[]> {
   return all.flatMap(({ moduleSlug, quiz }) => {
     const m = getModule(moduleSlug)
     if (!m || m.domain === 'orientation' || m.domain === 'exam') return []
-    return Object.values(quiz)
-      .flat()
-      .map((q) => ({
+    return Object.entries(quiz).flatMap(([lessonSlug, qs]) =>
+      qs.map((q) => ({
         ...q,
         domain: m.domain as ExamDomain,
-        subtopic: '',
+        subtopic: LESSON_SUBTOPIC[`${moduleSlug}/${lessonSlug}`] ?? MODULE_SUBTOPIC[moduleSlug] ?? '',
         difficulty: q.difficulty ?? 'beginner',
         source: 'course' as const,
         sourceLabel: `Course: ${m.title}`,
-      }))
+      })),
+    )
   })
 }
 
@@ -115,7 +164,15 @@ async function loadPaperQuestions(): Promise<BankQuestion[]> {
   for (const p of PAPERS) {
     const qs = await loadPaper(p.id)
     for (const q of qs) {
-      out.push({ ...toQuiz(p.id, q), domain: q.domain, subtopic: q.subtopic, difficulty: q.difficulty, source: 'paper', sourceLabel: `${p.short} · Q${q.n}` })
+      // practice filters group by topic, so the domain follows the topic (the paper's own section can differ: see PaperView)
+      out.push({
+        ...toQuiz(p.id, q),
+        domain: SUB_TO_DOMAIN[q.subtopic] ?? q.domain,
+        subtopic: q.subtopic,
+        difficulty: q.difficulty,
+        source: 'paper',
+        sourceLabel: `${p.short} · Q${q.n}`,
+      })
     }
   }
   return out

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { DOMAIN_SUBTOPICS, SUBTOPIC_LABEL, type ExamDomain } from '../data/bank'
 import { PAPERS, loadPaper, toQuiz, type PaperQuestion } from '../data/papers'
 import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
 import { progress } from '../lib/progress'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import NotFound from './NotFound'
 
 const PAGE = 25
@@ -19,15 +20,15 @@ export default function PaperView() {
   const [mode, setMode] = useState<'try' | 'study'>('try')
   const [sel, setSel] = useState<Record<number, number>>({})
   const [limit, setLimit] = useState(PAGE)
+  const handledHash = useRef<string | null>(null)
+  useDocumentTitle(meta?.title)
 
   useEffect(() => {
     if (!meta) return
-    document.title = `${meta.title} · NOAI Prep`
     let live = true
     loadPaper(meta.id).then((x) => live && setQs(x))
     return () => {
       live = false
-      document.title = 'NOAI Prep'
     }
   }, [meta])
 
@@ -43,13 +44,18 @@ export default function PaperView() {
     [qs, domain, subtopic],
   )
 
-  // deep link: #q12
+  // deep link: #q12, handled once per hash so later filtering or "Show more" does not jump back
   useEffect(() => {
     const m = /^#q(\d+)$/.exec(loc.hash)
-    if (!m || !qs) return
+    if (!m || !qs || handledHash.current === loc.hash) return
     const n = Number(m[1])
     const idx = shown.findIndex((q) => q.n === n)
-    if (idx >= limit) setLimit(idx + 1)
+    if (idx < 0) return
+    if (idx >= limit) {
+      setLimit(idx + 1) // render it first; this effect runs again once it is on the page
+      return
+    }
+    handledHash.current = loc.hash
     requestAnimationFrame(() => document.getElementById(`q${n}`)?.scrollIntoView({ block: 'start' }))
   }, [loc.hash, qs, shown, limit])
 
@@ -141,15 +147,10 @@ export default function PaperView() {
                 <>
                   <DomainChip domain={q.domain} />
                   <span className="chip">{SUBTOPIC_LABEL[q.subtopic] ?? q.subtopic}</span>
-                  {q.confidence === 'low' || q.notes ? <span className="chip" style={{ color: 'var(--warn)' }}>See note</span> : null}
+                  {(mode === 'study' || sel[q.n] != null) && q.caveat ? <span className="chip" style={{ color: 'var(--warn)' }}>See note</span> : null}
                 </>
               }
             />
-            {q.notes && (
-              <p className="fineprint" style={{ marginTop: '0.4rem' }}>
-                Note: {q.notes}
-              </p>
-            )}
           </div>
         ))}
       </div>

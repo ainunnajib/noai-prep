@@ -138,7 +138,8 @@
       ],
       "explanation": "The recommended factory function is `torch.tensor(data)`, which copies the list and infers the dtype (here `torch.int64`). `torch.array` does not exist in PyTorch (you may be thinking of `np.array`). `Tensor([1, 2, 3])` and `tensor([1, 2, 3])` only run if you first did `from torch import Tensor` / `from torch import tensor`; even then, the `Tensor` constructor always makes a `float32` tensor, which is why `torch.tensor` is the standard answer.",
       "confidence": "high",
-      "notes": "Options B and D would also run after `from torch import Tensor` / `from torch import tensor`; the intended answer is the fully-qualified `torch.tensor([1, 2, 3])`."
+      "notes": "Options B and D would also run after `from torch import Tensor` / `from torch import tensor`; the intended answer is the fully-qualified `torch.tensor([1, 2, 3])`.",
+      "caveat": "Options B and D would also run after `from torch import Tensor` / `from torch import tensor`; the intended answer is the fully-qualified `torch.tensor([1, 2, 3])`."
     },
     {
       "n": 107,
@@ -345,7 +346,8 @@
       ],
       "explanation": "PyTorch adds new gradients into the existing `.grad` instead of replacing them. Example: with $w=2$ and $\\text{loss}=w^2$, one backward pass gives $\\frac{d\\,\\text{loss}}{dw}=2w=4$; computing the loss again and calling backward again without zeroing leaves `w.grad = 4 + 4 = 8`. This is why options C and D (overwrite / keep only the second) are wrong, and also why `zero_grad()` is needed every step. The behaviour is sometimes used on purpose (\"gradient accumulation\") to simulate a larger batch on limited memory.",
       "confidence": "medium",
-      "notes": "Taken literally (calling `.backward()` twice on the *same* `loss` tensor), PyTorch usually raises `RuntimeError: Trying to backward through the graph a second time` unless `retain_graph=True` is passed on the first call (verified with torch 2.x). The intended reading is two backward passes (e.g. two iterations) without zeroing, where gradients accumulate, so A is the intended answer; B is defensible under the literal reading."
+      "notes": "Taken literally (calling `.backward()` twice on the *same* `loss` tensor), PyTorch usually raises `RuntimeError: Trying to backward through the graph a second time` unless `retain_graph=True` is passed on the first call (verified with torch 2.x). The intended reading is two backward passes (e.g. two iterations) without zeroing, where gradients accumulate, so A is the intended answer; B is defensible under the literal reading.",
+      "caveat": "Taken literally (calling `.backward()` twice on the *same* `loss` tensor), PyTorch usually raises `RuntimeError: Trying to backward through the graph a second time` unless `retain_graph=True` is passed on the first call (verified with torch 2.x). The intended reading is two backward passes (e.g. two iterations) without zeroing, where gradients accumulate, so A is the intended answer; B is defensible under the literal reading."
     },
     {
       "n": 116,
@@ -437,7 +439,8 @@
       ],
       "explanation": "A clean way to write a custom loss is to subclass `nn.Module` and compute the loss from `pred` and `target` inside `forward()` using differentiable torch operations; autograd then gives you gradients for free when you call `loss.backward()`. You are not limited to built-in losses and do not need to edit PyTorch's source. Option D is wrong because of its claim \"(no gradients)\": as long as the function uses torch operations on tensors, autograd still tracks it.\n\n```python\nclass RMSELoss(nn.Module):\n    def forward(self, pred, target):\n        return torch.sqrt(torch.mean((pred - target) ** 2))\n```",
       "confidence": "high",
-      "notes": "In practice, a plain Python function built from torch ops (e.g. `def my_loss(p, t): return ((p - t) ** 2).mean()`) also works and does get gradients; option D is wrong only because of its \"(no gradients)\" claim."
+      "notes": "In practice, a plain Python function built from torch ops (e.g. `def my_loss(p, t): return ((p - t) ** 2).mean()`) also works and does get gradients; option D is wrong only because of its \"(no gradients)\" claim.",
+      "caveat": "In practice, a plain Python function built from torch ops (e.g. `def my_loss(p, t): return ((p - t) ** 2).mean()`) also works and does get gradients; option D is wrong only because of its \"(no gradients)\" claim."
     },
     {
       "n": 120,
@@ -575,7 +578,8 @@
       ],
       "explanation": "`torch.jit.trace` (records the operations run on an example input) and `torch.jit.script` (compiles the Python code, including control flow) both turn a model into **TorchScript**, a serialisable intermediate representation. A TorchScript model can be optimised and run without a Python interpreter, for example from C++ (LibTorch) or on mobile, which is why it is used for deployment. It makes debugging *harder*, not easier, does not visualise architectures (use tools like TensorBoard or torchinfo), and does not convert to TensorFlow (ONNX export is the usual bridge).",
       "confidence": "high",
-      "notes": "TorchScript is now in maintenance mode; newer PyTorch versions recommend `torch.compile` / `torch.export` for optimisation and deployment, but A remains the correct description of what `torch.jit` is for."
+      "notes": "TorchScript is now in maintenance mode; newer PyTorch versions recommend `torch.compile` / `torch.export` for optimisation and deployment, but A remains the correct description of what `torch.jit` is for.",
+      "caveat": "TorchScript is now in maintenance mode; newer PyTorch versions recommend `torch.compile` / `torch.export` for optimisation and deployment, but A remains the correct description of what `torch.jit` is for."
     },
     {
       "n": 126,
@@ -1013,7 +1017,8 @@
       ],
       "explanation": "In $k$-fold cross-validation the data is split into $k$ parts; the model is trained $k$ times, each time holding out a different part for evaluation, and the $k$ scores are averaged. For example, 5-fold CV trains on 80% and tests on 20%, five times, so every example is used for evaluation exactly once. This gives a more reliable estimate of performance on unseen data than a single split. It can be *used inside* feature or model selection, but its purpose is estimation; it does not clean or normalise data.",
       "confidence": "high",
-      "notes": "Option B (select features) is a common *use* of cross-validation (comparing feature subsets or models by their CV score), but the defining purpose asked for is estimating performance on unseen data, so D is clearly the intended answer."
+      "notes": "Option B (select features) is a common *use* of cross-validation (comparing feature subsets or models by their CV score), but the defining purpose asked for is estimating performance on unseen data, so D is clearly the intended answer.",
+      "caveat": "Option B (select features) is a common *use* of cross-validation (comparing feature subsets or models by their CV score), but the defining purpose asked for is estimating performance on unseen data, so D is clearly the intended answer."
     },
     {
       "n": 145,
