@@ -258,8 +258,6 @@ tensor([-0.3162, -0.6325])
 
 The errors are $-1$ and $-2$, so the loss is $\sqrt{(1 + 4)/2} = \sqrt{2.5} \approx 1.581$. A plain Python function built from torch operations works just as well (autograd records the operations either way); what breaks the gradient is leaving torch, for example with `.item()` or NumPy, in the middle of the calculation.
 
-<PastPaperQuestion paper="prelim2026" n={119} />
-
 ## Saving and loading: the state_dict
 
 Everything a model has learned is in its <Term def="An ordered dictionary that maps the name of each parameter and buffer (like 'fc1.weight') to its tensor. It holds everything a model has learned, but none of its code.">state_dict</Term>: a dictionary from names to tensors. Saving a model means saving that dictionary:
@@ -435,15 +433,7 @@ False
 
 MyNorm keeps things simple. The built-in `nn.BatchNorm1d` normalises with this same divide-by-$n$ variance, but the variance it stores in `running_var` is the unbiased one, multiplied by $\frac{n}{n-1}$ (on this batch it stores $[1.0333, 1.1667, 1.1667]$).
 
-Two details in `forward` matter. The buffers are updated **in place** (`mul_`, `add_`) so they stay the same registered tensors, and inside `torch.no_grad()` so the update is not recorded.
-
-<Reveal label="Why in place? What goes wrong with an ordinary assignment">
-
-Suppose you wrote `self.running_mean = 0.9 * self.running_mean + 0.1 * mean` instead. Two things go wrong. In a real network, where `x` comes from earlier layers, the new tensor carries autograd history (`requires_grad=True`), chaining every batch's graph onto the buffer. And it is a brand-new tensor rather than a write into the buffer's own memory, so when PyTorch runs the module as a temporary copy (as `nn.DataParallel` does to use several GPUs), the new value lands on the throwaway copy and is lost: the real buffers stay at 0 and 1, and `model.eval()` predictions are poor although training looked fine. Updating in place inside `torch.no_grad()` avoids both, which is exactly what PyTorch's own BatchNorm does.
-
-</Reveal>
-
-<PastPaperQuestion paper="final2026" n={8} />
+Two details in `forward` matter. The buffers are updated **in place** (`mul_`, `add_`) so they stay the same registered tensors (assigning a brand-new tensor, `self.running_mean = 0.9 * self.running_mean + 0.1 * mean`, would replace the buffer with a new object that carries autograd history), and inside `torch.no_grad()` so the update is not recorded. PyTorch's own BatchNorm does exactly this.
 
 Now change how each tensor is registered and see what follows:
 
@@ -477,10 +467,6 @@ self.table = torch.ones(4, 4)`}
 The Prelim asks these as one-liners: `nn.Module` is the base class for all layers and models; the forward pass is the `forward()` method, run by calling `model(x)`; a fully connected layer is `nn.Linear(in, out)`; `model.parameters()` (or `named_parameters()`) gives the weights; `nn.Sequential` stacks layers in order; a model is saved with `torch.save(model.state_dict(), path)`. In the Final, the class skeleton is the first thing you write: put a shape comment after every line of `forward`.
 
 </ExamTip>
-
-<PastPaperQuestion paper="prelim2026" n={114} />
-
-<PastPaperQuestion paper="prelim2026" n={117} />
 
 <Takeaways>
 

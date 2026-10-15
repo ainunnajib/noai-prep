@@ -77,12 +77,17 @@ interface LogEntry {
   error?: boolean
 }
 
+type Mark = 'changed' | 'moved' | 'lost'
+const MARK_COLOUR: Record<Mark, string> = { changed: 'var(--viz-2)', moved: 'var(--viz-1)', lost: 'var(--viz-neg)' }
+
 export default function ParamBufferInspector() {
   const [kinds, setKinds] = useState<Record<Name, Kind>>(DEFAULT_KINDS)
   const [vals, setVals] = useState<Values>(INIT)
   const [gpu, setGpu] = useState(false)
   const [training, setTraining] = useState(true)
-  const [changed, setChanged] = useState<Set<Name>>(new Set())
+  // what the last action did to each card: a new value, a move to another device, or a value lost on reload
+  const [marks, setMarks] = useState<Map<Name, Mark>>(new Map())
+  const mark = (names: Iterable<Name>, m: Mark) => new Map([...names].map((n) => [n, m] as [Name, Mark]))
   const [log, setLog] = useState<LogEntry>({ code: 'model = MyNorm(3)\noptimizer = torch.optim.SGD(model.parameters(), lr=0.3)', result: 'Built. Now press the buttons and watch the cards.' })
 
   const [listRef, narrow] = useNarrow<HTMLDivElement>(600)
@@ -98,7 +103,7 @@ export default function ParamBufferInspector() {
     setVals(INIT)
     setGpu(false)
     setTraining(true)
-    setChanged(new Set())
+    setMarks(new Map())
     setLog(
       next.num_batches === 'param'
         ? {
@@ -117,7 +122,7 @@ export default function ParamBufferInspector() {
 
   const doTrain = () => {
     const r = trainStep(vals, kinds, gpu)
-    setChanged(diff(vals, r.next))
+    setMarks(mark(diff(vals, r.next), 'changed'))
     setVals(r.next)
     setTraining(true)
     const code = `model.train()\nout = model(x${gpu ? '.to(device)' : ''})\nloss = ((out - y) ** 2).mean()\nloss.backward()\noptimizer.step(); optimizer.zero_grad()`
@@ -143,7 +148,7 @@ export default function ParamBufferInspector() {
   const doDevice = () => {
     const to = !gpu
     setGpu(to)
-    setChanged(new Set(NAMES.filter((n) => kinds[n] !== 'plain')))
+    setMarks(mark(NAMES.filter((n) => kinds[n] !== 'plain'), 'moved'))
     const left = NAMES.filter((n) => kinds[n] === 'plain')
     setLog({
       code: `device = '${to ? 'cuda' : 'cpu'}'\nmodel.to(device)`,
@@ -154,7 +159,7 @@ export default function ParamBufferInspector() {
   const doSave = () => {
     const next = saveAndReload(vals, kinds)
     const lost = NAMES.filter((n) => kinds[n] === 'plain' && diff(vals, next).has(n))
-    setChanged(new Set(lost))
+    setMarks(mark(lost, 'lost'))
     setVals(next)
     setGpu(false)
     setTraining(true)
@@ -167,7 +172,7 @@ export default function ParamBufferInspector() {
   const doEval = () => {
     const r = evaluate(vals, kinds, gpu)
     setTraining(false)
-    setChanged(new Set())
+    setMarks(new Map())
     const code = `model.eval()\nwith torch.no_grad():\n    print(model(torch.tensor([[${X_NEW.join('., ')}.]])${gpu ? '.to(device)' : ''}))`
     if (r.error) setLog({ code, error: true, result: r.error })
     else setLog({ code, result: `tensor([[${torchRow(r.out!)}]]${gpu ? ", device='cuda:0'" : ''})\nIn eval mode the input is normalised with running_mean and running_var.` })
@@ -206,7 +211,7 @@ export default function ParamBufferInspector() {
           const d = dev(n)
           const stranded = gpu && d === 'cpu'
           return (
-            <div key={n} className={`${css.card} ${narrow ? '' : css.pbWide} ${changed.has(n) ? css.flash : ''}`}>
+            <div key={n} className={`${css.card} ${narrow ? '' : css.pbWide} ${marks.has(n) ? css.flash : ''}`}>
               <div className={css.cardHead}>
                 <b className={css.mono}>{n}</b>
                 <span className={css.nodeKind}>{ROLE_LABEL[ROLE[n]]}</span>
@@ -231,7 +236,11 @@ export default function ParamBufferInspector() {
                   </div>
                   <div className={css.cardVal}>
                     <span className={css.mono}>{broken && n === 'num_batches' ? '—' : val}</span>
-                    {changed.has(n) && <span className={css.changedMark}>changed</span>}
+                    {marks.has(n) && (
+                      <span className={css.changedMark} style={{ background: MARK_COLOUR[marks.get(n)!] }}>
+                        {marks.get(n) === 'changed' ? 'changed' : marks.get(n) === 'moved' ? `moved to ${d}` : 'reset on reload'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <code className={css.cardCode}>{codeLine(n, k)}</code>
