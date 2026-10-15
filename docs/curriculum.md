@@ -1,6 +1,6 @@
 # NOAI Prep: final curriculum
 
-**39 modules · 182 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
+**39 modules · 184 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
 
 Synthesised from three designs: **A** (beginner pedagogy), **B** (exam coverage) and **C2** (IOAI syllabus, visual-first). The sequencing comes from A, most concept content and visual specs from C2, and the exam part (drills, past-paper walkthroughs, separate NumPy and PyTorch Final labs) from B. A completeness critic pass then audited it against every past-paper question, the IOAI 2026 syllabus and the six Final tasks and made 43 changes (listed near the end). Details are in the rationale and scorecard at the end.
 
@@ -39,7 +39,7 @@ Paper subtopics: ml-fundamentals, regression, classification, optimisation
 
 ## Part 1: Code from zero
 
-Python from your very first line to classes and debugging, plus the algorithmic thinking behind efficient code. *(3 modules, 15 lessons, about 4.5 h)*
+Python from your very first line to classes and debugging, plus the algorithmic thinking behind efficient code. *(3 modules, 17 lessons, about 5.3 h)*
 
 
 ### M3. Python from zero (`python-basics`)
@@ -83,8 +83,10 @@ Big-O notation and counting steps in code, binary search, sorting, hashing and h
 Paper subtopics: algorithms-complexity, python
 
 1. **Big-O: how cost grows** (`big-o`) 18 min · runnable · 2 concepts. Counting steps as input grows, the common complexity classes, and reading complexity off code.
-2. **Searching, sorting, hashing and heaps** (`searching-sorting-hashing`) 22 min · runnable · 4 concepts. Binary search halves the problem, sorting algorithms trade simplicity for speed, hash tables give constant-time lookup and heaps give the top k cheaply.
-3. **Recursion, dynamic programming and graph search** (`recursion-dp-graphs`) 22 min · runnable · 3 concepts. Solving problems by breaking them into subproblems, remembering answers to avoid repeated work, and exploring graphs breadth-first or depth-first.
+2. **Searching and sorting** (`searching-and-sorting`) 20 min · runnable · 2 concepts. Linear versus binary search and why halving gives O(log n), then sorting from O(n²) bubble and insertion sort to O(n log n) merge sort, and when quicksort slows to O(n²).
+3. **Hashing and heaps** (`hashing-and-heaps`) 25 min · runnable · 2 concepts. Hash tables jump straight to a key's bucket, so dict and set lookups are O(1) on average, and a size-k min-heap finds the top k of n items in O(n log k) without sorting everything.
+4. **Recursion and dynamic programming** (`recursion-and-dynamic-programming`) 30 min · runnable · 2 concepts. Functions that call themselves, why naive recursive Fibonacci is exponential, memoisation that remembers every answer, and dynamic-programming tables such as edit distance.
+5. **Graph search: breadth-first and depth-first** (`graph-search`) 20 min · runnable · 1 concept. Graphs stored as adjacency lists, breadth-first search with a queue for fewest-hop paths, depth-first search with a stack, and the graphs inside AI, from computational graphs to beam search.
 
 
 ## Part 2: The maths and data toolkit

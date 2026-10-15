@@ -65,14 +65,14 @@
       ]
     },
     {
-      "slug": "searching-sorting-hashing",
-      "title": "Searching, sorting, hashing and heaps",
-      "summary": "Binary search halves the problem, sorting algorithms trade simplicity for speed, hash tables give constant-time lookup and heaps give the top k cheaply.",
-      "minutes": 22,
+      "slug": "searching-and-sorting",
+      "title": "Searching and sorting",
+      "summary": "Linear versus binary search and why halving gives O(log n), then sorting from O(n²) bubble and insertion sort to O(n log n) merge sort, and when quicksort slows to O(n²).",
+      "minutes": 20,
       "objectives": [
-        "You can explain why binary search is O(log n) and needs sorted data",
-        "You can compare O(n²) and O(n log n) sorting",
-        "You can explain why dict/set lookups are O(1) on average and when a heap beats sorting"
+        "You can trace binary search on a sorted list and work out its worst-case number of comparisons, about log₂ n",
+        "You can merge two sorted lists by hand and explain why merge sort is O(n log n) while bubble sort can need O(n²)",
+        "You can explain why quicksort is O(n log n) on average but O(n²) when every pivot is the smallest item, as on sorted data"
       ],
       "concepts": [
         {
@@ -98,7 +98,28 @@
             "interaction": "Choose bubble, insertion or merge sort; change n and the initial order (random, nearly sorted, reversed); play.",
             "aha": "Divide-and-conquer turns quadratic sorting into n log n."
           }
-        },
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Tracing binary search on sorted data",
+        "Worst-case comparisons: about log2 n, one more per doubling",
+        "Merging two sorted lists by comparing front items",
+        "Sorting complexities: O(n²) versus O(n log n)",
+        "Quicksort worst case on sorted data"
+      ]
+    },
+    {
+      "slug": "hashing-and-heaps",
+      "title": "Hashing and heaps",
+      "summary": "Hash tables jump straight to a key's bucket, so dict and set lookups are O(1) on average, and a size-k min-heap finds the top k of n items in O(n log k) without sorting everything.",
+      "minutes": 25,
+      "objectives": [
+        "You can explain why dict and set lookups are O(1) on average and work out a hash table's load factor n/m",
+        "You can push a value into a min-heap stored as a list, sifting it up to its place",
+        "You can use a size-k min-heap to find the top k of n items in O(n log k), and explain why it is a min-heap and not a max-heap"
+      ],
+      "concepts": [
         {
           "name": "Hashing for constant-time lookup",
           "explain": "A hash map computes a number from each key to decide which bucket stores it, so lookups go straight to the right bucket on average in O(1). Collisions (two keys in one bucket) are handled but slow things down if there are too many.",
@@ -126,22 +147,22 @@
       ],
       "code": "runnable",
       "checkpoint_focus": [
-        "Binary search steps on sorted data",
-        "Sorting complexities",
         "Hash table average O(1) lookup",
-        "Top-k with a heap in O(n log k)"
+        "Load factor n/m and collisions",
+        "Heap push and sift-up in the list layout",
+        "Top-k with a heap in O(n log k)",
+        "Why a min-heap keeps the k largest"
       ]
     },
     {
-      "slug": "recursion-dp-graphs",
-      "title": "Recursion, dynamic programming and graph search",
-      "summary": "Solving problems by breaking them into subproblems, remembering answers to avoid repeated work, and exploring graphs breadth-first or depth-first.",
-      "minutes": 22,
+      "slug": "recursion-and-dynamic-programming",
+      "title": "Recursion and dynamic programming",
+      "summary": "Functions that call themselves, why naive recursive Fibonacci is exponential, memoisation that remembers every answer, and dynamic-programming tables such as edit distance.",
+      "minutes": 30,
       "objectives": [
-        "You can trace a recursive function",
+        "You can trace a recursive function down to its base case and back, and explain why n waiting calls use O(n) space on the call stack",
         "You can explain how memoisation turns exponential recursion into linear time",
-        "You can fill a small dynamic-programming table",
-        "You can contrast BFS and DFS"
+        "You can fill a dynamic-programming table bottom-up, from counting ways up a staircase to the cells of an edit-distance table"
       ],
       "concepts": [
         {
@@ -167,7 +188,29 @@
             "interaction": "Edit the two words; step or play the fill; reveal the alignment.",
             "aha": "DP is careful bookkeeping that avoids recomputing overlapping subproblems."
           }
-        },
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Base case and recursive case",
+        "The call stack: n waiting calls use O(n) space",
+        "Overlapping subproblems and memoisation",
+        "DP table filling, bottom-up",
+        "Edit-distance cell: the cheapest of substitute, delete and insert"
+      ]
+    },
+    {
+      "slug": "graph-search",
+      "title": "Graph search: breadth-first and depth-first",
+      "summary": "Graphs stored as adjacency lists, breadth-first search with a queue for fewest-hop paths, depth-first search with a stack, and the graphs inside AI, from computational graphs to beam search.",
+      "minutes": 20,
+      "objectives": [
+        "You can store a graph as an adjacency list and trace breadth-first search by hand, writing down the queue after each visit",
+        "You can choose BFS (a queue) for fewest-hop paths, explain how DFS (a stack) differs, and explain why both take O(V + E) time",
+        "You can explain why BFS no longer finds the cheapest route once edges have different costs, the job of Dijkstra's algorithm",
+        "You can explain beam search as a breadth-first search that keeps only the k best partial sentences at each level"
+      ],
+      "concepts": [
         {
           "name": "BFS versus DFS",
           "explain": "Breadth-first search explores a graph level by level using a queue, so it finds the shortest path (fewest edges) in an unweighted graph. Depth-first search follows one path as deep as possible using a stack or recursion, then backtracks. Both visit every node in O(V + E).",
@@ -183,10 +226,11 @@
       ],
       "code": "runnable",
       "checkpoint_focus": [
-        "Base case and recursive case",
-        "Overlapping subproblems and memoisation",
-        "DP table filling",
-        "BFS finds shortest path in unweighted graphs"
+        "Tracing BFS order with a queue",
+        "BFS finds shortest path in unweighted graphs",
+        "BFS and DFS are both O(V + E): queue versus stack",
+        "Weighted edges: BFS is not cheapest; Dijkstra's uses a priority queue",
+        "Beam search as a pruned BFS"
       ]
     }
   ]

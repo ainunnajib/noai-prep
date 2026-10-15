@@ -117,7 +117,7 @@ for q in queries:     # n queries
   highlight: [1, 4],
   steps: (n) => 2 * n,
   shape: 'bars2',
-  note: 'A set jumps straight to the answer (hashing, next lesson), so each "in" is about 1 step. Building the set is n steps and the loop is n more: O(n) in total.',
+  note: 'A set jumps straight to the answer (hashing, explained in the Hashing and heaps lesson), so each "in" is about 1 step. Building the set is n steps and the loop is n more: O(n) in total.',
 }
 
 const OLD = 'var(--viz-1)'

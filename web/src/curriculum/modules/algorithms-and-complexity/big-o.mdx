@@ -84,7 +84,7 @@ def total(nums):       # nums holds n numbers
 
 This takes $n + 2$ steps. For $n = 1{,}000$ that is 1,002 steps; for $n = 1{,}000{,}000$ it is 1,000,002. The "+ 2" stops mattering almost at once. What matters is that the work is **proportional to $n$**, and Big-O says exactly that: `total` is $O(n)$, read "order $n$" or "big-O of $n$".
 
-Unless a question says otherwise, Big-O describes the <Term def="The largest number of steps the algorithm can take over all inputs of size n, for example when the item you search for is not there at all.">worst case</Term>. Searching a list for a value that sits at the front takes one step, but we quote $O(n)$ because in the worst case (the value is last or missing) every item is checked. The one common exception is hash tables (Python's dict and set): their lookups are quoted as $O(1)$ **on average**, as you saw in [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets). The next lesson, [Searching, sorting, hashing and heaps](#/learn/algorithms-and-complexity/searching-sorting-hashing), works out why.
+Unless a question says otherwise, Big-O describes the <Term def="The largest number of steps the algorithm can take over all inputs of size n, for example when the item you search for is not there at all.">worst case</Term>. Searching a list for a value that sits at the front takes one step, but we quote $O(n)$ because in the worst case (the value is last or missing) every item is checked. The one common exception is hash tables (Python's dict and set): their lookups are quoted as $O(1)$ **on average**, as you saw in [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets). [Hashing and heaps](#/learn/algorithms-and-complexity/hashing-and-heaps), two lessons on, works out why.
 
 ## The growth race
 
@@ -218,7 +218,7 @@ Rule 1 is only true for genuinely simple statements. Many single lines of Python
 | `a.insert(0, x)`, `a.pop(0)` | $O(n)$ | every other item has to shuffle along one place |
 | `a[i:j]`, `a.copy()`, `a + b` | $O(k)$ for $k$ items copied | builds a new list |
 | `sorted(a)`, `a.sort()` | $O(n \log n)$ | a clever sort called Timsort |
-| `x in s` for a set, `d[key]` for a dict | $O(1)$ on average | hashing (next lesson) |
+| `x in s` for a set, `d[key]` for a dict | $O(1)$ on average | hashing ([Hashing and heaps](#/learn/algorithms-and-complexity/hashing-and-heaps)) |
 
 (`a.append(x)` is $O(1)$ on average: now and then the list moves to a bigger block of memory, but spread over many appends that is a constant cost each.)
 
@@ -244,7 +244,7 @@ The two are often a trade. Here are two correct ways to check whether a list con
 
 <SpaceVsTime />
 
-Comparing every pair uses $O(n^2)$ time but only $O(1)$ extra space: whatever the size of the list, it only remembers two positions, `i` and `j`. Keeping a set of the numbers seen so far uses $O(n)$ time but $O(n)$ extra space, because the set can grow to hold all $n$ numbers. Spending memory to save time is one of the most common moves in computing: <Term def="Kept answers that have already been worked out, so they can be looked up instead of computed again.">caches</Term>, hash tables and dynamic programming (the subject of [Recursion, dynamic programming and graph search](#/learn/algorithms-and-complexity/recursion-dp-graphs), later in this module) all do it.
+Comparing every pair uses $O(n^2)$ time but only $O(1)$ extra space: whatever the size of the list, it only remembers two positions, `i` and `j`. Keeping a set of the numbers seen so far uses $O(n)$ time but $O(n)$ extra space, because the set can grow to hold all $n$ numbers. Spending memory to save time is one of the most common moves in computing: <Term def="Kept answers that have already been worked out, so they can be looked up instead of computed again.">caches</Term>, hash tables and dynamic programming (the subject of [Recursion and dynamic programming](#/learn/algorithms-and-complexity/recursion-and-dynamic-programming), later in this module) all do it.
 
 <Mistake title="Counting the input as extra space">
 

@@ -2,31 +2,7 @@ import type { QuizQuestion } from '../../../types'
 
 const questions: QuizQuestion[] = [
   {
-    id: 'algorithms-and-complexity.searching-sorting-hashing.1',
-    prompt: 'This binary search looks for `10` in `a = [2, 5, 9, 14, 20, 27, 31, 38, 45]`. Which values of `a[mid]` does it compare with the target, in order?',
-    code: 'lo, hi = 0, len(a) - 1\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    if a[mid] == target:\n        break\n    elif a[mid] < target:\n        lo = mid + 1\n    else:\n        hi = mid - 1',
-    options: ['20, 5, 9, 14', '2, 5, 9, 14', '20, 9, 14', '20, 31, 38, 45'],
-    answer: 0,
-    explanation:
-      'mid = (0 + 8) // 2 = 4, so 20 first; 20 > 10, so hi = 3. Then mid = 3 // 2 = 1: 5 < 10, so lo = 2. Then mid = (2 + 3) // 2 = 2: 9 < 10, so lo = 3. Then mid = 3: 14 > 10, so hi = 2 < lo and the search stops: 10 is not there. "20, 9, 14" comes from rounding the middle up instead of down (`//` rounds down); "20, 31, 38, 45" moves right after 20 although 20 is bigger than the target; "2, 5, 9, 14" is linear search.',
-    difficulty: 'intermediate',
-  },
-  {
-    id: 'algorithms-and-complexity.searching-sorting-hashing.2',
-    prompt: 'Which statement about sorting $n$ items is correct?',
-    options: [
-      'Merge sort needs $O(n \\log n)$ comparisons even in its worst case; bubble sort can need $O(n^2)$.',
-      'Bubble sort needs $O(n \\log n)$ comparisons, because each pass halves the unsorted part of the list.',
-      'Merge sort needs $O(n^2)$ comparisons, because each of its levels has to merge the whole list of $n$ items.',
-      'Both need $O(n)$ comparisons on random data, because each item has to move to its place just once.',
-    ],
-    answer: 0,
-    explanation:
-      'Merge sort has $\\log_2 n$ levels of splitting and each level of merging costs about $n$ comparisons, so $O(n \\log n)$ always. Bubble sort shrinks the unsorted part by only one item per pass (it does not halve it), so it can need about $n^2/2$ comparisons. Each level does merge all $n$ items, but there are only $\\log_2 n$ levels, not $n$.',
-    difficulty: 'beginner',
-  },
-  {
-    id: 'algorithms-and-complexity.searching-sorting-hashing.3',
+    id: 'algorithms-and-complexity.hashing-and-heaps.1',
     prompt: 'Why is `x in s` usually much faster when `s` is a Python `set` than when `s` is a `list` of the same items?',
     options: [
       'The set hashes `x` to find the one bucket where `x` could be, so on average it checks only a few items.',
@@ -40,7 +16,28 @@ const questions: QuizQuestion[] = [
     difficulty: 'beginner',
   },
   {
-    id: 'algorithms-and-complexity.searching-sorting-hashing.4',
+    id: 'algorithms-and-complexity.hashing-and-heaps.2',
+    prompt:
+      'A hash table with chaining stores 2,000 keys in 500 buckets, spread evenly by a good hash function. About how many stored keys does a lookup compare the target with?',
+    options: ['About 4', 'About 500', 'About 2,000', 'About 11'],
+    answer: 0,
+    explanation:
+      'The load factor is $\\alpha = n/m = 2{,}000/500 = 4$, so each chain holds about 4 keys, and a lookup hashes the target and walks just one chain: $O(1 + \\alpha)$. About 11 is $\\log_2 2{,}000$, the cost of binary search on sorted data; 2,000 is a scan of every key, which happens only in the worst case where all keys collide; 500 is the number of buckets, but a lookup visits one of them.',
+    difficulty: 'beginner',
+  },
+  {
+    id: 'algorithms-and-complexity.hashing-and-heaps.3',
+    prompt:
+      'The list `h` below is already a min-heap (the children of position $i$ are at $2i + 1$ and $2i + 2$). What does the code print?',
+    code: 'import heapq\nh = [3, 8, 5, 12, 9, 7]\nheapq.heappush(h, 2)\nprint(h)',
+    options: ['[2, 8, 3, 12, 9, 7, 5]', '[2, 3, 5, 7, 8, 9, 12]', '[3, 8, 5, 12, 9, 7, 2]', '[2, 3, 5, 8, 9, 7, 12]'],
+    answer: 0,
+    explanation:
+      '2 goes in at the end, position 6. Its parent is at $\\lfloor (6 - 1)/2 \\rfloor = 2$, which holds 5, and $2 < 5$, so they swap: `[3, 8, 2, 12, 9, 7, 5]`. Its new parent is position 0, which holds 3, and $2 < 3$, so they swap again and 2 becomes the root. A heap is only partly ordered, so the list does not become sorted; `[2, 3, 5, 8, 9, 7, 12]` takes the parent of position $i$ to be $i // 2$ (swapping 2 with 12, then 8, then 3), and leaving 2 at the end skips the sift-up.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'algorithms-and-complexity.hashing-and-heaps.4',
     prompt:
       'Finding the $k$ largest of $n$ numbers with a size-$k$ min-heap takes $O(n \\log k)$ steps. For $n = 1{,}000{,}000$ and $k = 8$, roughly how many steps is that? (Sorting everything would take about $n \\log_2 n \\approx 20{,}000{,}000$.)',
     options: ['About 3,000,000', 'About 8,000,000', 'About 24', 'About 20,000,000'],
@@ -50,7 +47,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'algorithms-and-complexity.searching-sorting-hashing.5',
+    id: 'algorithms-and-complexity.hashing-and-heaps.5',
     prompt:
       'A program streams exam scores and must keep the 10 highest so far. It uses a MIN-heap holding at most 10 scores. Why a min-heap rather than a max-heap?',
     options: [

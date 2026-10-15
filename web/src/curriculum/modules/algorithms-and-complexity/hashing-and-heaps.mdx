@@ -1,0 +1,203 @@
+import HashBuckets from './visuals/hashing-and-heaps/HashBuckets'
+import HeapTopK from './visuals/hashing-and-heaps/HeapTopK'
+
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const pairCode = `# O(n^2): check every pair
+def has_pair_slow(nums, target):
+    n = len(nums)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if nums[i] + nums[j] == target:
+                return True
+    return False
+
+# O(n): one pass, remembering a set
+def has_pair_fast(nums, target):
+    seen = set()
+    for x in nums:
+        # an O(1) lookup on average
+        if target - x in seen:
+            return True
+        seen.add(x)
+    return False
+
+nums = [8, 3, 11, 5, 14, 2]
+print(has_pair_slow(nums, 16))   # 11 + 5
+print(has_pair_fast(nums, 16))
+print(has_pair_fast(nums, 30))
+
+# same key, same hash, every time
+print(hash("kopi") == hash("kopi"))
+d = {(1, 2): "a tuple can be a key"}
+print(d[(1, 2)])
+try:
+    d[[1, 2]] = "a list cannot"
+except TypeError as e:
+    print("TypeError:", e)`
+
+export const heapCode = `import heapq
+
+scores = [42, 77, 15, 63, 88, 51, 29, 95,
+          70, 34, 81, 58, 12, 99, 66, 47]
+
+# keep the 3 largest in a min-heap of size 3
+k = 3
+heap = []
+for x in scores:
+    if len(heap) < k:
+        heapq.heappush(heap, x)
+    elif x > heap[0]:
+        # x beats the smallest of the top k:
+        # pop the root and push x, O(log k)
+        heapq.heapreplace(heap, x)
+print(heap)              # a heap: not sorted
+print(sorted(heap, reverse=True))
+print(heapq.nlargest(3, scores))  # same job`
+
+In [Searching and sorting](#/learn/algorithms-and-complexity/searching-and-sorting) you found a value among a million sorted items in at most 20 comparisons, and paid $O(n \log n)$ to sort them first. This lesson builds two tools that do better at two everyday jobs. A **hash table** finds a key in a constant number of steps on average, with no sorting at all: it is what makes Python's dict and set fast. A **heap** finds the best few items without sorting everything, which is how a language model can pick its next word from the top few of 50,000 candidates.
+
+## Hashing: jump straight to the answer
+
+You met hashing in [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets): a hash function turns a key into a slot number, $\text{hash}(\text{key}) \bmod$ (number of slots), so a dict can find a key without searching. This section adds the cost analysis. One change of letters: $n$ now counts the keys, so we write $m$ for the number of slots, which we call **buckets** here. Python itself uses open addressing, as in that lesson (on a collision, try another slot); here we use the simpler **chaining**, where each bucket keeps a short list of its keys.
+
+A <Term def="A table that stores items in numbered buckets, using a hash function to compute each key's bucket. Python's dict and set are hash tables.">hash table</Term> stores its keys so that, on average, finding one takes a **constant** number of steps however many keys it holds, whereas binary search needs one more step every time $n$ doubles.
+
+<Analogy title="Pigeonholes in the staff room">
+
+Each teacher's pigeonhole is labelled with the first letter of their surname. To deliver a note to Mr Tan you don't search every pigeonhole: you compute "T" from the name and go straight to that one. If Ms Teo also lives in "T", you check the few notes there, but you never look at the other 25 letters.
+
+</Analogy>
+
+The recipe has two parts:
+
+$$
+\text{bucket}(\text{key}) = h(\text{key}) \bmod m
+$$
+
+- $h$ is the hash function: it turns any key into a whole number, and the same key always gives the same number.
+- $m$ is the number of buckets, and $\bmod$ ("mod") takes the remainder after dividing by $m$, so the answer is always a bucket number from $0$ to $m - 1$.
+
+To **insert** a key, compute its bucket and put it there. To **look up** a key, compute the same bucket and check only the keys stored in it. Two different keys that land in the same bucket are a **collision**, as in [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets); with chaining, the bucket simply keeps a short chain (a little list) of its keys.
+
+<HashBuckets />
+
+With $n$ keys spread over $m$ buckets, the average chain has $\alpha = n/m$ keys, the <Term def="The average number of keys per bucket, n/m. Keeping it small keeps chains short and lookups fast.">load factor</Term>. A lookup costs one hash calculation plus a walk along one chain, so $O(1 + \alpha)$ on average. Python keeps $\alpha$ small by moving everything into a bigger table whenever it gets too full, so `d[key]`, `key in d`, `x in s` and `s.add(x)` are all **$O(1)$ on average**. The worst case is still $O(n)$: if every key collided (squeeze the visual down to 1 bucket), the table would be one long list. Good hash functions make that astronomically unlikely. (Python's open addressing has the same $O(1)$ average.)
+
+<Steps title="A collision with chaining (toy hash, m = 8 buckets)">
+  <Step title="Hash 'kopi' and 'nasi'">
+    With the toy hash from [Dictionaries, tuples and sets](#/learn/python-toolkit/dicts-tuples-sets) (a = 1, b = 2, …, z = 26, then add the letters): 'kopi' gives $11 + 15 + 16 + 9 = 51$ and $51 \bmod 8 = 3$; 'nasi' gives $14 + 1 + 19 + 9 = 43$ and $43 \bmod 8 = 3$. Bucket 3 both times: a collision, so bucket 3's chain becomes kopi → nasi.
+  </Step>
+  <Step title="Look up 'nasi'">
+    Compute bucket 3, compare with 'kopi' (no), then 'nasi' (yes): 2 comparisons, and the other 7 buckets are never touched.
+  </Step>
+</Steps>
+
+This is how hashing turns an $O(n^2)$ "check every pair" into $O(n)$. To find whether any two numbers add up to a target, remember each number in a set and ask whether `target - x` is already there:
+
+<PyRunner code={pairCode} />
+
+The last lines show the rule you met with dicts: a key's hash must never change, so keys must be **hashable** (immutable all the way down). A tuple of numbers can be a key; a list, or a tuple that contains one, cannot.
+
+<Mistake title="Using a list where a set belongs">
+
+`if x in banned:` inside a loop is $O(n)$ per check when `banned` is a list, so the loop is $O(n^2)$. Build `banned = set(banned)` once ($O(n)$) and every check becomes $O(1)$ on average. The price is memory: a hash table keeps spare empty buckets.
+
+</Mistake>
+
+<KeyIdea>
+
+A hash function turns a key into a bucket number, so a lookup jumps straight to the right place instead of scanning: $O(1)$ on average, as long as the table grows with the number of keys to keep the chains short.
+
+</KeyIdea>
+
+<QuickCheck
+  q="With the toy hash above (add the letter numbers, then take the remainder mod 8), which bucket does 'roti' go in?"
+  options={['Bucket 6', 'Bucket 62', 'Bucket 7', 'Bucket 3']}
+  answer={0}
+  explain="r = 18, o = 15, t = 20, i = 9, so $h = 62$, and $62 \bmod 8 = 6$ because $62 = 7 \times 8 + 6$. 62 is the sum before the remainder, 7 is the quotient, and 3 is the bucket of 'kopi' and 'nasi'."
+/>
+
+## Heaps: the best few, without sorting everything
+
+A hash table answers "is this key here?", but it keeps no order, so it cannot tell you which items are the biggest. Often you only want the **top $k$**: the 10 best scores, the 5 most likely next words, the 3 nearest neighbours. Sorting all $n$ items costs $O(n \log n)$ and keeps everything. A heap does less work.
+
+<Analogy title="A top-10 leaderboard">
+
+An arcade leaderboard only shows the top 10. When a new score arrives, the only question is: "does it beat the **lowest** score on the board?" If not, ignore it. If so, kick out the lowest and slot the new score in.
+
+</Analogy>
+
+A <Term def="A binary tree in which every parent is no bigger than its children, so the smallest item is always at the root. Stored compactly in a list.">min-heap</Term> is a <Term def="A branching structure drawn upside down: one item at the top (the root), and each item linked to at most two items below it (its children), which call it their parent.">binary tree</Term>, like a family tree drawn from one ancestor downwards, with one rule: **every parent is no bigger than its children**. So the smallest item always sits at the root, and you can read it in $O(1)$. The tree is kept **complete** (every level is full except perhaps the last, which fills from the left), so it has only about $\log_2 n$ levels, and it is stored in an ordinary list: the children of position $i$ are at $2i + 1$ and $2i + 2$, and its parent is at $\lfloor (i - 1)/2 \rfloor$.
+
+- **Push** (add an item): put it at the end, then **sift up**, swapping with its parent while it is smaller. At most one swap per level: $O(\log n)$.
+- **Pop** (remove the root): move the last item of the list into the root's place (the list shrinks by one), then **sift it down**, swapping with the smaller child while it is bigger. **Replace** (`heapreplace`) is the same, except the new item goes into the root's place. Both are $O(\log n)$.
+- **Heapify** (turn a whole list into a heap at once, `heapq.heapify(a)`): only $O(n)$, cheaper than pushing the items one by one.
+
+A **max-heap** flips the rule (every parent is no smaller than its children), so its largest item sits at the root.
+
+To keep the $k$ **largest** items of a stream, use a **min**-heap of size $k$. Its root is the smallest of your current top $k$, the score to beat. Each new item costs one comparison with the root, plus $O(\log k)$ if it gets in.
+
+<HeapTopK />
+
+<Steps title="Keep the top 3 of the stream 42, 77, 15, 63, 88">
+  <Step title="42, then 77">
+    The heap has room: [42], then [42, 77]. The root 42 is the smallest.
+  </Step>
+  <Step title="15">
+    Push 15 at position 2. Its parent (position 0) is 42, which is bigger, so swap: [15, 77, 42]. The heap is now full.
+  </Step>
+  <Step title="63 beats the root 15">
+    Replace the root: [63, 77, 42]. Sift down: the smaller child is 42, and $42 < 63$, so swap: [42, 77, 63].
+  </Step>
+  <Step title="88 beats the root 42">
+    Replace the root: [88, 77, 63]. The smaller child is 63, so swap: [63, 77, 88]. The top 3 so far are 88, 77 and 63.
+  </Step>
+</Steps>
+
+For $n$ items the whole job costs $O(n \log k)$ time and only $O(k)$ memory, compared with $O(n \log n)$ time and $O(n)$ memory for sorting. With $n = 1{,}000{,}000$ and $k = 8$, that is about $1{,}000{,}000 \times 3 = 3$ million steps instead of 20 million, and it works on a stream too big to store. Python's `heapq` module provides the heap operations on a plain list:
+
+<PyRunner code={heapCode} />
+
+Top-$k$ selection is everywhere in AI. **Top-$k$ sampling** lets a language model choose its next word only from the $k$ most likely tokens, **beam search** keeps the $k$ best partial sentences at each step, and retrieval systems fetch the $k$ documents most similar to a question, for example in RAG (retrieval-augmented generation, where those documents help a language model answer; [taught later](#/learn/prompting-and-rag/rag-pipeline)).
+
+<KeyIdea>
+
+A min-heap of size $k$ keeps the $k$ largest values seen so far. Its root is the smallest of them, so a new value gets in only if it beats the root, and each update costs $O(\log k)$: $O(n \log k)$ for the whole stream.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A min-heap keeps the top 3 of a stream and holds [63, 77, 88]. The next value is 50. What happens?"
+  options={['Nothing: 50 is below the root 63, so it cannot be one of the top 3', '50 replaces the root 63, then sinks down the heap to its correct place', '50 replaces the largest value 88, then rises up the heap to its place', 'It is added, so the heap grows to hold the 4 values 50, 63, 77, 88']}
+  answer={0}
+  explain="The root is the smallest of the current top 3. A value below the root cannot be among the 3 largest, so it is skipped. Replacing 63 would push out a value that beats 50, replacing 88 would throw away the best value, and growing the heap past $k$ items loses the $O(k)$ memory bound."
+/>
+
+<ExamTip>
+
+Memorise this table; NOAI questions often just ask for one entry.
+
+| Operation | Average | Worst |
+|---|---|---|
+| dict or set: lookup, insert | $O(1)$ | $O(n)$ |
+| `x in` a list, for comparison | $O(n)$ | $O(n)$ |
+| heap: peek at the minimum | $O(1)$ | $O(1)$ |
+| heap: push, pop | $O(\log n)$ | $O(\log n)$ |
+| heap: build from a list (heapify) | $O(n)$ | $O(n)$ |
+| top $k$ of $n$ with a size-$k$ heap | $O(n \log k)$ | $O(n \log k)$ |
+| top $k$ of $n$ by sorting everything | $O(n \log n)$ | $O(n \log n)$ |
+
+</ExamTip>
+
+<Takeaways>
+
+- A hash table computes a bucket from the key, $h(\text{key}) \bmod m$, so dict and set lookups are $O(1)$ on average; keys must be hashable (immutable).
+- Collisions share a bucket; the load factor $n/m$ is the average chain length, and Python grows the table to keep it small. If every key collided, a lookup would be $O(n)$.
+- Swapping a list for a set turns "check every pair" or "`x in` a list inside a loop" from $O(n^2)$ into $O(n)$, at the cost of extra memory.
+- A min-heap keeps the smallest item at the root with $O(\log n)$ push and pop; a size-$k$ min-heap finds the top $k$ of $n$ items in $O(n \log k)$ time and $O(k)$ memory.
+- Top-$k$ selection powers top-$k$ sampling, beam search and retrieval in AI.
+
+</Takeaways>
+
+Next, [Recursion and dynamic programming](#/learn/algorithms-and-complexity/recursion-and-dynamic-programming) covers functions that call themselves (merge sort was one) and remembering answers in a dict so no subproblem is solved twice; then [Graph search: breadth-first and depth-first](#/learn/algorithms-and-complexity/graph-search) completes the module by exploring networks of connected places, such as MRT stations.

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Segmented, Readout, usePlayer, PlayerControls, useContainerWidth } from '../../../../../kit'
 import s from '../big-o/algo.module.css'
-import d from './dp.module.css'
+import d from '../recursion-and-dynamic-programming/dp.module.css'
 
 /*
   BFS and DFS on a small made-up neighbourhood map. The key difference is the data structure holding

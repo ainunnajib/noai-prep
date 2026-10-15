@@ -335,7 +335,7 @@ const TASKS: Task[] = [
     practise: 'Play the game yourself with any word-embedding model and count how many guesses a simple strategy needs.',
     lessons: [
       ['Word embeddings', 'text-as-data/word-embeddings'],
-      ['Searching, sorting and hashing', 'algorithms-and-complexity/searching-sorting-hashing'],
+      ['Searching and sorting', 'algorithms-and-complexity/searching-and-sorting'],
     ],
   },
   {
