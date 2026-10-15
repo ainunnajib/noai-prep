@@ -114,7 +114,7 @@ export default function TestDrivenLoop() {
   const busy = status !== 'idle'
   return (
     <Figure
-      title="Test-first practice: eight likely tasks"
+      title="Test-first practice: eight likely tasks plus a stretch task"
       caption={
         <>
           Pick a task, work the tiny example by hand, then fill in the function and press <b>Run visible tests</b> (real Python and NumPy, running in your browser). Read any failure

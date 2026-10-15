@@ -25,6 +25,21 @@ export function fix(v: number, d = 2) {
   return s.replace('-', '−')
 }
 
+/** The target bar as a dashed outline (the kit's Rect has no dash option). */
+function DashedBox({ x0, x1, y }: { x0: number; x1: number; y: number }) {
+  const { xs, ys } = usePlot()
+  if (y <= 0) return null
+  return (
+    <rect
+      x={xs(x0)}
+      y={ys(y)}
+      width={xs(x1) - xs(x0)}
+      height={ys(0) - ys(y)}
+      style={{ fill: 'color-mix(in srgb, var(--viz-3) 14%, transparent)', stroke: 'var(--viz-3)', strokeWidth: 1.8, strokeDasharray: '5 3' }}
+    />
+  )
+}
+
 function ZeroLine() {
   const { xs, ys } = usePlot()
   const [x0, x1] = xs.range()
@@ -130,9 +145,7 @@ export function ProbPanel({
         <ZeroLine />
         {p.map((v, i) => (
           <g key={i}>
-            {target && (
-              <Rect x0={i + 0.12} x1={i + 0.88} y0={0} y1={target[i]} fill="color-mix(in srgb, var(--viz-3) 14%, transparent)" stroke="var(--viz-3)" />
-            )}
+            {target && <DashedBox x0={i + 0.12} x1={i + 0.88} y={target[i]} />}
             <Rect x0={i + 0.25} x1={i + 0.75} y0={0} y1={v} rx={2} fill={`color-mix(in srgb, ${color} ${highlight === i ? 88 : 66}%, var(--surface))`} />
             <Label x={i + 0.5} y={v} dy={-6} anchor="middle" size={12} weight={700} color="var(--viz-ink)">
               {v.toFixed(3)}

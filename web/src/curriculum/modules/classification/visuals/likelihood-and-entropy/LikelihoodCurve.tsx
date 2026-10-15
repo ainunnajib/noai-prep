@@ -70,7 +70,13 @@ export default function LikelihoodCurve() {
         </Label>
         {prior && n > 0 && <FnPath f={post} color="var(--viz-3)" width={2} dash="6 4" samples={200} />}
         <FnPath f={L} color="var(--viz-1)" width={3} samples={300} />
-        {n > 0 && <VLine x={mle} color="var(--viz-1)" label={`peak p̂ = ${fix(mle)}`} />}
+        {n > 0 && <VLine x={mle} color="var(--viz-1)" />}
+        {/* near p = 1 the label goes on the left of the line, so it never runs off the plot */}
+        {n > 0 && (
+          <Label x={mle} y={yTop} dx={mle > 0.75 ? -5 : 5} dy={12} anchor={mle > 0.75 ? 'end' : 'start'} size={12} color="var(--viz-1)">
+            {`peak p̂ = ${fix(mle)}`}
+          </Label>
+        )}
         {prior && n > 0 && <VLine x={map} color="var(--viz-3)" dash="2 3" />}
         <Path points={[[p, 0], [p, L(p)]]} color="var(--viz-4)" width={1.4} dash="3 4" />
         <Handle x={p} y={L(p)} lockY onChange={onP} step={0.01} color="var(--viz-4)" ariaLabel="Guess for p (likelihood plot)" valueText={`p ${p.toFixed(2)}, likelihood ${small(L(p), 3)}`} />
@@ -121,7 +127,8 @@ export default function LikelihoodCurve() {
         <Button onClick={undo} disabled={seq.length === 0}>
           Undo
         </Button>
-        <Button onClick={() => setMult(mult === 1 ? 10 : 1)} primary={mult === 1}>
+        {/* 10× is only offered while 10 × the flips stays within MAX_N, so L(p̂) never underflows to 0 */}
+        <Button onClick={() => setMult(mult === 1 ? 10 : 1)} primary={mult === 1} disabled={mult === 1 && seq.length * 10 > MAX_N}>
           {mult === 1 ? '10× the data' : 'Back to 1×'}
         </Button>
         <Button onClick={reset}>Reset</Button>

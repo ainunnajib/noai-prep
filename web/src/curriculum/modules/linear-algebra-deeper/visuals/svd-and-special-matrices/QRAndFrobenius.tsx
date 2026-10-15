@@ -12,8 +12,12 @@ import c from '../covariance-and-pca/cps.module.css'
 */
 
 type Tab = 'qr' | 'fro'
-const LIM = 2.8
-const snap = (v: number) => Math.max(-LIM, Math.min(LIM, Math.round(v * 2) / 2))
+// the window is shifted up and right so that the lesson's worked example, A = [[3, 1], [4, 2]], fits in it
+const XR: [number, number] = [-2, 4]
+const YR: [number, number] = [-1.5, 4.5]
+const snapTo = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(v * 2) / 2))
+const snapX = (v: number) => snapTo(v, XR[0] + 0.5, XR[1] - 0.5)
+const snapY = (v: number) => snapTo(v, YR[0] + 0.5, YR[1] - 0.5)
 
 const QR_TEXT = [
   <>Start with the two columns of A. They are not perpendicular and not of length 1.</>,
@@ -32,8 +36,8 @@ const QR_TEXT = [
 ]
 
 function QRPanel() {
-  const [a1, setA1] = useState<V2>([2.5, 1])
-  const [a2, setA2] = useState<V2>([1, 2.5])
+  const [a1, setA1] = useState<V2>([3, 4])
+  const [a2, setA2] = useState<V2>([1, 2])
   const player = usePlayer({ steps: 5, interval: 1400 })
   // complete at rest: open on the finished construction; Replay steps through it
   useEffect(() => player.setStep(4), []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -51,7 +55,6 @@ function QRPanel() {
   const q2: V2 = ok ? [w[0] / r22, w[1] / r22] : [0, 0]
   const a2zero = norm(a2) < 1e-9
   const rank = !has1 && a2zero ? 0 : ok ? 2 : 1
-  const L = 3
 
   const qCell = (v: number, known: boolean) => (known ? v : '?')
   const Q = [
@@ -71,7 +74,7 @@ function QRPanel() {
     <>
       <div ref={wrapRef} className={`${s.panels} ${narrow ? s.panelsNarrow : ''}`}>
         <div className={s.panel}>
-          <Plot x={[-L, L]} y={[-L, L]} width={320} height={320} margin={{ top: 8, right: 8, bottom: 8, left: 8 }} maxWidth={380} ariaLabel="Gram–Schmidt: making two columns perpendicular">
+          <Plot x={XR} y={YR} width={320} height={320} margin={{ top: 8, right: 8, bottom: 8, left: 8 }} maxWidth={380} ariaLabel="Gram–Schmidt: making two columns perpendicular">
             <Grid xTicks={6} yTicks={6} />
             <Axes origin xTicks={6} yTicks={6} />
             {k >= 1 && <Path points={imageOfCircle([[1, 0], [0, 1]])} closed color="var(--viz-muted)" width={1.3} dash="5 5" />}
@@ -92,8 +95,8 @@ function QRPanel() {
             )}
             {k >= 1 && has1 && <Arrow from={[0, 0]} to={q1} color="var(--viz-3)" width={4} label="q₁" labelOffset={[2, 16]} />}
             {k >= 4 && ok && <Arrow from={[0, 0]} to={q2} color="var(--viz-3)" width={4} label="q₂" labelOffset={[-18, -4]} />}
-            <DraggablePoint x={a1[0]} y={a1[1]} color="var(--viz-1)" r={7} onChange={(x, y) => setA1([snap(x), snap(y)])} />
-            <DraggablePoint x={a2[0]} y={a2[1]} color="var(--viz-2)" r={7} onChange={(x, y) => setA2([snap(x), snap(y)])} />
+            <DraggablePoint x={a1[0]} y={a1[1]} color="var(--viz-1)" r={7} onChange={(x, y) => setA1([snapX(x), snapY(y)])} />
+            <DraggablePoint x={a2[0]} y={a2[1]} color="var(--viz-2)" r={7} onChange={(x, y) => setA2([snapX(x), snapY(y)])} />
           </Plot>
         </div>
         <div className={s.panel}>
@@ -195,15 +198,25 @@ export default function QRAndFrobenius() {
       caption={
         tab === 'qr' ? (
           <>
-            Press <b>Play</b> (or <b>Next</b>) to straighten the two columns of <i>A</i> into perpendicular unit arrows q₁ and q₂, the columns of <i>Q</i>. The
-            numbers you needed along the way fill in <i>R</i>, which is upper triangular. Drag the tips of a₁ and a₂ to try other matrices: q₁ always points
-            along a₁, and q₂ always sits at a right angle to it.
+            <b>Try:</b>
+            <ol className="try">
+              <li>
+                Press <b>Play</b> (or <b>Next</b>) and check each step against the worked example above.
+              </li>
+              <li>Drag the tips of a₁ and a₂ to try other matrices.</li>
+            </ol>
+            <b>Notice:</b> q₁ always points along a₁, q₂ sits at a right angle to it, and the numbers needed along the way fill in an upper triangular <i>R</i>.
           </>
         ) : (
           <>
-            Click any entry to change it (it cycles from −3 to 3). The Frobenius norm treats the matrix as one long list of numbers and takes its ordinary
-            length: square every entry, add, square-root. The second line shows a deeper fact: the same number comes from the singular values. A rank-1 matrix
-            has just one non-zero singular value, so its Frobenius norm is that σ₁.
+            <b>Try:</b>
+            <ol className="try">
+              <li>Click any entry to change it (it cycles from −3 to 3).</li>
+              <li>
+                Press <b>Try a rank-1 matrix</b>.
+              </li>
+            </ol>
+            <b>Notice:</b> squaring every entry, adding and taking the square root gives the same number as the singular values; with rank 1 it is just σ₁.
           </>
         )
       }

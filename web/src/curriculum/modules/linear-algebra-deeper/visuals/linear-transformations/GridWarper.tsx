@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Figure, Controls, Slider, Toggle, Button, Plot, Grid, Axes, Arrow, Dots, DraggablePoint, useAnimationFrame, useNarrow } from '../../../../../kit'
-import { type M2, type V2, I2, apply, col, det, describe, fmt, fromCols, morphM, ColMat, Vec, Smiley, WarpedGrid, Clip, KeyStep, TipLabel } from './la'
+import { type M2, type V2, I2, apply, col, det, describe, fmt, fromCols, morphM, sameM, ColMat, Vec, Smiley, WarpedGrid, Clip, KeyStep, TipLabel } from './la'
 import s from './lt.module.css'
 
 /*
@@ -67,7 +67,7 @@ export default function GridWarper() {
   // how far through the move we are (0 = identity, 1 = A); the slider shows this same number
   const [frac, setFrac] = useState(1)
   const [playing, setPlaying] = useState(false)
-  const [probe, setProbe] = useState<V2>([2, 1])
+  const [probe, setProbe] = useState<V2>([2, 1.5])
   const [showProbe, setShowProbe] = useState(true)
   const [showGhost, setShowGhost] = useState(true)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>()
@@ -96,6 +96,9 @@ export default function GridWarper() {
   const out = apply(m, probe)
   const leg1: V2 = [probe[0] * c1[0], probe[0] * c1[1]]
   const D = det(m)
+  // when Ap sits on top of p (e.g. the identity), leave out its label so 'p' and 'Ap' do not overprint
+  const apNearP = Math.hypot(out[0] - probe[0], out[1] - probe[1]) < 0.4
+  const presetIdx = PRESETS.findIndex((p) => sameM(p.m, target, 1e-9))
 
   const moveProbe = (x: number, y: number) => setProbe([clampV(snapHalf(x)), clampV(snapHalf(y))])
   const setCol = (j: 0 | 1, x: number, y: number) => {
@@ -117,14 +120,13 @@ export default function GridWarper() {
               Drag the tips of the <span className={s.c1}>blue</span> and <span className={s.c2}>orange</span> arrows: they are the two columns of <i>A</i>.
             </li>
             <li>
-              Try the presets, then press <b>Play the move</b>; watch <b>Reflect</b> closely.
+              Press the presets (each one plays its move). After <b>Reflect</b>, the smiley winks with the other eye.
             </li>
           </ol>
-          <b>Notice:</b> grid lines stay straight, parallel and evenly spaced, and halfway through <b>Reflect</b> the plane is squashed flat (det = 0): in 2-D you
-          cannot flip a picture without that.
+          <b>Notice:</b> grid lines stay straight, parallel and evenly spaced, and halfway through <b>Reflect</b> the plane is squashed flat (det = 0).
           <span className="fine">
-            The faint grid is the plane before the move, the violet grid after it. The green probe <i>p</i> = (x, y) lands at x steps of column 1 then y steps of
-            column 2. In-between frames blend the entries, so they are not themselves the final kind of move.
+            The faint grid is the plane before the move, the violet grid after it. The green probe <i>p</i> = (x, y) lands on the hollow ring <i>Ap</i>: x steps of column 1, then y
+            steps of column 2. In-between frames blend the entries, so they are not themselves the final kind of move.
           </span>
         </>
       }
@@ -155,7 +157,8 @@ export default function GridWarper() {
                       y: out[1],
                       color: 'var(--viz-3)',
                       r: 6.5,
-                      label: 'Ap',
+                      hollow: true,
+                      label: apNearP ? undefined : 'Ap',
                     },
                   ]}
                 />
@@ -221,9 +224,10 @@ export default function GridWarper() {
       </div>
 
       <Controls>
-        {PRESETS.map((p) => (
+        {PRESETS.map((p, i) => (
           <Button
             key={p.name}
+            primary={i === presetIdx}
             onClick={() => {
               setTarget(p.m)
               play()

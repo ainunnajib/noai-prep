@@ -36,8 +36,12 @@ function Panel({
       <div className={s.panelTitle}>{title}</div>
       <div className={s.steps} aria-hidden="true">
         {formula.split(' then ').map((txt, i) => (
-          <span key={i} className={`${s.stepChip} ${stage > i + 1 - 1e-9 ? s.stepDone : stage > i ? s.stepOn : ''}`}>
-            {i + 1}. {txt}
+          <span key={i} className={s.stepWrap}>
+            {i > 0 && <span className={s.stepArrow}>→</span>}
+            <span className={`${s.stepChip} ${stage > i + 1 - 1e-9 ? s.stepDone : stage > i ? s.stepOn : ''}`}>
+              {i + 1}. {txt}
+              {stage > i + 1 - 1e-9 ? ' ✓' : ''}
+            </span>
           </span>
         ))}
       </div>
@@ -154,9 +158,17 @@ export default function ComposeOrder() {
       title="Same two moves, different order"
       caption={
         <>
-          Both panels use the same rotation <i>R</i> and the same shear <i>S</i>; only the order differs. Press <b>Play both moves</b> or drag the progress
-          slider to watch each move happen. The dashed grey F is the starting picture. Change the angle and the shear: the two results almost never agree. Then
-          try a shear of 0, or an angle of 180° (that rotation is <i>−I</i>), and the two orders give the same matrix.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Play both moves</b>, or drag the progress slider.
+            </li>
+            <li>Change the angle and the shear; then try a shear of 0, or an angle of 180°.</li>
+          </ol>
+          <b>Notice:</b> the two orders almost never agree. They do with no shear, or at 0° or 180° (the 180° turn is <i>−I</i>).
+          <span className="fine">
+            Both panels use the same rotation <i>R</i> and shear <i>S</i>; only the order differs. The dashed grey F is the starting picture.
+          </span>
         </>
       }
     >

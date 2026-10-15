@@ -7,7 +7,7 @@ import { Mark, NEG_C, POS_C } from './parts'
   The kernel idea, drawn. Left: ring-shaped data in 2-D (no straight line separates it). Right: the same
   points lifted to height h = t·(x₁² + x₂²), shown in a 3-D view you can turn. At full lift a flat plane
   h = c separates the classes, and seen from above that flat plane is the circle x₁² + x₂² = c.
-  (h, not z: z is the second input of a kernel K(x, z), and x₁, x₂ rather than x, y since y is the label.)
+  (x₁, x₂ rather than x, y, since y is the label; h rather than z, which earlier lessons used for the score.)
   c = 2.5 sits between the largest inner r² (1.20) and the smallest outer r² (3.84).
 */
 
@@ -66,9 +66,9 @@ function Lift3D({ t, az, setAz }: { t: number; az: number; setAz: (a: number) =>
       <g key={`${p.x},${p.y},${i}`}>
         {p.z > 0.05 && <line x1={X0} y1={Y0} x2={X} y2={Y} style={{ stroke: c, strokeWidth: 1, opacity: 0.45 }} />}
         {p.label > 0 ? (
-          <rect x={X - r * 0.9} y={Y - r * 0.9} width={r * 1.8} height={r * 1.8} style={{ fill: c, stroke: 'var(--surface)', strokeWidth: 1.2 }} />
-        ) : (
           <circle cx={X} cy={Y} r={r} style={{ fill: c, stroke: 'var(--surface)', strokeWidth: 1.2 }} />
+        ) : (
+          <rect x={X - r * 0.9} y={Y - r * 0.9} width={r * 1.8} height={r * 1.8} style={{ fill: c, stroke: 'var(--surface)', strokeWidth: 1.2 }} />
         )}
       </g>
     )
@@ -98,7 +98,7 @@ function Lift3D({ t, az, setAz }: { t: number; az: number; setAz: (a: number) =>
         width={W}
         height={H}
         role="img"
-        aria-label={`3-D view of the points lifted to height ${t.toFixed(2)} times (x squared plus y squared), with a flat plane at height ${CUT}. Drag sideways to turn the view.`}
+        aria-label={`3-D view of the points lifted to height ${t.toFixed(2)} times (x1 squared plus x2 squared), with a flat plane at height ${CUT}. Drag sideways to turn the view.`}
         style={{ maxWidth: '100%', height: 'auto', cursor: 'ew-resize' }}
         onPointerDown={(e) => {
           drag.current = { x: e.clientX, az }
@@ -131,7 +131,12 @@ function Lift3D({ t, az, setAz }: { t: number; az: number; setAz: (a: number) =>
         {t > 0.02 && [1, 2, 2.8].map((r) => <path key={r} d={ring(r)} style={{ fill: 'none', stroke: 'var(--viz-muted)', strokeWidth: 1, strokeDasharray: '3 4' }} />)}
         {below.map(dot)}
         <path d={poly(sq(CUT))} style={{ fill: 'color-mix(in srgb, var(--viz-6) 28%, transparent)', stroke: 'var(--viz-6)', strokeWidth: 1.5 }} />
-        <text x={planeLabel[0] + 2} y={planeLabel[1] + 16} className="plot-label" style={{ fill: 'var(--viz-6)', fontWeight: 700 }}>
+        <text
+          x={planeLabel[0] + 2}
+          y={planeLabel[1] + 16}
+          className="plot-label"
+          style={{ fill: 'var(--viz-6)', fontWeight: 700, stroke: 'var(--surface)', strokeWidth: 3.5, paintOrder: 'stroke', strokeLinejoin: 'round' }}
+        >
           flat plane h = {CUT}
         </text>
         {above.map(dot)}
@@ -156,6 +161,8 @@ export default function KernelLift() {
     return p.label > 0 ? z < CUT : z >= CUT
   }).length
   const separated = wrongSide === 0
+  // the plane h = CUT meets the lifted bowl h = t(x₁² + x₂²) on the circle x₁² + x₂² = CUT / t
+  const rCut = separated ? Math.sqrt(CUT / t) : R_CUT
   const head = { fontSize: 'var(--step--1)', fontWeight: 700, color: 'var(--ink-2)', textAlign: 'center' as const }
 
   return (
@@ -163,9 +170,9 @@ export default function KernelLift() {
       title="The kernel idea: lift the data, then cut it flat"
       caption={
         <>
-          No straight line separates the inner orange disc from the outer blue ring. Press <b>Lift</b> (or drag the slider): each point rises to the
+          No straight line separates the inner blue disc from the outer orange ring. Press <b>Lift</b> (or drag the slider): each point rises to the
           height <i>h</i> = <i>x</i>₁² + <i>x</i>₂², so points far from the centre rise much more. Once the lift is big enough, a <b>flat</b> plane slips
-          between the two classes. Seen from above (left), that flat cut is a <b>circle</b>. Drag the 3-D view sideways to turn it.
+          between the two classes. Seen from above ({narrow ? 'the flat view on top' : 'the flat view on the left'}), that flat cut is a <b>circle</b>. Drag the 3-D view sideways to turn it.
         </>
       }
     >
@@ -177,7 +184,7 @@ export default function KernelLift() {
             <Axes xLabel="x₁" yLabel="x₂" xTicks={6} yTicks={6} origin />
             {separated && (
               <Path
-                points={Array.from({ length: 97 }, (_, i) => [R_CUT * Math.cos((i / 96) * 2 * Math.PI), R_CUT * Math.sin((i / 96) * 2 * Math.PI)] as [number, number])}
+                points={Array.from({ length: 97 }, (_, i) => [rCut * Math.cos((i / 96) * 2 * Math.PI), rCut * Math.sin((i / 96) * 2 * Math.PI)] as [number, number])}
                 color="var(--viz-6)"
                 width={3}
                 fill="color-mix(in srgb, var(--viz-6) 12%, transparent)"
@@ -187,14 +194,14 @@ export default function KernelLift() {
               <Mark key={i} x={p.x} y={p.y} label={p.label} r={5} />
             ))}
             {separated && (
-              <Label x={R_CUT * 0.72} y={-R_CUT * 0.72} dx={6} dy={14} color="var(--viz-6)" weight={700}>
-                x₁² + x₂² = {CUT}
+              <Label x={rCut * 0.72} y={-rCut * 0.72} dx={6} dy={14} color="var(--viz-6)" weight={700}>
+                x₁² + x₂² = {Number((CUT / t).toFixed(2))}
               </Label>
             )}
           </Plot>
         </div>
         <div style={{ display: 'grid', gap: 2 }}>
-          <div style={head}>Lifted: add a third feature z</div>
+          <div style={head}>Lifted: add a third feature h</div>
           <Lift3D t={t} az={az} setAz={setAz} />
         </div>
       </div>

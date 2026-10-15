@@ -8,7 +8,7 @@ import s from './practice.module.css'
   Evidence for likely 2027 Final tasks. Each tick is a checkable fact, not a probability:
   - Prelim 2026: a question on the topic in the 2026 Preliminary Round (question numbers given);
   - Final MCQ 2026: a code-reading question on it in Section 1 of the 2026 Final;
-  - IOAI syllabus: the topic is named in the IOAI syllabus (item codes given);
+  - IOAI syllabus: the topic is named in the IOAI syllabus (section and topic names given);
   - Past Final task: a 2025 or 2026 programming task used the same core skill.
 */
 
@@ -51,7 +51,7 @@ const ROWS: Row[] = [
     task: 'Softmax with cross-entropy (numerically stable)',
     lib: 'Either',
     prelim: 'Q61, Q183',
-    finalMcq: 'Q6 (a cross-entropy loss)',
+    finalMcq: 'Q6 (binary cross-entropy for multi-label; why softmax is wrong there)',
     ioai: 'Neural Networks: Loss Functions',
     pastTask: '2026 Task 3: softmax over the right axis',
     why: 'Short, easy to test, and it has a classic trap (overflow without subtracting the maximum).',
@@ -108,7 +108,7 @@ const ROWS: Row[] = [
   },
   {
     task: 'Dice or focal loss for segmentation',
-    lib: 'PyTorch',
+    lib: 'Either',
     finalMcq: 'Q13 (IoU, a close cousin)',
     pastTask: '2026 Task 2: overlap of masks',
     why: 'Builds directly on 2026 Task 2: overlap sums with an eps for empty masks.',
@@ -124,6 +124,15 @@ const ROWS: Row[] = [
     pastTask: '2026 Task 2: the crashing U-Net',
     why: 'Debugging was graded in 2026; shape arithmetic is the fastest way in.',
     revise: { label: '2026 Task 2 Part 1', href: '#/learn/final-lab-pytorch/task-unet-center-crop' },
+  },
+  {
+    task: 'Debug a PyTorch training loop',
+    lib: 'PyTorch',
+    prelim: 'Q110, Q113, Q115, Q116',
+    finalMcq: 'Q10, Q14 (training-loop code)',
+    ioai: 'Programming Fundamentals: PyTorch Basics',
+    why: 'A missing zero_grad(), a forgotten eval() or no_grad(), softmax before CrossEntropyLoss, an optimiser built before a layer was replaced: each runs without an error and quietly trains badly.',
+    revise: { label: 'PyTorch gotchas', href: '#/learn/debugging-and-diagnosis/pytorch-gotchas' },
   },
 ]
 

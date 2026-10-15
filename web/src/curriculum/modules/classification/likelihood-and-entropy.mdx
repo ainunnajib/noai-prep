@@ -26,7 +26,7 @@ print("KL(q||p) =", cross_entropy(q, p) - entropy(q))`
 
 In the last lesson we trained logistic regression with the log loss because it "punishes confident mistakes". That sounds like a matter of taste, but it is not: the same loss falls out of two big ideas. One comes from statistics (**maximum likelihood**: pick the model that makes the data most probable), the other from information theory (**entropy**: how surprised you are, on average). This lesson builds both from coin flips and weather forecasts and shows they are the same thing. Along the way you meet the KL divergence, which returns later in variational autoencoders, model distillation and the fine-tuning of language models.
 
-<Analogy title="Guessing a shooter's accuracy">
+<Analogy title="Guessing a player's free-throw accuracy">
 
 Tonight a basketball player made 7 of her 10 free throws. What is her true shooting accuracy? If it were 50%, tonight would have been a fairly lucky night. If it were 95%, missing three would have been really unlucky. The most sensible guess is the accuracy that makes tonight's results **least surprising**, and that turns out to be 70%. That is maximum likelihood in one sentence.
 
@@ -60,7 +60,7 @@ Two warnings about the word. The likelihood is **not** the probability that $p$ 
 
 ### Why maximise the log-likelihood?
 
-Even with 10 flips the likelihood is a tiny number, and with 1000 flips it underflows to 0 on a computer (the logarithms lesson showed this). Taking logs turns the product into a sum:
+Even with 10 flips the likelihood is a tiny number. With 1000 flips it is about $10^{-266}$ even at its peak, which is already 0 in float32, PyTorch's default number format (the logarithms lesson showed this), and a few thousand flips underflow even in NumPy's 64-bit floats. Taking logs turns the product into a sum:
 
 $$
 \ell(p) = \ln L(p) = 7 \ln p + 3 \ln(1 - p)
@@ -159,16 +159,16 @@ With $\log_2$ the unit is the bit. Machine learning code uses the natural log $\
 
 <QuickCheck
   q="Which of these has the highest entropy?"
-  options={['A fair four-sided die', 'A fair coin', 'A coin that always lands heads', 'A four-outcome distribution (0.7, 0.1, 0.1, 0.1)']}
+  options={['A fair four-sided die', 'A fair coin', 'A two-headed coin', 'A four-outcome distribution (0.7, 0.1, 0.1, 0.1)']}
   answer={0}
-  explain="A fair four-sided die has $\log_2 4 = 2$ bits, the most possible for four outcomes. The fair coin has 1 bit, the certain coin 0 bits, and the lopsided four-outcome distribution about 1.36 bits: it has four outcomes, but one of them is very likely, so it is fairly predictable."
+  explain="A fair four-sided die has $\log_2 4 = 2$ bits, the most possible for four outcomes. The fair coin has 1 bit, the two-headed coin 0 bits (it lands heads every time), and the lopsided four-outcome distribution about 1.36 bits: it has four outcomes, but one of them is very likely, so it is fairly predictable."
 />
 
 ## Cross-entropy: surprise when you believe the wrong thing
 
 <Analogy title="Packing with the wrong forecast">
 
-You pack for a trip using your weather app's forecast $q$. The weather actually behaves according to $p$. Every day you feel a surprise of $-\log q$ for whatever weather turns up, so trusting an app that says "rain is unlikely" hurts on rainy days. Cross-entropy is your average daily surprise. A friend who knew the true $p$ would feel only $H(p)$ on average; the extra you suffer is the KL divergence.
+Each morning you pack your bag using your weather app's forecast $q$: an umbrella only if it says rain is likely. The weather actually behaves according to $p$. Whatever weather turns up, you feel a surprise of $-\log q$, so an app that calls rain unlikely leaves you soaked and very surprised on rainy days. Cross-entropy is your average daily surprise. A friend who packs using the true $p$ feels only $H(p)$ on average; the extra surprise you suffer is called the KL divergence, defined below.
 
 </Analogy>
 
@@ -222,7 +222,7 @@ $$
 H(y, q) = -\sum_i y_i \ln q_i = -\ln q_{\text{true class}}
 $$
 
-The entropy of a one-hot label is 0 (there is no doubt about it), so here cross-entropy *equals* the KL divergence: training pushes the model's distribution towards the truth, and the loss reaches its minimum exactly when $q$ matches the label distribution. For two classes this is the binary cross-entropy. That is why "cross-entropy loss" and "log loss" and "negative log-likelihood" all name the same thing.
+The entropy of a one-hot label is 0 (there is no doubt about it), so here cross-entropy *equals* the KL divergence: training pushes the model's distribution towards the label, and the loss would be 0 only if $q$ matched it exactly (a softmax or sigmoid can approach that but never reach it). For two classes this is the binary cross-entropy. That is why "cross-entropy loss", "log loss" and "negative log-likelihood" describe the same quantity. (In PyTorch the names are two different functions, though: `NLLLoss` takes log-probabilities, while `CrossEntropyLoss` takes logits and applies log-softmax first.)
 
 <KeyIdea>
 

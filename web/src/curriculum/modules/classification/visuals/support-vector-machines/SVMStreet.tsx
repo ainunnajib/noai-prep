@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Figure, Controls, Readout, Toggle, Button, Plot, Grid, Axes, Arrow, Label, Path, DraggablePoint } from '../../../../../kit'
 import { hardMarginLine, margin, fLine, type Line, type P2 } from './svm'
-import { STREET_BLUE, STREET_ORANGE } from './svmData'
+import { STREET_POS, STREET_NEG } from './svmData'
 import { Street, DragMark, Ring, Legend, swatch } from './parts'
 
 /*
@@ -12,8 +12,8 @@ import { Street, DragMark, Ring, Legend, swatch } from './parts'
 
 type Pts = [number, number][]
 
-/** Street half-width of the line through A and B, oriented so blue is on the positive side; null if it does not separate. */
-function userStreet(A: P2, B: P2, blue: Pts, orange: Pts): { line: Line; width: number } | null {
+/** Street half-width of the line through A and B, oriented so the +1 class is on the positive side; null if it does not separate. */
+function userStreet(A: P2, B: P2, pos: Pts, neg: Pts): { line: Line; width: number } | null {
   let ux = -(B[1] - A[1])
   let uy = B[0] - A[0]
   const n = Math.hypot(ux, uy)
@@ -23,8 +23,8 @@ function userStreet(A: P2, B: P2, blue: Pts, orange: Pts): { line: Line; width: 
   const c = ux * A[0] + uy * A[1]
   let minB = Infinity
   let maxO = -Infinity
-  for (const p of blue) minB = Math.min(minB, ux * p[0] + uy * p[1] - c)
-  for (const p of orange) maxO = Math.max(maxO, ux * p[0] + uy * p[1] - c)
+  for (const p of pos) minB = Math.min(minB, ux * p[0] + uy * p[1] - c)
+  for (const p of neg) maxO = Math.max(maxO, ux * p[0] + uy * p[1] - c)
   let sgn = 1
   if (minB <= 0 || maxO >= 0) {
     // try the other orientation
@@ -41,18 +41,18 @@ function userStreet(A: P2, B: P2, blue: Pts, orange: Pts): { line: Line; width: 
 }
 
 export default function SVMStreet() {
-  const [blue, setBlue] = useState<Pts>(() => STREET_BLUE.map((p) => [...p] as [number, number]))
-  const [orange, setOrange] = useState<Pts>(() => STREET_ORANGE.map((p) => [...p] as [number, number]))
+  const [pos, setPos] = useState<Pts>(() => STREET_POS.map((p) => [...p] as [number, number]))
+  const [neg, setNeg] = useState<Pts>(() => STREET_NEG.map((p) => [...p] as [number, number]))
   const [mine, setMine] = useState(false)
   const [A, setA] = useState<[number, number]>([3.2, 9.4])
   const [B, setB] = useState<[number, number]>([6.4, 0.6])
 
-  const hard = hardMarginLine(blue, orange)
-  const user = mine ? userStreet(A, B, blue, orange) : null
+  const hard = hardMarginLine(pos, neg)
+  const user = mine ? userStreet(A, B, pos, neg) : null
 
   const reset = () => {
-    setBlue(STREET_BLUE.map((p) => [...p] as [number, number]))
-    setOrange(STREET_ORANGE.map((p) => [...p] as [number, number]))
+    setPos(STREET_POS.map((p) => [...p] as [number, number]))
+    setNeg(STREET_NEG.map((p) => [...p] as [number, number]))
   }
 
   // a double arrow across the street, through the point of the boundary nearest the middle of the plot
@@ -113,21 +113,21 @@ export default function SVMStreet() {
             </Label>
           </>
         )}
-        {orange.map((p, i) => (
+        {neg.map((p, i) => (
           <DragMark
             key={`o${i}`}
             x={p[0]}
             y={p[1]}
             label={-1}
-            name={`orange point ${i + 1}`}
-            onChange={(x, y) => setOrange((o) => o.map((q, j) => (j === i ? [x, y] : q)))}
+            name={`blue point ${i + 1}`}
+            onChange={(x, y) => setNeg((o) => o.map((q, j) => (j === i ? [x, y] : q)))}
           />
         ))}
-        {blue.map((p, i) => (
-          <DragMark key={`b${i}`} x={p[0]} y={p[1]} label={1} name={`blue point ${i + 1}`} onChange={(x, y) => setBlue((o) => o.map((q, j) => (j === i ? [x, y] : q)))} />
+        {pos.map((p, i) => (
+          <DragMark key={`b${i}`} x={p[0]} y={p[1]} label={1} name={`orange point ${i + 1}`} onChange={(x, y) => setPos((o) => o.map((q, j) => (j === i ? [x, y] : q)))} />
         ))}
-        {hard && hard.sv.pos.map((i) => <Ring key={`sp${i}`} x={blue[i][0]} y={blue[i][1]} r={13} width={2.5} />)}
-        {hard && hard.sv.neg.map((i) => <Ring key={`sn${i}`} x={orange[i][0]} y={orange[i][1]} r={13} width={2.5} />)}
+        {hard && hard.sv.pos.map((i) => <Ring key={`sp${i}`} x={pos[i][0]} y={pos[i][1]} r={13} width={2.5} />)}
+        {hard && hard.sv.neg.map((i) => <Ring key={`sn${i}`} x={neg[i][0]} y={neg[i][1]} r={13} width={2.5} />)}
         {mine && (
           <>
             <DraggablePoint x={A[0]} y={A[1]} r={7} color="var(--viz-5)" onChange={(x, y) => setA([x, y])} label="your line" />

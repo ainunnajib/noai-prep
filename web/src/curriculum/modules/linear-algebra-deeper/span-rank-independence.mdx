@@ -2,7 +2,7 @@ import SpanExplorer from './visuals/span-rank-independence/SpanExplorer'
 import RankCollapse from './visuals/span-rank-independence/RankCollapse'
 import ConditionNumberWobble from './visuals/span-rank-independence/ConditionNumberWobble'
 
-A spreadsheet with 50 columns does not always hold 50 different pieces of information: "height in cm" and "height in m" are one fact written twice. A matrix with a million entries might squash everything it touches onto a flat plane. This lesson gives you the words and the tools to count **truly different directions** (span, linear independence and rank), and then explains a quieter danger that NOAI likes to ask about: matrices that are *almost* squashed, where tiny rounding errors blow up into huge mistakes.
+A spreadsheet with 50 columns does not always hold 50 different pieces of information: "height in cm" and "height in m" are one fact written twice. This lesson gives you the tools to count **truly different directions** (span, linear independence and rank). It then explains a quieter danger that NOAI likes to ask about: matrices that are *almost* squashed, where tiny rounding errors blow up into huge mistakes.
 
 <Analogy title="Expressways on the map">
 
@@ -23,7 +23,7 @@ $$
 Read it as "the set of all points $a\,u + b\,v$, where $a$ and $b$ can be any real numbers". The curly brackets mean "the set of". In 2-D there are only three possibilities:
 
 - $u$ and $v$ are **not parallel** (neither is a multiple of the other): the span is the whole plane.
-- $u$ and $v$ are **parallel** (one is a multiple of the other): the span is just a line through the origin.
+- $u$ and $v$ are **parallel** and not both zero (one is a multiple of the other): the span is just a line through the origin.
 - both are the zero vector: the span is a single point, the origin.
 
 <SpanExplorer />
@@ -56,6 +56,8 @@ A few facts follow straight away:
 Independent means **no wasted directions**: each vector adds a new dimension to the span. $k$ independent vectors span a $k$-dimensional space (a line, a plane, …); dependent ones span less.
 
 </KeyIdea>
+
+A set of independent vectors that spans a space is a <Term def="A set of linearly independent vectors that spans a space. Every point of the space is exactly one combination of them.">basis</Term> of that space. Every basis of the same space has the same number of vectors, and that number is the space's **dimension**: any basis of the plane has exactly 2 vectors, and any basis of 3-D space has exactly 3. $\hat\imath$ and $\hat\jmath$ from the last lesson are one basis of the plane, and $(1, 0)$ and $(1, 1)$ are another.
 
 <Steps title="Are $u = (1, 0, 1)$, $v = (0, 1, 1)$ and $w = (1, 1, 2)$ independent?">
   <Step title="Look for an easy relation">
@@ -179,7 +181,7 @@ Rank is **not** the number of rows, the number of columns or the number of non-z
 
 - **Duplicated features.** If a dataset has columns "height in cm" and "height in m", one column is 100 times the other, so the data matrix $X$ is not of full column rank. Linear regression's normal equation $w = (X^TX)^{-1}X^Ty$ then breaks, because $X^TX$ is singular: infinitely many weight vectors fit equally well (put the weight on either copy).
 - **Bottlenecks.** Doing one matrix after another can never create new dimensions: $\operatorname{rank}(AB) \le \min(\operatorname{rank} A, \operatorname{rank} B)$. If a 6×2 matrix follows a 2×6 matrix, everything passes through 2 numbers in the middle, so the 6×6 product has rank at most 2.
-- **Low-rank fine-tuning.** <Term def="Low-Rank Adaptation: a way to fine-tune a big model by learning a small update BA (B tall and thin, A short and wide) instead of changing the whole weight matrix.">LoRA</Term> fine-tunes a large model by learning a small update $\Delta W = BA$ whose rank is at most a small number $r$, so it needs far fewer numbers than the full weight matrix.
+- **Low-rank fine-tuning.** <Term def="Low-Rank Adaptation: a way to fine-tune a big model by learning a small update BA (B tall and thin, A short and wide) instead of changing the whole weight matrix.">LoRA</Term> <Term def="Keeps training an already-trained model on a smaller, more specific dataset, so it adapts to a new task.">fine-tunes</Term> a large model by learning a small update $\Delta W = BA$ whose rank is at most a small number $r$, so it needs far fewer numbers than the full weight matrix.
 
 <Reveal label="Going further: how much LoRA saves">
 
@@ -218,7 +220,7 @@ Two straight roads meet at a junction. If they cross at right angles, shifting o
 </Steps>
 
 
-To measure this sensitivity we need two numbers from the transformation picture. Any invertible 2×2 matrix turns the unit circle into an oval (an ellipse); you will watch this happen in the next lesson's eigenvector hunt, and again in the SVD lesson. The oval's longest half-width (its longest radius) is the largest <Term def="The stretch factors of a matrix: the longest and shortest half-widths of the oval that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and its shortest half-width is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
+To measure this sensitivity we need two numbers from the transformation picture. Any invertible 2×2 matrix turns the unit circle into an oval (an ellipse): switch on **Show what A does to the unit circle** in the figure below to see it, and you will meet the oval again in the next lesson's eigenvector hunt and in the SVD lesson. The oval's longest half-width (its longest radius) is the largest <Term def="The stretch factors of a matrix: the longest and shortest half-widths of the oval that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and its shortest half-width is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
 
 $$
 \kappa(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.

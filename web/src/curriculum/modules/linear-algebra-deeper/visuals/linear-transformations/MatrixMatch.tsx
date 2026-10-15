@@ -191,10 +191,19 @@ export default function MatrixMatch() {
       title="Name that matrix"
       caption={
         <>
-          The dashed grey F is the picture before; the green F and the violet grid are after a mystery matrix. The <span className={s.c1}>blue</span> arrow
-          shows where (1, 0) landed and the <span className={s.c2}>orange</span> arrow where (0, 1) landed (on the projection, the orange one has shrunk to
-          nothing). Read their coordinates off the grid, decide which matrix has them as its <b>columns</b>, and check that the F moved the way you expect. Then
-          press <b>Next picture</b>.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Read where the <span className={s.c1}>blue</span> arrow (1, 0) and the <span className={s.c2}>orange</span> arrow (0, 1) landed.
+            </li>
+            <li>
+              Pick the matrix with those as its <b>columns</b>, then press <b>Next picture</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> the green F moved exactly as the two arrows say.
+          <span className="fine">
+            The dashed grey F is the picture before. On the projection, the orange arrow has shrunk to nothing.
+          </span>
         </>
       }
     >

@@ -6,9 +6,9 @@ const questions: QuizQuestion[] = [
     prompt: 'The vectors $u$, $v$ and $w$ are linearly **dependent**. Which statement must be true?',
     options: [
       'At least one of them can be written as a combination of the others',
-      'All three of them point along the same line through the origin',
-      'At least one of them must be the zero vector $(0, 0, \\dots, 0)$',
-      'Each pair of them is perpendicular, so their dot products are 0',
+      'They lie on a single line through the origin, so each pair is parallel',
+      'At least one of them is the zero vector, which adds no new direction',
+      'Each pair of them is perpendicular, so the dot product of any two is 0',
     ],
     answer: 0,
     explanation:
@@ -46,7 +46,7 @@ const questions: QuizQuestion[] = [
       'The two columns are nearly dependent, so $X^TX$ has a huge condition number',
       'The two columns are exactly dependent, so $X^TX$ has rank 0 and no solution',
       'The learning rate is too high, so the updates to the weights keep overshooting',
-      'The features have very different scales, so one weight must grow to compensate',
+      'The features have very different scales, so one weight has to grow to compensate',
     ],
     answer: 0,
     explanation:

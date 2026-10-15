@@ -3,7 +3,7 @@ import ShapeCommentTrace from './visuals/torch-exam-patterns/ShapeCommentTrace'
 import TranslationTable from './visuals/torch-exam-patterns/TranslationTable'
 import BugCatcherGrid from './visuals/torch-exam-patterns/BugCatcherGrid'
 
-The Final on {FINAL.dateLabel} ends with three Python programming tasks, and in 2026 two of them (55 of the 80 programming marks) were PyTorch. Almost every way to lose those marks was a **shape** mistake: a feature map a few pixels too big, a head axis in the wrong place, a softmax along the wrong dimension.
+The Final on {FINAL.dateLabel} ends with three Python programming tasks, and in 2026 two of them (55 of the 80 programming marks) were PyTorch. Many ways to lose those marks were **shape** mistakes (a feature map a few pixels too big, a head axis in the wrong place); others were value mistakes that keep every shape right, such as a softmax along the wrong dimension or a missing $\sqrt{d_k}$.
 
 <Analogy title="Label every box when you move house">
 
@@ -57,8 +57,8 @@ import math
 import torch
 
 def attention_weights(x, W_q, W_k, h):
-    B, T, d = x.shape           # (B, T, d)
-    d_k = d // h                # numbers per head
+    B, T, d = x.shape   # (B, T, d)
+    d_k = d // h        # per head
     # Q, K: (B, h, T, d_k)
     Q = (x @ W_q).view(B, T, h, d_k).transpose(1, 2)
     K = (x @ W_k).view(B, T, h, d_k).transpose(1, 2)
@@ -74,7 +74,8 @@ x = torch.randn(2, 5, 12)
 W_q, W_k = torch.randn(12, 12), torch.randn(12, 12)
 w = attention_weights(x, W_q, W_k, h=3)
 print(w.shape)
-print(w.sum(dim=-1)[0])     # rows sum to 1
+# rows sum to 1:
+print(w.sum(dim=-1)[0])
 ```
 
 ```text
@@ -115,7 +116,7 @@ Reading it: the 5 and the 3 are the wrong way round, so the heads were never bro
 
 ## Habit 2: speak NumPy and PyTorch interchangeably
 
-If you have worked through Final lab I, you can already write NumPy. PyTorch <Term def="PyTorch's array type: like a NumPy array (a grid of numbers with a shape and a dtype), but it can also live on a GPU and track gradients for training.">tensors</Term> were designed to feel the same, so most lines translate by swapping `np.` for `torch.` and `axis=` for `dim=`. Search the phrasebook for the operations you know:
+If you have worked through [Final lab I](#/learn/final-lab-numpy), you can already write NumPy. PyTorch <Term def="PyTorch's array type: like a NumPy array (a grid of numbers with a shape and a dtype), but it can also live on a GPU and track gradients for training.">tensors</Term> were designed to feel the same, so most lines translate by swapping `np.` for `torch.` and `axis=` for `dim=`. Search the phrasebook for the operations you know:
 
 <TranslationTable />
 
@@ -215,7 +216,7 @@ all checks passed
 
 <QuickCheck
   q="Your `split_heads` passes your own test, which uses an input of shape (4, 4, 16) with h = 4, but fails a hidden test. Which change to your test is most likely to expose the bug?"
-  options={['Use sizes that are all different, such as (2, 5, 12) with h = 3', 'Use an all-ones input so you can predict the output by hand', 'Run the same test again with a larger batch of (16, 4, 16)', 'Add print statements that show the dtype of every tensor']}
+  options={['Use sizes that are all different, such as (2, 5, 12) with h = 3', 'Use an all-ones input so that you can predict the output by hand', 'Run the same test again with a larger batch, such as (16, 4, 16)', 'Add print statements that show the dtype of every tensor it makes']}
   answer={0}
   explain="With B = T = h = d_k = 4, a transpose of the wrong two axes produces the right shape, so a shape test cannot notice it. Distinct sizes make a swapped axis crash or show up in the shape. An all-ones input is too symmetric to reveal axis bugs, a bigger batch keeps the other sizes equal, and dtypes are not the problem here."
 />

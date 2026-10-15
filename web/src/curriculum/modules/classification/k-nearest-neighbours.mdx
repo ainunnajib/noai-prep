@@ -115,7 +115,7 @@ So the cosine distance from $a$ is $1 - 1 = 0$ to $b$ but $1 - 0.8 = 0.2$ to $c$
 
 The distance formula sees only numbers, not meanings. Suppose one feature is a flat's price in dollars and another is its floor level. Two flats \$50,000 apart differ by 50,000 in the first feature, while even a flat on floor 1 and one on floor 40 differ by only 39 in the second, so the price decides the distance almost on its own. The **units** of measurement, not the importance of the features, have chosen the neighbours. That is what the "units of $x_2$" control in the figure does: multiply a feature's numbers by 4 and its differences count 4 times as much.
 
-The fix is to put every feature on a common scale before running k-NN, usually by **standardising**:
+The fix is to put every feature on a common scale before running k-NN, usually by **standardising** (as in the [scaling lesson](#/learn/data-and-features/scaling-and-normalisation)):
 
 $$
 z = \frac{x - \mu}{\sigma}
@@ -133,7 +133,7 @@ Forgetting to scale is the classic k-NN bug: the feature with the biggest number
 
 <Note title="Too many features: the curse of dimensionality">
 
-With hundreds of features, almost all points end up roughly the same distance from each other, so "nearest" stops meaning much. Distance-based methods such as k-NN suffer first. Fewer, better features (or a reduction such as PCA) help.
+As the [curse of dimensionality](#/learn/ml-fundamentals/curse-of-dimensionality) lesson showed, with hundreds of features almost all points end up roughly the same distance from each other, so "nearest" stops meaning much. Distance-based methods such as k-NN suffer first. Fewer, better features (or a reduction such as PCA) help.
 
 </Note>
 
@@ -145,17 +145,20 @@ Final-round tasks often ask you to implement a simple model from scratch. Here i
 from sklearn.neighbors import KNeighborsClassifier
 
 def knn_predict(X_train, y_train, x, k=3, metric="euclidean"):
-    diff = X_train - x                          # one row of differences per training point
+    # one row of differences per training point
+    diff = X_train - x
     if metric == "euclidean":
         d = np.sqrt((diff ** 2).sum(axis=1))
-    else:                                       # "manhattan"
+    else:  # "manhattan"
         d = np.abs(diff).sum(axis=1)
-    nearest = np.argsort(d)[:k]                 # indices of the k smallest distances
-    votes = np.bincount(y_train[nearest])       # how many neighbours have label 0, 1, ...
+    # indices of the k smallest distances
+    nearest = np.argsort(d)[:k]
+    # how many neighbours have label 0, 1, ...
+    votes = np.bincount(y_train[nearest])
     return votes.argmax(), nearest
 
 X = np.array([[3, 3], [0, 5], [6, 1], [2, 6], [5, 5]])
-y = np.array([0, 1, 0, 1, 0])                   # 0 = orange, 1 = blue
+y = np.array([0, 1, 0, 1, 0])  # 0 = orange, 1 = blue
 q = np.array([0, 0])
 
 for k in [1, 3]:
@@ -164,23 +167,18 @@ for k in [1, 3]:
         print(f"k={k} {metric:9s} -> class {label}, neighbours {nn}")
 
 # the same with scikit-learn
-model = KNeighborsClassifier(n_neighbors=1, metric="manhattan").fit(X, y)
+model = KNeighborsClassifier(n_neighbors=1, metric="manhattan")
+model.fit(X, y)
 print("scikit-learn, k=1 manhattan:", model.predict([[0, 0]]))`} />
 
-```text
-k=1 euclidean -> class 0, neighbours [0]
-k=1 manhattan -> class 1, neighbours [1]
-k=3 euclidean -> class 0, neighbours [0 1 2]
-k=3 manhattan -> class 0, neighbours [1 0 2]
-scikit-learn, k=1 manhattan: [1]
-```
+Run it: with $k = 1$ the two metrics disagree exactly as in the worked example, while with $k = 3$ both votes come out orange.
 
 <ExamTip title="How NOAI asks about k-NN">
 
-- "k-NN predictions are based on…" the **k nearest training examples**. Not k clusters (that is k-means), not k features, not k trees.
+- "k-NN predictions are based on…" the **k nearest training examples**. Not k clusters (that is k-means, which groups unlabelled points; you meet it in the unsupervised learning module), not k features, not k trees.
 - $k = 1$ means 100% training accuracy, a jagged boundary and overfitting; large $k$ means a smooth boundary and underfitting; $k = n$ predicts the majority class everywhere.
 - Euclidean, Manhattan and cosine distance can disagree about which point is nearest, so the metric is part of the model.
-- k-NN, k-means and SVMs need **feature scaling**; decision trees do not.
+- k-NN, k-means and SVMs (the last lesson of this module) need **feature scaling**; decision trees, which split on one feature at a time, do not.
 - Lazy learner: instant training, slow prediction, stores all the data.
 
 </ExamTip>

@@ -52,7 +52,7 @@ Read it from the inside out, for one sequence in one head:
 
 - $Q$ has one row per token: row $i$ is token $i$'s query. Its shape is $(T, d_k)$. $K$ is the same for keys.
 - $K^\top$ ("K transpose") flips $K$ so its rows become columns. Then $QK^\top$ is a $T \times T$ table of <Term def="The dot product of a query with a key: multiply matching entries and add them up. A big score means a good match.">scores</Term>: row $i$, column $j$ is the dot product $q_i \cdot k_j$.
-- $\sqrt{d_k}$ is the square root of the vector length. Dividing by it keeps the scores at a moderate size; Q3.2 below is about why.
+- $\sqrt{d_k}$ is the square root of $d_k$, the number of entries in each query and key vector (their dimension). Dividing by it keeps the scores at a moderate size; Q3.2 below is about why.
 - $\operatorname{softmax}$ acts on **each row separately**. It turns a row of scores $s_1, \dots, s_T$ into weights $p_j = e^{s_j} / \sum_m e^{s_m}$: all positive and adding up to 1.
 - Multiplying the weights by $V$ makes row $i$ of the output a weighted average of the value rows, $\sum_j p_{ij}\, v_j$.
 

@@ -137,14 +137,14 @@ export default function LogisticBoundary2D() {
       caption={
         <>
           Each point has two features <M>{'(x_1, x_2)'}</M>; orange circles are class 1, blue squares class 0. The background shows the model's probability{' '}
-          <M>{'p = \\sigma(w_1x_1 + w_2x_2 + b)'}</M>: orange where it says class 1, blue where it says class 0, white near 0.5. Drag the pink <b>arrow tip</b> to turn
+          <M>{'p = \\sigma(w_1x_1 + w_2x_2 + b)'}</M>: orange where it says class 1, blue where it says class 0, pale near 0.5. Drag the pink <b>arrow tip</b> to turn
           the weight vector <M>w</M>: the boundary always stays at right angles to it, and the arrow points into the class-1 side. Drag the tip further out (a
           longer <M>w</M>) and the dashed probability lines squeeze together: the model becomes more confident. Drag the <b>square</b> to slide the boundary
           without turning it (that changes only <M>b</M>). Then press <b>Fit</b>.
         </>
       }
     >
-      <Plot x={XR} y={YR} width={480} height={387} ariaLabel={`Two classes of points with the boundary ${fix(m.w[0])} x1 ${signed(m.w[1])} x2 ${signed(m.b)} = 0`}>
+      <Plot x={XR} y={YR} width={480} height={387} minHeight={300} ariaLabel={`Two classes of points with the boundary ${fix(m.w[0])} x1 ${signed(m.w[1])} x2 ${signed(m.b)} = 0`}>
         <ProbField m={m} />
         <Grid xTicks={10} yTicks={8} />
         <Axes xLabel="x₁" yLabel="x₂" xTicks={10} yTicks={8} />

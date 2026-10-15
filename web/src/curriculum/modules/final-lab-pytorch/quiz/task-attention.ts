@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     options: [
       '`-1e9` gives a uniform row; `-inf` gives a row of `nan`',
       '`-1e9` gives a row of `nan`; `-inf` gives a uniform row',
-      'Both give a row of zeros, because every key is hidden',
+      'Both give a row of zeros, because the whole row is hidden',
       '`-1e9` gives zeros; `-inf` gives a uniform row',
     ],
     answer: 0,
@@ -45,14 +45,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A student writes `Q = self.W_q(query).view(batch_size, self.num_heads, -1, self.d_k)` in `MultiHeadAttention.forward` and does no transpose. The notebook test cell prints a tick, but the hidden value tests fail. Why?',
     options: [
-      '`view` cuts memory in order, so each head receives the wrong slices of the tokens',
+      '`view` cuts memory in order, so the heads receive scrambled slices of the tokens',
       '`view` needs `.contiguous()` first, so the projection is silently copied wrongly',
       'The `-1` makes PyTorch guess the sequence length, which it gets wrong for $h > 1$',
-      'Each head should see all `d_model` numbers, so `self.d_k` should be `self.d_model`',
+      'Each head should see the full token vector, so `self.d_k` should be `self.d_model`',
     ],
     answer: 0,
     explanation:
-      'The projection has shape $(B, T, d_\\text{model})$, stored token after token. Viewing it directly as $(B, h, T, d_k)$ fills head 0\'s rows with consecutive chunks of token 0, then token 1, and so on: the shape is right but the numbers are scrambled. The fix is `.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)`. The output of `W_q` is already contiguous, and `-1` is always worked out exactly.',
+      'The projection has shape $(B, T, d_\\text{model})$, stored token after token. Viewing it directly as $(B, h, T, d_k)$ fills head 0\'s rows with consecutive chunks of token 0, then token 1, and so on: the shape is right but the numbers are scrambled. The fix is `.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)`. The output of `W_q` is already contiguous, `-1` is always worked out exactly, and each head is meant to see only its own $d_k$ numbers.',
     difficulty: 'advanced',
   },
   {

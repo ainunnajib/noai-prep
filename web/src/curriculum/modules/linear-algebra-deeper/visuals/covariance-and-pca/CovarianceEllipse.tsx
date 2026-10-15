@@ -80,8 +80,8 @@ export default function CovarianceEllipse() {
   // sliders sit right under the plot they drive on phones, at the bottom on wider screens
   const controls = (
     <Controls>
-      <Slider label="spread in the tilt direction" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
-      <Slider label="spread at right angles to it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
+      <Slider label="standard deviation along the tilt" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
+      <Slider label="standard deviation across it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
       <Slider label="tilt" value={tilt} min={-90} max={85} step={5} onChange={setTilt} format={(v) => `${fmt(v)}°`} />
     </Controls>
   )
@@ -171,6 +171,7 @@ export default function CovarianceEllipse() {
             <div style={{ marginTop: '0.4rem' }}>
               eigenvalues: <span className={`${s.mono} ${s.c2}`}>λ₁ = {fix(axes[0].l)}</span>, <span className={`${s.mono} ${s.c3}`}>λ₂ = {fix(axes[1].l)}</span>
             </div>
+            <div className={s.small}>(each λ is a variance: the square of its standard deviation slider)</div>
             <div>
               <span className={s.mono}>
                 λ₁ + λ₂ = {fix(axes[0].l + axes[1].l)} = Var(x) + Var(y)

@@ -98,10 +98,19 @@ export default function SpanExplorer() {
       title="Span: everywhere a·u + b·v can reach"
       caption={
         <>
-          Drag the tips of <span className={s.c1}>u</span> and <span className={s.c2}>v</span>. The green dots are the combinations a·u + b·v with a and b in
-          steps of ½; the shading is everything reachable with any amounts. Use the sliders to steer the point onto the star (or press <b>Solve for a and b</b>
-          ). Then press <b>Make v parallel to u</b>: every dot falls onto one line, and (unless that line happens to pass through the star) the star becomes
-          unreachable. Parallel arrows waste a direction.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Use the sliders (or <b>Solve for a and b</b>) to steer the point onto the star.
+            </li>
+            <li>
+              Press <b>Make v parallel to u</b>, or drag the tips of <span className={s.c1}>u</span> and <span className={s.c2}>v</span>.
+            </li>
+          </ol>
+          <b>Notice:</b> parallel arrows waste a direction: every dot falls onto one line, and the star usually becomes unreachable.
+          <span className="fine">
+            The green dots are the combinations a·u + b·v with a and b in steps of ½; the shading is everything reachable with any amounts.
+          </span>
         </>
       }
     >

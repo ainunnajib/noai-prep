@@ -95,9 +95,12 @@ export default function PowerIteration() {
               Turn off <b>Rescale</b>.
             </li>
           </ol>
-          <b>Notice:</b> wherever it starts, the trail swings onto the <span className={s.c3}>green</span> line, the eigenvector with the biggest |λ₁|; without
-          rescaling the vectors explode (|λ₁| &gt; 1) or fade away (|λ₁| &lt; 1), just like signals through many copies of one layer.
-          <span className="fine">Each step replaces the arrow by A times itself. Starting exactly on the grey λ₂ line is the one exception.</span>
+          <b>Notice:</b> the trail swings onto the <span className={s.c3}>green</span> line, the eigenvector with the biggest |λ|; without rescaling the vectors
+          explode (|λ₁| &gt; 1) or fade away (|λ₁| &lt; 1).
+          <span className="fine">
+            Each step replaces the arrow by A times itself. Two exceptions: a start exactly on the grey λ₂ line, and <b>Turns</b>, which has no real eigen-line to
+            settle on.
+          </span>
         </>
       }
     >
@@ -142,7 +145,7 @@ export default function PowerIteration() {
             <Dots points={shown.map((p, i) => ({ x: p[0], y: p[1], r: i === k ? 0 : 3, color: 'var(--viz-1)' }))} />
             <Arrow from={[0, 0]} to={shown[k]} color="var(--viz-2)" width={3.5} head={11} />
             <Label x={shown[k][0]} y={shown[k][1]} dx={8} dy={16} color="var(--viz-2)" weight={750}>
-              {k === 0 ? '' : rescale ? `v${k}` : `A${k === 1 ? '' : supNum(k)}v₀`}
+              {k === 0 ? '' : rescale ? `v${subNum(k)}` : `A${k === 1 ? '' : supNum(k)}v₀`}
             </Label>
             <DraggablePoint
               x={shown[0][0]}
@@ -221,5 +224,12 @@ function supNum(n: number) {
   return String(n)
     .split('')
     .map((c) => SUP[Number(c)])
+    .join('')
+}
+const SUB = '₀₁₂₃₄₅₆₇₈₉'
+function subNum(n: number) {
+  return String(n)
+    .split('')
+    .map((c) => SUB[Number(c)])
     .join('')
 }

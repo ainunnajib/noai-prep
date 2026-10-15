@@ -24,8 +24,8 @@ const questions: QuizQuestion[] = [
     prompt: 'A brand-new 3-class network outputs nearly equal logits $(1, 1, 1)$ for every input. What are its softmax probabilities, and what training loss should you expect at the start?',
     options: [
       '$(\\tfrac13, \\tfrac13, \\tfrac13)$ and a loss of about $\\ln 3 \\approx 1.10$',
-      '$(\\tfrac13, \\tfrac13, \\tfrac13)$ and a loss of about $0$, since every class is treated equally',
-      '$(1, 1, 1)$ and a loss of about $0$, since every logit already equals 1',
+      '$(\\tfrac13, \\tfrac13, \\tfrac13)$ and a loss of about $0$, since the three classes are treated equally',
+      '$(1, 1, 1)$ and a loss of about $0$, since each logit already equals 1',
       '$(\\tfrac13, \\tfrac13, \\tfrac13)$ and a loss of about $\\tfrac13$, the probability of the correct class',
     ],
     answer: 0,
@@ -53,14 +53,14 @@ const questions: QuizQuestion[] = [
     prompt: 'This PyTorch code trains a 10-class digit classifier, but it learns poorly. What is the bug?',
     code: 'logits = model(x)                       # shape (batch, 10)\nprobs = torch.softmax(logits, dim=1)\nloss = nn.CrossEntropyLoss()(probs, y)  # y: class indices, shape (batch,)\nloss.backward()',
     options: [
-      '`CrossEntropyLoss` already applies log-softmax, so softmax is applied twice; pass `logits` instead of `probs`',
+      '`CrossEntropyLoss` must get raw logits because it applies log-softmax itself; pass `logits`, not `probs`',
       '`y` must be one-hot encoded with shape `(batch, 10)`, because `CrossEntropyLoss` cannot read class indices',
-      'The softmax should use `dim=0`, because the probabilities must add up to 1 over the batch dimension',
-      '`CrossEntropyLoss` is only for two classes, so a 10-class model needs `BCEWithLogitsLoss` here instead',
+      'The softmax should use `dim=0`, because the probabilities should add up to 1 over the batch dimension',
+      '`CrossEntropyLoss` handles just two classes, so a 10-class model needs `BCEWithLogitsLoss` here instead',
     ],
     answer: 0,
     explanation:
-      '`nn.CrossEntropyLoss` combines log-softmax and the negative log-likelihood, so it expects raw logits. Feeding it probabilities squashes them a second time: values in $[0, 1]$ produce a nearly flat distribution, a wrong loss and tiny gradients, with no error message. Class indices of shape `(batch,)` are exactly what it expects, and the class scores are along `dim=1`.',
+      '`nn.CrossEntropyLoss` combines log-softmax and the negative log-likelihood, so it expects raw logits; here softmax is applied twice. Feeding it probabilities squashes them a second time: values in $[0, 1]$ produce a nearly flat distribution, a wrong loss and tiny gradients, with no error message. Class indices of shape `(batch,)` are exactly what it expects, it works for any number of classes, and the class scores are along `dim=1`.',
     difficulty: 'intermediate',
   },
 ]

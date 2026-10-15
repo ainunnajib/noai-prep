@@ -43,7 +43,7 @@ The shapes work out as $(d \times n)(n \times d) = d \times d$, and entry $(i, j
   <Step title="Covariance (off-diagonal)">
     $\operatorname{Cov}(x, y) = \frac{2 \cdot 1 + 1 \cdot 2 + (-1)(-2) + (-2)(-1)}{4} = \frac{8}{4} = 2$.
   </Step>
-  <Step title="Assemble and read">
+  <Step title="Assemble">
     $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$: equal spread along both axes, and a strong upward lean.
   </Step>
 </Steps>
@@ -53,6 +53,8 @@ The shapes work out as $(d \times n)(n \times d) = d \times d$, and entry $(i, j
 `np.cov(X)` treats each **row** as a variable, so for the usual layout (one row per data point) you need `np.cov(X, rowvar=False)`. It also divides by $n - 1$; pass `bias=True` to divide by $n$ as we do here.
 
 </Mistake>
+
+Dividing by $n$ or by $n - 1$ does not change the directions, only the sizes. The [PCA lesson in *Unsupervised learning*](#/learn/unsupervised-learning/pca) divides by $n - 1$, as scikit-learn does: the principal components come out identical, and every eigenvalue just grows by the factor $\frac{n}{n - 1}$.
 
 ## PCA: the direction of greatest spread
 
@@ -85,13 +87,13 @@ This is a weighted average of $\lambda_1$ and $\lambda_2$ with weights $a^2$ and
 </KeyIdea>
 
 <Steps title="The PCA recipe, run on our four points">
-  <Step title="Centre (and standardise if the units differ)">
-    Centred points: $(2, 1)$, $(1, 2)$, $(-1, -2)$, $(-2, -1)$.
+  <Step title="Centre">
+    Centred points: $(2, 1)$, $(1, 2)$, $(-1, -2)$, $(-2, -1)$. (If the features had different units, you would also standardise them here.)
   </Step>
   <Step title="Covariance matrix">
     $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$, from the steps above.
   </Step>
-  <Step title="Eigenvalues and eigenvectors, largest first">
+  <Step title="Eigenvectors, largest first">
     Trace $= 5$ and $\det = 6.25 - 4 = 2.25$. Two numbers with sum 5 and product 2.25: $\lambda_1 = 4.5$ and $\lambda_2 = 0.5$. Check: $C\begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 4.5 \\ 4.5 \end{bmatrix}$, so PC1 $= \tfrac{1}{\sqrt2}[1, 1]$ and PC2 $= \tfrac{1}{\sqrt2}[1, -1]$.
   </Step>
   <Step title="Explained variance ratio">
@@ -145,7 +147,7 @@ print("ratio:", (vals / vals.sum()).round(3))
 print("scores:", (Xc @ vecs[:, 0]).round(4))
 
 # the same with scikit-learn
-pca = PCA(n_components=2).fit(X)
+pca = PCA(n_components=2).fit(X)  # sklearn centres X itself
 print("sklearn PC1:", pca.components_[0].round(4))`} />
 
 <ExamTip title="Know which number does which job">

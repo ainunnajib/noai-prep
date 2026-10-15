@@ -5,14 +5,14 @@ const questions: QuizQuestion[] = [
     id: 'final-lab-pytorch.practice-set.1',
     prompt: 'Based on the 2025 and 2026 Finals, which description best fits the programming tasks you should prepare for?',
     options: [
-      'Classical ML algorithms written from scratch in NumPy, plus PyTorch components that include debugging',
-      'Training a large model on a GPU until it reaches a target accuracy on a hidden leaderboard',
-      'Calling scikit-learn models on a provided dataset and tuning their settings by grid search',
-      'Short essays on the history and ethics of AI, marked against a rubric',
+      'Classical ML algorithms written from scratch in NumPy, plus PyTorch components with debugging parts',
+      'Training a large network on a GPU for hours until it reaches a target accuracy on a hidden leaderboard',
+      'Calling scikit-learn models on a provided dataset, then tuning their hyperparameters by grid search',
+      'Short essays on the history, ethics and social impact of AI, marked by hand against a rubric',
     ],
     answer: 0,
     explanation:
-      'Every past Final task implemented a known algorithm: linear regression, K-means and retrieval in 2025, gradient boosting in 2026, all in NumPy; and in 2026 a U-Net fix, mean IoU and attention in PyTorch, with debugging parts. Leaderboard training belongs to the IOAI selection tests, and the only written parts were two- to four-sentence explanations inside coding tasks.',
+      'Every past Final task implemented a known algorithm: linear regression, K-means and retrieval in NumPy in 2025, gradient boosting in 2026 (NumPy, with scikit-learn\'s `DecisionTreeRegressor` as the weak learner), and in 2026 a U-Net fix, mean IoU and attention in PyTorch, with debugging parts. No past Final asked for leaderboard-style training or grid searches, and the only written parts were two- to four-sentence explanations inside coding tasks.',
     difficulty: 'beginner',
   },
   {
@@ -29,24 +29,24 @@ const questions: QuizQuestion[] = [
     prompt:
       'Your `softmax_cross_entropy` passes the visible tests, which use small logits, but a hidden test with logits `[[1000, 0]]` returns `nan`. What is the fix?',
     options: [
-      'Subtract each row\'s maximum logit before taking exponentials',
-      'Divide the logits by 1000 before the softmax',
-      'Replace `np.exp` with `np.log` in the softmax',
-      'Clip the final loss to the range 0 to 1',
+      'Subtract each row\'s maximum logit before taking the exponentials',
+      'Divide the logits by 1000 first, so that the exponentials stay small',
+      'Replace `np.exp` with `np.log` in the softmax, so nothing can overflow',
+      'Clip the final loss to the range 0 to 1, so that `nan` cannot appear',
     ],
     answer: 0,
     explanation:
-      '$e^{1000}$ overflows to `inf`, and $\\infty / \\infty$ is `nan`. Softmax does not change if you subtract the same number from every logit in a row, so subtracting the maximum makes the largest exponent $e^0 = 1$ and nothing overflows. Dividing by 1000 changes the answer (it is a temperature), and clipping hides the bug without fixing it.',
+      '$e^{1000}$ overflows to `inf`, and $\\infty / \\infty$ is `nan`. Softmax does not change if you subtract the same number from every logit in a row, so subtracting the maximum makes the largest exponent $e^0 = 1$ and nothing overflows. Dividing by 1000 changes the answer (it is a temperature), `np.log` no longer computes a softmax at all, and clipping cannot remove a `nan` (`np.clip` passes `nan` straight through).',
     difficulty: 'intermediate',
   },
   {
     id: 'final-lab-pytorch.practice-set.4',
-    prompt: 'A conv2d written with four Python loops and the im2col version give exactly the same output, but im2col is hundreds of times faster in NumPy. Why?',
+    prompt: 'A conv2d written with four Python loops and the im2col version give exactly the same output, but im2col is tens to hundreds of times faster in NumPy. Why?',
     options: [
-      'The same multiply-adds run inside one compiled matrix product instead of one Python step at a time',
-      'im2col does far fewer multiplications, because each window is copied only once',
-      'NumPy sends the matrix product to the GPU automatically, while loops stay on the CPU',
-      'im2col skips the windows at the edges of the image, so there is less work to do',
+      'The same multiply-adds run inside one compiled matrix product, not one Python step at a time',
+      'im2col does far fewer multiplications, because each overlapping window is copied only once',
+      'NumPy sends the matrix product to the GPU automatically, while the Python loops stay on the CPU',
+      'im2col skips the windows at the edges of the image, so there are fewer multiply-adds to do',
     ],
     answer: 0,
     explanation:

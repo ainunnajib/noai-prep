@@ -78,9 +78,9 @@ tensor([[ 0.0000,  1.0000,  0.0000,  1.0000],
 
 <QuickCheck
   q="For `d_model = 4`, what does the correct `div_term` contain?"
-  options={['[1, 0.01]', '[1, 0.1]', '[1, 100]', '[0, 0.5]']}
+  options={['[1, 0.01]', '[1, 0.1, 0.01, 0.001]', '[1, 100]', '[0, 0.5]']}
   answer={0}
-  explain="The entries are $\exp(-2i \ln 10000 / 4)$ for $2i = 0, 2$: $e^0 = 1$ and $10000^{-1/2} = 1/100 = 0.01$. [1, 100] forgets the minus sign (the frequencies grow), and [0, 0.5] is the exponents $2i/d_\text{model}$ before taking the power."
+  explain="The entries are $\exp(-2i \ln 10000 / 4)$ for $2i = 0, 2$: $e^0 = 1$ and $10000^{-1/2} = 1/100 = 0.01$. [1, 0.1, 0.01, 0.001] comes from `arange(0, d_model)` without the step of 2 (one frequency per column instead of per pair), [1, 100] forgets the minus sign (the frequencies grow), and [0, 0.5] is the exponents $2i/d_\text{model}$ before taking the power."
 />
 
 ### The bug, and the trap
@@ -186,7 +186,7 @@ Q3.6 and Q3.7 (2 + 3 marks) finish a `TransformerClassifier` that decides, for e
 - `nn.Dropout(dropout)` reduces overfitting during training;
 - `nn.Linear(d_model, num_classes)` produces the <Term def="Raw, unnormalised scores, one per class. Softmax would turn them into probabilities; the loss function usually does that itself.">logits</Term>.
 
-**Q3.7: the forward pass.** The notebook's comments give five steps: embed and scale by $\sqrt{d_\text{model}}$, add the positional encoding, convert the mask, run the encoder layers, then pool and classify. (The code below numbers six, because it writes "pool, then classify" as two lines.) The scaling in step 1 comes from the original Transformer paper: it makes the embedding values large compared with the positional codes, which stay between −1 and 1, so adding positions does not drown out which word it is. The two steps that need thought are the mask and the pooling.
+**Q3.7: the forward pass.** The notebook's comments give five steps: embed and scale by $\sqrt{d_\text{model}}$, add the positional encoding, convert the mask, run the encoder layers, then pool and classify. (The code below numbers six, because it writes "pool, then classify" as two lines.) The original Transformer paper multiplies the embeddings by $\sqrt{d_\text{model}}$ without giving a reason; a common explanation is that it keeps the embedding values large compared with the positional codes, which stay between −1 and 1, so adding positions does not drown out which word it is. The two steps that need thought are the mask and the pooling.
 
 - **The mask.** `attention_mask` has shape `(B, T)`, with 1 for real tokens and 0 for <Term def="Filler tokens added to the end of shorter sentences so that every sentence in a batch has the same length T.">padding</Term>. The attention scores have shape `(B, h, T, T)`, so the mask needs two extra axes of size 1: `attention_mask.unsqueeze(1).unsqueeze(2)` gives `(B, 1, 1, T)`, which <Term def="An axis of size 1 is stretched to match the other tensor, without copying data.">broadcasts</Term> across every head and every query. `unsqueeze(k)` inserts a new axis of size 1 at position `k`. The test also calls `model(input_ids)` without a mask, so keep `mask = None` in that case.
 - **The pooling.** The encoder gives one vector per token, `(B, T, d_model)`, but a classifier needs one vector per **sentence**. The markdown asks for the mean over the sequence dimension, `x.mean(dim=1)`, which gives `(B, d_model)`.

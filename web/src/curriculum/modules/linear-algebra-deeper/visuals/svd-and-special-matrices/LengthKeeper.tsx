@@ -192,11 +192,17 @@ function PositiveDefinite() {
   else if ((l1 > eps && l2 < -eps) || (l1 < -eps && l2 > eps))
     kind = { name: 'saddle', cls: s.statusBad, text: <><b>Saddle: not definite.</b> One eigenvalue is positive and one negative, so the surface goes up one way and down the other. The centre is not a minimum.</> }
   else if (Math.abs(l1) <= eps && Math.abs(l2) <= eps) kind = { name: 'flat', cls: '', text: <>Both eigenvalues are 0: the function is 0 everywhere.</> }
-  else
+  else if (l1 > eps || l2 > eps)
     kind = {
       name: 'trough',
       cls: s.statusWarn,
-      text: <><b>Trough: semi-definite.</b> One eigenvalue is 0, so the surface is flat along that eigenvector: a whole line of lowest (or highest) points.</>,
+      text: <><b>Trough: positive semi-definite.</b> One eigenvalue is 0 and the other positive, so xᵀAx ≥ 0 and the surface is flat along one eigenvector: a whole line of lowest points.</>,
+    }
+  else
+    kind = {
+      name: 'ridge',
+      cls: s.statusWarn,
+      text: <><b>Ridge (an upside-down trough): negative semi-definite.</b> One eigenvalue is 0 and the other negative, so xᵀAx ≤ 0: a whole line of highest points.</>,
     }
 
   // sliders sit right under the contour map on phones, at the bottom on wider screens
@@ -258,16 +264,30 @@ function PositiveDefinite() {
 const CAPTIONS: Record<Tab, React.ReactNode> = {
   orth: (
     <>
-      Faint dashed arrows are before, solid arrows after. Pick a matrix and compare the lengths in the table. A rotation or a reflection keeps every length
-      (green) and maps the dashed circle onto itself; a shear or a stretch changes lengths (red) and turns the circle into an oval. The test is the matrix
-      QᵀQ: it is the identity exactly when Q is orthogonal. Drag <i>x</i> to try any arrow.
+      <b>Try:</b>
+      <ol className="try">
+        <li>Pick each matrix in turn and move the slider.</li>
+        <li>
+          Drag <i>x</i> to try any arrow.
+        </li>
+      </ol>
+      <b>Notice:</b> rotations and reflections keep every length (green) and the dashed circle; shears and stretches do not (red). QᵀQ is the identity
+      exactly when Q is orthogonal.
+      <span className="fine">Faint dashed arrows are before the matrix, solid arrows after.</span>
     </>
   ),
   pd: (
     <>
-      For a symmetric matrix, xᵀAx is a curved surface over the plane, drawn here as a contour map. Along each eigenvector it is simply λt². Make both
-      eigenvalues positive for a bowl (positive definite), drag one below 0 for a saddle, or set one to 0 for a trough (semi-definite). This is the shape of a
-      loss function near a minimum, which is why positive definite Hessians matter in optimisation.
+      <b>Try:</b>
+      <ol className="try">
+        <li>Drag λ₂ below 0, then back up to exactly 0.</li>
+        <li>Turn the eigenvector direction.</li>
+      </ol>
+      <b>Notice:</b> both eigenvalues positive gives a bowl (positive definite), mixed signs a saddle, and a zero eigenvalue a trough (semi-definite).
+      <span className="fine">
+        For a symmetric matrix, xᵀAx is a curved surface over the plane, drawn here as a contour map; along each eigenvector it is simply λt². A loss function
+        near a minimum has this bowl shape.
+      </span>
     </>
   ),
 }

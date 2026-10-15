@@ -37,7 +37,8 @@ export default function EigenBars() {
   const L: [number, number] | null = mode === 'eig' ? [l1, l2] : lam && e.kind === 'two' ? ([Math.max(e.l1, e.l2), Math.min(e.l1, e.l2)] as [number, number]) : lam
 
   const switchMode = (md: Mode) => {
-    if (md === 'entries' && mode === 'eig') setEnt(m.map((r) => r.map((x) => Math.round(x * 2) / 2)) as M2)
+    // keep the exact entries, so the eigenvalues just chosen stay put; the 0.5-step sliders snap only when moved
+    if (md === 'entries' && mode === 'eig') setEnt(m.map((r) => r.map((x) => Math.round(x * 1e6) / 1e6)) as M2)
     setMode(md)
   }
   const setEntry = (i: 0 | 1, j: 0 | 1, val: number) => {
@@ -114,10 +115,10 @@ export default function EigenBars() {
       </Controls>
     ) : (
       <div className={s.matSliders}>
-        <Slider label="a" value={ent[0][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="b" value={ent[0][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="c" value={ent[1][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x, 1)} />
-        <Slider label="d" value={ent[1][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x, 1)} />
+        <Slider label="a" value={ent[0][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x)} />
+        <Slider label="b" value={ent[0][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x)} />
+        <Slider label="c" value={ent[1][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x)} />
+        <Slider label="d" value={ent[1][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x)} />
       </div>
     )
 
@@ -126,10 +127,18 @@ export default function EigenBars() {
       title="Eigenvalues, determinant and trace always agree"
       caption={
         <>
-          Choose two eigenvalues (and where the first eigenvector points) and the figure builds the matrix that has them; or switch to <b>Edit the entries</b> and
-          let the figure find the eigenvalues. Whatever you do, the <span className={s.c2}>product</span> bar matches the determinant and the{' '}
-          <span className={s.c3}>sum</span> bar matches the trace. The picture shows why the product works: along its eigenvectors the matrix only stretches, by λ₁ one
-          way and λ₂ the other, so every area is multiplied by λ₁ × λ₂. Drag either λ to 0 and watch the determinant hit 0.
+          <b>Try:</b>
+          <ol className="try">
+            <li>Drag λ₁ and λ₂ (the figure builds a matrix with those eigenvalues), then drag either one to 0.</li>
+            <li>
+              Switch to <b>Edit the entries</b> and let the figure find the eigenvalues.
+            </li>
+          </ol>
+          <b>Notice:</b> the <span className={s.c2}>product</span> bar always matches the determinant and the <span className={s.c3}>sum</span> bar the trace.
+          <span className="fine">
+            Along its eigenvectors the matrix only stretches, by λ₁ one way and λ₂ the other, so every area is multiplied by |λ₁ × λ₂| (and mirrored when the
+            product is negative).
+          </span>
         </>
       }
     >
@@ -201,7 +210,7 @@ export default function EigenBars() {
               )
             })}
             {!L && (
-              <Label x={0.5} y={0} dy={-6} anchor="middle" size={11} color="var(--ink-3)">
+              <Label x={0.5} y={0} dy={-6} anchor="middle" size={12} color="var(--ink-3)">
                 complex
               </Label>
             )}
@@ -210,10 +219,10 @@ export default function EigenBars() {
                 {n}
               </Label>
             ))}
-            <Label x={3.2} y={Ylo} dy={34} anchor="middle" size={11} color={prodOk ? 'var(--viz-pos)' : 'var(--viz-neg)'}>
+            <Label x={3.2} y={Ylo} dy={34} anchor="middle" size={12} color={prodOk ? 'var(--viz-pos)' : 'var(--viz-neg)'}>
               {prodOk ? 'equal ✓' : 'differ'}
             </Label>
-            <Label x={5.9} y={Ylo} dy={34} anchor="middle" size={11} color={sumOk ? 'var(--viz-pos)' : 'var(--viz-neg)'}>
+            <Label x={5.9} y={Ylo} dy={34} anchor="middle" size={12} color={sumOk ? 'var(--viz-pos)' : 'var(--viz-neg)'}>
               {sumOk ? 'equal ✓' : 'differ'}
             </Label>
           </Plot>
@@ -236,14 +245,14 @@ export default function EigenBars() {
           )}
           <div>
             {mode === 'entries' ? (
-              <M>{`\\det A = ad - bc = (${fmt(m[0][0], 1)})(${fmt(m[1][1], 1)}) - (${fmt(m[0][1], 1)})(${fmt(m[1][0], 1)}) = ${fmt(D)}`}</M>
+              <M>{`\\det A = ad - bc = (${fmt(m[0][0])})(${fmt(m[1][1])}) - (${fmt(m[0][1])})(${fmt(m[1][0])}) = ${fmt(D)}`}</M>
             ) : (
               <M>{`\\det A = ad - bc = ${fmt(D)}`}</M>
             )}
           </div>
           <div>
             {mode === 'entries' ? (
-              <M>{`\\operatorname{tr} A = a + d = ${fmt(m[0][0], 1)} + ${m[1][1] < 0 ? `(${fmt(m[1][1], 1)})` : fmt(m[1][1], 1)} = ${fmt(T)}`}</M>
+              <M>{`\\operatorname{tr} A = a + d = ${fmt(m[0][0])} + ${m[1][1] < 0 ? `(${fmt(m[1][1])})` : fmt(m[1][1])} = ${fmt(T)}`}</M>
             ) : (
               <M>{`\\operatorname{tr} A = a + d = ${fmt(T)}`}</M>
             )}

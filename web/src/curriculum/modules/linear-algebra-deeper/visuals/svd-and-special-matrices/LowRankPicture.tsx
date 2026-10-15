@@ -151,7 +151,7 @@ export default function LowRankPicture() {
           <Rect key={i} x0={i + 1 - 0.36} x1={i + 1 + 0.36} y0={0} y1={v} fill={i < k ? 'var(--viz-2)' : 'color-mix(in srgb, var(--viz-muted) 45%, transparent)'} />
         ))}
         <VLine x={breakEven - 0.5} color="var(--viz-neg)" dash="4 4" />
-        <Label x={breakEven - 0.5} y={sMax * 0.55} dx={-5} anchor="end" size={11} color="var(--viz-neg)">
+        <Label x={breakEven - 0.5} y={sMax * 0.55} dx={-5} anchor="end" size={12} color="var(--viz-neg)">
           no saving from here →
         </Label>
         <Label x={1} y={dec.s[0]} dy={-4} dx={10} size={12} weight={700}>

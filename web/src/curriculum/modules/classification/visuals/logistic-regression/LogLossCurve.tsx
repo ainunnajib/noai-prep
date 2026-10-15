@@ -63,7 +63,7 @@ export default function LogLossCurve() {
     >
       <CurveLegend label={label} />
       <Plot x={[0, 1]} y={[0, 5]} width={480} height={310} minHeight={260} margin={{ left: 40, bottom: 38, top: 28 }} ariaLabel={`Loss against predicted probability for true label ${label}. At p = ${fix(p)} the log loss is ${fix(L, 3)} and the squared error is ${fix(S, 3)}`}>
-        <Rect x0={wrongZone[0]} x1={wrongZone[1]} y0={0} y1={5} fill="color-mix(in srgb, var(--viz-neg) 13%, transparent)" />
+        <Rect x0={wrongZone[0]} x1={wrongZone[1]} y0={0} y1={5} fill="color-mix(in srgb, var(--viz-neg) 22%, var(--surface))" />
         <Grid xTicks={10} yTicks={5} />
         <Axes xLabel={`predicted p = P(class 1)`} xTicks={5} yTicks={5} />
         <Label x={0} y={5} dx={-6} dy={-12} size={13} weight={700} color="var(--ink-2)">

@@ -14,17 +14,17 @@ const mod: ModuleDef = {
     {
       slug: "linear-transformations",
       title: "A matrix is a transformation of space",
-      summary: "Every matrix stretches, rotates, shears or squashes the whole grid, and multiplying matrices chains the moves.",
+      summary: "Every matrix stretches, rotates, shears, reflects or squashes the whole grid; its columns are the recipe, and multiplying matrices chains the moves.",
       minutes: 30,
-      objectives: ["You can predict where a 2×2 matrix sends the basis vectors", "You can recognise rotation, scaling, shear and projection matrices", "You can explain why matrix multiplication order matters"],
+      objectives: ["You can read where a 2×2 matrix sends the basis vectors from its columns, and build a matrix from them", "You can recognise rotation, scaling, shear, reflection and projection matrices", "You can put two moves in the right order as a product, and explain why stacked linear layers collapse into one matrix", "You can tell the input and output sizes of an m × n matrix, such as a layer's weight matrix"],
       load: () => import('./linear-transformations.mdx'),
     },
     {
       slug: "span-rank-independence",
       title: "Span, linear independence and rank",
       summary: "How many truly different directions a set of vectors or a matrix has, why rank limits what a matrix can do, and what 'nearly singular' means.",
-      minutes: 30,
-      objectives: ["You can decide whether vectors are linearly independent", "You can find the rank of small matrices", "You can explain why rank ≤ min(m, n)"],
+      minutes: 35,
+      objectives: ["You can decide whether a set of vectors is linearly independent and describe what it spans", "You can find the rank of a small matrix and explain why it is at most min(m, n)", "You can link full rank, a non-zero determinant and invertibility for a square matrix", "You can explain what a large condition number means when solving Ax = b"],
       load: () => import('./span-rank-independence.mdx'),
     },
     {
@@ -32,7 +32,7 @@ const mod: ModuleDef = {
       title: "Eigenvectors and eigenvalues",
       summary: "The special directions a matrix only stretches, never turns, and the numbers that say by how much.",
       minutes: 35,
-      objectives: ["You can state Av = λv in words", "You can find eigenvalues of a 2×2 diagonal or triangular matrix by inspection", "You can relate eigenvalues to determinant and trace"],
+      objectives: ["You can check whether a vector is an eigenvector with Av = λv and read off its eigenvalue", "You can find the eigenvalues of a 2×2 matrix, by inspection when it is triangular", "You can use sum = trace and product = determinant, and spot a singular matrix from a zero eigenvalue", "You can predict what multiplying by the same matrix again and again does to a vector"],
       load: () => import('./eigenvectors-eigenvalues.mdx'),
     },
     {
@@ -40,7 +40,7 @@ const mod: ModuleDef = {
       title: "Covariance and PCA",
       summary: "The shape of a data cloud captured in a matrix, and PCA: its eigenvectors are the directions of greatest spread.",
       minutes: 20,
-      objectives: ["You can read and compute a covariance matrix", "You can explain PCA as finding the eigenvectors of the covariance matrix", "You can compute an explained variance ratio and a PCA score"],
+      objectives: ["You can read and compute a covariance matrix and give its shape", "You can explain PCA as finding the eigenvectors of the covariance matrix, and why features are standardised first", "You can compute an explained variance ratio and a PCA score"],
       load: () => import('./covariance-and-pca.mdx'),
     },
     {
@@ -48,7 +48,7 @@ const mod: ModuleDef = {
       title: "SVD and special matrices",
       summary: "Orthogonal matrices, the turn-stretch-turn view of any matrix, low-rank approximation, positive definite matrices, QR and the Frobenius norm.",
       minutes: 35,
-      objectives: ["You can describe SVD as turn, stretch, turn and read off singular values", "You can recognise orthogonal and positive definite matrices", "You can describe QR decomposition (Gram–Schmidt) and compute a Frobenius norm"],
+      objectives: ["You can describe the SVD as turn, stretch, turn and find the singular values of a small matrix", "You can recognise orthogonal matrices (they keep lengths) and positive definite ones (all eigenvalues positive)", "You can describe QR decomposition by Gram–Schmidt and compute a Frobenius norm"],
       load: () => import('./svd-and-special-matrices.mdx'),
     },
   ],

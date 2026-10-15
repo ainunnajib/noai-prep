@@ -194,6 +194,7 @@ export default function RBFGamma() {
         y={YR}
         width={480}
         height={343}
+        minHeight={260}
         maxWidth={560}
         margin={{ left: 34, bottom: 34, right: 12, top: 12 }}
         ariaLabel={`RBF SVM with gamma ${fmt(gamma)} and C ${fmt(C)}: ${sv.length} support vectors, training accuracy ${(trainAcc * 100).toFixed(0)}%, test accuracy ${(testAcc * 100).toFixed(1)}%.`}

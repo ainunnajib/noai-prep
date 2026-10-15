@@ -32,7 +32,7 @@ const questions: QuizQuestion[] = [
     id: 'classification.likelihood-and-entropy.4',
     prompt: 'Why do we usually maximise the log-likelihood instead of the likelihood itself?',
     options: [
-      'The log turns a product of many small probabilities into a sum, which avoids underflow, and it has the same maximiser',
+      'The log turns a product of tiny probabilities into a sum, which avoids underflow, and it always has the same maximiser',
       'The log-likelihood has a different maximiser from the likelihood, and that maximiser generalises better to new data',
       'The likelihood can be negative for some parameters, and taking the log makes it positive so that it can be maximised',
       'The log makes the likelihood a linear function of the parameters, so the best parameters can be found with one formula',

@@ -3,7 +3,7 @@ import PredictionMatrix from './visuals/practice-set/PredictionMatrix'
 import TestDrivenLoop from './visuals/practice-set/TestDrivenLoop'
 import Conv2dLoopVisual from './visuals/practice-set/Conv2dLoopVisual'
 
-The 2027 Final on {FINAL.dateLabel} will set three programming tasks that nobody outside the organisers has seen. You cannot practise *those* tasks, but you can practise the *kind* of task the Final sets, and the two past papers show a clear pattern. This lesson turns that pattern into a list of likely candidates, gives you eight of them as self-checking exercises that run real Python in your browser, and ends with the skill that makes from-scratch code fast: replacing loops with array operations.
+The 2027 Final on {FINAL.dateLabel} will set three programming tasks that nobody outside the organisers has seen. You cannot practise *those* tasks, but you can practise the *kind* of task the Final sets, and the two past papers show a clear pattern. This lesson turns that pattern into a list of likely candidates, gives you eight of them (plus a stretch version of conv2d) as self-checking exercises that run real Python in your browser, and ends with the skill that makes from-scratch code fast: replacing loops with array operations.
 
 <Analogy title="Practise every question type, not just last year's paper">
 
@@ -24,7 +24,7 @@ Before a big school maths exam you would not just redo last year's questions, ho
 | 2026 | Debugging U-Net, then mean IoU | PyTorch | a centre crop, a metric with boolean masks |
 | 2026 | The attention mechanism | PyTorch | attention, multi-head, a positional-encoding check, a classifier head, a causal mask |
 
-Three things repeat. Every year has **classical machine learning written from scratch in NumPy**. Since 2026 there is also **deep learning in PyTorch**, often with a **debugging** part. And the code is checked against exact answers: the 2025 tasks asked for results rounded to 4 decimal places, and the 2026 notebooks had visible self-check cells plus **hidden tests** that the graders ran later.
+Three things repeat. Every year has **classical machine learning written from scratch in NumPy**. Since 2026 there is also **deep learning in PyTorch**, often with a **debugging** part. And the code is checked against exact answers: the 2025 numerical tasks asked for results rounded to 4 decimal places, and the 2026 notebooks had visible self-check cells plus **hidden tests** that the graders ran later.
 
 ## The likely candidates
 
@@ -58,7 +58,7 @@ Hidden tests are why "it ran without errors" is not the same as "it is correct".
 
 <PastPaperQuestion paper="prelim2026" n={57} />
 
-Now practise the loop on eight likely tasks. Each one runs real Python with NumPy in your browser. The **visible tests** are the kind of self-check the notebook gives you; the **hidden tests** unlock only when the visible ones pass, like a grader's tests after the exam.
+Now practise the loop on eight likely tasks, plus a stretch task that rewrites conv2d without loops. Pick two now and come back for the rest. Each one runs real Python with NumPy in your browser. The **visible tests** are the kind of self-check the notebook gives you; the **hidden tests** unlock only when the visible ones pass, like a grader's tests after the exam.
 
 <TestDrivenLoop />
 
@@ -120,7 +120,9 @@ False
 
 Your first draft of a convolution will probably have four nested loops: two over output positions, two over the kernel. That is fine for correctness. But Python runs each step of a loop one at a time, and an image of $256 \times 256$ with a $3 \times 3$ kernel needs over half a million multiply-adds. <Term def="Rewriting code so that one array operation (run inside NumPy's compiled code) replaces a Python loop over the elements.">Vectorising</Term> means restructuring the same arithmetic so that NumPy (or PyTorch) runs the loops inside fast compiled code.
 
-For convolution the classic trick is called <Term def="'Image to columns': copy every window that the kernel visits into one row (or column) of a matrix, so the whole convolution becomes one matrix multiplication.">im2col</Term>: copy every $k \times k$ window of the image into one row of a **patch matrix**, flatten the kernel into a vector, and do **one** matrix-vector product. Row $r$ of the result is exactly the output at window $r$. Step through both versions:
+<PastPaperQuestion paper="prelim2026" n={98} />
+
+For convolution the classic trick is called <Term def="'Image to columns': copy every window that the kernel visits into one row (or column) of a matrix, so the whole convolution becomes one matrix multiplication.">im2col</Term>: copy every $k \times k$ window of the image into one row of a **patch matrix**, flatten the kernel into a vector, and do **one** matrix-vector product. Row $r$ of the result is exactly the output at window $r$. Step through both versions; the $3 \times 3$ image with the $2 \times 2$ kernel is the example worked by hand below it:
 
 <Conv2dLoopVisual />
 
@@ -135,6 +137,13 @@ For convolution the classic trick is called <Term def="'Image to columns': copy 
     The kernel $\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$ flattens to $[1, 0, 0, 1]$. Each row's dot product adds its first and last entries: $[6, 8, 12, 14]$, which reshapes to $\begin{bmatrix} 6 & 8 \\ 12 & 14 \end{bmatrix}$.
   </Step>
 </Steps>
+
+<QuickCheck
+  q="A 6 × 6 image is convolved with a 3 × 3 kernel (stride 1, no padding) using im2col. What shape is the patch matrix?"
+  options={['(16, 9)', '(9, 16)', '(36, 9)', '(4, 4)']}
+  answer={0}
+  explain="The output side is $6 - 3 + 1 = 4$, so there are $4 \times 4 = 16$ windows, one per row, each holding $3 \times 3 = 9$ numbers: $(16, 9)$. $(9, 16)$ is its transpose (the layout `F.unfold` returns), $(36, 9)$ counts every pixel as a window, and $(4, 4)$ is the output shape."
+/>
 
 PyTorch has im2col built in as `F.unfold`, and you can check that it matches `F.conv2d` exactly:
 
@@ -161,25 +170,7 @@ tensor([[ 6.,  8.],
         [12., 14.]])
 ```
 
-In NumPy, `numpy.lib.stride_tricks.sliding_window_view(image, (k, k))` builds all the windows without copying, and one `reshape` turns them into the patch matrix. The timing code in the visual compares the two versions; one run of it on our test machine printed:
-
-```text
-64 x 64 image, 3 x 3 kernel in your browser:
-loops     41.26 ms
-im2col    0.125 ms   (331 times faster)
-largest difference between the outputs: 3.6e-15
-```
-
-The exact times vary from run to run and machine to machine; a speed-up of tens to hundreds of times does not. The difference of $3.6 \times 10^{-15}$ is rounding: the two versions add the same numbers in a different order.
-
-<QuickCheck
-  q="A 6 × 6 image is convolved with a 3 × 3 kernel (stride 1, no padding) using im2col. What shape is the patch matrix?"
-  options={['(16, 9)', '(9, 16)', '(36, 9)', '(4, 4)']}
-  answer={0}
-  explain="The output side is $6 - 3 + 1 = 4$, so there are $4 \times 4 = 16$ windows, one per row, each holding $3 \times 3 = 9$ numbers: $(16, 9)$. $(9, 16)$ is its transpose (the layout `F.unfold` returns), $(36, 9)$ counts every pixel as a window, and $(4, 4)$ is the output shape."
-/>
-
-<PastPaperQuestion paper="prelim2026" n={98} />
+In NumPy, `numpy.lib.stride_tricks.sliding_window_view(image, (k, k))` builds all the windows without copying, and one `reshape` turns them into the patch matrix. The timing table in the visual compares the two versions: for a $64 \times 64$ image, 11.3 ms with four loops against 0.09 ms with im2col, about 130 times faster. Press **Time it in your browser** to run the same code yourself. The exact times vary from run to run and machine to machine; a speed-up of tens to hundreds of times does not. The largest difference between the two outputs is about $3.6 \times 10^{-15}$, which is rounding: the two versions add the same numbers in a different order.
 
 <PastPaperQuestion paper="prelim2026" n={104} />
 
@@ -192,7 +183,7 @@ Vectorise only after the loop version passes its tests, and only if time allows 
 <Takeaways>
 
 - Past Finals set classical ML from scratch in NumPy every year, and since 2026 PyTorch components with a debugging part; all are graded by tests, many of them hidden.
-- Likely candidates include logistic regression with L2, k-NN, stable softmax cross-entropy, PCA, a Gini split, precision/recall/F1, conv2d, BatchNorm or LayerNorm, Dice loss and a CNN shape fix. Practise the patterns, not just the past tasks.
+- Likely candidates include logistic regression with L2, k-NN, stable softmax cross-entropy, PCA, a Gini split, precision/recall/F1, conv2d, BatchNorm or LayerNorm, Dice loss, a CNN shape fix and a buggy training loop. Practise the patterns, not just the past tasks.
 - Work test-first: a tiny example solved by hand becomes an `assert` before you write the function; then add one assert per edge case (zero denominators, overflow, ties, conventions, return types).
 - Vectorising restructures the same arithmetic so the library runs the loops: im2col turns a convolution into one matrix product, tens to hundreds of times faster, with the same answer.
 

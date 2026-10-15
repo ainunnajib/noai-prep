@@ -2,10 +2,13 @@ import { useRef, useState, type ReactNode } from 'react'
 import { usePlot, Path } from '../../../../../kit'
 import type { Line } from './svm'
 
-/* Shared drawing pieces for the SVM visuals. Class +1 = blue squares, class −1 = orange circles. */
+/*
+  Shared drawing pieces for the SVM visuals. Class +1 = orange circles, class −1 = blue squares, matching the
+  logistic-regression figures (orange circles = the positive class).
+*/
 
-export const POS_C = 'var(--viz-1)'
-export const NEG_C = 'var(--viz-2)'
+export const POS_C = 'var(--viz-2)'
+export const NEG_C = 'var(--viz-1)'
 export const colourOf = (label: number) => (label > 0 ? POS_C : NEG_C)
 
 /** Points on the line w·x + b = level, extended far beyond the plot (the Plot clips them). */
@@ -35,13 +38,13 @@ export function Street({ line, color = 'var(--viz-ink)', faint = false }: { line
   )
 }
 
-/** A class marker: blue square for +1, orange circle for −1. */
+/** A class marker: orange circle for +1, blue square for −1. */
 export function Mark({ x, y, label, r = 6, dim = false }: { x: number; y: number; label: number; r?: number; dim?: boolean }) {
   const { xs, ys } = usePlot()
   const cx = xs(x)
   const cy = ys(y)
   const style = { fill: colourOf(label), stroke: 'var(--surface)', strokeWidth: 1.5, opacity: dim ? 0.45 : 1 }
-  return label > 0 ? <rect x={cx - r * 0.9} y={cy - r * 0.9} width={r * 1.8} height={r * 1.8} style={style} /> : <circle cx={cx} cy={cy} r={r} style={style} />
+  return label > 0 ? <circle cx={cx} cy={cy} r={r} style={style} /> : <rect x={cx - r * 0.9} y={cy - r * 0.9} width={r * 1.8} height={r * 1.8} style={style} />
 }
 
 /** A ring drawn around a point (support vectors, violators). */
@@ -147,12 +150,12 @@ export function Legend({ items }: { items: { swatch: ReactNode; label: ReactNode
 export const swatch = {
   pos: (
     <svg width="14" height="14" aria-hidden="true">
-      <rect x="2" y="2" width="10" height="10" style={{ fill: POS_C }} />
+      <circle cx="7" cy="7" r="5.5" style={{ fill: POS_C }} />
     </svg>
   ),
   neg: (
     <svg width="14" height="14" aria-hidden="true">
-      <circle cx="7" cy="7" r="5.5" style={{ fill: NEG_C }} />
+      <rect x="2" y="2" width="10" height="10" style={{ fill: NEG_C }} />
     </svg>
   ),
   sv: (

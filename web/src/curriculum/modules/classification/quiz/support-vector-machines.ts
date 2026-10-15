@@ -21,10 +21,10 @@ const questions: QuizQuestion[] = [
     prompt:
       'A linear soft-margin SVM is trained on two overlapping classes. You raise $C$ from 0.01 to 100. What do you expect?',
     options: [
-      'A narrower street with fewer points inside it, fitting the training data harder and risking overfitting',
-      'A wider street with more points inside it, because a larger $C$ means stronger regularisation',
-      'No change at all, because $C$ only matters when an RBF or polynomial kernel is used',
-      'More support vectors, because a larger $C$ forces every training point onto the edge of the street',
+      'A narrower street with fewer points inside it: the SVM fits the training data harder and may overfit',
+      'A wider street with more points inside it, because a larger $C$ adds more regularisation to the weights',
+      'No change, because $C$ matters just for curved RBF or polynomial kernels, not for a linear SVM',
+      'More support vectors, because a larger $C$ pulls more training points onto the edges of the street',
     ],
     answer: 0,
     explanation:
@@ -34,37 +34,37 @@ const questions: QuizQuestion[] = [
   {
     id: 'classification.support-vector-machines.3',
     prompt:
-      'A soft-margin SVM gives decision values $f(x) = w \\cdot x + b$. Three training points have label $y$ and value $f$: A ($y = +1$, $f = 2.5$), B ($y = +1$, $f = 0.4$) and C ($y = -1$, $f = 0.5$). What are their slacks $\\xi = \\max(0,\\, 1 - y\\,f)$?',
+      'A soft-margin SVM gives decision values $f(x) = w \\cdot x + b$. Three training points have label $y$ and value $f$: P ($y = +1$, $f = 2.5$), Q ($y = +1$, $f = 0.4$) and R ($y = -1$, $f = 0.5$). What are their slacks $\\xi = \\max(0,\\, 1 - y\\,f)$?',
     options: [
-      'A: 0, B: 0.6, C: 1.5',
-      'A: 0, B: 0.4, C: 0.5',
-      'A: 0, B: 0.6, C: 0.5',
-      'A: 1.5, B: 0.6, C: 0',
+      'P: 0, Q: 0.6, R: 1.5',
+      'P: 0, Q: 0.4, R: 0.5',
+      'P: 0, Q: 0.6, R: 0.5',
+      'P: 1.5, Q: 0.6, R: 0',
     ],
     answer: 0,
     explanation:
-      'A: $1 - 2.5 < 0$, so $\\xi = 0$ (outside the street). B: $1 - 0.4 = 0.6$, inside the street but on the correct side. C: $y f = (-1)(0.5) = -0.5$, so $\\xi = 1 - (-0.5) = 1.5$; a slack above 1 means C is on the wrong side of the boundary. Forgetting the label $y$ gives 0.5 for C, as if it were a positive point.',
+      'Point P: $1 - 2.5 < 0$, so $\\xi = 0$ (outside the street). Point Q: $1 - 0.4 = 0.6$, inside the street but on the correct side. Point R: $y f = (-1)(0.5) = -0.5$, so $\\xi = 1 - (-0.5) = 1.5$; a slack above 1 means R is on the wrong side of the boundary. Forgetting the label $y$ gives 0.5 for R, as if it were a positive point.',
     difficulty: 'intermediate',
   },
   {
     id: 'classification.support-vector-machines.4',
     prompt:
-      'For 2-D inputs, the kernel $K(x, z) = (x \\cdot z)^2$ equals the dot product $\\phi(x) \\cdot \\phi(z)$ of the 3-D features $\\phi(x) = (x_1^2,\\ \\sqrt{2}\\,x_1 x_2,\\ x_2^2)$. For $x = (1, 2)$ and $z = (2, 1)$, what is $K(x, z)$, and what did computing it need?',
+      "For 2-D inputs, the kernel $K(x, x') = (x \\cdot x')^2$ equals the dot product $\\phi(x) \\cdot \\phi(x')$ of the 3-D features $\\phi(x) = (x_1^2,\\ \\sqrt{2}\\,x_1 x_2,\\ x_2^2)$. For $x = (1, 2)$ and $x' = (2, 1)$, what is $K(x, x')$, and what did computing it need?",
     options: [
-      '16, from one 2-D dot product squared, without ever building $\\phi(x)$ or $\\phi(z)$',
-      '4, from one 2-D dot product, without ever building $\\phi(x)$ or $\\phi(z)$',
-      '16, but only after building the 3-D vectors $\\phi(x)$ and $\\phi(z)$ explicitly',
-      '8, from adding up the squares of all four input numbers',
+      "16, from one 2-D dot product squared; $\\phi(x)$ and $\\phi(x')$ are never built",
+      "4, from one 2-D dot product; $\\phi(x)$ and $\\phi(x')$ are never built",
+      "16, but the 3-D vectors $\\phi(x)$ and $\\phi(x')$ have to be built explicitly first",
+      '10, from adding up the squares of the four input numbers, $1 + 4 + 4 + 1$',
     ],
     answer: 0,
     explanation:
-      '$x \\cdot z = 1 \\times 2 + 2 \\times 1 = 4$, so $K = 4^2 = 16$. Check: $\\phi(x) = (1, 2\\sqrt2, 4)$ and $\\phi(z) = (4, 2\\sqrt2, 1)$ give $4 + 8 + 4 = 16$, the same number. That is the kernel trick: the dot product in the bigger space comes straight from the original inputs, so $\\phi$ never has to be built. Answering 4 forgets to square.',
+      "$x \\cdot x' = 1 \\times 2 + 2 \\times 1 = 4$, so $K = 4^2 = 16$. Check: $\\phi(x) = (1, 2\\sqrt2, 4)$ and $\\phi(x') = (4, 2\\sqrt2, 1)$ give $4 + 8 + 4 = 16$, the same number. That is the kernel trick: the dot product in the bigger space comes straight from the original inputs, so $\\phi$ never has to be built. Answering 4 forgets to square, and 10 is just $\\lVert x \\rVert^2 + \\lVert x' \\rVert^2$, not a dot product.",
     difficulty: 'intermediate',
   },
   {
     id: 'classification.support-vector-machines.5',
     prompt:
-      'An SVM with an RBF kernel, $K(x, z) = e^{-\\gamma \\lVert x - z \\rVert^2}$, scores 100% on its training data but 64% on new data, and every training point is a support vector. Which change is most likely to help?',
+      "An SVM with an RBF kernel, $K(x, x') = e^{-\\gamma \\lVert x - x' \\rVert^2}$, scores 100% on its training data but 64% on new data, and every training point is a support vector. Which change is most likely to help?",
     options: [
       'Decrease $\\gamma$, so each point influences a wider area and the boundary becomes smoother',
       'Increase $\\gamma$, so each point influences a smaller area and the boundary can follow the data more closely',

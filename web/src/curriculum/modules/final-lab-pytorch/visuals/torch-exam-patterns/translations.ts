@@ -105,7 +105,7 @@ export const TRANSLATIONS: Translation[] = [
     "group": "Shape",
     "np": "a.reshape(3, -1)",
     "torch": "t.reshape(3, -1)  or  t.view(3, -1)",
-    "note": "view never copies, so it fails on non-contiguous tensors (for example after transpose). reshape always works.",
+    "note": "view never copies, so it can fail on non-contiguous tensors (for example after transpose, when you merge the swapped axes). reshape always works, copying if it must.",
     "trap": false,
     "npCode": "a = np.arange(6)\nprint(a.reshape(3, -1))",
     "npOut": "[[0 1]\n [2 3]\n [4 5]]",

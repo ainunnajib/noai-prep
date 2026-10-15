@@ -117,7 +117,7 @@ Training on the twelve students (you will see how below) gives $w \approx 2.03$ 
     $z = 2 \times 1 - 6 = -4$, so $p = \sigma(-4) \approx 0.018$. Predict **fail**: only a 1.8% chance of passing.
   </Step>
   <Step title="Turn probabilities into a decision">
-    The usual rule is: predict class 1 when $p \ge 0.5$. Since $\sigma(z) \ge 0.5$ exactly when $z \ge 0$, this is the same as "predict class 1 when the score is positive". You never need to compute the sigmoid just to decide!
+    The usual rule is: predict class 1 when $p \ge 0.5$. Since $\sigma(z) \ge 0.5$ exactly when $z \ge 0$, this is the same as "predict class 1 when the score is zero or positive". You never need to compute the sigmoid just to decide!
   </Step>
 </Steps>
 
@@ -125,7 +125,7 @@ The cut-off 0.5 is called the <Term def="The probability above which a classifie
 
 <Note title="Reading the score as log-odds">
 
-Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. This is why statisticians call it *logistic* regression: it is linear regression on the log-odds.
+Gamblers talk about <Term def="The probability that something happens divided by the probability that it does not: p / (1 − p). A probability of 0.75 is odds of 3 (3 to 1).">odds</Term>: a 75% chance is odds of $0.75 / 0.25 = 3$, "3 to 1". Solve $p = \sigma(z)$ for $z$ and you get $z = \ln\frac{p}{1-p}$, the **log of the odds**. So logistic regression says: the *log-odds* of a pass is a straight-line function of the hours. Each extra hour adds $w = 2$ to the log-odds, which multiplies the odds of passing by $e^2 \approx 7.4$. (It is still fitted by maximum likelihood, not by least squares on the log-odds. The name *logistic* comes from the logistic function $\sigma$, which turns the log-odds back into a probability.)
 
 </Note>
 
@@ -249,7 +249,9 @@ $$
 \frac{\partial}{\partial z}(p - y)^2 = 2(p - y)\,p(1 - p)
 $$
 
-For student C that is $2(-0.9)(0.1)(0.9) = -0.162$, more than five times weaker. If the model were even more wrong, $p = 0.01$, log loss pushes with $-0.99$ but squared error with only about $-0.02$. A model that is confidently wrong barely learns: the gradient **vanishes** exactly when it is needed most. Squared error with a sigmoid is also not convex in $w$ and $b$, so it can have flat plateaus, while log loss for logistic regression is convex, a single bowl.
+For student C that is $2(-0.9)(0.1)(0.9) = -0.162$, more than five times weaker. If the model were even more wrong, $p = 0.01$, log loss pushes with $-0.99$ but squared error with only about $-0.02$. A model that is confidently wrong barely learns: the gradient **vanishes** exactly when it is needed most. Squared error with a sigmoid is also not convex in $w$ and $b$, so it can have flat plateaus, while log loss for logistic regression is convex, a single bowl. (One catch: if a straight line separates the two classes perfectly, the bowl has no bottom. The loss keeps falling as $w$ grows, so the weights grow forever. That is one reason scikit-learn adds L2 regularisation by default, as you will see below.)
+
+The exam question below also lists *hinge loss*, a third classification loss that scores raw margins rather than probabilities; you will meet it with support vector machines at the end of this module.
 
 <PastPaperQuestion paper="prelim2026" n={262} />
 

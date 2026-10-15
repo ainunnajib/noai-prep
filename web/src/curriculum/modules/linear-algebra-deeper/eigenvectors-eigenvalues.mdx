@@ -2,7 +2,7 @@ import EigenHunter from './visuals/eigenvectors-eigenvalues/EigenHunter'
 import EigenBars from './visuals/eigenvectors-eigenvalues/EigenBars'
 import PowerIteration from './visuals/eigenvectors-eigenvalues/PowerIteration'
 
-When a matrix acts on the plane, almost every arrow gets knocked off its course. A few special directions do not turn at all: the matrix only stretches them. These are the matrix's **eigenvectors** (from the German *eigen*, "own": the matrix's own directions), and the stretch factors are its **eigenvalues**. They are behind PCA, Google's PageRank and the exploding gradients of deep networks, and the 2026 Preliminary Round asked about them several times; two of those questions appear below.
+When a matrix acts on the plane, almost every arrow gets knocked off its course, but a few special directions are only stretched, never turned. These are the matrix's **eigenvectors** (from the German *eigen*, "own"), and the stretch factors are its **eigenvalues**. They are behind PCA, Google's PageRank and the exploding gradients of deep networks, and the 2026 Preliminary Round asked about them several times; three of those questions appear below.
 
 <Analogy title="Stretching prata dough">
 
@@ -105,7 +105,8 @@ For a 2×2 matrix $A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$ this is
 
 $$
 \begin{aligned}
-\det\begin{bmatrix} a - \lambda & b \\ c & d - \lambda \end{bmatrix} &= (a - \lambda)(d - \lambda) - bc \\
+&\det\begin{bmatrix} a - \lambda & b \\ c & d - \lambda \end{bmatrix} \\
+&= (a - \lambda)(d - \lambda) - bc \\
 &= \lambda^2 - (a + d)\lambda + (ad - bc) = 0
 \end{aligned}
 $$
@@ -167,7 +168,7 @@ $$
 \lambda_1 + \lambda_2 = \operatorname{tr} A \qquad\qquad \lambda_1 \lambda_2 = \det A
 $$
 
-There is a picture for the product too. The determinant is the factor by which a matrix scales areas. Along its eigenvectors the matrix does nothing but stretch, by $\lambda_1$ one way and $\lambda_2$ the other, so a parallelogram built on the eigenvectors has its area multiplied by $\lambda_1 \times \lambda_2$. Think of the diagonal matrix with entries 2 and 3 from the determinant lesson in *Vectors and matrices*: it stretches the width by 2 and the height by 3, so every area grows by $2 \times 3 = 6$, and its eigenvalues are exactly 2 and 3.
+There is a picture for the product too. The determinant is the factor by which a matrix scales areas. Along its eigenvectors the matrix does nothing but stretch, by $\lambda_1$ one way and $\lambda_2$ the other, so a parallelogram built on the eigenvectors has its area multiplied by $|\lambda_1 \lambda_2|$, and flipped over when $\lambda_1 \lambda_2 < 0$. That signed factor, $\lambda_1 \lambda_2$, is exactly $\det A$. Think of the diagonal matrix with entries 2 and 3 from the determinant lesson in *Vectors and matrices*: it stretches the width by 2 and the height by 3, so every area grows by $2 \times 3 = 6$, and its eigenvalues are exactly 2 and 3.
 
 <EigenBars />
 
@@ -221,16 +222,16 @@ $$
 - $\Lambda$ is diagonal: $\lambda_1, \lambda_2, \dots$ on the diagonal, zeros elsewhere.
 - Read it right to left, as it acts on a vector: $V^{-1}$ rewrites $x$ as amounts of each eigenvector, $\Lambda$ stretches each amount by its own eigenvalue, and $V$ puts the pieces back together.
 
-This <Term def="Writing a square matrix as A = VΛV⁻¹, with its eigenvectors as the columns of V and its eigenvalues on the diagonal of Λ. Also called diagonalisation.">eigendecomposition</Term> (also called *diagonalising* $A$) exists whenever $A$ has $n$ independent eigenvectors, for example when it has $n$ different real eigenvalues. The shear and the 90° rotation cannot be diagonalised (with real numbers): they do not have enough eigen-lines. For the Stretch matrix,
+This <Term def="Writing a square matrix as A = VΛV⁻¹, with its eigenvectors as the columns of V and its eigenvalues on the diagonal of Λ. Also called diagonalisation.">eigendecomposition</Term> (also called *diagonalising* $A$) exists whenever $A$ has $n$ independent eigenvectors, for example when it has $n$ different real eigenvalues. The 90° rotation cannot be diagonalised with real numbers (its eigenvalues are complex), and the shear cannot be diagonalised at all: its only eigenvalue, 1, has just one eigen-line, so $V$ would not have two independent columns. For the Stretch matrix,
 
 $$
-\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} 0.5 & 0.5 \\ 0.5 & -0.5 \end{bmatrix}
+\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} \tfrac12 & \tfrac12 \\ \tfrac12 & -\tfrac12 \end{bmatrix}
 $$
 
 Two consequences matter for AI:
 
 - **Powers are easy.** $A^2 = V\Lambda V^{-1}V\Lambda V^{-1} = V\Lambda^2V^{-1}$, because the middle $V^{-1}V$ cancels. In general $A^k = V\Lambda^k V^{-1}$, and $\Lambda^k$ just raises each diagonal entry to the power $k$. That is the next section in one line.
-- **Symmetric matrices are the best case.** Their eigenvectors can be chosen perpendicular and of length 1, so $V$ is an orthogonal matrix $Q$ with $Q^{-1} = Q^T$, and $A = Q\Lambda Q^T$ (the *spectral theorem*). The covariance matrix in the next lesson is symmetric, and this is exactly how PCA reads off its directions.
+- **Symmetric matrices are the best case.** Their eigenvectors can be chosen perpendicular and of length 1, so $V$ is an <Term def="A square matrix whose columns are perpendicular and of length 1. Its inverse is its transpose, and it only rotates or reflects. The SVD lesson covers it properly.">orthogonal matrix</Term> $Q$ with $Q^{-1} = Q^T$, and $A = Q\Lambda Q^T$ (the *spectral theorem*). The covariance matrix in the next lesson is symmetric, and this is exactly how PCA reads off its directions.
 
 <KeyIdea>
 
@@ -252,14 +253,14 @@ $$
 A^k\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \tfrac12 \cdot 3^k \begin{bmatrix} 1 \\ 1 \end{bmatrix} + \tfrac12 \cdot 1^k \begin{bmatrix} 1 \\ -1 \end{bmatrix}
 $$
 
-giving $[2, 1]$, then $[5, 4]$, $[14, 13]$ and $[41, 40]$. The $3^k$ part grows so much faster that the arrow swings onto the $[1, 1]$ line while its length grows roughly 3 times per step. In general, the direction ends up along the eigenvector whose eigenvalue is largest in size, the <Term def="The eigenvalue with the largest absolute value |λ|. Repeated multiplication by the matrix lines vectors up with its eigenvector.">dominant eigenvalue</Term> $\lambda_1$, as long as the starting arrow has some part along it. The closer $|\lambda_2|$ is to $|\lambda_1|$, the slower the swing.
+giving $[2, 1]$, then $[5, 4]$, $[14, 13]$ and $[41, 40]$. The $3^k$ part grows so much faster that the arrow swings onto the $[1, 1]$ line while its length grows roughly 3 times per step. In general, the direction ends up along the eigenvector whose eigenvalue is largest in size, the <Term def="The eigenvalue with the largest absolute value |λ|. Repeated multiplication by the matrix lines vectors up with its eigenvector.">dominant eigenvalue</Term> $\lambda_1$. Two conditions: $|\lambda_1|$ must be strictly bigger than every other $|\lambda|$, and the starting arrow must have some part along its eigenvector. If two eigenvalues tie in size (such as $1$ and $-1$) or form a complex pair, the direction never settles. The closer $|\lambda_2|$ is to $|\lambda_1|$, the slower the swing.
 
 <PowerIteration />
 
 This simple loop matters in AI:
 
 - **Power iteration.** Multiply, rescale to length 1, repeat: you get the dominant eigenvector without solving any equation. Google's original PageRank scored web pages using the dominant eigenvector of a huge matrix describing how a random surfer clicks from page to page, computed in exactly this way.
-- **Exploding and vanishing gradients.** A recurrent network multiplies its hidden state by the same weight matrix at every time step, and backpropagation multiplies gradients by the transposed matrix (which has the same eigenvalues) on the way back. Over 50 steps, a direction with $|\lambda| = 1.1$ grows about $1.1^{50} \approx 117$ times, while $|\lambda| = 0.9$ shrinks it to $0.9^{50} \approx 0.005$ of its size. That is why careful initialisation tries to keep these factors close to 1.
+- **Exploding and vanishing gradients.** A <Term def="A network that reads a sequence one step at a time, reusing the same weights at every step.">recurrent network</Term> multiplies its <Term def="The network's running memory: a vector it updates at every step of the sequence.">hidden state</Term> by the same weight matrix at every time step, and backpropagation multiplies gradients by the transposed matrix (which has the same eigenvalues) on the way back. Over 50 steps, a direction with $|\lambda| = 1.1$ grows about $1.1^{50} \approx 117$ times, while $|\lambda| = 0.9$ shrinks it to $0.9^{50} \approx 0.005$ of its size. That is why careful initialisation tries to keep these factors close to 1.
 
 ## In code
 
@@ -299,7 +300,7 @@ for k in range(1, 7):
 # so x . (A x) is (almost) its eigenvalue
 print("biggest eigenvalue:", (x @ A @ x).round(4))`} />
 
-Writing this loop from scratch is good practice for the Final, whose tasks ask you to implement algorithms (such as K-means, gradient boosting and attention) in plain NumPy or PyTorch. In PyTorch the same tools are `torch.linalg.eig`, `torch.linalg.eigh` and `torch.linalg.eigvals`.
+Writing this loop from scratch is good practice for the Final, whose tasks ask you to implement algorithms (such as K-means, gradient boosting and attention) in plain NumPy or PyTorch. In PyTorch the same tools are `torch.linalg.eig`, `torch.linalg.eigh` and `torch.linalg.eigvals`. Unlike NumPy's, `torch.linalg.eig` and `eigvals` always return complex tensors, even for a symmetric matrix: take `.real`, or use `eigh` or `eigvalsh` for symmetric matrices, which return real values sorted from smallest to largest.
 
 <Takeaways>
 

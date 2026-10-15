@@ -1,13 +1,17 @@
 /*
   Datasets for the SVM lesson (generated in Python with numpy / scikit-learn, rounded, and pasted here).
-  Labels are ±1, the usual SVM convention: +1 = blue squares, −1 = orange circles.
+  Labels are ±1, the usual SVM convention: +1 = orange circles, −1 = blue squares (the same colours as the
+  logistic-regression figures, where orange circles are the positive class).
 */
 
 /** The "widest street" example: 6 points per class, separable. */
-export const STREET_BLUE: [number, number][] = [[6.0, 6.6], [7.6, 5.4], [8.4, 7.6], [5.6, 8.6], [8.8, 3.8], [7.0, 8.9]]
-export const STREET_ORANGE: [number, number][] = [[2.0, 2.4], [3.6, 4.6], [1.6, 5.6], [4.6, 2.2], [2.8, 7.4], [5.4, 1.0]]
+export const STREET_POS: [number, number][] = [[6.0, 6.6], [7.6, 5.4], [8.4, 7.6], [5.6, 8.6], [8.8, 3.8], [7.0, 8.9]]
+export const STREET_NEG: [number, number][] = [[2.0, 2.4], [3.6, 4.6], [1.6, 5.6], [4.6, 2.2], [2.8, 7.4], [5.4, 1.0]]
 
-/** Soft-margin data: two overlapping blobs, 16 per class (numpy default_rng(7)). [x1, x2, label ±1] */
+/**
+ * Soft-margin data: two nearly touching blobs, 16 per class (numpy default_rng(7)). [x1, x2, label ±1]
+ * They are just separable (a hard margin of width 1.29 exists); the SoftMarginC outlier makes them overlap.
+ */
 
 export const SOFT: readonly (readonly [number, number, number])[] = [
   [3.6, 4.2, -1], [3.3, 2.7, -1], [3, 2.6, -1], [3.7, 5.5, -1], [3, 3, -1], [4.2, 4.2, -1],

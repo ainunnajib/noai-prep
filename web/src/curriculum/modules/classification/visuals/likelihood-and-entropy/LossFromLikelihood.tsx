@@ -118,8 +118,8 @@ export default function LossFromLikelihood() {
         value={tab}
         onChange={switchTab}
         options={[
-          { value: 'gauss', label: 'Gaussian noise → MSE' },
-          { value: 'coin', label: 'Coin flip → cross-entropy' },
+          { value: 'gauss', label: narrow ? 'Gaussian → MSE' : 'Gaussian noise → MSE' },
+          { value: 'coin', label: narrow ? 'Coin flip → BCE' : 'Coin flip → cross-entropy' },
         ]}
       />
       {tab === 'gauss' ? (

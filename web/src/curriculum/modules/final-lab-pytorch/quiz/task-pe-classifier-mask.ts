@@ -8,12 +8,12 @@ const questions: QuizQuestion[] = [
     options: [
       '`torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))`',
       '`torch.exp(torch.arange(0, d_model, 2).float() * (-10000.0 / d_model))`',
-      '`torch.exp(torch.arange(0, d_model).float() * -(math.log(10000.0) / d_model))`',
+      '`torch.exp(torch.arange(0, d_model, 1).float() * -(math.log(10000.0) / d_model))`',
       '`torch.exp(torch.arange(0, d_model, 2).float() * (math.log(10000.0) / d_model))`',
     ],
     answer: 0,
     explanation:
-      '$1/10000^{x} = e^{-x \\ln 10000}$, and `arange(0, d_model, 2)` gives the even numbers $2i$, so the exponent is $2i \\times (-\\ln 10000 / d_\\text{model})$. Using $-10000$ instead of $-\\ln 10000$ was 2026\'s intended bug: 253 of 256 frequencies underflow to 0. Without the step of 2 there are twice too many frequencies and the next line crashes; without the minus sign the frequencies grow instead of shrinking.',
+      '$1/10000^{x} = e^{-x \\ln 10000}$, and `arange(0, d_model, 2)` gives the even numbers $2i$, so the exponent is $2i \\times (-\\ln 10000 / d_\\text{model})$. Using $-10000$ instead of $-\\ln 10000$ was 2026\'s intended bug: 253 of 256 frequencies underflow to 0. With a step of 1 instead of 2 there are twice too many frequencies and the next line crashes; without the minus sign the frequencies grow instead of shrinking.',
     difficulty: 'intermediate',
   },
   {
@@ -48,7 +48,7 @@ const questions: QuizQuestion[] = [
       'The mean also averages the padding tokens\' output vectors, which depend on their ids',
       'The attention mask is ignored inside the encoder layers, so the padding leaks through attention',
       'The positional encoding gives padding positions different codes in the two inputs',
-      'Dropout still randomly zeroes some numbers in evaluation mode, so every run differs',
+      'Dropout still randomly zeroes some numbers in evaluation mode, so each run differs',
     ],
     answer: 0,
     explanation:

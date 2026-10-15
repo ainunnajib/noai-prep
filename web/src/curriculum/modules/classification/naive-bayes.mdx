@@ -11,7 +11,7 @@ A preview pops up on your phone, cut off: "…free … lunch … now". Is it fro
 
 </Analogy>
 
-Naive Bayes is <Term def="P(A | B) = P(B | A) P(A) / P(B): it turns how likely the evidence is under each hypothesis into how likely each hypothesis is given the evidence.">Bayes' theorem</Term> turned into a classifier. For a class $c$ and features $x_1, \dots, x_m$ (here, the words of a message):
+Naive Bayes is <Term def="P(A | B) = P(B | A) P(A) / P(B): it turns how likely the evidence is under each hypothesis into how likely each hypothesis is given the evidence.">Bayes' theorem</Term> (from the [Bayes' theorem lesson](#/learn/probability-and-statistics/bayes-theorem)) turned into a classifier. For a class $c$ and features $x_1, \dots, x_m$ (here, the words of a message):
 
 $$
 P(c \mid x_1, \dots, x_m) = \frac{P(c)\; P(x_1, \dots, x_m \mid c)}{P(x_1, \dots, x_m)}
@@ -41,7 +41,18 @@ where $\arg\max_c$ means "the class $c$ that makes this score largest", and $\ha
 
 ### Training is just counting
 
-Our running example has 10 short training messages, 4 spam and 6 normal, each cut down to the words of a 6-word vocabulary. Counting every word in each class gives:
+Our running example has 10 short training messages, 4 spam and 6 normal, each cut down to the words of a 6-word vocabulary:
+
+| spam (4 messages) | normal (6 messages) |
+|---|---|
+| win free prize now | homework now |
+| free prize | lunch now |
+| win free lunch | free lunch |
+| free | win |
+| | lunch homework |
+| | homework |
+
+Counting every word in each class gives:
 
 | word | count in spam | count in normal |
 |---|---|---|
@@ -52,12 +63,6 @@ Our running example has 10 short training messages, 4 spam and 6 normal, each cu
 | lunch | 1 | 3 |
 | homework | 0 | 3 |
 | **total** | **10** | **10** |
-
-<Reveal label="Show the 10 training messages">
-
-Spam: "win free prize now", "free prize", "win free lunch", "free". Normal: "homework now", "lunch now", "free lunch", "win", "lunch homework", "homework". Count the words in each group and you get the table above.
-
-</Reveal>
 
 Every probability the model needs is a fraction read off this table:
 
@@ -97,16 +102,16 @@ Naive Bayes scores each class as **prior × product of $P(\text{feature} \mid \t
 
 <QuickCheck
   q="Using the same count table, which class does Naive Bayes choose for the message “win now”?"
-  options={['Normal: 0.012 against 0.008 for spam', 'A tie: both scores are 0.02', 'Spam: 0.08 against 0.012 for normal', 'Spam: 0.6 against 0.4 for normal']}
+  options={['Normal: 0.012 against 0.008 for spam', 'A tie: 0.02 for spam and 0.02 for normal', 'Spam: 0.012 against 0.008 for normal', 'Normal: 0.18 against 0.12 for spam']}
   answer={0}
-  explain="Spam: $0.4 \times \frac{2}{10} \times \frac{1}{10} = 0.008$. Normal: $0.6 \times \frac{1}{10} \times \frac{2}{10} = 0.012$, so normal wins. Without the priors both products are $0.02$, a tie: the prior breaks it, because normal messages are more common."
+  explain="Spam: $0.4 \times \frac{2}{10} \times \frac{1}{10} = 0.008$. Normal: $0.6 \times \frac{1}{10} \times \frac{2}{10} = 0.012$, so normal wins. Without the priors both products are $0.02$, a tie: the prior breaks it, because normal messages are more common. Swapping the two priors gives spam the 0.012, and 0.18 against 0.12 comes from adding the word probabilities, $0.6 \times (0.1 + 0.2)$, instead of multiplying them."
 />
 
 ### Why does such a naive model work?
 
 The independence assumption is plainly false: "free" and "prize" love to turn up together. Yet Naive Bayes was the classic spam filter, and it still makes a strong, quick baseline for text. Three reasons:
 
-1. To classify, it only needs the **ranking** of the class scores to be right, not the exact probabilities. The double-counted evidence often pushes the scores further apart without swapping their order. (Its probabilities do tend to be over-confident.)
+1. To classify, it only needs the **ranking** of the class scores to be right, not the exact probabilities. Because "free" and "prize" usually come together, Naive Bayes counts that one clue twice. Double-counted evidence like this often pushes the scores further apart without swapping their order. (Its probabilities do tend to be over-confident.)
 2. It has very few parameters, one probability per word per class, so it learns from little data and barely overfits: high bias, low variance, the opposite end from 1-NN.
 3. Training is one pass of counting and prediction is a handful of multiplications, so it is fast even with 100,000 words.
 
@@ -188,14 +193,17 @@ Here is Naive Bayes on the count table, adding logs instead of multiplying, then
 <PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
 
 vocab = ["free", "win", "prize", "now", "lunch", "homework"]
-counts = np.array([[4, 2, 2, 1, 1, 0],          # spam:   word counts
-                   [1, 1, 0, 2, 3, 3]])         # normal: word counts
-priors = np.array([4, 6]) / 10                  # 4 spam and 6 normal messages
+# word counts: row 0 = spam, row 1 = normal
+counts = np.array([[4, 2, 2, 1, 1, 0],
+                   [1, 1, 0, 2, 3, 3]])
+priors = np.array([4, 6]) / 10  # 4 spam, 6 normal messages
 
 def naive_bayes(message, alpha=1.0):
     idx = [vocab.index(w) for w in message.split()]
-    probs = (counts + alpha) / (counts.sum(axis=1, keepdims=True) + alpha * len(vocab))
-    log_score = np.log(priors) + np.log(probs[:, idx]).sum(axis=1)   # add logs, don't multiply
+    totals = counts.sum(axis=1, keepdims=True)
+    probs = (counts + alpha) / (totals + alpha * len(vocab))
+    # add logs instead of multiplying probabilities
+    log_score = np.log(priors) + np.log(probs[:, idx]).sum(axis=1)
     score = np.exp(log_score)
     return score, score / score.sum()
 
@@ -207,20 +215,16 @@ for msg in ["free lunch now", "free prize homework"]:
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
-texts = ["win free prize now", "free prize", "win free lunch", "free",
-         "homework now", "lunch now", "free lunch", "win", "lunch homework", "homework"]
+texts = ["win free prize now", "free prize", "win free lunch",
+         "free", "homework now", "lunch now", "free lunch", "win",
+         "lunch homework", "homework"]
 labels = ["spam"] * 4 + ["normal"] * 6
 vec = CountVectorizer()
 model = MultinomialNB(alpha=1.0).fit(vec.fit_transform(texts), labels)
-print(model.classes_, model.predict_proba(vec.transform(["free prize homework"])).round(3))`} />
+new = vec.transform(["free prize homework"])
+print(model.classes_, model.predict_proba(new).round(3))`} />
 
-```text
-'free lunch now': scores [0.00195 0.00352], P(spam) = 0.357
-'free prize homework': scores [0.00146 0.00117], P(spam) = 0.556
-['normal' 'spam'] [[0.444 0.556]]
-```
-
-With smoothing, "free lunch now" is still normal (64%), and "free prize homework" gives the 0.556 we worked out by hand, matching scikit-learn exactly.
+Run it. With smoothing, "free lunch now" is still normal (64%), and "free prize homework" gives the 0.556 we worked out by hand, matching scikit-learn exactly.
 
 <ExamTip title="How NOAI asks about Naive Bayes">
 

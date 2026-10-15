@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Figure, Controls, Readout, Segmented, Toggle, Button, Plot, Grid, Axes, Path, Dots, FnPath, VLine, Label, DraggablePoint, MatrixGrid, useNarrow } from '../../../../../kit'
 import { type V2, eig2, dirV, angleOf, dot, scale, lineGap, fix } from '../eigenvectors-eigenvalues/eig2'
 import { whiteCloud, covariance, Cloud, Segments, type Seg } from './la2'
+import { Clip } from '../linear-transformations/la'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
 
 /*
@@ -73,13 +74,13 @@ export default function PCAProjector() {
         <>
           <b>Try:</b>
           <ol className="try">
-            <li>Drag the handle to turn the orange line, and watch the variance of the shadows on the curve.</li>
+            <li>Drag the handle to turn the pink line, and watch the variance of the shadows on the curve.</li>
             <li>
               Turn on <b>Flatten</b>, then switch to the <b>Round</b> cloud.
             </li>
           </ol>
-          <b>Notice:</b> the curve peaks at PC1, the top eigenvector of the covariance matrix, and the peak height is exactly λ₁; on the round cloud no direction
-          is much better.
+          <b>Notice:</b> the curve peaks at <span className={s.c2}>PC1</span>, the top eigenvector of the covariance matrix, and the peak height is exactly λ₁; on
+          the round cloud no direction is much better.
           <span className="fine">
             Each point's shadow is its projection onto the line. Kept variance plus lost variance (mean squared distance to the line) is always λ₁ + λ₂. PC2,
             90° away, has variance λ₂.
@@ -104,18 +105,21 @@ export default function PCAProjector() {
             <Axes origin xTicks={4} yTicks={4} />
             {showPC && e.kind === 'two' && (
               <>
-                <Path points={[scale(e.v1, -far), scale(e.v1, far)]} color="var(--viz-3)" width={1.6} dash="7 5" />
+                <Path points={[scale(e.v1, -far), scale(e.v1, far)]} color="var(--viz-2)" width={1.6} dash="7 5" />
                 <Path points={[scale(e.v2, -far), scale(e.v2, far)]} color="var(--viz-muted)" width={1.4} dash="7 5" />
               </>
             )}
-            <Path points={[scale(u, -far), scale(u, far)]} color="var(--viz-2)" width={2.5} />
-            {!flat && <Segments segs={links} color="var(--viz-muted)" width={1} opacity={0.75} />}
-            <Cloud pts={pts} color="var(--viz-1)" r={3} opacity={flat ? 0.15 : 0.75} />
-            <Dots points={feet.map((p) => ({ x: p[0], y: p[1], r: flat ? 4 : 2.6, color: 'var(--viz-2)' }))} stroke="none" />
+            {/* the trial line and its shadows are pink; orange is kept for PC1, as in the covariance figure */}
+            <Clip>
+              <Path points={[scale(u, -far), scale(u, far)]} color="var(--viz-4)" width={2.5} />
+              {!flat && <Segments segs={links} color="var(--viz-muted)" width={1} opacity={0.75} />}
+              <Cloud pts={pts} color="var(--viz-1)" r={3} opacity={flat ? 0.15 : 0.75} />
+              <Dots points={feet.map((p) => ({ x: p[0], y: p[1], r: flat ? 4 : 2.6, color: 'var(--viz-4)' }))} stroke="none" />
+            </Clip>
             <DraggablePoint
               x={u[0] * 3.7}
               y={u[1] * 3.7}
-              color="var(--viz-2)"
+              color="var(--viz-4)"
               r={8}
               label="turn"
               onChange={(x, y) => turnTo(angleOf([x, y]))}
@@ -128,15 +132,15 @@ export default function PCAProjector() {
             <Grid xTicks={6} yTicks={4} />
             <Axes xTicks={6} yTicks={4} xLabel="angle of line (°)" />
             <FnPath f={varAt} color="var(--viz-5)" width={2.5} />
-            <VLine x={pc1} color="var(--viz-3)" dash="4 4" />
-            <Label x={pc1} y={l1} dy={-6} anchor={pc1 > 120 ? 'end' : pc1 < 40 ? 'start' : 'middle'} color="var(--viz-3)" size={12} weight={750}>
+            <VLine x={pc1} color="var(--viz-2)" dash="4 4" />
+            <Label x={pc1} y={l1} dy={-6} anchor={pc1 > 120 ? 'end' : pc1 < 40 ? 'start' : 'middle'} color="var(--viz-2)" size={12} weight={750}>
               {`PC1: λ₁ = ${fix(l1)}`}
             </Label>
-            <Dots points={[{ x: phi, y: variance, color: 'var(--viz-2)', r: 6 }]} />
+            <Dots points={[{ x: phi, y: variance, color: 'var(--viz-4)', r: 6 }]} />
           </Plot>
           <MatrixGrid data={C} format={(v) => fix(v, 2)} label="Covariance matrix C" cellSize={56} ariaLabel="covariance matrix" />
           <div className={s.formula}>
-            eigenvalues: <span className={`${s.mono} ${s.c3}`}>λ₁ = {fix(l1)}</span>, <span className={s.mono}>λ₂ = {fix(l2)}</span>; total ={' '}
+            eigenvalues: <span className={`${s.mono} ${s.c2}`}>λ₁ = {fix(l1)}</span>, <span className={s.mono}>λ₂ = {fix(l2)}</span>; total ={' '}
             <span className={s.mono}>{fix(total)}</span>
           </div>
         </div>

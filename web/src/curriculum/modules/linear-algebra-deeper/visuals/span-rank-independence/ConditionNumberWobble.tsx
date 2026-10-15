@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, Label, Readout, M, mulberry32 } from '../../../../../kit'
+import { Figure, Controls, Slider, Button, Toggle, Plot, Grid, Axes, Path, Arrow, Dots, Label, Readout, M, mulberry32 } from '../../../../../kit'
 import { type V2, fmt, Clip } from '../linear-transformations/la'
 import { singular2 } from './linalg'
 import s from './sri.module.css'
@@ -28,6 +28,7 @@ function nudges(seed: number): V2[] {
 export default function ConditionNumberWobble() {
   const [theta, setTheta] = useState(45)
   const [batches, setBatches] = useState(1)
+  const [showCircle, setShowCircle] = useState(false)
 
   const a1 = (A1 * Math.PI) / 180
   const a2 = ((A1 + theta) * Math.PI) / 180
@@ -71,15 +72,46 @@ export default function ConditionNumberWobble() {
   const lab2: V2 = [P[0] - 1.8 * d2[0], P[1] - 1.8 * d2[1]]
   const tone = kappa < 5 ? 'var(--viz-3)' : kappa < 30 ? 'var(--viz-2)' : 'var(--viz-neg)'
 
+  // what A does to the unit circle: the oval's longest and shortest radii are σmax and σmin
+  const onCircle = (t: number): V2 => [A[0][0] * Math.cos(t) + A[0][1] * Math.sin(t), A[1][0] * Math.cos(t) + A[1][1] * Math.sin(t)]
+  const circle = Array.from({ length: 73 }, (_, i) => [Math.cos((i / 72) * 2 * Math.PI), Math.sin((i / 72) * 2 * Math.PI)] as V2)
+  const oval = Array.from({ length: 145 }, (_, i) => onCircle((i / 144) * 2 * Math.PI))
+  let far: V2 = [0, 0]
+  let near: V2 = [9, 9]
+  for (let i = 0; i < 720; i++) {
+    const q = onCircle((i / 720) * Math.PI)
+    if (Math.hypot(...q) > Math.hypot(...far)) far = q
+    if (Math.hypot(...q) < Math.hypot(...near)) near = q
+  }
+  // unit vector along the short radius (perpendicular to the long one): labels sit on opposite sides of the long axis
+  const farLen = Math.hypot(...far) || 1
+  const nu: V2 = [-far[1] / farLen, far[0] / farLen]
+  // a circle (κ = 1) has no special directions: draw the short radius at right angles to the long one
+  if (smax - smin < 1e-3) near = [nu[0] * smin, nu[1] * smin]
+  if (nu[0] * near[0] + nu[1] * near[1] < 0) {
+    nu[0] = -nu[0]
+    nu[1] = -nu[1]
+  }
+
   return (
     <Figure
       title="Nearly parallel lines make a wobbly answer"
       caption={
         <>
-          Each line is one equation of a 2×2 system <i>Ax = b</i>; the solution is where they cross (black ring). Every green dot is the solution after nudging{' '}
-          <i>b</i> by at most {EPS}. Press <b>Jitter b</b> for more nudges, then drag the angle down: as the lines become nearly parallel, the same tiny nudges
-          throw the solution far along the lines. The dashed ellipse is every answer you can get from a nudge of size {EPS}; its longest half-width divided
-          by its shortest is exactly the condition number κ.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Nudge b 30 more times</b>, then drag the angle down.
+            </li>
+            <li>
+              Turn on <b>Show what A does to the unit circle</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> as the lines become nearly parallel, the same tiny nudges throw the answer far along the lines, and the oval gets thin: κ shoots up.
+          <span className="fine">
+            Each line is one equation of <i>Ax = b</i>; the answer is where they cross (hollow ring). Green dots are answers after nudging <i>b</i> by at most {EPS}; the
+            dashed ellipse holds every possible one, and its longest half-width divided by its shortest is exactly κ.
+          </span>
         </>
       }
     >
@@ -116,6 +148,28 @@ export default function ConditionNumberWobble() {
         </Clip>
       </Plot>
 
+      {showCircle && (
+        <span className={s.muted} style={{ fontSize: 'var(--step--1)', textAlign: 'center' }}>
+          A turns the dashed unit circle into the oval: its longest radius is σmax, its shortest σmin.
+        </span>
+      )}
+      {showCircle && (
+        <Plot x={[-1.6, 1.6]} y={[-1.6, 1.6]} width={260} height={260} maxWidth={260} margin={{ top: 6, right: 6, bottom: 6, left: 6 }} ariaLabel={`The unit circle and the oval that A turns it into: longest radius ${fmt(smax, 2)}, shortest ${fmt(smin, 2)}`}>
+          <Grid xTicks={6} yTicks={6} />
+          <Axes origin xTicks={4} yTicks={4} hideXTicks hideYTicks />
+          <Path points={circle} closed color="var(--viz-muted)" width={1.6} dash="4 4" />
+          <Path points={oval} closed color="var(--viz-5)" width={2} fill="color-mix(in srgb, var(--viz-5) 14%, transparent)" />
+          <Arrow from={[0, 0]} to={far} color="var(--viz-4)" width={2.5} head={8} />
+          <Arrow from={[0, 0]} to={near} color="var(--viz-ink)" width={2.5} head={8} />
+          <Label x={far[0] * 0.5 - nu[0] * 0.15} y={far[1] * 0.5 - nu[1] * 0.15} color="var(--viz-4)" anchor={nu[0] > 0 ? 'end' : 'start'} dy={nu[1] > 0 ? 12 : 0}>
+            σmax {fmt(smax, 2)}
+          </Label>
+          <Label x={near[0] + nu[0] * 0.12} y={near[1] + nu[1] * 0.12} color="var(--viz-ink)" anchor={nu[0] > 0 ? 'start' : 'end'} dy={nu[1] > 0 ? 0 : 12}>
+            σmin {fmt(smin, 2)}
+          </Label>
+        </Plot>
+      )}
+
       <div className={s.info} aria-live="polite">
         <div className={s.eq}>
           <M>{`A = \\begin{bmatrix} ${fmt(A[0][0], 2)} & ${fmt(A[0][1], 2)} \\\\ ${fmt(A[1][0], 2)} & ${fmt(A[1][1], 2)} \\end{bmatrix},\\quad b = \\begin{bmatrix} ${fmt(b[0], 2)} \\\\ ${fmt(b[1], 2)} \\end{bmatrix},\\quad x = \\begin{bmatrix} 1 \\\\ 1 \\end{bmatrix}`.replace(/−/g, '-')}</M>
@@ -138,9 +192,10 @@ export default function ConditionNumberWobble() {
       <Controls>
         <Slider label="Angle between the two lines" value={theta} min={2} max={90} step={1} onChange={setTheta} format={(v) => `${v}°`} />
         <Button primary onClick={() => setBatches((k) => Math.min(8, k + 1))}>
-          Jitter b
+          Nudge b 30 more times
         </Button>
         <Button onClick={() => setBatches(1)}>Clear</Button>
+        <Toggle label="Show what A does to the unit circle" checked={showCircle} onChange={setShowCircle} />
       </Controls>
     </Figure>
   )

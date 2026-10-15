@@ -116,8 +116,9 @@ export default function Conv2dLoopVisual() {
   const pi = Math.floor(step / oh)
   const pj = step % oh
 
-  const image = useMemo(() => grid(H, 11 + H, 0, 4), [H])
-  const kernel = useMemo(() => grid(k, 5 + k, -1, 2), [k])
+  // 3 x 3 image with a 2 x 2 kernel: the lesson's hand-worked example (1 to 9, diagonal kernel)
+  const image = useMemo(() => (H === 3 ? [[1, 2, 3], [4, 5, 6], [7, 8, 9]] : grid(H, 11 + H, 0, 4)), [H])
+  const kernel = useMemo(() => (H === 3 && k === 2 ? [[1, 0], [0, 1]] : grid(k, 5 + k, -1, 2)), [H, k])
   const out = useMemo(
     () =>
       Array.from({ length: oh }, (_, i) =>
@@ -178,7 +179,7 @@ export default function Conv2dLoopVisual() {
       caption={
         <>
           In <b>Loops</b>, step through the output positions and watch the window slide. Switch to <b>im2col</b>: the same windows become the rows of one patch matrix, and a
-          single matrix-vector product gives every output at once. Change the sizes; the two versions always agree. The timing table shows why it matters.
+          single matrix-vector product gives every output at once. Change the sizes; the two versions always agree. The 3×3 image with the 2×2 kernel is the example worked by hand below. The timing table shows why it matters.
         </>
       }
     >

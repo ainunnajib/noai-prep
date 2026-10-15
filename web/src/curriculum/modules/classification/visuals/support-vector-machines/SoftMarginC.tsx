@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, Path } from '../../../../../kit'
+import { Figure, Controls, Readout, Slider, Toggle, Plot, Grid, Axes, Path, Label } from '../../../../../kit'
 import { smo, linearK, linearW, margin, fLine, type P2 } from './svm'
 import { SOFT } from './svmData'
 import { Street, Mark, Ring, DragMark, Legend, swatch } from './parts'
 
 /*
-  Soft-margin linear SVM on overlapping data, solved with SMO for the chosen C. Points with slack
+  Soft-margin linear SVM on two nearly touching blobs, solved with SMO for the chosen C. Points with slack
   ξ = max(0, 1 − y·f(x)) > 0 are inside the street or on the wrong side; a red segment shows how far each
-  one is from its own edge of the street (that distance is ξ / ‖w‖). Optional outlier: a blue point you
-  can drag into orange territory.
+  one is from its own edge of the street (that distance is ξ / ‖w‖). Optional outlier: an orange (+1)
+  point you can drag into blue territory; it is what makes a hard margin impossible.
 */
 
 const fmtC = (c: number) => (c >= 10 ? c.toFixed(0) : c >= 1 ? c.toFixed(1) : c.toPrecision(2))
@@ -43,7 +43,7 @@ export default function SoftMarginC() {
         <>
           Slide <i>C</i>. With a small <i>C</i>, violations are cheap: the street is wide and many points sit inside it (red segments show how far
           each is from its own edge). With a large <i>C</i>, violations are expensive: the street narrows until hardly anything is inside. Now switch on
-          the outlier and drag it into the orange cloud: a large <i>C</i> twists the whole boundary to accommodate one odd point, while a small{' '}
+          the outlier and drag it into the blue cloud: a large <i>C</i> twists the whole boundary to accommodate one odd point, while a small{' '}
           <i>C</i> barely notices it.
         </>
       }
@@ -76,7 +76,13 @@ export default function SoftMarginC() {
         {SOFT.map((p, i) => (
           <Mark key={i} x={p[0]} y={p[1]} label={p[2]} />
         ))}
-        {outlier && <DragMark x={op[0]} y={op[1]} label={1} name="outlier (blue)" onChange={(a, b) => setOp([a, b])} r={7.5} />}
+        {outlier && (
+          <DragMark x={op[0]} y={op[1]} label={1} name="outlier (orange): drag it" onChange={(a, b) => setOp([a, b])} r={7.5}>
+            <Label x={op[0]} y={op[1]} dx={0} dy={-15} anchor="middle" size={12} weight={700} color="var(--ink)">
+              outlier: drag me
+            </Label>
+          </DragMark>
+        )}
         {info.map((d, i) =>
           d.xi > 2e-3 ? (
             <Ring key={i} x={d.p[0]} y={d.p[1]} r={11} color="var(--viz-neg)" dash="3 2" width={2} />

@@ -6,14 +6,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A Naive Bayes spam filter has $P(\\text{spam}) = 0.25$ and $P(\\text{normal}) = 0.75$. For the words "deal" and "today": $P(\\text{deal} \\mid \\text{spam}) = 0.4$, $P(\\text{today} \\mid \\text{spam}) = 0.2$, $P(\\text{deal} \\mid \\text{normal}) = 0.1$ and $P(\\text{today} \\mid \\text{normal}) = 0.3$. Which class does it choose for the message "deal today", and with what scores?',
     options: [
-      'Normal, with scores 0.0225 for normal and 0.02 for spam',
-      'Spam, with scores 0.08 for spam and 0.03 for normal',
-      'Spam, with scores 0.6 for spam and 0.4 for normal',
-      'Normal, with scores 0.75 for normal and 0.25 for spam',
+      'Normal: 0.0225 against 0.02 for spam',
+      'Spam: 0.08 against 0.03 for normal',
+      'Spam: 0.06 against 0.0075 for normal',
+      'Normal: 0.75 against 0.25 for spam',
     ],
     answer: 0,
     explanation:
-      'Score = prior × product of likelihoods. Spam: $0.25 \\times 0.4 \\times 0.2 = 0.02$. Normal: $0.75 \\times 0.1 \\times 0.3 = 0.0225$, which is larger, so normal wins (with $P(\\text{spam} \\mid \\text{message}) = 0.02/0.0425 \\approx 0.47$). Forgetting the priors gives $0.08$ against $0.03$ and the wrong class; adding the likelihoods (0.6 against 0.4) is not how independent probabilities combine.',
+      'Score = prior × product of likelihoods. Spam: $0.25 \\times 0.4 \\times 0.2 = 0.02$. Normal: $0.75 \\times 0.1 \\times 0.3 = 0.0225$, which is larger, so normal wins (with $P(\\text{spam} \\mid \\text{message}) = 0.02/0.0425 \\approx 0.47$). Forgetting the priors gives $0.08$ against $0.03$ and the wrong class; attaching each prior to the other class gives $0.75 \\times 0.08 = 0.06$ against $0.25 \\times 0.03 = 0.0075$; and the priors alone (0.75 against 0.25) ignore the words.',
     difficulty: 'intermediate',
   },
   {
@@ -30,10 +30,10 @@ const questions: QuizQuestion[] = [
     id: 'classification.naive-bayes.3',
     prompt: 'What exactly is "naive" about Naive Bayes?',
     options: [
-      'Features are independent of each other once the class is known: $P(x_1, x_2 \\mid c) = P(x_1 \\mid c)\\,P(x_2 \\mid c)$',
-      'Every class is equally likely before any features are seen, so the prior $P(c)$ is always left out of the score',
-      'Features are independent of the class itself, so that $P(x_1 \\mid c) = P(x_1)$ for every class $c$ and every word',
-      'Features are mutually exclusive, so at most one of the vocabulary words can appear in any one message',
+      'Features are independent of each other given the class: $P(x_1, x_2 \\mid c) = P(x_1 \\mid c)\\,P(x_2 \\mid c)$',
+      'Classes are assumed equally likely before any features are seen, so the prior $P(c)$ is left out of the score',
+      'Features are independent of the class itself, so $P(x_1 \\mid c) = P(x_1)$ whichever class $c$ you look at',
+      'Features are mutually exclusive, so at most one word from the vocabulary can appear in any single message',
     ],
     answer: 0,
     explanation:

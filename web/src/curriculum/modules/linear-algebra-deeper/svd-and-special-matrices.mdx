@@ -3,7 +3,7 @@ import SVDStepper from './visuals/svd-and-special-matrices/SVDStepper'
 import LowRankPicture from './visuals/svd-and-special-matrices/LowRankPicture'
 import QRAndFrobenius from './visuals/svd-and-special-matrices/QRAndFrobenius'
 
-The last lesson found PCA's directions as the eigenvectors of the covariance matrix. Eigenvectors need a square matrix, though, and even then a rotation has none. The **SVD** works for every matrix: it says that every matrix turns, stretches and turns again. To read it you first need the "turn" part, the **orthogonal matrices**. The lesson ends with the other special matrices NOAI likes to ask about: positive definite, QR and the Frobenius norm.
+The last lesson found PCA's directions as the eigenvectors of the covariance matrix, but eigenvectors need a square matrix, and even then a rotation has none. The **SVD** works for every matrix: it says that every matrix turns, stretches and turns again, so you start with the "turn" part, the **orthogonal matrices**. Along the way you meet a few more special matrices that NOAI loves to ask about.
 
 ## Orthogonal matrices: pure turns
 
@@ -17,9 +17,13 @@ Its inverse costs nothing: just transpose. It keeps every length, because $\lVer
 
 <LengthKeeper show="orth" />
 
-Because an orthogonal matrix keeps lengths, neural networks are sometimes initialised with orthogonal weight matrices so that signals keep their size from layer to layer, avoiding the explosions you saw with power iteration.
+<Mistake title="Perpendicular columns are not enough">
 
-<PastPaperQuestion paper="prelim2026" n={18} />
+"Orthogonal matrix" means perpendicular **and** unit-length columns (the columns are *orthonormal*). $\begin{bmatrix} 1 & -1 \\ 1 & 1 \end{bmatrix}$ has perpendicular columns, but $Q^TQ = 2I$: it turns by $45°$ and stretches by $\sqrt2$, so it is **not** orthogonal. The same goes for $\text{diag}(2, 3)$.
+
+</Mistake>
+
+Because an orthogonal matrix keeps lengths, neural networks are sometimes initialised with orthogonal weight matrices so that signals keep their size from layer to layer, avoiding the explosions you saw with power iteration.
 
 ## SVD: turn, stretch, turn
 
@@ -29,7 +33,7 @@ A prata seller turns the ball of dough on the counter, rolls it out along the co
 
 </Analogy>
 
-Eigenvectors need a square matrix, and even then a rotation has none. The <Term def="Singular value decomposition: writing any m×n matrix as A = UΣVᵀ, with U and V orthogonal and Σ diagonal with non-negative entries σ₁ ≥ σ₂ ≥ … (the singular values).">singular value decomposition</Term> works for **every** matrix, of any shape:
+The <Term def="Singular value decomposition: writing any m×n matrix as A = UΣVᵀ, with U and V orthogonal and Σ an m×n diagonal matrix with non-negative entries σ₁ ≥ σ₂ ≥ … (the singular values).">singular value decomposition</Term> works for **every** matrix, of any shape:
 
 $$
 A = U \Sigma V^T
@@ -38,6 +42,7 @@ $$
 - $V$ is an orthogonal matrix: a pure turn, possibly with a mirror flip, as in the section above. Its columns $v_i$ are special input directions, and $V^T$ turns them onto the axes.
 - $\Sigma$ (capital sigma) is diagonal. Its entries $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ are the <Term def="The diagonal entries σ₁ ≥ σ₂ ≥ … ≥ 0 of Σ in the SVD: the stretch factors of the matrix along its special directions.">singular values</Term>, the stretch factors along the axes.
 - $U$ is orthogonal too. Its columns $u_i$ are the output directions, and $U$ turns the stretched axes into place.
+- **Shapes.** For an $m \times n$ matrix $A$, $U$ is $m \times m$, $\Sigma$ is $m \times n$ (the $\sigma_i$ on its diagonal, zeros everywhere else) and $V$ is $n \times n$. There are only $\min(m, n)$ singular values. The *thin* SVD (`full_matrices=False`) keeps just the first $\min(m, n)$ columns of $U$ and $V$.
 
 Read the product right to left, as it acts on a vector: $Ax = U(\Sigma(V^T x))$. In 2-D the unit circle is turned (still a circle), stretched into an oval with half-widths $\sigma_1$ and $\sigma_2$, then turned again. **The singular values are the half-widths of the oval that $A$ makes from the unit circle**: the same oval you saw in the eigenvector hunt, whose longest and shortest half-widths gave the condition number in the rank lesson.
 
@@ -59,7 +64,7 @@ Facts to remember:
     A^TA = \begin{bmatrix} 3 & 4 \\ 0 & 5 \end{bmatrix}\begin{bmatrix} 3 & 0 \\ 4 & 5 \end{bmatrix} = \begin{bmatrix} 25 & 20 \\ 20 & 25 \end{bmatrix}.
     $$
   </Step>
-  <Step title="Its eigenvalues, by the trace and determinant">
+  <Step title="Eigenvalues of $A^TA$">
     Trace 50, determinant $625 - 400 = 225$. Two numbers with sum 50 and product 225: 45 and 5.
   </Step>
   <Step title="Square roots">
@@ -89,8 +94,6 @@ $$
 $$
 
 For $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$ it is $\sqrt{1 + 4 + 4 + 16} = \sqrt{25} = 5$. It also equals $\sqrt{\sigma_1^2 + \sigma_2^2 + \dots}$; this matrix has rank 1, so its only non-zero singular value is 5. It measures the error of a low-rank approximation, and weight decay on a weight matrix $W$ adds a multiple of $\lVert W \rVert_F^2$ to the loss.
-
-<PastPaperQuestion paper="prelim2026" n={22} />
 
 ## Low-rank approximation
 
@@ -132,7 +135,7 @@ Every covariance matrix is positive semi-definite, because $u^TCu$ is the varian
   q="Which of these symmetric matrices is positive definite?"
   options={['$\\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\end{bmatrix}$', '$\\begin{bmatrix} 1 & 0 \\\\ 0 & 0 \\end{bmatrix}$', '$\\begin{bmatrix} 2 & -1 \\\\ -1 & 2 \\end{bmatrix}$', '$\\begin{bmatrix} -1 & 0 \\\\ 0 & -3 \\end{bmatrix}$']}
   answer={2}
-  explain="Use the trace and determinant. For $\begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}$: trace 4, det $4 - 1 = 3$, so the eigenvalues are 3 and 1, both positive. $\begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}$ has only positive entries but eigenvalues 3 and $-1$ (try $x = [1, -1]$: $x^TAx = 1 - 4 + 1 = -2$). The diagonal $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ has an eigenvalue of 0 (only semi-definite), and the last one is negative definite."
+  explain="For a symmetric 2×2 matrix, det > 0 and trace > 0 means both eigenvalues are positive. For $\begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}$: trace 4, det $4 - 1 = 3$, so the eigenvalues are 3 and 1, both positive. $\begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}$ has only positive entries but eigenvalues 3 and $-1$ (try $x = [1, -1]$: $x^TAx = 1 - 4 + 1 = -2$). The diagonal $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ has an eigenvalue of 0 (only semi-definite), and the last one is negative definite."
 />
 
 ## QR decomposition
@@ -140,16 +143,16 @@ Every covariance matrix is positive semi-definite, because $u^TCu$ is the varian
 **QR decomposition** writes a matrix as $A = QR$, where $Q$ has perpendicular unit columns (for a square $A$, an orthogonal matrix) and $R$ is **upper triangular**. The classic recipe, <Term def="A procedure that turns a set of vectors into perpendicular unit vectors spanning the same space, by subtracting from each vector its shadows on the ones before it and rescaling to length 1.">Gram–Schmidt</Term>, straightens the columns one at a time:
 
 <Steps title="QR of a 2×2 matrix by Gram–Schmidt">
-  <Step title="Normalise the first column">
+  <Step title="Normalise column 1">
     Take $A = \begin{bmatrix} 3 & 1 \\ 4 & 2 \end{bmatrix}$, with columns $a_1 = (3, 4)$ and $a_2 = (1, 2)$. $\lVert a_1 \rVert = 5$, so $q_1 = (0.6, 0.8)$.
   </Step>
-  <Step title="Measure the shadow of $a_2$ on $q_1$">
+  <Step title="Shadow of $a_2$">
     $q_1 \cdot a_2 = 0.6 \times 1 + 0.8 \times 2 = 2.2$.
   </Step>
-  <Step title="Subtract the shadow">
+  <Step title="Subtract it">
     $w = a_2 - 2.2\,q_1 = (1 - 1.32,\ 2 - 1.76) = (-0.32,\ 0.24)$, which is perpendicular to $q_1$ (check: $0.6 \times -0.32 + 0.8 \times 0.24 = 0$).
   </Step>
-  <Step title="Normalise, and record the recipe in R">
+  <Step title="Normalise and record">
     $\lVert w \rVert = 0.4$, so $q_2 = (-0.8, 0.6)$. Then $Q = \begin{bmatrix} 0.6 & -0.8 \\ 0.8 & 0.6 \end{bmatrix}$ and $R = \begin{bmatrix} 5 & 2.2 \\ 0 & 0.4 \end{bmatrix}$, because $a_1 = 5q_1$ and $a_2 = 2.2q_1 + 0.4q_2$.
   </Step>
 </Steps>
@@ -168,9 +171,17 @@ QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back
 
 <ExamTip title="Know which letter does which job">
 
-Most NOAI questions on this topic are one-line definitions, and the wrong options swap the roles around. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
+As in the last lesson, most NOAI questions here are one-line definitions whose wrong options swap the roles around. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
 
 </ExamTip>
+
+<Reveal label="Quick-fire: two more one-line definitions from the 2026 paper">
+
+<PastPaperQuestion paper="prelim2026" n={18} />
+
+<PastPaperQuestion paper="prelim2026" n={22} />
+
+</Reveal>
 
 ## In code
 

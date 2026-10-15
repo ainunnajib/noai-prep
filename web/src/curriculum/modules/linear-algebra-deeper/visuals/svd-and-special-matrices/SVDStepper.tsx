@@ -107,7 +107,7 @@ export default function SVDStepper() {
           <b>Try:</b>
           <ol className="try">
             <li>
-              Press <b>Next stage</b> three times: <b>Vᵀ</b> turns, <b>Σ</b> stretches by σ₁ and σ₂, <b>U</b> turns again.
+              Press <b>Next stage</b> three times (or tap the stages under the plot): <b>Vᵀ</b> turns, <b>Σ</b> stretches by σ₁ and σ₂, <b>U</b> turns again.
             </li>
             <li>
               Pick <b>Rank 1</b>, then <b>With a flip</b>.
@@ -156,9 +156,9 @@ export default function SVDStepper() {
           </Plot>
           <div className={s.chipRow}>
             {STAGES.map((n, i) => (
-              <span key={n} className={`${s.chip} ${stage === i ? s.chipOn : ''}`}>
+              <button key={n} type="button" className={`${s.chip} ${s.chipBtn} ${stage === i ? s.chipOn : ''}`} aria-pressed={stage === i} onClick={() => go(i)}>
                 {i}: {n}
-              </span>
+              </button>
             ))}
           </div>
         </div>

@@ -33,7 +33,7 @@ const questions: QuizQuestion[] = [
     options: [
       'Almost exactly along income, because its variance is far larger',
       'Almost exactly along age, because its smaller numbers are more precise',
-      'Along the diagonal, because PCA gives every feature an equal say',
+      'Along the diagonal, because PCA gives each feature an equal say',
       'Nowhere in particular: PCA ignores the units of the features',
     ],
     answer: 0,

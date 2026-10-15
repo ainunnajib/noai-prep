@@ -150,8 +150,8 @@ export default function MultiLabelToggle() {
         value={head}
         onChange={setHead}
         options={[
-          { value: 'softmax', label: 'softmax (multi-class)' },
-          { value: 'sigmoid', label: 'sigmoid per label (multi-label)' },
+          { value: 'softmax', label: narrow ? 'softmax' : 'softmax (multi-class)' },
+          { value: 'sigmoid', label: narrow ? 'sigmoid per label' : 'sigmoid per label (multi-label)' },
         ]}
       />
       <div ref={gridRef} style={grid} role="group" aria-label={`Outputs with a ${head} head`}>

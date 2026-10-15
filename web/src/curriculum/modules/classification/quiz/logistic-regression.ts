@@ -30,14 +30,14 @@ const questions: QuizQuestion[] = [
     prompt:
       'A model with a sigmoid output is trained with squared error $(y - p)^2$. One example has $y = 1$, but the model predicts $p = 0.01$. Why does the model learn very little from this badly wrong example?',
     options: [
-      'Its gradient with respect to the score is $2(p - y)\\,p(1 - p)$, and the factor $p(1-p) \\approx 0.01$ almost cancels the big error',
+      'Its slope with respect to the score is $2(p - y)\\,p(1 - p)$, and the factor $p(1-p) \\approx 0.01$ makes that slope tiny',
       'Squared error becomes negative when $p < y$, so gradient descent moves the weights in the wrong direction for this example',
-      'Squared error can never exceed 1, so the loss of this example ($\\approx 0.98$) is too small for gradient descent to notice',
-      'Squared error only counts examples whose prediction is already above the 0.5 threshold, so this example is skipped',
+      'Squared error is at most 1, so the loss of this example ($\\approx 0.98$) is too small for gradient descent to notice',
+      'Squared error ignores examples whose prediction is below the 0.5 threshold, so training skips this example',
     ],
     answer: 0,
     explanation:
-      'By the chain rule, $\\frac{\\partial}{\\partial z}(p - y)^2 = 2(p - y)\\,\\sigma\'(z) = 2(p-y)\\,p(1-p) = 2(-0.99)(0.01)(0.99) \\approx -0.02$: a tiny push. With binary cross-entropy the push is $p - y = -0.99$, about 50 times stronger, because the $p(1-p)$ cancels. A square is never negative, nothing is skipped, and a loss of 0.98 is large; what is small is its *slope*.',
+      'By the chain rule, $\\frac{\\partial}{\\partial z}(p - y)^2 = 2(p - y)\\,\\sigma\'(z) = 2(p-y)\\,p(1-p) = 2(-0.99)(0.01)(0.99) \\approx -0.02$: a tiny push. With binary cross-entropy the push is $p - y = -0.99$, about 50 times stronger, because the $p(1-p)$ cancels. A square is never negative, squared error has no threshold that skips examples, and a loss of 0.98 is large; what is small is its *slope*.',
     difficulty: 'intermediate',
   },
   {
@@ -53,7 +53,7 @@ const questions: QuizQuestion[] = [
     id: 'classification.logistic-regression.5',
     prompt: 'Model B is model A with every weight and the bias multiplied by 2 ($\\mathbf{w} \\to 2\\mathbf{w}$, $b \\to 2b$). Compared with model A, model B:',
     options: [
-      'has the same decision boundary, but its probabilities are more extreme (closer to 0 or 1) away from it',
+      'has the same decision boundary, but every point off that line now gets a probability closer to 0 or 1',
       'has its decision boundary moved twice as far from the origin, with the same probabilities along the line',
       'gives exactly the same probabilities everywhere, because the ratio between $b$ and the weights is unchanged',
       'has its decision boundary rotated by 90 degrees, because the weight vector has changed length',

@@ -23,7 +23,7 @@ const TESTS = [
   {
     id: 'all2',
     name: 'Shape test, every size 2',
-    code: 'x2 = torch.randn(2, 2, 4)\nassert attention_weights(x2, W_q2, W_k2, h=2).shape == (2, 2, 2, 2)',
+    code: 'x2 = torch.randn(2, 2, 4)\nW_q2, W_k2 = torch.randn(4, 4), torch.randn(4, 4)\nassert attention_weights(x2, W_q2, W_k2, h=2).shape == (2, 2, 2, 2)',
   },
   {
     id: 'distinct',

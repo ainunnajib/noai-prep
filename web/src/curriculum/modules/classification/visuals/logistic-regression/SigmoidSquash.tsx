@@ -153,7 +153,13 @@ export default function SigmoidSquash() {
         <Grid xTicks={13} yTicks={4} />
         <Axes xLabel="hours studied" yLabel="P(pass)" xTicks={7} yTicks={4} />
         <HLine y={0.5} color="var(--viz-muted)" />
-        {midIn && <VLine x={mid} color="var(--viz-muted)" label={`50-50 at ${fix(mid, 1)} h`} />}
+        {midIn && <VLine x={mid} color="var(--viz-muted)" />}
+        {/* low down and on the side of the line the S has not reached yet, clear of the dots and the p readout */}
+        {midIn && (
+          <Label x={mid} y={0.22} dx={w >= 0 ? 6 : -6} anchor={w >= 0 ? 'start' : 'end'} size={12} color="var(--ink-2)">
+            {`50-50 at ${fix(mid, 1)} h`}
+          </Label>
+        )}
         <FnPath f={(x) => sigmoid(w * x + b)} color="var(--viz-ink)" width={2.75} />
         <Students w={w} b={b} />
         <Path points={[[0, pq], [qx, pq]]} color="var(--viz-4)" width={1.5} dash="4 4" />
@@ -166,7 +172,7 @@ export default function SigmoidSquash() {
           color="var(--viz-4)"
           r={8}
           tag="new student"
-          tagDx={pq > 0.5 ? 10 : -10}
+          tagDx={pq > 0.5 || qx < 2 ? 10 : -10}
           tagDy={pq > 0.5 ? 22 : -14}
           ariaLabel="New student: hours studied"
           valueText={`${qx.toFixed(1)} hours, probability ${pq.toFixed(2)}`}

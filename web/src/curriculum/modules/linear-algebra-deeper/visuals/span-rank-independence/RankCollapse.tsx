@@ -276,7 +276,7 @@ export default function RankCollapse() {
           <b>Notice:</b> when the columns line up, the outputs collapse and the rank drops; with 2 rows the rank can never pass 2, however many columns you add.
           <span className="fine">
             The coloured arrows are the columns of <i>A</i>; every output <i>Ax</i> is a combination of them, so the outputs fill their span (shaded green). The
-            violet shape is where the unit square (or cube) lands.
+            violet shape is where the unit square (2 columns) or the unit cube (3 columns) lands.
           </span>
         </>
       }
