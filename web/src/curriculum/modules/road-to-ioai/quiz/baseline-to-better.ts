@@ -6,7 +6,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'A task gives you HDB resale transactions from 2017 to 2024 for training. The hidden test set is every transaction from the first half of 2025. Which validation scheme best mirrors the test?',
     options: [
-      'Train on 2017–2023 and validate on the 2024 transactions',
+      'Train only on 2017–2023 and validate on all of the 2024 transactions',
       'A random 20% of rows, stratified by town so every town appears on both sides',
       '5-fold cross-validation over randomly shuffled rows, for a more stable estimate',
       'No validation set: submit to the public leaderboard after each change instead',
@@ -22,7 +22,7 @@ const questions: QuizQuestion[] = [
       'In one run you switch to a pretrained backbone, add augmentation and change the learning-rate schedule. Validation accuracy rises by 6 points. What is the best next step?',
     options: [
       'Run an ablation: remove each change in turn, over a few seeds, to see what each one contributes',
-      'Keep all three for good: the score rose, so each of the three changes must have helped',
+      'Keep the three changes for good, since a 6-point rise shows that each of them helped',
       'Add two or three more changes in the next run, since changing many things at once is working',
       'Re-run the same configuration once with a new seed and keep everything if it scores higher again',
     ],

@@ -23,12 +23,12 @@ const questions: QuizQuestion[] = [
     options: [
       'A PyTorch training loop on a GPU and fine-tuning a pretrained model on a past selection task',
       'More timed MCQ sets, since fast recall was what got them into the Final',
-      'Past IOAI on-site tasks straight away, since IOAI is the final goal and its tasks cover every topic',
-      'Only the theory of new model families such as diffusion and CLIP, without running any code yet',
+      'Past IOAI on-site tasks straight away, since IOAI is the final goal and its tasks are the hardest',
+      'Reading the theory of new model families such as diffusion and CLIP, without running any code',
     ],
     answer: 0,
     explanation:
-      'Their gap is rung 3 (complete and improve a real pipeline), the lowest rung with missing skills, so that is where practice pays off; the NTU Selection Test on 8 May tests exactly this. More MCQs repeat a rung they have already climbed, and jumping to IOAI tasks skips the tools those tasks assume.',
+      'Their gap is rung 3 (complete and improve a real pipeline), the lowest rung with missing skills, so that is where practice pays off; the NTU Selection Test on 8 May tests exactly this. More MCQs repeat a rung they have already climbed, jumping to IOAI tasks skips the tools those tasks assume, and reading theory without running code leaves the gap exactly where it was.',
     difficulty: 'intermediate',
   },
   {
@@ -36,9 +36,9 @@ const questions: QuizQuestion[] = [
     prompt:
       'You want regular, timed, IOAI-style contests with a leaderboard during the months before the Selection Test. Which source fits best?',
     options: [
-      'The AI Community Contest (AICC), run monthly in the IOAI style',
+      'The AI Community Contest (AICC), run every month in the IOAI style',
       'The NOAI 2026 Prelim paper, which has 300 multiple-choice questions',
-      'The IOAI syllabus PDF, which lists every topic with its category',
+      'The IOAI syllabus PDF, which lists each topic with its category',
       'The NOAI 2025 Final notebooks, which ask for from-scratch NumPy code',
     ],
     answer: 0,
@@ -62,8 +62,8 @@ const questions: QuizQuestion[] = [
       'The IOAI syllabus labels "Object detection (YOLO, SSD, DETR)" as **Practice**. What does that ask of you?',
     options: [
       'Know when to use a detector and be able to run or fine-tune one with a library and read its outputs',
-      'Be able to derive and implement a detector such as YOLO from scratch, including its loss function',
-      'Nothing for the hands-on tasks, because Practice topics only ever appear as short definition questions',
+      'Be able to derive and implement a detector such as YOLO from scratch, including its full loss function',
+      'Nothing for the hands-on tasks, because Practice topics are tested as short definition questions',
       'Memorise the published accuracy and speed of each detector, since tasks ask you to compare them',
     ],
     answer: 0,

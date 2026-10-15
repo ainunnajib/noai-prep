@@ -13,7 +13,7 @@ def blobs(n):
     y = np.arange(n) % 2
     x1 = np.where(y == 1, 1.5, -1.5) + 0.75 * rng.standard_normal(n)
     x2 = rng.standard_normal(n)
-    return np.c_[x1, x2], y
+    return np.column_stack([x1, x2]), y   # shape (n, 2)
 
 X_unlab, y_hidden = blobs(200)   # we pretend these labels are unknown
 X_test, y_test = blobs(1000)

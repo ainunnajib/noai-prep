@@ -19,7 +19,7 @@ const questions: QuizQuestion[] = [
       'Its cross-entropy is multiplied by $0.01$, so it barely adds to the loss',
       'Its cross-entropy is multiplied by $0.81$, so it keeps most of its loss',
       'Its cross-entropy is multiplied by $100$, because correct examples are rewarded',
-      'It is unchanged, because focal loss only changes examples of the rare class',
+      'It is unchanged, because focal loss reweights examples by class, not by how hard they are',
     ],
     answer: 0,
     explanation:
@@ -33,12 +33,12 @@ const questions: QuizQuestion[] = [
     options: [
       'Many more pseudo-labels, with a larger fraction of them wrong',
       'Fewer pseudo-labels, but each one more likely to be correct',
-      'The same pseudo-labels, because the threshold only matters at test time',
-      'Many more pseudo-labels, all of them correct, because they come from the model',
+      'The same pseudo-labels, because the threshold is used at test time, not in training',
+      'Many more pseudo-labels, just as accurate as before, since the same model made them',
     ],
     answer: 0,
     explanation:
-      'A lower threshold admits less confident predictions, so many more tweets pass, and less confident predictions are wrong more often. Retraining on those errors can reinforce them (confirmation bias). Raising $\\tau$ does the opposite: fewer but more reliable labels.',
+      'A lower threshold admits less confident predictions, so many more tweets pass, and the same model is wrong more often on its less confident predictions. Retraining on those errors can reinforce them (confirmation bias). The threshold acts during training, when pseudo-labels are picked; raising $\\tau$ does the opposite: fewer but more reliable labels.',
     difficulty: 'intermediate',
   },
   {
@@ -61,7 +61,7 @@ const questions: QuizQuestion[] = [
     prompt:
       'An IOAI-style task gives you a frozen 5-class text classifier and its cached embeddings. You must add 2 new classes, and the rules say: no new learned parameters (averages and distances are allowed). Which plan obeys the rules?',
     options: [
-      'Average each new class’s embeddings into a centroid; send inputs near a centroid to that class, others to the frozen head',
+      'Average each new class’s embeddings into a centroid; inputs near a centroid go to that class, all others to the frozen head',
       'Swap the final layer for a new 7-output linear layer and train only that layer on the cached embeddings of all seven classes',
       'Fine-tune the whole classifier on the old and new examples, using focal loss so that the two small new classes are not ignored',
       'Keep the classifier frozen, add small LoRA adapter matrices to its layers and train only those adapters on the new classes',
