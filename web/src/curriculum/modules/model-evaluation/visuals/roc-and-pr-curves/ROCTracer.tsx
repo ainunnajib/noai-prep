@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, type ReactElement } from 'react'
 import { Figure, Controls, Slider, Readout, Button, Plot, Grid, Axes, Path, Dots, Label, usePlot, DraggablePoint, useContainerWidth, usePlayer } from '../../../../../kit'
 import { normalQuantiles, sigmoid } from '../confusion-matrix-and-metrics/evalMath'
 import { HaloLabel } from '../confusion-matrix-and-metrics/HaloLabel'
+import { ScoreDot } from '../confusion-matrix-and-metrics/ScoreDot'
 import { txt } from '../confusion-matrix-and-metrics/colors'
 import { rocPoints, pairAUC, ratesAt, type Pt } from './roc'
 import s from '../confusion-matrix-and-metrics/eval.module.css'
@@ -43,15 +44,7 @@ function Strip({ neg, pos, k }: { neg: number[]; pos: number[]; k: number }) {
         const cx = xs(i / BINS) + binW / 2
         const cy = up ? mid - 3 - (j + 0.5) * pitch : mid + 3 + (j + 0.5) * pitch
         const flagged = i >= k
-        out.push(
-          <circle
-            key={`${up ? 'n' : 'p'}${i}-${j}`}
-            cx={cx}
-            cy={cy}
-            r={r}
-            style={{ fill: up ? NEG_C : POS_C, stroke: (up ? flagged : !flagged) ? 'var(--viz-neg)' : 'var(--surface)', strokeWidth: (up ? flagged : !flagged) ? 1.5 : 1 }}
-          />,
-        )
+        out.push(<ScoreDot key={`${up ? 'n' : 'p'}${i}-${j}`} cx={cx} cy={cy} r={r} color={up ? NEG_C : POS_C} wrong={up ? flagged : !flagged} />)
       }
     })
   place(neg, true)

@@ -47,7 +47,7 @@ export const CLUSTERS: Cluster[] = [
     items: [136, 137, 138, 139, 140, 141, 143, 144, 145, 146, 150, 153, 156, 157, 158, 159, 160, 171],
     tests: 'Supervised vs unsupervised, regression vs classification, k-NN, trees, SVMs, Naive Bayes, PCA, k-means, the curse of dimensionality, validation, cross-validation and ROC curves.',
     pairs: ['supervised (labels) vs unsupervised (no labels)', 'validation set (tuning) vs test set (final check)', 'hard margin vs soft margin SVM', 'ROC (TPR vs FPR) vs precision–recall'],
-    lessons: [L('classification', 'support-vector-machines', 'Support vector machines'), L('model-evaluation', 'cross-validation-and-tuning', 'Cross-validation and tuning')],
+    lessons: [L('classification', 'support-vector-machines', 'Support vector machines'), L('model-evaluation', 'cross-validation', 'Cross-validation')],
   },
   {
     id: 'nlp',

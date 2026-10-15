@@ -55,7 +55,7 @@ print("weighted F1: ", round(f1_score(y_true, y_pred, average="weighted"), 3))
 print("micro F1:    ", round(f1_score(y_true, y_pred, average="micro"), 3))
 print("accuracy:    ", accuracy_score(y_true, y_pred))`
 
-Precision, recall and F1 count right and wrong labels. But many models do not output a label. A ride-hailing app predicts a **number** (how many minutes until you arrive), a self-driving car draws a **box** around each pedestrian, and many classifiers choose among **many classes**, some of them rare. Each needs its own ruler. This lesson covers the standard ones: MAE, MSE, RMSE and R² for numbers, IoU for boxes, and macro versus micro averaging for many classes.
+Precision, recall and F1 count right and wrong labels. But many models do not output a label. A ride-hailing app predicts a **number** (how many minutes until you arrive), a self-driving car draws a **box** around each pedestrian, and many classifiers choose among **many classes**, some of them rare. Each needs its own ruler: MAE, MSE, RMSE and R² for numbers, IoU for boxes, and macro or micro averaging for many classes.
 
 ## How far off? MAE, MSE and RMSE
 
@@ -238,7 +238,7 @@ Move and resize the boxes, and check each step:
 
 IoU punishes **both** kinds of mistake: missing part of the object *and* covering extra space. A predicted box $(0, 0, 8, 8)$ around a true box $(2, 2, 6, 6)$ contains the whole object, but its IoU is only $\frac{16}{64} = 0.25$.
 
-Detectors use box IoU in two places. To **score** a detection, a predicted box usually counts as correct only if its IoU with a true box of the same class is at least a threshold such as 0.5. To **clean up** duplicate boxes on the same object, non-maximum suppression deletes boxes that overlap a better one by more than a threshold (see the vision module). IoU between pixel masks, and the mean IoU used to score segmentation, also come up in the vision module.
+Detectors use box IoU in two places. To **score** a detection, a predicted box usually counts as correct only if its IoU with a true box of the same class is at least a threshold such as 0.5. To **clean up** duplicate boxes on the same object, non-maximum suppression deletes boxes that overlap a better one by more than a threshold (see the vision module).
 
 <Mistake>
 Watch for these wrong answers: dividing the overlap by **one** box's area ($8/16 = 0.5$ above); forgetting to subtract the overlap from the union ($8/32 = 0.25$); and, in code, forgetting the `max(0, …)`. For boxes $(0, 0, 2, 2)$ and $(5, 5, 7, 7)$ the "width" is $2 - 5 = -3$ and the "height" is $-3$, and their product is a positive 9: an overlap between boxes that are nowhere near each other.

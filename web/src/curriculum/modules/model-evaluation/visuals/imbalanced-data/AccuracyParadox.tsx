@@ -11,7 +11,7 @@ import s from '../confusion-matrix-and-metrics/eval.module.css'
   Two models:
     "always genuine": predicts negative for everyone.
     "real detector": catches 80% of frauds and raises a false alarm on 5% of genuine payments.
-  Mistakes get a red outline.
+  Mistakes get a red outline, separated from a smaller square in the class colour by a gap.
 */
 
 const N = 1000
@@ -99,18 +99,17 @@ export default function AccuracyParadox() {
             const x = (i % cols) * (cell + gap)
             const y = Math.floor(i / cols) * (cell + gap)
             const isPos = st === 'tp' || st === 'fn'
-            const wrong = st === 'fn' || st === 'fp'
-            const sw = wrong ? Math.max(1.2, cell * 0.16) : 0
+            const fill = isPos ? POS_C : NEG_C
+            if (st === 'tp' || st === 'tn') return <rect key={i} x={x} y={y} width={cell} height={cell} rx={cell * 0.18} style={{ fill }} />
+            // a mistake: red outline, a gap in the surface colour, then a smaller square in the class colour
+            // (the gap keeps the outline visible on orange squares, which are close to the red in dark mode)
+            const sw = Math.max(1.2, cell * 0.16)
+            const inset = sw + Math.max(0.7, cell * 0.08)
             return (
-              <rect
-                key={i}
-                x={x + sw / 2}
-                y={y + sw / 2}
-                width={cell - sw}
-                height={cell - sw}
-                rx={cell * 0.18}
-                style={{ fill: isPos ? POS_C : NEG_C, stroke: wrong ? 'var(--viz-neg)' : 'none', strokeWidth: sw }}
-              />
+              <g key={i}>
+                <rect x={x + sw / 2} y={y + sw / 2} width={cell - sw} height={cell - sw} rx={cell * 0.18} style={{ fill: 'var(--surface)', stroke: 'var(--viz-neg)', strokeWidth: sw }} />
+                <rect x={x + inset} y={y + inset} width={cell - 2 * inset} height={cell - 2 * inset} rx={cell * 0.08} style={{ fill }} />
+              </g>
             )
           })}
         </svg>

@@ -68,7 +68,7 @@ const WALKS: Walk[] = [
     concept: <>Data leakage: every step that learns from data (selection, scaling, imputation) must be fitted inside the cross-validation loop.</>,
     lessons: [
       { to: 'data-and-features/splitting-and-leakage', label: 'Splitting data and avoiding leakage' },
-      { to: 'model-evaluation/cross-validation-and-tuning', label: 'Cross-validation and hyperparameter tuning' },
+      { to: 'model-evaluation/hyperparameter-tuning', label: 'Hyperparameter tuning without fooling yourself' },
     ],
   },
   {

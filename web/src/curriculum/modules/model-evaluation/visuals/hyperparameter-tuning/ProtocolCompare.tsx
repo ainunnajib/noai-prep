@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Button, usePlayer, Plot, Grid, Axes, Path, Dots, Rect, Label, mulberry32, useBump } from '../../../../../kit'
-import { gauss } from './sim'
+import { gauss } from '../cross-validation/sim'
 import { txt } from '../confusion-matrix-and-metrics/colors'
-import s from './cv.module.css'
+import s from '../cross-validation/cv.module.css'
 
 /*
   The two protocols from the 2026 Prelim (Q292), simulated.

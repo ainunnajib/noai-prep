@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Figure } from '../../../../../kit'
+import { Figure, Button } from '../../../../../kit'
 import styles from './roadmap.module.css'
 
 /*
   The five-rung skills ladder from the NOAI Prelim to IOAI. Click a rung to see its skills, the
   course lessons that build each skill and a real sample task. Tick the skills you already have;
   the "next" rung is the lowest one with unticked skills, and its unticked skills' lessons are
-  suggested. Ticks are remembered in this browser only (a convenience; it works without storage).
+  suggested. Ticking the last skill of the open rung offers a button to move on; the panel never
+  jumps by itself, so the box just ticked stays in view. Ticks are remembered in this browser only
+  (a convenience; it works without storage).
 */
 
 interface Skill {
@@ -126,14 +128,11 @@ export default function SkillsLadder() {
 
   const done = (i: number) => ticks[i].filter(Boolean).length
   const next = nextRung(ticks)
-  const toggle = (i: number, j: number) => {
-    const t = ticks.map((row, a) => (a === i ? row.map((v, b) => (b === j ? !v : v)) : row))
-    setTicks(t)
-    // ticking the last skill of this rung moves the panel up to the new next rung
-    const n = nextRung(t)
-    if (t[i].every(Boolean) && n > i) setOpen(n)
-  }
+  const toggle = (i: number, j: number) =>
+    setTicks((prev) => prev.map((row, a) => (a === i ? row.map((v, b) => (b === j ? !v : v)) : row)))
   const rung = RUNGS[open]
+  // the open rung is complete and another rung still has gaps: offer to go there
+  const offerNext = ticks[open].every(Boolean) && next >= 0 && next !== open
   const suggestions = next < 0 ? [] : RUNGS[next].skills.filter((_, j) => !ticks[next][j]).flatMap((s) => s.lessons)
   const unique = suggestions.filter((s, k) => suggestions.findIndex((t) => t.to === s.to) === k).slice(0, 4)
 
@@ -205,6 +204,16 @@ export default function SkillsLadder() {
               </li>
             ))}
           </ul>
+          {offerNext && (
+            <div className={styles.rungDone}>
+              <span>
+                All {rung.skills.length} skills on this rung ticked.{next < open ? ` Rung ${next + 1} below still has gaps.` : ''}
+              </span>
+              <Button primary onClick={() => setOpen(next)}>
+                Go to rung {next + 1}: {RUNGS[next].stage} →
+              </Button>
+            </div>
+          )}
           <div className={styles.sample}>
             <span className={styles.sampleLabel}>Sample task</span> {rung.sample}
           </div>

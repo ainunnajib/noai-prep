@@ -2,32 +2,7 @@ import type { QuizQuestion } from '../../../types'
 
 const questions: QuizQuestion[] = [
   {
-    id: 'model-evaluation.cross-validation-and-tuning.1',
-    prompt: '4-fold cross-validation gives validation accuracies of 0.6, 0.8, 0.6 and 0.8. How should you report the result (mean ± standard deviation)?',
-    options: ['$0.70 \\pm 0.10$', '$0.70 \\pm 0.20$', '$0.70 \\pm 0.01$', '$0.80 \\pm 0.10$'],
-    answer: 0,
-    explanation:
-      'Mean $= (0.6 + 0.8 + 0.6 + 0.8)/4 = 2.8/4 = 0.7$. Every score is $0.1$ from the mean, so the average squared distance is $0.01$ and the SD is $\\sqrt{0.01} = 0.1$. $0.20$ is the range (best minus worst), and $0.01$ is the variance, which still needs its square root.',
-    difficulty: 'beginner',
-  },
-  {
-    id: 'model-evaluation.cross-validation-and-tuning.2',
-    prompt:
-      '`X` has 100 rows and 5,000 columns of random numbers, and `y` holds random labels, so there is nothing real to learn. Yet this code prints about 0.86. What is the best explanation?',
-    code: 'X_sel = SelectKBest(f_classif, k=20).fit_transform(X, y)\nscores = cross_val_score(LogisticRegression(), X_sel, y, cv=5)\nprint(scores.mean())',
-    options: [
-      'The validation rows\' labels helped to choose the 20 columns',
-      'Five folds are too few; with 10 folds the score would drop to about 0.5',
-      'Logistic regression overfits the 20 chosen columns, which raises the validation scores',
-      'With more columns than rows, random numbers always contain a genuine pattern',
-    ],
-    answer: 0,
-    explanation:
-      'Selecting on all rows lets the validation labels pick columns that match them by chance, so those columns keep "working" on the validation folds. Put `SelectKBest` and the model in a Pipeline and the score falls to about 0.5. Overfitting would *lower* validation scores, not raise them, and changing the number of folds does not remove the leak.',
-    difficulty: 'intermediate',
-  },
-  {
-    id: 'model-evaluation.cross-validation-and-tuning.3',
+    id: 'model-evaluation.hyperparameter-tuning.1',
     prompt:
       'You can afford 16 trials to tune the learning rate and the batch size, but only the learning rate really affects the score. A 4 × 4 grid search is compared with 16 random-search trials. How many different learning rates does each one test?',
     options: ['Grid: 4; random: up to 16', 'Grid: 16; random: 4', 'Grid: 16; random: up to 16', 'Grid: 4; random: 4'],
@@ -37,7 +12,33 @@ const questions: QuizQuestion[] = [
     difficulty: 'beginner',
   },
   {
-    id: 'model-evaluation.cross-validation-and-tuning.4',
+    id: 'model-evaluation.hyperparameter-tuning.2',
+    prompt:
+      'A grid search tries 3 values of `max_depth`, 2 values of `min_samples_leaf` and 2 values of `criterion`, and scores every setting with 3-fold cross-validation. How many models does it train before the final refit?',
+    options: ['36', '12', '21', '7'],
+    answer: 0,
+    explanation:
+      'The grid has $3 \\times 2 \\times 2 = 12$ settings, and 3-fold CV trains 3 models for each: $12 \\times 3 = 36$. Adding the counts instead of multiplying them gives $3 + 2 + 2 = 7$ (or 21 with the folds), and 12 forgets that every setting is trained once per fold. `GridSearchCV` then refits the winner on all the rows, a 37th fit.',
+    difficulty: 'beginner',
+  },
+  {
+    id: 'model-evaluation.hyperparameter-tuning.3',
+    prompt:
+      '`X` has 100 rows and 5,000 columns of random numbers, and `y` holds random labels, so there is nothing real to learn. Yet this code prints about 0.86. What is the best explanation?',
+    code: 'sel = SelectKBest(f_classif,\n                  k=20)\nX_sel = sel.fit_transform(X, y)\nlr = LogisticRegression()\ns = cross_val_score(lr, X_sel, y,\n                    cv=5)\nprint(s.mean())',
+    options: [
+      "The validation rows' labels helped to choose the 20 columns",
+      'Five folds are too few; with 10 folds the score would drop to about 0.5',
+      'Logistic regression overfits the 20 chosen columns, which raises the validation scores',
+      'With more columns than rows, random numbers contain a real pattern to learn',
+    ],
+    answer: 0,
+    explanation:
+      'Selecting on all rows lets the validation labels pick columns that match them by chance, so those columns keep "working" on the validation folds. Put `SelectKBest` and the model in a Pipeline and the score falls to about 0.5. Overfitting would *lower* validation scores, not raise them, and changing the number of folds does not remove the leak.',
+    difficulty: 'intermediate',
+  },
+  {
+    id: 'model-evaluation.hyperparameter-tuning.4',
     prompt:
       'A team retrains after each of 40 hyperparameter tweaks, checks the test accuracy every time, and reports the best one: 93%. Deployed on new data from the same source, the model scores 89%. What is the most likely explanation?',
     options: [
@@ -52,7 +53,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'model-evaluation.cross-validation-and-tuning.5',
+    id: 'model-evaluation.hyperparameter-tuning.5',
     prompt:
       'With only 300 rows, you skip a separate test set and tune a model with `GridSearchCV(model, grid, cv=5)`. Which number is an honest estimate of how the tuned model will do on new data?',
     options: [

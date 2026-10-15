@@ -134,7 +134,7 @@ const TASKS: Task[] = [
     lessons: [
       ['Missing data and outliers', 'data-and-features/missing-data-and-outliers'],
       ['Gradient boosting', 'trees-and-ensembles/gradient-boosting'],
-      ['Cross-validation and tuning', 'model-evaluation/cross-validation-and-tuning'],
+      ['Cross-validation', 'model-evaluation/cross-validation'],
     ],
   },
   {

@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactElement } from 'react'
 import { Figure, Controls, Slider, Segmented, Plot, usePlot, DraggablePoint, useContainerWidth, M } from '../../../../../kit'
 import { ConfusionMatrix, type CellKey } from './ConfusionMatrix'
 import { MetricBars } from './MetricBars'
+import { ScoreDot } from './ScoreDot'
 import { metricsOf, normalQuantiles, sigmoid, type Counts } from './evalMath'
 import s from './eval.module.css'
 
@@ -79,15 +80,7 @@ function DotLayer({ neg, pos, k, L }: { neg: number[]; pos: number[]; k: number;
         const cy = up ? mid - 4 - (row + 0.5) * L.rowPitch : mid + 4 + (row + 0.5) * L.rowPitch
         const predPos = b >= k
         const wrong = up ? predPos : !predPos
-        dots.push(
-          <circle
-            key={`${up ? 'n' : 'p'}${b}-${j}`}
-            cx={cx}
-            cy={cy}
-            r={L.r}
-            style={{ fill: color, stroke: wrong ? 'var(--viz-neg)' : 'var(--surface)', strokeWidth: wrong ? 1.6 : 1 }}
-          />,
-        )
+        dots.push(<ScoreDot key={`${up ? 'n' : 'p'}${b}-${j}`} cx={cx} cy={cy} r={L.r} color={color} wrong={wrong} />)
       }
     })
   place(neg, true, NEG_C)

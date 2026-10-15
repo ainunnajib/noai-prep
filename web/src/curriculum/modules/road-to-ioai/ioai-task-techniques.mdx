@@ -47,17 +47,17 @@ for tau in [0.5, 0.7, 0.8, 0.9, 0.95, 0.99]:
     print(f"tau {tau:<4}: accuracy {acc:.3f}, "
           f"{added} pseudo-labels ({wrong} wrong)")`
 
-At NTU and at IOAI you get a real dataset, a baseline notebook and a rule sheet, and the data is rarely friendly: one class is rare, most examples have no label, or the rules forbid the obvious model. The same few techniques keep turning those situations into medals. This lesson teaches five of them, with the maths, a picture and the PyTorch you would actually type.
+NTU and IOAI tasks are rarely friendly: one class is rare, most examples have no label, or the rules forbid the obvious model. A handful of techniques keeps turning those situations into medals. This lesson teaches five, with the maths, a picture and the PyTorch you would actually type.
 
 <Analogy title="A badminton player's few winning strokes">
 
-A good player does not invent a new shot for every rally. They have a handful of strokes (the clear, the drop, the smash) and the judgement to pick the right one. Competition machine learning is the same: a small kit of techniques, chosen by reading the situation and the rules.
+A good player wins most rallies with a few strokes (the clear, the drop, the smash) and the judgement to pick one. Competition machine learning is the same: a small kit, chosen by reading the situation and the rules.
 
 </Analogy>
 
 ## 1. When one class is rare
 
-A dataset has <Term def="One class has far more examples than another, e.g. 900 healthy scans for every 100 with disease.">class imbalance</Term> when one class vastly outnumbers another. Singapore's selection tests keep returning to it: the 2024 camp built a long-tailed CIFAR-10 where some classes kept only 2% of their photos, and the 2025 selection test asked for a focal loss to segment rare object classes. The danger, as you saw in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data), is that a model can ignore the rare class and still score high accuracy.
+A dataset has <Term def="One class has far more examples than another, e.g. 900 healthy scans for every 100 with disease.">class imbalance</Term> when one class vastly outnumbers another. Singapore's tests keep returning to it (a long-tailed CIFAR-10 at the 2024 camp, a focal loss for rare segmentation classes in 2025). As you saw in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data), a model can ignore the rare class and still score high accuracy.
 
 Plain <Term def="The usual classification loss: minus the log of the probability the model gives the true class, averaged over examples.">cross-entropy</Term> treats every example equally, so 900 common examples outvote 100 rare ones in every gradient step. You can rebalance in three places:
 
@@ -67,7 +67,7 @@ Plain <Term def="The usual classification loss: minus the log of the probability
    w_c = \frac{N}{K \, n_c}
    $$
 
-   where $N$ is the number of training examples, $K$ the number of classes and $n_c$ the number in class $c$. With 900 common and 100 rare examples: $w_{\text{common}} = \frac{1000}{2 \times 900} \approx 0.56$ and $w_{\text{rare}} = \frac{1000}{2 \times 100} = 5$. Now the 100 rare examples carry as much total weight ($100 \times 5 = 500$) as the 900 common ones ($900 \times 0.56 \approx 500$). In PyTorch this is `nn.CrossEntropyLoss(weight=class_w)`.
+   where $N$ is the number of training examples, $K$ the number of classes and $n_c$ the number in class $c$. With 900 common and 100 rare examples, $w_{\text{common}} = \frac{1000}{2 \times 900} \approx 0.56$ and $w_{\text{rare}} = \frac{1000}{2 \times 100} = 5$, so both classes carry the same total weight ($100 \times 5 = 500 \approx 900 \times 0.56$). In PyTorch: `nn.CrossEntropyLoss(weight=class_w)`.
 2. **Resample the data.** Draw training examples so each class turns up equally often, using a <Term def="A PyTorch sampler that picks example i with probability proportional to a weight you give it, so rare examples can be drawn more often.">`WeightedRandomSampler`</Term> with each example's weight set to $1/n_c$.
 3. **Reshape the loss** so easy examples stop counting: focal loss, next.
 
@@ -101,17 +101,17 @@ class weights: tensor([0.5556, 5.0000])
 labels drawn in one epoch: tensor([476, 524])
 ```
 
-The sampler draws with replacement, so one epoch holds roughly (not exactly) equal numbers of each class, and the rare examples appear about five times each.
+The sampler draws with replacement, so an epoch holds roughly equal numbers of each class, and each rare example appears about five times.
 
 ## 2. Focal loss: stop counting what you already know
 
 <Analogy title="A coach who drills your weak shots">
 
-A good coach does not spend practice on the serve you already land every time. They spend it on the shots you keep missing. Focal loss is that coach: it turns down the examples the model already gets right.
+A good coach does not spend practice on the serve you already land every time, but on the shots you keep missing. Focal loss is that coach: it turns down the examples the model already gets right.
 
 </Analogy>
 
-Here is the problem focal loss solves. Even a correct, confident prediction still has a small cross-entropy: at $p = 0.9$ the loss is $-\ln 0.9 \approx 0.105$. That sounds tiny, but if 990 easy examples each contribute 0.105, together they supply about 104 units of loss, while 10 hard examples at $p = 0.2$ supply only $10 \times 1.61 \approx 16$. Training then spends most of its effort polishing examples it already knows.
+Even a confident, correct prediction has a small cross-entropy: $-\ln 0.9 \approx 0.105$ at $p = 0.9$. Yet 990 such easy examples supply about 104 units of loss, while 10 hard ones at $p = 0.2$ supply only $10 \times 1.61 \approx 16$: training mostly polishes what it already knows.
 
 <Term def="A loss for imbalanced or hard problems that multiplies cross-entropy by (1 − p)^γ, so confidently correct examples contribute almost nothing.">Focal loss</Term> fixes this by multiplying the cross-entropy by a <Term def="A factor that shrinks the loss of an example depending on how well it is already classified.">modulating factor</Term>:
 
@@ -119,17 +119,16 @@ $$
 \text{FL}(p_t) = -\,\alpha_t \,(1 - p_t)^{\gamma} \,\ln p_t
 $$
 
-- $p_t$ is the probability the model gives the **true** class of this example (for a binary problem: $p$ if the label is 1, $1 - p$ if it is 0).
-- $-\ln p_t$ is the ordinary cross-entropy for that example.
-- $(1 - p_t)^{\gamma}$ is the modulating factor. If the model is confidently right ($p_t$ near 1), $1 - p_t$ is near 0 and the loss is crushed. If the model is wrong ($p_t$ small), the factor is near 1 and the loss is left almost untouched.
-- $\gamma \ge 0$ is the <Term def="The exponent γ in focal loss. γ = 0 gives ordinary cross-entropy; larger γ ignores easy examples more strongly. γ = 2 is the usual default.">focusing parameter</Term>. With $\gamma = 0$ the factor is 1 and focal loss **is** cross-entropy. The original paper's default is $\gamma = 2$.
-- $\alpha_t$ is an optional class weight like $w_c$ above, but it interacts with $\gamma$, so tune it on validation (the original paper used $\alpha = 0.25$ for the rare class with $\gamma = 2$).
+- $p_t$ is the probability the model gives the **true** class ($p$ if a binary label is 1, $1 - p$ if it is 0), and $-\ln p_t$ is the ordinary cross-entropy.
+- $(1 - p_t)^{\gamma}$ is the modulating factor: near 0 when the model is confidently right ($p_t$ near 1), near 1 when $p_t$ is small.
+- $\gamma \ge 0$ is the <Term def="The exponent γ in focal loss. γ = 0 gives ordinary cross-entropy; larger γ ignores easy examples more strongly. γ = 2 is the usual default.">focusing parameter</Term>. With $\gamma = 0$ focal loss **is** cross-entropy; the original paper's default is $\gamma = 2$.
+- $\alpha_t$ is an optional class weight like $w_c$, but it interacts with $\gamma$, so tune it on validation (the original paper used $\alpha = 0.25$ for the rare class with $\gamma = 2$).
 
 <FocalLossCurve />
 
 <KeyIdea>
 
-Focal loss multiplies each example's cross-entropy by $(1 - p_t)^\gamma$. Confident, correct examples get a factor near 0; hard ones keep nearly all their loss. So the gradient comes mainly from the examples the model still gets wrong, which in an imbalanced problem are mostly from the rare class.
+Focal loss multiplies each example's cross-entropy by $(1 - p_t)^\gamma$. Confident, correct examples get a factor near 0, so the gradient comes mainly from the examples the model still gets wrong, which in an imbalanced problem are mostly from the rare class.
 
 </KeyIdea>
 
@@ -186,11 +185,11 @@ focal, gamma = 2: 0.2615
 hard example's share: 0.837 (CE) -> 0.997 (focal)
 ```
 
-The $\gamma = 0$ line matching plain cross-entropy is your built-in test: always check it before trusting your implementation.
+Check that $\gamma = 0$ reproduces plain cross-entropy before you trust your implementation.
 
 <Mistake>
 
-Computing $p_t$ with your own `torch.log(torch.softmax(...))`. When a logit gap is large, softmax rounds a probability to exactly 0 and the log becomes `-inf`, so the loss turns into `nan`. `F.cross_entropy` uses a stable log-softmax internally; build focal loss on top of it as above. (Singapore's 2024 selection notebook contained exactly this unstable hand-written loss.)
+Computing $p_t$ with your own `torch.log(torch.softmax(...))`: with a large logit gap, softmax rounds a probability to 0 and the loss becomes `nan`. Build on the stable log-softmax inside `F.cross_entropy`, as above. (Singapore's 2024 selection notebook contained exactly this bug.)
 
 </Mistake>
 
@@ -203,11 +202,11 @@ Computing $p_t$ with your own `torch.log(torch.softmax(...))`. When a logit gap 
 
 ## 3. Pseudo-labels: learning from unlabelled data
 
-Labels are expensive and raw data is cheap, so many tasks give a few labelled examples and a large pile without labels. IOAI 2025's *Antique Painting Authentication* task did exactly this, and Singapore's 2025 selection test shipped an `unlabeled.csv` next to its toxic-comment data.
+Labels are expensive and raw data is cheap, so many tasks give a few labelled examples and a large unlabelled pile, as in IOAI 2025's *Antique Painting Authentication* and the `unlabeled.csv` beside Singapore's 2025 toxic-comment data.
 
 <Analogy title="Marking with a senior student">
 
-A senior helps mark the juniors' worksheets, but only ticks the answers she is sure about. Those confidently marked sheets become extra practice material. If she also marked the ones she was unsure of, some wrong answers would become "model answers", and everyone would learn the mistakes.
+A senior helps mark the juniors' worksheets but only ticks the answers she is sure about, and those sheets become extra practice material. If she also marked the ones she was unsure of, some wrong answers would become "model answers".
 
 </Analogy>
 
@@ -220,7 +219,7 @@ Using labelled and unlabelled data together is called <Term def="Learning from a
 
 <PseudoLabelLoop />
 
-The threshold is a trade-off you can see in the comparison chart. A **low** $\tau$ adds many pseudo-labels, including wrong ones, and the model then trains on its own mistakes and grows more confident in them. This is called <Term def="When a model trained on its own predictions reinforces its early mistakes instead of correcting them.">confirmation bias</Term>. A **very high** $\tau$ adds only a few, almost certainly correct, labels, so it barely helps. A well-chosen $\tau$ in between adds many correct labels and few wrong ones.
+A **low** $\tau$ adds many pseudo-labels, including wrong ones, so the model trains on its own mistakes and grows more confident in them (<Term def="When a model trained on its own predictions reinforces its early mistakes instead of correcting them.">confirmation bias</Term>). A **very high** $\tau$ adds only a few, almost certainly correct, labels, so it barely helps. The comparison chart shows the best $\tau$ in between.
 
 <KeyIdea>
 
@@ -228,13 +227,13 @@ Pseudo-labelling turns the model's confident predictions on unlabelled data into
 
 </KeyIdea>
 
-Here is the same experiment in scikit-learn (different random points from the figure, same behaviour). Run it, then change the thresholds or the `C` value:
+The same experiment in scikit-learn (different random points, same behaviour). Run it, then change the thresholds or `C`:
 
 <PyRunner packages={['numpy', 'scikit-learn']} code={pseudoCode} />
 
 <Mistake>
 
-Judging pseudo-labelling by training accuracy, or putting pseudo-labelled examples into the validation set. Pseudo-labels agree with the model by construction, so they always look good. Pseudo-labelling can also make a model **worse** (a low threshold that adds many wrong labels is the usual cause), and only examples with **real** labels can reveal that.
+Judging pseudo-labelling by training accuracy, or putting pseudo-labelled examples into the validation set. Pseudo-labels agree with the model by construction, so they always look good; only **real** labels can reveal that a low threshold has made the model **worse**.
 
 </Mistake>
 
@@ -242,7 +241,7 @@ Judging pseudo-labelling by training accuracy, or putting pseudo-labelled exampl
 
 <Analogy title="A cooking contest with strange rules">
 
-"Make a dessert with no oven, in 20 minutes." The winner is rarely the cook with the fanciest equipment; it is the one who understood the rules best and chose the simplest dish that fits them.
+"Make a dessert with no oven, in 20 minutes." The winner is rarely the cook with the fanciest equipment, but the one who read the rules best and chose the simplest dish that fits them.
 
 </Analogy>
 
@@ -250,11 +249,11 @@ An <Term def="A list of numbers produced by a model's inner layers that captures
 
 <BaselineLadder />
 
-Past IOAI winners climbed exactly this way:
+Past winners climbed exactly this way:
 
-- **Help BOBAI (IOAI 2024).** Extend a frozen 5-class text classifier to 7 classes with **no new learned parameters** (averages and distances allowed). The winning idea was a nearest-neighbour (or nearest-centroid) gate on the cached embeddings in front of the frozen head: if the neighbours say "new class", output it; otherwise trust the old classifier.
-- **Lost in a Hyperspace (IOAI 2024).** Predict properties of a (5, 5, 5, 6) array using **only `LinearRegression`** with at most 300 features. The winning ideas were cheap: augment the data with all 6 orderings of the 3 interchangeable axes, compress with PCA, and add one hand-made feature.
-- **The 2025 Singapore selection test's survey task.** With five-fold cross-validation, the majority class scores 0.818, the starter decision tree 0.900, and both gradient boosting and plain logistic regression 0.938. The simple model was as good as the fancy one.
+- **Help BOBAI (IOAI 2024).** Extend a frozen 5-class text classifier to 7 classes with **no new learned parameters**. Winning idea: a nearest-neighbour (or nearest-centroid) gate on the cached embeddings, before the frozen head.
+- **Lost in a Hyperspace (IOAI 2024).** Predict properties of a (5, 5, 5, 6) array with **only `LinearRegression`** and at most 300 features. Winners augmented with all 6 orderings of the 3 interchangeable axes, then used PCA and one hand-made feature.
+- **Singapore's 2025 survey task.** In five-fold cross-validation, plain logistic regression (0.938) matched gradient boosting (0.938) and beat the starter tree (0.900); the majority class scored 0.818.
 
 ```python
 from sklearn.neighbors import KNeighborsClassifier
@@ -269,17 +268,17 @@ print("k-NN:", knn.score(feats_val, y_val))
 print("linear probe:", probe.score(feats_val, y_val))
 ```
 
-Caching matters: run the big encoder over the data **once**, save the embeddings, and every later experiment takes seconds instead of minutes.
+Run the big encoder over the data **once** and cache the embeddings: every later experiment then takes seconds, not minutes.
 
 <Tip title="A new head in PyTorch: the order matters">
 
-To train only a new head on a pretrained network, first freeze the backbone (`for p in net.parameters(): p.requires_grad_(False)`), then replace the head (`net.fc = nn.Linear(512, 10)`, whose new weights are trainable), and only **then** create the optimiser. An optimiser built before the head was replaced keeps updating the old head, so the new one never learns.
+To train only a new head, freeze the backbone (`for p in net.parameters(): p.requires_grad_(False)`), replace the head (`net.fc = nn.Linear(512, 10)`, trainable by default), and only **then** create the optimiser. One built before the swap keeps updating the old head, so the new one never learns.
 
 </Tip>
 
 <ExamTip title="Read the rules before choosing a model">
 
-At IOAI the rule sheet is part of the problem: "no new learned parameters", "only `LinearRegression`", "only `xlm-roberta-base`", "inference under 2 minutes". Before writing code, list each rule and cross out the ladder rungs it forbids. In the NOAI Prelim the same ideas appear as definitions: transfer learning, freezing layers and fine-tuning are all fair game.
+At IOAI the rule sheet is part of the problem: "no new learned parameters", "only `LinearRegression`", "inference under 2 minutes". Before writing code, list each rule and cross out the ladder rungs it forbids.
 
 </ExamTip>
 
@@ -299,11 +298,11 @@ At IOAI the rule sheet is part of the problem: "no new learned parameters", "onl
 
 ## 5. Gradients with respect to the input
 
-So far gradients have told us how to change the **weights**. The same chain rule also gives $\frac{\partial L}{\partial x}$, the gradient of the loss with respect to the **input**: for every pixel, how fast the loss changes if that pixel gets brighter. It answers a different question: *which tiny change to this image would hurt the model most?*
+So far gradients have told us how to change the **weights**. The same chain rule gives $\frac{\partial L}{\partial x}$, the gradient with respect to the **input**: how fast the loss changes as each pixel brightens. It answers *which tiny change to this image would hurt the model most?*
 
 <Analogy title="Finding the loose tiles">
 
-To make a floor wobble you do not push everywhere at random. You test which tiles move most easily, then push exactly there. The input gradient is that test.
+To make a floor wobble you do not push everywhere at random: you find the tiles that move most easily and push exactly there. The input gradient finds those tiles.
 
 </Analogy>
 
@@ -313,13 +312,13 @@ $$
 L(x + \delta) \approx L(x) + \sum_i g_i \, \delta_i
 $$
 
-Here $\delta$ is the change we add to the image and $g_i = \frac{\partial L}{\partial x_i}$ is the gradient for pixel $i$; the sum is the dot product $\nabla_x L \cdot \delta$. Suppose each pixel may change by at most $\varepsilon$ (that is, $|\delta_i| \le \varepsilon$, written $\lVert \delta \rVert_\infty \le \varepsilon$ and called the <Term def="The largest absolute change made to any single pixel: max over i of |δ_i|.">L∞ size</Term> of the change). Each term $g_i \delta_i$ is largest when $\delta_i = +\varepsilon$ if $g_i > 0$ and $\delta_i = -\varepsilon$ if $g_i < 0$. So the most damaging change is
+Here $\delta$ is the change added to the image and $g_i = \frac{\partial L}{\partial x_i}$ is the gradient for pixel $i$. Suppose each pixel may change by at most $\varepsilon$ ($|\delta_i| \le \varepsilon$, written $\lVert \delta \rVert_\infty \le \varepsilon$: the <Term def="The largest absolute change made to any single pixel: max over i of |δ_i|.">L∞ size</Term> of the change). Each term $g_i \delta_i$ is largest with $\delta_i = +\varepsilon$ if $g_i > 0$ and $\delta_i = -\varepsilon$ if $g_i < 0$, so the most damaging change is
 
 $$
 \delta = \varepsilon \cdot \operatorname{sign}(\nabla_x L),
 $$
 
-which raises the loss by about $\varepsilon \sum_i |g_i|$, the step size times the total size of the gradient.
+which raises the loss by about $\varepsilon \sum_i |g_i|$.
 
 This is the <Term def="FGSM: add ε times the sign of the input gradient to every pixel, in one step, to raise the loss as fast as possible under an L∞ limit.">fast gradient sign method</Term> (FGSM). The perturbed image $x + \delta$ is an <Term def="An input changed slightly, often invisibly, so that a model gets it wrong.">adversarial example</Term>.
 
@@ -338,17 +337,17 @@ This is the <Term def="FGSM: add ε times the sign of the input gradient to ever
   </Step>
 </Steps>
 
-With 3 pixels the effect is small, but a 224 × 224 colour photo has 150,528 numbers, and FGSM collects a little from every one of them. That is why imperceptible changes can flip a large model. Try it on a real (small) trained network below; with only 64 pixels, the change has to be big enough to see.
+A 224 × 224 colour photo has 150,528 numbers, and FGSM collects a little from each, which is why invisible changes can flip a large model. The network below sees only 64 pixels, so its change must be big enough to see.
 
 <InputGradientAttack />
 
 <KeyIdea>
 
-`backward()` gives the gradient for whatever has `requires_grad=True`, including the input. Stepping each pixel by $\varepsilon$ along $\operatorname{sign}(\partial L / \partial x)$ raises the loss fastest under an L∞ limit (FGSM); random noise of the same size does far less. Drawn as a heat map of $|\partial \text{score} / \partial x|$, the same gradient is a <Term def="A heat map of how strongly each input pixel affects the model's output, usually the absolute input gradient.">saliency map</Term>: it shows which pixels the model relies on.
+`backward()` gives the gradient of anything with `requires_grad=True`, including the input. Stepping each pixel by $\varepsilon$ along $\operatorname{sign}(\partial L / \partial x)$ (FGSM) raises the loss far more than random noise of the same size. As a heat map of $|\partial \text{score} / \partial x|$, the same gradient is a <Term def="A heat map of how strongly each input pixel affects the model's output, usually the absolute input gradient.">saliency map</Term>: it shows which pixels the model relies on.
 
 </KeyIdea>
 
-In PyTorch the input gradient takes three lines. This runs the same tiny digit network as the figure on the same test digit (a 3):
+In PyTorch the input gradient takes three lines. This runs the figure's digit network on the same test 3:
 
 ```python
 # model: the trained 64 -> 32 -> 10 digit network from the figure
@@ -377,19 +376,17 @@ FGSM : predicts 9 with p = 0.777
 largest pixel change: 0.14
 ```
 
-`x.grad` has the same shape as `x`, one number per pixel. `clamp(0, 1)` keeps every pixel a valid brightness, and `detach()` cuts the result loose from the graph.
+`x.grad` has the shape of `x`; `clamp(0, 1)` keeps pixels valid brightnesses, and `detach()` cuts the result loose from the graph.
 
 <Reveal label="Going further: IOAI 2026's Double Agent Dilemma">
 
-This IOAI task was built on exactly this idea. A ResNet-18 (a CNN) and a ViT-Tiny (a Transformer) both classified a set of photos perfectly. For each photo you made two tiny perturbations: one that fools the ViT but not the ResNet, and one the other way round; smaller perturbations scored higher. The official hints optimise $\delta$ to keep one model's loss low while pushing the other's up, with every pixel change kept tiny (about 0.002 to 0.005).
-
-The rules mattered as much as the maths. The perturbation had to be at the photo's **original** size, because it was added **before** the contest's fixed resize, crop and normalisation. A perturbation computed on the resized 224 × 224 input was not even a valid submission.
+Each photo, classified correctly by both a ResNet-18 and a ViT-Tiny, needed one tiny perturbation that fools only the ViT and one that fools only the ResNet; smaller ones scored higher. The official hints optimise $\delta$ to keep one model's loss low while pushing the other's up. The rules mattered too: $\delta$ had to be at the photo's **original** size, because it was added before the contest's fixed resize and crop.
 
 </Reveal>
 
 <Mistake>
 
-Three classic slips: forgetting `x.requires_grad_(True)`, so `x.grad` is `None`; attacking in `model.train()` mode, where dropout makes the gradient random (use `model.eval()`); and calling `backward()` repeatedly in a loop without resetting `x.grad`, so gradients add up across steps. Set `x.grad = None` (or rebuild `x`) before each new step.
+Three classic slips: forgetting `x.requires_grad_(True)`, so `x.grad` is `None`; attacking in `model.train()` mode, where dropout makes the gradient random; and calling `backward()` in a loop without resetting `x.grad`, so gradients add up. Set `x.grad = None` before each new step.
 
 </Mistake>
 
@@ -397,16 +394,16 @@ Three classic slips: forgetting `x.requires_grad_(True)`, so `x.grad` is `None`;
 
 <ExamTip>
 
-The Prelim tests the vocabulary (what `requires_grad=True` does, what freezing means); the Final's code-reading MCQs show a transfer-learning or training loop and ask what is wrong. For IOAI, write these from memory: `CrossEntropyLoss(weight=...)`, a focal loss from `reduction='none'`, a confidence-threshold loop, cached embeddings with k-NN, and `x.requires_grad_(True)` with `x.grad.sign()`.
+The Prelim tests the vocabulary (`requires_grad=True`, freezing); the Final's code-reading MCQs show a transfer-learning or training loop and ask what is wrong. For IOAI, know by heart: class-weighted cross-entropy, focal loss from `reduction='none'`, a confidence-threshold loop, k-NN on cached embeddings, and `x.grad.sign()`.
 
 </ExamTip>
 
 <Takeaways>
 
-- **Imbalance:** reweight the loss ($w_c = N / (K n_c)$, `CrossEntropyLoss(weight=...)`), resample with `WeightedRandomSampler`, or reshape the loss with focal loss.
-- **Focal loss** $= -\alpha_t (1 - p_t)^\gamma \ln p_t$: confident examples get a factor near 0, so hard (often rare-class) examples drive training; $\gamma = 0$ is plain cross-entropy.
-- **Pseudo-labelling** adds confident predictions on unlabelled data as labels; the threshold $\tau$ trades quantity for correctness, so judge it on real held-out labels only.
-- **Climb the baseline ladder:** majority class, then frozen embeddings with k-NN or a linear probe, then fine-tuning; read the rules first, because they often decide the rung.
-- **Input gradients:** `x.requires_grad_(True)`, `loss.backward()`, then `x.grad`; FGSM adds $\varepsilon \cdot \operatorname{sign}(x.\text{grad})$, and the same gradient gives saliency maps.
+- **Imbalance:** reweight the loss ($w_c = N / (K n_c)$), resample with `WeightedRandomSampler`, or use focal loss.
+- **Focal loss** $= -\alpha_t (1 - p_t)^\gamma \ln p_t$ turns down confident examples, so hard (often rare-class) ones drive training; $\gamma = 0$ is plain cross-entropy.
+- **Pseudo-labelling:** $\tau$ trades quantity for correctness; judge it on real labels only.
+- **Climb the baseline ladder:** majority class, frozen embeddings with k-NN or a linear probe, then fine-tuning; the rules often decide the rung.
+- **Input gradients:** `x.requires_grad_(True)`, `loss.backward()`, `x.grad`; FGSM adds $\varepsilon \cdot \operatorname{sign}(x.\text{grad})$, and the same gradient gives saliency maps.
 
 </Takeaways>

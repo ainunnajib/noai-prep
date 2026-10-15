@@ -1,5 +1,6 @@
 /*
-  Small, deterministic helpers shared by the cross-validation visuals.
+  Small, deterministic helpers shared by the cross-validation visuals and the
+  hyperparameter-tuning visuals (which import them from ../cross-validation/sim).
   Everything takes an rng (mulberry32) so the same seed always gives the same picture.
 */
 

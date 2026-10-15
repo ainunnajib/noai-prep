@@ -23,7 +23,7 @@ const mod: ModuleDef = {
       slug: "baseline-to-better",
       title: "From baseline to better: competition craft",
       summary: "Reading a baseline and its rules, setting up trustworthy validation, changing one thing at a time, logging experiments, avoiding leaderboard overfitting and learning from past tasks.",
-      minutes: 35,
+      minutes: 30,
       objectives: ["You can set up a validation scheme that is new to the model in the same way as the test set", "You can run one-change-at-a-time experiments over several seeds, keep a log and use an ablation", "You can estimate a public leaderboard's noise with the standard error and explain leaderboard overfitting", "You can read a task's rules and output format before choosing a plan"],
       load: () => import('./baseline-to-better.mdx'),
     },

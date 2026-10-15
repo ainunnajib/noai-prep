@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Path, Dots, HLine, VLine, Label, usePlot, mulberry32, useBump } from '../../../../../kit'
-import { gauss, shuffleInPlace } from './sim'
+import { gauss, shuffleInPlace } from '../cross-validation/sim'
 import { txt } from '../confusion-matrix-and-metrics/colors'
-import s from './cv.module.css'
+import s from '../cross-validation/cv.module.css'
 
 /*
   Feature selection outside versus inside cross-validation, on PURE NOISE.

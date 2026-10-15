@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Figure, Controls, Segmented, Button, mulberry32, useBump, useContainerWidth, useNarrow } from '../../../../../kit'
 import { txt } from '../confusion-matrix-and-metrics/colors'
-import s from './cv.module.css'
+import s from '../cross-validation/cv.module.css'
 
 /*
   Grid search versus random search with the same budget of trials.

@@ -1,0 +1,160 @@
+import GridVsRandomSearch from './visuals/hyperparameter-tuning/GridVsRandomSearch'
+import CVLeakageCompare from './visuals/hyperparameter-tuning/CVLeakageCompare'
+import ProtocolCompare from './visuals/hyperparameter-tuning/ProtocolCompare'
+
+export const searchCode = `from sklearn.datasets import make_classification
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+
+X, y = make_classification(n_samples=300, n_features=8, flip_y=0.1, random_state=0)
+tree = DecisionTreeClassifier(random_state=0)
+
+# grid search: every combination of 3 x 3 values = 9 settings, each scored by 5-fold CV
+grid = GridSearchCV(tree, {"max_depth": [2, 5, 8], "min_samples_leaf": [1, 10, 30]}, cv=5)
+grid.fit(X, y)
+print("grid:  ", grid.best_params_, f"CV accuracy {grid.best_score_:.3f}")
+
+# random search: 9 settings drawn at random from much wider ranges
+rand = RandomizedSearchCV(tree, {"max_depth": list(range(1, 21)), "min_samples_leaf": list(range(1, 51))},
+                          n_iter=9, cv=5, random_state=0)
+rand.fit(X, y)
+print("random:", rand.best_params_, f"CV accuracy {rand.best_score_:.3f}")
+
+print("models trained by each search:", 9 * 5, "(+1 refit on all rows)")
+for p, s in zip(rand.cv_results_["params"], rand.cv_results_["mean_test_score"]):
+    print(f"  depth {p['max_depth']:2d}, leaf {p['min_samples_leaf']:2d}: {s:.3f}")`
+
+export const leakCode = `import numpy as np
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import cross_val_score, GridSearchCV
+
+rng = np.random.default_rng(2)
+X = rng.normal(size=(60, 1000))     # 60 rows of pure noise, 1000 columns
+y = rng.permutation([0, 1] * 30)    # random labels: nothing to learn
+
+# leaky: choose 10 columns using ALL rows, then cross-validate
+X_sel = SelectKBest(f_classif, k=10).fit_transform(X, y)
+leaky = cross_val_score(LogisticRegression(), X_sel, y, cv=5)
+print(f"select, then CV:           {leaky.mean():.2f}")
+
+# selection inside a Pipeline, k tuned by grid search: best_score_ is the best of 3 CV scores
+pipe = make_pipeline(SelectKBest(f_classif, k=10), LogisticRegression())
+grid = {"selectkbest__k": [5, 10, 20]}
+search = GridSearchCV(pipe, grid, cv=5).fit(X, y)
+print(f"best_score_ of the search: {search.best_score_:.2f}")
+
+# nested CV: a search with 3 inner folds runs inside each outer training set
+nested = cross_val_score(GridSearchCV(pipe, grid, cv=3), X, y, cv=5)
+print(f"nested CV (tuned k):       {nested.mean():.2f}")`
+
+In [Cross-validation](#/learn/model-evaluation/cross-validation) you turned one lucky-or-unlucky validation score into $k$ fold scores with a mean and a spread. Now put those scores to work choosing <Term def="A setting you choose before training, such as k in k-nearest neighbours or the maximum depth of a tree. The model does not learn it from the data; you pick it by trying values and comparing scores.">hyperparameters</Term>, such as the depth of a tree. Once you start tuning, every glance at a score is a chance to fool yourself. This lesson covers **grid and random search**, and the two classic leaks that make a tuned model look better than it is: a step fitted outside the folds, and peeking at the test set.
+
+## Tuning: grid search and random search
+
+<Term def="Choosing hyperparameter values by trying several settings and keeping the one with the best validation or cross-validation score.">Hyperparameter tuning</Term> is a loop: pick a setting, score it with cross-validation, repeat, keep the best. The question is which settings to try.
+
+- <Term def="Tuning by trying every combination of a fixed list of values for each hyperparameter.">Grid search</Term> lists a few values for each hyperparameter and tries **every combination**: 4 depths × 3 leaf sizes = 12 settings, or 60 models with 5-fold CV. The count multiplies with every hyperparameter: 5 with 4 values each is $4^5 = 1{,}024$ settings.
+- <Term def="Tuning by drawing a fixed number of settings at random from ranges you give for each hyperparameter.">Random search</Term> fixes a budget (say 9 trials) and draws each trial's values **at random** from a range for each hyperparameter.
+
+<Analogy title="Laksa tasting">
+You can cook 9 pots of laksa, varying chilli and coconut milk. If chilli decides the taste and coconut hardly matters, a 3 × 3 grid teaches you about only 3 chilli levels; nine random recipes each use a *different* chilli level, so you learn about 9.
+</Analogy>
+
+<GridVsRandomSearch />
+
+In real problems often only one or two hyperparameters matter much, and you rarely know which, so random search is a good default when there are several.
+
+| | Grid search | Random search |
+|---|---|---|
+| Tries | every combination | a fixed number, at random |
+| Cost | multiplies with each hyperparameter | you set the budget |
+| Values of each hyperparameter | only those listed | up to one per trial |
+| Best for | 1 or 2 hyperparameters | many, of which few matter |
+
+<Tip>
+Search learning rates and regularisation strengths on a **log scale**, e.g. $0.001, 0.01, 0.1, 1$, or draw random values $10^u$ with $u$ between $-3$ and $0$: what matters is the order of magnitude.
+</Tip>
+
+Before you start a search, count what it will cost: every fit takes time.
+
+<Steps title="A tree: 5 depths × 2 leaf sizes, 10-fold CV">
+  <Step title="Settings">
+    Depths 2, 4, 6, 8, 10 and leaf sizes 1, 5. A grid tries every combination: $5 \times 2 = 10$ settings.
+  </Step>
+  <Step title="Fits for the search">
+    10-fold CV trains 10 models per setting: $10 \times 10 = 100$ fits.
+  </Step>
+  <Step title="The final refit">
+    The winning setting is retrained once on all the training data: **101** fits in all. A random search with a budget of 6 trials costs $6 \times 10 + 1 = 61$ fits, however many hyperparameters it varies.
+  </Step>
+</Steps>
+
+`GridSearchCV` and `RandomizedSearchCV` run the whole loop, cross-validation included, then refit the best setting on all the data. Compare how many different depths each one tries.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={searchCode} />
+
+## Every fitted step goes inside the folds
+
+Cross-validation is only honest if each round's validation fold plays no part in training, and that includes **every step that learns from data**: a scaler's mean and SD, an <Term def="A preprocessing step that fills in missing values, for example with the mean of each column. The fill values are learned from data, so they must come from the training folds only.">imputer</Term>'s fill values, feature selection, oversampling such as SMOTE. You met the fix in [Splitting and leakage](#/learn/data-and-features/splitting-and-leakage): put the steps and the model in one <Term def="A scikit-learn object that chains preprocessing steps and a model. Cross-validating the whole pipeline refits every step on each round's training folds only.">Pipeline</Term> and pass it to `cross_val_score(pipe, X, y, cv=5)`, so every step is refitted on each round's training folds only.
+
+The classic trap is to pick "the 10 most useful columns" using all the rows, *then* cross-validate. The validation rows' labels have already helped to choose the columns: that is <Term def="When information from the validation or test data (or from the future) gets into training, so the reported score is better than the model's real performance.">data leakage</Term>. The data below are pure noise, random numbers with random labels, so no model can genuinely beat a coin flip (0.5).
+
+<CVLeakageCompare />
+
+Why does A climb? With hundreds of random columns and only 40 rows, a few columns match the labels well **by pure chance** on all 40 rows, validation rows included. A keeps exactly those columns, so their luck carries over to the validation folds. B chooses columns on each round's 32 training rows, and that luck does not carry over to the 8 unseen rows. More columns means more chances for luck.
+
+<Mistake title="Preprocess first, cross-validate second">
+Fitting a `StandardScaler`, `SelectKBest` or SMOTE on the whole table and *then* calling `cross_val_score` lets every round's validation fold shape the training, so the score is optimistic. Cross-validate the whole Pipeline instead.
+</Mistake>
+
+Resamplers such as SMOTE need `imblearn.pipeline.Pipeline` from the imbalanced-learn library, which resamples the training folds only; scikit-learn's own Pipeline cannot hold them.
+
+<QuickCheck
+  q="Before a logistic regression, your data go through a `SimpleImputer` that fills gaps with column means, then a `StandardScaler`. Neither step looks at the labels. When you cross-validate, which steps must be fitted on each round's training folds only?"
+  options={['Every step that learns from data: scaler, imputer and model', 'Only the model; steps that never look at the labels cannot leak', 'The model in each round; the scaler and imputer once, on all the rows', 'None, as long as the test set was split off before you began']}
+  answer={0}
+  explain="The scaler learns a mean and SD and the imputer learns fill values, so fitting them on all rows lets the validation rows shape training even without labels. The effect is usually smaller than with feature selection, but the CV score is still optimistic. A separate test set protects the test score, not the CV score: put all three steps in a Pipeline."
+/>
+
+<PastPaperQuestion paper="final2026" n={3} />
+
+## Peeking at the test set
+
+Tuning has a subtler leak, which you met in [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): each time you check a score and change something because of it, that data influences your choices; do it with the **test** set and it quietly becomes a validation set. The 2026 Prelim compared two protocols:
+
+- **Protocol A**: 70% train, 30% test. Train, check the test accuracy, adjust, retrain… 50 times; report the best test accuracy.
+- **Protocol B**: 60% train, 20% validation, 20% test. Tune on the validation set; evaluate on the test set once.
+
+<ProtocolCompare />
+
+Every measured score is **true skill + luck**, because a test set is a finite sample. One measurement is right on average, but "report the best of many" picks out the luckiest. Suppose 5 models are all truly 90% accurate and are scored on the same 100 test rows. If their mistakes are independent, the best of the five averages about 93%, and the best of 20 about 95%. This is <Term def="The upward bias you get by picking the best of many noisy scores: the winner is partly the luckiest, so its score overstates its true performance. Also called the winner's curse.">selection bias</Term>; done with a test set it is called *adaptive overfitting*: the model has not memorised the test rows, but *your choices* have. B's best validation score in the visual is inflated the same way, which is why B reports the untouched test score.
+
+<KeyIdea>
+Tune on a validation set or with cross-validation. Touch the test set **once**, at the end. Any score you used to make a choice is no longer an unbiased estimate.
+</KeyIdea>
+
+### Nested cross-validation
+
+`GridSearchCV`'s `best_score_` is the best of many CV scores, so it is a little optimistic too. When there is too little data to set aside a test set, <Term def="Cross-validation inside cross-validation: an outer k-fold loop estimates performance, and inside each outer training set an inner CV loop does the tuning. The outer folds never influence any choice.">nested cross-validation</Term> gives an honest estimate of the whole recipe, tuning included. An **outer** k-fold loop holds out one fold at a time. On the remaining folds, an ordinary grid or random search with its own **inner** CV picks the setting, which is then scored once on the held-out outer fold. No outer fold influenced any choice, so the mean ± SD of the outer scores is honest. With 5 outer folds, 9 settings and 3 inner folds that is $5 \times 9 \times 3 = 135$ fits, plus 5 refits.
+
+In scikit-learn, nesting is one line: pass a `GridSearchCV` object to `cross_val_score`. The code compares three numbers on pure noise: leaky selection (impressive and plain wrong), the `best_score_` of a grid search over $k$ with selection inside a Pipeline (the best of three noisy CV scores, so it tends to sit high), and nested CV of that same search (the honest one). With only 60 rows the honest scores bounce around 0.5: try other seeds.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={leakCode} />
+
+<PastPaperQuestion paper="prelim2026" n={292} />
+
+<ExamTip>
+Look for **"optimistically biased"**, **"selection bias"**, **"data leakage"** and **"test set used once"**. Traps praise the leaky workflow as "more stable" or "using more data", or claim repeated test evaluations give "confidence intervals". A score that helped make a choice, or a CV score after a step fitted on all the data, is biased upwards.
+</ExamTip>
+
+<Takeaways>
+- **Tuning** is a loop: pick a setting, score it with cross-validation, keep the best. **Grid search** tries every combination (the cost multiplies with each hyperparameter); **random search** spends a fixed budget and tries more distinct values of each hyperparameter.
+- Search learning rates and regularisation strengths on a **log scale**.
+- Every step that **learns from data** (scaling, imputing, feature selection, oversampling) must be fitted inside each training fold: cross-validate a **Pipeline**.
+- Picking the best of many scores inflates it (**selection bias**). Tune on validation data or with CV, and touch the test set **once**.
+- `best_score_` is slightly optimistic too; **nested CV**, with a search inside each outer training set, gives an honest estimate of the whole recipe.
+</Takeaways>
+
+Next, [Regression metrics, IoU and averaging](#/learn/model-evaluation/regression-and-overlap-metrics) completes the module with the scores to plug into all of this when a model predicts numbers or boxes: MAE, RMSE and R², IoU, and macro versus micro averaging.

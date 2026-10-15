@@ -1,6 +1,6 @@
 # NOAI Prep: final curriculum
 
-**39 modules · 181 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
+**39 modules · 182 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
 
 Synthesised from three designs: **A** (beginner pedagogy), **B** (exam coverage) and **C2** (IOAI syllabus, visual-first). The sequencing comes from A, most concept content and visual specs from C2, and the exam part (drills, past-paper walkthroughs, separate NumPy and PyTorch Final labs) from B. A completeness critic pass then audited it against every past-paper question, the IOAI 2026 syllabus and the six Final tasks and made 43 changes (listed near the end). Details are in the rationale and scorecard at the end.
 
@@ -167,7 +167,7 @@ Paper subtopics: pandas, data-preprocessing
 
 ## Part 3: Classical machine learning
 
-Train, evaluate and understand regression, classifiers, trees, ensembles and clustering, with calculus and deeper linear algebra taught just before they are needed. *(9 modules, 41 lessons, about 13.2 h)*
+Train, evaluate and understand regression, classifiers, trees, ensembles and clustering, with calculus and deeper linear algebra taught just before they are needed. *(9 modules, 44 lessons, about 14.4 h)*
 
 
 ### M11. Machine learning foundations (`ml-fundamentals`)
@@ -256,8 +256,9 @@ Paper subtopics: model-evaluation, classification, data-preprocessing, ml-debugg
 1. **Confusion matrix, precision, recall and F1** (`confusion-matrix-and-metrics`) 20 min · runnable · 3 concepts. Counting the four kinds of right and wrong, the metrics built from them, and choosing the metric that matches the cost of errors.
 2. **Imbalanced classes** (`imbalanced-data`) 18 min · runnable · 3 concepts. Why accuracy lies when positives are rare, and the standard remedies.
 3. **ROC and precision-recall curves** (`roc-and-pr-curves`) 18 min · runnable · 2 concepts. Seeing performance across all thresholds at once, AUC, and why PR curves are better for rare positives.
-4. **Cross-validation and hyperparameter tuning** (`cross-validation-and-tuning`) 24 min · runnable · 4 concepts. k-fold cross-validation, grid and random search, and keeping preprocessing and feature selection inside the folds.
-5. **Regression metrics, IoU and averaging** (`regression-and-overlap-metrics`) 18 min · runnable · 3 concepts. MAE, MSE, RMSE and R² for numbers; IoU (the Jaccard index) for boxes; macro versus micro averaging.
+4. **Cross-validation** (`cross-validation`) 20 min · runnable · 1 concept. Why one validation split is not enough, k-fold cross-validation reported as mean ± standard deviation, stratified and grouped folds, and when the extra training is worth it.
+5. **Hyperparameter tuning without fooling yourself** (`hyperparameter-tuning`) 25 min · runnable · 3 concepts. Grid and random search, keeping every fitted step inside the folds, and why tuning on the test set inflates the score, with nested cross-validation as the honest alternative.
+6. **Regression metrics, IoU and averaging** (`regression-and-overlap-metrics`) 18 min · runnable · 3 concepts. MAE, MSE, RMSE and R² for numbers; IoU (the Jaccard index) for boxes; macro versus micro averaging.
 
 
 ### M17. Decision trees and ensembles (`trees-and-ensembles`)
@@ -548,7 +549,7 @@ Paper subtopics: ml-system-design, optimisation-tradeoffs, algorithms-complexity
 
 ## Part 9: Exam practice and beyond
 
-Prelim strategy and no-calculator speed drills, past-paper walkthroughs, every past Final programming task rebuilt in NumPy and PyTorch, and the road to IOAI 2027. *(5 modules, 24 lessons, about 8.5 h)*
+Prelim strategy and no-calculator speed drills, past-paper walkthroughs, every past Final programming task rebuilt in NumPy and PyTorch, and the road to IOAI 2027. *(5 modules, 25 lessons, about 9.0 h)*
 
 
 ### M35. Prelim strategy and speed drills (`prelim-speed-toolkit`)
@@ -661,8 +662,8 @@ Each line lists the prerequisite lessons first and the Final-lab rebuild last.
 | 1C4 DBSCAN, hierarchical, spectral | M19 unsupervised-learning › hierarchical-dbscan-spectral |
 | 1D1 Evaluation metrics | M16 model-evaluation › confusion-matrix-and-metrics; M16 model-evaluation › regression-and-overlap-metrics |
 | 1D2 Underfitting, overfitting (Theory) | M11 ml-fundamentals › generalisation-and-overfitting |
-| 1D3 Hyperparameter tuning | M16 model-evaluation › cross-validation-and-tuning |
-| 1D4 Cross-validation | M16 model-evaluation › cross-validation-and-tuning |
+| 1D3 Hyperparameter tuning | M16 model-evaluation › hyperparameter-tuning |
+| 1D4 Cross-validation | M16 model-evaluation › cross-validation |
 | 1D5 Confusion matrix and ROC | M16 model-evaluation › confusion-matrix-and-metrics; M16 model-evaluation › roc-and-pr-curves |
 | 1D6 Feature engineering | M12 data-and-features › feature-engineering; M12 data-and-features › encoding-categories |
 | 1D7 Data processing | M12 data-and-features › missing-data-and-outliers; M10 pandas-and-plotting › cleaning-data; M12 data-and-features › scaling-and-normalisation; M12 data-and-features › splitting-and-leakage; M26 text-as-data › tokenisation; M32 multimodal-ai › vision-transformers; M24 convolutional-networks › images-as-tensors |
