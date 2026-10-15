@@ -49,9 +49,9 @@ const questions: QuizQuestion[] = [
     prompt:
       "A fitness app stores each user as a vector [steps per day, hours of sleep, resting heart rate]. Ali is $[8000, 7, 62]$ and Bala is $[6000, 8, 70]$. The app wants one vector describing the average of the two users. Which statement is correct?",
     options: [
-      'The average is $[7000, 7.5, 66]$, found as $\\tfrac{1}{2}(\\text{Ali} + \\text{Bala})$',
-      'The average is $[14000, 15, 132]$, found as $\\text{Ali} + \\text{Bala}$',
-      'The average is $[1000, -0.5, -4]$, found as $\\tfrac{1}{2}(\\text{Ali} - \\text{Bala})$',
+      'The average is $\\tfrac{1}{2}(\\text{Ali} + \\text{Bala}) = [7000, 7.5, 66]$',
+      'The average is $\\text{Ali} + \\text{Bala} = [14000, 15, 132]$',
+      'The average is $\\tfrac{1}{2}(\\text{Ali} - \\text{Bala}) = [1000, -0.5, -4]$',
       'No average vector exists, because the three components have different units',
     ],
     answer: 0,
