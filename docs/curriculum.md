@@ -1,6 +1,6 @@
 # NOAI Prep: final curriculum
 
-**39 modules · 180 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
+**39 modules · 181 lessons · 498 concepts (each with its own visual) · about 85 hours of lessons** (re-estimated from the finished lessons: the design aimed for about 57)
 
 Synthesised from three designs: **A** (beginner pedagogy), **B** (exam coverage) and **C2** (IOAI syllabus, visual-first). The sequencing comes from A, most concept content and visual specs from C2, and the exam part (drills, past-paper walkthroughs, separate NumPy and PyTorch Final labs) from B. A completeness critic pass then audited it against every past-paper question, the IOAI 2026 syllabus and the six Final tasks and made 43 changes (listed near the end). Details are in the rationale and scorecard at the end.
 
@@ -285,7 +285,8 @@ Paper subtopics: linear-algebra, unsupervised
 1. **A matrix is a transformation of space** (`linear-transformations`) 16 min · none · 2 concepts. Every matrix stretches, rotates, shears or squashes the whole grid, and multiplying matrices chains the moves.
 2. **Span, linear independence and rank** (`span-rank-independence`) 20 min · snippet · 3 concepts. How many truly different directions a set of vectors or a matrix has, why rank limits what a matrix can do, and what 'nearly singular' means.
 3. **Eigenvectors and eigenvalues** (`eigenvectors-eigenvalues`) 20 min · runnable · 3 concepts. The special directions a matrix only stretches, never turns, and the numbers that say by how much.
-4. **Covariance, PCA and SVD** (`covariance-pca-svd`) 25 min · runnable · 4 concepts. The shape of a data cloud captured in a matrix, its principal directions, and the rotate-stretch-rotate view of any matrix.
+4. **Covariance and PCA** (`covariance-and-pca`) 20 min · runnable · 1 concept. The shape of a data cloud captured in a matrix, and PCA: its eigenvectors are the directions of greatest spread.
+5. **SVD and special matrices** (`svd-and-special-matrices`) 35 min · runnable · 3 concepts. Orthogonal matrices, the turn-stretch-turn view of any matrix, low-rank approximation, positive definite matrices, QR and the Frobenius norm.
 
 
 ### M19. Unsupervised learning: clustering and dimensionality reduction (`unsupervised-learning`)
@@ -655,7 +656,7 @@ Each line lists the prerequisite lessons first and the Final-lab rebuild last.
 | 1B6 Ensembles | M17 trees-and-ensembles › bagging-and-random-forests; M17 trees-and-ensembles › gradient-boosting |
 | 1B7 SVM | M15 classification › support-vector-machines |
 | 1C1 K-means | M19 unsupervised-learning › k-means; M37 final-lab-numpy › task-kmeans |
-| 1C2 PCA | M18 linear-algebra-deeper › covariance-pca-svd; M19 unsupervised-learning › pca |
+| 1C2 PCA | M18 linear-algebra-deeper › covariance-and-pca; M19 unsupervised-learning › pca |
 | 1C3 t-SNE, UMAP | M19 unsupervised-learning › tsne-umap-and-anomalies |
 | 1C4 DBSCAN, hierarchical, spectral | M19 unsupervised-learning › hierarchical-dbscan-spectral |
 | 1D1 Evaluation metrics | M16 model-evaluation › confusion-matrix-and-metrics; M16 model-evaluation › regression-and-overlap-metrics |

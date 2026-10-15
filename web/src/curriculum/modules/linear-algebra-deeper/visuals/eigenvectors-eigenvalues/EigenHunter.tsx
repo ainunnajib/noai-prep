@@ -116,11 +116,20 @@ export default function EigenHunter() {
       title="Eigenvector hunt: find the arrows that do not turn"
       caption={
         <>
-          The dashed circle holds every input arrow <i>v</i> of length 1; the shaded oval holds every output <i>Av</i>. Drag the <span className={s.c1}>blue</span> tip
-          (or use the slider) and watch the <span className={s.c2}>orange</span> output. Most of the time <i>Av</i> points in a new direction. When it lands on v's own
-          line (it snaps there when you get close) the line lights up: you have found an eigenvector, and the stretch factor is its eigenvalue λ. Then try the
-          presets: <b>Flip</b> has a negative λ, <b>Shear</b> has only one eigen-line, <b>Squash</b> has λ = 0 and <b>Rotate 90°</b> has none at all. Turn on <b>Edit the matrix entries</b> to build your
-          own.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Drag the <span className={s.c1}>blue</span> tip round until the <span className={s.c2}>orange</span> output lands on its line.
+            </li>
+            <li>
+              Try the presets <b>Flip</b>, <b>Shear</b>, <b>Squash</b> and <b>Rotate 90°</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> when <i>Av</i> lands on v's own line you have an eigenvector, and the stretch is λ; Flip gives a negative λ, Shear only one eigen-line,
+          Squash λ = 0 and Rotate 90° none at all.
+          <span className="fine">
+            The dashed circle holds every input of length 1, the shaded oval every output. Turn on <b>Edit the matrix entries</b> to build your own.
+          </span>
         </>
       }
     >

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Figure, Controls, Slider, Button, Plot, Grid, Axes, Arrow, Path, Dots, Label, useAnimationFrame, useNarrow } from '../../../../../kit'
 import { type M2, type V2, apply, mul, rot, dirV, fmt, fix, imageOfCircle } from '../eigenvectors-eigenvalues/eig2'
-import { svd2, MiniMat, FactorRow } from './la2'
+import { svd2, MiniMat, FactorRow } from '../covariance-and-pca/la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
 
 /*
@@ -104,12 +104,21 @@ export default function SVDStepper() {
       title="SVD: every matrix is turn, stretch, turn"
       caption={
         <>
-          The dashed circle is every input of length 1, with 12 "clock" dots so you can see it turn (the bigger dot starts at 12 o'clock). Press{' '}
-          <b>Next stage</b> or scrub the slider. First <b>Vᵀ</b> turns the circle so that the two special input directions{' '}
-          <span className={s.c2}>v₁</span> and <span className={s.c3}>v₂</span> land on the axes. Then <b>Σ</b> stretches along the axes by the singular values
-          σ₁ and σ₂. Finally <b>U</b> turns the oval into place. The result is exactly what <i>A</i> does: the oval's half-widths are the singular values. Try{' '}
-          <b>Rank 1</b>: σ₂ = 0 and the circle is crushed onto a line. In <b>With a flip</b> the determinant is negative, so <i>U</i> also mirrors the plane: the
-          oval folds flat for a moment and opens up mirrored, like a page being turned over.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Next stage</b> three times: <b>Vᵀ</b> turns, <b>Σ</b> stretches by σ₁ and σ₂, <b>U</b> turns again.
+            </li>
+            <li>
+              Pick <b>Rank 1</b>, then <b>With a flip</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> the final oval is exactly what <i>A</i> does to the circle, and its half-widths are the singular values; with rank 1, σ₂ = 0 crushes the
+          circle onto a line.
+          <span className="fine">
+            The dashed circle is every input of length 1; the 12 "clock" dots show it turning. With a flip the determinant is negative, so <i>U</i> also mirrors the
+            plane and the oval folds flat for a moment.
+          </span>
         </>
       }
     >

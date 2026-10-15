@@ -2,7 +2,7 @@
 
 Tools to help students prepare for Singapore's National Olympiad in Artificial Intelligence (NOAI).
 
-- **Website** (`web/`): a free step-by-step course from zero to NOAI 2027, with 180 lessons, interactive visual explainers, checkpoint quizzes, solved past papers, practice by topic and timed mock exams. See [web/README.md](web/README.md) to run it, and [docs/](docs/README.md) for the research and curriculum design behind it.
+- **Website** (`web/`): a free step-by-step course from zero to NOAI 2027, with 181 lessons, interactive visual explainers, checkpoint quizzes, solved past papers, practice by topic and timed mock exams. See [web/README.md](web/README.md) to run it, and [docs/](docs/README.md) for the research and curriculum design behind it.
 - **iOS app** (the rest of this repository): a practice-question app, described below.
 
 ## iOS app

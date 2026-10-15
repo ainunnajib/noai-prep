@@ -217,7 +217,6 @@ Two straight roads meet at a junction. If they cross at right angles, shifting o
   </Step>
 </Steps>
 
-<ConditionNumberWobble />
 
 To measure this sensitivity we need two numbers from the transformation picture. Any invertible 2×2 matrix turns the unit circle into an oval (an ellipse); you will watch this happen in the next lesson's eigenvector hunt, and again in the SVD lesson. The oval's longest half-width (its longest radius) is the largest <Term def="The stretch factors of a matrix: the longest and shortest half-widths of the oval that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and its shortest half-width is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
 
@@ -229,6 +228,8 @@ $$
 - $\kappa = 1$ means the matrix stretches every direction equally: rotations, reflections and $kI$ with $k \neq 0$ are perfectly conditioned.
 - A singular matrix squashes some direction to nothing, so $\sigma_{\min} = 0$ and $\kappa = \infty$.
 - A **large** $\kappa$ (the matrix is <Term def="Having a large condition number: some directions are stretched far more than others, so solving Ax = b amplifies small errors a lot.">ill-conditioned</Term>) means a small relative error in $b$ can become up to $\kappa$ times bigger in $x$. A rule of thumb: if $\kappa \approx 10^k$, expect to lose about $k$ digits of accuracy.
+
+<ConditionNumberWobble />
 
 For the matrix in the worked example, $\sigma_{\max} \approx 2.005$ and $\sigma_{\min} \approx 0.00499$, so $\kappa \approx 402$: the 280-times amplification we saw is within that worst case.
 

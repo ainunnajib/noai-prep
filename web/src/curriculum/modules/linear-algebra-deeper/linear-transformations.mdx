@@ -114,13 +114,41 @@ Most matrices in exam questions belong to one of five families. Each is easiest 
 | Reflection in the y-axis | $\begin{bmatrix} -1 & 0 \\ 0 & 1 \end{bmatrix}$ | $-1$ |
 | Projection onto the x-axis | $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ | $0$ |
 
-Where do $\hat\imath$ and $\hat\jmath$ go in each family?
+Where do $\hat\imath$ and $\hat\jmath$ go in each family? Pick a tab, then try the matching preset in the figure above.
 
-- **Scaling.** $\hat\imath$ and $\hat\jmath$ stay on their own axes, stretched by $s_x$ and $s_y$. Scaling matrices are <Term def="A square matrix whose only non-zero entries are on the main diagonal (top-left to bottom-right).">diagonal</Term>; a negative entry also flips that axis.
-- **Rotation** (anticlockwise, the maths convention for a positive angle). Turning $\hat\imath$ by $\theta$ puts it on the <Term def="The circle of radius 1 centred at the origin. The point at angle θ on it is (cos θ, sin θ).">unit circle</Term> at $(\cos\theta, \sin\theta)$: that is column 1. $\hat\jmath$ always stays $90°$ ahead of $\hat\imath$. Turning any arrow $(p, q)$ by $90°$ anticlockwise gives $(-q, p)$ (the **Rotate 90°** preset above sends $(1, 0)$ to $(0, 1)$), so $(\cos\theta, \sin\theta)$ becomes $(-\sin\theta, \cos\theta)$: column 2, and that is where the minus sign comes from. With $\theta = 90°$, where $\cos 90° = 0$ and $\sin 90° = 1$, the matrix is $\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$, so $\hat\imath$ points up and $\hat\jmath$ points left. Rotations keep every length and every angle.
-- **Shear.** $\hat\imath$ stays; $\hat\jmath$ slides sideways to $(k, 1)$. Push the top of a stack of exercise books sideways: each layer slides by an amount proportional to its height. Horizontal lines stay horizontal; vertical lines lean over. Areas do not change (det 1).
-- **Reflection.** In the y-axis, $\hat\imath$ flips to $(-1, 0)$ and $\hat\jmath$ stays. Other mirrors: the x-axis is $\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$ (upside down) and the line $y = x$ is $\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$ (swap the two coordinates). Every reflection keeps areas but flips orientation, so det $= -1$: the winking smiley winks with the other eye.
-- **Projection.** Onto the x-axis, $\hat\imath$ stays and $\hat\jmath$ is crushed to $(0, 0)$: every point drops onto the line, like a <Term def="The projection of a point onto a line: the spot where it lands when it drops straight onto the line.">shadow</Term>. Onto the line $y = x$ the matrix is $\begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix}$. Projecting twice changes nothing more, so $P^2 = P$. Because a whole dimension is crushed, det $= 0$ and there is no way to undo it. The next lesson is about exactly this kind of collapse.
+<Tabs>
+  <Tab label="Scaling">
+
+$\hat\imath$ and $\hat\jmath$ stay on their own axes, stretched by $s_x$ and $s_y$. Scaling matrices are <Term def="A square matrix whose only non-zero entries are on the main diagonal (top-left to bottom-right).">diagonal</Term>; a negative entry also flips that axis.
+
+  </Tab>
+  <Tab label="Rotation">
+
+Turning $\hat\imath$ anticlockwise by $\theta$ puts it on the <Term def="The circle of radius 1 centred at the origin. The point at angle θ on it is (cos θ, sin θ).">unit circle</Term> at $(\cos\theta, \sin\theta)$: that is column 1. $\hat\jmath$ always stays $90°$ ahead of it, at $(-\sin\theta, \cos\theta)$: column 2. Rotations keep every length and every angle. At $\theta = 90°$ the matrix is $\begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}$: $\hat\imath$ points up and $\hat\jmath$ points left.
+
+<Reveal label="Why is there a minus sign?">
+
+Turning any arrow $(p, q)$ by $90°$ anticlockwise gives $(-q, p)$ (the **Rotate 90°** preset above sends $(1, 0)$ to $(0, 1)$). $\hat\jmath$ is $\hat\imath$ turned a further $90°$, so $(\cos\theta, \sin\theta)$ becomes $(-\sin\theta, \cos\theta)$. Anticlockwise is the maths convention for a positive angle.
+
+</Reveal>
+
+  </Tab>
+  <Tab label="Shear">
+
+$\hat\imath$ stays; $\hat\jmath$ slides sideways to $(k, 1)$. Push the top of a stack of exercise books sideways: each layer slides by an amount proportional to its height. Horizontal lines stay horizontal, vertical lines lean over, and areas do not change (det 1).
+
+  </Tab>
+  <Tab label="Reflection">
+
+In the y-axis, $\hat\imath$ flips to $(-1, 0)$ and $\hat\jmath$ stays. The x-axis mirror is $\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$ (upside down) and the line $y = x$ is $\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$ (swap the two coordinates). Every reflection keeps areas but turns the picture into its mirror image, so det $= -1$: the winking smiley winks with the other eye.
+
+  </Tab>
+  <Tab label="Projection">
+
+Onto the x-axis, $\hat\imath$ stays and $\hat\jmath$ is crushed to $(0, 0)$: every point drops onto the line, like a <Term def="The projection of a point onto a line: the spot where it lands when it drops straight onto the line.">shadow</Term>. Onto the line $y = x$ the matrix is $\begin{bmatrix} 0.5 & 0.5 \\ 0.5 & 0.5 \end{bmatrix}$. Projecting twice changes nothing more, so $P^2 = P$. A whole dimension is crushed, so det $= 0$ and there is no way to undo it; the next lesson is about exactly this kind of collapse.
+
+  </Tab>
+</Tabs>
 
 <MatrixMatch />
 

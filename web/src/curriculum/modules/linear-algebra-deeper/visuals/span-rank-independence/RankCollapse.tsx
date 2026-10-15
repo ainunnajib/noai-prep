@@ -266,11 +266,18 @@ export default function RankCollapse() {
       title="Rank: how many dimensions survive?"
       caption={
         <>
-          The coloured arrows are the columns of <i>A</i>; every output <i>Ax</i> is a combination of them, so the outputs fill their span (shaded green). The
-          violet shape is where the unit square (or, in 3-D, the unit cube) lands. Type
-          in entries or press <b>column 2 = 2 × column 1</b> and watch the output collapse and the rank drop. Switch shape: with 2 rows the columns live in a
-          plane, so rank can never pass 2 however many columns you add; with 2 columns you can only ever reach a plane, even in 3-D. In 3-D, turn the view to
-          check that a flattened shape really is flat.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>column 2 = 2 × column 1</b>, or type in entries.
+            </li>
+            <li>Switch the shape, and in 3-D turn the view.</li>
+          </ol>
+          <b>Notice:</b> when the columns line up, the outputs collapse and the rank drops; with 2 rows the rank can never pass 2, however many columns you add.
+          <span className="fine">
+            The coloured arrows are the columns of <i>A</i>; every output <i>Ax</i> is a combination of them, so the outputs fill their span (shaded green). The
+            violet shape is where the unit square (or cube) lands.
+          </span>
         </>
       }
     >

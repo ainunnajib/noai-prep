@@ -1,0 +1,238 @@
+import LengthKeeper from './visuals/svd-and-special-matrices/LengthKeeper'
+import SVDStepper from './visuals/svd-and-special-matrices/SVDStepper'
+import LowRankPicture from './visuals/svd-and-special-matrices/LowRankPicture'
+import QRAndFrobenius from './visuals/svd-and-special-matrices/QRAndFrobenius'
+
+The last lesson found PCA's directions as the eigenvectors of the covariance matrix. Eigenvectors need a square matrix, though, and even then a rotation has none. The **SVD** works for every matrix: it says that every matrix turns, stretches and turns again. To read it you first need the "turn" part, the **orthogonal matrices**. The lesson ends with the other special matrices NOAI likes to ask about: positive definite, QR and the Frobenius norm.
+
+## Orthogonal matrices: pure turns
+
+An <Term def="A square matrix whose columns are perpendicular unit vectors, so QᵀQ = I. It only rotates or reflects, so it keeps every length and angle.">orthogonal matrix</Term> $Q$ is a square matrix whose columns are perpendicular to each other and of length 1. Entry $(i, j)$ of $Q^TQ$ is the dot product of column $i$ with column $j$: 1 when $i = j$ and 0 otherwise, so
+
+$$
+Q^TQ = I, \qquad\text{which means}\qquad Q^{-1} = Q^T
+$$
+
+Its inverse costs nothing: just transpose. It keeps every length, because $\lVert Qx \rVert^2 = (Qx)^T(Qx) = x^T Q^T Q x = x^T x = \lVert x \rVert^2$. Rotations and reflections are orthogonal (determinant $+1$ or $-1$); shears and stretches are not.
+
+<LengthKeeper show="orth" />
+
+Because an orthogonal matrix keeps lengths, neural networks are sometimes initialised with orthogonal weight matrices so that signals keep their size from layer to layer, avoiding the explosions you saw with power iteration.
+
+<PastPaperQuestion paper="prelim2026" n={18} />
+
+## SVD: turn, stretch, turn
+
+<Analogy title="Turn, roll, turn">
+
+A prata seller turns the ball of dough on the counter, rolls it out along the counter's length and width (stretching it more one way than the other), then turns the flat oval to place it on the plate. Every matrix does exactly these three moves to a circle: turn, stretch along two perpendicular directions, turn.
+
+</Analogy>
+
+Eigenvectors need a square matrix, and even then a rotation has none. The <Term def="Singular value decomposition: writing any m×n matrix as A = UΣVᵀ, with U and V orthogonal and Σ diagonal with non-negative entries σ₁ ≥ σ₂ ≥ … (the singular values).">singular value decomposition</Term> works for **every** matrix, of any shape:
+
+$$
+A = U \Sigma V^T
+$$
+
+- $V$ is an orthogonal matrix: a pure turn, possibly with a mirror flip, as in the section above. Its columns $v_i$ are special input directions, and $V^T$ turns them onto the axes.
+- $\Sigma$ (capital sigma) is diagonal. Its entries $\sigma_1 \ge \sigma_2 \ge \dots \ge 0$ are the <Term def="The diagonal entries σ₁ ≥ σ₂ ≥ … ≥ 0 of Σ in the SVD: the stretch factors of the matrix along its special directions.">singular values</Term>, the stretch factors along the axes.
+- $U$ is orthogonal too. Its columns $u_i$ are the output directions, and $U$ turns the stretched axes into place.
+
+Read the product right to left, as it acts on a vector: $Ax = U(\Sigma(V^T x))$. In 2-D the unit circle is turned (still a circle), stretched into an oval with half-widths $\sigma_1$ and $\sigma_2$, then turned again. **The singular values are the half-widths of the oval that $A$ makes from the unit circle**: the same oval you saw in the eigenvector hunt, whose longest and shortest half-widths gave the condition number in the rank lesson.
+
+<SVDStepper />
+
+Facts to remember:
+
+- $Av_i = \sigma_i u_i$: each special input direction is sent to its special output direction, stretched by $\sigma_i$. Unlike $Av = \lambda v$, the output direction may differ from the input.
+- The singular values are the square roots of the eigenvalues of $A^TA$, because $A^TA = V\Sigma^T\Sigma V^T$. They are never negative.
+- **The number of non-zero singular values is the rank.**
+- For a symmetric matrix with no negative eigenvalues, such as a covariance matrix, the singular values are the eigenvalues, and the SVD is just the eigendecomposition $Q\Lambda Q^T$.
+- The condition number from the rank lesson, $\kappa = \sigma_{\max} / \sigma_{\min}$, is the ratio of the oval's longest and shortest half-widths.
+
+<Steps title="Singular values of a 2×2 matrix">
+  <Step title="Form $A^TA$">
+    Take $A = \begin{bmatrix} 3 & 0 \\ 4 & 5 \end{bmatrix}$. Then
+
+    $$
+    A^TA = \begin{bmatrix} 3 & 4 \\ 0 & 5 \end{bmatrix}\begin{bmatrix} 3 & 0 \\ 4 & 5 \end{bmatrix} = \begin{bmatrix} 25 & 20 \\ 20 & 25 \end{bmatrix}.
+    $$
+  </Step>
+  <Step title="Its eigenvalues, by the trace and determinant">
+    Trace 50, determinant $625 - 400 = 225$. Two numbers with sum 50 and product 225: 45 and 5.
+  </Step>
+  <Step title="Square roots">
+    $\sigma_1 = \sqrt{45} \approx 6.71$ and $\sigma_2 = \sqrt5 \approx 2.24$.
+  </Step>
+  <Step title="Check with the area">
+    $\sigma_1\sigma_2 = \sqrt{225} = 15 = |\det A| = |3 \times 5 - 0 \times 4|$. The two stretches multiply areas by 15, and the turns change nothing.
+  </Step>
+</Steps>
+
+SVD is also how computers actually do PCA (last lesson). Write the SVD of the centred data as $X_c = U\Sigma V^T$; then, because $U^TU = I$,
+
+$$
+C = \frac1n X_c^T X_c = V\,\frac{\Sigma^T\Sigma}{n}\,V^T
+$$
+
+so the columns of $V$ are the principal components and $\lambda_i = \sigma_i^2 / n$. scikit-learn's `PCA` works this way (dividing by $n - 1$ instead of $n$).
+
+<PastPaperQuestion paper="prelim2026" n={17} />
+
+## The Frobenius norm: the size of a whole matrix
+
+To say how close two matrices are, we need the size of a whole matrix. The **Frobenius norm** treats the matrix as one long list of numbers and takes its ordinary length (the L2 norm):
+
+$$
+\lVert A \rVert_F = \sqrt{\sum_i \sum_j a_{ij}^2}
+$$
+
+For $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$ it is $\sqrt{1 + 4 + 4 + 16} = \sqrt{25} = 5$. It also equals $\sqrt{\sigma_1^2 + \sigma_2^2 + \dots}$; this matrix has rank 1, so its only non-zero singular value is 5. It measures the error of a low-rank approximation, and weight decay on a weight matrix $W$ adds a multiple of $\lVert W \rVert_F^2$ to the loss.
+
+<PastPaperQuestion paper="prelim2026" n={22} />
+
+## Low-rank approximation
+
+Multiplying out the SVD writes $A$ as a sum of simple layers, each a column times a row, biggest first:
+
+$$
+A = \sigma_1 u_1 v_1^T + \sigma_2 u_2 v_2^T + \sigma_3 u_3 v_3^T + \dots
+$$
+
+Keeping only the first $k$ layers gives $A_k$, the **best rank-$k$ approximation** of $A$: no other matrix of rank at most $k$ is closer, measured by the Frobenius norm of the difference. This is the *Eckart–Young theorem*, and the error is
+
+$$
+\lVert A - A_k \rVert_F = \sqrt{\sigma_{k+1}^2 + \sigma_{k+2}^2 + \dots}
+$$
+
+the size of the layers thrown away. For an $m \times n$ matrix, $A_k$ needs only $k(m + n + 1)$ numbers instead of $mn$, which is a saving only while $k$ is small.
+
+<LowRankPicture />
+
+The same idea powers LoRA, a popular way to fine-tune large language models: instead of changing a huge weight matrix directly, it learns a small low-rank update to it.
+
+## Positive definite matrices
+
+A symmetric matrix $A$ is <Term def="A symmetric matrix A with xᵀAx > 0 for every non-zero vector x; equivalently, all its eigenvalues are positive. Its quadratic form is a bowl.">positive definite</Term> if $x^TAx > 0$ for every non-zero vector $x$. For $A = \begin{bmatrix} a & b \\ b & c \end{bmatrix}$, the number $x^TAx = ax^2 + 2bxy + cy^2$ is a <Term def="An expression like ax² + 2bxy + cy²: a sum of squared and cross terms, written xᵀAx for a symmetric matrix A.">quadratic form</Term>, a curved surface over the plane. Measured along the eigenvectors (coordinates $s$ and $t$) it becomes simply $\lambda_1 s^2 + \lambda_2 t^2$, so:
+
+- **All eigenvalues positive** $\iff$ positive definite: a bowl with one lowest point.
+- **Positive semi-definite**: $x^TAx \ge 0$ for all $x$, which means all eigenvalues $\ge 0$. Every positive definite matrix is also semi-definite; if some eigenvalue is exactly 0, the bowl becomes a trough.
+- Mixed signs: a saddle. All negative: a dome (negative definite).
+- **Shortcut for a symmetric 2×2 matrix only:** positive definite $\iff$ $\det > 0$ and $\text{trace} > 0$. The determinant is the product of the two eigenvalues, so $\det > 0$ means they have the same sign, and a positive trace (their sum) makes them both positive. For 3×3 and larger this is **not** enough: $\text{diag}(-1, -1, 3)$ has determinant 3 and trace 1 but two negative eigenvalues.
+
+<LengthKeeper show="pd" />
+
+Every covariance matrix is positive semi-definite, because $u^TCu$ is the variance of the shadows along $u$, which can never be negative. And a positive definite Hessian (the matrix of second derivatives) at a point where the gradient is zero means a local minimum: the bowl at the bottom of a loss function.
+
+<PastPaperQuestion paper="prelim2026" n={21} />
+
+<QuickCheck
+  id="linear-algebra-deeper.svd-and-special-matrices.qc1"
+  q="Which of these symmetric matrices is positive definite?"
+  options={['$\\begin{bmatrix} 1 & 2 \\\\ 2 & 1 \\end{bmatrix}$', '$\\begin{bmatrix} 1 & 0 \\\\ 0 & 0 \\end{bmatrix}$', '$\\begin{bmatrix} 2 & -1 \\\\ -1 & 2 \\end{bmatrix}$', '$\\begin{bmatrix} -1 & 0 \\\\ 0 & -3 \\end{bmatrix}$']}
+  answer={2}
+  explain="Use the trace and determinant. For $\begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix}$: trace 4, det $4 - 1 = 3$, so the eigenvalues are 3 and 1, both positive. $\begin{bmatrix} 1 & 2 \\ 2 & 1 \end{bmatrix}$ has only positive entries but eigenvalues 3 and $-1$ (try $x = [1, -1]$: $x^TAx = 1 - 4 + 1 = -2$). The diagonal $\begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}$ has an eigenvalue of 0 (only semi-definite), and the last one is negative definite."
+/>
+
+## QR decomposition
+
+**QR decomposition** writes a matrix as $A = QR$, where $Q$ has perpendicular unit columns (for a square $A$, an orthogonal matrix) and $R$ is **upper triangular**. The classic recipe, <Term def="A procedure that turns a set of vectors into perpendicular unit vectors spanning the same space, by subtracting from each vector its shadows on the ones before it and rescaling to length 1.">Gram–Schmidt</Term>, straightens the columns one at a time:
+
+<Steps title="QR of a 2×2 matrix by Gram–Schmidt">
+  <Step title="Normalise the first column">
+    Take $A = \begin{bmatrix} 3 & 1 \\ 4 & 2 \end{bmatrix}$, with columns $a_1 = (3, 4)$ and $a_2 = (1, 2)$. $\lVert a_1 \rVert = 5$, so $q_1 = (0.6, 0.8)$.
+  </Step>
+  <Step title="Measure the shadow of $a_2$ on $q_1$">
+    $q_1 \cdot a_2 = 0.6 \times 1 + 0.8 \times 2 = 2.2$.
+  </Step>
+  <Step title="Subtract the shadow">
+    $w = a_2 - 2.2\,q_1 = (1 - 1.32,\ 2 - 1.76) = (-0.32,\ 0.24)$, which is perpendicular to $q_1$ (check: $0.6 \times -0.32 + 0.8 \times 0.24 = 0$).
+  </Step>
+  <Step title="Normalise, and record the recipe in R">
+    $\lVert w \rVert = 0.4$, so $q_2 = (-0.8, 0.6)$. Then $Q = \begin{bmatrix} 0.6 & -0.8 \\ 0.8 & 0.6 \end{bmatrix}$ and $R = \begin{bmatrix} 5 & 2.2 \\ 0 & 0.4 \end{bmatrix}$, because $a_1 = 5q_1$ and $a_2 = 2.2q_1 + 0.4q_2$.
+  </Step>
+</Steps>
+
+$R$ is upper triangular because the first column is built from $q_1$ alone, the second from $q_1$ and $q_2$, and so on.
+
+<Reveal label="Going further: what QR is used for">
+
+QR is used to fit least squares stably: with $X = QR$, solve $Rw = Q^Ty$ by back-substitution instead of inverting $X^TX$, whose condition number is the square of $X$'s (see the rank lesson). For a tall data matrix $X$ ($n \times d$ with $n > d$), $Q$ is $n \times d$ with perpendicular unit columns, so $Q^TQ = I$, but it is not square, so it is not an orthogonal matrix and has no inverse. Repeating QR steps (the *QR algorithm*) is also a classic way to compute eigenvalues.
+
+</Reveal>
+
+<QRAndFrobenius />
+
+<PastPaperQuestion paper="prelim2026" n={20} />
+
+<ExamTip title="Know which letter does which job">
+
+Most NOAI questions on this topic are one-line definitions, and the wrong options swap the roles around. SVD: $\Sigma$ holds the singular values; $U$ and $V$ are orthogonal. QR: $Q$ orthogonal, $R$ upper triangular. Orthogonal: $Q^TQ = I$, keeps lengths. Positive definite: all eigenvalues $> 0$ (not "all entries $> 0$"). Frobenius: square root of the sum of squared entries.
+
+</ExamTip>
+
+## In code
+
+PCA from the SVD of the centred data, then QR and the Frobenius norm, on the examples from this lesson and the last:
+
+<PyRunner packages={['numpy']} rows={16} code={`import numpy as np
+
+X = np.array([[4, 3], [3, 4],
+              [1, 0], [0, 1]], dtype=float)
+Xc = X - X.mean(axis=0)
+U, S, Vt = np.linalg.svd(Xc)
+print("singular values:", S.round(4))
+print("S**2 / n (the PCA variances):", (S**2 / len(X)).round(4))
+print("PC1 = first row of Vt:", Vt[0].round(4))
+
+A = np.array([[3, 0], [4, 5]], dtype=float)
+print("singular values of A:", np.linalg.svd(A, compute_uv=False).round(2))`} />
+
+And QR and the Frobenius norm:
+
+<PyRunner packages={['numpy']} rows={14} code={`import numpy as np
+
+A = np.array([[3.0, 1.0],
+              [4.0, 2.0]])
+Q, R = np.linalg.qr(A)
+print("Q =\\n", Q.round(3))
+print("R =\\n", R.round(3))
+print("Q.T @ Q =\\n", (Q.T @ Q).round(3))
+
+B = np.array([[1, 2], [2, 4]])
+print("Frobenius:", np.linalg.norm(B))
+s = np.linalg.svd(B, compute_uv=False)
+print("singular values:", s.round(4))`} />
+
+NumPy's QR may differ from the hand calculation by signs: on our machine the first column of $Q$ and the first row of $R$ came out negated. Flipping the sign of a column of $Q$ together with the matching row of $R$ leaves the product $QR$ unchanged. In the Final round you may need PCA in PyTorch, where the same SVD route looks like this:
+
+```python
+import torch
+
+X = torch.tensor([[4., 3.], [3., 4.], [1., 0.], [0., 1.]])
+Xc = X - X.mean(dim=0)                       # centre each column
+U, S, Vh = torch.linalg.svd(Xc, full_matrices=False)
+print(S)                                     # singular values
+print(S**2 / X.shape[0])                     # variances along the PCs
+print(Vh[0])                                 # PC1 (the sign may differ)
+Z = Xc @ Vh[0]                               # project onto PC1
+print(Z)
+```
+
+```text
+tensor([4.2426, 1.4142])
+tensor([4.5000, 0.5000])
+tensor([-0.7071, -0.7071])
+tensor([-2.1213, -2.1213,  2.1213,  2.1213])
+```
+
+PyTorch returned PC1 as $[-0.71, -0.71]$, the same line pointing the other way, so every score has flipped sign too. Other useful functions: `torch.linalg.eigh`, `torch.linalg.qr` and `torch.linalg.matrix_norm` (Frobenius by default).
+
+<Takeaways>
+
+- Orthogonal: $Q^TQ = I$, so $Q^{-1} = Q^T$ and lengths are preserved. Positive definite: all eigenvalues $> 0$, a bowl; semi-definite: all $\ge 0$.
+- SVD: every matrix is $A = U\Sigma V^T$, turn, stretch, turn. The singular values are the stretches, the number of non-zero ones is the rank, and keeping the biggest gives the best low-rank approximation, with the error measured by the Frobenius norm.
+- QR: $Q$ orthogonal times $R$ upper triangular, built by Gram–Schmidt. Frobenius norm: $\sqrt{\text{sum of squared entries}}$.
+
+</Takeaways>

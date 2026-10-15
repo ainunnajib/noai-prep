@@ -1,0 +1,163 @@
+import CovarianceEllipse from './visuals/covariance-and-pca/CovarianceEllipse'
+import PCAProjector from './visuals/covariance-and-pca/PCAProjector'
+
+A dataset with two numeric columns is a cloud of points, and the shape of that cloud (how wide it is, which way it leans) fits into a small table called the **covariance matrix**. Its eigenvectors are exactly the directions that **PCA** keeps when it squeezes many features into a few. The next lesson shows the SVD, the factorisation computers actually use to find them.
+
+<Analogy title="The NDP crowd at Marina Bay">
+
+Look down from a helicopter at the crowd watching the National Day fireworks. People spread out a long way along the waterfront promenade but only a little way back from the water. To describe the crowd you need its centre, how far it spreads in each direction, and which way its long side points. The covariance matrix records the spread and the lean. PCA reads off the long direction: "most of the crowd's variety is *along the waterfront*".
+
+</Analogy>
+
+## The covariance matrix: a cloud in a table
+
+In *Probability and statistics* you met the covariance of two features, $\operatorname{Cov}(x, y) = \frac1n \sum_i (x_i - \bar x)(y_i - \bar y)$, and saw that $\operatorname{Cov}(x, x)$ is just the variance of $x$. For data with two features, collect every pairing in one table:
+
+$$
+C = \begin{bmatrix} \operatorname{Var}(x) & \operatorname{Cov}(x, y) \\ \operatorname{Cov}(y, x) & \operatorname{Var}(y) \end{bmatrix}
+$$
+
+How to read it:
+
+- **Diagonal: the variances.** How spread out the cloud is along the x-axis and along the y-axis.
+- **Off-diagonal: the covariance.** Its sign is the lean of the cloud: positive means it rises from left to right, negative means it falls, and about 0 means no lean.
+- **Always symmetric.** $\operatorname{Cov}(x, y) = \operatorname{Cov}(y, x)$, because each product $(x_i - \bar x)(y_i - \bar y)$ is the same whichever factor you write first.
+
+With $d$ features the <Term def="A d×d table whose entry (i, j) is the covariance of feature i with feature j. The diagonal holds the variances; the matrix is always symmetric.">covariance matrix</Term> is $d \times d$, and entry $(i, j)$ is the covariance of feature $i$ with feature $j$. In matrix form, if the $n \times d$ matrix $X_c$ holds the **centred** data (each column has had its mean subtracted), then
+
+$$
+C = \frac{1}{n} X_c^T X_c
+$$
+
+The shapes work out as $(d \times n)(n \times d) = d \times d$, and entry $(i, j)$ multiplies column $i$ by column $j$ row by row and averages: exactly the covariance.
+
+<CovarianceEllipse />
+
+<Steps title="Covariance matrix of the points (4, 3), (3, 4), (1, 0), (0, 1)">
+  <Step title="Centre">
+    The mean is $(2, 2)$. Subtract it: the centred points are $(2, 1)$, $(1, 2)$, $(-1, -2)$ and $(-2, -1)$.
+  </Step>
+  <Step title="Variances (diagonal)">
+    $\operatorname{Var}(x) = \frac{4 + 1 + 1 + 4}{4} = 2.5$ and $\operatorname{Var}(y) = \frac{1 + 4 + 4 + 1}{4} = 2.5$.
+  </Step>
+  <Step title="Covariance (off-diagonal)">
+    $\operatorname{Cov}(x, y) = \frac{2 \cdot 1 + 1 \cdot 2 + (-1)(-2) + (-2)(-1)}{4} = \frac{8}{4} = 2$.
+  </Step>
+  <Step title="Assemble and read">
+    $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$: equal spread along both axes, and a strong upward lean.
+  </Step>
+</Steps>
+
+<Mistake title="np.cov's two surprises">
+
+`np.cov(X)` treats each **row** as a variable, so for the usual layout (one row per data point) you need `np.cov(X, rowvar=False)`. It also divides by $n - 1$; pass `bias=True` to divide by $n$ as we do here.
+
+</Mistake>
+
+## PCA: the direction of greatest spread
+
+Suppose you must describe each point with **one** number instead of two. Choose a direction, a unit vector $u$, and record each centred point's <Term def="The projection of a point onto a line: the foot of the perpendicular from the point. For a unit direction u, its position along the line is the dot product u · x.">shadow</Term> on the line through the centre in that direction. For a centred point $x$, the shadow sits at position $z = u \cdot x$ along the line.
+
+Which direction loses the least? The one along which the shadows are **most spread out**. Spread means variance, and the variance of the shadows works out to be $u^T C u$. Hunt for the best direction yourself:
+
+<PCAProjector />
+
+The peak always sits exactly on the top eigenvector of $C$, and its height is the top eigenvalue.
+
+<Reveal label="Why the best direction is an eigenvector">
+
+The variance of the shadows is $\frac1n\sum_k (u \cdot x_k)^2 = \frac1n\sum_k u^T x_k x_k^T u = u^T C u$.
+
+$C$ is symmetric, so (from the last lesson) $C = Q\Lambda Q^T$: it has perpendicular unit eigenvectors $v_1, v_2$ (the columns of $Q$) with eigenvalues $\lambda_1 \ge \lambda_2$. Write any unit vector as $u = a v_1 + b v_2$ with $a^2 + b^2 = 1$. Then $Cu = a\lambda_1 v_1 + b\lambda_2 v_2$, and because $v_1 \cdot v_2 = 0$,
+
+$$
+u^T C u = \lambda_1 a^2 + \lambda_2 b^2
+$$
+
+This is a weighted average of $\lambda_1$ and $\lambda_2$ with weights $a^2$ and $b^2$ that add up to 1. It is largest, $\lambda_1$, when $u = \pm v_1$, and smallest, $\lambda_2$, when $u = \pm v_2$.
+
+</Reveal>
+
+<KeyIdea>
+
+**PCA = the eigenvectors of the covariance matrix, sorted by eigenvalue.** In the language of the last lesson, $C = Q\Lambda Q^T$, and the columns of $Q$ are the principal components. The first <Term def="One of the new axes found by PCA: an eigenvector of the covariance matrix. PC1 points along the direction of greatest variance, PC2 along the greatest remaining variance at right angles to PC1, and so on.">principal component</Term> (PC1) is the eigenvector with the largest eigenvalue, the direction of greatest variance, and that eigenvalue *is* the variance along it.
+
+</KeyIdea>
+
+<Steps title="The PCA recipe, run on our four points">
+  <Step title="Centre (and standardise if the units differ)">
+    Centred points: $(2, 1)$, $(1, 2)$, $(-1, -2)$, $(-2, -1)$.
+  </Step>
+  <Step title="Covariance matrix">
+    $C = \begin{bmatrix} 2.5 & 2 \\ 2 & 2.5 \end{bmatrix}$, from the steps above.
+  </Step>
+  <Step title="Eigenvalues and eigenvectors, largest first">
+    Trace $= 5$ and $\det = 6.25 - 4 = 2.25$. Two numbers with sum 5 and product 2.25: $\lambda_1 = 4.5$ and $\lambda_2 = 0.5$. Check: $C\begin{bmatrix} 1 \\ 1 \end{bmatrix} = \begin{bmatrix} 4.5 \\ 4.5 \end{bmatrix}$, so PC1 $= \tfrac{1}{\sqrt2}[1, 1]$ and PC2 $= \tfrac{1}{\sqrt2}[1, -1]$.
+  </Step>
+  <Step title="Explained variance ratio">
+    PC1 explains $\frac{\lambda_1}{\lambda_1 + \lambda_2} = \frac{4.5}{5} = 90\%$ of the variance. The total, $\lambda_1 + \lambda_2 = 5$, is the trace of $C$: the sum of the variances.
+  </Step>
+  <Step title="Project">
+    Each point's new single feature is its shadow $z = \text{PC1} \cdot x$. For $(2, 1)$: $z = \frac{2 + 1}{\sqrt2} \approx 2.12$. The four scores are $2.12, 2.12, -2.12, -2.12$, and their variance is $4.5 = \lambda_1$.
+  </Step>
+</Steps>
+
+With $d$ features you keep the top $k$ eigenvectors as the columns of a $d \times k$ matrix $W_k$, and the new data is $Z = X_c W_k$, an $n \times k$ matrix.
+
+<PastPaperQuestion paper="prelim2026" n={14} />
+
+<QuickCheck
+  id="linear-algebra-deeper.covariance-and-pca.qc1"
+  q="A dataset's covariance matrix is $\begin{bmatrix} 9 & 0 \\ 0 & 1 \end{bmatrix}$. Which statement is correct?"
+  options={['PC1 points along the line y = x, because both features vary', 'PC1 points along the y-axis, because the smaller variance carries the signal', 'PC1 points along the x-axis and explains 90% of the variance', 'PC1 points along the x-axis and explains 100% of the variance, because the off-diagonal entries are 0']}
+  answer={2}
+  explain="The matrix is diagonal, so its eigenvectors are the axes and its eigenvalues are 9 and 1. The biggest, 9, belongs to the x-axis, which explains $\frac{9}{9 + 1} = 90\%$. Zero off-diagonal entries mean the features are uncorrelated, not that the y-direction has no variance: it still holds the other 10%."
+/>
+
+<Mistake title="Forgetting to standardise">
+
+PCA chases big numbers. If one feature is monthly income in dollars (variance in the millions) and another is age in years, PC1 will point almost exactly along income just because of the units. When features are measured in different units, standardise each one (z-scores) before PCA.
+
+</Mistake>
+
+## In code
+
+Here is the whole recipe in NumPy, checked against scikit-learn, on the four points from the worked examples. Eigenvectors may come out with flipped signs on your machine (both directions along a line are equally valid), which also flips the signs of the scores.
+
+<PyRunner packages={['numpy', 'scikit-learn']} rows={22} code={`import numpy as np
+from sklearn.decomposition import PCA
+
+X = np.array([[4, 3], [3, 4],
+              [1, 0], [0, 1]], dtype=float)
+# 1. centre, 2. covariance (divide by n)
+Xc = X - X.mean(axis=0)
+C = Xc.T @ Xc / len(X)
+print("C =\\n", C)
+
+# 3. eigendecomposition, largest first
+vals, vecs = np.linalg.eigh(C)
+order = np.argsort(vals)[::-1]
+vals, vecs = vals[order], vecs[:, order]
+print("eigenvalues:", vals)
+print("PC1:", vecs[:, 0].round(4))
+print("ratio:", (vals / vals.sum()).round(3))
+# 4. project onto PC1
+print("scores:", (Xc @ vecs[:, 0]).round(4))
+
+# the same with scikit-learn
+pca = PCA(n_components=2).fit(X)
+print("sklearn PC1:", pca.components_[0].round(4))`} />
+
+<ExamTip title="Know which number does which job">
+
+Most NOAI questions on this topic are one-line definitions, and the wrong options swap the roles around. Covariance matrix: symmetric, variances on the diagonal, covariances (the lean) off it. PCA: the eigenvectors of $C$ are the directions, the eigenvalues the variance along them, and $\lambda_i / \sum \lambda$ the explained variance ratio.
+
+</ExamTip>
+
+<Takeaways>
+
+- The covariance matrix is symmetric, with variances on the diagonal and covariances (the lean of the cloud) off it; $C = \frac1n X_c^TX_c$ for centred data.
+- PCA: the principal components are the eigenvectors of $C$, sorted by eigenvalue; each eigenvalue is the variance along its component, and $\lambda_i / \sum \lambda$ is its explained variance ratio.
+- Standardise features measured in different units before PCA, or the feature with the biggest numbers takes over PC1.
+
+</Takeaways>

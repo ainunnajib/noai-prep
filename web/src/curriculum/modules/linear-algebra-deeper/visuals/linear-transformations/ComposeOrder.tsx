@@ -65,7 +65,7 @@ export default function ComposeOrder() {
   const [showOther, setShowOther] = useState(false)
   const [wrapRef, narrow] = useNarrow<HTMLDivElement>(600)
   const LIM = 3.3
-  const cell = narrow ? 34 : 42
+  const cell = narrow ? 50 : 42
 
   const pRef = useRef(prog)
   pRef.current = prog
@@ -89,6 +89,65 @@ export default function ComposeOrder() {
   const same = sameM(SR, RS, 1e-6)
   const stageText =
     prog < 0.01 ? 'start' : prog < 0.995 ? 'first move' : prog < 1.005 ? 'after the first move' : prog < 1.995 ? 'second move' : 'after both moves'
+
+  const info = (
+    <div className={s.info} aria-live="polite">
+      <div className={s.row}>
+        {narrow ? (
+          // phones: only the two products, in cells wide enough that neighbouring entries never run together
+          <>
+            <ColMat rows={SR} name="SR: R first" cell={cell} />
+            <ColMat rows={RS} name="RS: S first" cell={cell} />
+          </>
+        ) : (
+          <>
+            <span className={s.eq}>
+              <ColMat rows={S} name="S (shear)" plain cell={cell} />
+              <ColMat rows={R} name="R (rotate)" plain cell={cell} />
+              <span>=</span>
+              <ColMat rows={SR} name="SR: R first" cell={cell} />
+            </span>
+            <span className={s.eq}>
+              <ColMat rows={R} name="R (rotate)" plain cell={cell} />
+              <ColMat rows={S} name="S (shear)" plain cell={cell} />
+              <span>=</span>
+              <ColMat rows={RS} name="RS: S first" cell={cell} />
+            </span>
+          </>
+        )}
+      </div>
+      <span className={`${s.badge} ${same ? '' : s.badgeBad}`}>{same ? 'SR = RS: these two moves commute' : 'SR ≠ RS: order matters'}</span>
+    </div>
+  )
+  const controls = (
+    <>
+      <Controls>
+        <Slider label="Rotation angle θ" value={theta} min={0} max={180} step={15} onChange={setTheta} format={(v) => `${v}°`} />
+        <Slider label="Shear amount k" value={k} min={-1.5} max={1.5} step={0.5} onChange={setK} format={(v) => fmt(v)} />
+      </Controls>
+      <Controls>
+        <Slider
+          label={`Progress: ${stageText}`}
+          value={prog}
+          min={0}
+          max={2}
+          step={0.01}
+          onChange={(v) => (setPlaying(false), setProg(v))}
+          format={(v) => `${fmt(v, 1)} / 2`}
+        />
+        <Button
+          primary
+          onClick={() => {
+            setProg(0)
+            setPlaying(true)
+          }}
+        >
+          Play both moves
+        </Button>
+        <Toggle label="Overlay the other order's result (pink)" checked={showOther} onChange={setShowOther} />
+      </Controls>
+    </>
+  )
 
   return (
     <Figure
@@ -124,49 +183,18 @@ export default function ComposeOrder() {
         />
       </div>
 
-      <div className={s.info} aria-live="polite">
-        <div className={s.row}>
-          <span className={s.eq}>
-            <ColMat rows={S} name="S (shear)" plain cell={cell} />
-            <ColMat rows={R} name="R (rotate)" plain cell={cell} />
-            <span>=</span>
-            <ColMat rows={SR} name="SR: R first" cell={cell} />
-          </span>
-          <span className={s.eq}>
-            <ColMat rows={R} name="R (rotate)" plain cell={cell} />
-            <ColMat rows={S} name="S (shear)" plain cell={cell} />
-            <span>=</span>
-            <ColMat rows={RS} name="RS: S first" cell={cell} />
-          </span>
-        </div>
-        <span className={`${s.badge} ${same ? '' : s.badgeBad}`}>{same ? 'SR = RS: these two moves commute' : 'SR ≠ RS: order matters'}</span>
-      </div>
-
-      <Controls>
-        <Slider label="Rotation angle θ" value={theta} min={0} max={180} step={15} onChange={setTheta} format={(v) => `${v}°`} />
-        <Slider label="Shear amount k" value={k} min={-1.5} max={1.5} step={0.5} onChange={setK} format={(v) => fmt(v)} />
-      </Controls>
-      <Controls>
-        <Slider
-          label={`Progress: ${stageText}`}
-          value={prog}
-          min={0}
-          max={2}
-          step={0.01}
-          onChange={(v) => (setPlaying(false), setProg(v))}
-          format={(v) => `${fmt(v, 1)} / 2`}
-        />
-        <Button
-          primary
-          onClick={() => {
-            setProg(0)
-            setPlaying(true)
-          }}
-        >
-          Play both moves
-        </Button>
-        <Toggle label="Overlay the other order's result (pink)" checked={showOther} onChange={setShowOther} />
-      </Controls>
+      {/* phones: the sliders sit right under the panels they change, and the matrices follow */}
+      {narrow ? (
+        <>
+          {controls}
+          {info}
+        </>
+      ) : (
+        <>
+          {info}
+          {controls}
+        </>
+      )}
     </Figure>
   )
 }

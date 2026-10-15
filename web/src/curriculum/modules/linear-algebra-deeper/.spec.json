@@ -181,15 +181,14 @@
       ]
     },
     {
-      "slug": "covariance-pca-svd",
-      "title": "Covariance, PCA and SVD",
-      "summary": "The shape of a data cloud captured in a matrix, its principal directions, and the rotate-stretch-rotate view of any matrix.",
+      "slug": "covariance-and-pca",
+      "title": "Covariance and PCA",
+      "summary": "The shape of a data cloud captured in a matrix, and PCA: its eigenvectors are the directions of greatest spread.",
       "minutes": 25,
       "objectives": [
-        "You can read a covariance matrix",
-        "You can explain PCA as finding eigenvectors of the covariance matrix",
-        "You can describe SVD as rotate, stretch, rotate",
-        "You can describe QR decomposition (Gram-Schmidt) and compute a Frobenius norm"
+        "You can read and compute a covariance matrix",
+        "You can explain PCA as finding the eigenvectors of the covariance matrix",
+        "You can compute an explained variance ratio and a PCA score"
       ],
       "concepts": [
         {
@@ -203,7 +202,25 @@
             "interaction": "Use sliders for spread along each axis and rotation angle (or drag the ellipse handles); the points, matrix and eigenvectors update together.",
             "aha": "The off-diagonal entry is the tilt of the cloud, and the eigenvectors of the covariance are exactly the directions PCA will pick."
           }
-        },
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Covariance matrix is symmetric, diagonal = variances",
+        "Principal components = eigenvectors, explained variance = eigenvalues"
+      ]
+    },
+    {
+      "slug": "svd-and-special-matrices",
+      "title": "SVD and special matrices",
+      "summary": "Orthogonal matrices, the turn-stretch-turn view of any matrix, low-rank approximation, positive definite matrices, QR and the Frobenius norm.",
+      "minutes": 30,
+      "objectives": [
+        "You can describe SVD as turn, stretch, turn and read off singular values",
+        "You can recognise orthogonal and positive definite matrices",
+        "You can describe QR decomposition (Gram–Schmidt) and compute a Frobenius norm"
+      ],
+      "concepts": [
         {
           "name": "SVD: rotate, stretch, rotate",
           "explain": "Every matrix can be written A = UΣVᵀ: a rotation (Vᵀ), a stretch along the axes by the singular values (Σ), and another rotation (U). The number of non-zero singular values is the rank, and keeping only the largest ones gives the best low-rank approximation.",
@@ -243,8 +260,6 @@
       ],
       "code": "runnable",
       "checkpoint_focus": [
-        "Covariance matrix is symmetric, diagonal = variances",
-        "Principal components = eigenvectors, explained variance = eigenvalues",
         "SVD A = UΣVᵀ and singular values",
         "Orthogonal matrices preserve length",
         "QR = orthogonal × upper triangular; Frobenius norm = √(sum of squared entries)"

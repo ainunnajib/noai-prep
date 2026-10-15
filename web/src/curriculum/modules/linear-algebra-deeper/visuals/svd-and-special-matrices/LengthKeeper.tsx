@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Figure, Controls, Slider, Segmented, Plot, Grid, Axes, Arrow, Path, Label, FnPath, DraggablePoint, MatrixGrid, usePlot, useNarrow } from '../../../../../kit'
 import { type M2, type V2, apply, mul, transpose, rot, dirV, norm, scale, symFromEig, fmt, fix, imageOfCircle } from '../eigenvectors-eigenvalues/eig2'
-import { contour, Segments } from './la2'
+import { contour, Segments } from '../covariance-and-pca/la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
-import c from './cps.module.css'
+import c from '../covariance-and-pca/cps.module.css'
 
 /*
   Two special kinds of matrix.
@@ -199,6 +199,15 @@ function PositiveDefinite() {
       text: <><b>Trough: semi-definite.</b> One eigenvalue is 0, so the surface is flat along that eigenvector: a whole line of lowest (or highest) points.</>,
     }
 
+  // sliders sit right under the contour map on phones, at the bottom on wider screens
+  const controls = (
+    <Controls>
+      <Slider label={<span className={s.c2}>λ₁</span>} value={l1} min={-2} max={2} step={0.1} onChange={setL1} format={(v) => fmt(v, 1)} />
+      <Slider label={<span className={s.c3}>λ₂</span>} value={l2} min={-2} max={2} step={0.1} onChange={setL2} format={(v) => fmt(v, 1)} />
+      <Slider label="direction of eigenvector 1" value={ang} min={0} max={165} step={15} onChange={setAng} format={(v) => `${v}°`} />
+    </Controls>
+  )
+
   return (
     <>
       <div ref={wrapRef} className={`${s.panels} ${narrow ? s.panelsNarrow : ''}`}>
@@ -215,6 +224,7 @@ function PositiveDefinite() {
             <Arrow from={[0, 0]} to={scale(v2, 1.4)} color="var(--viz-ink)" width={2.4} label={`λ₂ = ${fmt(l2, 1)}`} labelOffset={[4, -6]} />
           </Plot>
         </div>
+        {narrow && controls}
         <div className={s.panel}>
           <div className={s.panelTitle}>Slices through the centre along each eigenvector</div>
           <Plot x={[-2, 2]} y={[-6, 6]} width={300} height={200} margin={{ top: 10, right: 10, bottom: 30, left: 34 }} maxWidth={360} ariaLabel="The function along the two eigenvectors">
@@ -240,11 +250,7 @@ function PositiveDefinite() {
       <div className={`${s.status} ${kind.cls}`} role="status">
         {kind.text}
       </div>
-      <Controls>
-        <Slider label={<span className={s.c2}>λ₁</span>} value={l1} min={-2} max={2} step={0.1} onChange={setL1} format={(v) => fmt(v, 1)} />
-        <Slider label={<span className={s.c3}>λ₂</span>} value={l2} min={-2} max={2} step={0.1} onChange={setL2} format={(v) => fmt(v, 1)} />
-        <Slider label="direction of eigenvector 1" value={ang} min={0} max={165} step={15} onChange={setAng} format={(v) => `${v}°`} />
-      </Controls>
+      {!narrow && controls}
     </>
   )
 }

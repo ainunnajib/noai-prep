@@ -2,32 +2,7 @@ import type { QuizQuestion } from '../../../types'
 
 const questions: QuizQuestion[] = [
   {
-    id: 'linear-algebra-deeper.covariance-pca-svd.1',
-    prompt:
-      'The covariance matrix of two features, height (cm) and mass (kg), is $\\begin{bmatrix} 49 & 21 \\\\ 21 & 16 \\end{bmatrix}$, with height first. Which statement is correct?',
-    options: [
-      'The variance of height is 49, and height and mass tend to rise together',
-      'The standard deviation of height is 49, and height and mass tend to rise together',
-      'The variance of height is 49, and the correlation between height and mass is 21',
-      'The variance of height is 49, and height and mass tend to move in opposite directions',
-    ],
-    answer: 0,
-    explanation:
-      'The diagonal holds the variances (so the standard deviation of height is $\\sqrt{49} = 7$), and the off-diagonal holds the covariance. It is positive, so taller people tend to be heavier. 21 is a covariance, not a correlation: the correlation is $\\frac{21}{7 \\times 4} = 0.75$, and correlations always lie between $-1$ and 1.',
-    difficulty: 'beginner',
-  },
-  {
-    id: 'linear-algebra-deeper.covariance-pca-svd.2',
-    prompt:
-      'PCA on a dataset with 3 features finds covariance eigenvalues 6, 3 and 1. If you keep the first two principal components, what fraction of the total variance do you keep?',
-    options: ['90%', '60%', '67%', '30%'],
-    answer: 0,
-    explanation:
-      'Each eigenvalue is the variance along its component, and the total is $6 + 3 + 1 = 10$ (the trace of the covariance matrix). Keeping PC1 and PC2 keeps $\\frac{6 + 3}{10} = 90\\%$. 60% is PC1 alone, 30% is PC2 alone, and 67% just counts components (2 of 3) instead of weighing them by variance.',
-    difficulty: 'beginner',
-  },
-  {
-    id: 'linear-algebra-deeper.covariance-pca-svd.3',
+    id: 'linear-algebra-deeper.svd-and-special-matrices.1',
     prompt: 'What does this code print?',
     code: 'import numpy as np\nA = np.array([[3, 0],\n              [0, -2]])\ns = np.linalg.svd(A, compute_uv=False)\nprint(s)',
     options: ['`[3. 2.]`', '`[ 3. -2.]`', '`[-2.  3.]`', '`[9. 4.]`'],
@@ -37,7 +12,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'linear-algebra-deeper.covariance-pca-svd.4',
+    id: 'linear-algebra-deeper.svd-and-special-matrices.2',
     prompt: '$Q$ is a 2×2 orthogonal matrix and $x = [6, 8]$. What is $\\lVert Qx \\rVert$?',
     options: [
       '10, because $Q^TQ = I$ means $Q$ keeps every length',
@@ -51,7 +26,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'intermediate',
   },
   {
-    id: 'linear-algebra-deeper.covariance-pca-svd.5',
+    id: 'linear-algebra-deeper.svd-and-special-matrices.3',
     prompt:
       'A tiny layer has weight matrix $W = \\begin{bmatrix} 2 & -1 \\\\ -2 & 4 \\end{bmatrix}$. Weight decay penalises the size of $W$ using its Frobenius norm. What is $\\lVert W \\rVert_F$?',
     options: ['5', '25', '3', '4'],
@@ -61,7 +36,7 @@ const questions: QuizQuestion[] = [
     difficulty: 'beginner',
   },
   {
-    id: 'linear-algebra-deeper.covariance-pca-svd.6',
+    id: 'linear-algebra-deeper.svd-and-special-matrices.4',
     prompt: 'Gram–Schmidt turns the columns of a square matrix $A$ with independent columns into $A = QR$. Which statement is true?',
     options: [
       '$Q$ has perpendicular unit columns and $R$ is upper triangular',
@@ -73,6 +48,20 @@ const questions: QuizQuestion[] = [
     explanation:
       '$Q$ collects the straightened columns $q_1, q_2, \\dots$ (perpendicular, length 1), so $Q^TQ = I$. $R$ records how to rebuild each column of $A$ from them: $a_1$ uses only $q_1$, $a_2$ uses $q_1$ and $q_2$, and so on, which is why $R$ is upper triangular. Its diagonal holds the lengths found along the way, starting with $\\lVert a_1 \\rVert$. Swapping the roles of $Q$ and $R$ is the classic trap, and diagonal factors could only stretch the axes, never straighten slanted columns.',
     difficulty: 'beginner',
+  },
+  {
+    id: 'linear-algebra-deeper.svd-and-special-matrices.5',
+    prompt: 'Is the symmetric matrix $\\begin{bmatrix} 3 & 1 \\\\ 1 & 3 \\end{bmatrix}$ positive definite?',
+    options: [
+      'Yes: its eigenvalues are 4 and 2, both positive',
+      'No: a positive definite matrix must have zero off-diagonal entries',
+      'Only semi-definite, because its determinant is 8, not 1',
+      'No: it is negative definite, because its trace is less than its determinant',
+    ],
+    answer: 0,
+    explanation:
+      'Trace 6 and determinant $9 - 1 = 8$: two numbers with sum 6 and product 8 are 4 and 2, both positive, so the matrix is positive definite (for a symmetric 2×2, det > 0 and trace > 0 is enough). Off-diagonal entries are allowed, the determinant does not have to be 1, and comparing the trace with the determinant says nothing about the signs.',
+    difficulty: 'intermediate',
   },
 ]
 

@@ -104,6 +104,23 @@ export default function EigenBars() {
   const prodOk = Math.abs(prod - D) < 1e-6
   const sumOk = Math.abs(sum - T) < 1e-6
 
+  // the sliders, placed right under the area picture on phones and at the bottom on wider screens
+  const sliders =
+    mode === 'eig' ? (
+      <Controls>
+        <Slider label={<span className={s.c1}>λ₁</span>} value={l1} min={-3} max={3} step={0.1} onChange={setL1} format={(x) => fmt(x, 1)} />
+        <Slider label={<span className={s.c5}>λ₂</span>} value={l2} min={-3} max={3} step={0.1} onChange={setL2} format={(x) => fmt(x, 1)} />
+        <Slider label="direction of eigenvector 1" value={ang} min={0} max={165} step={15} onChange={setAng} format={(x) => `${x}°`} />
+      </Controls>
+    ) : (
+      <div className={s.matSliders}>
+        <Slider label="a" value={ent[0][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x, 1)} />
+        <Slider label="b" value={ent[0][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x, 1)} />
+        <Slider label="c" value={ent[1][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x, 1)} />
+        <Slider label="d" value={ent[1][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x, 1)} />
+      </div>
+    )
+
   return (
     <Figure
       title="Eigenvalues, determinant and trace always agree"
@@ -160,6 +177,7 @@ export default function EigenBars() {
             )}
           </div>
         </div>
+        {narrow && sliders}
         <div className={s.panel}>
           <div className={s.panelTitle}>Eigenvalues against det and trace</div>
           <Plot x={[-0.6, 7]} y={[Ylo, Yhi]} width={340} height={280} margin={{ top: 18, right: 6, bottom: 40, left: 34 }} maxWidth={400} ariaLabel="Bars comparing the eigenvalues, their product and sum, with the determinant and trace">
@@ -250,20 +268,7 @@ export default function EigenBars() {
         )}
       </div>
 
-      {mode === 'eig' ? (
-        <Controls>
-          <Slider label={<span className={s.c1}>λ₁</span>} value={l1} min={-3} max={3} step={0.1} onChange={setL1} format={(x) => fmt(x, 1)} />
-          <Slider label={<span className={s.c5}>λ₂</span>} value={l2} min={-3} max={3} step={0.1} onChange={setL2} format={(x) => fmt(x, 1)} />
-          <Slider label="direction of eigenvector 1" value={ang} min={0} max={165} step={15} onChange={setAng} format={(x) => `${x}°`} />
-        </Controls>
-      ) : (
-        <div className={s.matSliders}>
-          <Slider label="a" value={ent[0][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 0, x)} format={(x) => fmt(x, 1)} />
-          <Slider label="b" value={ent[0][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(0, 1, x)} format={(x) => fmt(x, 1)} />
-          <Slider label="c" value={ent[1][0]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 0, x)} format={(x) => fmt(x, 1)} />
-          <Slider label="d" value={ent[1][1]} min={-3} max={3} step={0.5} onChange={(x) => setEntry(1, 1, x)} format={(x) => fmt(x, 1)} />
-        </div>
-      )}
+      {!narrow && sliders}
     </Figure>
   )
 }

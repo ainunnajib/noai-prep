@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Figure, Controls, Readout, Slider, Plot, Axes, Rect, Label, VLine, M } from '../../../../../kit'
 import { fix } from '../eigenvectors-eigenvalues/eig2'
-import { svd } from './la2'
-import c from './cps.module.css'
+import { svd } from '../covariance-and-pca/la2'
+import c from '../covariance-and-pca/cps.module.css'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
 
 /*
@@ -129,11 +129,14 @@ export default function LowRankPicture() {
       title="Low-rank approximation: keep only the biggest stretches"
       caption={
         <>
-          A greyscale picture is just a matrix of numbers: this one is 48 × 48, so 2,304 ink levels. The SVD writes it as a sum of simple layers σ₁u₁v₁ᵀ +
-          σ₂u₂v₂ᵀ + …, each one a column times a row, ordered by its singular value. Slide <i>k</i> to keep only the first <i>k</i> layers. Each layer costs 48 + 48
-          + 1 = 97 numbers, so five layers (485 numbers, 21% of the picture) already give a recognisable face, and about a dozen are hard to tell from the
-          original. From k = {breakEven} on, the layers cost more than the picture itself, so there is no saving left. The error is the Frobenius norm of
-          what was thrown away, <M>{'\\sqrt{\\sigma_{k+1}^2 + \\sigma_{k+2}^2 + \\dots}'}</M>.
+          <b>Try:</b> slide <i>k</i> from 1 up to about 12, then on to {breakEven}.
+          <br />
+          <b>Notice:</b> five layers (485 numbers, 21% of the picture) already give a recognisable face, and from k = {breakEven} on the layers cost more than the
+          picture itself.
+          <span className="fine">
+            The 48 × 48 picture is a matrix of 2,304 ink levels. Each layer σᵢuᵢvᵢᵀ costs 48 + 48 + 1 = 97 numbers, and the error is the Frobenius norm of what was
+            thrown away, <M>{'\\sqrt{\\sigma_{k+1}^2 + \\sigma_{k+2}^2 + \\dots}'}</M>.
+          </span>
         </>
       }
     >

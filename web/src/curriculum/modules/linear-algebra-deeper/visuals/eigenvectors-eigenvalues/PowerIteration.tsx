@@ -86,11 +86,18 @@ export default function PowerIteration() {
       title="Multiply again and again: the dominant direction wins"
       caption={
         <>
-          Each step replaces the arrow by <i>A</i> times itself. Watch the trail swing onto the <span className={s.c3}>green</span> eigen-line, the one whose
-          eigenvalue has the biggest size |λ₁|. Drag <i>v₀</i> to start somewhere else: the whole trail redraws, and it still ends on the same line (unless you
-          start exactly on the grey λ₂ line). Press <b>Replay</b> (or <b>Restart</b>, then <b>Next</b>) to watch it step by step. Turn off <b>Rescale</b> to see the real
-          vectors: with |λ₁| &gt; 1 they explode (the view zooms out), with |λ₁| &lt; 1 they fade to nothing. That is exactly what happens to signals passed through
-          many copies of the same layer.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Replay</b>, then drag <i>v₀</i> to start somewhere else.
+            </li>
+            <li>
+              Turn off <b>Rescale</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> wherever it starts, the trail swings onto the <span className={s.c3}>green</span> line, the eigenvector with the biggest |λ₁|; without
+          rescaling the vectors explode (|λ₁| &gt; 1) or fade away (|λ₁| &lt; 1), just like signals through many copies of one layer.
+          <span className="fine">Each step replaces the arrow by A times itself. Starting exactly on the grey λ₂ line is the one exception.</span>
         </>
       }
     >

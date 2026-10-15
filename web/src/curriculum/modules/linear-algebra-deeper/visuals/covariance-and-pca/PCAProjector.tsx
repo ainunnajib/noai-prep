@@ -71,11 +71,19 @@ export default function PCAProjector() {
       title="PCA: find the direction where the shadows spread out most"
       caption={
         <>
-          Every point casts a "shadow" onto the orange line (its projection). Drag the handle to turn the line and watch the variance of the shadows on the
-          curve. The best line, PC1, is where the curve peaks: it is the top eigenvector of the covariance matrix, and the peak height is exactly the
-          top eigenvalue λ₁. The lowest point, 90° away, is PC2 with variance λ₂. Whatever the angle, the kept variance plus the lost variance (mean squared distance
-          to the line) is the same total, λ₁ + λ₂. Turn on <b>Flatten</b> to see the 1-number-per-point version of the data that PCA keeps. On the{' '}
-          <b>Round</b> cloud no direction is much better than another.
+          <b>Try:</b>
+          <ol className="try">
+            <li>Drag the handle to turn the orange line, and watch the variance of the shadows on the curve.</li>
+            <li>
+              Turn on <b>Flatten</b>, then switch to the <b>Round</b> cloud.
+            </li>
+          </ol>
+          <b>Notice:</b> the curve peaks at PC1, the top eigenvector of the covariance matrix, and the peak height is exactly λ₁; on the round cloud no direction
+          is much better.
+          <span className="fine">
+            Each point's shadow is its projection onto the line. Kept variance plus lost variance (mean squared distance to the line) is always λ₁ + λ₂. PC2,
+            90° away, has variance λ₂.
+          </span>
         </>
       }
     >

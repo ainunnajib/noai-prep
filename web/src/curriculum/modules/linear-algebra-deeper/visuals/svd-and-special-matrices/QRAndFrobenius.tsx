@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Figure, Controls, Segmented, Button, Plot, Grid, Axes, Arrow, Path, DraggablePoint, MatrixGrid, M, usePlayer, PlayerControls, useNarrow } from '../../../../../kit'
 import { type V2, dot, norm, scale, fix, fmt, imageOfCircle } from '../eigenvectors-eigenvalues/eig2'
-import { svd, RightAngle, MiniMat, FactorRow } from './la2'
+import { svd, RightAngle, MiniMat, FactorRow } from '../covariance-and-pca/la2'
 import s from '../eigenvectors-eigenvalues/ev.module.css'
-import c from './cps.module.css'
+import c from '../covariance-and-pca/cps.module.css'
 
 /*
   Tab 1: Gram–Schmidt builds Q (perpendicular unit columns) from the columns of A, step by step,

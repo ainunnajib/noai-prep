@@ -111,12 +111,21 @@ export default function GridWarper() {
       title="Drag the columns: the whole grid follows"
       caption={
         <>
-          The faint square grid is the plane before the move; the violet grid is the plane after multiplying every point by <i>A</i>. Drag the tips of the{' '}
-          <span className={s.c1}>blue</span> and <span className={s.c2}>orange</span> arrows: they are the two columns of <i>A</i>, the new homes of (1, 0) and
-          (0, 1). Grid lines always stay straight, parallel and evenly spaced. The green probe shows the recipe: <i>p</i> = (x, y) lands at x steps of column 1
-          followed by y steps of column 2. Try the presets, then press <b>Play the move</b> to watch the plane slide from where it started. Rotations turn
-          through the angle; other moves blend the entries, so the in-between frames are not themselves the final kind of move. Watch <b>Reflect</b>: halfway
-          the plane is squashed flat, because in 2-D you cannot flip a picture over without passing through det = 0.
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Drag the tips of the <span className={s.c1}>blue</span> and <span className={s.c2}>orange</span> arrows: they are the two columns of <i>A</i>.
+            </li>
+            <li>
+              Try the presets, then press <b>Play the move</b>; watch <b>Reflect</b> closely.
+            </li>
+          </ol>
+          <b>Notice:</b> grid lines stay straight, parallel and evenly spaced, and halfway through <b>Reflect</b> the plane is squashed flat (det = 0): in 2-D you
+          cannot flip a picture without that.
+          <span className="fine">
+            The faint grid is the plane before the move, the violet grid after it. The green probe <i>p</i> = (x, y) lands at x steps of column 1 then y steps of
+            column 2. In-between frames blend the entries, so they are not themselves the final kind of move.
+          </span>
         </>
       }
     >

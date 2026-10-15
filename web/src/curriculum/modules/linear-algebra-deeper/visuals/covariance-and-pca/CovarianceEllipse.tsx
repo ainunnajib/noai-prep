@@ -77,16 +77,31 @@ export default function CovarianceEllipse() {
       </>
     )
 
+  // sliders sit right under the plot they drive on phones, at the bottom on wider screens
+  const controls = (
+    <Controls>
+      <Slider label="spread in the tilt direction" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
+      <Slider label="spread at right angles to it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
+      <Slider label="tilt" value={tilt} min={-90} max={85} step={5} onChange={setTilt} format={(v) => `${fmt(v)}°`} />
+    </Controls>
+  )
+
   return (
     <Figure
       title="The covariance matrix is the shape of the cloud"
       caption={
         <>
-          Drag the two handles (or use the sliders) to stretch and tilt the cloud of 200 points. The matrix is computed from the points. The diagonal holds the
-          variances of x and y, the off-diagonal entry holds their covariance, and the two copies of it are always equal. Its <span className={s.c2}>orange</span> and{' '}
-          <span className={s.c3}>green</span> eigenvectors are the long and short axes of the ellipse (drawn 2 standard deviations out), and the eigenvalues are the
-          variances along those axes. Whichever spread is larger becomes the long axis v₁, so pushing the second slider past the first swaps them. Set the tilt to
-          0° and watch the off-diagonal entries become 0.
+          <b>Try:</b>
+          <ol className="try">
+            <li>Drag the two handles (or the sliders) to stretch and tilt the cloud.</li>
+            <li>Set the tilt to 0°.</li>
+          </ol>
+          <b>Notice:</b> the <span className={s.c2}>orange</span> and <span className={s.c3}>green</span> eigenvectors are the long and short axes of the
+          ellipse, and at 0° tilt the off-diagonal entries become 0.
+          <span className="fine">
+            The matrix is computed from the 200 points: variances on the diagonal, the covariance (twice, always equal) off it. The eigenvalues are the variances
+            along the axes; the ellipse is drawn 2 standard deviations out.
+          </span>
         </>
       }
     >
@@ -133,6 +148,7 @@ export default function CovarianceEllipse() {
             />
           </Plot>
         </div>
+        {narrow && controls}
         <div className={s.panel}>
           <MatrixGrid
             data={C}
@@ -167,11 +183,7 @@ export default function CovarianceEllipse() {
           </div>
         </div>
       </div>
-      <Controls>
-        <Slider label="spread in the tilt direction" value={s1} min={MIN} max={MAX} step={0.1} onChange={setS1} format={(v) => fmt(v, 1)} />
-        <Slider label="spread at right angles to it" value={s2} min={MIN} max={MAX} step={0.1} onChange={setS2} format={(v) => fmt(v, 1)} />
-        <Slider label="tilt" value={tilt} min={-90} max={85} step={5} onChange={setTilt} format={(v) => `${fmt(v)}°`} />
-      </Controls>
+      {!narrow && controls}
     </Figure>
   )
 }
