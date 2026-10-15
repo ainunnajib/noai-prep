@@ -180,7 +180,7 @@ const SNIPPETS: Snippet[] = [
     id: 'head',
     tab: 'Fine-tuning',
     pattern: 'state',
-    task: <>A pretrained network gets a new 10-class head. The loss barely moves, and the head&rsquo;s weights never change. Which line is wrong?</>,
+    task: <>A pretrained network gets a new 10-class head. After training, the head&rsquo;s weights are exactly their starting values. Which line is wrong?</>,
     lines: [
       'model = Net()  # pretrained backbone + head',
       'optimiser = torch.optim.Adam(model.parameters(), lr=1e-3)',

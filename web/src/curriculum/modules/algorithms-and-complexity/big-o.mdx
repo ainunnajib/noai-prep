@@ -41,19 +41,25 @@ n = 10_000
 items_list = list(range(n))
 items_set = set(items_list)
 # none of these queries are stored: worst case
-queries = range(n, n + 1_000)
+queries = range(n, n + 300)
 
+# perf_counter() is a stopwatch, in seconds
 start = time.perf_counter()
 found = sum(1 for q in queries if q in items_list)
 t_list = time.perf_counter() - start
 
+# one pass over the set is too quick for a
+# browser's clock, so time 1,000 passes
+reps = 1_000
 start = time.perf_counter()
-found = sum(1 for q in queries if q in items_set)
-t_set = time.perf_counter() - start
+for _ in range(reps):
+    found = sum(1 for q in queries if q in items_set)
+t_set = (time.perf_counter() - start) / reps
 
 print(f"list: {t_list:.4f} s")
 print(f"set:  {t_set:.6f} s")
-print(f"set faster by about {t_list / t_set:.0f}x")`
+ratio = t_list / max(t_set, 1e-9)
+print(f"set faster by about {ratio:.0f}x")`
 
 Two programs can give exactly the same answer, yet one finishes before you blink and the other is still running next week. The difference is rarely the computer. It is how the amount of work **grows** as the input gets bigger. **Big-O notation** is the language for that growth: you will use it to choose between algorithms, to spot slow code before you run it, and to answer NOAI questions such as "what is the complexity of self-attention?" in a few seconds.
 
@@ -209,7 +215,7 @@ So a single loop containing `if q in items:` is really a loop inside a loop when
 
 <PyRunner code={timingCode} />
 
-Your times will differ from anyone else's, but the set wins by a factor of hundreds or thousands every time.
+Your times will differ from anyone else's, but the set wins by a factor of thousands every time.
 
 <QuickCheck
   q="What is the time complexity of this code, in terms of $n$?"

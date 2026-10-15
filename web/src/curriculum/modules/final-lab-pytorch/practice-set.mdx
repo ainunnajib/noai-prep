@@ -68,7 +68,7 @@ Every task above has at least one hidden test that a correct-looking first draft
 
 - **Division by zero:** no predicted positives (precision), two empty masks (Dice), a constant row (normalisation). Guard the denominator, or add a small `eps` as the formula says.
 - **Overflow:** `np.exp(1000)` is `inf`. Subtract each row's maximum before a softmax.
-- **Ties:** a tied vote or two equal distances. Read the docstring for the tie rule; `np.bincount(votes).argmax()` picks the smallest label.
+- **Ties:** a tied vote or two equal distances. Read the docstring for the tie rule; `np.bincount(votes).argmax()` picks the smallest label. (In the browser runner, which is 32-bit, `np.bincount` only accepts the platform integer type, so convert first: `votes.astype(np.intp)`.)
 - **Conventions:** biased versus unbiased variance, a flipped kernel, a regularised bias. When the docstring names a convention, a hidden test checks it.
 - **Return types and shapes:** a NumPy scalar where a Python `float` was asked for, or `(n,)` where `(n, 1)` was asked for.
 

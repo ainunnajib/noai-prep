@@ -16,7 +16,7 @@ const BUGS: { id: BugId; label: string }[] = [
   { id: 'noZeroGrad', label: 'Missing zero_grad()' },
   { id: 'shuffled', label: 'Labels shuffled on their own' },
   { id: 'softmaxTwice', label: 'Softmax before CrossEntropyLoss' },
-  { id: 'frozen', label: 'All weights frozen' },
+  { id: 'staleOpt', label: 'Optimiser built for an old model' },
   { id: 'lrLow', label: 'Learning rate 100× too low' },
   { id: 'hugeInit', label: 'Huge initial weights' },
 ]
@@ -49,9 +49,9 @@ function code(bug: BugId): { lines: string[]; bad: number[] } {
       lines.splice(8, 1, '    p = model(x).softmax(dim=1)', '    loss = loss_fn(p, y)')
       bad = [8, 9]
       break
-    case 'frozen':
-      lines.splice(1, 0, 'for p in model.parameters():', '    p.requires_grad = False')
-      bad = [1, 2]
+    case 'staleOpt':
+      lines.splice(3, 0, 'model = Net()          # rebuilt after opt')
+      bad = [3]
       break
     case 'lrLow':
       bad = [2]
@@ -86,8 +86,11 @@ function verdict(bug: BugId, loss: number[]): { tone: 'good' | 'bad' | 'warn'; t
         tone: 'bad',
         text: `Fails. CrossEntropyLoss applies its own softmax, so the model's outputs pass through softmax twice. Its inputs are then squashed into 0 to 1, and the loss can never go below ln(1 + 3/e) ≈ ${SOFTMAX_TWICE_FLOOR.toFixed(3)}. It is stuck at ${last.toFixed(3)}.`,
       }
-    case 'frozen':
-      return { tone: 'bad', text: `Fails. The loss is exactly ${loss[0].toFixed(3)} at every step: a perfectly flat line means no weight is being updated at all.` }
+    case 'staleOpt':
+      return {
+        tone: 'bad',
+        text: `Fails. The loss is exactly ${loss[0].toFixed(3)} at every step: a perfectly flat line means no weight of the model you are training is being updated. The optimiser holds the parameters of the first Net, but the loop trains the new one.`,
+      }
     case 'lrLow':
       return {
         tone: 'warn',

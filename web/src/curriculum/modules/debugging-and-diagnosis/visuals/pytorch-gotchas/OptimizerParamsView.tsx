@@ -27,6 +27,8 @@ interface State {
   opt: string[] | null
   /** result of the last training step: block -> 'updated' | reason */
   step: Record<BlockId, string> | null
+  /** the error PyTorch would raise for the last action, if any */
+  error?: string
   log: string[]
 }
 
@@ -42,7 +44,7 @@ const START: State = {
 type Action = 'freezeBackbone' | 'freezeAll' | 'unfreeze' | 'replace' | 'optAll' | 'optTrainable' | 'train'
 
 function act(st: State, a: Action): State {
-  const n: State = { ...st, version: { ...st.version }, requiresGrad: { ...st.requiresGrad }, step: null, log: [...st.log] }
+  const n: State = { ...st, version: { ...st.version }, requiresGrad: { ...st.requiresGrad }, step: null, error: undefined, log: [...st.log] }
   switch (a) {
     case 'freezeBackbone':
       for (const b of ['conv1', 'layer1', 'layer2'] as BlockId[]) n.requiresGrad[b] = false
@@ -66,10 +68,26 @@ function act(st: State, a: Action): State {
       n.log.push('opt = Adam(model.parameters())')
       break
     case 'optTrainable':
-      n.opt = BLOCKS.filter((b) => n.requiresGrad[b.id]).map((b) => key(b.id, n.version[b.id]))
       n.log.push('params = model.parameters()', 'trainable = [p for p in params', '             if p.requires_grad]', 'opt = Adam(trainable)')
+      if (!BLOCKS.some((b) => n.requiresGrad[b.id])) {
+        // nothing is trainable: PyTorch refuses to build the optimiser
+        n.opt = null
+        n.error = 'ValueError: optimizer got an empty parameter list'
+        break
+      }
+      n.opt = BLOCKS.filter((b) => n.requiresGrad[b.id]).map((b) => key(b.id, n.version[b.id]))
       break
     case 'train': {
+      n.log.push('loss.backward(); opt.step()')
+      if (!BLOCKS.some((b) => n.requiresGrad[b.id])) {
+        // no parameter requires grad, so the loss has no graph to differentiate
+        n.error = 'RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn'
+        break
+      }
+      if (n.opt === null) {
+        n.error = "NameError: name 'opt' is not defined (build an optimiser first)"
+        break
+      }
       const res = {} as Record<BlockId, string>
       for (const b of BLOCKS) {
         const held = !!n.opt?.includes(key(b.id, n.version[b.id]))
@@ -77,7 +95,6 @@ function act(st: State, a: Action): State {
         res[b.id] = held && hasGrad ? 'updated' : !hasGrad ? 'frozen' : 'notHeld'
       }
       n.step = res
-      n.log.push('loss.backward(); opt.step()')
       break
     }
   }
@@ -172,6 +189,16 @@ export default function OptimizerParamsView() {
             ['blocks updated last step', nUpdated === null ? '–' : String(nUpdated)],
           ]}
         />
+        {st.error && (
+          <Note tone="bad">
+            <b>PyTorch stops with an error:</b> <code>{st.error}</code>.{' '}
+            {st.error.startsWith('RuntimeError')
+              ? 'Every parameter is frozen, so there is nothing to differentiate. Freezing everything does not give a flat loss: it crashes.'
+              : st.error.startsWith('ValueError')
+                ? 'No parameter requires a gradient, so there is nothing for the optimiser to hold.'
+                : null}
+          </Note>
+        )}
         {st.step && (
           <Note tone={nUpdated === 0 || fcProblem ? 'bad' : nUpdated === BLOCKS.length ? 'info' : 'good'}>
             {nUpdated === 0 ? (

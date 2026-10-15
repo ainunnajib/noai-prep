@@ -20,7 +20,7 @@ export const GOOD_LR = 0.02
 export const STEPS = 300
 export const HUGE_INIT = 30
 
-export type BugId = 'none' | 'noZeroGrad' | 'shuffled' | 'softmaxTwice' | 'frozen' | 'lrLow' | 'hugeInit'
+export type BugId = 'none' | 'noZeroGrad' | 'shuffled' | 'softmaxTwice' | 'staleOpt' | 'lrLow' | 'hugeInit'
 
 export interface BatchData {
   x: [number, number][]
@@ -156,7 +156,7 @@ export function runOneBatch(bug: BugId, steps = STEPS): OneBatchRun {
     const res = lossAndGrad(p, x, yy, bug === 'softmaxTwice')
     loss.push(res.loss)
     if (t === steps) break
-    if (bug === 'frozen') continue // requires_grad=False everywhere: no .grad, Adam skips every weight
+    if (bug === 'staleOpt') continue // the optimiser holds an old model's parameters: this model is never updated
     if (bug !== 'noZeroGrad') grad.fill(0) // optimizer.zero_grad()
     for (let i = 0; i < P; i++) grad[i] += res.g[i] // loss.backward() ADDS into .grad
     // optimizer.step() (Adam)

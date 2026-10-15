@@ -58,7 +58,7 @@ const questions: QuizQuestion[] = [
   {
     id: 'model-evaluation.imbalanced-data.5',
     prompt:
-      'A fraud model outputs calibrated probabilities. Checking a flagged payment costs 5 dollars; a missed fraud costs 45 dollars. To minimise the expected cost, flag a payment when its predicted fraud probability is above which value?',
+      'A fraud model outputs calibrated probabilities. Flagging a genuine payment (a false alarm) costs 5 dollars, a missed fraud costs 45 dollars, and correct decisions cost nothing. To minimise the expected cost, flag a payment when its predicted fraud probability is above which value?',
     options: ['0.1', '0.5', '0.9', '0.11'],
     answer: 0,
     explanation:

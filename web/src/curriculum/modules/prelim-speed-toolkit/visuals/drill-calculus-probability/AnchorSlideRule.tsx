@@ -238,8 +238,8 @@ export default function AnchorSlideRule() {
       caption={
         <>
           The top and bottom scales describe the same position, so the cursor turns a value into its log (or exponential, square root or sigmoid). Drag the cursor or tap an anchor.
-          Notice that the anchors are evenly spread on the bottom scale: everything in between is a sum or multiple of them. Then switch on the challenge and estimate without
-          looking.
+          In the ln x view, notice that every doubling on the top scale (1→2, 5→10, 10→20) is the same step of 0.69 on the bottom scale: that is why ln 4 = 2 ln 2
+          and ln 5 = ln 10 − ln 2, so most values are a sum or multiple of a few anchors. Then switch on the challenge and estimate without looking.
         </>
       }
     >

@@ -52,7 +52,8 @@ const CASES: Case[] = [
     cause: (
       <>
         Nothing is being updated. Here the optimiser was built from an <i>old</i> copy of the model: <code>optimizer = SGD(old_model.parameters())</code>. A loss that is
-        exactly flat also appears when every weight has <code>requires_grad = False</code>, or the learning rate is 0.
+        exactly flat also appears when the learning rate is 0. (Freezing every weight with <code>requires_grad = False</code> does not give a flat line:
+        <code>backward()</code> raises an error because nothing needs a gradient.)
       </>
     ),
     fix: <>Build the optimiser from the model you actually train, right after creating it, and check it holds trainable parameters.</>,

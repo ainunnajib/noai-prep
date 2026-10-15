@@ -417,13 +417,15 @@ gb_es = GBREarlyStop(n_estimators=500, learning_rate=0.1, max_depth=3, criterion
 gb_es.fit(X_tr, y_tr, X_val, y_val, patience=1)
 print(f"Early stopping: kept {gb_es.n_estimators} trees, test MSE {mean_squared_error(y_test, gb_es.predict(X_test)):.4f}")`} />
 
-Run locally with scikit-learn 1.9, it prints:
+Run in the exam's Jupyter notebook (scikit-learn 1.9), it prints:
 
 ```text
 L2 test MSE: 1267.7653
 L1 test MSE: 15986.0285
 Early stopping: kept 124 trees, test MSE 1229.9257
 ```
+
+The runner on this page uses the browser build of scikit-learn, so its numbers can differ a little: for example L2 test MSE 1266.65 and "kept 176 trees, test MSE 1076.45". Both outputs are correct. The two builds break ties between equally good splits differently, and with `patience=1` one tiny difference in the validation loss changes where training stops. If your own code matches the runner here, it is right.
 
 The L2 score sits next to scikit-learn's own `GradientBoostingRegressor` (1268.7214 in the notebook's comparison cell). On the training rows the two models give identical predictions; small differences on the test rows come only from how the two libraries break ties between equally good splits.
 

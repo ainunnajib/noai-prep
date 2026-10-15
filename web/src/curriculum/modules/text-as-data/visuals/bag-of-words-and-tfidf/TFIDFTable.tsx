@@ -47,7 +47,7 @@ export default function TFIDFTable() {
   })
   // a "top word" is only shown when there is a clear winner (at most a 2-way tie)
   const clear = top.map((tw) => tw.length > 0 && tw.length <= 2)
-  const noWinner = top.every((tw, i) => !clear[i])
+  const noWinner = clear.every((c) => !c)
 
   const heat = (v: number) => (v > 0 ? `color-mix(in srgb, ${useIdf ? 'var(--viz-2)' : 'var(--viz-1)'} ${Math.round(12 + (v / maxW) * 58)}%, var(--surface))` : undefined)
   const cols = narrow ? `minmax(3.4rem, max-content) repeat(${N}, 2.35rem) 1.6rem 2.5rem` : `minmax(4.2rem, max-content) repeat(${N}, 2.9rem) 2.2rem 3rem`

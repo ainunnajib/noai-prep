@@ -122,7 +122,7 @@ function recommend(data: Data, size: Size, lat: Lat, target: Target, explain: bo
     accept: ['transformer', 'cnn'],
     start: device
       ? 'A small CNN on log-mel spectrograms or MFCCs, quantised to int8 (keyword-spotting style)'
-      : 'A pretrained audio model on log-mel spectrograms: an audio Transformer (such as AST or HuBERT) or a CNN',
+      : 'A pretrained audio model: an audio Transformer or CNN on log-mel spectrograms (such as AST), or a speech model on the raw waveform (wav2vec 2.0, HuBERT)',
     baseline: 'Predict the majority class, then logistic regression on averaged MFCC features.',
     why: 'Turning sound into a spectrogram makes it image-like, and pretrained audio models already recognise speech and everyday sounds.',
     notes,

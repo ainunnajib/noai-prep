@@ -208,7 +208,7 @@ tensor([1, 4, 2, 5, 3, 6])
 RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
 ```
 
-The fix is `u.reshape(6)` or `u.contiguous().view(6)`. You will see the second form in attention code: `out.transpose(1, 2).contiguous().view(B, T, C)`. In the lab above, apply `permute(2, 0, 1)`, switch on memory order and try `view(-1)` to watch this happen. (`view(3, -1)` still works there: it only splits the last two axes, whose numbers are still evenly spaced in memory.)
+The fix is `u.reshape(6)` or `u.contiguous().view(6)`. You will see the second form in attention code: `out.transpose(1, 2).contiguous().view(B, T, C)`. In the lab above, apply `permute(2, 0, 1)`, switch on memory order and try `view(-1)` to watch this happen. (`view(3, -1)` still works there: it merges only the last two axes, which still sit one after the other in memory, so no copy is needed. `view(-1)` would also have to merge the first axis with them, and that axis is spread across the whole strip.)
 
 </Reveal>
 
