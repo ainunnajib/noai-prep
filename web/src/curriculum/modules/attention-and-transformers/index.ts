@@ -23,7 +23,7 @@ const mod: ModuleDef = {
       slug: "scaled-dot-product-attention",
       title: "Scaled dot-product attention and masks",
       summary: "The formula softmax(QKᵀ/√d_k)V step by step with shapes, why we divide by √d_k, and padding and causal masks.",
-      minutes: 30,
+      minutes: 35,
       objectives: ["You can compute attention for a tiny Q, K, V by hand", "You can state the shapes of QKᵀ and the output", "You can explain the √d_k scaling", "You can build causal and padding masks and apply them with −∞ before softmax"],
       load: () => import('./scaled-dot-product-attention.mdx'),
     },

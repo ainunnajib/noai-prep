@@ -103,6 +103,9 @@ export default function HeadSplitter() {
   }, [d, h, dk, valid])
 
   // ---- geometry (real pixels) ----
+  // Token-major steps (0, 1, 4, 5, 6): one row per token, the head chunks side by side.
+  // Head-major steps (2, 3, after transpose): one block per head, stacked downwards (up to 4 per column),
+  // so the transpose visibly moves every square into its head's block.
   const Wpx = Math.max(290, Math.min(width, 640))
   const labelW = 44
   const gapBig = h <= 4 ? 16 : 10
@@ -110,19 +113,32 @@ export default function HeadSplitter() {
   const top = 30
   const blockW = dk * cell
   const mini = Math.max(5, Math.min(12, Math.floor(blockW / T)))
-  const miniTop = top + T * cell + 12
-  const Hpx = miniTop + T * mini + 8
-  const gap = step === 2 || step === 3 ? gapBig : step === 1 || step === 4 ? 6 : 0
+  const headMajor = valid && (step === 2 || step === 3)
+  const perCol = Math.min(Math.max(1, h), 4)
+  const gapV = 22
+  const miniW = T * mini + 10
+  const colW = labelW + blockW + miniW + gapBig
+  const blockPos = (i: number) => ({ x: labelW + Math.floor(i / perCol) * colW, y: top + (i % perCol) * (T * cell + gapV) })
+  const gap = step === 1 || step === 4 ? 6 : 0
   const headX = (i: number) => labelW + i * (blockW + gap)
-  const cellX = (j: number) => (valid ? headX(Math.floor(j / dk)) + (j % dk) * cell : labelW + j * cell)
   const rowY = (t: number) => top + t * cell
+  const cellXY = (t: number, j: number): [number, number] => {
+    if (!valid) return [labelW + j * cell, rowY(t)]
+    const i = Math.floor(j / dk)
+    if (headMajor) {
+      const b = blockPos(i)
+      return [b.x + (j % dk) * cell, b.y + t * cell]
+    }
+    return [headX(i) + (j % dk) * cell, rowY(t)]
+  }
+  const Hpx = headMajor ? top + perCol * (T * cell + gapV) - gapV + 10 : top + T * cell + 10
 
   const M: Mat | null = data ? (step <= 2 ? data.Q : step <= 5 ? data.concat : data.final) : null
   const flat = M ? M.flat() : [0]
   const lo = Math.min(...flat)
   const hi = Math.max(...flat)
   const shade = (v: number) => (hi === lo ? 0.5 : (v - lo) / (hi - lo))
-  const totalW = valid ? labelW + h * blockW + (h - 1) * gap : labelW + d * cell
+  const totalW = headMajor ? Math.ceil(h / perCol) * colW - gapBig : valid ? labelW + h * blockW + (h - 1) * gap : labelW + d * cell
 
   const sizes: Record<string, number> = { B, T, h, d_k: dk, d_model: d }
   const shapeNums = STEP_SHAPE[step].replace(/[A-Za-z_]+/g, (k) => String(sizes[k] ?? k))
@@ -135,7 +151,7 @@ export default function HeadSplitter() {
         <>
           Press <b>Play</b> (or step with Next and Back) and watch batch item 0 of a batch of B = 2. Every small square is one number: its colour is
           the head it belongs to and its shade is its value. <code>view</code> and <code>transpose</code> only move squares around; attention and{' '}
-          <code>W_o</code> are the only steps that compute new numbers. Then change d_model and the number of heads, and try a pair that does not
+          <code>W_o</code> are the only steps that compute new numbers. Watch <code>transpose</code>: every square travels into its head&apos;s block. Then change d_model and the number of heads, and try a pair that does not
           divide (say 10 and 4).
         </>
       }
@@ -159,11 +175,20 @@ export default function HeadSplitter() {
         <svg viewBox={`0 0 ${Wpx} ${Hpx}`} width="100%" role="img" style={{ display: 'block', overflow: 'visible' }} aria-label={valid ? `Step ${step + 1}: tensor of shape ${shapeNums}, drawn for one batch item` : 'd_model is not divisible by the number of heads'}>
           <g style={{ transform: `translateX(${Math.max(0, (Wpx - totalW) / 2 - labelW / 2)}px)`, transition: 'transform 0.6s ease' }}>
             {/* token labels */}
-            {TOKENS.map((tk, t) => (
-              <text key={tk} x={labelW - 6} y={rowY(t) + cell / 2} dy="0.35em" textAnchor="end" style={{ fill: 'var(--ink)', fontSize: 12, fontWeight: 600 }}>
-                {tk}
-              </text>
-            ))}
+            {!headMajor &&
+              TOKENS.map((tk, t) => (
+                <text key={tk} x={labelW - 6} y={rowY(t) + cell / 2} dy="0.35em" textAnchor="end" style={{ fill: 'var(--ink)', fontSize: 12, fontWeight: 600 }}>
+                  {tk}
+                </text>
+              ))}
+            {headMajor &&
+              Array.from({ length: h }, (_, i) =>
+                TOKENS.map((tk, t) => (
+                  <text key={`${i}-${tk}`} x={blockPos(i).x - 6} y={blockPos(i).y + t * cell + cell / 2} dy="0.35em" textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 600 }}>
+                    {tk}
+                  </text>
+                )),
+              )}
 
             {/* frames: token rows (step 1, 4) or head blocks (step 2, 3) */}
             {valid &&
@@ -181,7 +206,7 @@ export default function HeadSplitter() {
             {valid &&
               Array.from({ length: h }, (_, i) => (
                 <g key={`hf${i}`} style={{ opacity: step === 2 || step === 3 ? 1 : 0, transition: 'opacity 0.4s' }}>
-                  <rect x={labelW + i * (blockW + gapBig) - 3} y={top - 3} width={blockW + 6} height={T * cell + 6} rx={5} style={{ fill: 'none', stroke: headColour(i), strokeWidth: 2 }} />
+                  <rect x={blockPos(i).x - 3} y={blockPos(i).y - 3} width={blockW + 6} height={T * cell + 6} rx={5} style={{ fill: 'none', stroke: headColour(i), strokeWidth: 2 }} />
                 </g>
               ))}
 
@@ -190,8 +215,8 @@ export default function HeadSplitter() {
               Array.from({ length: h }, (_, i) => (
                 <text
                   key={`hl${i}`}
-                  x={headX(i) + blockW / 2}
-                  y={top - 9}
+                  x={headMajor ? blockPos(i).x + blockW / 2 : headX(i) + blockW / 2}
+                  y={headMajor ? blockPos(i).y - 8 : top - 9}
                   textAnchor="middle"
                   style={{
                     fill: headColour(i),
@@ -232,7 +257,7 @@ export default function HeadSplitter() {
                     height={cell - 2}
                     rx={2.5}
                     style={{
-                      transform: `translate(${cellX(j) + 1}px, ${rowY(t) + 1}px)`,
+                      transform: `translate(${cellXY(t, j)[0] + 1}px, ${cellXY(t, j)[1] + 1}px)`,
                       transition: 'transform 0.6s ease, fill 0.6s ease',
                       fill,
                       stroke: leftover ? 'var(--viz-neg)' : 'none',
@@ -251,8 +276,8 @@ export default function HeadSplitter() {
                     row.map((w, b) => (
                       <rect
                         key={`${a}-${b}`}
-                        x={labelW + i * (blockW + gapBig) + (blockW - T * mini) / 2 + b * mini}
-                        y={miniTop + a * mini}
+                        x={blockPos(i).x + blockW + 10 + b * mini}
+                        y={blockPos(i).y + (T * cell - T * mini) / 2 + a * mini}
                         width={mini - 0.8}
                         height={mini - 0.8}
                         style={{ fill: tint(headColour(i), 0.08 + 0.92 * w) }}
@@ -262,7 +287,7 @@ export default function HeadSplitter() {
                 </g>
               ))}
             {step === 3 && valid && (
-              <text x={labelW - 6} y={miniTop + (T * mini) / 2} dy="0.35em" textAnchor="end" style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
+              <text x={blockPos(0).x + blockW + 10 + (T * mini) / 2} y={blockPos(0).y - 8} textAnchor="middle" style={{ fill: 'var(--ink-2)', fontSize: 10.5, fontWeight: 700 }}>
                 T×T
               </text>
             )}

@@ -155,9 +155,9 @@ So the standard deviation, the typical size of a score, is $\sqrt{d_k}$: about 2
 
 **The fix.** Dividing a random quantity by $c$ divides its variance by $c^2$. Dividing the scores by $\sqrt{d_k}$ divides their variance by $d_k$, bringing it back to $d_k / d_k = 1$ whatever the dimension.
 
-<Analogy title="Marking on a curve">
+<Analogy title="Sharing a prize by softmax">
 
-A 10-question quiz and a 100-question exam are both marked as raw scores. On the long exam, the gaps between students are much bigger (a 20-mark gap is ordinary), so if you rank by raw marks the top student looks infinitely ahead. Rescaling the marks onto the same spread makes the two tests comparable. Dividing by $\sqrt{d_k}$ puts scores from short and long vectors on the same scale.
+A teacher splits a prize between three students by taking the softmax of their marks. On a 10-question quiz they score 8, 7 and 6, and the prize splits 67%, 24% and 9%: everyone gets a share. On a 100-question exam the same three students score 80, 70 and 60. The gaps are ten times bigger, and because softmax exponentiates the gaps, the top student now takes 99.995% and the other two get almost nothing. Dividing the exam marks by 10 before the softmax brings back the fair 67 / 24 / 9 split. Longer query and key vectors make bigger dot products in the same way, and dividing by $\sqrt{d_k}$ is that rescaling.
 
 </Analogy>
 

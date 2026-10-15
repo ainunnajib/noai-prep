@@ -57,7 +57,9 @@ function weights(end: Ending): number[][] {
   return L.map(softmax)
 }
 
-const SEG_COLOURS = ['var(--viz-2)', 'var(--viz-3)', 'var(--viz-5)']
+// each word keeps its own colour, so switching the ending visibly moves the mix from 'animal' (orange) to 'street' (purple)
+const WORD_COLOUR: Record<number, string> = { [ANIMAL]: 'var(--viz-2)', [STREET]: 'var(--viz-5)', [END]: 'var(--viz-3)', [IT]: 'var(--viz-1)' }
+const NEUTRAL = ['color-mix(in srgb, var(--viz-muted) 75%, var(--ink))', 'var(--viz-muted)', 'color-mix(in srgb, var(--viz-muted) 60%, var(--surface))']
 
 export default function SentenceAttention() {
   const [end, setEnd] = useState<Ending>('tired')
@@ -68,7 +70,9 @@ export default function SentenceAttention() {
   const row = A[sel]
   const maxW = Math.max(...row)
   const order = row.map((w, j) => [w, j] as const).sort((a, b) => b[0] - a[0])
-  const top3 = order.slice(0, 3)
+  // the three biggest weights, shown in sentence order so each word's segment stays in the same place
+  const top3 = order.slice(0, 3).sort((a, b) => a[1] - b[1])
+  const colourOf = (j: number, k: number) => WORD_COLOUR[j] ?? NEUTRAL[k % NEUTRAL.length]
   const rest = 1 - top3.reduce((a, [w]) => a + w, 0)
   // round the legend so the four percentages add up to exactly 100
   const topPct = top3.map(([w]) => Math.round(w * 100))
@@ -161,7 +165,7 @@ export default function SentenceAttention() {
                 y1={y(sel)}
                 x2={rightX - 6}
                 y2={y(j)}
-                style={{ stroke: 'var(--viz-1)', strokeWidth: 0.8 + 11 * w, opacity: 0.18 + 0.82 * (w / maxW) }}
+                style={{ stroke: WORD_COLOUR[j] ?? 'var(--viz-1)', strokeWidth: 0.8 + 11 * w, opacity: 0.18 + 0.82 * (w / maxW) }}
                 strokeLinecap="round"
               />
             )
@@ -187,7 +191,7 @@ export default function SentenceAttention() {
                 {wd}
               </text>
               <rect x={barX} y={y(j) - 6} width={barW} height={12} rx={3} style={{ fill: 'var(--surface-2)' }} />
-              <rect x={barX} y={y(j) - 6} width={Math.max(1, barW * row[j])} height={12} rx={3} style={{ fill: 'var(--viz-1)', opacity: 0.35 + 0.65 * (row[j] / maxW) }} />
+              <rect x={barX} y={y(j) - 6} width={Math.max(1, barW * row[j])} height={12} rx={3} style={{ fill: WORD_COLOUR[j] ?? 'var(--viz-1)', opacity: 0.35 + 0.65 * (row[j] / maxW) }} />
               <text x={W - 2} y={y(j)} dy="0.35em" textAnchor="end" style={{ fill: 'var(--ink)', fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: row[j] === maxW ? 800 : 500 }}>
                 {(row[j] * 100).toFixed(0)}%
               </text>
@@ -202,14 +206,14 @@ export default function SentenceAttention() {
         </div>
         <div className={s.mixBar} aria-hidden="true">
           {top3.map(([w, j], k) => (
-            <span key={j} className={s.mixSeg} style={{ width: `${w * 100}%`, background: SEG_COLOURS[k] }} />
+            <span key={j} className={s.mixSeg} style={{ width: `${w * 100}%`, background: colourOf(j, k) }} />
           ))}
           <span className={s.mixSeg} style={{ width: `${rest * 100}%`, background: 'var(--viz-muted)', opacity: 0.55 }} />
         </div>
         <div className={s.legend}>
           {top3.map(([, j], k) => (
             <span key={j} className={s.legendItem}>
-              <span className={s.dot} style={{ background: SEG_COLOURS[k] }} />
+              <span className={s.dot} style={{ background: colourOf(j, k) }} />
               <span>
                 {topPct[k]}% <b>{words[j]}</b>
               </span>

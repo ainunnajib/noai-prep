@@ -49,7 +49,7 @@ function cosSim(a: number[], b: number[]) {
 }
 
 export default function PositionalEncodingHeatmap() {
-  const [d, setD] = useState(16)
+  const [d, setD] = useState(64)
   const [T, setT] = useState(50)
   const [variant, setVariant] = useState<PeVariant>('correct')
   const [pos, setPos] = useState(5)
@@ -110,7 +110,7 @@ export default function PositionalEncodingHeatmap() {
     >
       <Controls>
         <Slider label="d_model" value={d} min={4} max={128} step={4} onChange={setD} />
-        <Slider label="positions" value={T} min={10} max={100} step={5} onChange={setT} />
+        <Slider label="number of positions" value={T} min={10} max={100} step={5} onChange={setT} />
         <Segmented label="formula" value={variant} onChange={setVariant} options={VARIANTS} />
       </Controls>
 
